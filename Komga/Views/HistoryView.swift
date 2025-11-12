@@ -52,6 +52,7 @@ struct HistoryView: View {
               books: recentlyReadBooks,
               bookViewModel: bookViewModel
             )
+            .animation(.default, value: recentlyReadBooks)
             .transition(.move(edge: .top).combined(with: .opacity))
           } else {
             VStack(spacing: 16) {
@@ -71,10 +72,10 @@ struct HistoryView: View {
           }
         }
         .padding(.vertical)
-        .id(selectedLibraryId)  // Force view refresh on library change
       }
-      .navigationTitle("Read History")
+      .navigationTitle("History")
       .navigationBarTitleDisplayMode(.inline)
+      .animation(.default, value: selectedLibraryId)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Menu {
@@ -95,17 +96,17 @@ struct HistoryView: View {
         }
       }
       .refreshable {
-        await loadRecentlyRead()
+        await loadRecentlyRead(showLoading: false)
       }
       .onChange(of: selectedLibraryId) {
         Task {
-          await loadRecentlyRead()
+          await loadRecentlyRead(showLoading: false)
         }
       }
     }
     .task {
       await loadLibraries()
-      await loadRecentlyRead()
+      await loadRecentlyRead(showLoading: true)
     }
   }
 
@@ -122,8 +123,10 @@ struct HistoryView: View {
     }
   }
 
-  private func loadRecentlyRead() async {
-    isLoading = true
+  private func loadRecentlyRead(showLoading: Bool = true) async {
+    if showLoading {
+      isLoading = true
+    }
     errorMessage = nil
 
     do {
@@ -136,7 +139,9 @@ struct HistoryView: View {
       errorMessage = error.localizedDescription
     }
 
-    isLoading = false
+    if showLoading {
+      isLoading = false
+    }
   }
 }
 
@@ -152,7 +157,7 @@ struct ReadHistorySection: View {
         .fontWeight(.bold)
         .padding(.horizontal)
 
-      LazyVStack(spacing: 12) {
+      LazyVStack(spacing: 8) {
         ForEach(books) { book in
           NavigationLink(destination: BookReaderView(bookId: book.id)) {
             ReadHistoryBookRow(book: book, viewModel: bookViewModel)
@@ -236,7 +241,6 @@ struct ReadHistoryBookRow: View {
         .font(.caption)
         .foregroundColor(.secondary)
     }
-    .padding(.vertical, 8)
     .task {
       thumbnail = await viewModel.loadThumbnail(for: book.id)
     }

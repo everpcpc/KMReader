@@ -113,11 +113,10 @@ struct DashboardView: View {
           }
         }
         .padding(.vertical)
-        .id(selectedLibraryId)  // Force view refresh on library change
       }
       .navigationTitle(selectedLibrary?.name ?? "All Libraries")
       .navigationBarTitleDisplayMode(.inline)
-      .animation(.default, value: selectedLibrary)
+      .animation(.default, value: selectedLibraryId)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Menu {
@@ -253,6 +252,7 @@ struct DashboardSection: View {
         .padding(.horizontal)
       }
     }
+    .animation(.default, value: books)
   }
 }
 
@@ -367,6 +367,7 @@ struct DashboardSeriesSection: View {
         .padding(.horizontal)
       }
     }
+    .animation(.default, value: series)
   }
 }
 
