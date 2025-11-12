@@ -1,0 +1,15 @@
+*.xcconfig
+*.xcbkptlist
+
+*.xcuserdatad/
+xcshareddata/
+
+.build/
+Package.resolved
+
+/buildServer.json
+
+.DS_Store
+
+.vscode/
+.claude/
