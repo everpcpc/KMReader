@@ -2,60 +2,94 @@
 //  ContentView.swift
 //  Komga
 //
-//  Created by Chuan Chuan on 2025/11/12.
+//  Created by Komga iOS Client
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+  @Environment(AuthViewModel.self) private var authViewModel
 
-    var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+  var body: some View {
+    Group {
+      if authViewModel.isLoggedIn {
+        MainTabView()
+      } else {
+        LoginView()
+      }
+    }
+    .onAppear {
+      if authViewModel.isLoggedIn {
+        Task {
+          await authViewModel.loadCurrentUser()
+        }
+      }
+    }
+  }
+}
+
+struct MainTabView: View {
+  var body: some View {
+    TabView {
+      DashboardView()
+        .tabItem {
+          Label("Home", systemImage: "house")
+        }
+
+      LibraryListView()
+        .tabItem {
+          Label("Browse", systemImage: "books.vertical")
+        }
+
+      HistoryView()
+        .tabItem {
+          Label("History", systemImage: "clock")
+        }
+
+      SettingsView()
+        .tabItem {
+          Label("Settings", systemImage: "gearshape")
         }
     }
+  }
+}
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
+struct SettingsView: View {
+  @Environment(AuthViewModel.self) private var authViewModel
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+  var body: some View {
+    NavigationView {
+      Form {
+        Section(header: Text("Account")) {
+          if let user = authViewModel.user {
+            HStack {
+              Text("Email")
+              Spacer()
+              Text(user.email)
+                .foregroundColor(.secondary)
             }
+          }
         }
+
+        Section {
+          Button(role: .destructive) {
+            authViewModel.logout()
+          } label: {
+            HStack {
+              Spacer()
+              Text("Logout")
+              Spacer()
+            }
+          }
+        }
+      }
+      .navigationTitle("Settings")
+      .navigationBarTitleDisplayMode(.inline)
     }
+  }
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+  ContentView()
+    .environment(AuthViewModel())
 }

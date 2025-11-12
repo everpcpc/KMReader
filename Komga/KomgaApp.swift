@@ -2,31 +2,19 @@
 //  KomgaApp.swift
 //  Komga
 //
-//  Created by Chuan Chuan on 2025/11/12.
+//  Created by Komga iOS Client
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct KomgaApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+  @State private var authViewModel = AuthViewModel()
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .modelContainer(sharedModelContainer)
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
+        .environment(authViewModel)
     }
+  }
 }
