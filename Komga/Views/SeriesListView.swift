@@ -142,9 +142,3 @@ struct SeriesCardView: View {
     }
   }
 }
-
-#Preview {
-  NavigationView {
-    SeriesListView(libraryId: "1", libraryName: "Comics")
-  }
-}

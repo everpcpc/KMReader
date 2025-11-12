@@ -23,55 +23,76 @@ struct BookReaderView: View {
         ProgressView()
           .tint(.white)
       } else if !viewModel.pages.isEmpty {
-        ZStack {
-          TabView(selection: $viewModel.currentPage) {
-            ForEach(0..<viewModel.pages.count, id: \.self) { index in
-              PageImageView(
-                viewModel: viewModel,
-                pageIndex: index
-              )
-              .tag(index)
-            }
-          }
-          .tabViewStyle(.page(indexDisplayMode: .never))
-          .onChange(of: viewModel.currentPage) { _, _ in
-            Task {
-              await viewModel.updateProgress()
-              await viewModel.preloadPages()
-            }
-          }
-
-          // Tap zones overlay covering entire screen (only when controls are hidden)
-          if !showingControls {
-            GeometryReader { geometry in
-              HStack(spacing: 0) {
-                // Left tap zone
-                Color.clear
-                  .frame(width: geometry.size.width * 0.3)
-                  .contentShape(Rectangle())
-                  .onTapGesture {
-                    goToPreviousPage()
-                  }
-
-                // Center tap zone (toggle controls)
-                Color.clear
-                  .frame(width: geometry.size.width * 0.4)
-                  .contentShape(Rectangle())
-                  .onTapGesture {
-                    toggleControls()
-                  }
-
-                // Right tap zone
-                Color.clear
-                  .frame(width: geometry.size.width * 0.3)
-                  .contentShape(Rectangle())
-                  .onTapGesture {
-                    goToNextPage()
-                  }
+        // Page viewer with swipe animation
+        TabView(
+          selection: Binding(
+            get: { viewModel.pageIndexToDisplayIndex(viewModel.currentPage) },
+            set: { displayIndex in
+              withAnimation {
+                viewModel.currentPage = viewModel.displayIndexToPageIndex(displayIndex)
               }
             }
-            .allowsHitTesting(true)
+          )
+        ) {
+          ForEach(0..<viewModel.pages.count, id: \.self) { displayIndex in
+            GeometryReader { geometry in
+              ZStack {
+                PageImageView(
+                  viewModel: viewModel,
+                  pageIndex: viewModel.displayIndexToPageIndex(displayIndex)
+                )
+
+                // Tap zones overlay
+                HStack(spacing: 0) {
+                  // Left tap zone
+                  Color.clear
+                    .frame(width: geometry.size.width * 0.3)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                      TapGesture()
+                        .onEnded { _ in
+                          goToPreviousPage()
+                        }
+                    )
+
+                  // Center tap zone (toggle controls)
+                  Color.clear
+                    .frame(width: geometry.size.width * 0.4)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                      TapGesture()
+                        .onEnded { _ in
+                          toggleControls()
+                        }
+                    )
+
+                  // Right tap zone
+                  Color.clear
+                    .frame(width: geometry.size.width * 0.3)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                      TapGesture()
+                        .onEnded { _ in
+                          goToNextPage()
+                        }
+                    )
+                }
+              }
+            }
+            .tag(displayIndex)
           }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .indexViewStyle(.page(backgroundDisplayMode: .never))
+        .onChange(of: viewModel.currentPage) { _, _ in
+          Task {
+            await viewModel.updateProgress()
+            await viewModel.preloadPages()
+          }
+        }
+        .onChange(of: viewModel.readingDirection) { _, _ in
+          // When direction changes, maintain the current page position
+          // The TabView will automatically update due to the binding
         }
 
         // Controls overlay
@@ -79,15 +100,32 @@ struct BookReaderView: View {
           VStack {
             // Top bar
             HStack {
-              Button(action: {
+              Button {
                 dismiss()
-              }) {
+              } label: {
                 Image(systemName: "xmark")
                   .font(.title2)
                   .foregroundColor(.white)
                   .padding()
                   .background(Color.black.opacity(0.5))
                   .clipShape(Circle())
+              }
+
+              Spacer()
+
+              // Reading direction toggle button
+              Button {
+                toggleReadingDirection()
+              } label: {
+                Image(
+                  systemName: viewModel.readingDirection == .ltr
+                    ? "arrow.left.arrow.right" : "arrow.right.arrow.left"
+                )
+                .font(.title3)
+                .foregroundColor(.white)
+                .padding()
+                .background(Color.black.opacity(0.5))
+                .clipShape(Circle())
               }
 
               Spacer()
@@ -107,8 +145,10 @@ struct BookReaderView: View {
             VStack {
               Slider(
                 value: Binding(
-                  get: { Double(viewModel.currentPage) },
-                  set: { viewModel.currentPage = Int($0) }
+                  get: { Double(viewModel.pageIndexToDisplayIndex(viewModel.currentPage)) },
+                  set: { displayIndex in
+                    viewModel.currentPage = viewModel.displayIndexToPageIndex(Int(displayIndex))
+                  }
                 ),
                 in: 0...Double(max(0, viewModel.pages.count - 1)),
                 step: 1
@@ -116,16 +156,25 @@ struct BookReaderView: View {
               .tint(.white)
             }
             .padding()
-            .background(Color.black.opacity(0.5))
           }
+          .background(
+            LinearGradient(
+              gradient: Gradient(colors: [
+                .black.opacity(0.5),
+                .black.opacity(0.2),
+                .clear, .clear,
+                .black.opacity(0.2),
+                .black.opacity(0.5),
+              ]),
+              startPoint: .top,
+              endPoint: .bottom
+            )
+            .allowsHitTesting(false)
+          )
           .transition(.opacity)
-          .onTapGesture {
-            // Prevent tap from passing through to tap zones
-          }
         }
       }
     }
-    .navigationBarHidden(true)
     .statusBar(hidden: !showingControls)
     .task {
       // Load book info to get read progress page
@@ -146,19 +195,45 @@ struct BookReaderView: View {
   }
 
   private func goToNextPage() {
-    if viewModel.currentPage < viewModel.pages.count - 1 {
-      withAnimation {
-        viewModel.currentPage += 1
+    switch viewModel.readingDirection {
+    case .ltr:
+      if viewModel.currentPage < viewModel.pages.count - 1 {
+        withAnimation {
+          viewModel.currentPage += 1
+        }
+      }
+    case .rtl:
+      if viewModel.currentPage > 0 {
+        withAnimation {
+          viewModel.currentPage -= 1
+        }
       }
     }
   }
 
   private func goToPreviousPage() {
-    if viewModel.currentPage > 0 {
-      withAnimation {
-        viewModel.currentPage -= 1
+    switch viewModel.readingDirection {
+    case .ltr:
+      if viewModel.currentPage > 0 {
+        withAnimation {
+          viewModel.currentPage -= 1
+        }
+      }
+    case .rtl:
+      if viewModel.currentPage < viewModel.pages.count - 1 {
+        withAnimation {
+          viewModel.currentPage += 1
+        }
       }
     }
+  }
+
+  private func toggleReadingDirection() {
+    // Toggle direction
+    viewModel.readingDirection = viewModel.readingDirection == .ltr ? .rtl : .ltr
+
+    // The currentPage remains the same (actual page index)
+    // The display will update automatically through the TabView binding
   }
 
   private func toggleControls() {
@@ -220,9 +295,10 @@ struct PageImageView: View {
                   }
                 }
             )
-            .gesture(
-              DragGesture(minimumDistance: scale > 1.0 ? 0 : 100)
+            .simultaneousGesture(
+              DragGesture(minimumDistance: 0)
                 .onChanged { value in
+                  // Only handle drag when zoomed in
                   if scale > 1.0 {
                     offset = CGSize(
                       width: lastOffset.width + value.translation.width,
@@ -236,16 +312,19 @@ struct PageImageView: View {
                   }
                 }
             )
-            .onTapGesture {
+            .onTapGesture(count: 2) {
+              // Double tap to zoom in/out
               if scale > 1.0 {
-                // Tap to reset zoom when zoomed in
                 withAnimation {
                   scale = 1.0
                   offset = .zero
                   lastOffset = .zero
                 }
+              } else {
+                withAnimation {
+                  scale = 2.0
+                }
               }
-              // When not zoomed, let the overlay handle taps
             }
         } else {
           ProgressView()
@@ -254,7 +333,15 @@ struct PageImageView: View {
       }
       .frame(width: geometry.size.width, height: geometry.size.height)
     }
-    .task {
+    .task(id: pageIndex) {
+      // Reset image and zoom state when page changes
+      image = nil
+      scale = 1.0
+      lastScale = 1.0
+      offset = .zero
+      lastOffset = .zero
+
+      // Load new page image
       image = await viewModel.loadPageImage(pageIndex: pageIndex)
     }
   }

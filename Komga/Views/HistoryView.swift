@@ -22,7 +22,7 @@ struct HistoryView: View {
   }
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
           if isLoading && recentlyReadBooks.isEmpty {
@@ -150,6 +150,15 @@ struct ReadHistorySection: View {
   let books: [Book]
   var bookViewModel: BookViewModel
 
+  @State private var selectedBookId: String?
+
+  private var isBookReaderPresented: Binding<Bool> {
+    Binding(
+      get: { selectedBookId != nil },
+      set: { if !$0 { selectedBookId = nil } }
+    )
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       Text(title)
@@ -159,13 +168,20 @@ struct ReadHistorySection: View {
 
       LazyVStack(spacing: 8) {
         ForEach(books) { book in
-          NavigationLink(destination: BookReaderView(bookId: book.id)) {
+          Button {
+            selectedBookId = book.id
+          } label: {
             ReadHistoryBookRow(book: book, viewModel: bookViewModel)
           }
           .buttonStyle(PlainButtonStyle())
         }
       }
       .padding(.horizontal)
+    }
+    .fullScreenCover(isPresented: isBookReaderPresented) {
+      if let bookId = selectedBookId {
+        BookReaderView(bookId: bookId)
+      }
     }
   }
 }

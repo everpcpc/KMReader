@@ -14,6 +14,14 @@ struct SeriesDetailView: View {
   @State private var bookViewModel = BookViewModel()
   @State private var series: Series?
   @State private var thumbnail: UIImage?
+  @State private var selectedBookId: String?
+
+  private var isBookReaderPresented: Binding<Bool> {
+    Binding(
+      get: { selectedBookId != nil },
+      set: { if !$0 { selectedBookId = nil } }
+    )
+  }
 
   var body: some View {
     ScrollView {
@@ -97,7 +105,9 @@ struct SeriesDetailView: View {
             } else {
               LazyVStack(spacing: 8) {
                 ForEach(bookViewModel.books) { book in
-                  NavigationLink(destination: BookReaderView(bookId: book.id)) {
+                  Button {
+                    selectedBookId = book.id
+                  } label: {
                     BookRowView(book: book, viewModel: bookViewModel)
                   }
                   .buttonStyle(PlainButtonStyle())
@@ -113,6 +123,11 @@ struct SeriesDetailView: View {
       }
     }
     .navigationBarTitleDisplayMode(.inline)
+    .fullScreenCover(isPresented: isBookReaderPresented) {
+      if let bookId = selectedBookId {
+        BookReaderView(bookId: bookId)
+      }
+    }
     .task {
       // Load series details
       do {
@@ -225,11 +240,5 @@ struct BookRowView: View {
 
     formatter.dateFormat = "yyyy-MM-dd"
     return formatter.string(from: date)
-  }
-}
-
-#Preview {
-  NavigationView {
-    SeriesDetailView(seriesId: "1")
   }
 }

@@ -12,7 +12,7 @@ struct LibraryListView: View {
   @Environment(AuthViewModel.self) private var authViewModel
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       Group {
         if viewModel.isLoading && viewModel.libraries.isEmpty {
           ProgressView()

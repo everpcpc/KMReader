@@ -14,7 +14,7 @@ struct LoginView: View {
   @State private var password = ""
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       Form {
         Section(header: Text("Server")) {
           TextField("Server URL", text: $serverURL)
@@ -25,7 +25,7 @@ struct LoginView: View {
 
         Section(header: Text("Credentials")) {
           TextField("Username", text: $username)
-            .textContentType(.username)
+            .textContentType(.emailAddress)
             .autocapitalization(.none)
 
           SecureField("Password", text: $password)

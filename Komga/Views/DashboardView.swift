@@ -20,7 +20,7 @@ struct DashboardView: View {
 
   // Library selection with persistence
   @State private var libraries: [Library] = []
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""  // Empty string means "All Libraries"
+  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @State private var showLibraryPicker = false
 
   private var selectedLibraryIdOptional: String? {
@@ -28,7 +28,7 @@ struct DashboardView: View {
   }
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
           if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty {
@@ -121,7 +121,7 @@ struct DashboardView: View {
         ToolbarItem(placement: .topBarTrailing) {
           Menu {
             Picker(selection: $selectedLibraryId) {
-              Label("All", systemImage: "square.grid.2x2").tag("")
+              Label("All Libraries", systemImage: "square.grid.2x2").tag("")
               ForEach(libraries) { library in
                 Label(library.name, systemImage: "books.vertical").tag(library.id)
               }
@@ -233,6 +233,15 @@ struct DashboardSection: View {
   let books: [Book]
   var bookViewModel: BookViewModel
 
+  @State private var selectedBookId: String?
+
+  private var isBookReaderPresented: Binding<Bool> {
+    Binding(
+      get: { selectedBookId != nil },
+      set: { if !$0 { selectedBookId = nil } }
+    )
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       Text(title)
@@ -243,7 +252,9 @@ struct DashboardSection: View {
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 12) {
           ForEach(books) { book in
-            NavigationLink(destination: BookReaderView(bookId: book.id)) {
+            Button {
+              selectedBookId = book.id
+            } label: {
               DashboardBookCard(book: book, viewModel: bookViewModel)
             }
             .buttonStyle(PlainButtonStyle())
@@ -253,6 +264,11 @@ struct DashboardSection: View {
       }
     }
     .animation(.default, value: books)
+    .fullScreenCover(isPresented: isBookReaderPresented) {
+      if let bookId = selectedBookId {
+        BookReaderView(bookId: bookId)
+      }
+    }
   }
 }
 

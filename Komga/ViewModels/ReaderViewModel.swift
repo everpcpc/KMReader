@@ -8,6 +8,11 @@
 import Foundation
 import UIKit
 
+enum ReadingDirection {
+  case ltr  // Left to Right (从左往右)
+  case rtl  // Right to Left (从右往左)
+}
+
 @MainActor
 @Observable
 class ReaderViewModel {
@@ -16,6 +21,7 @@ class ReaderViewModel {
   var isLoading = false
   var errorMessage: String?
   var pageImageCache: [Int: UIImage] = [:]
+  var readingDirection: ReadingDirection = .ltr
 
   private let bookService = BookService.shared
   private var bookId: String = ""
@@ -93,6 +99,26 @@ class ReaderViewModel {
       )
     } catch {
       // Silently fail for progress updates
+    }
+  }
+
+  // Convert display index to actual page index based on reading direction
+  func displayIndexToPageIndex(_ displayIndex: Int) -> Int {
+    switch readingDirection {
+    case .ltr:
+      return displayIndex
+    case .rtl:
+      return pages.count - 1 - displayIndex
+    }
+  }
+
+  // Convert actual page index to display index based on reading direction
+  func pageIndexToDisplayIndex(_ pageIndex: Int) -> Int {
+    switch readingDirection {
+    case .ltr:
+      return pageIndex
+    case .rtl:
+      return pages.count - 1 - pageIndex
     }
   }
 }
