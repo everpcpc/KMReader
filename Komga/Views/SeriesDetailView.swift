@@ -66,7 +66,7 @@ struct SeriesDetailView: View {
                 .font(.title2)
 
               // Status
-              if let status = series.metadata.status {
+              if let status = series.metadata.status, !status.isEmpty {
                 Text(statusDisplayName(status))
                   .font(.caption)
                   .padding(.horizontal, 8)
@@ -76,34 +76,31 @@ struct SeriesDetailView: View {
                   .cornerRadius(4)
               }
 
-              // Age Rating, Language
-              if series.metadata.ageRating != nil || series.metadata.language != nil {
-                HStack {
-                  if let ageRating = series.metadata.ageRating {
-                    Text("\(ageRating)+")
-                      .font(.caption)
-                      .padding(.horizontal, 8)
-                      .padding(.vertical, 4)
-                      .background(Color.secondary.opacity(0.2))
-                      .foregroundColor(.primary)
-                      .cornerRadius(4)
-                  }
+              // Age Rating
+              if let ageRating = series.metadata.ageRating, ageRating > 0 {
+                Text("\(ageRating)+")
+                  .font(.caption)
+                  .padding(.horizontal, 8)
+                  .padding(.vertical, 4)
+                  .background(Color.secondary.opacity(0.2))
+                  .foregroundColor(.primary)
+                  .cornerRadius(4)
+              }
 
-                  if let language = series.metadata.language {
-                    Text(languageDisplayName(language))
-                      .font(.caption)
-                      .padding(.horizontal, 8)
-                      .padding(.vertical, 4)
-                      .background(Color.secondary.opacity(0.2))
-                      .foregroundColor(.primary)
-                      .cornerRadius(4)
-                  }
-                }
+              // Language
+              if let language = series.metadata.language, !language.isEmpty {
+                Text(languageDisplayName(language))
+                  .font(.caption)
+                  .padding(.horizontal, 8)
+                  .padding(.vertical, 4)
+                  .background(Color.secondary.opacity(0.2))
+                  .foregroundColor(.primary)
+                  .cornerRadius(4)
               }
 
               // Reading Direction
-              if let readingDirection = series.metadata.readingDirection {
-                Text(readingDirectionDisplayName(readingDirection))
+              if let direction = series.metadata.readingDirection, !direction.isEmpty {
+                Text(direction)
                   .font(.caption)
                   .padding(.horizontal, 8)
                   .padding(.vertical, 4)
@@ -412,21 +409,6 @@ extension SeriesDetailView {
     }
 
     return languageMap[language.lowercased()] ?? language.uppercased()
-  }
-
-  private func readingDirectionDisplayName(_ direction: String) -> String {
-    switch direction.uppercased() {
-    case "LEFT_TO_RIGHT":
-      return "LTR"
-    case "RIGHT_TO_LEFT":
-      return "RTL"
-    case "VERTICAL":
-      return "Vertical"
-    case "WEBTOON":
-      return "Webtoon"
-    default:
-      return direction.capitalized
-    }
   }
 
   private func formatReleaseDate(_ dateString: String) -> String {
