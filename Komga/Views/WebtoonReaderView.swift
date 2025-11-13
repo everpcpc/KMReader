@@ -135,32 +135,38 @@ struct WebtoonReaderView: UIViewRepresentable {
       context.coordinator.scrollToInitialPage(currentPage)
     }
 
+    // If we're handling center tap, preserve scroll position and skip any programmatic scrolling
+    if context.coordinator.isHandlingCenterTap {
+      // Restore scroll position if it has changed significantly
+      if context.coordinator.savedScrollOffset > 0 {
+        if let collectionView = context.coordinator.collectionView {
+          let currentOffset = collectionView.contentOffset.y
+          // Restore if position has changed significantly (more than 50 points)
+          // This prevents scroll reset when controls are hidden/shown
+          if abs(currentOffset - context.coordinator.savedScrollOffset) > 50 {
+            collectionView.setContentOffset(
+              CGPoint(x: 0, y: context.coordinator.savedScrollOffset),
+              animated: false
+            )
+          }
+        }
+      }
+      // Update lastExternalCurrentPage to prevent triggering scroll when isHandlingCenterTap becomes false
+      context.coordinator.lastExternalCurrentPage = currentPage
+      return
+    }
+
     // Scroll to current page if changed externally
-    // Don't scroll if we're handling a center tap (to prevent scroll reset when controls are shown)
+    // Don't scroll if we're handling a center tap (to prevent scroll reset when controls are shown/hidden)
     let currentPageChangedExternally = currentPage != context.coordinator.lastExternalCurrentPage
     if currentPageChangedExternally && currentPage >= 0 && currentPage < pages.count
       && !context.coordinator.isUserScrolling
       && !context.coordinator.isProgrammaticScrolling
-      && !context.coordinator.isHandlingCenterTap
     {
       context.coordinator.scrollToPage(currentPage, animated: true)
       context.coordinator.lastExternalCurrentPage = currentPage
     } else if !currentPageChangedExternally {
       context.coordinator.lastExternalCurrentPage = currentPage
-    }
-
-    // If we're handling center tap and scroll position was saved, restore it if it has changed
-    if context.coordinator.isHandlingCenterTap && context.coordinator.savedScrollOffset > 0 {
-      if let collectionView = context.coordinator.collectionView {
-        let currentOffset = collectionView.contentOffset.y
-        // Only restore if the scroll position has changed significantly (more than 10 points)
-        if abs(currentOffset - context.coordinator.savedScrollOffset) > 10 {
-          collectionView.setContentOffset(
-            CGPoint(x: 0, y: context.coordinator.savedScrollOffset),
-            animated: false
-          )
-        }
-      }
     }
   }
 
@@ -653,19 +659,28 @@ struct WebtoonReaderView: UIViewRepresentable {
 
       if isCenterArea {
         // Center tap - toggle controls
-        // Save current scroll position to prevent it from resetting when controls are shown
+        // Save current scroll position to prevent it from resetting when controls are shown/hidden
         isHandlingCenterTap = true
         savedScrollOffset = collectionView.contentOffset.y
         onCenterTap?()
-        // Restore scroll position after a brief delay to allow any layout updates to complete
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        // Restore scroll position after a delay to allow any layout updates to complete
+        // Use a longer delay to ensure controls animation completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
           guard let self = self, let collectionView = self.collectionView else { return }
           // Only restore if user hasn't scrolled since the tap
           if !self.isUserScrolling && !self.isProgrammaticScrolling {
-            collectionView.setContentOffset(
-              CGPoint(x: 0, y: self.savedScrollOffset), animated: false)
+            let currentOffset = collectionView.contentOffset.y
+            // Restore if position has changed significantly (more than 50 points)
+            // This handles cases where layout updates might have shifted the scroll position
+            if abs(currentOffset - self.savedScrollOffset) > 50 {
+              collectionView.setContentOffset(
+                CGPoint(x: 0, y: self.savedScrollOffset), animated: false)
+            }
           }
-          self.isHandlingCenterTap = false
+          // Keep isHandlingCenterTap true a bit longer to prevent updateUIView from triggering scrolls
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.isHandlingCenterTap = false
+          }
         }
       } else if isTopLeftArea {
         // Scroll up

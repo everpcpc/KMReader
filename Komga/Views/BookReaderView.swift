@@ -66,7 +66,7 @@ struct BookReaderView: View {
                     .font(.title2)
                     .foregroundColor(.white)
                     .padding()
-                    .background(Color.black.opacity(0.5))
+                    .background(Color.secondary.opacity(0.8))
                     .clipShape(Circle())
                 }
                 .frame(minWidth: 44, minHeight: 44)
@@ -79,7 +79,7 @@ struct BookReaderView: View {
                   .foregroundColor(.white)
                   .padding(.horizontal, 16)
                   .padding(.vertical, 8)
-                  .background(Color.black.opacity(0.5))
+                  .background(Color.secondary.opacity(0.8))
                   .cornerRadius(20)
 
                 Spacer()
@@ -99,7 +99,7 @@ struct BookReaderView: View {
                     .font(.title3)
                     .foregroundColor(.white)
                     .padding()
-                    .background(Color.black.opacity(0.5))
+                    .background(Color.secondary.opacity(0.8))
                     .clipShape(Circle())
                 }
                 .frame(minWidth: 44, minHeight: 44)
@@ -116,15 +116,13 @@ struct BookReaderView: View {
                 Text(book.seriesTitle)
                   .font(.headline)
                   .foregroundColor(.white)
-                  .lineLimit(1)
-                Text(book.metadata.title)
+                Text("#\(Int(book.number)) - \(book.metadata.title)")
                   .font(.subheadline)
                   .foregroundColor(.white.opacity(0.9))
-                  .lineLimit(1)
               }
               .padding(.horizontal, 16)
               .padding(.vertical, 8)
-              .background(Color.black.opacity(0.5))
+              .background(Color.secondary.opacity(0.8))
               .cornerRadius(12)
             }
 
@@ -132,17 +130,11 @@ struct BookReaderView: View {
 
             // Bottom slider
             VStack {
-              Slider(
-                value: Binding(
-                  get: { Double(viewModel.pageIndexToDisplayIndex(viewModel.currentPage)) },
-                  set: { displayIndex in
-                    viewModel.currentPage = viewModel.displayIndexToPageIndex(Int(displayIndex))
-                  }
-                ),
-                in: 0...Double(max(0, viewModel.pages.count - 1)),
-                step: 1
+              ProgressView(
+                value: Double(min(viewModel.currentPage + 1, viewModel.pages.count)),
+                total: Double(viewModel.pages.count)
               )
-              .tint(.white)
+              .tint(.orange)
             }
             .padding()
           }
@@ -183,6 +175,11 @@ struct BookReaderView: View {
 
       await viewModel.loadPages(bookId: currentBookId, initialPage: initialPage)
       await viewModel.preloadPages()
+
+      // Start timer to auto-hide controls after 3 seconds when entering reader
+      if !viewModel.pages.isEmpty {
+        resetControlsTimer()
+      }
     }
     .onDisappear {
       controlsTimer?.invalidate()
@@ -340,7 +337,7 @@ struct BookReaderView: View {
           VStack {
             HStack {
               Image(systemName: "arrow.right.circle")
-              Text("Next book:")
+              Text("Next book: #\(Int(nextBook.number))")
             }
             Text(nextBook.metadata.title)
           }
@@ -546,7 +543,7 @@ struct BookReaderView: View {
                 HStack {
                   Image(systemName: "arrow.right.circle")
                     .font(.system(size: 14))
-                  Text("Next book:")
+                  Text("Next book: #\(Int(nextBook.number))")
                 }
                 Text(nextBook.metadata.title)
               }
