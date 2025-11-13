@@ -58,24 +58,6 @@ struct BookReaderView: View {
           VStack {
             // Top bar
             VStack(spacing: 8) {
-              // Series and book title
-              if let book = currentBook {
-                VStack(spacing: 4) {
-                  Text(book.seriesTitle)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                  Text(book.metadata.title)
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.9))
-                    .lineLimit(1)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Color.black.opacity(0.5))
-                .cornerRadius(12)
-              }
-
               HStack {
                 Button {
                   dismiss()
@@ -127,6 +109,24 @@ struct BookReaderView: View {
             }
             .padding(.top)
             .allowsHitTesting(true)
+
+            // Series and book title
+            if let book = currentBook {
+              VStack(spacing: 4) {
+                Text(book.seriesTitle)
+                  .font(.headline)
+                  .foregroundColor(.white)
+                  .lineLimit(1)
+                Text(book.metadata.title)
+                  .font(.subheadline)
+                  .foregroundColor(.white.opacity(0.9))
+                  .lineLimit(1)
+              }
+              .padding(.horizontal, 16)
+              .padding(.vertical, 8)
+              .background(Color.black.opacity(0.5))
+              .cornerRadius(12)
+            }
 
             Spacer()
 

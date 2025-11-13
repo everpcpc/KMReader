@@ -136,15 +136,31 @@ struct WebtoonReaderView: UIViewRepresentable {
     }
 
     // Scroll to current page if changed externally
+    // Don't scroll if we're handling a center tap (to prevent scroll reset when controls are shown)
     let currentPageChangedExternally = currentPage != context.coordinator.lastExternalCurrentPage
     if currentPageChangedExternally && currentPage >= 0 && currentPage < pages.count
       && !context.coordinator.isUserScrolling
       && !context.coordinator.isProgrammaticScrolling
+      && !context.coordinator.isHandlingCenterTap
     {
       context.coordinator.scrollToPage(currentPage, animated: true)
       context.coordinator.lastExternalCurrentPage = currentPage
     } else if !currentPageChangedExternally {
       context.coordinator.lastExternalCurrentPage = currentPage
+    }
+
+    // If we're handling center tap and scroll position was saved, restore it if it has changed
+    if context.coordinator.isHandlingCenterTap && context.coordinator.savedScrollOffset > 0 {
+      if let collectionView = context.coordinator.collectionView {
+        let currentOffset = collectionView.contentOffset.y
+        // Only restore if the scroll position has changed significantly (more than 10 points)
+        if abs(currentOffset - context.coordinator.savedScrollOffset) > 10 {
+          collectionView.setContentOffset(
+            CGPoint(x: 0, y: context.coordinator.savedScrollOffset),
+            animated: false
+          )
+        }
+      }
     }
   }
 
@@ -173,6 +189,8 @@ struct WebtoonReaderView: UIViewRepresentable {
     var pageWidthPercentage: Double = 100.0
     var lastPageWidthPercentage: Double = 100.0
     var isAtBottom: Bool = false
+    var isHandlingCenterTap: Bool = false
+    var savedScrollOffset: CGFloat = 0
 
     // Cache for page heights and images
     var pageHeights: [Int: CGFloat] = [:]
@@ -611,12 +629,13 @@ struct WebtoonReaderView: UIViewRepresentable {
       let screenHeight = view.bounds.height
       let screenWidth = view.bounds.width
 
-      // Check if tap is in top area (top 30%) or left area (left 30%)
+      // Check vertical position first (top/bottom priority)
       let isTopArea = location.y < screenHeight * 0.3
-      let isLeftArea = location.x < screenWidth * 0.3
-
-      // Check if tap is in bottom area (bottom 30%) or right area (right 30%)
       let isBottomArea = location.y > screenHeight * 0.7
+      let isMiddleArea = !isTopArea && !isBottomArea
+
+      // Check horizontal position for middle area
+      let isLeftArea = location.x < screenWidth * 0.3
       let isRightArea = location.x > screenWidth * 0.7
 
       // Check if tap is in center area (center 40% width and 40% height)
@@ -626,11 +645,30 @@ struct WebtoonReaderView: UIViewRepresentable {
         && location.y > screenHeight * 0.3
         && location.y < screenHeight * 0.7
 
+      // TopLeft L-shaped area: top area OR (middle area AND left area)
+      let isTopLeftArea = isTopArea || (isMiddleArea && isLeftArea)
+
+      // BottomRight L-shaped area: bottom area OR (middle area AND right area)
+      let isBottomRightArea = isBottomArea || (isMiddleArea && isRightArea)
+
       if isCenterArea {
         // Center tap - toggle controls
+        // Save current scroll position to prevent it from resetting when controls are shown
+        isHandlingCenterTap = true
+        savedScrollOffset = collectionView.contentOffset.y
         onCenterTap?()
-      } else if isTopArea || isLeftArea {
-        // Scroll up by half screen
+        // Restore scroll position after a brief delay to allow any layout updates to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+          guard let self = self, let collectionView = self.collectionView else { return }
+          // Only restore if user hasn't scrolled since the tap
+          if !self.isUserScrolling && !self.isProgrammaticScrolling {
+            collectionView.setContentOffset(
+              CGPoint(x: 0, y: self.savedScrollOffset), animated: false)
+          }
+          self.isHandlingCenterTap = false
+        }
+      } else if isTopLeftArea {
+        // Scroll up
         isProgrammaticScrolling = true
         let currentOffset = collectionView.contentOffset.y
         let scrollAmount = screenHeight * 0.8
@@ -643,8 +681,8 @@ struct WebtoonReaderView: UIViewRepresentable {
           CGPoint(x: 0, y: targetOffset),
           animated: true
         )
-      } else if isBottomArea || isRightArea {
-        // Scroll down by half screen
+      } else if isBottomRightArea {
+        // Scroll down
         isProgrammaticScrolling = true
         let currentOffset = collectionView.contentOffset.y
         let scrollAmount = screenHeight * 0.8
