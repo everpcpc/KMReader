@@ -15,6 +15,7 @@ struct SeriesDetailView: View {
   @State private var series: Series?
   @State private var thumbnail: UIImage?
   @State private var selectedBookId: String?
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   private var isBookReaderPresented: Binding<Bool> {
     Binding(
@@ -55,7 +56,7 @@ struct SeriesDetailView: View {
                   .foregroundColor(.white)
                   .padding(.horizontal, 8)
                   .padding(.vertical, 4)
-                  .background(Color.orange)
+                  .background(themeColorOption.color)
                   .clipShape(Capsule())
                   .padding(4)
               }
@@ -383,7 +384,7 @@ extension SeriesDetailView {
     case "ABANDONED":
       return Color.red.opacity(0.8)
     case "HIATUS":
-      return Color.orange.opacity(0.8)
+      return themeColorOption.color.opacity(0.8)
     default:
       return Color.blue.opacity(0.8)
     }

@@ -20,6 +20,7 @@ struct DashboardView: View {
 
   @State private var libraries: [Library] = []
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
   @State private var showLibraryPicker = false
 
   private var selectedLibraryIdOptional: String? {
@@ -39,7 +40,7 @@ struct DashboardView: View {
             VStack(spacing: 16) {
               Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundColor(.orange)
+                .foregroundColor(themeColorOption.color)
               Text(errorMessage)
                 .multilineTextAlignment(.center)
               Button("Retry") {
@@ -283,6 +284,7 @@ struct DashboardBookCard: View {
   let book: Book
   var viewModel: BookViewModel
   @State private var thumbnail: UIImage?
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   private var progress: Double {
     guard let readProgress = book.readProgress else { return 0 }
@@ -312,7 +314,7 @@ struct DashboardBookCard: View {
       .overlay(alignment: .topTrailing) {
         if book.readProgress == nil {
           Circle()
-            .fill(Color.orange)
+            .fill(themeColorOption.color)
             .frame(width: 12, height: 12)
             .padding(4)
         }
@@ -327,7 +329,7 @@ struct DashboardBookCard: View {
                 .cornerRadius(2)
 
               Rectangle()
-                .fill(Color.orange)
+                .fill(themeColorOption.color)
                 .frame(width: geometry.size.width * progress, height: 4)
                 .cornerRadius(2)
             }

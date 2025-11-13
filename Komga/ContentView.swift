@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(AuthViewModel.self) private var authViewModel
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   var body: some View {
     Group {
@@ -18,6 +19,7 @@ struct ContentView: View {
         LoginView()
       }
     }
+    .tint(themeColorOption.color)
     .onAppear {
       if authViewModel.isLoggedIn {
         Task {
@@ -29,6 +31,8 @@ struct ContentView: View {
 }
 
 struct MainTabView: View {
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+
   var body: some View {
     TabView {
       DashboardView()
@@ -51,5 +55,6 @@ struct MainTabView: View {
           Label("Settings", systemImage: "gearshape")
         }
     }
+    .tint(themeColorOption.color)
   }
 }

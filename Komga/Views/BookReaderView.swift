@@ -20,6 +20,7 @@ struct BookReaderView: View {
   @State private var nextBook: Book?
   @State private var isAtBottom = false
   @State private var isAtEndPage = false
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   init(bookId: String) {
     self.initialBookId = bookId
@@ -66,7 +67,7 @@ struct BookReaderView: View {
                     .font(.title2)
                     .foregroundColor(.white)
                     .padding()
-                    .background(Color.secondary.opacity(0.8))
+                    .background(themeColorOption.color.opacity(0.8))
                     .clipShape(Circle())
                 }
                 .frame(minWidth: 44, minHeight: 44)
@@ -79,7 +80,7 @@ struct BookReaderView: View {
                   .foregroundColor(.white)
                   .padding(.horizontal, 16)
                   .padding(.vertical, 8)
-                  .background(Color.secondary.opacity(0.8))
+                  .background(themeColorOption.color.opacity(0.8))
                   .cornerRadius(20)
 
                 Spacer()
@@ -99,7 +100,7 @@ struct BookReaderView: View {
                     .font(.title3)
                     .foregroundColor(.white)
                     .padding()
-                    .background(Color.secondary.opacity(0.8))
+                    .background(themeColorOption.color.opacity(0.8))
                     .clipShape(Circle())
                 }
                 .frame(minWidth: 44, minHeight: 44)
@@ -122,7 +123,7 @@ struct BookReaderView: View {
               }
               .padding(.horizontal, 16)
               .padding(.vertical, 8)
-              .background(Color.secondary.opacity(0.8))
+              .background(themeColorOption.color.opacity(0.8))
               .cornerRadius(12)
             }
 
@@ -134,7 +135,6 @@ struct BookReaderView: View {
                 value: Double(min(viewModel.currentPage + 1, viewModel.pages.count)),
                 total: Double(viewModel.pages.count)
               )
-              .tint(.orange)
             }
             .padding()
           }

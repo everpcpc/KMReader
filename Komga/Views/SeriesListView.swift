@@ -12,6 +12,7 @@ struct SeriesListView: View {
   let libraryName: String
 
   @State private var viewModel = SeriesViewModel()
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   // Calculate number of columns and card width based on screen width
   private func calculateLayout(for width: CGFloat) -> (columns: Int, cardWidth: CGFloat) {
@@ -45,7 +46,7 @@ struct SeriesListView: View {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
               .font(.largeTitle)
-              .foregroundColor(.orange)
+              .foregroundColor(themeColorOption.color)
             Text(errorMessage)
               .multilineTextAlignment(.center)
             Button("Retry") {
@@ -90,6 +91,7 @@ struct SeriesCardView: View {
   var viewModel: SeriesViewModel
   let cardWidth: CGFloat
   @State private var thumbnail: UIImage?
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -118,7 +120,7 @@ struct SeriesCardView: View {
             .foregroundColor(.white)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.orange)
+            .background(themeColorOption.color)
             .clipShape(Capsule())
             .padding(4)
         }

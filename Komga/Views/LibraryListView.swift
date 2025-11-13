@@ -10,6 +10,7 @@ import SwiftUI
 struct LibraryListView: View {
   @State private var viewModel = LibraryViewModel()
   @Environment(AuthViewModel.self) private var authViewModel
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   var body: some View {
     NavigationStack {
@@ -20,7 +21,7 @@ struct LibraryListView: View {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
               .font(.largeTitle)
-              .foregroundColor(.orange)
+              .foregroundColor(themeColorOption.color)
             Text(errorMessage)
               .multilineTextAlignment(.center)
             Button("Retry") {

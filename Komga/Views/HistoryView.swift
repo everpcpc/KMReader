@@ -15,6 +15,7 @@ struct HistoryView: View {
 
   @State private var libraries: [Library] = []
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   private var selectedLibraryIdOptional: String? {
     selectedLibraryId.isEmpty ? nil : selectedLibraryId
@@ -33,7 +34,7 @@ struct HistoryView: View {
             VStack(spacing: 16) {
               Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundColor(.orange)
+                .foregroundColor(themeColorOption.color)
               Text(errorMessage)
                 .multilineTextAlignment(.center)
               Button("Retry") {
