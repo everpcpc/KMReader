@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-enum ReadingDirection {
+enum ReadingDirection: CaseIterable, Hashable {
   case ltr  // Left to Right (从左往右)
   case rtl  // Right to Left (从右往左)
   case vertical  // Vertical (纵向翻页)
@@ -26,6 +26,32 @@ enum ReadingDirection {
       return .webtoon
     default:
       return .ltr
+    }
+  }
+
+  var displayName: String {
+    switch self {
+    case .ltr:
+      return "LTR"
+    case .rtl:
+      return "RTL"
+    case .vertical:
+      return "Vertical"
+    case .webtoon:
+      return "Webtoon"
+    }
+  }
+
+  var icon: String {
+    switch self {
+    case .ltr:
+      return "arrow.right"
+    case .rtl:
+      return "arrow.left"
+    case .vertical:
+      return "arrow.down"
+    case .webtoon:
+      return "list.bullet"
     }
   }
 }

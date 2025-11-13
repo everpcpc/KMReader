@@ -31,18 +31,21 @@ struct WebtoonReaderView: UIViewRepresentable {
   let imageLoader: ImageLoader
   let onPageChange: ((Int) -> Void)?
   let onCenterTap: (() -> Void)?
+  let onScrollToBottom: ((Bool) -> Void)?
   @AppStorage("webtoonPageWidthPercentage") private var pageWidthPercentage: Double = 100.0
 
   init(
     pages: [BookPage], currentPage: Binding<Int>, viewModel: ReaderViewModel,
     onPageChange: ((Int) -> Void)? = nil,
-    onCenterTap: (() -> Void)? = nil
+    onCenterTap: (() -> Void)? = nil,
+    onScrollToBottom: ((Bool) -> Void)? = nil
   ) {
     self.pages = pages
     self._currentPage = currentPage
     self.imageLoader = ImageLoader(viewModel: viewModel)
     self.onPageChange = onPageChange
     self.onCenterTap = onCenterTap
+    self.onScrollToBottom = onScrollToBottom
   }
 
   func makeUIView(context: Context) -> UICollectionView {
@@ -60,6 +63,7 @@ struct WebtoonReaderView: UIViewRepresentable {
 
     // Register cell
     collectionView.register(WebtoonPageCell.self, forCellWithReuseIdentifier: "WebtoonPageCell")
+    collectionView.register(WebtoonFooterCell.self, forCellWithReuseIdentifier: "WebtoonFooterCell")
 
     // Add tap gesture recognizer for navigation
     let tapGesture = UITapGestureRecognizer(
@@ -92,6 +96,7 @@ struct WebtoonReaderView: UIViewRepresentable {
     context.coordinator.imageLoader = imageLoader
     context.coordinator.onPageChange = onPageChange
     context.coordinator.onCenterTap = onCenterTap
+    context.coordinator.onScrollToBottom = onScrollToBottom
     context.coordinator.pageWidthPercentage = pageWidthPercentage
 
     // Reload data if pages count changed or width percentage changed
@@ -158,6 +163,7 @@ struct WebtoonReaderView: UIViewRepresentable {
     var imageLoader: ImageLoader?
     var onPageChange: ((Int) -> Void)?
     var onCenterTap: (() -> Void)?
+    var onScrollToBottom: ((Bool) -> Void)?
     var lastPagesCount: Int = 0
     var lastExternalCurrentPage: Int = -1
     var isUserScrolling: Bool = false
@@ -166,6 +172,7 @@ struct WebtoonReaderView: UIViewRepresentable {
     var lastPreloadTime: Date?
     var pageWidthPercentage: Double = 100.0
     var lastPageWidthPercentage: Double = 100.0
+    var isAtBottom: Bool = false
 
     // Cache for page heights and images
     var pageHeights: [Int: CGFloat] = [:]
@@ -180,6 +187,7 @@ struct WebtoonReaderView: UIViewRepresentable {
       self.imageLoader = parent.imageLoader
       self.onPageChange = parent.onPageChange
       self.onCenterTap = parent.onCenterTap
+      self.onScrollToBottom = parent.onScrollToBottom
       self.lastPagesCount = parent.pages.count
       self.hasScrolledToInitialPage = false
       self.pageWidthPercentage = parent.pageWidthPercentage
@@ -293,12 +301,22 @@ struct WebtoonReaderView: UIViewRepresentable {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int)
       -> Int
     {
-      pages.count
+      // Add 1 for footer cell
+      pages.count + 1
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath)
       -> UICollectionViewCell
     {
+      // Check if this is the footer cell (last item)
+      if indexPath.item == pages.count {
+        let cell =
+          collectionView.dequeueReusableCell(
+            withReuseIdentifier: "WebtoonFooterCell", for: indexPath)
+          as! WebtoonFooterCell
+        return cell
+      }
+
       let cell =
         collectionView.dequeueReusableCell(withReuseIdentifier: "WebtoonPageCell", for: indexPath)
         as! WebtoonPageCell
@@ -336,6 +354,11 @@ struct WebtoonReaderView: UIViewRepresentable {
       let screenWidth = collectionView.bounds.width
       let width = screenWidth * (pageWidthPercentage / 100.0)
 
+      // Footer cell - fixed height for button area
+      if indexPath.item == pages.count {
+        return CGSize(width: width, height: 320)
+      }
+
       if let height = pageHeights[indexPath.item] {
         return CGSize(width: width, height: height)
       }
@@ -359,6 +382,9 @@ struct WebtoonReaderView: UIViewRepresentable {
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+      // Check if scrolled to bottom
+      checkIfAtBottom(scrollView)
+
       // Only update page if user is scrolling (not programmatic scrolls)
       if isUserScrolling {
         // Update current page based on scroll position
@@ -376,6 +402,7 @@ struct WebtoonReaderView: UIViewRepresentable {
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
       isUserScrolling = false
+      checkIfAtBottom(scrollView)
       updateCurrentPage()
       preloadNearbyPages()
     }
@@ -383,6 +410,7 @@ struct WebtoonReaderView: UIViewRepresentable {
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
       if !decelerate {
         isUserScrolling = false
+        checkIfAtBottom(scrollView)
         updateCurrentPage()
         preloadNearbyPages()
       }
@@ -390,12 +418,28 @@ struct WebtoonReaderView: UIViewRepresentable {
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
       isUserScrolling = false
+      checkIfAtBottom(scrollView)
       // Delay clearing programmatic scrolling flag to prevent updateUIView from triggering additional scroll
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
         self?.isProgrammaticScrolling = false
       }
       updateCurrentPage()
       preloadNearbyPages()
+    }
+
+    private func checkIfAtBottom(_ scrollView: UIScrollView) {
+      let contentHeight = scrollView.contentSize.height
+      let scrollOffset = scrollView.contentOffset.y
+      let scrollViewHeight = scrollView.bounds.height
+
+      // Consider at bottom if within 120pt of the bottom (footer area is 320pt)
+      let threshold: CGFloat = 120
+      let isAtBottomNow = scrollOffset + scrollViewHeight >= contentHeight - threshold
+
+      if isAtBottomNow != isAtBottom {
+        isAtBottom = isAtBottomNow
+        onScrollToBottom?(isAtBottom)
+      }
     }
 
     private func updateCurrentPage() {
@@ -406,13 +450,18 @@ struct WebtoonReaderView: UIViewRepresentable {
       let centerPoint = CGPoint(x: collectionView.bounds.width / 2, y: centerY)
 
       if let indexPath = collectionView.indexPathForItem(at: centerPoint) {
-        if indexPath.item != currentPage && indexPath.item >= 0 && indexPath.item < pages.count {
+        // Ignore footer cell
+        if indexPath.item != pages.count && indexPath.item != currentPage && indexPath.item >= 0
+          && indexPath.item < pages.count
+        {
           currentPage = indexPath.item
           onPageChange?(indexPath.item)
         }
       } else {
         // Fallback: find closest page by checking visible items
-        let visibleIndexPaths = collectionView.indexPathsForVisibleItems.sorted {
+        let visibleIndexPaths = collectionView.indexPathsForVisibleItems.filter {
+          $0.item < pages.count
+        }.sorted {
           $0.item < $1.item
         }
         if let firstVisible = visibleIndexPaths.first {
@@ -746,5 +795,22 @@ class WebtoonPageCell: UICollectionViewCell {
     loadingIndicator.isHidden = true
     pageIndex = -1
     loadImage = nil
+  }
+}
+
+// MARK: - Footer Cell
+
+class WebtoonFooterCell: UICollectionViewCell {
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    setupUI()
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  private func setupUI() {
+    contentView.backgroundColor = .black
   }
 }
