@@ -25,6 +25,48 @@ struct HistoryView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
+          // Library Picker at the top
+          HStack {
+            Menu {
+              Picker(selection: $selectedLibraryId) {
+                Label("All Libraries", systemImage: "square.grid.2x2").tag("")
+                ForEach(libraries) { library in
+                  Label(library.name, systemImage: "books.vertical").tag(library.id)
+                }
+              } label: {
+                Label(
+                  selectedLibrary?.name ?? "All Libraries",
+                  systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
+              }
+              .pickerStyle(.inline)
+            } label: {
+              HStack {
+                Image(systemName: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
+                Text(selectedLibrary?.name ?? "All Libraries")
+                  .font(.body)
+                Image(systemName: "chevron.down")
+                  .font(.caption)
+              }
+              .padding(.horizontal, 12)
+              .padding(.vertical, 8)
+              .background(Color(.systemGray6))
+              .cornerRadius(8)
+            }
+            Spacer()
+            Button {
+              Task {
+                await loadRecentlyRead()
+              }
+            } label: {
+              Image(systemName: "arrow.clockwise.circle")
+                .font(.title2)
+                .symbolEffect(.rotate, value: isLoading)
+            }
+            .disabled(isLoading)
+          }
+          .padding(.horizontal)
+          .padding(.top, 8)
+
           if isLoading && recentlyReadBooks.isEmpty {
             ProgressView()
               .frame(maxWidth: .infinity)
@@ -76,34 +118,15 @@ struct HistoryView: View {
       .navigationTitle("History")
       .navigationBarTitleDisplayMode(.inline)
       .animation(.default, value: selectedLibraryId)
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          Menu {
-            Picker(selection: $selectedLibraryId) {
-              Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-              ForEach(libraries) { library in
-                Label(library.name, systemImage: "books.vertical").tag(library.id)
-              }
-            } label: {
-              Label(
-                selectedLibrary?.name ?? "All Libraries",
-                systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
-            }
-            .pickerStyle(.menu)
-          } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-          }
-        }
-      }
       .onChange(of: selectedLibraryId) {
         Task {
-          await loadRecentlyRead(showLoading: false)
+          await loadRecentlyRead()
         }
       }
     }
     .task {
       await loadLibraries()
-      await loadRecentlyRead(showLoading: true)
+      await loadRecentlyRead()
     }
   }
 
@@ -120,10 +143,8 @@ struct HistoryView: View {
     }
   }
 
-  private func loadRecentlyRead(showLoading: Bool = true) async {
-    if showLoading {
-      isLoading = true
-    }
+  private func loadRecentlyRead() async {
+    isLoading = true
     errorMessage = nil
 
     do {
@@ -136,9 +157,7 @@ struct HistoryView: View {
       errorMessage = error.localizedDescription
     }
 
-    if showLoading {
-      isLoading = false
-    }
+    isLoading = false
   }
 }
 

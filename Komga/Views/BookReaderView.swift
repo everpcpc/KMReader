@@ -354,10 +354,7 @@ struct BookReaderView: View {
         // Next book info or last book message
         if let nextBook = nextBook {
           VStack {
-            HStack {
-              Image(systemName: "arrow.right.circle")
-              Text("Next book: #\(Int(nextBook.number))")
-            }
+            Label("UP NEXT: #\(Int(nextBook.number))", systemImage: "arrow.right.circle")
             Text(nextBook.metadata.title)
           }
           .foregroundColor(.white.opacity(0.9))
@@ -371,7 +368,7 @@ struct BookReaderView: View {
           HStack(spacing: 8) {
             Image(systemName: "checkmark.circle")
               .font(.system(size: 14))
-            Text("This is the last book")
+            Text("You're all caught up!")
               .font(.system(size: 14, weight: .medium))
           }
           .foregroundColor(.white.opacity(0.7))

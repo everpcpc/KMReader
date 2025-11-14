@@ -32,7 +32,51 @@ struct DashboardView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
-          if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty && recentlyAddedBooks.isEmpty {
+          // Library Picker at the top
+          HStack {
+            Menu {
+              Picker(selection: $selectedLibraryId) {
+                Label("All Libraries", systemImage: "square.grid.2x2").tag("")
+                ForEach(libraries) { library in
+                  Label(library.name, systemImage: "books.vertical").tag(library.id)
+                }
+              } label: {
+                Label(
+                  selectedLibrary?.name ?? "All Libraries",
+                  systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
+              }
+              .pickerStyle(.inline)
+            } label: {
+              HStack {
+                Image(systemName: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
+                Text(selectedLibrary?.name ?? "All Libraries")
+                  .font(.body)
+                Image(systemName: "chevron.down")
+                  .font(.caption)
+              }
+              .padding(.horizontal, 12)
+              .padding(.vertical, 8)
+              .background(Color(.systemGray6))
+              .cornerRadius(8)
+            }
+            Spacer()
+            Button {
+              Task {
+                await loadAll()
+              }
+            } label: {
+              Image(systemName: "arrow.clockwise.circle")
+                .font(.title2)
+                .symbolEffect(.rotate, value: isLoading)
+            }
+            .disabled(isLoading)
+          }
+          .padding(.horizontal)
+          .padding(.top, 8)
+
+          if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty
+            && recentlyAddedBooks.isEmpty
+          {
             ProgressView()
               .frame(maxWidth: .infinity)
               .padding()
@@ -125,39 +169,9 @@ struct DashboardView: View {
         }
         .padding(.vertical)
       }
-      .navigationTitle(selectedLibrary?.name ?? "All Libraries")
+      .navigationTitle("Dashboard")
       .navigationBarTitleDisplayMode(.inline)
       .animation(.default, value: selectedLibraryId)
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          HStack(spacing: 16) {
-            Button {
-              Task {
-                await loadAll(showLoading: false)
-              }
-            } label: {
-              Image(systemName: "arrow.clockwise.circle")
-            }
-            .disabled(isLoading)
-
-            Menu {
-              Picker(selection: $selectedLibraryId) {
-                Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-                ForEach(libraries) { library in
-                  Label(library.name, systemImage: "books.vertical").tag(library.id)
-                }
-              } label: {
-                Label(
-                  selectedLibrary?.name ?? "All Libraries",
-                  systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
-              }
-              .pickerStyle(.menu)
-            } label: {
-              Image(systemName: "line.3.horizontal.decrease.circle")
-            }
-          }
-        }
-      }
       .onChange(of: selectedLibraryId) {
         Task {
           await loadAll()
@@ -183,10 +197,8 @@ struct DashboardView: View {
     }
   }
 
-  private func loadAll(showLoading: Bool = true) async {
-    if showLoading {
-      isLoading = true
-    }
+  private func loadAll() async {
+    isLoading = true
     errorMessage = nil
 
     await withTaskGroup(of: Void.self) { group in
@@ -197,9 +209,7 @@ struct DashboardView: View {
       group.addTask { await self.loadRecentlyUpdatedSeries() }
     }
 
-    if showLoading {
-      isLoading = false
-    }
+    isLoading = false
   }
 
   private func loadKeepReading() async {
