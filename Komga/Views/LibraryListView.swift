@@ -8,16 +8,15 @@
 import SwiftUI
 
 struct LibraryListView: View {
-  @State private var viewModel = LibraryViewModel()
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   var body: some View {
     NavigationStack {
       Group {
-        if viewModel.isLoading && viewModel.libraries.isEmpty {
+        if LibraryManager.shared.isLoading && LibraryManager.shared.libraries.isEmpty {
           ProgressView()
-        } else if let errorMessage = viewModel.errorMessage {
+        } else if let errorMessage = LibraryManager.shared.errorMessage {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
               .font(.largeTitle)
@@ -26,7 +25,7 @@ struct LibraryListView: View {
               .multilineTextAlignment(.center)
             Button("Retry") {
               Task {
-                await viewModel.loadLibraries()
+                await LibraryManager.shared.loadLibraries()
               }
             }
           }
@@ -34,16 +33,13 @@ struct LibraryListView: View {
         } else {
           List {
             Section(header: Text("Libraries")) {
-              ForEach(viewModel.libraries) { library in
+              ForEach(LibraryManager.shared.libraries) { library in
                 NavigationLink(
                   destination: SeriesListView(libraryId: library.id, libraryName: library.name)
                 ) {
                   VStack(alignment: .leading, spacing: 4) {
                     Text(library.name)
                       .font(.headline)
-                    Text(library.root)
-                      .font(.caption)
-                      .foregroundColor(.secondary)
                   }
                   .padding(.vertical, 4)
                 }
@@ -55,15 +51,5 @@ struct LibraryListView: View {
       .navigationTitle("Browse")
       .navigationBarTitleDisplayMode(.inline)
     }
-    .task {
-      if viewModel.libraries.isEmpty {
-        await viewModel.loadLibraries()
-      }
-    }
   }
-}
-
-#Preview {
-  LibraryListView()
-    .environment(AuthViewModel())
 }

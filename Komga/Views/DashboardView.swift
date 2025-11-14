@@ -19,7 +19,6 @@ struct DashboardView: View {
   @State private var bookViewModel = BookViewModel()
   @State private var seriesViewModel = SeriesViewModel()
 
-  @State private var libraries: [Library] = []
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
   @State private var showLibraryPicker = false
@@ -37,7 +36,7 @@ struct DashboardView: View {
             Menu {
               Picker(selection: $selectedLibraryId) {
                 Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-                ForEach(libraries) { library in
+                ForEach(LibraryManager.shared.libraries) { library in
                   Label(library.name, systemImage: "books.vertical").tag(library.id)
                 }
               } label: {
@@ -179,22 +178,13 @@ struct DashboardView: View {
       }
     }
     .task {
-      await loadLibraries()
       await loadAll()
     }
   }
 
-  private var selectedLibrary: Library? {
+  private var selectedLibrary: LibraryInfo? {
     guard !selectedLibraryId.isEmpty else { return nil }
-    return libraries.first { $0.id == selectedLibraryId }
-  }
-
-  private func loadLibraries() async {
-    do {
-      libraries = try await LibraryService.shared.getLibraries()
-    } catch {
-      errorMessage = error.localizedDescription
-    }
+    return LibraryManager.shared.getLibrary(id: selectedLibraryId)
   }
 
   private func loadAll() async {
