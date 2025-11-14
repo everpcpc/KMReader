@@ -51,10 +51,11 @@ struct WebtoonReaderView: UIViewRepresentable {
   let onPageChange: ((Int) -> Void)?
   let onCenterTap: (() -> Void)?
   let onScrollToBottom: ((Bool) -> Void)?
-  @AppStorage("webtoonPageWidthPercentage") private var pageWidthPercentage: Double = 100.0
+  let pageWidth: CGFloat
 
   init(
     pages: [BookPage], currentPage: Binding<Int>, viewModel: ReaderViewModel,
+    pageWidth: CGFloat,
     onPageChange: ((Int) -> Void)? = nil,
     onCenterTap: (() -> Void)? = nil,
     onScrollToBottom: ((Bool) -> Void)? = nil
@@ -62,6 +63,7 @@ struct WebtoonReaderView: UIViewRepresentable {
     self.pages = pages
     self._currentPage = currentPage
     self.imageLoader = ImageLoader(viewModel: viewModel)
+    self.pageWidth = pageWidth
     self.onPageChange = onPageChange
     self.onCenterTap = onCenterTap
     self.onScrollToBottom = onScrollToBottom
@@ -109,7 +111,7 @@ struct WebtoonReaderView: UIViewRepresentable {
       onPageChange: onPageChange,
       onCenterTap: onCenterTap,
       onScrollToBottom: onScrollToBottom,
-      pageWidthPercentage: pageWidthPercentage,
+      pageWidth: pageWidth,
       collectionView: collectionView
     )
   }
@@ -136,8 +138,8 @@ struct WebtoonReaderView: UIViewRepresentable {
     var isProgrammaticScrolling: Bool = false
     var hasScrolledToInitialPage: Bool = false
     var lastPreloadTime: Date?
-    var pageWidthPercentage: Double = 100.0
-    var lastPageWidthPercentage: Double = 100.0
+    var pageWidth: CGFloat = 0
+    var lastPageWidth: CGFloat = 0
     var isAtBottom: Bool = false
     var isHandlingCenterTap: Bool = false
     var savedScrollOffset: CGFloat = 0
@@ -158,8 +160,8 @@ struct WebtoonReaderView: UIViewRepresentable {
       self.onScrollToBottom = parent.onScrollToBottom
       self.lastPagesCount = parent.pages.count
       self.hasScrolledToInitialPage = false
-      self.pageWidthPercentage = parent.pageWidthPercentage
-      self.lastPageWidthPercentage = parent.pageWidthPercentage
+      self.pageWidth = parent.pageWidth
+      self.lastPageWidth = parent.pageWidth
     }
 
     // MARK: - Helper Methods
@@ -169,14 +171,9 @@ struct WebtoonReaderView: UIViewRepresentable {
       index >= 0 && index < pages.count
     }
 
-    /// Calculates page width based on screen width and percentage
-    func calculatePageWidth(screenWidth: CGFloat) -> CGFloat {
-      screenWidth * (pageWidthPercentage / 100.0)
-    }
-
     /// Calculates estimated height for a page
-    func estimatedPageHeight(screenWidth: CGFloat) -> CGFloat {
-      calculatePageWidth(screenWidth: screenWidth) * Constants.estimatedAspectRatio
+    func estimatedPageHeight() -> CGFloat {
+      pageWidth * Constants.estimatedAspectRatio
     }
 
     /// Schedules initial scroll after view appears
@@ -198,13 +195,13 @@ struct WebtoonReaderView: UIViewRepresentable {
     }
 
     /// Calculates offset to a page index
-    func calculateOffsetToPage(_ pageIndex: Int, screenWidth: CGFloat) -> CGFloat {
+    func calculateOffsetToPage(_ pageIndex: Int) -> CGFloat {
       var offset: CGFloat = 0
       for i in 0..<pageIndex {
         if let height = pageHeights[i] {
           offset += height
         } else {
-          offset += estimatedPageHeight(screenWidth: screenWidth)
+          offset += estimatedPageHeight()
         }
       }
       return offset
@@ -218,7 +215,7 @@ struct WebtoonReaderView: UIViewRepresentable {
       onPageChange: ((Int) -> Void)?,
       onCenterTap: (() -> Void)?,
       onScrollToBottom: ((Bool) -> Void)?,
-      pageWidthPercentage: Double,
+      pageWidth: CGFloat,
       collectionView: UICollectionView
     ) {
       self.pages = pages
@@ -227,10 +224,10 @@ struct WebtoonReaderView: UIViewRepresentable {
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
-      self.pageWidthPercentage = pageWidthPercentage
+      self.pageWidth = pageWidth
 
       // Handle data reload if needed
-      if lastPagesCount != pages.count || lastPageWidthPercentage != pageWidthPercentage {
+      if lastPagesCount != pages.count || abs(lastPageWidth - pageWidth) > 0.1 {
         handleDataReload(collectionView: collectionView, currentPage: currentPage)
       }
 
@@ -246,10 +243,10 @@ struct WebtoonReaderView: UIViewRepresentable {
       }
     }
 
-    /// Handles data reload when pages count or width percentage changes
+    /// Handles data reload when pages count or width changes
     private func handleDataReload(collectionView: UICollectionView, currentPage: Int) {
       lastPagesCount = pages.count
-      lastPageWidthPercentage = pageWidthPercentage
+      lastPageWidth = pageWidth
       hasScrolledToInitialPage = false
       collectionView.reloadData()
       collectionView.layoutIfNeeded()
@@ -292,8 +289,7 @@ struct WebtoonReaderView: UIViewRepresentable {
           if collectionView.contentSize.height > 0 {
             collectionView.scrollToItem(at: indexPath, at: .top, animated: animated)
           } else {
-            let offset = self.calculateOffsetToPage(
-              pageIndex, screenWidth: collectionView.bounds.width)
+            let offset = self.calculateOffsetToPage(pageIndex)
             collectionView.setContentOffset(CGPoint(x: 0, y: offset), animated: animated)
           }
         }
@@ -391,31 +387,35 @@ struct WebtoonReaderView: UIViewRepresentable {
       _ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
       sizeForItemAt indexPath: IndexPath
     ) -> CGSize {
-      let screenWidth = collectionView.bounds.width
-      let width = calculatePageWidth(screenWidth: screenWidth)
-
       // Footer cell - fixed height for button area
       if indexPath.item == pages.count {
-        return CGSize(width: width, height: Constants.footerHeight)
+        return CGSize(width: pageWidth, height: Constants.footerHeight)
       }
 
       if let height = pageHeights[indexPath.item] {
-        return CGSize(width: width, height: height)
+        return CGSize(width: pageWidth, height: height)
       }
 
       // If we have the image, calculate height from aspect ratio
       if let image = pageImages[indexPath.item] {
         let aspectRatio = image.size.height / image.size.width
-        let height = width * aspectRatio
+        let height = pageWidth * aspectRatio
         pageHeights[indexPath.item] = height
-        return CGSize(width: width, height: height)
+        return CGSize(width: pageWidth, height: height)
       }
 
       // Default height (will be updated when image loads)
-      return CGSize(width: width, height: width)
+      return CGSize(width: pageWidth, height: pageWidth)
     }
 
     // MARK: - UICollectionViewDelegate
+
+    func collectionView(
+      _ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell,
+      forItemAt indexPath: IndexPath
+    ) {
+      // Standard implementation - no special handling needed
+    }
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
       isUserScrolling = true
@@ -530,7 +530,17 @@ struct WebtoonReaderView: UIViewRepresentable {
 
       pageImages[pageIndex] = image
       let (height, oldHeight) = calculateAndCacheHeight(for: pageIndex, image: image)
-      updateCellImage(image, for: pageIndex)
+
+      // Update visible cell immediately with correct width
+      if let collectionView = collectionView {
+        let indexPath = IndexPath(item: pageIndex, section: 0)
+        let isVisible = collectionView.indexPathsForVisibleItems.contains(indexPath)
+
+        if isVisible, let cell = collectionView.cellForItem(at: indexPath) as? WebtoonPageCell {
+          cell.updateImage(image)
+        }
+      }
+
       updateLayoutIfNeeded(pageIndex: pageIndex, height: height, oldHeight: oldHeight)
       tryScrollToInitialPageIfNeeded(pageIndex: pageIndex)
     }
@@ -539,50 +549,55 @@ struct WebtoonReaderView: UIViewRepresentable {
     private func calculateAndCacheHeight(for pageIndex: Int, image: UIImage) -> (
       height: CGFloat, oldHeight: CGFloat
     ) {
-      let screenWidth = collectionView?.bounds.width ?? UIScreen.main.bounds.width
-      let width = calculatePageWidth(screenWidth: screenWidth)
       let aspectRatio = image.size.height / image.size.width
-      let height = width * aspectRatio
-      let oldHeight = pageHeights[pageIndex] ?? screenWidth
+      let height = pageWidth * aspectRatio
+      let oldHeight = pageHeights[pageIndex] ?? pageWidth
       pageHeights[pageIndex] = height
       return (height, oldHeight)
-    }
-
-    /// Updates cell image if visible
-    private func updateCellImage(_ image: UIImage, for pageIndex: Int) {
-      guard let collectionView = collectionView else { return }
-      let indexPath = IndexPath(item: pageIndex, section: 0)
-      if let cell = collectionView.cellForItem(at: indexPath) as? WebtoonPageCell {
-        cell.updateImage(image)
-      }
     }
 
     /// Updates layout if height changed significantly
     private func updateLayoutIfNeeded(pageIndex: Int, height: CGFloat, oldHeight: CGFloat) {
       let heightDiff = abs(height - oldHeight)
-      guard heightDiff > Constants.heightChangeThreshold else { return }
 
-      if !isUserScrolling, let collectionView = collectionView, let layout = layout {
-        let currentOffset = collectionView.contentOffset.y
-        layout.invalidateLayout()
-        collectionView.layoutIfNeeded()
+      // Always update layout for visible cells to ensure correct width
+      // This is especially important during fast scrolling
+      if let collectionView = collectionView, let layout = layout {
+        let indexPath = IndexPath(item: pageIndex, section: 0)
+        let isVisible = collectionView.indexPathsForVisibleItems.contains(indexPath)
 
-        if pageIndex < currentPage {
-          let newOffset = max(0, currentOffset + (height - oldHeight))
-          UIView.performWithoutAnimation {
-            collectionView.setContentOffset(CGPoint(x: 0, y: newOffset), animated: false)
-          }
-        }
-      } else if isUserScrolling {
-        executeAfterDelay(0.5) { [weak self] in
-          guard let self = self, !self.isUserScrolling,
-            let collectionView = self.collectionView,
-            let layout = self.layout
-          else { return }
-          let currentHeight = self.pageHeights[pageIndex] ?? 0
-          if abs(currentHeight - oldHeight) > Constants.heightChangeThreshold {
+        if isVisible {
+          // For visible cells, invalidate layout to ensure correct sizing
+          layout.invalidateLayout()
+          collectionView.layoutIfNeeded()
+
+          // Width is set when image loads, no need to adjust here
+        } else if heightDiff > Constants.heightChangeThreshold {
+          // For non-visible cells, only update if height changed significantly
+          if !isUserScrolling {
+            let currentOffset = collectionView.contentOffset.y
             layout.invalidateLayout()
             collectionView.layoutIfNeeded()
+
+            if pageIndex < currentPage {
+              let newOffset = max(0, currentOffset + (height - oldHeight))
+              UIView.performWithoutAnimation {
+                collectionView.setContentOffset(CGPoint(x: 0, y: newOffset), animated: false)
+              }
+            }
+          } else {
+            // During scrolling, update layout after a short delay
+            executeAfterDelay(0.3) { [weak self] in
+              guard let self = self, !self.isUserScrolling,
+                let collectionView = self.collectionView,
+                let layout = self.layout
+              else { return }
+              let currentHeight = self.pageHeights[pageIndex] ?? 0
+              if abs(currentHeight - oldHeight) > Constants.heightChangeThreshold {
+                layout.invalidateLayout()
+                collectionView.layoutIfNeeded()
+              }
+            }
           }
         }
       }
@@ -730,45 +745,6 @@ class WebtoonLayout: UICollectionViewFlowLayout {
     minimumInteritemSpacing = 0
     sectionInset = .zero
   }
-
-  override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]?
-  {
-    guard let attributes = super.layoutAttributesForElements(in: rect) else {
-      return nil
-    }
-
-    // Center items horizontally if they are narrower than the collection view
-    if let collectionView = collectionView {
-      let collectionViewWidth = collectionView.bounds.width
-      for attribute in attributes {
-        if attribute.frame.width < collectionViewWidth {
-          let centerX = collectionViewWidth / 2
-          attribute.center = CGPoint(x: centerX, y: attribute.center.y)
-        }
-      }
-    }
-
-    return attributes
-  }
-
-  override func layoutAttributesForItem(at indexPath: IndexPath)
-    -> UICollectionViewLayoutAttributes?
-  {
-    guard let attributes = super.layoutAttributesForItem(at: indexPath),
-      let collectionView = collectionView
-    else {
-      return nil
-    }
-
-    // Center item horizontally if it is narrower than the collection view
-    let collectionViewWidth = collectionView.bounds.width
-    if attributes.frame.width < collectionViewWidth {
-      let centerX = collectionViewWidth / 2
-      attributes.center = CGPoint(x: centerX, y: attributes.center.y)
-    }
-
-    return attributes
-  }
 }
 
 // MARK: - Custom Cell
@@ -812,15 +788,14 @@ class WebtoonPageCell: UICollectionViewCell {
     ])
   }
 
-  func configure(pageIndex: Int, image: UIImage?, loadImage: @escaping (Int) async -> Void) {
+  func configure(
+    pageIndex: Int, image: UIImage?, loadImage: @escaping (Int) async -> Void
+  ) {
     self.pageIndex = pageIndex
     self.loadImage = loadImage
 
     if let image = image {
       imageView.image = image
-      // Force layout update to ensure image fills width
-      imageView.setNeedsLayout()
-      imageView.layoutIfNeeded()
       loadingIndicator.stopAnimating()
       loadingIndicator.isHidden = true
       imageView.alpha = 1.0
@@ -834,14 +809,12 @@ class WebtoonPageCell: UICollectionViewCell {
 
   func updateImage(_ image: UIImage) {
     imageView.image = image
-    // Force layout update to ensure image fills width
-    imageView.setNeedsLayout()
-    imageView.layoutIfNeeded()
+    loadingIndicator.stopAnimating()
+    loadingIndicator.isHidden = true
+
     UIView.animate(withDuration: 0.2) {
       self.imageView.alpha = 1.0
     }
-    loadingIndicator.stopAnimating()
-    loadingIndicator.isHidden = true
   }
 
   func showError() {
@@ -855,6 +828,7 @@ class WebtoonPageCell: UICollectionViewCell {
   override func prepareForReuse() {
     super.prepareForReuse()
     imageView.image = nil
+    imageView.alpha = 0.0
     loadingIndicator.stopAnimating()
     loadingIndicator.isHidden = true
     pageIndex = -1
