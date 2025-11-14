@@ -269,13 +269,13 @@ struct BookRowView: View {
         Image(uiImage: thumbnail)
           .resizable()
           .aspectRatio(contentMode: .fill)
-          .frame(width: 60, height: 90)
+          .frame(width: 60, height: 80)
           .clipped()
           .cornerRadius(4)
       } else {
         Rectangle()
           .fill(Color.gray.opacity(0.3))
-          .frame(width: 60, height: 90)
+          .frame(width: 60, height: 80)
           .cornerRadius(4)
       }
 
@@ -326,6 +326,7 @@ struct BookRowView: View {
         .font(.caption)
         .foregroundColor(.secondary)
     }
+    .animation(.default, value: thumbnail)
     .task {
       thumbnail = await viewModel.loadThumbnail(for: book.id)
     }

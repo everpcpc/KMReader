@@ -204,7 +204,7 @@ struct ReadHistoryBookRow: View {
             }
         }
       }
-      .frame(width: 80, height: 120)
+      .frame(width: 80, height: 100)
       .clipped()
       .cornerRadius(6)
 
@@ -238,6 +238,7 @@ struct ReadHistoryBookRow: View {
         .font(.caption)
         .foregroundColor(.secondary)
     }
+    .animation(.default, value: thumbnail)
     .task {
       thumbnail = await viewModel.loadThumbnail(for: book.id)
     }
