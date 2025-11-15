@@ -14,56 +14,74 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
 - **Libraries**: Browse all libraries with filtering
 - **Series**: Browse series by library with grid layout
 - **Books**: View books within a series
+- **Series Filtering & Sorting**:
+  - Filter by read status (All, Read, Unread, In Progress)
+  - Filter by series status (All, Ongoing, Ended, Hiatus, Cancelled)
+  - Sort by: Name, Date Added, Date Updated, Date Read, Release Date, Folder Name, Books Count, Random
+  - Sort direction: Ascending/Descending (except Random)
+  - Library filtering across all views
 - **Series Details**:
   - Series metadata (title, status, age rating, language, publisher)
-  - Authors and roles
+  - Authors and roles (Writer, Artist, Colorist, Letterer, etc.)
   - Genres and tags
   - Summary
   - Reading direction
   - Book count and unread count
-- **Library Filtering**: Filter content by library across all views
+  - Release date
+  - Books list with reading progress indicators
 
 ### 📖 Reading Experience
 - **Multiple Reading Modes**:
-  - **LTR (Left-to-Right)**: Traditional comic reading
-  - **RTL (Right-to-Left)**: Manga reading style
-  - **Vertical**: Vertical page scrolling
-  - **Webtoon**: Continuous vertical scroll with adjustable page width
+  - **LTR (Left-to-Right)**: Traditional comic reading with horizontal page navigation
+  - **RTL (Right-to-Left)**: Manga reading style with reverse horizontal navigation
+  - **Vertical**: Vertical page scrolling for vertical comics
+  - **Webtoon**: Continuous vertical scroll with adjustable page width (50%-100%)
+  - Automatic reading direction detection from series metadata
+  - Manual reading mode selection during reading
 - **Reader Features**:
   - Pinch to zoom (1x to 4x)
   - Double-tap to zoom in/out
   - Drag to pan when zoomed
   - Swipe/tap navigation between pages
-  - Tap zones for page navigation (left/right or top/bottom)
+  - Tap zones for page navigation (left/right or top/bottom depending on mode)
   - Center tap to toggle controls
-  - Auto-hide controls (3 seconds)
-  - Reading direction picker
-  - Page counter display
-  - Progress slider
+  - Auto-hide controls (3 seconds, disabled at end page)
+  - Reading direction picker (accessible from reader controls)
+  - Page counter display (current page / total pages)
+  - Progress slider for quick navigation
+  - End page view with next book navigation
+  - Next book auto-detection and navigation
 - **Progress Tracking**:
-  - Automatic progress sync
-  - Resume from last read page
+  - Automatic progress sync to server
+  - Resume from last read page on book open
   - Mark as read/unread
-  - Reading status indicators
+  - Reading status indicators (UNREAD, IN_PROGRESS, READ)
+  - Progress updates on every page change
 - **Performance**:
   - Page preloading (3 pages ahead)
-  - Image caching
-  - Thumbnail caching
+  - Image caching for pages
+  - Thumbnail caching for series and books
   - Smooth scrolling and transitions
+  - Efficient memory management
 
 ### 📊 Dashboard
-- **Keep Reading**: Books currently in progress
-- **On Deck**: Next books to read
-- **Recently Added Books**: Latest additions
-- **Recently Added Series**: New series
+- **Keep Reading**: Books currently in progress (sorted by last read date)
+- **On Deck**: Next books to read in series
+- **Recently Added Books**: Latest additions to libraries
+- **Recently Added Series**: New series added to libraries
 - **Recently Updated Series**: Recently updated series
 - **Library Filter**: Filter dashboard content by library
+- **Pull to Refresh**: Manual refresh button to reload all sections
+- **Empty State**: Helpful message when no content is available
 
 ### 📜 History
-- Recently read books with timestamps
-- Reading progress display
+- Recently read books with relative timestamps (e.g., "2h ago", "Yesterday", "3 days ago")
+- Reading progress display for each book
+- Book metadata (series title, book title, page count, book number)
 - Library filtering
+- Infinite scroll with automatic pagination
 - Quick access to resume reading
+- Last read date display
 
 ### ⚙️ Settings
 - **Appearance**:
@@ -75,10 +93,17 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
   - Logout
 
 ### 🔍 Search & Filtering
-- Book search by read status (UNREAD, IN_PROGRESS, READ)
-- Filter by library
-- Filter by series
-- Combined filters (library + read status)
+- **Book Search**:
+  - Filter by read status (UNREAD, IN_PROGRESS, READ)
+  - Filter by library
+  - Filter by series
+  - Combined filters (library + read status)
+- **Series Filtering** (in Browse view):
+  - Filter by read status (All, Read, Unread, In Progress)
+  - Filter by series status (All, Ongoing, Ended, Hiatus, Cancelled)
+  - Sort by multiple fields with ascending/descending order
+  - Random sorting option
+  - Persistent filter preferences
 
 ### 💾 Performance & Caching
 - Automatic image caching for pages
@@ -122,16 +147,21 @@ The app is built using modern SwiftUI and follows the MVVM pattern:
 
 ### Views
 - `LoginView` - Server and credential input
-- `DashboardView` - Home screen with recommendations
-- `LibraryListView` - Browse libraries
-- `SeriesListView` - Browse series in a library
-- `SeriesDetailView` - Series details with books list
+- `DashboardView` - Home screen with recommendations and library filtering
+- `BrowseView` - Browse series with advanced filtering and sorting options
+- `SeriesListView` - Grid layout for browsing series with infinite scroll
+- `SeriesDetailView` - Comprehensive series details with metadata and books list
 - `BookReaderView` - Full-screen comic reader with multiple reading modes
-- `WebtoonReaderView` - Webtoon-style continuous scroll reader
-- `HistoryView` - Reading history
+- `HorizontalPageView` - LTR/RTL horizontal page navigation
+- `VerticalPageView` - Vertical page scrolling
+- `WebtoonReaderView` - Webtoon-style continuous vertical scroll reader
+- `PageImageView` - Individual page display with zoom and pan
+- `ReaderControlsView` - Reader controls overlay (navigation, progress, settings)
+- `EndPageView` - End of book view with next book navigation
+- `HistoryView` - Reading history with infinite scroll
 - `SettingsView` - User settings and preferences
-- `BookCardView` - Book card component
-- `SeriesCardView` - Series card component
+- `BookCardView` - Book card component with thumbnail
+- `SeriesCardView` - Series card component with thumbnail and unread badge
 
 ## Setup
 
@@ -185,7 +215,7 @@ This client is compatible with Komga API v1 and v2. It supports:
 
 ## Requirements
 
-- iOS 18.0+
+- iOS 17.0+
 - Xcode 15.0+
 - Swift 5.9+
 - A running Komga server
