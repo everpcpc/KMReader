@@ -7,7 +7,10 @@
 
 import Foundation
 import OSLog
+import Photos
+import SDWebImage
 import SwiftUI
+import UIKit
 
 enum ReadingDirection: CaseIterable, Hashable {
   case ltr
@@ -293,6 +296,133 @@ class ReaderViewModel {
       return pages.count - 1 - pageIndex
     case .vertical, .webtoon:
       return pageIndex
+    }
+  }
+
+  /// Save page image to Photos from cache
+  /// - Parameter pageIndex: Zero-based page index
+  /// - Returns: Result indicating success or failure with error message
+  func savePageImageToPhotos(pageIndex: Int) async -> Result<Void, SaveImageError> {
+    guard pageIndex >= 0 && pageIndex < pages.count else {
+      return .failure(.invalidPageIndex)
+    }
+
+    guard !bookId.isEmpty else {
+      return .failure(.bookIdEmpty)
+    }
+
+    // Get cached image file URL
+    guard let imageURL = getCachedImageFileURL(pageIndex: pageIndex) else {
+      return .failure(.imageNotCached)
+    }
+
+    // Check photo library authorization
+    let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+    guard status == .authorized || status == .limited else {
+      return .failure(.photoLibraryAccessDenied)
+    }
+
+    // Check image format
+    guard let imageFormat = detectImageFormat(at: imageURL) else {
+      return .failure(.unsupportedImageFormat)
+    }
+
+    // Check if format is supported by Photos library
+    // Photos library supports: JPEG, PNG, HEIF, but not WebP
+    if !isFormatSupportedByPhotos(format: imageFormat) {
+      return .failure(.unsupportedImageFormat)
+    }
+
+    // Save to photo library directly from file URL (more efficient)
+    do {
+      try await PHPhotoLibrary.shared().performChanges {
+        PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: imageURL)
+      }
+      return .success(())
+    } catch {
+      return .failure(.saveError(error.localizedDescription))
+    }
+  }
+
+  // Detect image format from file URL
+  private func detectImageFormat(at fileURL: URL) -> String? {
+    // Read a small portion of the file to check format (more efficient than loading entire file)
+    guard let fileHandle = try? FileHandle(forReadingFrom: fileURL),
+      let imageData = try? fileHandle.read(upToCount: 12)
+    else {
+      return nil
+    }
+    defer {
+      try? fileHandle.close()
+    }
+
+    guard imageData.count >= 12 else { return nil }
+
+    // Check file signatures (magic numbers)
+    let bytes = [UInt8](imageData.prefix(12))
+
+    // JPEG: FF D8 FF
+    if bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
+      return "JPEG"
+    }
+
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 {
+      return "PNG"
+    }
+
+    // WebP: RIFF ... WEBP
+    if bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 {
+      if bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50 {
+        return "WebP"
+      }
+    }
+
+    // HEIF: ftyp ... mif1 or msf1
+    if bytes[4] == 0x66 && bytes[5] == 0x74 && bytes[6] == 0x79 && bytes[7] == 0x70 {
+      // Check for HEIF variants
+      let heifTypes = ["mif1", "msf1", "heic", "heif"]
+      let typeString = String(bytes: Array(bytes[8...11]), encoding: .ascii) ?? ""
+      if heifTypes.contains(where: { typeString.lowercased().contains($0) }) {
+        return "HEIF"
+      }
+    }
+
+    return nil
+  }
+
+  // Check if image format is supported by Photos library
+  private func isFormatSupportedByPhotos(format: String) -> Bool {
+    let supportedFormats = ["JPEG", "PNG", "HEIF"]
+    return supportedFormats.contains(format)
+  }
+}
+
+enum SaveImageError: Error, LocalizedError {
+  case invalidPageIndex
+  case bookIdEmpty
+  case imageNotCached
+  case photoLibraryAccessDenied
+  case failedToLoadImageData
+  case unsupportedImageFormat
+  case saveError(String)
+
+  var errorDescription: String? {
+    switch self {
+    case .invalidPageIndex:
+      return "Invalid page index"
+    case .bookIdEmpty:
+      return "Book ID is empty"
+    case .imageNotCached:
+      return "Image not cached yet"
+    case .photoLibraryAccessDenied:
+      return "Photo library access denied"
+    case .failedToLoadImageData:
+      return "Failed to load image data"
+    case .unsupportedImageFormat:
+      return "Image format not supported. Only JPEG, PNG, and HEIF formats can be saved to Photos."
+    case .saveError(let message):
+      return message
     }
   }
 }

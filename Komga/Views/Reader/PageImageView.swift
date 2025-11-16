@@ -5,8 +5,10 @@
 //  Created by Komga iOS Client
 //
 
+import Photos
 import SDWebImageSwiftUI
 import SwiftUI
+import UIKit
 
 struct PageImageView: View {
   var viewModel: ReaderViewModel
@@ -18,6 +20,8 @@ struct PageImageView: View {
   @State private var lastScale: CGFloat = 1.0
   @State private var offset: CGSize = .zero
   @State private var lastOffset: CGSize = .zero
+  @State private var saveImageStatus: SaveImageStatus = .idle
+  @State private var showSaveAlert = false
 
   var body: some View {
     GeometryReader { geometry in
@@ -90,6 +94,16 @@ struct PageImageView: View {
               }
             }
           }
+          .contextMenu {
+            Button {
+              Task {
+                await saveImageToPhotos()
+              }
+            } label: {
+              Label("Save to Photos", systemImage: "square.and.arrow.down")
+            }
+            .disabled(saveImageStatus == .saving)
+          }
         } else if let error = loadError {
           // Show error message
           VStack(spacing: 16) {
@@ -151,6 +165,43 @@ struct PageImageView: View {
     .onDisappear {
       // Clear URL when view disappears
       imageURL = nil
+    }
+    .alert("Save Image", isPresented: $showSaveAlert) {
+      Button("OK") {
+        saveImageStatus = .idle
+      }
+    } message: {
+      switch saveImageStatus {
+      case .idle, .saving:
+        Text("")
+      case .success:
+        Text("Image saved to Photos successfully")
+      case .failed(let error):
+        Text("Failed to save image: \(error)")
+      }
+    }
+    .onChange(of: saveImageStatus) { oldValue, newValue in
+      if newValue == .success || (newValue != .idle && newValue != .saving) {
+        showSaveAlert = true
+      }
+    }
+  }
+
+  // Save image to Photos from cache
+  private func saveImageToPhotos() async {
+    await MainActor.run {
+      saveImageStatus = .saving
+    }
+
+    let result = await viewModel.savePageImageToPhotos(pageIndex: pageIndex)
+
+    await MainActor.run {
+      switch result {
+      case .success:
+        saveImageStatus = .success
+      case .failure(let error):
+        saveImageStatus = .failed(error.localizedDescription)
+      }
     }
   }
 }
