@@ -29,6 +29,7 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
   - Book count and unread count
   - Release date
   - Books list with reading progress indicators
+  - Book list sorting (ascending/descending by book number)
 
 ### 📖 Reading Experience
 - **Multiple Reading Modes**:
@@ -84,12 +85,18 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
 - Infinite scroll with automatic pagination
 - Quick access to resume reading
 - Last read date display
+- Pull to refresh support
 
 ### ⚙️ Settings
 - **Appearance**:
   - Theme color selection (6 color options)
 - **Reader**:
   - Webtoon page width adjustment (50% - 100%)
+- **Cache**:
+  - View disk cache size and cached image count
+  - Adjust maximum disk cache size (512MB - 8GB, default 2GB)
+  - Clear disk cache manually
+  - Automatic cache cleanup when limit is exceeded
 - **Account**:
   - User email and roles display
   - Logout
@@ -109,10 +116,12 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
 
 ### 💾 Performance & Caching
 - **Two-Tier Image Caching System**:
-  - **Disk Cache**: Stores raw image data (up to 2GB) to avoid re-downloading
+  - **Disk Cache**: Stores raw image data (configurable, default 2GB, range 512MB-8GB) to avoid re-downloading
     - Persistent across app restarts
     - Organized by book ID for efficient management
     - Automatic cleanup of oldest files when limit is reached
+    - Manual cache clearing from settings
+    - Cache size monitoring and statistics
   - **Memory Cache**: Stores decoded images (up to 50 images, 200MB)
     - LRU (Least Recently Used) eviction policy
     - Automatic cleanup on memory warnings
@@ -131,6 +140,7 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
   - Automatic cache size limits
   - Memory warning handling
   - Efficient cleanup of unused resources
+  - User-configurable cache size limits
 
 ### 📝 API Logging
 - Comprehensive API request/response logging
@@ -183,6 +193,7 @@ The app is built using modern SwiftUI and follows the MVVM pattern:
 - `HistoryView` - Reading history with infinite scroll
 - `SettingsView` - User settings and preferences
 - `BookCardView` - Book card component with thumbnail
+- `BookRowView` - Book row component for list views
 - `SeriesCardView` - Series card component with thumbnail and unread badge
 
 ## Setup
