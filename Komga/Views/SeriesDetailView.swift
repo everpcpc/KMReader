@@ -11,7 +11,6 @@ struct SeriesDetailView: View {
   let seriesId: String
 
   @State private var seriesViewModel = SeriesViewModel()
-  @State private var bookViewModel = BookViewModel()
   @State private var series: Series?
   @State private var thumbnail: UIImage?
   @State private var selectedBookId: String?
@@ -206,27 +205,7 @@ struct SeriesDetailView: View {
           }
 
           // Books list
-          VStack(alignment: .leading, spacing: 8) {
-            Text("Books")
-              .font(.headline)
-
-            if bookViewModel.isLoading && bookViewModel.books.isEmpty {
-              ProgressView()
-                .frame(maxWidth: .infinity)
-                .padding()
-            } else {
-              LazyVStack(spacing: 8) {
-                ForEach(bookViewModel.books) { book in
-                  Button {
-                    selectedBookId = book.id
-                  } label: {
-                    BookRowView(book: book, viewModel: bookViewModel)
-                  }
-                  .buttonStyle(PlainButtonStyle())
-                }
-              }
-            }
-          }
+          BooksListView(seriesId: seriesId, selectedBookId: $selectedBookId)
         } else {
           ProgressView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -245,125 +224,10 @@ struct SeriesDetailView: View {
       do {
         series = try await SeriesService.shared.getOneSeries(id: seriesId)
         thumbnail = await seriesViewModel.loadThumbnail(for: seriesId)
-        await bookViewModel.loadBooks(seriesId: seriesId)
       } catch {
         print("Error loading series: \(error)")
       }
     }
-  }
-}
-
-struct BookRowView: View {
-  let book: Book
-  var viewModel: BookViewModel
-  @State private var thumbnail: UIImage?
-
-  var completed: Bool {
-    guard let readProgress = book.readProgress else { return false }
-    return readProgress.completed
-  }
-
-  private var isInProgress: Bool {
-    guard let readProgress = book.readProgress else { return false }
-    return !readProgress.completed
-  }
-
-  var body: some View {
-    HStack(spacing: 12) {
-      if let thumbnail = thumbnail {
-        Image(uiImage: thumbnail)
-          .resizable()
-          .aspectRatio(contentMode: .fill)
-          .frame(width: 60, height: 80)
-          .clipped()
-          .cornerRadius(4)
-      } else {
-        Rectangle()
-          .fill(Color.gray.opacity(0.3))
-          .frame(width: 60, height: 80)
-          .cornerRadius(4)
-      }
-
-      VStack(alignment: .leading, spacing: 6) {
-        Text(book.metadata.title)
-          .font(.subheadline)
-          .foregroundColor(completed ? .secondary : .primary)
-          .lineLimit(2)
-
-        HStack(spacing: 4) {
-          Text("#\(formatNumber(book.number))")
-            .fontWeight(.medium)
-            .foregroundColor(.secondary)
-
-          Text("•")
-            .foregroundColor(.secondary)
-
-          Text("\(book.media.pagesCount) pages")
-            .foregroundColor(.secondary)
-
-          if let progress = book.readProgress {
-            Text("•")
-              .foregroundColor(.secondary)
-
-            if progress.completed {
-              Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-            } else {
-              Text("Page \(progress.page + 1)")
-                .foregroundColor(.blue)
-            }
-          }
-        }
-        .font(.caption)
-
-        HStack(spacing: 4) {
-          Label(book.size, systemImage: "doc")
-          Text("•")
-          Label(formatDate(book.created), systemImage: "clock")
-        }
-        .font(.caption)
-        .foregroundColor(.secondary)
-      }
-
-      Spacer()
-
-      Image(systemName: "chevron.right")
-        .font(.caption)
-        .foregroundColor(.secondary)
-    }
-    .animation(.default, value: thumbnail)
-    .bookContextMenu(book: book, viewModel: viewModel)
-    .task {
-      thumbnail = await viewModel.loadThumbnail(for: book.id)
-    }
-  }
-
-  private func formatNumber(_ number: Double) -> String {
-    if number.truncatingRemainder(dividingBy: 1) == 0 {
-      return String(format: "%.0f", number)
-    } else {
-      return String(format: "%.1f", number)
-    }
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    let calendar = Calendar.current
-    let now = Date()
-
-    if calendar.isDateInToday(date) {
-      formatter.dateStyle = .none
-      formatter.timeStyle = .short
-      return formatter.string(from: date)
-    }
-
-    if calendar.component(.year, from: date) == calendar.component(.year, from: now) {
-      formatter.dateFormat = "MM-dd"
-      return formatter.string(from: date)
-    }
-
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter.string(from: date)
   }
 }
 

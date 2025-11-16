@@ -20,14 +20,42 @@ class BookViewModel {
   private let bookService = BookService.shared
   private var currentPage = 0
   private var hasMorePages = true
+  private var currentSeriesId: String?
+  private var currentSort: String = "metadata.numberSort,asc"
 
-  func loadBooks(seriesId: String) async {
+  func loadBooks(seriesId: String, sort: String = "metadata.numberSort,asc") async {
+    currentSeriesId = seriesId
+    currentSort = sort
+    currentPage = 0
+    books = []
+    hasMorePages = true
     isLoading = true
     errorMessage = nil
 
     do {
-      let page = try await bookService.getBooks(seriesId: seriesId)
+      let page = try await bookService.getBooks(seriesId: seriesId, page: 0, size: 50, sort: sort)
       books = page.content
+      hasMorePages = !page.last
+      currentPage = 1
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+
+    isLoading = false
+  }
+
+  func loadMoreBooks(seriesId: String) async {
+    guard hasMorePages && !isLoading && seriesId == currentSeriesId else { return }
+
+    isLoading = true
+    errorMessage = nil
+
+    do {
+      let page = try await bookService.getBooks(
+        seriesId: seriesId, page: currentPage, size: 50, sort: currentSort)
+      books.append(contentsOf: page.content)
+      hasMorePages = !page.last
+      currentPage += 1
     } catch {
       errorMessage = error.localizedDescription
     }
