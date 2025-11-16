@@ -6,13 +6,12 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct PageImageView: View {
   var viewModel: ReaderViewModel
   let pageIndex: Int
 
-  @State private var image: UIImage?
+  @State private var image: Image?
   @State private var scale: CGFloat = 1.0
   @State private var lastScale: CGFloat = 1.0
   @State private var offset: CGSize = .zero
@@ -22,7 +21,7 @@ struct PageImageView: View {
     GeometryReader { geometry in
       ZStack {
         if let image = image {
-          Image(uiImage: image)
+          image
             .resizable()
             .aspectRatio(contentMode: .fit)
             .scaleEffect(scale)
@@ -87,32 +86,15 @@ struct PageImageView: View {
       .frame(width: geometry.size.width, height: geometry.size.height)
     }
     .task(id: pageIndex) {
-      // Check if image is already cached to avoid unnecessary reset and loading
-      if let cachedImage = viewModel.pageImageCache[pageIndex] {
-        // Image is cached, update immediately - this provides instant display when preloaded
-        // Reset zoom state when switching pages for better UX
-        image = cachedImage
-        scale = 1.0
-        lastScale = 1.0
-        offset = .zero
-        lastOffset = .zero
-      } else {
-        // Image not cached, reset state first
-        scale = 1.0
-        lastScale = 1.0
-        offset = .zero
-        lastOffset = .zero
+      // Reset zoom state when switching pages
+      scale = 1.0
+      lastScale = 1.0
+      offset = .zero
+      lastOffset = .zero
 
-        // Start loading immediately without blocking UI
-        // Don't set image to nil if it's already showing something (smoother transition)
-        let loadedImage = await viewModel.loadPageImage(pageIndex: pageIndex)
-        if let loadedImage = loadedImage {
-          image = loadedImage
-        } else {
-          // Only show nil if loading failed
-          image = nil
-        }
-      }
+      // Load image (will check cache first: memory -> disk -> network)
+      let loadedImage = await viewModel.loadPageImage(pageIndex: pageIndex)
+      image = loadedImage
     }
   }
 }

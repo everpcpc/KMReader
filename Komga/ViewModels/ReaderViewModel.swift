@@ -76,16 +76,23 @@ class ReaderViewModel {
   var currentPage = 0
   var isLoading = false
   var errorMessage: String?
-  var pageImageCache: [Int: UIImage] = [:]
+  var pageImageCache: ImageCache
   var readingDirection: ReadingDirection = .ltr
 
   private let bookService = BookService.shared
-  private var bookId: String = ""
+  var bookId: String = ""  // Internal for cache access
+
+  init() {
+    self.pageImageCache = ImageCache()
+  }
 
   func loadPages(bookId: String, initialPage: Int? = nil) async {
     self.bookId = bookId
     isLoading = true
     errorMessage = nil
+
+    // Clear memory cache when loading a new book (keep disk cache)
+    pageImageCache.removeAll()
 
     do {
       pages = try await bookService.getBookPages(id: bookId)
@@ -104,11 +111,7 @@ class ReaderViewModel {
     isLoading = false
   }
 
-  func loadPageImage(pageIndex: Int) async -> UIImage? {
-    if let cached = pageImageCache[pageIndex] {
-      return cached
-    }
-
+  func loadPageImage(pageIndex: Int) async -> Image? {
     guard pageIndex >= 0 && pageIndex < pages.count else {
       return nil
     }
@@ -117,26 +120,25 @@ class ReaderViewModel {
       return nil
     }
 
+    // Try cache first (memory -> disk)
+    if let cachedImage = await pageImageCache.getImage(forKey: pageIndex, bookId: bookId) {
+      return cachedImage
+    }
+
+    // Not in cache, download from network
     do {
       // Use the page number from the API response (1-based)
       let apiPageNumber = pages[pageIndex].number
       let data = try await bookService.getBookPage(bookId: bookId, page: apiPageNumber)
 
-      // Decode image on background thread to avoid blocking UI
-      let image = await Task.detached(priority: .userInitiated) {
-        // Decode image in background
-        guard let image = UIImage(data: data) else { return nil as UIImage? }
-        // Pre-render the image to ensure it's decoded and ready for display
-        // This prevents stuttering when the image is first displayed
-        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
-        image.draw(at: .zero)
-        let decodedImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        return decodedImage ?? image
-      }.value
+      // Save to disk cache first (raw data)
+      await pageImageCache.storeImageData(data, forKey: pageIndex, bookId: bookId)
 
-      if let image = image {
-        pageImageCache[pageIndex] = image
+      // Decode image
+      if let uiImage = await pageImageCache.decodeImage(from: data) {
+        let image = Image(uiImage: uiImage)
+        // Store decoded image to memory cache
+        pageImageCache.storeImage(image, forKey: pageIndex)
         return image
       }
     } catch {
@@ -146,42 +148,84 @@ class ReaderViewModel {
     return nil
   }
 
+  // Legacy method for compatibility (returns UIImage for WebtoonReaderView)
+  func loadPageImageUIImage(pageIndex: Int) async -> UIImage? {
+    guard pageIndex >= 0 && pageIndex < pages.count else {
+      return nil
+    }
+
+    guard !bookId.isEmpty else {
+      return nil
+    }
+
+    // Try disk cache first
+    if let data = await pageImageCache.getImageData(forKey: pageIndex, bookId: bookId) {
+      return await pageImageCache.decodeImage(from: data)
+    }
+
+    // Not in cache, download from network
+    do {
+      let apiPageNumber = pages[pageIndex].number
+      let data = try await bookService.getBookPage(bookId: bookId, page: apiPageNumber)
+
+      // Save to disk cache
+      await pageImageCache.storeImageData(data, forKey: pageIndex, bookId: bookId)
+
+      // Decode and return
+      return await pageImageCache.decodeImage(from: data)
+    } catch {
+      // Silently fail
+    }
+
+    return nil
+  }
+
   func preloadPages() async {
     // Preload current page, previous pages, and next pages for smoother scrolling
-    // More aggressive preloading: 2 pages before and 5 pages after
-    let preloadBefore = max(0, currentPage - 2)
-    let preloadAfter = min(currentPage + 5, pages.count)
+    // Reduced preloading to save memory: 1 page before and 3 pages after
+    let preloadBefore = max(0, currentPage - 1)
+    let preloadAfter = min(currentPage + 3, pages.count)
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
     // Load pages concurrently for better performance
     await withTaskGroup(of: Void.self) { group in
       for pageIndex in pagesToPreload {
-        if pageImageCache[pageIndex] == nil {
+        // Check if already in cache (memory or disk)
+        if await pageImageCache.getImage(forKey: pageIndex, bookId: bookId) == nil {
           group.addTask {
             _ = await self.loadPageImage(pageIndex: pageIndex)
           }
         }
       }
     }
+
+    // Clean up pages that are far from current page
+    let keepRange = max(0, currentPage - 2)..<min(pages.count, currentPage + 5)
+    pageImageCache.removePagesNotInRange(keepRange, keepCount: 2)
   }
 
   // Preload pages around a specific page index (for when pages appear in TabView)
   func preloadPagesAround(pageIndex: Int) async {
-    // Preload 2 pages before and 5 pages after the given page
-    let preloadBefore = max(0, pageIndex - 2)
-    let preloadAfter = min(pageIndex + 5, pages.count)
+    // Reduced preloading: 1 page before and 3 pages after
+    let preloadBefore = max(0, pageIndex - 1)
+    let preloadAfter = min(pageIndex + 3, pages.count)
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
     // Load pages concurrently for better performance
     await withTaskGroup(of: Void.self) { group in
       for index in pagesToPreload {
-        if pageImageCache[index] == nil {
+        // Check if already in cache (memory or disk)
+        if await pageImageCache.getImage(forKey: index, bookId: bookId) == nil {
           group.addTask {
             _ = await self.loadPageImage(pageIndex: index)
           }
         }
       }
     }
+
+    // Clean up pages that are far from this page
+    let keepRange = max(0, pageIndex - 2)..<min(pages.count, pageIndex + 5)
+    pageImageCache.removePagesNotInRange(keepRange, keepCount: 2)
   }
 
   func updateProgress() async {

@@ -40,7 +40,7 @@ class ImageLoader: @unchecked Sendable {
     guard let viewModel = viewModel else {
       return nil
     }
-    return await viewModel.loadPageImage(pageIndex: pageIndex)
+    return await viewModel.loadPageImageUIImage(pageIndex: pageIndex)
   }
 }
 
@@ -144,9 +144,8 @@ struct WebtoonReaderView: UIViewRepresentable {
     var isHandlingCenterTap: Bool = false
     var savedScrollOffset: CGFloat = 0
 
-    // Cache for page heights and images
+    // Cache for page heights (images are cached in viewModel)
     var pageHeights: [Int: CGFloat] = [:]
-    var pageImages: [Int: UIImage] = [:]
     var loadingPages: Set<Int> = []
 
     init(_ parent: WebtoonReaderView) {
@@ -359,7 +358,25 @@ struct WebtoonReaderView: UIViewRepresentable {
 
       let pageIndex = indexPath.item
 
-      if pageImages[pageIndex] == nil {
+      // Check if image is cached (synchronously check disk cache existence)
+      let cachedImage: UIImage? = nil  // Will be loaded asynchronously if cached
+      if let viewModel = imageLoader?.viewModel,
+        viewModel.pageImageCache.hasImage(forKey: pageIndex, bookId: viewModel.bookId)
+      {
+        // Load from cache asynchronously
+        Task { @MainActor [weak viewModel, weak collectionView] in
+          guard let viewModel = viewModel, let collectionView = collectionView else { return }
+          if let image = await viewModel.pageImageCache.getUIImage(
+            forKey: pageIndex, bookId: viewModel.bookId)
+          {
+            let indexPath = IndexPath(item: pageIndex, section: 0)
+            if let cell = collectionView.cellForItem(at: indexPath) as? WebtoonPageCell {
+              cell.updateImage(image)
+            }
+          }
+        }
+      } else {
+        // Not cached, load it
         Task { @MainActor [weak self] in
           guard let self = self else { return }
           await self.loadImageForPage(pageIndex)
@@ -368,7 +385,7 @@ struct WebtoonReaderView: UIViewRepresentable {
 
       cell.configure(
         pageIndex: pageIndex,
-        image: pageImages[pageIndex],
+        image: cachedImage,
         loadImage: { [weak self] index in
           guard let self = self else { return }
           Task { @MainActor [weak self] in
@@ -397,12 +414,9 @@ struct WebtoonReaderView: UIViewRepresentable {
       }
 
       // If we have the image, calculate height from aspect ratio
-      if let image = pageImages[indexPath.item] {
-        let aspectRatio = image.size.height / image.size.width
-        let height = pageWidth * aspectRatio
-        pageHeights[indexPath.item] = height
-        return CGSize(width: pageWidth, height: height)
-      }
+      // Note: We can't directly get UIImage from cache here synchronously,
+      // so we'll rely on pageHeights cache which is updated when image loads
+      // This is a fallback for when height hasn't been calculated yet
 
       // Default height (will be updated when image loads)
       return CGSize(width: pageWidth, height: pageWidth)
@@ -514,21 +528,37 @@ struct WebtoonReaderView: UIViewRepresentable {
     @MainActor
     func loadImageForPage(_ pageIndex: Int) async {
       guard isValidPageIndex(pageIndex),
-        pageImages[pageIndex] == nil,
-        let loader = imageLoader
+        let imageLoader = imageLoader,
+        let viewModel = imageLoader.viewModel
       else {
+        return
+      }
+
+      // Check if already cached
+      let hasCached = viewModel.pageImageCache.hasImage(forKey: pageIndex, bookId: viewModel.bookId)
+      if hasCached {
+        // Image already cached, update cell if visible
+        if let collectionView = collectionView,
+          let image = await viewModel.pageImageCache.getUIImage(
+            forKey: pageIndex, bookId: viewModel.bookId)
+        {
+          let indexPath = IndexPath(item: pageIndex, section: 0)
+          if let cell = collectionView.cellForItem(at: indexPath) as? WebtoonPageCell {
+            cell.updateImage(image)
+          }
+        }
         return
       }
 
       loadingPages.insert(pageIndex)
       defer { loadingPages.remove(pageIndex) }
 
-      guard let image = await loader.loadImage(pageIndex) else {
+      guard let image = await imageLoader.loadImage(pageIndex) else {
         showImageError(for: pageIndex)
         return
       }
 
-      pageImages[pageIndex] = image
+      // Image is now cached in viewModel.pageImageCache
       let (height, oldHeight) = calculateAndCacheHeight(for: pageIndex, image: image)
 
       // Update visible cell immediately with correct width
@@ -637,11 +667,14 @@ struct WebtoonReaderView: UIViewRepresentable {
       let minVisible = visibleIndices.min() ?? 0
       let maxVisible = visibleIndices.max() ?? pages.count - 1
 
-      for i in max(0, minVisible - 3)...min(pages.count - 1, maxVisible + 3) {
-        if pageImages[i] == nil {
-          Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            await self.loadImageForPage(i)
+      // Preload nearby pages (reduced from 3 to 2 to save memory)
+      if let viewModel = imageLoader?.viewModel {
+        for i in max(0, minVisible - 2)...min(pages.count - 1, maxVisible + 2) {
+          if !viewModel.pageImageCache.hasImage(forKey: i, bookId: viewModel.bookId) {
+            Task { @MainActor [weak self] in
+              guard let self = self else { return }
+              await self.loadImageForPage(i)
+            }
           }
         }
       }

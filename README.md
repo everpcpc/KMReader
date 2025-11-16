@@ -58,11 +58,13 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
   - Reading status indicators (UNREAD, IN_PROGRESS, READ)
   - Progress updates on every page change
 - **Performance**:
-  - Page preloading (3 pages ahead)
-  - Image caching for pages
+  - Intelligent page preloading (1-3 pages ahead based on reading mode)
+  - Two-tier image caching system (disk + memory)
+  - Automatic image downscaling for large images to prevent OOM
+  - LRU memory cache with automatic cleanup
   - Thumbnail caching for series and books
   - Smooth scrolling and transitions
-  - Efficient memory management
+  - Efficient memory management with automatic cache eviction
 
 ### 📊 Dashboard
 - **Keep Reading**: Books currently in progress (sorted by last read date)
@@ -106,10 +108,29 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
   - Persistent filter preferences
 
 ### 💾 Performance & Caching
-- Automatic image caching for pages
-- Thumbnail caching for series and books
-- Page preloading for smooth reading
-- Efficient memory management
+- **Two-Tier Image Caching System**:
+  - **Disk Cache**: Stores raw image data (up to 2GB) to avoid re-downloading
+    - Persistent across app restarts
+    - Organized by book ID for efficient management
+    - Automatic cleanup of oldest files when limit is reached
+  - **Memory Cache**: Stores decoded images (up to 50 images, 200MB)
+    - LRU (Least Recently Used) eviction policy
+    - Automatic cleanup on memory warnings
+    - Fast instant display for recently viewed pages
+- **Smart Image Loading**:
+  - Load order: Memory cache → Disk cache → Network download
+  - Automatic downscaling of large images to screen size (prevents OOM)
+  - Background image decoding to avoid UI blocking
+  - Progressive loading with placeholder states
+- **Page Preloading**:
+  - Intelligent preloading based on reading mode
+  - Automatic cleanup of pages far from current position
+  - Concurrent loading for better performance
+- **Thumbnail Caching**: Fast thumbnail loading for series and books
+- **Memory Management**:
+  - Automatic cache size limits
+  - Memory warning handling
+  - Efficient cleanup of unused resources
 
 ### 📝 API Logging
 - Comprehensive API request/response logging
@@ -137,6 +158,7 @@ The app is built using modern SwiftUI and follows the MVVM pattern:
 - `SeriesService` - Series browsing and operations
 - `BookService` - Book operations and reading
 - `CollectionService` & `ReadListService` - Collection/ReadList operations
+- `ImageCache` - Two-tier image caching system (disk + memory) with LRU eviction
 
 ### ViewModels
 - `AuthViewModel` - Authentication state management
@@ -166,7 +188,7 @@ The app is built using modern SwiftUI and follows the MVVM pattern:
 ## Setup
 
 1. Open the project in Xcode 15+
-2. Build and run on iOS 18+ device or simulator
+2. Build and run on iOS 17+ device or simulator
 3. On first launch, enter:
    - Your Komga server URL (e.g., `http://192.168.1.100:25600`)
    - Username
@@ -207,7 +229,8 @@ This client is compatible with Komga API v1 and v2. It supports:
 - ✅ **Book Pages (API v1)**
   - Get page list
   - Download page images
-  - Page caching
+  - Two-tier page caching (disk + memory)
+  - Automatic image optimization and downscaling
 - ✅ **Collections (API v1)**
   - Collection support (models and services)
 - ✅ **Read Lists (API v1)**
