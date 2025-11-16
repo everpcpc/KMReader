@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import ImageIO
 import SwiftUI
 import UIKit
 
@@ -333,6 +334,12 @@ class ImageCache {
   }
 
   func decodeImage(from data: Data) async -> UIImage? {
+    // Validate data before decoding
+    guard data.count > 0 else { return nil }
+
+    // Check for minimum valid image data size (at least 8 bytes for basic image headers)
+    guard data.count >= 8 else { return nil }
+
     // Get screen size on main thread before background processing
     let screenSize = await MainActor.run {
       UIScreen.main.bounds.size
@@ -342,7 +349,15 @@ class ImageCache {
     }
 
     return await Task.detached(priority: .userInitiated) {
-      guard let image = UIImage(data: data) else { return nil }
+      // Use ImageIO for safer decoding to avoid EOF warnings
+      guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil),
+        let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+      else {
+        // Fallback to UIImage if ImageIO fails
+        return UIImage(data: data)
+      }
+
+      let image = UIImage(cgImage: cgImage)
 
       // Use pre-fetched screen size for downscaling
       let maxDisplaySize = CGSize(
