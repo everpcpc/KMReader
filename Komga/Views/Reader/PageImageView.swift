@@ -24,62 +24,72 @@ struct PageImageView: View {
       ZStack {
         if let imageURL = imageURL {
           // Use SDWebImage to load and display (handles both static and animated images)
-          AnimatedImageView(url: imageURL, contentMode: .fit)
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .scaleEffect(scale)
-            .offset(offset)
-            .gesture(
-              MagnificationGesture()
-                .onChanged { value in
-                  let delta = value / lastScale
-                  lastScale = value
-                  scale *= delta
-                }
-                .onEnded { _ in
-                  lastScale = 1.0
-                  if scale < 1.0 {
-                    withAnimation {
-                      scale = 1.0
-                      offset = .zero
-                    }
-                  } else if scale > 4.0 {
-                    withAnimation {
-                      scale = 4.0
-                    }
+          AnimatedImage(
+            url: imageURL,
+            options: [.retryFailed, .scaleDownLargeImages],
+            context: [
+              // Limit single image memory to 50MB (will scale down if larger)
+              .imageScaleDownLimitBytes: 50 * 1024 * 1024
+            ]
+          )
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+          .transition(.fade)
+          .frame(width: geometry.size.width, height: geometry.size.height)
+          .scaleEffect(scale)
+          .offset(offset)
+          .gesture(
+            MagnificationGesture()
+              .onChanged { value in
+                let delta = value / lastScale
+                lastScale = value
+                scale *= delta
+              }
+              .onEnded { _ in
+                lastScale = 1.0
+                if scale < 1.0 {
+                  withAnimation {
+                    scale = 1.0
+                    offset = .zero
                   }
-                }
-            )
-            .simultaneousGesture(
-              DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                  // Only handle drag when zoomed in
-                  if scale > 1.0 {
-                    offset = CGSize(
-                      width: lastOffset.width + value.translation.width,
-                      height: lastOffset.height + value.translation.height
-                    )
+                } else if scale > 4.0 {
+                  withAnimation {
+                    scale = 4.0
                   }
-                }
-                .onEnded { _ in
-                  if scale > 1.0 {
-                    lastOffset = offset
-                  }
-                }
-            )
-            .onTapGesture(count: 2) {
-              // Double tap to zoom in/out
-              if scale > 1.0 {
-                withAnimation {
-                  scale = 1.0
-                  offset = .zero
-                  lastOffset = .zero
-                }
-              } else {
-                withAnimation {
-                  scale = 2.0
                 }
               }
+          )
+          .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+              .onChanged { value in
+                // Only handle drag when zoomed in
+                if scale > 1.0 {
+                  offset = CGSize(
+                    width: lastOffset.width + value.translation.width,
+                    height: lastOffset.height + value.translation.height
+                  )
+                }
+              }
+              .onEnded { _ in
+                if scale > 1.0 {
+                  lastOffset = offset
+                }
+              }
+          )
+          .onTapGesture(count: 2) {
+            // Double tap to zoom in/out
+            if scale > 1.0 {
+              withAnimation {
+                scale = 1.0
+                offset = .zero
+                lastOffset = .zero
+              }
+            } else {
+              withAnimation {
+                scale = 2.0
+              }
             }
+          }
         } else if let error = loadError {
           // Show error message
           VStack(spacing: 16) {
