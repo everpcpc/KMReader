@@ -194,11 +194,36 @@ class ImageCache {
       )
 
       // Downscale if needed
+      // For long strip images (webtoon style), we should only scale based on width
+      // to preserve the aspect ratio and avoid over-shrinking
       if image.size.width > maxDisplaySize.width || image.size.height > maxDisplaySize.height {
-        let scale = min(
-          maxDisplaySize.width / image.size.width,
-          maxDisplaySize.height / image.size.height
-        )
+        // Calculate scale for width and height separately
+        let widthScale =
+          image.size.width > maxDisplaySize.width
+          ? maxDisplaySize.width / image.size.width
+          : 1.0
+        let heightScale =
+          image.size.height > maxDisplaySize.height
+          ? maxDisplaySize.height / image.size.height
+          : 1.0
+
+        // For long strip images, use the scale that prevents over-shrinking
+        // If image is much taller than wide (webtoon), prioritize width scaling
+        // If image is much wider than tall, prioritize height scaling
+        let imageAspectRatio = image.size.width / image.size.height
+
+        let scale: CGFloat
+        if imageAspectRatio < 0.5 {
+          // Very tall image (webtoon style): scale by width only
+          scale = widthScale
+        } else if imageAspectRatio > 2.0 {
+          // Very wide image: scale by height only
+          scale = heightScale
+        } else {
+          // Normal aspect ratio: use min to fit both dimensions
+          scale = min(widthScale, heightScale)
+        }
+
         let scaledSize = CGSize(
           width: image.size.width * scale,
           height: image.size.height * scale
