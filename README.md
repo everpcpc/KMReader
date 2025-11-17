@@ -1,6 +1,6 @@
 # KMReader
 
-A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
+A native iOS client for [Komga](https://github.com/gotson/komga) - a media server for comics/mangas/BDs/magazines.
 
 ## Features
 
@@ -297,6 +297,20 @@ When a decoding error occurs, the log will show:
 
 This helps quickly identify API compatibility issues between different Komga versions.
 
-## Reference
+## TODO
 
-This iOS client is based on the official [Komga Web UI](https://github.com/gotson/komga) and implements similar functionality in a native iOS experience.
+### Library View Enhancements
+- [x] Ability to resize the tiles in library view (reducing or increasing number of rows/columns)
+- [ ] Option to disable titles in library view (most are too long to show more than a few characters)
+- [ ] Option to preserve the cover image aspect ratio in the library view (a lot of cover images are not standardized in resolutions)
+
+### Series & Book Features
+- [ ] Importing the summary of a series from the first book like the webui (See mangabox)
+- [ ] Ability to view summaries of each book in a series (See mangabox)
+
+### Reader Features
+- [ ] Two page spread function when the screen is turned landscape
+- [ ] Skip cover option for two page spread (see webui for example)
+
+### Collections & Read Lists
+- [ ] Ability to view "Collections/Read Lists"
