@@ -301,7 +301,7 @@ This helps quickly identify API compatibility issues between different Komga ver
 
 ### Library View Enhancements
 - [x] Ability to resize the tiles in library view (reducing or increasing number of rows/columns)
-- [ ] Option to disable titles in library view (most are too long to show more than a few characters)
+- [x] Option to disable titles in library view (most are too long to show more than a few characters)
 - [ ] Option to preserve the cover image aspect ratio in the library view (a lot of cover images are not standardized in resolutions)
 
 ### Series & Book Features

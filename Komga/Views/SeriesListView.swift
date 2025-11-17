@@ -15,6 +15,7 @@ struct SeriesListView: View {
   @State private var viewModel = SeriesViewModel()
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("browseShowCardTitles") private var browseShowCardTitles: Bool = true
 
   var availableWidth: CGFloat {
     width - spacing * 2
@@ -65,8 +66,7 @@ struct SeriesListView: View {
         LazyVGrid(columns: columns, spacing: spacing) {
           ForEach(Array(viewModel.series.enumerated()), id: \.element.id) { index, series in
             NavigationLink(destination: SeriesDetailView(seriesId: series.id)) {
-              SeriesCardView(
-                series: series, viewModel: viewModel, cardWidth: cardWidth)
+              SeriesCardView(series: series, cardWidth: cardWidth, showTitle: browseShowCardTitles)
             }
             .buttonStyle(PlainButtonStyle())
             .onAppear {

@@ -314,7 +314,7 @@ struct DashboardSeriesSection: View {
         HStack(spacing: 12) {
           ForEach(series) { s in
             NavigationLink(destination: SeriesDetailView(seriesId: s.id)) {
-              SeriesCardView(series: s, viewModel: seriesViewModel, cardWidth: 120)
+              SeriesCardView(series: s, cardWidth: 120, showTitle: true)
             }
             .buttonStyle(PlainButtonStyle())
           }

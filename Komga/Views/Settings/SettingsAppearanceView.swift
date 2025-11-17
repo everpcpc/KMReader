@@ -11,6 +11,7 @@ import SwiftUI
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorName") private var themeColor: ThemeColorOption = .orange
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("browseShowCardTitles") private var browseShowCardTitles: Bool = true
 
   private var portraitColumnsBinding: Binding<Int> {
     Binding(
@@ -81,7 +82,7 @@ struct SettingsAppearanceView: View {
         }
       }
 
-      Section(header: Text("Browse Columns")) {
+      Section(header: Text("Browse")) {
         VStack(alignment: .leading, spacing: 8) {
           Stepper(
             value: portraitColumnsBinding,
@@ -89,7 +90,7 @@ struct SettingsAppearanceView: View {
             step: 1
           ) {
             HStack {
-              Text("Portrait")
+              Text("Portrait Columns")
               Text("\(browseColumns.portrait)")
                 .foregroundColor(.secondary)
             }
@@ -106,12 +107,21 @@ struct SettingsAppearanceView: View {
             step: 1
           ) {
             HStack {
-              Text("Landscape")
+              Text("Landscape Columns")
               Text("\(browseColumns.landscape)")
                 .foregroundColor(.secondary)
             }
           }
           Text("Number of columns in landscape orientation")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+          Toggle(isOn: $browseShowCardTitles) {
+            Text("Show Card Titles")
+          }
+          Text("Show titles for series and books in the library view card")
             .font(.caption)
             .foregroundColor(.secondary)
         }
