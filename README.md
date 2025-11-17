@@ -1,4 +1,4 @@
-# Komga iOS Client
+# KMReader
 
 A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
 
