@@ -14,6 +14,18 @@ struct HistoryView: View {
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
   @State private var showLibraryPickerSheet = false
 
+  private func refreshRecentlyReadBooks() {
+    Task {
+      await bookViewModel.loadRecentlyReadBooks(libraryId: selectedLibraryId, refresh: true)
+    }
+  }
+
+  private func loadMoreRecentlyReadBooks() {
+    Task {
+      await bookViewModel.loadRecentlyReadBooks(libraryId: selectedLibraryId, refresh: false)
+    }
+  }
+
   var body: some View {
     NavigationStack {
       ScrollView {
@@ -31,10 +43,7 @@ struct HistoryView: View {
               Text(errorMessage)
                 .multilineTextAlignment(.center)
               Button("Retry") {
-                Task {
-                  await bookViewModel.loadRecentlyReadBooks(
-                    libraryId: selectedLibraryId, refresh: true)
-                }
+                refreshRecentlyReadBooks()
               }
             }
             .padding()
@@ -43,14 +52,8 @@ struct HistoryView: View {
             // Recently Read Books Section
             ReadHistorySection(
               title: "Recently Read Books",
-              books: bookViewModel.books,
               bookViewModel: bookViewModel,
-              onLoadMore: {
-                Task {
-                  await bookViewModel.loadRecentlyReadBooks(
-                    libraryId: selectedLibraryId, refresh: false)
-                }
-              },
+              onLoadMore: loadMoreRecentlyReadBooks,
               isLoading: bookViewModel.isLoading
             )
             .animation(.default, value: bookViewModel.books)
@@ -101,13 +104,11 @@ struct HistoryView: View {
       }
       .animation(.default, value: selectedLibraryId)
       .onChange(of: selectedLibraryId) {
-        Task {
-          await bookViewModel.loadRecentlyReadBooks(libraryId: selectedLibraryId, refresh: true)
-        }
+        refreshRecentlyReadBooks()
       }
     }
     .task {
-      await bookViewModel.loadRecentlyReadBooks(libraryId: selectedLibraryId, refresh: true)
+      refreshRecentlyReadBooks()
     }
   }
 
@@ -119,7 +120,6 @@ struct HistoryView: View {
 
 struct ReadHistorySection: View {
   let title: String
-  let books: [Book]
   var bookViewModel: BookViewModel
   var onLoadMore: (() -> Void)?
   var isLoading: Bool = false
@@ -149,26 +149,23 @@ struct ReadHistorySection: View {
         .padding(.horizontal)
 
       LazyVStack(spacing: 0) {
-        ForEach(Array(books.enumerated()), id: \.element.id) { index, book in
+        ForEach(Array(bookViewModel.books.enumerated()), id: \.element.id) { index, book in
           Button {
             selectedBookId = book.id
           } label: {
-            ReadHistoryBookRow(
-              book: book,
-              viewModel: bookViewModel,
-            )
-            .padding(8)
-            .contentShape(Rectangle())
-            .bookContextMenu(
-              book: book, viewModel: bookViewModel,
-              onNavigateToSeries: { seriesId in
-                selectedSeriesId = seriesId
-              })
+            ReadHistoryBookRow(book: book)
+              .padding(8)
+              .contentShape(Rectangle())
+              .bookContextMenu(
+                book: book, viewModel: bookViewModel,
+                onNavigateToSeries: { seriesId in
+                  selectedSeriesId = seriesId
+                })
           }
           .buttonStyle(PlainButtonStyle())
           .onAppear {
             // Load next page when the last few items appear
-            if let onLoadMore = onLoadMore, index >= books.count - 3 {
+            if let onLoadMore = onLoadMore, index >= bookViewModel.books.count - 3 {
               onLoadMore()
             }
           }
@@ -197,7 +194,6 @@ struct ReadHistorySection: View {
 
 struct ReadHistoryBookRow: View {
   let book: Book
-  var viewModel: BookViewModel
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)

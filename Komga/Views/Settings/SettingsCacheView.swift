@@ -95,7 +95,7 @@ struct SettingsCacheView: View {
     .task {
       await loadCacheSize()
     }
-    .onChange(of: maxDiskCacheSizeMB) { oldValue, newValue in
+    .onChange(of: maxDiskCacheSizeMB) {
       // Trigger cache cleanup when max cache size changes
       Task {
         await ImageCache.cleanupDiskCacheIfNeeded()

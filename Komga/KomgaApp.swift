@@ -21,7 +21,7 @@ struct KomgaApp: App {
     WindowGroup {
       ContentView()
         .environment(authViewModel)
-        .onChange(of: authViewModel.isLoggedIn) { _, isLoggedIn in
+        .onChange(of: authViewModel.isLoggedIn) {
           configureSDWebImage()
         }
     }
