@@ -96,9 +96,15 @@ struct BookReaderView: View {
         )
         .opacity(shouldShowControls ? 1.0 : 0.0)
         .allowsHitTesting(shouldShowControls)
+      } else {
+        // No pages available - show error message with dismiss button
+        NoPagesView(
+          errorMessage: viewModel.errorMessage,
+          onDismiss: { dismiss() }
+        )
       }
     }
-    .statusBar(hidden: !showingControls)
+    .statusBar(hidden: !showingControls && !viewModel.pages.isEmpty)
     .sheet(isPresented: $showingReadingDirectionPicker) {
       NavigationStack {
         Form {
@@ -148,11 +154,15 @@ struct BookReaderView: View {
       }
 
       await viewModel.loadPages(bookId: currentBookId, initialPage: initialPage)
-      await viewModel.preloadPages()
 
-      // Start timer to auto-hide controls after 3 seconds when entering reader
+      // Only preload pages if pages are available
       if !viewModel.pages.isEmpty {
+        await viewModel.preloadPages()
+        // Start timer to auto-hide controls after 3 seconds when entering reader
         resetControlsTimer()
+      } else {
+        // Ensure controls are visible when no pages are available
+        showingControls = true
       }
     }
     .onDisappear {
