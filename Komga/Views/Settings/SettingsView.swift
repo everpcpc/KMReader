@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  SettingsView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -10,7 +10,6 @@ import SwiftUI
 struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
-  @AppStorage("themeColorName") private var themeColor: ThemeColorOption = .orange
   @AppStorage("maxDiskCacheSizeMB") private var maxDiskCacheSizeMB: Int = 2048
   @State private var showClearCacheConfirmation = false
   @State private var diskCacheSize: Int64 = 0
@@ -47,47 +46,8 @@ struct SettingsView: View {
         }
 
         Section(header: Text("Appearance")) {
-          VStack(alignment: .leading, spacing: 12) {
-            HStack {
-              Text("Theme Color")
-              Spacer()
-              Text(themeColor.displayName)
-                .foregroundColor(.secondary)
-            }
-
-            LazyVGrid(
-              columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 6), spacing: 12
-            ) {
-              ForEach(ThemeColorOption.allCases, id: \.self) { option in
-                Button {
-                  themeColor = option
-                } label: {
-                  Circle()
-                    .fill(option.color)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                      Circle()
-                        .stroke(
-                          themeColor == option
-                            ? Color.primary : Color.primary.opacity(0.2),
-                          lineWidth: themeColor == option ? 3 : 1
-                        )
-                    )
-                    .overlay(
-                      Group {
-                        if themeColor == option {
-                          Image(systemName: "checkmark")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.3), radius: 1)
-                        }
-                      }
-                    )
-                }
-                .buttonStyle(.plain)
-              }
-            }
-            .padding(.vertical, 4)
+          NavigationLink(destination: SettingsAppearanceView()) {
+            Text("Appearance")
           }
         }
 

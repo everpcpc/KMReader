@@ -25,7 +25,8 @@ struct BrowseView: View {
           VStack(spacing: 0) {
             SeriesListView(
               browseOpts: $browseOpts,
-              width: geometry.size.width
+              width: geometry.size.width,
+              height: geometry.size.height
             )
           }
         }

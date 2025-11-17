@@ -10,18 +10,22 @@ import SwiftUI
 struct SeriesListView: View {
   @Binding var browseOpts: BrowseOptions
   let width: CGFloat
+  let height: CGFloat
   let spacing: CGFloat = 16
   @State private var viewModel = SeriesViewModel()
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+  @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
 
   var availableWidth: CGFloat {
     width - spacing * 2
   }
 
+  var isLandscape: Bool {
+    width > height
+  }
+
   var columnsCount: Int {
-    let minCardWidth: CGFloat = 120
-    let maxColumns = Int((availableWidth + spacing) / (minCardWidth + spacing))
-    return max(2, min(maxColumns, 6))
+    return isLandscape ? browseColumns.landscape : browseColumns.portrait
   }
 
   var cardWidth: CGFloat {
