@@ -28,7 +28,9 @@ struct BookReaderView: View {
   }
 
   var shouldShowControls: Bool {
-    showingControls || isAtEndPage || (viewModel.readingDirection == .webtoon && isAtBottom)
+    // Always show controls when no pages are loaded or when explicitly shown
+    viewModel.pages.isEmpty || showingControls || isAtEndPage
+      || (viewModel.readingDirection == .webtoon && isAtBottom)
   }
 
   var body: some View {
@@ -85,17 +87,6 @@ struct BookReaderView: View {
             await viewModel.preloadPages()
           }
         }
-
-        // Controls overlay (always rendered, use opacity to control visibility)
-        ReaderControlsView(
-          showingControls: $showingControls,
-          showingReadingDirectionPicker: $showingReadingDirectionPicker,
-          viewModel: viewModel,
-          currentBook: currentBook,
-          onDismiss: { dismiss() }
-        )
-        .opacity(shouldShowControls ? 1.0 : 0.0)
-        .allowsHitTesting(shouldShowControls)
       } else {
         // No pages available - show error message with dismiss button
         NoPagesView(
@@ -103,6 +94,17 @@ struct BookReaderView: View {
           onDismiss: { dismiss() }
         )
       }
+
+      // Controls overlay (always rendered, use opacity to control visibility)
+      ReaderControlsView(
+        showingControls: $showingControls,
+        showingReadingDirectionPicker: $showingReadingDirectionPicker,
+        viewModel: viewModel,
+        currentBook: currentBook,
+        onDismiss: { dismiss() }
+      )
+      .opacity(shouldShowControls ? 1.0 : 0.0)
+      .allowsHitTesting(shouldShowControls)
     }
     .statusBar(hidden: !showingControls && !viewModel.pages.isEmpty)
     .sheet(isPresented: $showingReadingDirectionPicker) {
