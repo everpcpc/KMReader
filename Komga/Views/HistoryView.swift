@@ -209,24 +209,26 @@ struct ReadHistoryBookRow: View {
           .foregroundColor(.secondary)
           .lineLimit(1)
 
-        Text(book.metadata.title)
+        Text("#\(Int(book.number)) - \(book.metadata.title)")
           .font(.body)
           .fontWeight(.medium)
           .foregroundColor(.primary)
           .lineLimit(2)
 
-        if book.deleted {
-          DeletedBadge()
-        } else {
-          Text("#\(Int(book.number)) - \(book.media.pagesCount) pages")
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-          if let progress = book.readProgress {
-            Text("Last read: \(formatRelativeDate(progress.readDate))")
-              .font(.caption2)
+        Group {
+          if book.deleted {
+            Text("Unavailable")
+              .foregroundColor(.red)
+          } else {
+            Text("\(book.media.pagesCount) pages")
               .foregroundColor(.secondary)
           }
+        }.font(.caption)
+
+        if let progress = book.readProgress {
+          Text("Last read: \(formatRelativeDate(progress.readDate))")
+            .font(.caption2)
+            .foregroundColor(.secondary)
         }
       }
 

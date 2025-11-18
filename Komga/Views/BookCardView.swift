@@ -112,16 +112,12 @@ struct BookCardView: View {
     VStack(alignment: .leading, spacing: 6) {
       ThumbnailImage(url: thumbnailURL, width: cardWidth)
         .overlay(alignment: .topTrailing) {
-          Group {
-            if book.deleted {
-              DeletedBadge()
-            } else if book.readProgress == nil {
-              Circle()
-                .fill(themeColorOption.color)
-                .frame(width: 12, height: 12)
-            }
+          if book.readProgress == nil {
+            Circle()
+              .fill(themeColorOption.color)
+              .frame(width: 12, height: 12)
+              .padding(4)
           }
-          .padding(4)
         }
         .overlay(alignment: .topTrailing) {
           if book.readProgress == nil {
@@ -163,10 +159,16 @@ struct BookCardView: View {
           .foregroundColor(.primary)
           .lineLimit(1)
 
-        Text("\(book.media.pagesCount) pages · \(book.size)")
-          .font(.caption2)
-          .foregroundColor(.secondary)
-          .lineLimit(1)
+        Group {
+          if book.deleted {
+            Text("Unavailable")
+              .foregroundColor(.red)
+          } else {
+            Text("\(book.media.pagesCount) pages · \(book.size)")
+              .foregroundColor(.secondary)
+              .lineLimit(1)
+          }
+        }.font(.caption2)
       }
       .frame(width: cardWidth, alignment: .leading)
     }

@@ -21,14 +21,10 @@ struct SeriesCardView: View {
     VStack(alignment: .leading, spacing: 6) {
       ThumbnailImage(url: thumbnailURL, width: cardWidth)
         .overlay(alignment: .topTrailing) {
-          Group {
-            if series.deleted {
-              DeletedBadge()
-            } else if series.booksUnreadCount > 0 {
-              UnreadCountBadge(count: series.booksUnreadCount)
-            }
+          if series.booksUnreadCount > 0 {
+            UnreadCountBadge(count: series.booksUnreadCount)
+              .padding(4)
           }
-          .padding(4)
         }
 
       VStack(alignment: .leading, spacing: 2) {
@@ -38,9 +34,15 @@ struct SeriesCardView: View {
             .foregroundColor(.primary)
             .lineLimit(1)
         }
-        Text("\(series.booksCount) books")
-          .font(.caption2)
-          .foregroundColor(.secondary)
+        Group {
+          if series.deleted {
+            Text("Unavailable")
+              .foregroundColor(.red)
+          } else {
+            Text("\(series.booksCount) books")
+              .foregroundColor(.secondary)
+          }
+        }.font(.caption2)
       }
       .frame(width: cardWidth, alignment: .leading)
     }
