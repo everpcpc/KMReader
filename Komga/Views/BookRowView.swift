@@ -10,6 +10,7 @@ import SwiftUI
 struct BookRowView: View {
   let book: Book
   var viewModel: BookViewModel
+  var onReadBook: ((Bool) -> Void)?
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)
@@ -71,7 +72,11 @@ struct BookRowView: View {
         .foregroundColor(.secondary)
     }
     .contextMenu {
-      BookContextMenu(book: book, viewModel: viewModel)
+      BookContextMenu(
+        book: book,
+        viewModel: viewModel,
+        onReadBook: onReadBook
+      )
     }
   }
 

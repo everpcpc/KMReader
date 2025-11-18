@@ -13,6 +13,7 @@ import SwiftUI
 struct BookContextMenu: View {
   let book: Book
   let viewModel: BookViewModel
+  var onReadBook: ((Bool) -> Void)?
 
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
@@ -20,6 +21,21 @@ struct BookContextMenu: View {
 
   var body: some View {
     Group {
+      if let onReadBook = onReadBook {
+        Button {
+          onReadBook(false)
+        } label: {
+          Label("Read Book", systemImage: "book.pages")
+        }
+        Button {
+          onReadBook(true)
+        } label: {
+          Label("Read Incognito", systemImage: "eye.slash")
+        }
+      }
+
+      Divider()
+
       NavigationLink(value: NavigationDestination.bookDetail(bookId: book.id)) {
         Label("View Details", systemImage: "info.circle")
       }
@@ -61,14 +77,27 @@ struct BookContextMenu: View {
   }
 }
 
+struct BookReaderState {
+  var bookId: String?
+  var incognito: Bool = false
+}
+
 struct BookCardView: View {
   let book: Book
   var viewModel: BookViewModel
   let cardWidth: CGFloat
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+  @State private var readerState: BookReaderState?
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)
+  }
+
+  private var isBookReaderPresented: Binding<Bool> {
+    Binding(
+      get: { readerState != nil },
+      set: { if !$0 { readerState = nil } }
+    )
   }
 
   private var progress: Double {
@@ -150,8 +179,23 @@ struct BookCardView: View {
       }
       .frame(width: cardWidth, alignment: .leading)
     }
+    .contentShape(Rectangle())
+    .onTapGesture {
+      readerState = BookReaderState(bookId: book.id, incognito: false)
+    }
     .contextMenu {
-      BookContextMenu(book: book, viewModel: viewModel)
+      BookContextMenu(
+        book: book,
+        viewModel: viewModel,
+        onReadBook: { incognito in
+          readerState = BookReaderState(bookId: book.id, incognito: incognito)
+        }
+      )
+    }
+    .fullScreenCover(isPresented: isBookReaderPresented) {
+      if let state = readerState, let bookId = state.bookId {
+        BookReaderView(bookId: bookId, incognito: state.incognito)
+      }
     }
   }
 }

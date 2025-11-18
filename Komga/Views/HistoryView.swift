@@ -123,12 +123,12 @@ struct ReadHistorySection: View {
   var bookViewModel: BookViewModel
   var onLoadMore: (() -> Void)?
 
-  @State private var selectedBookId: String?
+  @State private var readerState: BookReaderState?
 
   private var isBookReaderPresented: Binding<Bool> {
     Binding(
-      get: { selectedBookId != nil },
-      set: { if !$0 { selectedBookId = nil } }
+      get: { readerState != nil },
+      set: { if !$0 { readerState = nil } }
     )
   }
 
@@ -142,13 +142,19 @@ struct ReadHistorySection: View {
       LazyVStack(spacing: 0) {
         ForEach(Array(bookViewModel.books.enumerated()), id: \.element.id) { index, book in
           Button {
-            selectedBookId = book.id
+            readerState = BookReaderState(bookId: book.id, incognito: false)
           } label: {
             ReadHistoryBookRow(book: book)
               .padding(8)
               .contentShape(Rectangle())
               .contextMenu {
-                BookContextMenu(book: book, viewModel: bookViewModel)
+                BookContextMenu(
+                  book: book,
+                  viewModel: bookViewModel,
+                  onReadBook: { incognito in
+                    readerState = BookReaderState(bookId: book.id, incognito: incognito)
+                  }
+                )
               }
           }
           .buttonStyle(PlainButtonStyle())
@@ -169,8 +175,8 @@ struct ReadHistorySection: View {
       .padding(.horizontal, 8)
     }
     .fullScreenCover(isPresented: isBookReaderPresented) {
-      if let bookId = selectedBookId {
-        BookReaderView(bookId: bookId)
+      if let state = readerState, let bookId = state.bookId {
+        BookReaderView(bookId: bookId, incognito: state.incognito)
       }
     }
   }

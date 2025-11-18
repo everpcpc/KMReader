@@ -16,7 +16,7 @@ extension SortDirection {
 struct BooksListView: View {
   let seriesId: String
   @Bindable var bookViewModel: BookViewModel
-  @Binding var selectedBookId: String?
+  var onReadBook: (String, Bool) -> Void
   @AppStorage("bookListSortDirection") private var sortDirection: SortDirection = .ascending
 
   var body: some View {
@@ -51,9 +51,15 @@ struct BooksListView: View {
         LazyVStack(spacing: 8) {
           ForEach(bookViewModel.books) { book in
             Button {
-              selectedBookId = book.id
+              onReadBook(book.id, false)
             } label: {
-              BookRowView(book: book, viewModel: bookViewModel)
+              BookRowView(
+                book: book,
+                viewModel: bookViewModel,
+                onReadBook: { incognito in
+                  onReadBook(book.id, incognito)
+                }
+              )
             }
             .buttonStyle(PlainButtonStyle())
             .onAppear {

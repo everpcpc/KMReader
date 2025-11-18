@@ -12,7 +12,8 @@ struct BookDetailView: View {
 
   @State private var book: Book?
   @State private var isLoading = true
-  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+  @State private var readerState: BookReaderState?
+  @State private var actionErrorMessage: String?
 
   private var thumbnailURL: URL? {
     return BookService.shared.getBookThumbnailURL(id: bookId)
@@ -33,6 +34,20 @@ struct BookDetailView: View {
     return !readProgress.completed
   }
 
+  private var isBookReaderPresented: Binding<Bool> {
+    Binding(
+      get: { readerState != nil },
+      set: { if !$0 { readerState = nil } }
+    )
+  }
+
+  private var isActionErrorPresented: Binding<Bool> {
+    Binding(
+      get: { actionErrorMessage != nil },
+      set: { if !$0 { actionErrorMessage = nil } }
+    )
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 16) {
@@ -42,7 +57,7 @@ struct BookDetailView: View {
 
             VStack(alignment: .leading, spacing: 8) {
               Text(book.metadata.title)
-                .font(.title2)
+                .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
 
               Text(book.seriesTitle)
@@ -75,7 +90,7 @@ struct BookDetailView: View {
                   }
                 }
                 .font(.caption)
-                .foregroundColor(isCompleted ? .green : themeColorOption.color)
+                .foregroundColor(isCompleted ? .green : .orange)
               } else {
                 HStack(spacing: 4) {
                   Image(systemName: "circle")
@@ -89,6 +104,13 @@ struct BookDetailView: View {
 
             Spacer()
           }
+
+          BookActionsSection(
+            book: book,
+            onRead: { incognito in
+              readerState = BookReaderState(bookId: book.id, incognito: incognito)
+            }
+          )
 
           Divider()
 
@@ -183,12 +205,91 @@ struct BookDetailView: View {
     }
     .navigationTitle("Book Details")
     .navigationBarTitleDisplayMode(.inline)
+    .fullScreenCover(isPresented: isBookReaderPresented) {
+      if let state = readerState, let bookId = state.bookId {
+        BookReaderView(bookId: bookId, incognito: state.incognito)
+      }
+    }
+    .alert("Action Failed", isPresented: isActionErrorPresented) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      if let actionErrorMessage {
+        Text(actionErrorMessage)
+      }
+    }
+    .toolbar {
+      if let book = book {
+        ToolbarItem(placement: .topBarTrailing) {
+          Menu {
+            if !(book.readProgress?.completed ?? false) {
+              Button {
+                markBookAsRead(book)
+              } label: {
+                Label("Mark as Read", systemImage: "checkmark.circle")
+              }
+            }
+
+            if book.readProgress != nil {
+              Button {
+                markBookAsUnread(book)
+              } label: {
+                Label("Mark as Unread", systemImage: "circle")
+              }
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+              clearCache(for: book)
+            } label: {
+              Label("Clear Cache", systemImage: "trash")
+            }
+          } label: {
+            Image(systemName: "ellipsis.circle")
+          }
+        }
+      }
+    }
     .task {
       await loadBook()
     }
   }
 
+  private func markBookAsRead(_ book: Book) {
+    Task {
+      do {
+        try await BookService.shared.markAsRead(bookId: book.id)
+        await loadBook()
+      } catch {
+        await MainActor.run {
+          actionErrorMessage = error.localizedDescription
+        }
+      }
+    }
+  }
+
+  private func markBookAsUnread(_ book: Book) {
+    Task {
+      do {
+        try await BookService.shared.markAsUnread(bookId: book.id)
+        await loadBook()
+      } catch {
+        await MainActor.run {
+          actionErrorMessage = error.localizedDescription
+        }
+      }
+    }
+  }
+
+  private func clearCache(for book: Book) {
+    Task {
+      await ImageCache.clearDiskCache(forBookId: book.id)
+    }
+  }
+
+  @MainActor
   private func loadBook() async {
+    isLoading = true
     do {
       book = try await BookService.shared.getBook(id: bookId)
       isLoading = false
@@ -234,5 +335,37 @@ struct InfoRow: View {
         .multilineTextAlignment(.trailing)
         .lineLimit(2)
     }
+  }
+}
+
+// MARK: - Actions Section
+
+struct BookActionsSection: View {
+  let book: Book
+  var onRead: (Bool) -> Void
+
+  var body: some View {
+    HStack {
+      Button {
+        onRead(false)
+      } label: {
+        Label("Read", systemImage: "book.pages")
+      }
+      .buttonStyle(.borderedProminent)
+
+      Button {
+        onRead(true)
+      } label: {
+        Label("Read Incognito", systemImage: "eye.slash")
+      }
+      .buttonStyle(.bordered)
+
+      Spacer()
+
+      NavigationLink(value: NavigationDestination.seriesDetail(seriesId: book.seriesId)) {
+        Label("View Series", systemImage: "book.fill")
+      }
+      .buttonStyle(.bordered)
+    }.font(.caption)
   }
 }

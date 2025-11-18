@@ -9,6 +9,7 @@ import SwiftUI
 
 struct BookReaderView: View {
   let initialBookId: String
+  let incognito: Bool
 
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
@@ -22,8 +23,9 @@ struct BookReaderView: View {
   @State private var isAtEndPage = false
   @State private var showingReadingDirectionPicker = false
 
-  init(bookId: String) {
+  init(bookId: String, incognito: Bool = false) {
     self.initialBookId = bookId
+    self.incognito = incognito
     self._currentBookId = State(initialValue: bookId)
   }
 
@@ -131,6 +133,9 @@ struct BookReaderView: View {
       // Mark that loading has started
       viewModel.isLoading = true
 
+      // Set incognito mode
+      viewModel.incognitoMode = incognito
+
       // Reset isAtBottom and isAtEndPage when switching to a new book
       isAtBottom = false
       isAtEndPage = false
@@ -141,7 +146,8 @@ struct BookReaderView: View {
         let book = try await BookService.shared.getBook(id: currentBookId)
         currentBook = book
         seriesId = book.seriesId
-        initialPageNumber = book.readProgress?.page
+        // In incognito mode, always start from the first page
+        initialPageNumber = incognito ? nil : book.readProgress?.page
 
         // Get series reading direction
         let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
@@ -326,6 +332,8 @@ struct BookReaderView: View {
     currentBookId = nextBookId
     // Reset viewModel state for new book
     viewModel = ReaderViewModel()
+    // Preserve incognito mode for next book
+    viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false
   }

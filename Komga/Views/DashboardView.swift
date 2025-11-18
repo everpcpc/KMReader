@@ -250,15 +250,6 @@ struct DashboardBooksSection: View {
   let books: [Book]
   var bookViewModel: BookViewModel
 
-  @State private var selectedBookId: String?
-
-  private var isBookReaderPresented: Binding<Bool> {
-    Binding(
-      get: { selectedBookId != nil },
-      set: { if !$0 { selectedBookId = nil } }
-    )
-  }
-
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(title)
@@ -269,23 +260,13 @@ struct DashboardBooksSection: View {
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 12) {
           ForEach(books) { book in
-            Button {
-              selectedBookId = book.id
-            } label: {
-              BookCardView(
-                book: book,
-                viewModel: bookViewModel,
-                cardWidth: 120
-              )
-            }
-            .buttonStyle(PlainButtonStyle())
+            BookCardView(
+              book: book,
+              viewModel: bookViewModel,
+              cardWidth: 120
+            )
           }
         }.padding()
-      }
-    }
-    .fullScreenCover(isPresented: isBookReaderPresented) {
-      if let bookId = selectedBookId {
-        BookReaderView(bookId: bookId)
       }
     }
   }

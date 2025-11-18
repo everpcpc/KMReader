@@ -13,7 +13,7 @@ struct SeriesDetailView: View {
   @State private var seriesViewModel = SeriesViewModel()
   @State private var bookViewModel = BookViewModel()
   @State private var series: Series?
-  @State private var selectedBookId: String?
+  @State private var readerState: BookReaderState?
   @State private var bookSummary: String?
   @State private var bookSummaryNumber: String?
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
@@ -25,8 +25,8 @@ struct SeriesDetailView: View {
 
   private var isBookReaderPresented: Binding<Bool> {
     Binding(
-      get: { selectedBookId != nil },
-      set: { if !$0 { selectedBookId = nil } }
+      get: { readerState != nil },
+      set: { if !$0 { readerState = nil } }
     )
   }
 
@@ -211,7 +211,12 @@ struct SeriesDetailView: View {
 
           // Books list
           BooksListView(
-            seriesId: seriesId, bookViewModel: bookViewModel, selectedBookId: $selectedBookId)
+            seriesId: seriesId,
+            bookViewModel: bookViewModel,
+            onReadBook: { bookId, incognito in
+              readerState = BookReaderState(bookId: bookId, incognito: incognito)
+            }
+          )
         } else {
           ProgressView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -221,8 +226,8 @@ struct SeriesDetailView: View {
     }
     .navigationBarTitleDisplayMode(.inline)
     .fullScreenCover(isPresented: isBookReaderPresented) {
-      if let bookId = selectedBookId {
-        BookReaderView(bookId: bookId)
+      if let state = readerState, let bookId = state.bookId {
+        BookReaderView(bookId: bookId, incognito: state.incognito)
       }
     }
     .task {
