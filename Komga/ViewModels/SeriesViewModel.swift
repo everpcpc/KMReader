@@ -28,9 +28,10 @@ class SeriesViewModel {
       || currentState?.seriesStatusFilter != browseOpts.seriesStatusFilter
       || currentState?.sortString != browseOpts.sortString
 
-    if refresh || paramsChanged {
+    let shouldReset = refresh || paramsChanged
+
+    if shouldReset {
       currentPage = 0
-      series = []
       hasMorePages = true
       currentState = browseOpts
     }
@@ -50,7 +51,12 @@ class SeriesViewModel {
         seriesStatus: browseOpts.seriesStatusFilter
       )
 
-      series.append(contentsOf: page.content)
+      if shouldReset {
+        series = page.content
+      } else {
+        series.append(contentsOf: page.content)
+      }
+
       hasMorePages = !page.last
       currentPage += 1
     } catch {

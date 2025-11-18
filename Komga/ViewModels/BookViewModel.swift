@@ -138,11 +138,12 @@ class BookViewModel {
   func loadRecentlyReadBooks(libraryId: String = "", refresh: Bool = false) async {
     if refresh {
       currentPage = 0
-      books = []
       hasMorePages = true
+    } else {
+      guard hasMorePages else { return }
     }
 
-    guard hasMorePages && !isLoading else { return }
+    guard !isLoading else { return }
 
     isLoading = true
     errorMessage = nil
@@ -154,7 +155,12 @@ class BookViewModel {
         size: 20
       )
 
-      books.append(contentsOf: page.content)
+      if refresh {
+        books = page.content
+      } else {
+        books.append(contentsOf: page.content)
+      }
+
       hasMorePages = !page.last
       currentPage += 1
     } catch {
