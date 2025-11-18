@@ -35,29 +35,33 @@ struct BookRowView: View {
           .foregroundColor(completed ? .secondary : .primary)
           .lineLimit(2)
 
-        HStack(spacing: 4) {
-          Label(formatDate(book.created), systemImage: "clock")
-          if let progress = book.readProgress {
-            Text("•")
-            if progress.completed {
-              Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-            } else {
-              Text("Page \(progress.page + 1)")
-                .foregroundColor(.blue)
+        if book.deleted {
+          DeletedBadge()
+        } else {
+          HStack(spacing: 4) {
+            Label(formatDate(book.created), systemImage: "clock")
+            if let progress = book.readProgress {
+              Text("•")
+              if progress.completed {
+                Image(systemName: "checkmark.circle.fill")
+                  .foregroundColor(.green)
+              } else {
+                Text("Page \(progress.page + 1)")
+                  .foregroundColor(.blue)
+              }
             }
           }
-        }
-        .font(.caption)
-        .foregroundColor(.secondary)
+          .font(.caption)
+          .foregroundColor(.secondary)
 
-        HStack(spacing: 4) {
-          Text("\(book.media.pagesCount) pages")
-          Text("•")
-          Label(book.size, systemImage: "doc")
+          HStack(spacing: 4) {
+            Text("\(book.media.pagesCount) pages")
+            Text("•")
+            Label(book.size, systemImage: "doc")
+          }
+          .foregroundColor(.secondary)
+          .font(.footnote)
         }
-        .foregroundColor(.secondary)
-        .font(.footnote)
       }
 
       Spacer()

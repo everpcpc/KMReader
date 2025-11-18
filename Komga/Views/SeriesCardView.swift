@@ -19,23 +19,18 @@ struct SeriesCardView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      // Thumbnail
       ThumbnailImage(url: thumbnailURL, width: cardWidth)
         .overlay(alignment: .topTrailing) {
-          if series.booksUnreadCount > 0 {
-            Text("\(series.booksUnreadCount)")
-              .font(.caption)
-              .fontWeight(.bold)
-              .foregroundColor(.white)
-              .padding(.horizontal, 8)
-              .padding(.vertical, 4)
-              .background(themeColorOption.color)
-              .clipShape(Capsule())
-              .padding(4)
+          Group {
+            if series.deleted {
+              DeletedBadge()
+            } else if series.booksUnreadCount > 0 {
+              UnreadCountBadge(count: series.booksUnreadCount)
+            }
           }
+          .padding(4)
         }
 
-      // Series info
       VStack(alignment: .leading, spacing: 2) {
         if showTitle {
           Text(series.metadata.title)

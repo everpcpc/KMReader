@@ -215,14 +215,18 @@ struct ReadHistoryBookRow: View {
           .foregroundColor(.primary)
           .lineLimit(2)
 
-        Text("#\(Int(book.number)) - \(book.media.pagesCount) pages")
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-        if let progress = book.readProgress {
-          Text("Last read: \(formatRelativeDate(progress.readDate))")
-            .font(.caption2)
+        if book.deleted {
+          DeletedBadge()
+        } else {
+          Text("#\(Int(book.number)) - \(book.media.pagesCount) pages")
+            .font(.caption)
             .foregroundColor(.secondary)
+
+          if let progress = book.readProgress {
+            Text("Last read: \(formatRelativeDate(progress.readDate))")
+              .font(.caption2)
+              .foregroundColor(.secondary)
+          }
         }
       }
 
