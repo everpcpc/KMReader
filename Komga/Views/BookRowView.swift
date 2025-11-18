@@ -71,6 +71,10 @@ struct BookRowView: View {
       Image(systemName: "chevron.right")
         .foregroundColor(.secondary)
     }
+    .contentShape(Rectangle())
+    .onTapGesture {
+      onReadBook?(false)
+    }
     .contextMenu {
       BookContextMenu(
         book: book,

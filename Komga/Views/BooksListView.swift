@@ -50,18 +50,13 @@ struct BooksListView: View {
       } else {
         LazyVStack(spacing: 8) {
           ForEach(bookViewModel.books) { book in
-            Button {
-              onReadBook(book.id, false)
-            } label: {
-              BookRowView(
-                book: book,
-                viewModel: bookViewModel,
-                onReadBook: { incognito in
-                  onReadBook(book.id, incognito)
-                }
-              )
-            }
-            .buttonStyle(PlainButtonStyle())
+            BookRowView(
+              book: book,
+              viewModel: bookViewModel,
+              onReadBook: { incognito in
+                onReadBook(book.id, incognito)
+              }
+            )
             .onAppear {
               if book.id == bookViewModel.books.last?.id {
                 Task {

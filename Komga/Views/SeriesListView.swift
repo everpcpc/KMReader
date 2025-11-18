@@ -68,7 +68,7 @@ struct SeriesListView: View {
             NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
               SeriesCardView(series: series, cardWidth: cardWidth, showTitle: browseShowCardTitles)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(.plain)
             .onAppear {
               // Load next page when the last few items appear
               if index >= viewModel.series.count - 3 {

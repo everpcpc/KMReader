@@ -290,7 +290,7 @@ struct DashboardSeriesSection: View {
             NavigationLink(value: NavDestination.seriesDetail(seriesId: s.id)) {
               SeriesCardView(series: s, cardWidth: 120, showTitle: true)
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(.plain)
           }
         }.padding()
       }
