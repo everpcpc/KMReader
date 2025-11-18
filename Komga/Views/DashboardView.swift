@@ -197,7 +197,9 @@ struct DashboardView: View {
         size: 20,
         sort: "readProgress.readDate,desc"
       )
-      keepReadingBooks = page.content
+      withAnimation {
+        keepReadingBooks = page.content
+      }
     } catch {
       errorMessage = error.localizedDescription
     }
@@ -207,7 +209,9 @@ struct DashboardView: View {
     do {
       let page = try await BookService.shared.getBooksOnDeck(
         libraryId: selectedLibraryId, size: 20)
-      onDeckBooks = page.content
+      withAnimation {
+        onDeckBooks = page.content
+      }
     } catch {
       errorMessage = error.localizedDescription
     }
@@ -217,7 +221,9 @@ struct DashboardView: View {
     do {
       let page = try await BookService.shared.getRecentlyAddedBooks(
         libraryId: selectedLibraryId, size: 20)
-      recentlyAddedBooks = page.content
+      withAnimation {
+        recentlyAddedBooks = page.content
+      }
     } catch {
       errorMessage = error.localizedDescription
     }
@@ -225,12 +231,16 @@ struct DashboardView: View {
 
   private func loadRecentlyAddedSeries() async {
     await seriesViewModel.loadNewSeries(libraryId: selectedLibraryId)
-    recentlyAddedSeries = seriesViewModel.series
+    withAnimation {
+      recentlyAddedSeries = seriesViewModel.series
+    }
   }
 
   private func loadRecentlyUpdatedSeries() async {
     await seriesViewModel.loadUpdatedSeries(libraryId: selectedLibraryId)
-    recentlyUpdatedSeries = seriesViewModel.series
+    withAnimation {
+      recentlyUpdatedSeries = seriesViewModel.series
+    }
   }
 }
 
@@ -283,7 +293,6 @@ struct DashboardBooksSection: View {
         }.padding()
       }
     }
-    .animation(.default, value: books)
     .fullScreenCover(isPresented: isBookReaderPresented) {
       if let bookId = selectedBookId {
         BookReaderView(bookId: bookId)
@@ -320,7 +329,6 @@ struct DashboardSeriesSection: View {
         }.padding()
       }
     }
-    .animation(.default, value: series)
   }
 }
 
