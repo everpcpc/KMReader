@@ -15,7 +15,7 @@ struct ThumbnailImage: View {
   let showPlaceholder: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
-  @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = false
+  @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
 
   init(
     url: URL?,

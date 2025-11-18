@@ -129,9 +129,9 @@ struct SettingsAppearanceView: View {
 
         VStack(alignment: .leading, spacing: 8) {
           Toggle(isOn: $thumbnailPreserveAspectRatio) {
-            Text("Keep Cover Proportions")
+            Text("Preserve Thumbnail Aspect Ratio")
           }
-          Text("Keep cover images in their original proportions")
+          Text("Preserve aspect ratio for thumbnail images")
             .font(.caption)
             .foregroundColor(.secondary)
         }
