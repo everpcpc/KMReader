@@ -273,23 +273,9 @@ struct SeriesDetailView: View {
       Text("This will permanently delete \(series?.metadata.title ?? "this series") from Komga.")
     }
     .toolbar {
-      if series != nil {
-        ToolbarItem(placement: .topBarTrailing) {
-          Menu {
-            Button {
-              analyzeSeries()
-            } label: {
-              Label("Analyze", systemImage: "waveform.path.ecg")
-            }
-
-            Button {
-              refreshSeriesMetadata()
-            } label: {
-              Label("Refresh Metadata", systemImage: "arrow.clockwise")
-            }
-
-            Divider()
-
+      ToolbarItem(placement: .topBarTrailing) {
+        Menu {
+          if series != nil {
             if canMarkSeriesAsRead {
               Button {
                 markSeriesAsRead()
@@ -305,17 +291,31 @@ struct SeriesDetailView: View {
                 Label("Mark as Unread", systemImage: "circle")
               }
             }
-
-            Divider()
-
-            Button(role: .destructive) {
-              showDeleteConfirmation = true
-            } label: {
-              Label("Delete Series", systemImage: "trash")
-            }
-          } label: {
-            Image(systemName: "ellipsis.circle")
           }
+
+          Divider()
+
+          Button {
+            analyzeSeries()
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
+
+          Button {
+            refreshSeriesMetadata()
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
+
+          Divider()
+
+          Button(role: .destructive) {
+            showDeleteConfirmation = true
+          } label: {
+            Label("Delete Series", systemImage: "trash")
+          }
+        } label: {
+          Image(systemName: "ellipsis.circle")
         }
       }
     }

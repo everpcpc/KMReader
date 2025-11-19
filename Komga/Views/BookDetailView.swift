@@ -228,21 +228,19 @@ struct BookDetailView: View {
     }
     .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
-        if let book {
-          deleteBook(book)
-        }
+        deleteBook()
       }
       Button("Cancel", role: .cancel) {}
     } message: {
       Text("This will permanently delete \(book?.metadata.title ?? "this book") from Komga.")
     }
     .toolbar {
-      if let book = book {
-        ToolbarItem(placement: .topBarTrailing) {
-          Menu {
+      ToolbarItem(placement: .topBarTrailing) {
+        Menu {
+          if let book = book {
             if !(book.readProgress?.completed ?? false) {
               Button {
-                markBookAsRead(book)
+                markBookAsRead()
               } label: {
                 Label("Mark as Read", systemImage: "checkmark.circle")
               }
@@ -250,42 +248,42 @@ struct BookDetailView: View {
 
             if book.readProgress != nil {
               Button {
-                markBookAsUnread(book)
+                markBookAsUnread()
               } label: {
                 Label("Mark as Unread", systemImage: "circle")
               }
             }
-
-            Divider()
-
-            Button {
-              analyzeBook(book)
-            } label: {
-              Label("Analyze", systemImage: "waveform.path.ecg")
-            }
-
-            Button {
-              refreshMetadata(book)
-            } label: {
-              Label("Refresh Metadata", systemImage: "arrow.clockwise")
-            }
-
-            Divider()
-
-            Button(role: .destructive) {
-              showDeleteConfirmation = true
-            } label: {
-              Label("Delete Book", systemImage: "trash")
-            }
-
-            Button(role: .destructive) {
-              clearCache(for: book)
-            } label: {
-              Label("Clear Cache", systemImage: "xmark.circle")
-            }
-          } label: {
-            Image(systemName: "ellipsis.circle")
           }
+
+          Divider()
+
+          Button {
+            analyzeBook()
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
+
+          Button {
+            refreshMetadata()
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
+
+          Divider()
+
+          Button(role: .destructive) {
+            showDeleteConfirmation = true
+          } label: {
+            Label("Delete Book", systemImage: "trash")
+          }
+
+          Button(role: .destructive) {
+            clearCache()
+          } label: {
+            Label("Clear Cache", systemImage: "xmark.circle")
+          }
+        } label: {
+          Image(systemName: "ellipsis.circle")
         }
       }
     }
@@ -294,10 +292,10 @@ struct BookDetailView: View {
     }
   }
 
-  private func analyzeBook(_ book: Book) {
+  private func analyzeBook() {
     Task {
       do {
-        try await BookService.shared.analyzeBook(bookId: book.id)
+        try await BookService.shared.analyzeBook(bookId: bookId)
         await loadBook()
       } catch {
         await MainActor.run {
@@ -307,10 +305,10 @@ struct BookDetailView: View {
     }
   }
 
-  private func refreshMetadata(_ book: Book) {
+  private func refreshMetadata() {
     Task {
       do {
-        try await BookService.shared.refreshMetadata(bookId: book.id)
+        try await BookService.shared.refreshMetadata(bookId: bookId)
         await loadBook()
       } catch {
         await MainActor.run {
@@ -320,11 +318,11 @@ struct BookDetailView: View {
     }
   }
 
-  private func deleteBook(_ book: Book) {
+  private func deleteBook() {
     Task {
       do {
-        try await BookService.shared.deleteBook(bookId: book.id)
-        await ImageCache.clearDiskCache(forBookId: book.id)
+        try await BookService.shared.deleteBook(bookId: bookId)
+        await ImageCache.clearDiskCache(forBookId: bookId)
         await MainActor.run {
           dismiss()
         }
@@ -336,10 +334,10 @@ struct BookDetailView: View {
     }
   }
 
-  private func markBookAsRead(_ book: Book) {
+  private func markBookAsRead() {
     Task {
       do {
-        try await BookService.shared.markAsRead(bookId: book.id)
+        try await BookService.shared.markAsRead(bookId: bookId)
         await loadBook()
       } catch {
         await MainActor.run {
@@ -349,10 +347,10 @@ struct BookDetailView: View {
     }
   }
 
-  private func markBookAsUnread(_ book: Book) {
+  private func markBookAsUnread() {
     Task {
       do {
-        try await BookService.shared.markAsUnread(bookId: book.id)
+        try await BookService.shared.markAsUnread(bookId: bookId)
         await loadBook()
       } catch {
         await MainActor.run {
@@ -362,9 +360,9 @@ struct BookDetailView: View {
     }
   }
 
-  private func clearCache(for book: Book) {
+  private func clearCache() {
     Task {
-      await ImageCache.clearDiskCache(forBookId: book.id)
+      await ImageCache.clearDiskCache(forBookId: bookId)
     }
   }
 
