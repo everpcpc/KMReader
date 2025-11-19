@@ -1,5 +1,5 @@
 //
-//  VerticalPageView.swift
+//  ComicPageView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct VerticalPageView: View {
+struct ComicPageView: View {
   @Bindable var viewModel: ReaderViewModel
   @Binding var isAtEndPage: Bool
   @Binding var showingControls: Bool
@@ -24,39 +24,34 @@ struct VerticalPageView: View {
 
   var body: some View {
     GeometryReader { screenGeometry in
-      let screenKey = "\(Int(screenGeometry.size.width))x\(Int(screenGeometry.size.height))"
+      let screenKey =
+        "\(Int(screenGeometry.size.width))x\(Int(screenGeometry.size.height))"
 
       ZStack {
         ScrollViewReader { proxy in
-          ScrollView(.vertical) {
-            LazyVStack(spacing: 0) {
+          ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
               ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-                GeometryReader { geometry in
-                  ZStack {
-                    PageImageView(
-                      viewModel: viewModel,
-                      pageIndex: pageIndex
-                    )
-                  }
+                PageImageView(viewModel: viewModel, pageIndex: pageIndex)
+                  .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
                   .contentShape(Rectangle())
                   .simultaneousGesture(
-                    verticalTapGesture(height: geometry.size.height, proxy: proxy))
-                }
-                .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
-                .id(pageIndex)
-                .onAppear {
-                  // Update current page when page appears
-                  if hasSyncedInitialScroll && pageIndex != viewModel.currentPageIndex {
-                    viewModel.currentPageIndex = pageIndex
-                    // Preload adjacent pages immediately
-                    Task(priority: .userInitiated) {
-                      await viewModel.preloadPages()
+                    horizontalTapGesture(width: screenGeometry.size.width, proxy: proxy)
+                  )
+                  .id(pageIndex)
+                  .onAppear {
+                    // Update current page when page appears
+                    if hasSyncedInitialScroll && pageIndex != viewModel.currentPageIndex {
+                      viewModel.currentPageIndex = pageIndex
+                      // Preload adjacent pages immediately
+                      Task(priority: .userInitiated) {
+                        await viewModel.preloadPages()
+                      }
                     }
                   }
-                }
               }
 
-              // End page after last page
+              // End page at the end for LTR
               ZStack {
                 Color.black.ignoresSafeArea()
                 EndPageView(
@@ -69,7 +64,7 @@ struct VerticalPageView: View {
               .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
               .contentShape(Rectangle())
               .simultaneousGesture(
-                verticalTapGesture(height: screenGeometry.size.height, proxy: proxy)
+                horizontalTapGesture(width: screenGeometry.size.width, proxy: proxy)
               )
               .id("endPage")
               .onAppear {
@@ -91,7 +86,7 @@ struct VerticalPageView: View {
           .onChange(of: isAtEndPage) { _, isEnd in
             if isEnd {
               withAnimation {
-                proxy.scrollTo("endPage", anchor: .top)
+                proxy.scrollTo("endPage", anchor: .leading)
               }
             }
           }
@@ -105,7 +100,7 @@ struct VerticalPageView: View {
         // Tap zone overlay
         if showTapZoneOverlay {
           PageTapZoneOverlay(
-            orientation: .vertical,
+            orientation: .horizontal,
             isRTL: false
           )
         }
@@ -137,37 +132,37 @@ struct VerticalPageView: View {
     }
   }
 
-  private func verticalTapGesture(height: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
+  private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
     SpatialTapGesture()
       .onEnded { value in
-        guard height > 0 else { return }
-        let normalizedY = max(0, min(1, value.location.y / height))
-        if normalizedY < 0.35 {
-          // Previous page (top tap)
+        guard width > 0 else { return }
+        let normalizedX = max(0, min(1, value.location.x / width))
+        if normalizedX < 0.35 {
+          // Previous page (left tap)
           if isAtEndPage {
             isAtEndPage = false
             viewModel.currentPageIndex = viewModel.pages.count - 1
             withAnimation {
-              proxy.scrollTo(viewModel.currentPageIndex, anchor: .top)
+              proxy.scrollTo(viewModel.currentPageIndex, anchor: .leading)
             }
           } else if viewModel.currentPageIndex > 0 {
             viewModel.currentPageIndex -= 1
             withAnimation {
-              proxy.scrollTo(viewModel.currentPageIndex, anchor: .top)
+              proxy.scrollTo(viewModel.currentPageIndex, anchor: .leading)
             }
           }
-        } else if normalizedY > 0.65 {
-          // Next page (bottom tap)
+        } else if normalizedX > 0.65 {
+          // Next page (right tap)
           if viewModel.currentPageIndex < viewModel.pages.count - 1 {
             viewModel.currentPageIndex += 1
             isAtEndPage = false
             withAnimation {
-              proxy.scrollTo(viewModel.currentPageIndex, anchor: .top)
+              proxy.scrollTo(viewModel.currentPageIndex, anchor: .leading)
             }
           } else {
             withAnimation {
               isAtEndPage = true
-              proxy.scrollTo("endPage", anchor: .top)
+              proxy.scrollTo("endPage", anchor: .leading)
             }
           }
         } else {
@@ -185,7 +180,7 @@ struct VerticalPageView: View {
     }
 
     DispatchQueue.main.async {
-      proxy.scrollTo(viewModel.currentPageIndex, anchor: .top)
+      proxy.scrollTo(viewModel.currentPageIndex, anchor: .leading)
       hasSyncedInitialScroll = true
     }
   }

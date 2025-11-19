@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 struct ReaderControlsView: View {
   @Binding var showingControls: Bool
   @Binding var showingReadingDirectionPicker: Bool
+  @Binding var readingDirection: ReadingDirection
   let viewModel: ReaderViewModel
   let currentBook: Book?
   let onDismiss: () -> Void
@@ -70,7 +71,7 @@ struct ReaderControlsView: View {
           Button {
             showingReadingDirectionPicker = true
           } label: {
-            Image(systemName: viewModel.readingDirection.icon)
+            Image(systemName: readingDirection.icon)
               .font(.title3)
               .foregroundColor(.white)
               .padding()
@@ -144,7 +145,7 @@ struct ReaderControlsView: View {
           value: Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count)),
           total: Double(viewModel.pages.count)
         )
-        .scaleEffect(x: viewModel.readingDirection == .rtl ? -1 : 1, y: 1)
+        .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
       }
       .padding()
       .allowsHitTesting(true)
@@ -170,7 +171,7 @@ struct ReaderControlsView: View {
         showSaveAlert = true
       }
     }
-    .onChange(of: viewModel.readingDirection) { _, _ in
+    .onChange(of: readingDirection) { _, _ in
       if showingReadingDirectionPicker {
         showingReadingDirectionPicker = false
       }
@@ -193,12 +194,12 @@ struct ReaderControlsView: View {
         currentPage: viewModel.currentPageIndex + 1,
         onJump: jumpToPage
       )
-      .presentationDetents([.medium])
+      .presentationDetents([.height(360)])
       .presentationDragIndicator(.visible)
     }
     .sheet(isPresented: $showingReadingDirectionPicker) {
-      ReadingDirectionPickerSheetView(viewModel: viewModel)
-        .presentationDetents([.medium])
+      ReadingDirectionPickerSheetView(readingDirection: $readingDirection)
+        .presentationDetents([.height(360)])
         .presentationDragIndicator(.visible)
     }
   }
@@ -278,14 +279,14 @@ struct ReaderControlsView: View {
 }
 
 private struct ReadingDirectionPickerSheetView: View {
-  @Bindable var viewModel: ReaderViewModel
+  @Binding var readingDirection: ReadingDirection
 
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
   var body: some View {
     NavigationStack {
       Form {
-        Picker("Reading Direction", selection: $viewModel.readingDirection) {
+        Picker("Reading Direction", selection: $readingDirection) {
           ForEach(ReadingDirection.allCases, id: \.self) { direction in
             HStack(spacing: 12) {
               Image(systemName: direction.icon)

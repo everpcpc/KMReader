@@ -54,7 +54,7 @@ enum ReadingDirection: CaseIterable, Hashable {
       case .rtl:
         return "inset.filled.leadinghalf.arrow.leading.rectangle"
       case .vertical:
-        return "rectangle.portrait.bottomhalf.filled"
+        return "arrow.up.arrow.down.square"
       case .webtoon:
         return "arrow.up.and.down.square"
       }
@@ -65,7 +65,7 @@ enum ReadingDirection: CaseIterable, Hashable {
       case .rtl:
         return "rectangle.leadinghalf.inset.filled.arrow.leading"
       case .vertical:
-        return "rectangle.portrait.bottomhalf.filled"
+        return "arrow.up.arrow.down.square"
       case .webtoon:
         return "arrow.up.and.down.square"
       }
@@ -81,7 +81,6 @@ class ReaderViewModel {
   var isLoading = true
   var errorMessage: String?
   var pageImageCache: ImageCache
-  var readingDirection: ReadingDirection = .ltr
   var incognitoMode: Bool = false
 
   private let bookService = BookService.shared
@@ -255,34 +254,6 @@ class ReaderViewModel {
       )
     } catch {
       // Progress updates are non-critical, fail silently
-    }
-  }
-
-  /// Convert display index to actual page index based on reading direction
-  /// - Parameter displayIndex: The index as displayed to the user
-  /// - Returns: The actual page index in the pages array
-  func displayIndexToPageIndex(_ displayIndex: Int) -> Int {
-    switch readingDirection {
-    case .ltr:
-      return displayIndex
-    case .rtl:
-      return pages.count - 1 - displayIndex
-    case .vertical, .webtoon:
-      return displayIndex
-    }
-  }
-
-  /// Convert actual page index to display index based on reading direction
-  /// - Parameter pageIndex: The actual page index in the pages array
-  /// - Returns: The index as displayed to the user
-  func pageIndexToDisplayIndex(_ pageIndex: Int) -> Int {
-    switch readingDirection {
-    case .ltr:
-      return pageIndex
-    case .rtl:
-      return pages.count - 1 - pageIndex
-    case .vertical, .webtoon:
-      return pageIndex
     }
   }
 

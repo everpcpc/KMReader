@@ -48,7 +48,8 @@ struct WebtoonPageView: View {
             EndPageView(
               nextBook: nextBook,
               onDismiss: onDismiss,
-              onNextBook: onNextBook
+              onNextBook: onNextBook,
+              isRTL: false,
             )
             .padding(.bottom, 160)
           }

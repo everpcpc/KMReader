@@ -22,6 +22,7 @@ struct BookReaderView: View {
   @State private var isAtBottom = false
   @State private var isAtEndPage = false
   @State private var showingReadingDirectionPicker = false
+  @State private var readingDirection: ReadingDirection = .ltr
 
   init(bookId: String, incognito: Bool = false) {
     self.initialBookId = bookId
@@ -32,7 +33,7 @@ struct BookReaderView: View {
   var shouldShowControls: Bool {
     // Always show controls when no pages are loaded or when explicitly shown
     viewModel.pages.isEmpty || showingControls || isAtEndPage
-      || (viewModel.readingDirection == .webtoon && isAtBottom)
+      || (readingDirection == .webtoon && isAtBottom)
   }
 
   var body: some View {
@@ -42,9 +43,21 @@ struct BookReaderView: View {
       if !viewModel.pages.isEmpty {
         // Page viewer based on reading direction
         Group {
-          switch viewModel.readingDirection {
-          case .ltr, .rtl:
-            HorizontalPageView(
+          switch readingDirection {
+          case .ltr:
+            ComicPageView(
+              viewModel: viewModel,
+              isAtEndPage: $isAtEndPage,
+              showingControls: $showingControls,
+              nextBook: nextBook,
+              onDismiss: { dismiss() },
+              onNextBook: { openNextBook(nextBookId: $0) },
+              goToNextPage: goToNextPage,
+              goToPreviousPage: goToPreviousPage,
+              toggleControls: toggleControls
+            ).ignoresSafeArea()
+          case .rtl:
+            MangaPageView(
               viewModel: viewModel,
               isAtEndPage: $isAtEndPage,
               showingControls: $showingControls,
@@ -102,6 +115,7 @@ struct BookReaderView: View {
       ReaderControlsView(
         showingControls: $showingControls,
         showingReadingDirectionPicker: $showingReadingDirectionPicker,
+        readingDirection: $readingDirection,
         viewModel: viewModel,
         currentBook: currentBook,
         onDismiss: { dismiss() }
@@ -133,7 +147,7 @@ struct BookReaderView: View {
         // Get series reading direction
         let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
         if let readingDirectionString = series.metadata.readingDirection {
-          viewModel.readingDirection = ReadingDirection.fromString(readingDirectionString)
+          readingDirection = ReadingDirection.fromString(readingDirectionString)
         }
 
         // Load next book
@@ -180,7 +194,7 @@ struct BookReaderView: View {
   }
 
   private func goToNextPage() {
-    switch viewModel.readingDirection {
+    switch readingDirection {
     case .ltr:
       if viewModel.currentPageIndex < viewModel.pages.count - 1 {
         withAnimation {
@@ -231,7 +245,7 @@ struct BookReaderView: View {
   }
 
   private func goToPreviousPage() {
-    switch viewModel.readingDirection {
+    switch readingDirection {
     case .ltr:
       if isAtEndPage {
         // Go back from end page to last page
@@ -278,17 +292,9 @@ struct BookReaderView: View {
     }
   }
 
-  private func toggleReadingDirection() {
-    // Toggle direction
-    viewModel.readingDirection = viewModel.readingDirection == .ltr ? .rtl : .ltr
-
-    // The currentPageIndex remains the same (actual page index)
-    // The display will update automatically through the TabView binding
-  }
-
   private func toggleControls() {
     // Don't hide controls when at end page or webtoon at bottom
-    if isAtEndPage || (viewModel.readingDirection == .webtoon && isAtBottom) {
+    if isAtEndPage || (readingDirection == .webtoon && isAtBottom) {
       return
     }
     withAnimation {
@@ -301,7 +307,7 @@ struct BookReaderView: View {
 
   private func resetControlsTimer() {
     // Don't start timer when at end page or webtoon at bottom
-    if isAtEndPage || (viewModel.readingDirection == .webtoon && isAtBottom) {
+    if isAtEndPage || (readingDirection == .webtoon && isAtBottom) {
       return
     }
     controlsTimer?.invalidate()
