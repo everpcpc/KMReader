@@ -55,6 +55,26 @@ class LibraryService {
     )
   }
 
+  func scanAllLibraries(deep: Bool = false) async throws {
+    var queryItems: [URLQueryItem]? = nil
+    if deep {
+      queryItems = [URLQueryItem(name: "deep", value: "true")]
+    }
+
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v1/libraries/scan",
+      method: "POST",
+      queryItems: queryItems
+    )
+  }
+
+  func emptyTrashAllLibraries() async throws {
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v1/libraries/empty-trash",
+      method: "POST"
+    )
+  }
+
   func deleteLibrary(id: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/libraries/\(id)",

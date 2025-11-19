@@ -45,6 +45,14 @@ class LibraryViewModel {
     try await libraryService.emptyTrash(id: library.id)
   }
 
+  func scanAllLibraries(deep: Bool = false) async throws {
+    try await libraryService.scanAllLibraries(deep: deep)
+  }
+
+  func emptyTrashAllLibraries() async throws {
+    try await libraryService.emptyTrashAllLibraries()
+  }
+
   func deleteLibrary(_ library: Library) async throws {
     try await libraryService.deleteLibrary(id: library.id)
   }

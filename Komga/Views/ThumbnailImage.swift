@@ -45,42 +45,43 @@ struct ThumbnailImage: View {
         .frame(width: width, height: width * 1.3)
 
       // Image content
-      Group {
-        if let url = url {
-          WebImage(
-            url: url,
-            options: [.retryFailed, .scaleDownLargeImages],
-            context: [.customManager: SDImageCacheProvider.thumbnailManager]
-          )
-          .resizable()
-          .placeholder {
-            if showPlaceholder {
-              Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .overlay {
-                  ProgressView()
-                }
-            } else {
-              Rectangle()
-                .fill(Color.gray.opacity(0.3))
-            }
-          }
-          .indicator(.activity)
-          .transition(.fade(duration: 0.2))
-          .aspectRatio(contentMode: contentMode)
-          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-        } else {
-          RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(Color.gray.opacity(0.3))
-            .overlay {
-              if showPlaceholder {
+      if let url = url {
+        WebImage(
+          url: url,
+          options: [.retryFailed, .scaleDownLargeImages],
+          context: [.customManager: SDImageCacheProvider.thumbnailManager]
+        )
+        .resizable()
+        .placeholder {
+          if showPlaceholder {
+            Rectangle()
+              .fill(Color.gray.opacity(0.3))
+              .overlay {
                 ProgressView()
               }
-            }
+          } else {
+            Rectangle()
+              .fill(Color.gray.opacity(0.3))
+          }
         }
+        .indicator(.activity)
+        .transition(.fade(duration: 0.2))
+        .aspectRatio(contentMode: contentMode)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .frame(width: width, height: width * 1.3, alignment: .center)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+      } else {
+        RoundedRectangle(cornerRadius: cornerRadius)
+          .fill(Color.gray.opacity(0.3))
+          .frame(width: width, height: width * 1.3, alignment: .center)
+          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+          .overlay {
+            if showPlaceholder {
+              ProgressView()
+            }
+          }
       }
-      .frame(width: width, height: width * 1.3, alignment: .center)
-      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+
     }
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     .shadow(color: Color.black.opacity(0.5), radius: 4)

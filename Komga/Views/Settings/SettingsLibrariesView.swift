@@ -13,6 +13,7 @@ struct SettingsLibrariesView: View {
   @State private var actionErrorMessage: String?
   @State private var libraryPendingDelete: Library?
   @State private var operatingLibrary: Library?
+  @State private var isPerformingGlobalAction = false
 
   private var isActionErrorPresented: Binding<Bool> {
     Binding(
@@ -112,6 +113,44 @@ struct SettingsLibrariesView: View {
         onEmptyTrash: { emptyTrash(library) },
         onDelete: { libraryPendingDelete = library }
       )
+    }
+    .toolbar {
+      ToolbarItem(placement: .navigationBarTrailing) {
+        Menu {
+          Button {
+            performGlobalAction {
+              try await viewModel.scanAllLibraries()
+            }
+          } label: {
+            Label("Scan All Libraries", systemImage: "arrow.clockwise")
+          }
+          .disabled(isPerformingGlobalAction)
+
+          Button {
+            performGlobalAction {
+              try await viewModel.scanAllLibraries(deep: true)
+            }
+          } label: {
+            Label("Scan All Libraries (Deep)", systemImage: "arrow.triangle.2.circlepath")
+          }
+          .disabled(isPerformingGlobalAction)
+
+          Button {
+            performGlobalAction {
+              try await viewModel.emptyTrashAllLibraries()
+            }
+          } label: {
+            Label("Empty Trash for All Libraries", systemImage: "trash.slash")
+          }
+          .disabled(isPerformingGlobalAction)
+        } label: {
+          if isPerformingGlobalAction {
+            ProgressView()
+          } else {
+            Image(systemName: "ellipsis.circle")
+          }
+        }
+      }
     }
   }
 
@@ -258,6 +297,23 @@ struct SettingsLibrariesView: View {
       _ = await MainActor.run {
         performingLibraryIds.remove(library.id)
         libraryPendingDelete = nil
+      }
+    }
+  }
+
+  private func performGlobalAction(_ action: @escaping () async throws -> Void) {
+    guard !isPerformingGlobalAction else { return }
+    isPerformingGlobalAction = true
+    Task {
+      do {
+        try await action()
+      } catch {
+        _ = await MainActor.run {
+          actionErrorMessage = error.localizedDescription
+        }
+      }
+      _ = await MainActor.run {
+        isPerformingGlobalAction = false
       }
     }
   }
