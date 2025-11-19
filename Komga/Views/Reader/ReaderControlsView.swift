@@ -80,9 +80,8 @@ struct ReaderControlsView: View {
           .frame(minWidth: 40, minHeight: 40)
           .contentShape(Rectangle())
         }
-        .padding(.horizontal)
       }
-      .padding(.top)
+      .padding()
       .allowsHitTesting(true)
 
       // Series and book title
@@ -147,7 +146,7 @@ struct ReaderControlsView: View {
         )
         .scaleEffect(x: viewModel.readingDirection == .rtl ? -1 : 1, y: 1)
       }
-      .padding(.bottom)
+      .padding()
       .allowsHitTesting(true)
     }
     .allowsHitTesting(true)
