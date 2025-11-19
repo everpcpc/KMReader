@@ -143,9 +143,9 @@ struct SeriesDetailView: View {
               // Release date
               if let releaseDate = series.booksMetadata.releaseDate {
                 HStack(spacing: 4) {
-                  Image(systemName: "calendar")
+                  Image(systemName: "calendar.badge.clock")
                     .font(.caption2)
-                  Text(formatReleaseDate(releaseDate))
+                  Text(releaseDate)
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -470,21 +470,6 @@ extension SeriesDetailView {
     }
 
     return languageMap[language.lowercased()] ?? language.uppercased()
-  }
-
-  private func formatReleaseDate(_ dateString: String) -> String {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    formatter.timeZone = TimeZone(identifier: "UTC")
-
-    if let date = formatter.date(from: dateString) {
-      let yearFormatter = DateFormatter()
-      yearFormatter.dateFormat = "yyyy"
-      yearFormatter.timeZone = TimeZone(identifier: "UTC")
-      return yearFormatter.string(from: date)
-    }
-
-    return dateString
   }
 
   private func groupAuthorsByRole(_ authors: [Author]) -> [String: [String]] {

@@ -38,7 +38,11 @@ struct BookRowView: View {
           .lineLimit(2)
 
         HStack(spacing: 4) {
-          Label(formatDate(book.created), systemImage: "clock")
+          if let releaseDate = book.metadata.releaseDate, !releaseDate.isEmpty {
+            Label(releaseDate, systemImage: "calendar.badge.clock")
+            Text("•")
+          }
+          Label(book.created.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
           if let progress = book.readProgress {
             Text("•")
             if progress.completed {
@@ -92,25 +96,5 @@ struct BookRowView: View {
     } else {
       return String(format: "%.1f", number)
     }
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    let calendar = Calendar.current
-    let now = Date()
-
-    if calendar.isDateInToday(date) {
-      formatter.dateStyle = .none
-      formatter.timeStyle = .short
-      return formatter.string(from: date)
-    }
-
-    if calendar.component(.year, from: date) == calendar.component(.year, from: now) {
-      formatter.dateFormat = "MM-dd"
-      return formatter.string(from: date)
-    }
-
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter.string(from: date)
   }
 }
