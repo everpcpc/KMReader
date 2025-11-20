@@ -11,9 +11,12 @@ struct BookReaderView: View {
   let initialBookId: String
   let incognito: Bool
 
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+
+  @Environment(\.dismiss) private var dismiss
+
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
-  @Environment(\.dismiss) private var dismiss
   @State private var showingControls = true
   @State private var controlsTimer: Timer?
   @State private var currentBook: Book?
@@ -38,7 +41,7 @@ struct BookReaderView: View {
 
   var body: some View {
     ZStack {
-      Color.black.ignoresSafeArea()
+      readerBackground.color.ignoresSafeArea()
 
       if !viewModel.pages.isEmpty {
         // Page viewer based on reading direction

@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SettingsReaderView: View {
   @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground =
+    .black
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
 
   var body: some View {
@@ -21,6 +23,20 @@ struct SettingsReaderView: View {
               .font(.caption)
               .foregroundColor(.secondary)
           }
+        }
+      }
+
+      Section(header: Text("Background")) {
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Reader Background", selection: $readerBackground) {
+            ForEach(ReaderBackground.allCases, id: \.self) { background in
+              Text(background.displayName).tag(background)
+            }
+          }
+          .pickerStyle(.menu)
+          Text("The background color of the reader")
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
       }
 

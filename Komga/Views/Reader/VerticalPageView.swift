@@ -21,6 +21,7 @@ struct VerticalPageView: View {
   @State private var hasSyncedInitialScroll = false
   @State private var showTapZoneOverlay = false
   @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
   var body: some View {
     GeometryReader { screenGeometry in
@@ -58,7 +59,7 @@ struct VerticalPageView: View {
 
               // End page after last page
               ZStack {
-                Color.black.ignoresSafeArea()
+                readerBackground.color.ignoresSafeArea()
                 EndPageView(
                   nextBook: nextBook,
                   onDismiss: onDismiss,

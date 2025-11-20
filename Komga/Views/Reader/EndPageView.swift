@@ -49,10 +49,16 @@ struct EndPageView: View {
           onDismiss()
         } label: {
           HStack(spacing: 8) {
-            Image(systemName: "xmark")
-              .font(.system(size: 16, weight: .semibold))
+            if !isRTL {
+              Image(systemName: "xmark")
+                .font(.system(size: 16, weight: .semibold))
+            }
             Text("Close")
               .font(.system(size: 16, weight: .medium))
+            if isRTL {
+              Image(systemName: "xmark")
+                .font(.system(size: 16, weight: .semibold))
+            }
           }
           .foregroundColor(.white)
           .padding(.horizontal, 20)

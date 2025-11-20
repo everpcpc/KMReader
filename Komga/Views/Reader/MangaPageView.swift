@@ -21,6 +21,7 @@ struct MangaPageView: View {
   @State private var hasSyncedInitialScroll = false
   @State private var showTapZoneOverlay = false
   @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
   var body: some View {
     GeometryReader { screenGeometry in
@@ -33,7 +34,7 @@ struct MangaPageView: View {
             LazyHStack(spacing: 0) {
               // End page at the beginning for RTL
               ZStack {
-                Color.black.ignoresSafeArea()
+                readerBackground.color.ignoresSafeArea()
                 EndPageView(
                   nextBook: nextBook,
                   onDismiss: onDismiss,
