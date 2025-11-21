@@ -62,7 +62,7 @@ class CollectionService {
       URLQueryItem(name: "sort", value: sort),
     ]
 
-    let search = SeriesSearch(condition: .collectionId(collectionId))
+    let search = SeriesSearch(condition: SeriesSearch.buildCondition(collectionId: collectionId))
     let encoder = JSONEncoder()
     let jsonData = try encoder.encode(search)
 

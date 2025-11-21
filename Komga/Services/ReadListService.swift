@@ -62,7 +62,7 @@ class ReadListService {
       URLQueryItem(name: "sort", value: sort),
     ]
 
-    let search = BookSearch(condition: .readListId(readListId))
+    let search = BookSearch(condition: BookSearch.buildCondition(readListId: readListId))
     let encoder = JSONEncoder()
     let jsonData = try encoder.encode(search)
 

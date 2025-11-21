@@ -9,21 +9,10 @@ import Foundation
 
 // Simplified search structure that can encode to the correct JSON format for series list API
 struct SeriesSearch: Encodable {
-  enum Condition {
-    case readStatus(ReadStatus)
-    case libraryIdAndReadStatus(libraryId: String, readStatus: ReadStatus)
-    case libraryId(String)
-    case seriesStatus(String)  // metadata.status: ONGOING, ENDED, HIATUS, CANCELLED
-    case libraryIdAndSeriesStatus(libraryId: String, seriesStatus: String)
-    case readStatusAndSeriesStatus(readStatus: ReadStatus, seriesStatus: String)
-    case collectionId(String)
-    case allOf([Condition])  // AllOf condition - empty array means match all series
-  }
-
-  let condition: Condition
+  let condition: [String: Any]?
   let fullTextSearch: String?
 
-  init(condition: Condition, fullTextSearch: String? = nil) {
+  init(condition: [String: Any]? = nil, fullTextSearch: String? = nil) {
     self.condition = condition
     self.fullTextSearch = fullTextSearch
   }
@@ -31,132 +20,12 @@ struct SeriesSearch: Encodable {
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
 
-    switch condition {
-    case .readStatus(let status):
-      // Encode as: { "condition": { "anyOf": [{"readStatus": {"operator": "is", "value": "READ"}}] } } }
-      // For series, readStatus is wrapped in anyOf array
-      var conditionContainer = container.nestedContainer(
-        keyedBy: AnyOfKeys.self, forKey: .condition)
-      var anyOfContainer = conditionContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var readStatusItemContainer = anyOfContainer.nestedContainer(keyedBy: ReadStatusKeys.self)
-      var readStatusContainer = readStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .readStatus)
-      try readStatusContainer.encode("is", forKey: .operator)
-      try readStatusContainer.encode(status.rawValue, forKey: .value)
-
-    case .libraryIdAndReadStatus(let libraryId, let status):
-      // Encode as: { "condition": { "allOf": [...] } }
-      var conditionContainer = container.nestedContainer(
-        keyedBy: AllOfKeys.self, forKey: .condition)
-      var allOfContainer = conditionContainer.nestedUnkeyedContainer(forKey: .allOf)
-
-      // Library condition
-      var libraryContainer = allOfContainer.nestedContainer(keyedBy: LibraryIdKeys.self)
-      var libraryOperatorContainer = libraryContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .libraryId)
-      try libraryOperatorContainer.encode("is", forKey: .operator)
-      try libraryOperatorContainer.encode(libraryId, forKey: .value)
-
-      // ReadStatus condition - wrap in anyOf
-      var anyOfContainer = allOfContainer.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var readStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: ReadStatusKeys.self)
-      var readStatusOperatorContainer = readStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .readStatus)
-      try readStatusOperatorContainer.encode("is", forKey: .operator)
-      try readStatusOperatorContainer.encode(status.rawValue, forKey: .value)
-
-    case .libraryId(let libraryId):
-      // Encode as: { "condition": { "libraryId": { "operator": "is", "value": "..." } } }
-      var conditionContainer = container.nestedContainer(
-        keyedBy: LibraryIdKeys.self, forKey: .condition)
-      var libraryIdContainer = conditionContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .libraryId)
-      try libraryIdContainer.encode("is", forKey: .operator)
-      try libraryIdContainer.encode(libraryId, forKey: .value)
-
-    case .seriesStatus(let status):
-      // Encode as: { "condition": { "anyOf": [{"seriesStatus": {"operator": "is", "value": "ONGOING"}}] } } }
-      var conditionContainer = container.nestedContainer(
-        keyedBy: AnyOfKeys.self, forKey: .condition)
-      var anyOfContainer = conditionContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var seriesStatusItemContainer = anyOfContainer.nestedContainer(keyedBy: SeriesStatusKeys.self)
-      var seriesStatusContainer = seriesStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .seriesStatus)
-      try seriesStatusContainer.encode("is", forKey: .operator)
-      try seriesStatusContainer.encode(status, forKey: .value)
-
-    case .libraryIdAndSeriesStatus(let libraryId, let status):
-      // Encode as: { "condition": { "allOf": [...] } }
-      var conditionContainer = container.nestedContainer(
-        keyedBy: AllOfKeys.self, forKey: .condition)
-      var allOfContainer = conditionContainer.nestedUnkeyedContainer(forKey: .allOf)
-
-      // Library condition
-      var libraryContainer = allOfContainer.nestedContainer(keyedBy: LibraryIdKeys.self)
-      var libraryOperatorContainer = libraryContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .libraryId)
-      try libraryOperatorContainer.encode("is", forKey: .operator)
-      try libraryOperatorContainer.encode(libraryId, forKey: .value)
-
-      // SeriesStatus condition - wrap in anyOf
-      var anyOfContainer = allOfContainer.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var seriesStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: SeriesStatusKeys.self)
-      var statusOperatorContainer = seriesStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .seriesStatus)
-      try statusOperatorContainer.encode("is", forKey: .operator)
-      try statusOperatorContainer.encode(status, forKey: .value)
-
-    case .readStatusAndSeriesStatus(let readStatus, let seriesStatus):
-      // Encode as: { "condition": { "allOf": [...] } }
-      var conditionContainer = container.nestedContainer(
-        keyedBy: AllOfKeys.self, forKey: .condition)
-      var allOfContainer = conditionContainer.nestedUnkeyedContainer(forKey: .allOf)
-
-      // ReadStatus condition - wrap in anyOf
-      var readStatusAnyOfContainer = allOfContainer.nestedContainer(keyedBy: AnyOfKeys.self)
-      var readStatusAnyOfArrayContainer = readStatusAnyOfContainer.nestedUnkeyedContainer(
-        forKey: .anyOf)
-      var readStatusItemContainer = readStatusAnyOfArrayContainer.nestedContainer(
-        keyedBy: ReadStatusKeys.self)
-      var readStatusOperatorContainer = readStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .readStatus)
-      try readStatusOperatorContainer.encode("is", forKey: .operator)
-      try readStatusOperatorContainer.encode(readStatus.rawValue, forKey: .value)
-
-      // SeriesStatus condition - wrap in anyOf
-      var anyOfContainer = allOfContainer.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var seriesStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: SeriesStatusKeys.self)
-      var seriesStatusOperatorContainer = seriesStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .seriesStatus)
-      try seriesStatusOperatorContainer.encode("is", forKey: .operator)
-      try seriesStatusOperatorContainer.encode(seriesStatus, forKey: .value)
-
-    case .collectionId(let collectionId):
-      // Encode as: { "condition": { "collectionId": { "operator": "is", "value": "..." } } }
-      var conditionContainer = container.nestedContainer(
-        keyedBy: CollectionIdKeys.self, forKey: .condition)
-      var collectionIdContainer = conditionContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .collectionId)
-      try collectionIdContainer.encode("is", forKey: .operator)
-      try collectionIdContainer.encode(collectionId, forKey: .value)
-
-    case .allOf(let conditions):
-      // Encode as: { "condition": { "allOf": [...] } }
-      // Empty array means match all series
-      var conditionContainer = container.nestedContainer(
-        keyedBy: AllOfKeys.self, forKey: .condition)
-      var allOfContainer = conditionContainer.nestedUnkeyedContainer(forKey: .allOf)
-
-      // Encode each condition in the array
-      for condition in conditions {
-        try encodeCondition(condition, into: &allOfContainer)
-      }
+    if let condition = condition {
+      // Use JSONSerialization to encode the condition dictionary
+      let conditionJSON = try JSONSerialization.data(withJSONObject: condition)
+      // Decode it back to a proper Codable structure
+      let conditionDict = try JSONDecoder().decode([String: JSONAny].self, from: conditionJSON)
+      try container.encodeIfPresent(conditionDict, forKey: .condition)
     }
 
     try container.encodeIfPresent(fullTextSearch, forKey: .fullTextSearch)
@@ -166,142 +35,113 @@ struct SeriesSearch: Encodable {
     case condition
     case fullTextSearch
   }
+}
 
-  private enum AllOfKeys: String, CodingKey {
-    case allOf
+// Helper type to encode/decode Any JSON value
+private enum JSONAny: Codable {
+  case string(String)
+  case int(Int)
+  case double(Double)
+  case bool(Bool)
+  case array([JSONAny])
+  case dictionary([String: JSONAny])
+  case null
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    if container.decodeNil() {
+      self = .null
+    } else if let bool = try? container.decode(Bool.self) {
+      self = .bool(bool)
+    } else if let int = try? container.decode(Int.self) {
+      self = .int(int)
+    } else if let double = try? container.decode(Double.self) {
+      self = .double(double)
+    } else if let string = try? container.decode(String.self) {
+      self = .string(string)
+    } else if let array = try? container.decode([JSONAny].self) {
+      self = .array(array)
+    } else if let dict = try? container.decode([String: JSONAny].self) {
+      self = .dictionary(dict)
+    } else {
+      throw DecodingError.dataCorruptedError(
+        in: container,
+        debugDescription: "Cannot decode JSONAny"
+      )
+    }
   }
 
-  private enum LibraryIdKeys: String, CodingKey {
-    case libraryId
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    switch self {
+    case .string(let value):
+      try container.encode(value)
+    case .int(let value):
+      try container.encode(value)
+    case .double(let value):
+      try container.encode(value)
+    case .bool(let value):
+      try container.encode(value)
+    case .array(let value):
+      try container.encode(value)
+    case .dictionary(let value):
+      try container.encode(value)
+    case .null:
+      try container.encodeNil()
+    }
   }
+}
 
-  private enum ReadStatusKeys: String, CodingKey {
-    case readStatus
-  }
+// Helper functions to build conditions
+extension SeriesSearch {
+  static func buildCondition(
+    libraryId: String? = nil,
+    readStatus: ReadStatus? = nil,
+    seriesStatus: String? = nil,
+    collectionId: String? = nil
+  ) -> [String: Any]? {
+    var conditions: [[String: Any]] = []
 
-  private enum SeriesStatusKeys: String, CodingKey {
-    case seriesStatus
-  }
+    if let libraryId = libraryId, !libraryId.isEmpty {
+      conditions.append([
+        "libraryId": ["operator": "is", "value": libraryId]
+      ])
+    }
 
-  private enum CollectionIdKeys: String, CodingKey {
-    case collectionId
-  }
+    if let readStatus = readStatus {
+      // For series, readStatus needs to be wrapped in anyOf
+      conditions.append([
+        "anyOf": [
+          [
+            "readStatus": ["operator": "is", "value": readStatus.rawValue]
+          ]
+        ]
+      ])
+    }
 
-  private enum AnyOfKeys: String, CodingKey {
-    case anyOf
-  }
+    if let seriesStatus = seriesStatus {
+      // Series status also needs to be wrapped in anyOf
+      conditions.append([
+        "anyOf": [
+          [
+            "seriesStatus": ["operator": "is", "value": seriesStatus]
+          ]
+        ]
+      ])
+    }
 
-  private enum OperatorKeys: String, CodingKey {
-    case `operator`
-    case value
-  }
+    if let collectionId = collectionId {
+      conditions.append([
+        "collectionId": ["operator": "is", "value": collectionId]
+      ])
+    }
 
-  // Helper method to encode a condition into an unkeyed container (for allOf array)
-  private func encodeCondition(
-    _ condition: Condition, into container: inout UnkeyedEncodingContainer
-  ) throws {
-    switch condition {
-    case .readStatus(let status):
-      // Wrap in anyOf array
-      var anyOfContainer = container.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var readStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: ReadStatusKeys.self)
-      var readStatusOperatorContainer = readStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .readStatus)
-      try readStatusOperatorContainer.encode("is", forKey: .operator)
-      try readStatusOperatorContainer.encode(status.rawValue, forKey: .value)
-
-    case .libraryId(let libraryId):
-      var libraryContainer = container.nestedContainer(keyedBy: LibraryIdKeys.self)
-      var libraryOperatorContainer = libraryContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .libraryId)
-      try libraryOperatorContainer.encode("is", forKey: .operator)
-      try libraryOperatorContainer.encode(libraryId, forKey: .value)
-
-    case .libraryIdAndReadStatus(let libraryId, let status):
-      // For allOf, we need to encode this as two separate conditions
-      // First, libraryId
-      var libraryContainer = container.nestedContainer(keyedBy: LibraryIdKeys.self)
-      var libraryOperatorContainer = libraryContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .libraryId)
-      try libraryOperatorContainer.encode("is", forKey: .operator)
-      try libraryOperatorContainer.encode(libraryId, forKey: .value)
-
-      // Then, readStatus - wrap in anyOf
-      var anyOfContainer = container.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var readStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: ReadStatusKeys.self)
-      var readStatusOperatorContainer = readStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .readStatus)
-      try readStatusOperatorContainer.encode("is", forKey: .operator)
-      try readStatusOperatorContainer.encode(status.rawValue, forKey: .value)
-
-    case .seriesStatus(let status):
-      // Wrap in anyOf array
-      var anyOfContainer = container.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var seriesStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: SeriesStatusKeys.self)
-      var statusOperatorContainer = seriesStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .seriesStatus)
-      try statusOperatorContainer.encode("is", forKey: .operator)
-      try statusOperatorContainer.encode(status, forKey: .value)
-
-    case .libraryIdAndSeriesStatus(let libraryId, let status):
-      // For allOf, encode as two separate conditions
-      var libraryContainer = container.nestedContainer(keyedBy: LibraryIdKeys.self)
-      var libraryOperatorContainer = libraryContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .libraryId)
-      try libraryOperatorContainer.encode("is", forKey: .operator)
-      try libraryOperatorContainer.encode(libraryId, forKey: .value)
-
-      // Wrap in anyOf array
-      var anyOfContainer = container.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var seriesStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: SeriesStatusKeys.self)
-      var seriesStatusOperatorContainer = seriesStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .seriesStatus)
-      try seriesStatusOperatorContainer.encode("is", forKey: .operator)
-      try seriesStatusOperatorContainer.encode(status, forKey: .value)
-
-    case .readStatusAndSeriesStatus(let readStatus, let seriesStatus):
-      // For allOf, encode as two separate conditions
-      // ReadStatus condition - wrap in anyOf
-      var readStatusAnyOfContainer = container.nestedContainer(keyedBy: AnyOfKeys.self)
-      var readStatusAnyOfArrayContainer = readStatusAnyOfContainer.nestedUnkeyedContainer(
-        forKey: .anyOf)
-      var readStatusItemContainer = readStatusAnyOfArrayContainer.nestedContainer(
-        keyedBy: ReadStatusKeys.self)
-      var readStatusOperatorContainer = readStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .readStatus)
-      try readStatusOperatorContainer.encode("is", forKey: .operator)
-      try readStatusOperatorContainer.encode(readStatus.rawValue, forKey: .value)
-
-      // Wrap in anyOf array
-      var anyOfContainer = container.nestedContainer(keyedBy: AnyOfKeys.self)
-      var anyOfArrayContainer = anyOfContainer.nestedUnkeyedContainer(forKey: .anyOf)
-      var seriesStatusItemContainer = anyOfArrayContainer.nestedContainer(
-        keyedBy: SeriesStatusKeys.self)
-      var seriesStatusOperatorContainer = seriesStatusItemContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .seriesStatus)
-      try seriesStatusOperatorContainer.encode("is", forKey: .operator)
-      try seriesStatusOperatorContainer.encode(seriesStatus, forKey: .value)
-
-    case .collectionId(let collectionId):
-      var collectionContainer = container.nestedContainer(keyedBy: CollectionIdKeys.self)
-      var collectionOperatorContainer = collectionContainer.nestedContainer(
-        keyedBy: OperatorKeys.self, forKey: .collectionId)
-      try collectionOperatorContainer.encode("is", forKey: .operator)
-      try collectionOperatorContainer.encode(collectionId, forKey: .value)
-
-    case .allOf(let nestedConditions):
-      // Nested allOf - encode recursively
-      for nestedCondition in nestedConditions {
-        try encodeCondition(nestedCondition, into: &container)
-      }
+    if conditions.isEmpty {
+      return nil
+    } else if conditions.count == 1 {
+      return conditions[0]
+    } else {
+      return ["allOf": conditions]
     }
   }
 }

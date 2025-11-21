@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BooksBrowseView: View {
-  @Binding var browseOpts: BrowseOptions
+  @Binding var browseOpts: BookBrowseOptions
   let width: CGFloat
   let height: CGFloat
   let searchText: String
@@ -121,7 +121,7 @@ struct BooksBrowseView: View {
       }
     }
     .sheet(isPresented: $showOptions) {
-      BrowseOptionsSheet(browseOpts: $browseOpts, contentType: .books)
+      BookBrowseOptionsSheet(browseOpts: $browseOpts)
     }
   }
 

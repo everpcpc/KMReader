@@ -21,7 +21,7 @@ class BookViewModel {
   private var hasMorePages = true
   private var currentSeriesId: String?
   private var currentSort: String = "metadata.numberSort,asc"
-  private var currentBrowseState: BrowseOptions?
+  private var currentBrowseState: BookBrowseOptions?
   private var currentBrowseSort: String?
   private var currentBrowseSearch: String = ""
 
@@ -176,10 +176,12 @@ class BookViewModel {
     isLoading = false
   }
 
-  func loadBrowseBooks(browseOpts: BrowseOptions, searchText: String = "", refresh: Bool = false)
+  func loadBrowseBooks(
+    browseOpts: BookBrowseOptions, searchText: String = "", refresh: Bool = false
+  )
     async
   {
-    let sort = browseOpts.sortString(for: .books)
+    let sort = browseOpts.sortString
     let paramsChanged =
       currentBrowseState?.libraryId != browseOpts.libraryId
       || currentBrowseState?.readStatusFilter != browseOpts.readStatusFilter
@@ -202,25 +204,13 @@ class BookViewModel {
     errorMessage = nil
 
     do {
-      var conditions: [BookSearch.Condition] = []
-      if !browseOpts.libraryId.isEmpty {
-        conditions.append(.libraryId(browseOpts.libraryId))
-      }
-      if let readStatus = browseOpts.readStatusFilter.toReadStatus() {
-        conditions.append(.readStatus(readStatus))
-      }
-
-      let searchCondition: BookSearch.Condition
-      if conditions.isEmpty {
-        searchCondition = .allOf([])
-      } else if conditions.count == 1, let first = conditions.first {
-        searchCondition = first
-      } else {
-        searchCondition = .allOf(conditions)
-      }
+      let condition = BookSearch.buildCondition(
+        libraryId: browseOpts.libraryId.isEmpty ? nil : browseOpts.libraryId,
+        readStatus: browseOpts.readStatusFilter.toReadStatus()
+      )
 
       let search = BookSearch(
-        condition: searchCondition,
+        condition: condition,
         fullTextSearch: searchText.isEmpty ? nil : searchText
       )
       let page = try await bookService.getBooksList(

@@ -34,27 +34,11 @@ class SeriesService {
     let hasSeriesStatusFilter = seriesStatus != nil && seriesStatus != .all
 
     if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter {
-      // Build the search condition using allOf for flexibility
-      var conditions: [SeriesSearch.Condition] = []
-
-      if hasLibraryFilter {
-        conditions.append(.libraryId(libraryId))
-      }
-
-      if hasReadStatusFilter, let readStatusValue = readStatus!.toReadStatus() {
-        conditions.append(.readStatus(readStatusValue))
-      }
-
-      if hasSeriesStatusFilter {
-        conditions.append(.seriesStatus(seriesStatus!.rawValue))
-      }
-
-      let condition: SeriesSearch.Condition
-      if conditions.count == 1 {
-        condition = conditions[0]
-      } else {
-        condition = .allOf(conditions)
-      }
+      let condition = SeriesSearch.buildCondition(
+        libraryId: hasLibraryFilter ? libraryId : nil,
+        readStatus: hasReadStatusFilter ? readStatus!.toReadStatus() : nil,
+        seriesStatus: hasSeriesStatusFilter ? seriesStatus!.rawValue : nil
+      )
 
       let search = SeriesSearch(
         condition: condition,

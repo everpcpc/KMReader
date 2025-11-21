@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CollectionsBrowseView: View {
-  @Binding var browseOpts: BrowseOptions
+  @Binding var browseOpts: SeriesBrowseOptions
   let width: CGFloat
   let height: CGFloat
   let searchText: String
@@ -45,7 +45,9 @@ struct CollectionsBrowseView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      if BrowseContentType.collections.supportsSorting || BrowseContentType.collections.supportsReadStatusFilter {
+      if BrowseContentType.collections.supportsSorting
+        || BrowseContentType.collections.supportsReadStatusFilter
+      {
         header
       }
       if viewModel.isLoading && viewModel.collections.isEmpty {
@@ -141,12 +143,23 @@ struct CollectionsBrowseView: View {
       }
     }
     .sheet(isPresented: $showOptions) {
-      BrowseOptionsSheet(browseOpts: $browseOpts, contentType: .collections)
+      SeriesBrowseOptionsSheet(browseOpts: $browseOpts)
     }
   }
 
   private func loadCollections(refresh: Bool) async {
-    let sort = browseOpts.sortString(for: .collections)
+    // Collections use a simple sort string based on series sort field
+    let sort: String?
+    switch browseOpts.sortField {
+    case .name:
+      sort = "name,\(browseOpts.sortDirection.rawValue)"
+    case .dateAdded:
+      sort = "createdDate,\(browseOpts.sortDirection.rawValue)"
+    case .dateUpdated:
+      sort = "lastModifiedDate,\(browseOpts.sortDirection.rawValue)"
+    default:
+      sort = nil
+    }
     await viewModel.loadCollections(
       libraryId: browseOpts.libraryId,
       sort: sort,

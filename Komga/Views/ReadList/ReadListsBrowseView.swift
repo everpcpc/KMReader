@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ReadListsBrowseView: View {
-  @Binding var browseOpts: BrowseOptions
+  @Binding var browseOpts: SeriesBrowseOptions
   let width: CGFloat
   let height: CGFloat
   let searchText: String
@@ -141,12 +141,23 @@ struct ReadListsBrowseView: View {
       }
     }
     .sheet(isPresented: $showOptions) {
-      BrowseOptionsSheet(browseOpts: $browseOpts, contentType: .readlists)
+      SeriesBrowseOptionsSheet(browseOpts: $browseOpts)
     }
   }
 
   private func loadReadLists(refresh: Bool) async {
-    let sort = browseOpts.sortString(for: .readlists)
+    // ReadLists use a simple sort string based on series sort field
+    let sort: String?
+    switch browseOpts.sortField {
+    case .name:
+      sort = "name,\(browseOpts.sortDirection.rawValue)"
+    case .dateAdded:
+      sort = "createdDate,\(browseOpts.sortDirection.rawValue)"
+    case .dateUpdated, .dateRead:
+      sort = "lastModifiedDate,\(browseOpts.sortDirection.rawValue)"
+    default:
+      sort = nil
+    }
     await viewModel.loadReadLists(
       libraryId: browseOpts.libraryId,
       sort: sort,

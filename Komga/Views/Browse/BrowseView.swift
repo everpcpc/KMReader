@@ -9,7 +9,10 @@ import SwiftUI
 
 struct BrowseView: View {
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
-  @AppStorage("browseOptions") private var browseOpts: BrowseOptions = BrowseOptions()
+  @AppStorage("seriesBrowseOptions") private var seriesBrowseOpts: SeriesBrowseOptions =
+    SeriesBrowseOptions()
+  @AppStorage("bookBrowseOptions") private var bookBrowseOpts: BookBrowseOptions =
+    BookBrowseOptions()
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var showLibraryPickerSheet = false
@@ -60,10 +63,12 @@ struct BrowseView: View {
         }
         .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .automatic))
         .onChange(of: selectedLibraryId) { _, newValue in
-          browseOpts.libraryId = newValue
+          seriesBrowseOpts.libraryId = newValue
+          bookBrowseOpts.libraryId = newValue
         }
         .onAppear {
-          browseOpts.libraryId = selectedLibraryId
+          seriesBrowseOpts.libraryId = selectedLibraryId
+          bookBrowseOpts.libraryId = selectedLibraryId
         }
       }
     }
@@ -75,28 +80,28 @@ struct BrowseView: View {
     switch browseContent {
     case .series:
       SeriesBrowseView(
-        browseOpts: $browseOpts,
+        browseOpts: $seriesBrowseOpts,
         width: size.width,
         height: size.height,
         searchText: searchText
       )
     case .books:
       BooksBrowseView(
-        browseOpts: $browseOpts,
+        browseOpts: $bookBrowseOpts,
         width: size.width,
         height: size.height,
         searchText: searchText
       )
     case .collections:
       CollectionsBrowseView(
-        browseOpts: $browseOpts,
+        browseOpts: $seriesBrowseOpts,
         width: size.width,
         height: size.height,
         searchText: searchText
       )
     case .readlists:
       ReadListsBrowseView(
-        browseOpts: $browseOpts,
+        browseOpts: $seriesBrowseOpts,
         width: size.width,
         height: size.height,
         searchText: searchText
@@ -106,15 +111,41 @@ struct BrowseView: View {
 }
 
 struct BrowseOptionsSheet: View {
-  @Binding var browseOpts: BrowseOptions
   let contentType: BrowseContentType
   @Environment(\.dismiss) private var dismiss
-  @State private var tempOpts: BrowseOptions
 
-  init(browseOpts: Binding<BrowseOptions>, contentType: BrowseContentType) {
-    self._browseOpts = browseOpts
+  @Binding var seriesOpts: SeriesBrowseOptions?
+  @Binding var bookOpts: BookBrowseOptions?
+
+  @State private var tempSeriesOpts: SeriesBrowseOptions?
+  @State private var tempBookOpts: BookBrowseOptions?
+
+  init(browseOpts: Binding<SeriesBrowseOptions>, contentType: BrowseContentType) {
     self.contentType = contentType
-    self._tempOpts = State(initialValue: browseOpts.wrappedValue)
+    self._seriesOpts = Binding(
+      get: { browseOpts.wrappedValue },
+      set: { browseOpts.wrappedValue = $0 ?? SeriesBrowseOptions() }
+    )
+    self._bookOpts = Binding(
+      get: { nil },
+      set: { _ in }
+    )
+    self._tempSeriesOpts = State(initialValue: browseOpts.wrappedValue)
+    self._tempBookOpts = State(initialValue: nil)
+  }
+
+  init(browseOpts: Binding<BookBrowseOptions>, contentType: BrowseContentType) {
+    self.contentType = contentType
+    self._seriesOpts = Binding(
+      get: { nil },
+      set: { _ in }
+    )
+    self._bookOpts = Binding(
+      get: { browseOpts.wrappedValue },
+      set: { browseOpts.wrappedValue = $0 ?? BookBrowseOptions() }
+    )
+    self._tempSeriesOpts = State(initialValue: nil)
+    self._tempBookOpts = State(initialValue: browseOpts.wrappedValue)
   }
 
   var body: some View {
@@ -123,16 +154,43 @@ struct BrowseOptionsSheet: View {
         if contentType.supportsReadStatusFilter || contentType.supportsSeriesStatusFilter {
           Section("Filters") {
             if contentType.supportsReadStatusFilter {
-              Picker("Read Status", selection: $tempOpts.readStatusFilter) {
-                ForEach(ReadStatusFilter.allCases, id: \.self) { filter in
-                  Text(filter.displayName).tag(filter)
+              if let tempSeriesOpts = tempSeriesOpts {
+                Picker(
+                  "Read Status",
+                  selection: Binding(
+                    get: { tempSeriesOpts.readStatusFilter },
+                    set: { self.tempSeriesOpts?.readStatusFilter = $0 }
+                  )
+                ) {
+                  ForEach(ReadStatusFilter.allCases, id: \.self) { filter in
+                    Text(filter.displayName).tag(filter)
+                  }
                 }
+                .pickerStyle(.menu)
+              } else if let tempBookOpts = tempBookOpts {
+                Picker(
+                  "Read Status",
+                  selection: Binding(
+                    get: { tempBookOpts.readStatusFilter },
+                    set: { self.tempBookOpts?.readStatusFilter = $0 }
+                  )
+                ) {
+                  ForEach(ReadStatusFilter.allCases, id: \.self) { filter in
+                    Text(filter.displayName).tag(filter)
+                  }
+                }
+                .pickerStyle(.menu)
               }
-              .pickerStyle(.menu)
             }
 
-            if contentType.supportsSeriesStatusFilter {
-              Picker("Series Status", selection: $tempOpts.seriesStatusFilter) {
+            if contentType.supportsSeriesStatusFilter, let tempSeriesOpts = tempSeriesOpts {
+              Picker(
+                "Series Status",
+                selection: Binding(
+                  get: { tempSeriesOpts.seriesStatusFilter },
+                  set: { self.tempSeriesOpts?.seriesStatusFilter = $0 }
+                )
+              ) {
                 ForEach(SeriesStatusFilter.allCases, id: \.self) { filter in
                   Text(filter.displayName).tag(filter)
                 }
@@ -144,24 +202,70 @@ struct BrowseOptionsSheet: View {
 
         if contentType.supportsSorting {
           Section("Sort") {
-            Picker("Sort By", selection: $tempOpts.sortField) {
-              ForEach(SeriesSortField.allCases, id: \.self) { field in
-                Text(field.displayName).tag(field)
-              }
-            }
-            .pickerStyle(.menu)
-
-            if tempOpts.sortField.supportsDirection {
-              Picker("Direction", selection: $tempOpts.sortDirection) {
-                ForEach(SortDirection.allCases, id: \.self) { direction in
-                  HStack {
-                    Image(systemName: direction.icon)
-                    Text(direction.displayName)
-                  }
-                  .tag(direction)
+            if let tempSeriesOpts = tempSeriesOpts {
+              Picker(
+                "Sort By",
+                selection: Binding(
+                  get: { tempSeriesOpts.sortField },
+                  set: { self.tempSeriesOpts?.sortField = $0 }
+                )
+              ) {
+                ForEach(SeriesSortField.allCases, id: \.self) { field in
+                  Text(field.displayName).tag(field)
                 }
               }
               .pickerStyle(.menu)
+
+              if tempSeriesOpts.sortField.supportsDirection {
+                Picker(
+                  "Direction",
+                  selection: Binding(
+                    get: { tempSeriesOpts.sortDirection },
+                    set: { self.tempSeriesOpts?.sortDirection = $0 }
+                  )
+                ) {
+                  ForEach(SortDirection.allCases, id: \.self) { direction in
+                    HStack {
+                      Image(systemName: direction.icon)
+                      Text(direction.displayName)
+                    }
+                    .tag(direction)
+                  }
+                }
+                .pickerStyle(.menu)
+              }
+            } else if let tempBookOpts = tempBookOpts {
+              Picker(
+                "Sort By",
+                selection: Binding(
+                  get: { tempBookOpts.sortField },
+                  set: { self.tempBookOpts?.sortField = $0 }
+                )
+              ) {
+                ForEach(BookSortField.allCases, id: \.self) { field in
+                  Text(field.displayName).tag(field)
+                }
+              }
+              .pickerStyle(.menu)
+
+              if tempBookOpts.sortField.supportsDirection {
+                Picker(
+                  "Direction",
+                  selection: Binding(
+                    get: { tempBookOpts.sortDirection },
+                    set: { self.tempBookOpts?.sortDirection = $0 }
+                  )
+                ) {
+                  ForEach(SortDirection.allCases, id: \.self) { direction in
+                    HStack {
+                      Image(systemName: direction.icon)
+                      Text(direction.displayName)
+                    }
+                    .tag(direction)
+                  }
+                }
+                .pickerStyle(.menu)
+              }
             }
           }
         }
@@ -171,9 +275,14 @@ struct BrowseOptionsSheet: View {
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
           Button {
-            // Only assign if there are changes
-            if tempOpts != browseOpts {
-              browseOpts = tempOpts
+            if let tempSeriesOpts = tempSeriesOpts, let seriesOpts = seriesOpts,
+              tempSeriesOpts != seriesOpts
+            {
+              self.seriesOpts = tempSeriesOpts
+            } else if let tempBookOpts = tempBookOpts, let bookOpts = bookOpts,
+              tempBookOpts != bookOpts
+            {
+              self.bookOpts = tempBookOpts
             }
             dismiss()
           } label: {

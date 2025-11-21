@@ -25,7 +25,7 @@ class BookService {
       URLQueryItem(name: "sort", value: sort),
     ]
 
-    let search = BookSearch(condition: .seriesId(seriesId))
+    let search = BookSearch(condition: BookSearch.buildCondition(seriesId: seriesId))
     let encoder = JSONEncoder()
     let jsonData = try encoder.encode(search)
 
@@ -183,12 +183,10 @@ class BookService {
     size: Int = 20
   ) async throws -> Page<Book> {
     // Get books with READ status, sorted by last read date
-    let condition: BookSearch.Condition
-    if !libraryId.isEmpty {
-      condition = .libraryIdAndReadStatus(libraryId: libraryId, readStatus: .read)
-    } else {
-      condition = .readStatus(.read)
-    }
+    let condition = BookSearch.buildCondition(
+      libraryId: libraryId.isEmpty ? nil : libraryId,
+      readStatus: .read
+    )
 
     let search = BookSearch(condition: condition)
 
@@ -206,15 +204,10 @@ class BookService {
     size: Int = 20
   ) async throws -> Page<Book> {
     // Get books sorted by created date (most recent first)
-    // Use allOf with empty array to match all books, or with libraryId condition if specified
-    let condition: BookSearch.Condition
-    if !libraryId.isEmpty {
-      // Filter by libraryId using allOf
-      condition = .allOf([.libraryId(libraryId)])
-    } else {
-      // Empty allOf array means match all books
-      condition = .allOf([])
-    }
+    // Empty condition means match all books
+    let condition = BookSearch.buildCondition(
+      libraryId: libraryId.isEmpty ? nil : libraryId
+    )
 
     let search = BookSearch(condition: condition)
 

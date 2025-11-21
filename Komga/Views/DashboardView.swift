@@ -187,14 +187,10 @@ struct DashboardView: View {
   private func loadKeepReading() async {
     do {
       // Load books with IN_PROGRESS read status
-      let condition: BookSearch.Condition
-      if !selectedLibraryId.isEmpty {
-        // Filter by both library and read status
-        condition = .libraryIdAndReadStatus(libraryId: selectedLibraryId, readStatus: .inProgress)
-      } else {
-        // Filter by read status only
-        condition = .readStatus(.inProgress)
-      }
+      let condition = BookSearch.buildCondition(
+        libraryId: selectedLibraryId.isEmpty ? nil : selectedLibraryId,
+        readStatus: ReadStatus.inProgress
+      )
 
       let search = BookSearch(condition: condition)
 

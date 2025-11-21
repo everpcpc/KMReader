@@ -18,10 +18,12 @@ class SeriesViewModel {
   private let seriesService = SeriesService.shared
   private var currentPage = 0
   private var hasMorePages = true
-  private var currentState: BrowseOptions?
+  private var currentState: SeriesBrowseOptions?
   private var currentSearchText: String = ""
 
-  func loadSeries(browseOpts: BrowseOptions, searchText: String = "", refresh: Bool = false) async {
+  func loadSeries(browseOpts: SeriesBrowseOptions, searchText: String = "", refresh: Bool = false)
+    async
+  {
     // Check if parameters changed - if so, reset pagination
     let paramsChanged =
       currentState?.libraryId != browseOpts.libraryId
@@ -104,7 +106,7 @@ class SeriesViewModel {
     isLoading = false
   }
 
-  func markAsRead(seriesId: String, browseOpts: BrowseOptions) async {
+  func markAsRead(seriesId: String, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsRead(seriesId: seriesId)
       await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
@@ -113,7 +115,7 @@ class SeriesViewModel {
     }
   }
 
-  func markAsUnread(seriesId: String, browseOpts: BrowseOptions) async {
+  func markAsUnread(seriesId: String, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
       await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
