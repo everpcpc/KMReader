@@ -13,6 +13,7 @@ struct BrowseView: View {
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var showLibraryPickerSheet = false
   @State private var searchQuery: String = ""
+  @State private var activeSearchText: String = ""
 
   var body: some View {
     NavigationStack {
@@ -58,37 +59,44 @@ struct BrowseView: View {
           LibraryPickerSheet()
         }
         .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .automatic))
+        .onSubmit(of: .search) {
+          activeSearchText = searchQuery
+        }
+        .onChange(of: searchQuery) { _, newValue in
+          if newValue.isEmpty {
+            activeSearchText = ""
+          }
+        }
       }
     }
   }
 
   @ViewBuilder
   private func contentView(for size: CGSize) -> some View {
-    let searchText = searchQuery
     switch browseContent {
     case .series:
       SeriesBrowseView(
         width: size.width,
         height: size.height,
-        searchText: searchText
+        searchText: activeSearchText
       )
     case .books:
       BooksBrowseView(
         width: size.width,
         height: size.height,
-        searchText: searchText
+        searchText: activeSearchText
       )
     case .collections:
       CollectionsBrowseView(
         width: size.width,
         height: size.height,
-        searchText: searchText
+        searchText: activeSearchText
       )
     case .readlists:
       ReadListsBrowseView(
         width: size.width,
         height: size.height,
-        searchText: searchText
+        searchText: activeSearchText
       )
     }
   }
