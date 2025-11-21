@@ -17,4 +17,5 @@ enum NavDestination: Hashable {
   case settingsAppearance
   case settingsCache
   case settingsReader
+  case settingsServerInfo
 }

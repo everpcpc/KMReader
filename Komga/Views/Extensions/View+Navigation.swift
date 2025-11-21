@@ -29,6 +29,8 @@ extension View {
           SettingsCacheView()
         case .settingsReader:
           SettingsReaderView()
+        case .settingsServerInfo:
+          SettingsServerInfoView()
         }
       }
   }

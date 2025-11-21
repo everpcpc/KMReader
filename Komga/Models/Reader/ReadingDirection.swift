@@ -43,28 +43,15 @@ enum ReadingDirection: CaseIterable, Hashable {
   }
 
   var icon: String {
-    if #available(iOS 18.0, *) {
-      switch self {
-      case .ltr:
-        return "inset.filled.trailinghalf.arrow.trailing.rectangle"
-      case .rtl:
-        return "inset.filled.leadinghalf.arrow.leading.rectangle"
-      case .vertical:
-        return "arrow.up.arrow.down.square"
-      case .webtoon:
-        return "arrow.up.and.down.square"
-      }
-    } else {
-      switch self {
-      case .ltr:
-        return "rectangle.trailinghalf.inset.filled.arrow.trailing"
-      case .rtl:
-        return "rectangle.leadinghalf.inset.filled.arrow.leading"
-      case .vertical:
-        return "arrow.up.arrow.down.square"
-      case .webtoon:
-        return "arrow.up.and.down.square"
-      }
+    switch self {
+    case .ltr:
+      return "rectangle.trailinghalf.inset.filled.arrow.trailing"
+    case .rtl:
+      return "rectangle.leadinghalf.inset.filled.arrow.leading"
+    case .vertical:
+      return "arrow.up.arrow.down.square"
+    case .webtoon:
+      return "arrow.up.and.down.square"
     }
   }
 }

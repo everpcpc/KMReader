@@ -41,9 +41,12 @@ struct SettingsView: View {
           }
         }
 
-        Section {
+        Section(header: Text("Management")) {
           NavigationLink(value: NavDestination.settingsLibraries) {
-            Label("Library Management", systemImage: "books.vertical")
+            Label("Libraries", systemImage: "books.vertical")
+          }
+          NavigationLink(value: NavDestination.settingsServerInfo) {
+            Label("Server Info", systemImage: "server.rack")
           }
         }
 
