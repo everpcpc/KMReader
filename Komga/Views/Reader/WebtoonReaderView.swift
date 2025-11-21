@@ -17,9 +17,9 @@ private enum Constants {
   static let bottomThreshold: CGFloat = 80
   static let footerHeight: CGFloat = 360
   static let scrollAmountMultiplier: CGFloat = 0.8
-  static let topAreaThreshold: CGFloat = 0.35
+  static let topAreaThreshold: CGFloat = 0.25
   static let bottomAreaThreshold: CGFloat = 0.65
-  static let centerAreaMin: CGFloat = 0.35
+  static let centerAreaMin: CGFloat = 0.25
   static let centerAreaMax: CGFloat = 0.65
 }
 

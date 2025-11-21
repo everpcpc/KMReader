@@ -96,10 +96,7 @@ struct MangaPageView: View {
 
         // Tap zone overlay
         if showTapZoneOverlay {
-          PageTapZoneOverlay(
-            orientation: .horizontal,
-            isRTL: true
-          )
+          MangaTapZoneOverlay()
         }
       }
       .onAppear {
@@ -142,7 +139,7 @@ struct MangaPageView: View {
             scrollPosition = viewModel.currentPageIndex
             proxy.scrollTo(viewModel.currentPageIndex, anchor: .trailing)
           }
-        } else if normalizedX > 0.65 {
+        } else if normalizedX > 0.75 {
           guard !viewModel.pages.isEmpty else { return }
           // Previous page (right tap for RTL means go back)
           guard viewModel.currentPageIndex > 0 else { return }

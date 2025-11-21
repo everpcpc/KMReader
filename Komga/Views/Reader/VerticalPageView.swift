@@ -95,10 +95,7 @@ struct VerticalPageView: View {
 
         // Tap zone overlay
         if showTapZoneOverlay {
-          PageTapZoneOverlay(
-            orientation: .vertical,
-            isRTL: false
-          )
+          VerticalTapZoneOverlay()
         }
       }
       .onAppear {
@@ -133,7 +130,7 @@ struct VerticalPageView: View {
       .onEnded { value in
         guard height > 0 else { return }
         let normalizedY = max(0, min(1, value.location.y / height))
-        if normalizedY < 0.35 {
+        if normalizedY < 0.25 {
           guard !viewModel.pages.isEmpty else { return }
           guard viewModel.currentPageIndex > 0 else { return }
           // Previous page (top tap)

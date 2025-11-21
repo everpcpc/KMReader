@@ -7,51 +7,96 @@
 
 import SwiftUI
 
-// Overlay for horizontal and vertical page views
-struct PageTapZoneOverlay: View {
-  let orientation: Orientation
-  let isRTL: Bool
+// Overlay for Comic page view (LTR horizontal)
+struct ComicTapZoneOverlay: View {
   @State private var isVisible = false
-
-  enum Orientation {
-    case horizontal
-    case vertical
-  }
 
   var body: some View {
     GeometryReader { geometry in
-      ZStack {
-        if orientation == .horizontal {
-          // Horizontal layout: left and right zones
-          HStack(spacing: 0) {
-            // Left zone (35%)
-            Rectangle()
-              .fill((isRTL ? Color.green : Color.red).opacity(0.3))
-              .frame(width: geometry.size.width * 0.35)
+      HStack(spacing: 0) {
+        // Left zone (25%) - Previous page
+        Rectangle()
+          .fill(Color.red.opacity(0.3))
+          .frame(width: geometry.size.width * 0.25)
 
-            Spacer()
+        Spacer()
 
-            // Right zone (35%)
-            Rectangle()
-              .fill((isRTL ? Color.red : Color.green).opacity(0.3))
-              .frame(width: geometry.size.width * 0.35)
-          }
-        } else {
-          // Vertical layout: top (previous) and bottom (next)
-          VStack(spacing: 0) {
-            // Previous page zone (top 35%)
-            Rectangle()
-              .fill(Color.red.opacity(0.3))
-              .frame(height: geometry.size.height * 0.35)
+        // Right zone (35%) - Next page
+        Rectangle()
+          .fill(Color.green.opacity(0.3))
+          .frame(width: geometry.size.width * 0.35)
+      }
+      .opacity(isVisible ? 1.0 : 0.0)
+      .allowsHitTesting(false)
+      .onAppear {
+        // Show overlay immediately
+        isVisible = true
 
-            Spacer()
-
-            // Next page zone (bottom 35%)
-            Rectangle()
-              .fill(Color.green.opacity(0.3))
-              .frame(height: geometry.size.height * 0.35)
+        // Hide after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+          withAnimation(.easeOut(duration: 0.5)) {
+            isVisible = false
           }
         }
+      }
+    }
+  }
+}
+
+// Overlay for Manga page view (RTL horizontal)
+struct MangaTapZoneOverlay: View {
+  @State private var isVisible = false
+
+  var body: some View {
+    GeometryReader { geometry in
+      HStack(spacing: 0) {
+        // Left zone (35%) - Next page
+        Rectangle()
+          .fill(Color.green.opacity(0.3))
+          .frame(width: geometry.size.width * 0.35)
+
+        Spacer()
+
+        // Right zone (25%) - Previous page
+        Rectangle()
+          .fill(Color.red.opacity(0.3))
+          .frame(width: geometry.size.width * 0.25)
+      }
+      .opacity(isVisible ? 1.0 : 0.0)
+      .allowsHitTesting(false)
+      .onAppear {
+        // Show overlay immediately
+        isVisible = true
+
+        // Hide after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+          withAnimation(.easeOut(duration: 0.5)) {
+            isVisible = false
+          }
+        }
+      }
+    }
+  }
+}
+
+// Overlay for Vertical page view
+struct VerticalTapZoneOverlay: View {
+  @State private var isVisible = false
+
+  var body: some View {
+    GeometryReader { geometry in
+      VStack(spacing: 0) {
+        // Previous page zone (top 25%)
+        Rectangle()
+          .fill(Color.red.opacity(0.3))
+          .frame(height: geometry.size.height * 0.25)
+
+        Spacer()
+
+        // Next page zone (bottom 35%)
+        Rectangle()
+          .fill(Color.green.opacity(0.3))
+          .frame(height: geometry.size.height * 0.35)
       }
       .opacity(isVisible ? 1.0 : 0.0)
       .allowsHitTesting(false)
@@ -75,9 +120,9 @@ struct WebtoonTapZoneOverlay: View {
   @State private var isVisible = false
 
   // Match the thresholds from WebtoonReaderView.swift Constants
-  private let topAreaThreshold: CGFloat = 0.35
+  private let topAreaThreshold: CGFloat = 0.25
   private let bottomAreaThreshold: CGFloat = 0.65
-  private let centerAreaMin: CGFloat = 0.35
+  private let centerAreaMin: CGFloat = 0.25
   private let centerAreaMax: CGFloat = 0.65
 
   var body: some View {

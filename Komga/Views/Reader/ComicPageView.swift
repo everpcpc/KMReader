@@ -95,10 +95,7 @@ struct ComicPageView: View {
 
         // Tap zone overlay
         if showTapZoneOverlay {
-          PageTapZoneOverlay(
-            orientation: .horizontal,
-            isRTL: false
-          )
+          ComicTapZoneOverlay()
         }
       }
       .onAppear {
@@ -133,7 +130,7 @@ struct ComicPageView: View {
       .onEnded { value in
         guard width > 0 else { return }
         let normalizedX = max(0, min(1, value.location.x / width))
-        if normalizedX < 0.35 {
+        if normalizedX < 0.25 {
           guard !viewModel.pages.isEmpty else { return }
           // Previous page (left tap)
           guard viewModel.currentPageIndex > 0 else { return }
