@@ -7,11 +7,13 @@
 
 import Foundation
 import OSLog
+import UIKit
 
 class APIClient {
   static let shared = APIClient()
 
-  private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Komga", category: "API")
+  private let logger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "API")
 
   private var baseURL: String {
     AppConfig.serverURL
@@ -20,6 +22,8 @@ class APIClient {
   private var authToken: String? {
     AppConfig.authToken
   }
+
+  private let userAgent: String
 
   // URLSession with cache configuration for all requests
   private lazy var cachedSession: URLSession = {
@@ -34,7 +38,14 @@ class APIClient {
     return URLSession(configuration: configuration)
   }()
 
-  private init() {}
+  private init() {
+    let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
+    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+    let systemInfo = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+    let deviceInfo = "\(UIDevice.current.model); Build \(buildNumber)"
+    self.userAgent = "\(appName)/\(appVersion) (\(systemInfo); \(deviceInfo))"
+  }
 
   func setServer(url: String) {
     AppConfig.serverURL = url
@@ -68,6 +79,9 @@ class APIClient {
     request.httpMethod = method
     request.httpBody = body
 
+    // Set User-Agent
+    request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+
     if let authToken = authToken {
       request.addValue("Basic \(authToken)", forHTTPHeaderField: "Authorization")
     }
@@ -82,7 +96,9 @@ class APIClient {
   private func executeRequest(_ request: URLRequest) async throws -> (
     data: Data, response: HTTPURLResponse
   ) {
-    logger.info("📡 \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "")")
+    let method = request.httpMethod ?? "GET"
+    let urlString = request.url?.absoluteString ?? ""
+    logger.info("📡 \(method) \(urlString)")
 
     let startTime = Date()
 
@@ -91,18 +107,18 @@ class APIClient {
       let duration = Date().timeIntervalSince(startTime)
 
       guard let httpResponse = response as? HTTPURLResponse else {
-        logger.error("❌ Invalid response from \(request.url?.absoluteString ?? "")")
+        logger.error("❌ Invalid response from \(urlString)")
         throw APIError.invalidResponse
       }
 
       let statusEmoji = (200...299).contains(httpResponse.statusCode) ? "✅" : "❌"
+      let durationMs = String(format: "%.2f", duration * 1000)
       logger.info(
-        "\(statusEmoji) \(httpResponse.statusCode) \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "") (\(String(format: "%.2f", duration * 1000))ms)"
-      )
+        "\(statusEmoji) \(httpResponse.statusCode) \(method) \(urlString) (\(durationMs)ms)")
 
       guard (200...299).contains(httpResponse.statusCode) else {
         if httpResponse.statusCode == 401 {
-          logger.warning("🔒 Unauthorized: \(request.url?.absoluteString ?? "")")
+          logger.warning("🔒 Unauthorized: \(urlString)")
           throw APIError.unauthorized
         }
 
@@ -115,8 +131,8 @@ class APIClient {
     } catch let error as APIError {
       throw error
     } catch {
-      logger.error(
-        "❌ Network error for \(request.url?.absoluteString ?? ""): \(error.localizedDescription)")
+      let errorDesc = error.localizedDescription
+      logger.error("❌ Network error for \(urlString): \(errorDesc)")
       throw APIError.networkError(error)
     }
   }
@@ -142,7 +158,8 @@ class APIClient {
         return EmptyResponse() as! T
       } else if data.isEmpty {
         // For non-empty response types, empty data is an error
-        logger.warning("⚠️ Empty response data from \(urlRequest.url?.absoluteString ?? "")")
+        let urlString = urlRequest.url?.absoluteString ?? ""
+        logger.warning("⚠️ Empty response data from \(urlString)")
         throw APIError.decodingError(
           NSError(
             domain: "APIClient", code: -1,
@@ -159,17 +176,14 @@ class APIClient {
       // Provide detailed decoding error information
       switch decodingError {
       case .keyNotFound(let key, let context):
-        logger.error(
-          "❌ Missing key '\(key.stringValue)' at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"
-        )
+        let path = context.codingPath.map { $0.stringValue }.joined(separator: ".")
+        logger.error("❌ Missing key '\(key.stringValue)' at path: \(path)")
       case .typeMismatch(let type, let context):
-        logger.error(
-          "❌ Type mismatch for type '\(type)' at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"
-        )
+        let path = context.codingPath.map { $0.stringValue }.joined(separator: ".")
+        logger.error("❌ Type mismatch for type '\(String(describing: type))' at path: \(path)")
       case .valueNotFound(let type, let context):
-        logger.error(
-          "❌ Value not found for type '\(type)' at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"
-        )
+        let path = context.codingPath.map { $0.stringValue }.joined(separator: ".")
+        logger.error("❌ Value not found for type '\(String(describing: type))' at path: \(path)")
       case .dataCorrupted(let context):
         logger.error("❌ Data corrupted: \(context.debugDescription)")
       @unknown default:
@@ -178,18 +192,20 @@ class APIClient {
 
       // Log raw response for debugging
       if let jsonString = String(data: data, encoding: .utf8) {
-        logger.debug("Response data: \(jsonString.prefix(1000))")
+        let truncated = String(jsonString.prefix(1000))
+        logger.debug("Response data: \(truncated)")
       }
 
       throw APIError.decodingError(decodingError)
     } catch {
-      logger.error(
-        "❌ Decoding error for \(urlRequest.url?.absoluteString ?? ""): \(error.localizedDescription)"
-      )
+      let urlString = urlRequest.url?.absoluteString ?? ""
+      let errorDesc = error.localizedDescription
+      logger.error("❌ Decoding error for \(urlString): \(errorDesc)")
 
       // Log raw response for debugging
       if let jsonString = String(data: data, encoding: .utf8) {
-        logger.debug("Response data: \(jsonString.prefix(1000))")
+        let truncated = String(jsonString.prefix(1000))
+        logger.debug("Response data: \(truncated)")
       }
 
       throw APIError.decodingError(error)
@@ -209,9 +225,9 @@ class APIClient {
     // Log response with data size
     let dataSize = ByteCountFormatter.string(
       fromByteCount: Int64(data.count), countStyle: .binary)
-    logger.info(
-      "\(httpResponse.statusCode) \(urlRequest.httpMethod ?? "GET") \(urlRequest.url?.absoluteString ?? "") [\(dataSize)]"
-    )
+    let method = urlRequest.httpMethod ?? "GET"
+    let urlString = urlRequest.url?.absoluteString ?? ""
+    logger.info("\(httpResponse.statusCode) \(method) \(urlString) [\(dataSize)]")
 
     return (data, contentType)
   }

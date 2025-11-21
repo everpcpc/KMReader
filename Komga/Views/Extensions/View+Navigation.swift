@@ -31,6 +31,8 @@ extension View {
           SettingsReaderView()
         case .settingsServerInfo:
           SettingsServerInfoView()
+        case .settingsAuthenticationActivity:
+          AuthenticationActivityView()
         }
       }
   }

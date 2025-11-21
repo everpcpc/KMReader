@@ -61,4 +61,17 @@ class AuthService {
   func getCurrentUser() async throws -> User {
     return try await apiClient.request(path: "/api/v2/users/me")
   }
+
+  func getAuthenticationActivity(page: Int = 0, size: Int = 20) async throws -> Page<
+    AuthenticationActivity
+  > {
+    let queryItems = [
+      URLQueryItem(name: "page", value: "\(page)"),
+      URLQueryItem(name: "size", value: "\(size)"),
+    ]
+    return try await apiClient.request(
+      path: "/api/v2/users/me/authentication-activity",
+      queryItems: queryItems
+    )
+  }
 }

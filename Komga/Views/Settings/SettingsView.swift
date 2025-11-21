@@ -13,34 +13,6 @@ struct SettingsView: View {
   var body: some View {
     NavigationStack {
       Form {
-        Section(header: Text("Account")) {
-          if let user = authViewModel.user {
-            HStack {
-              Label("Email", systemImage: "envelope")
-              Spacer()
-              Text(user.email)
-                .foregroundColor(.secondary)
-            }
-            HStack {
-              Label("Roles", systemImage: "person.2")
-              Spacer()
-              Text(user.roles.joined(separator: ", "))
-                .font(.caption)
-                .lineLimit(1)
-                .foregroundColor(.secondary)
-            }
-          }
-          Button(role: .destructive) {
-            authViewModel.logout()
-          } label: {
-            HStack {
-              Spacer()
-              Text("Logout")
-              Spacer()
-            }
-          }
-        }
-
         Section(header: Text("Management")) {
           NavigationLink(value: NavDestination.settingsLibraries) {
             Label("Libraries", systemImage: "books.vertical")
@@ -59,6 +31,37 @@ struct SettingsView: View {
           }
           NavigationLink(value: NavDestination.settingsReader) {
             Label("Reader", systemImage: "book.pages")
+          }
+        }
+
+        Section(header: Text("Account")) {
+          if let user = authViewModel.user {
+            HStack {
+              Label("Email", systemImage: "envelope")
+              Spacer()
+              Text(user.email)
+                .foregroundColor(.secondary)
+            }
+            HStack {
+              Label("Roles", systemImage: "person.2")
+              Spacer()
+              Text(user.roles.joined(separator: ", "))
+                .font(.caption)
+                .lineLimit(1)
+                .foregroundColor(.secondary)
+            }
+          }
+          NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
+            Label("Authentication Activity", systemImage: "clock")
+          }
+          Button(role: .destructive) {
+            authViewModel.logout()
+          } label: {
+            HStack {
+              Spacer()
+              Text("Logout")
+              Spacer()
+            }
           }
         }
 
