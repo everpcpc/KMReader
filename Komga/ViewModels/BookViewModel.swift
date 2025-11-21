@@ -176,7 +176,9 @@ class BookViewModel {
     isLoading = false
   }
 
-  func loadBrowseBooks(browseOpts: BrowseOptions, searchText: String = "", refresh: Bool = false) async {
+  func loadBrowseBooks(browseOpts: BrowseOptions, searchText: String = "", refresh: Bool = false)
+    async
+  {
     let sort = browseOpts.sortString(for: .books)
     let paramsChanged =
       currentBrowseState?.libraryId != browseOpts.libraryId
@@ -230,6 +232,44 @@ class BookViewModel {
 
       withAnimation {
         if shouldReset {
+          books = page.content
+        } else {
+          books.append(contentsOf: page.content)
+        }
+      }
+
+      hasMorePages = !page.last
+      currentPage += 1
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+
+    isLoading = false
+  }
+
+  func loadReadListBooks(
+    readListId: String, sort: String = "metadata.numberSort,asc", refresh: Bool = false
+  ) async {
+    if refresh {
+      currentPage = 0
+      hasMorePages = true
+    } else {
+      guard hasMorePages && !isLoading else { return }
+    }
+
+    isLoading = true
+    errorMessage = nil
+
+    do {
+      let page = try await ReadListService.shared.getReadListBooks(
+        readListId: readListId,
+        page: currentPage,
+        size: 50,
+        sort: sort
+      )
+
+      withAnimation {
+        if refresh {
           books = page.content
         } else {
           books.append(contentsOf: page.content)

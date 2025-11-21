@@ -16,23 +16,26 @@ struct CollectionCardView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      ThumbnailImage(url: thumbnailURL, width: width, cornerRadius: 12)
+    NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
+      VStack(alignment: .leading, spacing: 8) {
+        ThumbnailImage(url: thumbnailURL, width: width, cornerRadius: 12)
 
-      VStack(alignment: .leading, spacing: 4) {
-        Text(collection.name)
-          .font(.headline)
-          .lineLimit(1)
+        VStack(alignment: .leading, spacing: 4) {
+          Text(collection.name)
+            .font(.headline)
+            .lineLimit(1)
 
-        Text("\(collection.seriesIds.count) series")
-          .font(.caption)
-          .foregroundColor(.secondary)
+          Text("\(collection.seriesIds.count) series")
+            .font(.caption)
+            .foregroundColor(.secondary)
 
-        Text(collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-          .font(.caption)
-          .foregroundColor(.secondary)
+          Text(collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        .frame(width: width, alignment: .leading)
       }
-      .frame(width: width, alignment: .leading)
     }
+    .buttonStyle(.plain)
   }
 }

@@ -15,42 +15,45 @@ struct ReadListRowView: View {
   }
 
   var body: some View {
-    HStack(spacing: 12) {
-      ThumbnailImage(url: thumbnailURL, width: 70, cornerRadius: 10)
+    NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
+      HStack(spacing: 12) {
+        ThumbnailImage(url: thumbnailURL, width: 70, cornerRadius: 10)
 
-      VStack(alignment: .leading, spacing: 6) {
-        Text(readList.name)
-          .font(.callout)
+        VStack(alignment: .leading, spacing: 6) {
+          Text(readList.name)
+            .font(.callout)
 
-        Label {
-          Text("\(readList.bookIds.count) book")
-        } icon: {
-          Image(systemName: "book")
+          Label {
+            Text("\(readList.bookIds.count) book")
+          } icon: {
+            Image(systemName: "book")
+          }
+          .font(.footnote)
+          .foregroundColor(.secondary)
+
+          Label {
+            Text(readList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+          } icon: {
+            Image(systemName: "clock")
+          }
+          .font(.caption)
+          .foregroundColor(.secondary)
+
+          if !readList.summary.isEmpty {
+            Text(readList.summary)
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(2)
+          }
+
         }
-        .font(.footnote)
-        .foregroundColor(.secondary)
 
-        Label {
-          Text(readList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-        } icon: {
-          Image(systemName: "clock")
-        }
-        .font(.caption)
-        .foregroundColor(.secondary)
+        Spacer()
 
-        if !readList.summary.isEmpty {
-          Text(readList.summary)
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .lineLimit(2)
-        }
-
+        Image(systemName: "chevron.right")
+          .foregroundColor(.secondary)
       }
-
-      Spacer()
-
-      Image(systemName: "chevron.right")
-        .foregroundColor(.secondary)
     }
+    .buttonStyle(.plain)
   }
 }

@@ -15,39 +15,42 @@ struct CollectionRowView: View {
   }
 
   var body: some View {
-    HStack(spacing: 12) {
-      ThumbnailImage(url: thumbnailURL, width: 70, cornerRadius: 10)
+    NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
+      HStack(spacing: 12) {
+        ThumbnailImage(url: thumbnailURL, width: 70, cornerRadius: 10)
 
-      VStack(alignment: .leading, spacing: 6) {
-        Text(collection.name)
-          .font(.callout)
-        Text("\(collection.seriesIds.count) series")
-          .font(.footnote)
-          .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+          Text(collection.name)
+            .font(.callout)
+          Text("\(collection.seriesIds.count) series")
+            .font(.footnote)
+            .foregroundColor(.secondary)
 
-        HStack(spacing: 12) {
-          Label {
-            Text(collection.createdDate.formatted(date: .abbreviated, time: .omitted))
-          } icon: {
-            Image(systemName: "calendar")
+          HStack(spacing: 12) {
+            Label {
+              Text(collection.createdDate.formatted(date: .abbreviated, time: .omitted))
+            } icon: {
+              Image(systemName: "calendar")
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+            Label {
+              Text(collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+            } icon: {
+              Image(systemName: "clock")
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
           }
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-          Label {
-            Text(collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-          } icon: {
-            Image(systemName: "clock")
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
         }
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .foregroundColor(.secondary)
       }
-
-      Spacer()
-
-      Image(systemName: "chevron.right")
-        .foregroundColor(.secondary)
     }
+    .buttonStyle(.plain)
   }
 }

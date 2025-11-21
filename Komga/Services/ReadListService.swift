@@ -49,4 +49,28 @@ class ReadListService {
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/readlists/\(id)/thumbnail")
   }
+
+  func getReadListBooks(
+    readListId: String,
+    page: Int = 0,
+    size: Int = 20,
+    sort: String = "metadata.numberSort,asc"
+  ) async throws -> Page<Book> {
+    let queryItems = [
+      URLQueryItem(name: "page", value: "\(page)"),
+      URLQueryItem(name: "size", value: "\(size)"),
+      URLQueryItem(name: "sort", value: sort),
+    ]
+
+    let search = BookSearch(condition: .readListId(readListId))
+    let encoder = JSONEncoder()
+    let jsonData = try encoder.encode(search)
+
+    return try await apiClient.request(
+      path: "/api/v1/books/list",
+      method: "POST",
+      body: jsonData,
+      queryItems: queryItems
+    )
+  }
 }

@@ -16,6 +16,7 @@ struct SeriesSearch: Encodable {
     case seriesStatus(String)  // metadata.status: ONGOING, ENDED, HIATUS, CANCELLED
     case libraryIdAndSeriesStatus(libraryId: String, seriesStatus: String)
     case readStatusAndSeriesStatus(readStatus: ReadStatus, seriesStatus: String)
+    case collectionId(String)
     case allOf([Condition])  // AllOf condition - empty array means match all series
   }
 
@@ -136,6 +137,15 @@ struct SeriesSearch: Encodable {
       try seriesStatusOperatorContainer.encode("is", forKey: .operator)
       try seriesStatusOperatorContainer.encode(seriesStatus, forKey: .value)
 
+    case .collectionId(let collectionId):
+      // Encode as: { "condition": { "collectionId": { "operator": "is", "value": "..." } } }
+      var conditionContainer = container.nestedContainer(
+        keyedBy: CollectionIdKeys.self, forKey: .condition)
+      var collectionIdContainer = conditionContainer.nestedContainer(
+        keyedBy: OperatorKeys.self, forKey: .collectionId)
+      try collectionIdContainer.encode("is", forKey: .operator)
+      try collectionIdContainer.encode(collectionId, forKey: .value)
+
     case .allOf(let conditions):
       // Encode as: { "condition": { "allOf": [...] } }
       // Empty array means match all series
@@ -171,6 +181,10 @@ struct SeriesSearch: Encodable {
 
   private enum SeriesStatusKeys: String, CodingKey {
     case seriesStatus
+  }
+
+  private enum CollectionIdKeys: String, CodingKey {
+    case collectionId
   }
 
   private enum AnyOfKeys: String, CodingKey {
@@ -275,6 +289,13 @@ struct SeriesSearch: Encodable {
         keyedBy: OperatorKeys.self, forKey: .seriesStatus)
       try seriesStatusOperatorContainer.encode("is", forKey: .operator)
       try seriesStatusOperatorContainer.encode(seriesStatus, forKey: .value)
+
+    case .collectionId(let collectionId):
+      var collectionContainer = container.nestedContainer(keyedBy: CollectionIdKeys.self)
+      var collectionOperatorContainer = collectionContainer.nestedContainer(
+        keyedBy: OperatorKeys.self, forKey: .collectionId)
+      try collectionOperatorContainer.encode("is", forKey: .operator)
+      try collectionOperatorContainer.encode(collectionId, forKey: .value)
 
     case .allOf(let nestedConditions):
       // Nested allOf - encode recursively

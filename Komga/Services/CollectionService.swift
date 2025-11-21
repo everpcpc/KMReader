@@ -49,4 +49,28 @@ class CollectionService {
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/collections/\(id)/thumbnail")
   }
+
+  func getCollectionSeries(
+    collectionId: String,
+    page: Int = 0,
+    size: Int = 20,
+    sort: String = "metadata.titleSort,asc"
+  ) async throws -> Page<Series> {
+    let queryItems = [
+      URLQueryItem(name: "page", value: "\(page)"),
+      URLQueryItem(name: "size", value: "\(size)"),
+      URLQueryItem(name: "sort", value: sort),
+    ]
+
+    let search = SeriesSearch(condition: .collectionId(collectionId))
+    let encoder = JSONEncoder()
+    let jsonData = try encoder.encode(search)
+
+    return try await apiClient.request(
+      path: "/api/v1/series/list",
+      method: "POST",
+      body: jsonData,
+      queryItems: queryItems
+    )
+  }
 }

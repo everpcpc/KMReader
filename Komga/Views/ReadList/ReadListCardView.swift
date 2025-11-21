@@ -21,26 +21,29 @@ struct ReadListCardView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      ThumbnailImage(url: thumbnailURL, width: width, cornerRadius: 12)
+    NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
+      VStack(alignment: .leading, spacing: 8) {
+        ThumbnailImage(url: thumbnailURL, width: width, cornerRadius: 12)
 
-      VStack(alignment: .leading, spacing: 4) {
-        Text(readList.name)
-          .font(.headline)
-          .lineLimit(1)
+        VStack(alignment: .leading, spacing: 4) {
+          Text(readList.name)
+            .font(.headline)
+            .lineLimit(1)
 
-        Text(bookCountText)
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-        if !readList.summary.isEmpty {
-          Text(readList.summary)
+          Text(bookCountText)
             .font(.caption)
             .foregroundColor(.secondary)
-            .lineLimit(2)
+
+          if !readList.summary.isEmpty {
+            Text(readList.summary)
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(2)
+          }
         }
+        .frame(width: width, alignment: .leading)
       }
-      .frame(width: width, alignment: .leading)
     }
+    .buttonStyle(.plain)
   }
 }

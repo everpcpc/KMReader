@@ -121,4 +121,42 @@ class SeriesViewModel {
       errorMessage = error.localizedDescription
     }
   }
+
+  func loadCollectionSeries(
+    collectionId: String, sort: String = "metadata.titleSort,asc", refresh: Bool = false
+  ) async {
+    if refresh {
+      currentPage = 0
+      hasMorePages = true
+    } else {
+      guard hasMorePages && !isLoading else { return }
+    }
+
+    isLoading = true
+    errorMessage = nil
+
+    do {
+      let page = try await CollectionService.shared.getCollectionSeries(
+        collectionId: collectionId,
+        page: currentPage,
+        size: 20,
+        sort: sort
+      )
+
+      withAnimation {
+        if refresh {
+          series = page.content
+        } else {
+          series.append(contentsOf: page.content)
+        }
+      }
+
+      hasMorePages = !page.last
+      currentPage += 1
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+
+    isLoading = false
+  }
 }
