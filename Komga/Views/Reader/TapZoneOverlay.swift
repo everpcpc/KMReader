@@ -9,7 +9,8 @@ import SwiftUI
 
 // Overlay for Comic page view (LTR horizontal)
 struct ComicTapZoneOverlay: View {
-  @State private var isVisible = false
+  @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @Binding var isVisible: Bool
 
   var body: some View {
     GeometryReader { geometry in
@@ -26,18 +27,12 @@ struct ComicTapZoneOverlay: View {
           .fill(Color.green.opacity(0.3))
           .frame(width: geometry.size.width * 0.35)
       }
-      .opacity(isVisible ? 1.0 : 0.0)
+      .opacity(isVisible && showTapZone ? 1.0 : 0.0)
       .allowsHitTesting(false)
       .onAppear {
+        guard showTapZone else { return }
         // Show overlay immediately
         isVisible = true
-
-        // Hide after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-          withAnimation(.easeOut(duration: 0.5)) {
-            isVisible = false
-          }
-        }
       }
     }
   }
@@ -45,7 +40,8 @@ struct ComicTapZoneOverlay: View {
 
 // Overlay for Manga page view (RTL horizontal)
 struct MangaTapZoneOverlay: View {
-  @State private var isVisible = false
+  @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @Binding var isVisible: Bool
 
   var body: some View {
     GeometryReader { geometry in
@@ -62,18 +58,12 @@ struct MangaTapZoneOverlay: View {
           .fill(Color.red.opacity(0.3))
           .frame(width: geometry.size.width * 0.25)
       }
-      .opacity(isVisible ? 1.0 : 0.0)
+      .opacity(isVisible && showTapZone ? 1.0 : 0.0)
       .allowsHitTesting(false)
       .onAppear {
+        guard showTapZone else { return }
         // Show overlay immediately
         isVisible = true
-
-        // Hide after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-          withAnimation(.easeOut(duration: 0.5)) {
-            isVisible = false
-          }
-        }
       }
     }
   }
@@ -81,7 +71,8 @@ struct MangaTapZoneOverlay: View {
 
 // Overlay for Vertical page view
 struct VerticalTapZoneOverlay: View {
-  @State private var isVisible = false
+  @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @Binding var isVisible: Bool
 
   var body: some View {
     GeometryReader { geometry in
@@ -98,18 +89,12 @@ struct VerticalTapZoneOverlay: View {
           .fill(Color.green.opacity(0.3))
           .frame(height: geometry.size.height * 0.35)
       }
-      .opacity(isVisible ? 1.0 : 0.0)
+      .opacity(isVisible && showTapZone ? 1.0 : 0.0)
       .allowsHitTesting(false)
       .onAppear {
+        guard showTapZone else { return }
         // Show overlay immediately
         isVisible = true
-
-        // Hide after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-          withAnimation(.easeOut(duration: 0.5)) {
-            isVisible = false
-          }
-        }
       }
     }
   }
@@ -117,7 +102,8 @@ struct VerticalTapZoneOverlay: View {
 
 // Overlay for webtoon view - L-shaped tap zones
 struct WebtoonTapZoneOverlay: View {
-  @State private var isVisible = false
+  @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @Binding var isVisible: Bool
 
   // Match the thresholds from WebtoonReaderView.swift Constants
   private let topAreaThreshold: CGFloat = 0.25
@@ -188,18 +174,12 @@ struct WebtoonTapZoneOverlay: View {
             y: geometry.size.height * (centerAreaMin + centerAreaMax) / 2
           )
       }
-      .opacity(isVisible ? 1.0 : 0.0)
+      .opacity(isVisible && showTapZone ? 1.0 : 0.0)
       .allowsHitTesting(false)
       .onAppear {
+        guard showTapZone else { return }
         // Show overlay immediately
         isVisible = true
-
-        // Hide after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-          withAnimation(.easeOut(duration: 0.5)) {
-            isVisible = false
-          }
-        }
       }
     }
   }

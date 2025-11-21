@@ -25,6 +25,8 @@ struct BookReaderView: View {
   @State private var isAtBottom = false
   @State private var showingReadingDirectionPicker = false
   @State private var readingDirection: ReadingDirection = .ltr
+  @State private var showTapZoneOverlay = false
+  @State private var overlayTimer: Timer?
 
   init(bookId: String, incognito: Bool = false) {
     self.initialBookId = bookId
@@ -44,95 +46,141 @@ struct BookReaderView: View {
   }
 
   var body: some View {
-    ZStack {
-      readerBackground.color.ignoresSafeArea()
+    GeometryReader { geometry in
+      let screenKey = "\(Int(geometry.size.width))x\(Int(geometry.size.height))"
+      let screenSize = geometry.size
 
-      if !viewModel.pages.isEmpty {
-        // Page viewer based on reading direction
+      ZStack {
+        readerBackground.color.ignoresSafeArea()
+
+        if !viewModel.pages.isEmpty {
+          // Page viewer based on reading direction
+          Group {
+            switch readingDirection {
+            case .ltr:
+              ComicPageView(
+                viewModel: viewModel,
+                nextBook: nextBook,
+                onDismiss: { dismiss() },
+                onNextBook: { openNextBook(nextBookId: $0) },
+                goToNextPage: goToNextPage,
+                goToPreviousPage: goToPreviousPage,
+                toggleControls: toggleControls,
+                screenSize: screenSize
+              ).ignoresSafeArea()
+            case .rtl:
+              MangaPageView(
+                viewModel: viewModel,
+                nextBook: nextBook,
+                onDismiss: { dismiss() },
+                onNextBook: { openNextBook(nextBookId: $0) },
+                goToNextPage: goToNextPage,
+                goToPreviousPage: goToPreviousPage,
+                toggleControls: toggleControls,
+                screenSize: screenSize
+              ).ignoresSafeArea()
+            case .vertical:
+              VerticalPageView(
+                viewModel: viewModel,
+                nextBook: nextBook,
+                onDismiss: { dismiss() },
+                onNextBook: { openNextBook(nextBookId: $0) },
+                goToNextPage: goToNextPage,
+                goToPreviousPage: goToPreviousPage,
+                toggleControls: toggleControls,
+                screenSize: screenSize
+              ).ignoresSafeArea()
+            case .webtoon:
+              WebtoonPageView(
+                viewModel: viewModel,
+                currentPage: currentPageBinding,
+                isAtBottom: $isAtBottom,
+                nextBook: nextBook,
+                onDismiss: { dismiss() },
+                onNextBook: { openNextBook(nextBookId: $0) },
+                toggleControls: toggleControls,
+                screenSize: screenSize
+              ).ignoresSafeArea()
+            }
+          }
+          .id(screenKey)
+          .onChange(of: viewModel.currentPageIndex) {
+            // Update progress and preload pages in background without blocking UI
+            Task(priority: .userInitiated) {
+              await viewModel.updateProgress()
+              await viewModel.preloadPages()
+            }
+          }
+        } else if viewModel.isLoading {
+          // Show loading indicator when loading
+          ProgressView()
+            .tint(.white)
+        } else {
+          // No pages available - only show error when loading has completed
+          NoPagesView(
+            errorMessage: viewModel.errorMessage,
+            onDismiss: { dismiss() }
+          )
+        }
+
+        // Tap zone overlay(always rendered, use opacity to control visibility)
         Group {
           switch readingDirection {
           case .ltr:
-            ComicPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              onDismiss: { dismiss() },
-              onNextBook: { openNextBook(nextBookId: $0) },
-              goToNextPage: goToNextPage,
-              goToPreviousPage: goToPreviousPage,
-              toggleControls: toggleControls
-            ).ignoresSafeArea()
+            ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
           case .rtl:
-            MangaPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              onDismiss: { dismiss() },
-              onNextBook: { openNextBook(nextBookId: $0) },
-              goToNextPage: goToNextPage,
-              goToPreviousPage: goToPreviousPage,
-              toggleControls: toggleControls
-            ).ignoresSafeArea()
+            MangaTapZoneOverlay(isVisible: $showTapZoneOverlay)
           case .vertical:
-            VerticalPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              onDismiss: { dismiss() },
-              onNextBook: { openNextBook(nextBookId: $0) },
-              goToNextPage: goToNextPage,
-              goToPreviousPage: goToPreviousPage,
-              toggleControls: toggleControls
-            ).ignoresSafeArea()
+            VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
           case .webtoon:
-            WebtoonPageView(
-              viewModel: viewModel,
-              currentPage: currentPageBinding,
-              isAtBottom: $isAtBottom,
-              nextBook: nextBook,
-              onDismiss: { dismiss() },
-              onNextBook: { openNextBook(nextBookId: $0) },
-              toggleControls: toggleControls
-            ).ignoresSafeArea()
+            WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
           }
         }
-        .onChange(of: viewModel.currentPageIndex) {
-          // Update progress and preload pages in background without blocking UI
-          Task(priority: .userInitiated) {
-            await viewModel.updateProgress()
-            await viewModel.preloadPages()
+        .ignoresSafeArea()
+        .onChange(of: viewModel.pages.count) { oldCount, newCount in
+          // Show tap zone overlay when pages are first loaded
+          if oldCount == 0 && newCount > 0 {
+            triggerTapZoneDisplay()
           }
         }
-      } else if viewModel.isLoading {
-        // Show loading indicator when loading
-        ProgressView()
-          .tint(.white)
-      } else {
-        // No pages available - only show error when loading has completed
-        NoPagesView(
-          errorMessage: viewModel.errorMessage,
+        .onChange(of: showTapZoneOverlay) { _, newValue in
+          if newValue {
+            resetOverlayTimer()
+          } else {
+            overlayTimer?.invalidate()
+          }
+        }
+        .onChange(of: screenKey) {
+          // Show tap zone overlay when screen orientation changes
+          if !viewModel.pages.isEmpty {
+            triggerTapZoneDisplay()
+          }
+        }
+
+        // Controls overlay (always rendered, use opacity to control visibility)
+        ReaderControlsView(
+          showingControls: $showingControls,
+          showingReadingDirectionPicker: $showingReadingDirectionPicker,
+          readingDirection: $readingDirection,
+          viewModel: viewModel,
+          currentBook: currentBook,
           onDismiss: { dismiss() }
         )
+        .padding(.vertical, 24)
+        .padding(.horizontal, 8)
+        .ignoresSafeArea()
+        .opacity(shouldShowControls ? 1.0 : 0.0)
+        .allowsHitTesting(shouldShowControls)
       }
-
-      // Controls overlay (always rendered, use opacity to control visibility)
-      ReaderControlsView(
-        showingControls: $showingControls,
-        showingReadingDirectionPicker: $showingReadingDirectionPicker,
-        readingDirection: $readingDirection,
-        viewModel: viewModel,
-        currentBook: currentBook,
-        onDismiss: { dismiss() }
-      )
-      .padding(.vertical, 24)
-      .padding(.horizontal, 8)
-      .ignoresSafeArea()
-      .opacity(shouldShowControls ? 1.0 : 0.0)
-      .allowsHitTesting(shouldShowControls)
     }
+    .ignoresSafeArea()
     .statusBar(hidden: !shouldShowControls)
     .task(id: currentBookId) {
       await loadBook(bookId: currentBookId)
     }
     .onDisappear {
       controlsTimer?.invalidate()
+      overlayTimer?.invalidate()
     }
   }
 
@@ -251,9 +299,26 @@ struct BookReaderView: View {
       return
     }
     controlsTimer?.invalidate()
-    controlsTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+    controlsTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
       withAnimation {
         showingControls = false
+      }
+    }
+  }
+
+  private func triggerTapZoneDisplay() {
+    guard !viewModel.pages.isEmpty else { return }
+    showTapZoneOverlay = false
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+      showTapZoneOverlay = true
+    }
+  }
+
+  private func resetOverlayTimer() {
+    overlayTimer?.invalidate()
+    overlayTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
+      withAnimation {
+        showTapZoneOverlay = false
       }
     }
   }
@@ -268,6 +333,7 @@ struct BookReaderView: View {
     viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false
+    // Reset overlay state
+    showTapZoneOverlay = false
   }
-
 }
