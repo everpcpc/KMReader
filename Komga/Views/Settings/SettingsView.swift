@@ -30,6 +30,15 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
             }
           }
+          Button(role: .destructive) {
+            authViewModel.logout()
+          } label: {
+            HStack {
+              Spacer()
+              Text("Logout")
+              Spacer()
+            }
+          }
         }
 
         Section {
@@ -50,15 +59,12 @@ struct SettingsView: View {
           }
         }
 
-        Section {
-          Button(role: .destructive) {
-            authViewModel.logout()
-          } label: {
-            HStack {
-              Spacer()
-              Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
-              Spacer()
-            }
+        Section(header: Text("About")) {
+          HStack {
+            Label("Version", systemImage: "info.circle")
+            Spacer()
+            Text(appVersion)
+              .foregroundColor(.secondary)
           }
         }
       }
@@ -66,5 +72,11 @@ struct SettingsView: View {
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.inline)
     }
+  }
+
+  private var appVersion: String {
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+    return "v\(version) (build \(build))"
   }
 }
