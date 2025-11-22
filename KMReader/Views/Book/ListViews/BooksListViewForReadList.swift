@@ -12,6 +12,9 @@ struct BooksListViewForReadList: View {
   let readListId: String
   @Bindable var bookViewModel: BookViewModel
   var onReadBook: (String, Bool) -> Void
+  let layoutMode: BrowseLayoutMode
+  let layoutHelper: BrowseLayoutHelper
+
   @AppStorage("readListBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
 
@@ -72,66 +75,94 @@ struct BooksListViewForReadList: View {
           .frame(maxWidth: .infinity)
           .padding()
       } else {
-        LazyVStack(spacing: 8) {
-          ForEach(bookViewModel.books) { book in
-            HStack(spacing: 12) {
-              if isSelectionMode {
-                Image(
-                  systemName: selectedBookIds.contains(book.id) ? "checkmark.circle.fill" : "circle"
+        Group {
+          switch layoutMode {
+          case .grid:
+            LazyVGrid(columns: layoutHelper.columns, spacing: 12) {
+              ForEach(bookViewModel.books) { book in
+                BookCardView(
+                  book: book,
+                  viewModel: bookViewModel,
+                  cardWidth: layoutHelper.cardWidth,
+                  onBookUpdated: {
+                    refreshBooks()
+                  }
                 )
-                .foregroundColor(selectedBookIds.contains(book.id) ? .accentColor : .secondary)
-                .onTapGesture {
-                  withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    if selectedBookIds.contains(book.id) {
-                      selectedBookIds.remove(book.id)
-                    } else {
-                      selectedBookIds.insert(book.id)
+                .onAppear {
+                  if book.id == bookViewModel.books.last?.id {
+                    Task {
+                      await bookViewModel.loadReadListBooks(
+                        readListId: readListId, browseOpts: browseOpts, refresh: false)
                     }
                   }
                 }
-                .transition(.scale.combined(with: .opacity))
-                .animation(
-                  .spring(response: 0.3, dampingFraction: 0.7),
-                  value: selectedBookIds.contains(book.id))
               }
-
-              BookRowView(
-                book: book,
-                viewModel: bookViewModel,
-                onReadBook: { incognito in
+            }
+            .padding(12)
+          case .list:
+            LazyVStack(spacing: 8) {
+              ForEach(bookViewModel.books) { book in
+                HStack(spacing: 12) {
                   if isSelectionMode {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                      if selectedBookIds.contains(book.id) {
-                        selectedBookIds.remove(book.id)
-                      } else {
-                        selectedBookIds.insert(book.id)
+                    Image(
+                      systemName: selectedBookIds.contains(book.id)
+                        ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundColor(selectedBookIds.contains(book.id) ? .accentColor : .secondary)
+                    .onTapGesture {
+                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if selectedBookIds.contains(book.id) {
+                          selectedBookIds.remove(book.id)
+                        } else {
+                          selectedBookIds.insert(book.id)
+                        }
                       }
                     }
-                  } else {
-                    onReadBook(book.id, incognito)
+                    .transition(.scale.combined(with: .opacity))
+                    .animation(
+                      .spring(response: 0.3, dampingFraction: 0.7),
+                      value: selectedBookIds.contains(book.id))
                   }
-                },
-                onBookUpdated: {
-                  refreshBooks()
-                },
-                showSeriesTitle: true
-              )
-            }
-            .onAppear {
-              if book.id == bookViewModel.books.last?.id {
-                Task {
-                  await bookViewModel.loadReadListBooks(
-                    readListId: readListId, browseOpts: browseOpts, refresh: false)
+
+                  BookRowView(
+                    book: book,
+                    viewModel: bookViewModel,
+                    onReadBook: { incognito in
+                      if isSelectionMode {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                          if selectedBookIds.contains(book.id) {
+                            selectedBookIds.remove(book.id)
+                          } else {
+                            selectedBookIds.insert(book.id)
+                          }
+                        }
+                      } else {
+                        onReadBook(book.id, incognito)
+                      }
+                    },
+                    onBookUpdated: {
+                      refreshBooks()
+                    },
+                    showSeriesTitle: true
+                  )
+                }
+                .onAppear {
+                  if book.id == bookViewModel.books.last?.id {
+                    Task {
+                      await bookViewModel.loadReadListBooks(
+                        readListId: readListId, browseOpts: browseOpts, refresh: false)
+                    }
+                  }
                 }
               }
             }
           }
+        }
 
-          if bookViewModel.isLoading && !bookViewModel.books.isEmpty {
-            ProgressView()
-              .frame(maxWidth: .infinity)
-              .padding()
-          }
+        if bookViewModel.isLoading && !bookViewModel.books.isEmpty {
+          ProgressView()
+            .frame(maxWidth: .infinity)
+            .padding()
         }
       }
     }

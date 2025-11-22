@@ -11,6 +11,8 @@ import SwiftUI
 struct SeriesListView: View {
   let collectionId: String
   @Bindable var seriesViewModel: SeriesViewModel
+  let layoutMode: BrowseLayoutMode
+  let layoutHelper: BrowseLayoutHelper
 
   @AppStorage("collectionSeriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
@@ -72,54 +74,15 @@ struct SeriesListView: View {
           .frame(maxWidth: .infinity)
           .padding()
       } else {
-        LazyVStack(spacing: 8) {
-          ForEach(seriesViewModel.series) { series in
-            HStack(spacing: 12) {
-              if isSelectionMode {
-                Image(
-                  systemName: selectedSeriesIds.contains(series.id)
-                    ? "checkmark.circle.fill" : "circle"
-                )
-                .foregroundColor(selectedSeriesIds.contains(series.id) ? .accentColor : .secondary)
-                .onTapGesture {
-                  withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    if selectedSeriesIds.contains(series.id) {
-                      selectedSeriesIds.remove(series.id)
-                    } else {
-                      selectedSeriesIds.insert(series.id)
-                    }
-                  }
-                }
-                .transition(.scale.combined(with: .opacity))
-                .animation(
-                  .spring(response: 0.3, dampingFraction: 0.7),
-                  value: selectedSeriesIds.contains(series.id))
-              }
-
-              if isSelectionMode {
-                SeriesRowView(
-                  series: series,
-                  onActionCompleted: {
-                    Task {
-                      await seriesViewModel.loadCollectionSeries(
-                        collectionId: collectionId, browseOpts: browseOpts, refresh: true)
-                    }
-                  }
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                  withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    if selectedSeriesIds.contains(series.id) {
-                      selectedSeriesIds.remove(series.id)
-                    } else {
-                      selectedSeriesIds.insert(series.id)
-                    }
-                  }
-                }
-              } else {
+        Group {
+          switch layoutMode {
+          case .grid:
+            LazyVGrid(columns: layoutHelper.columns, spacing: 12) {
+              ForEach(seriesViewModel.series) { series in
                 NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
-                  SeriesRowView(
+                  SeriesCardView(
                     series: series,
+                    cardWidth: layoutHelper.cardWidth,
                     onActionCompleted: {
                       Task {
                         await seriesViewModel.loadCollectionSeries(
@@ -129,23 +92,94 @@ struct SeriesListView: View {
                   )
                 }
                 .buttonStyle(.plain)
+                .onAppear {
+                  if series.id == seriesViewModel.series.last?.id {
+                    Task {
+                      await seriesViewModel.loadCollectionSeries(
+                        collectionId: collectionId, browseOpts: browseOpts, refresh: false)
+                    }
+                  }
+                }
               }
             }
-            .onAppear {
-              if series.id == seriesViewModel.series.last?.id {
-                Task {
-                  await seriesViewModel.loadCollectionSeries(
-                    collectionId: collectionId, browseOpts: browseOpts, refresh: false)
+            .padding(12)
+          case .list:
+            LazyVStack(spacing: 8) {
+              ForEach(seriesViewModel.series) { series in
+                HStack(spacing: 12) {
+                  if isSelectionMode {
+                    Image(
+                      systemName: selectedSeriesIds.contains(series.id)
+                        ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundColor(selectedSeriesIds.contains(series.id) ? .accentColor : .secondary)
+                    .onTapGesture {
+                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if selectedSeriesIds.contains(series.id) {
+                          selectedSeriesIds.remove(series.id)
+                        } else {
+                          selectedSeriesIds.insert(series.id)
+                        }
+                      }
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                    .animation(
+                      .spring(response: 0.3, dampingFraction: 0.7),
+                      value: selectedSeriesIds.contains(series.id))
+                  }
+
+                  if isSelectionMode {
+                    SeriesRowView(
+                      series: series,
+                      onActionCompleted: {
+                        Task {
+                          await seriesViewModel.loadCollectionSeries(
+                            collectionId: collectionId, browseOpts: browseOpts, refresh: true)
+                        }
+                      }
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if selectedSeriesIds.contains(series.id) {
+                          selectedSeriesIds.remove(series.id)
+                        } else {
+                          selectedSeriesIds.insert(series.id)
+                        }
+                      }
+                    }
+                  } else {
+                    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
+                      SeriesRowView(
+                        series: series,
+                        onActionCompleted: {
+                          Task {
+                            await seriesViewModel.loadCollectionSeries(
+                              collectionId: collectionId, browseOpts: browseOpts, refresh: true)
+                          }
+                        }
+                      )
+                    }
+                    .buttonStyle(.plain)
+                  }
+                }
+                .onAppear {
+                  if series.id == seriesViewModel.series.last?.id {
+                    Task {
+                      await seriesViewModel.loadCollectionSeries(
+                        collectionId: collectionId, browseOpts: browseOpts, refresh: false)
+                    }
+                  }
                 }
               }
             }
           }
-
-          if seriesViewModel.isLoading && !seriesViewModel.series.isEmpty {
-            ProgressView()
-              .frame(maxWidth: .infinity)
-              .padding()
-          }
+        }
+        
+        if seriesViewModel.isLoading && !seriesViewModel.series.isEmpty {
+          ProgressView()
+            .frame(maxWidth: .infinity)
+            .padding()
         }
       }
     }
