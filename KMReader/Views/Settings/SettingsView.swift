@@ -33,9 +33,11 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsServerInfo) {
             Label("Server Info", systemImage: "server.rack")
           }
+          .disabled(!AppConfig.isAdmin)
           NavigationLink(value: NavDestination.settingsMetrics) {
             Label("Metrics", systemImage: "chart.bar")
           }
+          .disabled(!AppConfig.isAdmin)
         }
 
         Section(header: Text("Account")) {
@@ -49,7 +51,7 @@ struct SettingsView: View {
             HStack {
               Label("Admin", systemImage: "person.2")
               Spacer()
-              Text(user.roles.contains("ADMIN") ? "Yes" : "No")
+              Text(AppConfig.isAdmin ? "Yes" : "No")
                 .foregroundColor(.secondary)
             }
           }
