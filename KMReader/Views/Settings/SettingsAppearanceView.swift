@@ -47,7 +47,7 @@ struct SettingsAppearanceView: View {
   }
 
   var body: some View {
-    Form {
+    List {
       Section(header: Text("Theme")) {
         ColorPicker("Color", selection: themeColorBinding, supportsOpacity: false)
       }

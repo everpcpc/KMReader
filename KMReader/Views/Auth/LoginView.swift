@@ -15,7 +15,7 @@ struct LoginView: View {
 
   var body: some View {
     NavigationStack {
-      Form {
+      List {
         Section(header: Text("Server")) {
           TextField("Server URL", text: $serverURL)
             .textContentType(.URL)

@@ -16,7 +16,7 @@ struct AuthenticationActivityView: View {
   @State private var hasMorePages = true
 
   var body: some View {
-    Form {
+    List {
       if isLoading && activities.isEmpty {
         Section {
           HStack {

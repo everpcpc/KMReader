@@ -12,7 +12,7 @@ struct SettingsView: View {
 
   var body: some View {
     NavigationStack {
-      Form {
+      List {
         Section {
           NavigationLink(value: NavDestination.settingsAppearance) {
             Label("Appearance", systemImage: "paintbrush")
@@ -68,15 +68,13 @@ struct SettingsView: View {
           }
         }
 
-        Section(header: Text("About")) {
-          HStack {
-            Label("Version", systemImage: "info.circle")
-            Spacer()
-            Text(appVersion)
-              .foregroundColor(.secondary)
-          }
+        HStack {
+          Spacer()
+          Text(appVersion).foregroundColor(.secondary)
+          Spacer()
         }
       }
+
       .handleNavigation()
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.inline)

@@ -31,7 +31,7 @@ struct SettingsMetricsView: View {
   @State private var tasksTotalTimeByType: [String: Double] = [:]
 
   var body: some View {
-    Form {
+    List {
       if isLoading {
         Section {
           HStack {

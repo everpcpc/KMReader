@@ -13,7 +13,7 @@ struct SettingsServerInfoView: View {
   @State private var errorMessage: String?
 
   var body: some View {
-    Form {
+    List {
       if isLoading {
         Section {
           HStack {

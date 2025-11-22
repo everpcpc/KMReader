@@ -22,7 +22,7 @@ struct SettingsCacheView: View {
   }
 
   var body: some View {
-    Form {
+    List {
       Section(header: Text("Page Cache")) {
         VStack(alignment: .leading, spacing: 8) {
           HStack {

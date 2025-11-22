@@ -13,7 +13,7 @@ struct SettingsReaderView: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
 
   var body: some View {
-    Form {
+    List {
       Section(header: Text("Tap Zone")) {
         Toggle(isOn: $showTapZone) {
           VStack(alignment: .leading, spacing: 4) {
