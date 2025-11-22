@@ -13,18 +13,6 @@ struct SettingsView: View {
   var body: some View {
     NavigationStack {
       Form {
-        Section(header: Text("Management")) {
-          NavigationLink(value: NavDestination.settingsLibraries) {
-            Label("Libraries", systemImage: "books.vertical")
-          }
-          NavigationLink(value: NavDestination.settingsServerInfo) {
-            Label("Server Info", systemImage: "server.rack")
-          }
-          NavigationLink(value: NavDestination.settingsMetrics) {
-            Label("Metrics", systemImage: "chart.bar")
-          }
-        }
-
         Section {
           NavigationLink(value: NavDestination.settingsAppearance) {
             Label("Appearance", systemImage: "paintbrush")
@@ -34,6 +22,18 @@ struct SettingsView: View {
           }
           NavigationLink(value: NavDestination.settingsReader) {
             Label("Reader", systemImage: "book.pages")
+          }
+        }
+
+        Section(header: Text("Management")) {
+          NavigationLink(value: NavDestination.settingsLibraries) {
+            Label("Libraries", systemImage: "books.vertical")
+          }
+          NavigationLink(value: NavDestination.settingsServerInfo) {
+            Label("Server Info", systemImage: "server.rack")
+          }
+          NavigationLink(value: NavDestination.settingsMetrics) {
+            Label("Metrics", systemImage: "chart.bar")
           }
         }
 
