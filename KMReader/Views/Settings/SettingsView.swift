@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
+  @State private var showLogoutAlert = false
 
   var body: some View {
     NavigationStack {
@@ -58,7 +59,7 @@ struct SettingsView: View {
             Label("Authentication Activity", systemImage: "clock")
           }
           Button(role: .destructive) {
-            authViewModel.logout()
+            showLogoutAlert = true
           } label: {
             HStack {
               Spacer()
@@ -78,6 +79,14 @@ struct SettingsView: View {
       .handleNavigation()
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.inline)
+      .alert("Logout", isPresented: $showLogoutAlert) {
+        Button("Cancel", role: .cancel) {}
+        Button("Logout", role: .destructive) {
+          authViewModel.logout()
+        }
+      } message: {
+        Text("Are you sure you want to logout?")
+      }
     }
   }
 
