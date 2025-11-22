@@ -63,13 +63,22 @@ struct ReaderControlsView: View {
             guard !viewModel.pages.isEmpty else { return }
             showingPageJumpSheet = true
           } label: {
-            Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
-              .foregroundColor(.white)
-              .padding(.horizontal, 16)
-              .padding(.vertical, 8)
-              .background(themeColor.color.opacity(0.8))
-              .cornerRadius(20)
-              .monospacedDigit()
+            HStack(spacing: 6) {
+              Image(systemName: "arrow.up.arrow.down")
+                .font(.caption)
+              Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
+                .monospacedDigit()
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(themeColor.color.opacity(0.8))
+            .cornerRadius(20)
+            .overlay(
+              RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
           .buttonStyle(.plain)
           .disabled(viewModel.pages.isEmpty)
@@ -159,6 +168,7 @@ struct ReaderControlsView: View {
       .padding()
       .allowsHitTesting(true)
     }
+    .padding(.vertical)
     .allowsHitTesting(true)
     .transition(.opacity)
     .alert("Save Image", isPresented: $showSaveAlert) {
