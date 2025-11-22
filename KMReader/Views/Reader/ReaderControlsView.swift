@@ -212,6 +212,7 @@ struct ReaderControlsView: View {
         bookId: viewModel.bookId,
         totalPages: viewModel.pages.count,
         currentPage: min(viewModel.currentPageIndex + 1, viewModel.pages.count),
+        readingDirection: readingDirection,
         onJump: jumpToPage
       )
     }
