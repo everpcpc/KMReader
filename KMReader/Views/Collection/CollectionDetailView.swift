@@ -115,6 +115,7 @@ struct CollectionDetailView: View {
           } label: {
             Label("Delete Collection", systemImage: "trash")
           }
+          .disabled(!AppConfig.isAdmin)
         } label: {
           Image(systemName: "ellipsis.circle")
         }

@@ -30,7 +30,7 @@ struct BooksListViewForReadList: View {
         HStack(spacing: 8) {
           BookFilterView(browseOpts: $browseOpts)
 
-          if !isSelectionMode {
+          if !isSelectionMode && AppConfig.isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true

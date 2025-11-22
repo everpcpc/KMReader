@@ -315,12 +315,14 @@ struct SeriesDetailView: View {
           } label: {
             Label("Analyze", systemImage: "waveform.path.ecg")
           }
+          .disabled(!AppConfig.isAdmin)
 
           Button {
             refreshSeriesMetadata()
           } label: {
             Label("Refresh Metadata", systemImage: "arrow.clockwise")
           }
+          .disabled(!AppConfig.isAdmin)
 
           Divider()
 
@@ -357,6 +359,7 @@ struct SeriesDetailView: View {
           } label: {
             Label("Delete Series", systemImage: "trash")
           }
+          .disabled(!AppConfig.isAdmin)
         } label: {
           Image(systemName: "ellipsis.circle")
         }

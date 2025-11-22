@@ -145,6 +145,7 @@ struct ReadListDetailView: View {
           } label: {
             Label("Delete Read List", systemImage: "trash")
           }
+          .disabled(!AppConfig.isAdmin)
         } label: {
           Image(systemName: "ellipsis.circle")
         }

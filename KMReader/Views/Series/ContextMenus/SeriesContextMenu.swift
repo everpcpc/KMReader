@@ -29,12 +29,14 @@ struct SeriesContextMenu: View {
       } label: {
         Label("Analyze", systemImage: "waveform.path.ecg")
       }
+      .disabled(!AppConfig.isAdmin)
 
       Button {
         refreshMetadata()
       } label: {
         Label("Refresh Metadata", systemImage: "arrow.clockwise")
       }
+      .disabled(!AppConfig.isAdmin)
 
       Divider()
 

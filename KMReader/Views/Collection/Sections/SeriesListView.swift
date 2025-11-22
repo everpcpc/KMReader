@@ -30,7 +30,7 @@ struct SeriesListView: View {
         HStack(spacing: 8) {
           SeriesFilterView(browseOpts: $browseOpts)
 
-          if !isSelectionMode {
+          if !isSelectionMode && AppConfig.isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true

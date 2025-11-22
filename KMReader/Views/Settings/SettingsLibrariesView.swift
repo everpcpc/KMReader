@@ -124,7 +124,7 @@ struct SettingsLibrariesView: View {
           } label: {
             Label("Scan All Libraries", systemImage: "arrow.clockwise")
           }
-          .disabled(isPerformingGlobalAction)
+          .disabled(isPerformingGlobalAction || !AppConfig.isAdmin)
 
           Button {
             performGlobalAction {
@@ -133,7 +133,7 @@ struct SettingsLibrariesView: View {
           } label: {
             Label("Scan All Libraries (Deep)", systemImage: "arrow.triangle.2.circlepath")
           }
-          .disabled(isPerformingGlobalAction)
+          .disabled(isPerformingGlobalAction || !AppConfig.isAdmin)
 
           Button {
             performGlobalAction {
@@ -142,7 +142,7 @@ struct SettingsLibrariesView: View {
           } label: {
             Label("Empty Trash for All Libraries", systemImage: "trash.slash")
           }
-          .disabled(isPerformingGlobalAction)
+          .disabled(isPerformingGlobalAction || !AppConfig.isAdmin)
         } label: {
           if isPerformingGlobalAction {
             ProgressView()
@@ -161,8 +161,11 @@ struct SettingsLibrariesView: View {
     librarySummary(library, isPerforming: isPerforming)
       .contentShape(Rectangle())
       .onTapGesture {
-        operatingLibrary = library
+        if AppConfig.isAdmin {
+          operatingLibrary = library
+        }
       }
+      .disabled(!AppConfig.isAdmin)
   }
 
   @ViewBuilder
@@ -372,7 +375,7 @@ private struct LibraryActionsSheet: View {
             action: onDelete
           )
         }
-        .disabled(isPerforming)
+        .disabled(isPerforming || !AppConfig.isAdmin)
       }
       .navigationTitle(library.name)
       .navigationBarTitleDisplayMode(.inline)

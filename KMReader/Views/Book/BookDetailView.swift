@@ -252,12 +252,14 @@ struct BookDetailView: View {
           } label: {
             Label("Analyze", systemImage: "waveform.path.ecg")
           }
+          .disabled(!AppConfig.isAdmin)
 
           Button {
             refreshMetadata()
           } label: {
             Label("Refresh Metadata", systemImage: "arrow.clockwise")
           }
+          .disabled(!AppConfig.isAdmin)
 
           Divider()
 
@@ -294,6 +296,7 @@ struct BookDetailView: View {
           } label: {
             Label("Delete Book", systemImage: "trash")
           }
+          .disabled(!AppConfig.isAdmin)
 
           Button(role: .destructive) {
             clearCache()

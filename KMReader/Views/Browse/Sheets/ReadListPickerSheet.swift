@@ -84,6 +84,7 @@ struct ReadListPickerSheet: View {
           } label: {
             Label("Create New", systemImage: "plus.circle.fill")
           }
+          .disabled(!AppConfig.isAdmin)
         }
       }
       .task {
