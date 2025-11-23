@@ -12,6 +12,7 @@ struct SeriesContextMenu: View {
   let series: Series
   var onActionCompleted: (() -> Void)?
   var onShowCollectionPicker: (() -> Void)? = nil
+  var onDeleteRequested: (() -> Void)? = nil
 
   private var canMarkAsRead: Bool {
     series.booksUnreadCount > 0
@@ -23,27 +24,41 @@ struct SeriesContextMenu: View {
 
   var body: some View {
     Group {
-      Button {
-        analyzeSeries()
+      Menu {
+        Button {
+          analyzeSeries()
+        } label: {
+          Label("Analyze", systemImage: "waveform.path.ecg")
+        }
+        .disabled(!AppConfig.isAdmin)
+
+        Button {
+          refreshMetadata()
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+        }
+        .disabled(!AppConfig.isAdmin)
+
+        Divider()
+
+        Button {
+          onShowCollectionPicker?()
+        } label: {
+          Label("Add to Collection", systemImage: "square.grid.2x2")
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+          onDeleteRequested?()
+        } label: {
+          Label("Delete", systemImage: "trash")
+        }
+        .disabled(!AppConfig.isAdmin)
       } label: {
-        Label("Analyze", systemImage: "waveform.path.ecg")
+        Label("Manage", systemImage: "gearshape")
       }
       .disabled(!AppConfig.isAdmin)
-
-      Button {
-        refreshMetadata()
-      } label: {
-        Label("Refresh Metadata", systemImage: "arrow.clockwise")
-      }
-      .disabled(!AppConfig.isAdmin)
-
-      Divider()
-
-      Button {
-        onShowCollectionPicker?()
-      } label: {
-        Label("Add to Collection", systemImage: "square.grid.2x2")
-      }
 
       Divider()
 

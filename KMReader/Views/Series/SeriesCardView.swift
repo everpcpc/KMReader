@@ -15,6 +15,7 @@ struct SeriesCardView: View {
   @AppStorage("showSeriesCardTitle") private var showTitle: Bool = true
 
   @State private var showCollectionPicker = false
+  @State private var showDeleteConfirmation = false
 
   private var thumbnailURL: URL? {
     SeriesService.shared.getSeriesThumbnailURL(id: series.id)
@@ -62,8 +63,19 @@ struct SeriesCardView: View {
         onActionCompleted: onActionCompleted,
         onShowCollectionPicker: {
           showCollectionPicker = true
+        },
+        onDeleteRequested: {
+          showDeleteConfirmation = true
         }
       )
+    }
+    .alert("Delete Series", isPresented: $showDeleteConfirmation) {
+      Button("Cancel", role: .cancel) {}
+      Button("Delete", role: .destructive) {
+        deleteSeries()
+      }
+    } message: {
+      Text("Are you sure you want to delete this series? This action cannot be undone.")
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
@@ -88,6 +100,22 @@ struct SeriesCardView: View {
         )
         await MainActor.run {
           ErrorManager.shared.notify(message: "Series added to collection")
+          onActionCompleted?()
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func deleteSeries() {
+    Task {
+      do {
+        try await SeriesService.shared.deleteSeries(seriesId: series.id)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Series deleted")
           onActionCompleted?()
         }
       } catch {

@@ -14,6 +14,7 @@ struct BookContextMenu: View {
   var onReadBook: ((Bool) -> Void)?
   var onActionCompleted: (() -> Void)? = nil
   var onShowReadListPicker: (() -> Void)? = nil
+  var onDeleteRequested: (() -> Void)? = nil
 
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
@@ -40,27 +41,41 @@ struct BookContextMenu: View {
 
       Divider()
 
-      Button {
-        analyzeBook()
+      Menu {
+        Button {
+          analyzeBook()
+        } label: {
+          Label("Analyze", systemImage: "waveform.path.ecg")
+        }
+        .disabled(!AppConfig.isAdmin)
+
+        Button {
+          refreshMetadata()
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+        }
+        .disabled(!AppConfig.isAdmin)
+
+        Divider()
+
+        Button {
+          onShowReadListPicker?()
+        } label: {
+          Label("Add to Read List", systemImage: "list.bullet")
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+          onDeleteRequested?()
+        } label: {
+          Label("Delete", systemImage: "trash")
+        }
+        .disabled(!AppConfig.isAdmin)
       } label: {
-        Label("Analyze", systemImage: "waveform.path.ecg")
+        Label("Manage", systemImage: "gearshape")
       }
       .disabled(!AppConfig.isAdmin)
-
-      Button {
-        refreshMetadata()
-      } label: {
-        Label("Refresh Metadata", systemImage: "arrow.clockwise")
-      }
-      .disabled(!AppConfig.isAdmin)
-
-      Divider()
-
-      Button {
-        onShowReadListPicker?()
-      } label: {
-        Label("Add to Read List", systemImage: "list.bullet")
-      }
 
       Divider()
 
@@ -123,23 +138,6 @@ struct BookContextMenu: View {
         try await BookService.shared.refreshMetadata(bookId: book.id)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Metadata refreshed")
-          onActionCompleted?()
-        }
-      } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-    }
-  }
-
-  private func deleteBook() {
-    Task {
-      do {
-        try await BookService.shared.deleteBook(bookId: book.id)
-        await ImageCache.clearDiskCache(forBookId: book.id)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: "Book deleted")
           onActionCompleted?()
         }
       } catch {

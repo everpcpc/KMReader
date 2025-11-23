@@ -17,6 +17,7 @@ struct BookCardView: View {
 
   @State private var readerState: BookReaderState?
   @State private var showReadListPicker = false
+  @State private var showDeleteConfirmation = false
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)
@@ -111,8 +112,19 @@ struct BookCardView: View {
         onActionCompleted: onBookUpdated,
         onShowReadListPicker: {
           showReadListPicker = true
+        },
+        onDeleteRequested: {
+          showDeleteConfirmation = true
         }
       )
+    }
+    .alert("Delete Book", isPresented: $showDeleteConfirmation) {
+      Button("Cancel", role: .cancel) {}
+      Button("Delete", role: .destructive) {
+        deleteBook()
+      }
+    } message: {
+      Text("Are you sure you want to delete this book? This action cannot be undone.")
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
@@ -147,6 +159,23 @@ struct BookCardView: View {
         )
         await MainActor.run {
           ErrorManager.shared.notify(message: "Books added to read list")
+          onBookUpdated?()
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func deleteBook() {
+    Task {
+      do {
+        try await BookService.shared.deleteBook(bookId: book.id)
+        await ImageCache.clearDiskCache(forBookId: book.id)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Book deleted")
           onBookUpdated?()
         }
       } catch {
