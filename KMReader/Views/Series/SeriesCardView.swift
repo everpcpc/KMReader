@@ -14,15 +14,7 @@ struct SeriesCardView: View {
 
   @AppStorage("showSeriesCardTitle") private var showTitle: Bool = true
 
-  @State private var actionErrorMessage: String?
   @State private var showCollectionPicker = false
-
-  private var isActionErrorPresented: Binding<Bool> {
-    Binding(
-      get: { actionErrorMessage != nil },
-      set: { if !$0 { actionErrorMessage = nil } }
-    )
-  }
 
   private var thumbnailURL: URL? {
     SeriesService.shared.getSeriesThumbnailURL(id: series.id)
@@ -68,9 +60,6 @@ struct SeriesCardView: View {
       SeriesContextMenu(
         series: series,
         onActionCompleted: onActionCompleted,
-        onActionFailed: { message in
-          actionErrorMessage = message
-        },
         onShowCollectionPicker: {
           showCollectionPicker = true
         }
@@ -88,13 +77,6 @@ struct SeriesCardView: View {
         }
       )
     }
-    .alert("Action Failed", isPresented: isActionErrorPresented) {
-      Button("OK", role: .cancel) {}
-    } message: {
-      if let message = actionErrorMessage {
-        Text(message)
-      }
-    }
   }
 
   private func addToCollection(collectionId: String) {
@@ -110,7 +92,7 @@ struct SeriesCardView: View {
         }
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }

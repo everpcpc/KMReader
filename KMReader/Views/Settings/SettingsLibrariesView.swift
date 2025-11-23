@@ -10,17 +10,9 @@ import SwiftUI
 struct SettingsLibrariesView: View {
   @State private var viewModel = LibraryViewModel()
   @State private var performingLibraryIds: Set<String> = []
-  @State private var actionErrorMessage: String?
   @State private var libraryPendingDelete: Library?
   @State private var operatingLibrary: Library?
   @State private var isPerformingGlobalAction = false
-
-  private var isActionErrorPresented: Binding<Bool> {
-    Binding(
-      get: { actionErrorMessage != nil },
-      set: { if !$0 { actionErrorMessage = nil } }
-    )
-  }
 
   private var isDeleteAlertPresented: Binding<Bool> {
     Binding(
@@ -69,13 +61,6 @@ struct SettingsLibrariesView: View {
     .listStyle(.insetGrouped)
     .navigationTitle("Libraries")
     .navigationBarTitleDisplayMode(.inline)
-    .alert("Action Failed", isPresented: isActionErrorPresented) {
-      Button("OK", role: .cancel) {}
-    } message: {
-      if let actionErrorMessage {
-        Text(actionErrorMessage)
-      }
-    }
     .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
       Button("Delete", role: .destructive) {
         deleteConfirmedLibrary()
@@ -198,7 +183,7 @@ struct SettingsLibrariesView: View {
         }
       } catch {
         _ = await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
       _ = await MainActor.run {
@@ -218,7 +203,7 @@ struct SettingsLibrariesView: View {
         }
       } catch {
         _ = await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
       _ = await MainActor.run {
@@ -238,7 +223,7 @@ struct SettingsLibrariesView: View {
         }
       } catch {
         _ = await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
       _ = await MainActor.run {
@@ -258,7 +243,7 @@ struct SettingsLibrariesView: View {
         }
       } catch {
         _ = await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
       _ = await MainActor.run {
@@ -278,7 +263,7 @@ struct SettingsLibrariesView: View {
         }
       } catch {
         _ = await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
       _ = await MainActor.run {
@@ -301,7 +286,7 @@ struct SettingsLibrariesView: View {
         }
       } catch {
         _ = await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
       _ = await MainActor.run {
@@ -331,7 +316,7 @@ struct SettingsLibrariesView: View {
         try await action()
       } catch {
         _ = await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
       _ = await MainActor.run {

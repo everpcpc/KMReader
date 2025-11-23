@@ -11,18 +11,10 @@ struct SeriesRowView: View {
   let series: Series
   var onActionCompleted: (() -> Void)? = nil
 
-  @State private var actionErrorMessage: String?
   @State private var showCollectionPicker = false
 
   private var thumbnailURL: URL? {
     SeriesService.shared.getSeriesThumbnailURL(id: series.id)
-  }
-
-  private var isActionErrorPresented: Binding<Bool> {
-    Binding(
-      get: { actionErrorMessage != nil },
-      set: { if !$0 { actionErrorMessage = nil } }
-    )
   }
 
   var body: some View {
@@ -79,7 +71,6 @@ struct SeriesRowView: View {
       SeriesContextMenu(
         series: series,
         onActionCompleted: onActionCompleted,
-        onActionFailed: { actionErrorMessage = $0 },
         onShowCollectionPicker: {
           showCollectionPicker = true
         }
@@ -97,13 +88,6 @@ struct SeriesRowView: View {
         }
       )
     }
-    .alert("Action Failed", isPresented: isActionErrorPresented) {
-      Button("OK", role: .cancel) {}
-    } message: {
-      if let message = actionErrorMessage {
-        Text(message)
-      }
-    }
   }
 
   private func addToCollection(collectionId: String) {
@@ -119,7 +103,7 @@ struct SeriesRowView: View {
         }
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }

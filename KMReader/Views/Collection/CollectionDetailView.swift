@@ -17,18 +17,10 @@ struct CollectionDetailView: View {
 
   @State private var seriesViewModel = SeriesViewModel()
   @State private var collection: Collection?
-  @State private var actionErrorMessage: String?
   @State private var showDeleteConfirmation = false
 
   private var thumbnailURL: URL? {
     collection.flatMap { CollectionService.shared.getCollectionThumbnailURL(id: $0.id) }
-  }
-
-  private var isActionErrorPresented: Binding<Bool> {
-    Binding(
-      get: { actionErrorMessage != nil },
-      set: { if !$0 { actionErrorMessage = nil } }
-    )
   }
 
   var body: some View {
@@ -100,13 +92,6 @@ struct CollectionDetailView: View {
       }
       .navigationTitle("Collection")
       .navigationBarTitleDisplayMode(.inline)
-      .alert("Action Failed", isPresented: isActionErrorPresented) {
-        Button("OK", role: .cancel) {}
-      } message: {
-        if let actionErrorMessage {
-          Text(actionErrorMessage)
-        }
-      }
       .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
         Button("Delete", role: .destructive) {
           Task {
@@ -157,7 +142,7 @@ extension CollectionDetailView {
     do {
       collection = try await CollectionService.shared.getCollection(id: collectionId)
     } catch {
-      actionErrorMessage = error.localizedDescription
+      ErrorManager.shared.alert(error: error)
     }
   }
 
@@ -170,7 +155,7 @@ extension CollectionDetailView {
         dismiss()
       }
     } catch {
-      actionErrorMessage = error.localizedDescription
+      ErrorManager.shared.alert(error: error)
     }
   }
 }

@@ -18,7 +18,6 @@ struct ReadListDetailView: View {
   @State private var bookViewModel = BookViewModel()
   @State private var readList: ReadList?
   @State private var readerState: BookReaderState?
-  @State private var actionErrorMessage: String?
   @State private var showDeleteConfirmation = false
 
   private var thumbnailURL: URL? {
@@ -32,12 +31,6 @@ struct ReadListDetailView: View {
     )
   }
 
-  private var isActionErrorPresented: Binding<Bool> {
-    Binding(
-      get: { actionErrorMessage != nil },
-      set: { if !$0 { actionErrorMessage = nil } }
-    )
-  }
 
   var body: some View {
     GeometryReader { geometry in
@@ -133,13 +126,6 @@ struct ReadListDetailView: View {
           BookReaderView(bookId: bookId, incognito: state.incognito)
         }
       }
-      .alert("Action Failed", isPresented: isActionErrorPresented) {
-        Button("OK", role: .cancel) {}
-      } message: {
-        if let actionErrorMessage {
-          Text(actionErrorMessage)
-        }
-      }
       .alert("Delete Read List?", isPresented: $showDeleteConfirmation) {
         Button("Delete", role: .destructive) {
           Task {
@@ -190,7 +176,7 @@ extension ReadListDetailView {
     do {
       readList = try await ReadListService.shared.getReadList(id: readListId)
     } catch {
-      actionErrorMessage = error.localizedDescription
+      ErrorManager.shared.alert(error: error)
     }
   }
 
@@ -203,7 +189,7 @@ extension ReadListDetailView {
         dismiss()
       }
     } catch {
-      actionErrorMessage = error.localizedDescription
+      ErrorManager.shared.alert(error: error)
     }
   }
 }

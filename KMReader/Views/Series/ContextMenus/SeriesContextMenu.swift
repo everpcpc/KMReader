@@ -11,7 +11,6 @@ import SwiftUI
 struct SeriesContextMenu: View {
   let series: Series
   var onActionCompleted: (() -> Void)?
-  var onActionFailed: ((String) -> Void)?
   var onShowCollectionPicker: (() -> Void)? = nil
 
   private var canMarkAsRead: Bool {
@@ -76,7 +75,7 @@ struct SeriesContextMenu: View {
         }
       } catch {
         await MainActor.run {
-          onActionFailed?(error.localizedDescription)
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -92,7 +91,7 @@ struct SeriesContextMenu: View {
         }
       } catch {
         await MainActor.run {
-          onActionFailed?(error.localizedDescription)
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -108,7 +107,7 @@ struct SeriesContextMenu: View {
         }
       } catch {
         await MainActor.run {
-          onActionFailed?(error.localizedDescription)
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -124,7 +123,7 @@ struct SeriesContextMenu: View {
         }
       } catch {
         await MainActor.run {
-          onActionFailed?(error.localizedDescription)
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -143,7 +142,7 @@ struct SeriesContextMenu: View {
         }
       } catch {
         await MainActor.run {
-          onActionFailed?(error.localizedDescription)
+          ErrorManager.shared.alert(error: error)
         }
       }
     }

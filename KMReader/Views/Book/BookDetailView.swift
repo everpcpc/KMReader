@@ -14,7 +14,6 @@ struct BookDetailView: View {
   @State private var book: Book?
   @State private var isLoading = true
   @State private var readerState: BookReaderState?
-  @State private var actionErrorMessage: String?
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
 
@@ -41,13 +40,6 @@ struct BookDetailView: View {
     Binding(
       get: { readerState != nil },
       set: { if !$0 { readerState = nil } }
-    )
-  }
-
-  private var isActionErrorPresented: Binding<Bool> {
-    Binding(
-      get: { actionErrorMessage != nil },
-      set: { if !$0 { actionErrorMessage = nil } }
     )
   }
 
@@ -229,13 +221,6 @@ struct BookDetailView: View {
         BookReaderView(bookId: bookId, incognito: state.incognito)
       }
     }
-    .alert("Action Failed", isPresented: isActionErrorPresented) {
-      Button("OK", role: .cancel) {}
-    } message: {
-      if let actionErrorMessage {
-        Text(actionErrorMessage)
-      }
-    }
     .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteBook()
@@ -337,7 +322,7 @@ struct BookDetailView: View {
         await loadBook()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -353,7 +338,7 @@ struct BookDetailView: View {
         await loadBook()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -370,7 +355,7 @@ struct BookDetailView: View {
         }
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -386,7 +371,7 @@ struct BookDetailView: View {
         await loadBook()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -402,7 +387,7 @@ struct BookDetailView: View {
         await loadBook()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -445,7 +430,7 @@ struct BookDetailView: View {
         await loadBook()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }

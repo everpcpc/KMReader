@@ -20,7 +20,6 @@ struct SeriesDetailView: View {
   @State private var bookViewModel = BookViewModel()
   @State private var series: Series?
   @State private var readerState: BookReaderState?
-  @State private var actionErrorMessage: String?
   @State private var showDeleteConfirmation = false
   @State private var showCollectionPicker = false
 
@@ -33,13 +32,6 @@ struct SeriesDetailView: View {
     Binding(
       get: { readerState != nil },
       set: { if !$0 { readerState = nil } }
-    )
-  }
-
-  private var isActionErrorPresented: Binding<Bool> {
-    Binding(
-      get: { actionErrorMessage != nil },
-      set: { if !$0 { actionErrorMessage = nil } }
     )
   }
 
@@ -317,13 +309,6 @@ struct SeriesDetailView: View {
           BookReaderView(bookId: bookId, incognito: state.incognito)
         }
       }
-      .alert("Action Failed", isPresented: isActionErrorPresented) {
-        Button("OK", role: .cancel) {}
-      } message: {
-        if let actionErrorMessage {
-          Text(actionErrorMessage)
-        }
-      }
       .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
         Button("Delete", role: .destructive) {
           deleteSeries()
@@ -456,7 +441,7 @@ extension SeriesDetailView {
         await refreshSeriesData()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -472,7 +457,7 @@ extension SeriesDetailView {
         await refreshSeriesData()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -488,7 +473,7 @@ extension SeriesDetailView {
         await refreshSeriesData()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -504,7 +489,7 @@ extension SeriesDetailView {
         await refreshSeriesData()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -520,7 +505,7 @@ extension SeriesDetailView {
         }
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
@@ -539,7 +524,7 @@ extension SeriesDetailView {
         await refreshSeriesData()
       } catch {
         await MainActor.run {
-          actionErrorMessage = error.localizedDescription
+          ErrorManager.shared.alert(error: error)
         }
       }
     }
