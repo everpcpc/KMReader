@@ -282,7 +282,9 @@ extension CollectionSeriesListView {
       await seriesViewModel.loadCollectionSeries(
         collectionId: collectionId, browseOpts: browseOpts, refresh: true)
     } catch {
-      // Handle error if needed
+      await MainActor.run {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 }

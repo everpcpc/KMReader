@@ -150,7 +150,9 @@ struct BookCardView: View {
           onBookUpdated?()
         }
       } catch {
-        // Handle error if needed
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
       }
     }
   }

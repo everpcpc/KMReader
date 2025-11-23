@@ -282,7 +282,9 @@ extension BooksListViewForReadList {
       await bookViewModel.loadReadListBooks(
         readListId: readListId, browseOpts: browseOpts, refresh: true)
     } catch {
-      // Handle error if needed
+      await MainActor.run {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 }

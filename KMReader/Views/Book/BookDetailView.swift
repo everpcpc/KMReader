@@ -407,6 +407,7 @@ struct BookDetailView: View {
       isLoading = false
     } catch {
       isLoading = false
+      ErrorManager.shared.alert(error: error)
     }
   }
 

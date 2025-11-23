@@ -428,6 +428,7 @@ extension SeriesDetailView {
       let fetchedSeries = try await SeriesService.shared.getOneSeries(id: seriesId)
       series = fetchedSeries
     } catch {
+      ErrorManager.shared.alert(error: error)
     }
   }
 
