@@ -57,6 +57,7 @@ _A media server for comics, mangas, BDs, and magazines_
   - Automatic synchronization across all devices
   - Resume from last page
   - Reading status indicators (read, unread, in-progress)
+  - Incognito mode: Read without updating progress
 - **Save Pages**: Save favorite pages to Photos or Files in multiple formats (JPEG, PNG, HEIF, WebP)
 
 ### 📊 Dashboard & History
