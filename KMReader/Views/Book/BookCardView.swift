@@ -146,6 +146,7 @@ struct BookCardView: View {
           bookIds: [book.id]
         )
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Books added to read list")
           onBookUpdated?()
         }
       } catch {

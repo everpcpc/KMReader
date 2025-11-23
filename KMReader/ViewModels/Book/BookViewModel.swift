@@ -117,6 +117,9 @@ class BookViewModel {
       if currentBook?.id == bookId {
         currentBook = updatedBook
       }
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Marked as read")
+      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -131,6 +134,9 @@ class BookViewModel {
       }
       if currentBook?.id == bookId {
         currentBook = updatedBook
+      }
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Marked as unread")
       }
     } catch {
       ErrorManager.shared.alert(error: error)

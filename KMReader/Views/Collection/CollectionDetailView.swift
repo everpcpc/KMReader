@@ -165,7 +165,10 @@ extension CollectionDetailView {
   private func deleteCollection() async {
     do {
       try await CollectionService.shared.deleteCollection(collectionId: collectionId)
-      dismiss()
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Collection deleted")
+        dismiss()
+      }
     } catch {
       actionErrorMessage = error.localizedDescription
     }

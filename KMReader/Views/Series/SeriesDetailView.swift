@@ -450,6 +450,9 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.analyzeSeries(seriesId: seriesId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Series analysis started")
+        }
         await refreshSeriesData()
       } catch {
         await MainActor.run {
@@ -463,6 +466,9 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.refreshMetadata(seriesId: seriesId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Series metadata refreshed")
+        }
         await refreshSeriesData()
       } catch {
         await MainActor.run {
@@ -476,6 +482,9 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.markAsRead(seriesId: seriesId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Series marked as read")
+        }
         await refreshSeriesData()
       } catch {
         await MainActor.run {
@@ -489,6 +498,9 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.markAsUnread(seriesId: seriesId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Series marked as unread")
+        }
         await refreshSeriesData()
       } catch {
         await MainActor.run {
@@ -503,6 +515,7 @@ extension SeriesDetailView {
       do {
         try await SeriesService.shared.deleteSeries(seriesId: seriesId)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Series deleted")
           dismiss()
         }
       } catch {
@@ -520,6 +533,9 @@ extension SeriesDetailView {
           collectionId: collectionId,
           seriesIds: [seriesId]
         )
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Series added to collection")
+        }
         await refreshSeriesData()
       } catch {
         await MainActor.run {

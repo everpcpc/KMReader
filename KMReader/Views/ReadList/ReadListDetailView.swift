@@ -198,7 +198,10 @@ extension ReadListDetailView {
   private func deleteReadList() async {
     do {
       try await ReadListService.shared.deleteReadList(readListId: readListId)
-      dismiss()
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Read list deleted")
+        dismiss()
+      }
     } catch {
       actionErrorMessage = error.localizedDescription
     }

@@ -193,6 +193,9 @@ struct SettingsLibrariesView: View {
     Task {
       do {
         try await viewModel.scanLibrary(library)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Library scan started")
+        }
       } catch {
         _ = await MainActor.run {
           actionErrorMessage = error.localizedDescription
@@ -210,6 +213,9 @@ struct SettingsLibrariesView: View {
     Task {
       do {
         try await viewModel.scanLibrary(library, deep: true)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Library scan started")
+        }
       } catch {
         _ = await MainActor.run {
           actionErrorMessage = error.localizedDescription
@@ -227,6 +233,9 @@ struct SettingsLibrariesView: View {
     Task {
       do {
         try await viewModel.analyzeLibrary(library)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Library analysis started")
+        }
       } catch {
         _ = await MainActor.run {
           actionErrorMessage = error.localizedDescription
@@ -244,6 +253,9 @@ struct SettingsLibrariesView: View {
     Task {
       do {
         try await viewModel.refreshMetadata(library)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Library metadata refresh started")
+        }
       } catch {
         _ = await MainActor.run {
           actionErrorMessage = error.localizedDescription
@@ -261,6 +273,9 @@ struct SettingsLibrariesView: View {
     Task {
       do {
         try await viewModel.emptyTrash(library)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Trash emptied")
+        }
       } catch {
         _ = await MainActor.run {
           actionErrorMessage = error.localizedDescription
@@ -281,6 +296,9 @@ struct SettingsLibrariesView: View {
         try await viewModel.deleteLibrary(library)
         await LibraryManager.shared.refreshLibraries()
         await viewModel.loadLibraries()
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Library deleted")
+        }
       } catch {
         _ = await MainActor.run {
           actionErrorMessage = error.localizedDescription

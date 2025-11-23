@@ -331,6 +331,9 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.analyzeBook(bookId: bookId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Book analysis started")
+        }
         await loadBook()
       } catch {
         await MainActor.run {
@@ -344,6 +347,9 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.refreshMetadata(bookId: bookId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Metadata refreshed")
+        }
         await loadBook()
       } catch {
         await MainActor.run {
@@ -359,6 +365,7 @@ struct BookDetailView: View {
         try await BookService.shared.deleteBook(bookId: bookId)
         await ImageCache.clearDiskCache(forBookId: bookId)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Book deleted")
           dismiss()
         }
       } catch {
@@ -373,6 +380,9 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.markAsRead(bookId: bookId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Marked as read")
+        }
         await loadBook()
       } catch {
         await MainActor.run {
@@ -386,6 +396,9 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.markAsUnread(bookId: bookId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Marked as unread")
+        }
         await loadBook()
       } catch {
         await MainActor.run {
@@ -426,6 +439,9 @@ struct BookDetailView: View {
           readListId: readListId,
           bookIds: [bookId]
         )
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Books added to read list")
+        }
         await loadBook()
       } catch {
         await MainActor.run {

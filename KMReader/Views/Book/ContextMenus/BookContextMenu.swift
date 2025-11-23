@@ -106,6 +106,7 @@ struct BookContextMenu: View {
       do {
         try await BookService.shared.analyzeBook(bookId: book.id)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Book analysis started")
           onActionCompleted?()
         }
       } catch {
@@ -121,6 +122,7 @@ struct BookContextMenu: View {
       do {
         try await BookService.shared.refreshMetadata(bookId: book.id)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Metadata refreshed")
           onActionCompleted?()
         }
       } catch {
@@ -137,6 +139,7 @@ struct BookContextMenu: View {
         try await BookService.shared.deleteBook(bookId: book.id)
         await ImageCache.clearDiskCache(forBookId: book.id)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Book deleted")
           onActionCompleted?()
         }
       } catch {
@@ -155,6 +158,7 @@ struct BookContextMenu: View {
           bookIds: [book.id]
         )
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Books added to read list")
           onActionCompleted?()
         }
       } catch {

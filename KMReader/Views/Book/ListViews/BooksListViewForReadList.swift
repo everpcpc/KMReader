@@ -268,6 +268,10 @@ extension BooksListViewForReadList {
         bookIds: Array(selectedBookIds)
       )
 
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Books removed from read list")
+      }
+
       // Clear selection and exit selection mode with animation
       withAnimation {
         selectedBookIds.removeAll()

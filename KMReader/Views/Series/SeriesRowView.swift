@@ -114,6 +114,7 @@ struct SeriesRowView: View {
           seriesIds: [series.id]
         )
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Series added to collection")
           onActionCompleted?()
         }
       } catch {

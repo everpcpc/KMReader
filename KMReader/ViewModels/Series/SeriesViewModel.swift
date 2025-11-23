@@ -105,6 +105,9 @@ class SeriesViewModel {
   func markAsRead(seriesId: String, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsRead(seriesId: seriesId)
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Series marked as read")
+      }
       await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -114,6 +117,9 @@ class SeriesViewModel {
   func markAsUnread(seriesId: String, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Series marked as unread")
+      }
       await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)

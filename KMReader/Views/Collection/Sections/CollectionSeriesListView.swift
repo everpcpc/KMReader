@@ -268,6 +268,10 @@ extension CollectionSeriesListView {
         seriesIds: Array(selectedSeriesIds)
       )
 
+      await MainActor.run {
+        ErrorManager.shared.notify(message: "Series removed from collection")
+      }
+
       // Clear selection and exit selection mode with animation
       withAnimation {
         selectedSeriesIds.removeAll()

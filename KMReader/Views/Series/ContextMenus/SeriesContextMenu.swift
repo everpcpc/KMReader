@@ -71,6 +71,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.analyzeSeries(seriesId: series.id)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Series analysis started")
           onActionCompleted?()
         }
       } catch {
@@ -86,6 +87,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.refreshMetadata(seriesId: series.id)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Series metadata refreshed")
           onActionCompleted?()
         }
       } catch {
@@ -101,6 +103,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.markAsRead(seriesId: series.id)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Series marked as read")
           onActionCompleted?()
         }
       } catch {
@@ -116,6 +119,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.markAsUnread(seriesId: series.id)
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Series marked as unread")
           onActionCompleted?()
         }
       } catch {
@@ -134,6 +138,7 @@ struct SeriesContextMenu: View {
           seriesIds: [series.id]
         )
         await MainActor.run {
+          ErrorManager.shared.notify(message: "Series added to collection")
           onActionCompleted?()
         }
       } catch {
