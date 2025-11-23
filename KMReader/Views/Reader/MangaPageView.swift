@@ -19,7 +19,6 @@ struct MangaPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
-  @State private var targetPageIndex: Int?
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
   var body: some View {
@@ -70,7 +69,7 @@ struct MangaPageView: View {
           hasSyncedInitialScroll = false
           synchronizeInitialScrollIfNeeded(proxy: proxy)
         }
-        .onChange(of: targetPageIndex) { _, newTarget in
+        .onChange(of: viewModel.targetPageIndex) { _, newTarget in
           guard let newTarget = newTarget else { return }
           guard hasSyncedInitialScroll else { return }
           guard newTarget >= 0 else { return }
@@ -113,7 +112,7 @@ struct MangaPageView: View {
 
           // Single page mode only
           let newIndex = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
-          targetPageIndex = newIndex
+          viewModel.targetPageIndex = newIndex
         } else if normalizedX > 0.75 {
           guard !viewModel.pages.isEmpty else { return }
           // Previous page (right tap for RTL means go back)
@@ -121,7 +120,7 @@ struct MangaPageView: View {
 
           // Single page mode only
           let newIndex = min(viewModel.currentPageIndex - 1, viewModel.pages.count)
-          targetPageIndex = newIndex
+          viewModel.targetPageIndex = newIndex
         } else {
           toggleControls()
         }
@@ -153,7 +152,7 @@ struct MangaPageView: View {
     // Update currentPageIndex when scroll position changes (user manually scrolled)
     if viewModel.currentPageIndex != newPageIndex {
       viewModel.currentPageIndex = newPageIndex
-      targetPageIndex = nil
+      viewModel.targetPageIndex = nil
       Task(priority: .userInitiated) {
         await viewModel.preloadPages()
       }

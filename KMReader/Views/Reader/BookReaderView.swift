@@ -333,7 +333,7 @@ struct BookReaderView: View {
       return
     }
     controlsTimer?.invalidate()
-    controlsTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+    controlsTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
       withAnimation {
         showingControls = false
       }

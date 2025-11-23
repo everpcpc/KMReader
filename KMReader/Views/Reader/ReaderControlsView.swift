@@ -43,6 +43,15 @@ struct ReaderControlsView: View {
     }
   }
 
+  private func jumpToPage(page: Int) {
+    guard !viewModel.pages.isEmpty else { return }
+    let clampedPage = min(max(page, 1), viewModel.pages.count)
+    let targetIndex = clampedPage - 1
+    if targetIndex != viewModel.currentPageIndex {
+      viewModel.targetPageIndex = targetIndex
+    }
+  }
+
   var body: some View {
     VStack {
       // Top bar
@@ -155,15 +164,6 @@ struct ReaderControlsView: View {
       ReadingDirectionPickerSheetView(readingDirection: $readingDirection)
         .presentationDetents([.height(400)])
         .presentationDragIndicator(.visible)
-    }
-  }
-
-  private func jumpToPage(page: Int) {
-    guard !viewModel.pages.isEmpty else { return }
-    let clampedPage = min(max(page, 1), viewModel.pages.count)
-    let targetIndex = clampedPage - 1
-    if targetIndex != viewModel.currentPageIndex {
-      viewModel.targetPageIndex = targetIndex
     }
   }
 }

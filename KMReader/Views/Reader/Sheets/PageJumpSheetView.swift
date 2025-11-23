@@ -9,6 +9,152 @@ import SDWebImage
 import SDWebImageSwiftUI
 import SwiftUI
 
+// Preview dimensions calculated based on available height
+private struct PreviewDimensions {
+  let scaleFactor: CGFloat
+  let imageWidth: CGFloat
+  let imageHeight: CGFloat
+  let centerY: CGFloat
+  let spacing: CGFloat
+}
+
+// Page transform properties for fan effect
+private struct PageTransform {
+  let x: CGFloat
+  let rotation: Double
+  let scale: CGFloat
+  let opacity: Double
+  let zIndex: Int
+
+  // Calculate constrained x position within slider bounds
+  func constrainedX(_ imageWidth: CGFloat, _ sliderWidth: CGFloat) -> CGFloat {
+    max(imageWidth / 2, min(x, sliderWidth - imageWidth / 2))
+  }
+}
+
+// Single page preview item view
+private struct PagePreviewItem: View {
+  let page: Int
+  let pageValue: Int
+  let imageURL: URL?
+  let availableHeight: CGFloat
+  let sliderWidth: CGFloat
+  let themeColor: ThemeColor
+  let maxPage: Int
+  let readingDirection: ReadingDirection
+
+  // Calculate preview dimensions based on available height
+  private var dimensions: PreviewDimensions {
+    // Base values for standard height (360)
+    let baseHeight: CGFloat = 360
+    let baseImageWidth: CGFloat = 180
+    let baseImageHeight: CGFloat = 250
+    let baseSpacing: CGFloat = 120
+
+    // Calculate scale factor based on available height
+    let scaleFactor = min(1.0, availableHeight / baseHeight)
+
+    // Apply scale factor to all dimensions
+    let imageWidth = baseImageWidth * scaleFactor
+    let imageHeight = baseImageHeight * scaleFactor
+    let centerY = (baseHeight * scaleFactor) / 2
+    let spacing = baseSpacing * scaleFactor
+
+    return PreviewDimensions(
+      scaleFactor: scaleFactor,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      centerY: centerY,
+      spacing: spacing
+    )
+  }
+
+  private var xOffsetMultiplier: CGFloat {
+    readingDirection == .rtl ? -1 : 1
+  }
+
+  private var rotationMultiplier: Double {
+    readingDirection == .rtl ? -1 : 1
+  }
+
+  private func adjustedProgress(for progress: Double) -> Double {
+    readingDirection == .rtl ? 1.0 - progress : progress
+  }
+
+  private var transform: PageTransform {
+    let isCenter = page == pageValue
+    let offset = page - pageValue
+    let progress = (Double(pageValue) - 1) / Double(maxPage - 1)
+    let adjustedProgress = adjustedProgress(for: progress)
+    let baseX = adjustedProgress * sliderWidth
+
+    // Calculate position with fan effect
+    let xOffset = CGFloat(offset) * dimensions.spacing * xOffsetMultiplier
+    let x = baseX + xOffset
+    let rotation = Double(offset) * 8.0 * rotationMultiplier
+    let scale = isCenter ? 1.0 : 0.75
+    let opacity = isCenter ? 1.0 : 0.6
+    let zIndex = isCenter ? 10 : abs(offset)
+
+    return PageTransform(
+      x: x,
+      rotation: rotation,
+      scale: scale,
+      opacity: opacity,
+      zIndex: zIndex
+    )
+  }
+
+  var body: some View {
+    if let imageURL = imageURL {
+      let isCenter = page == pageValue
+
+      VStack(spacing: 4) {
+        WebImage(
+          url: imageURL,
+          options: [.retryFailed, .scaleDownLargeImages],
+          context: [.customManager: SDImageCacheProvider.thumbnailManager]
+        )
+        .resizable()
+        .placeholder {
+          RoundedRectangle(cornerRadius: 6)
+            .fill(Color.gray.opacity(0.3))
+            .overlay {
+              ProgressView()
+            }
+        }
+        .indicator(.activity)
+        .aspectRatio(contentMode: .fit)
+        .frame(width: dimensions.imageWidth, height: dimensions.imageHeight)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .shadow(
+          color: Color.black.opacity(isCenter ? 0.4 : 0.2),
+          radius: isCenter ? 8 : 4, x: 0, y: 2)
+
+        if isCenter {
+          Text("\(page)")
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background {
+              RoundedRectangle(cornerRadius: 4)
+                .fill(themeColor.color)
+            }
+        }
+      }
+      .scaleEffect(transform.scale)
+      .opacity(transform.opacity)
+      .rotationEffect(.degrees(transform.rotation))
+      .position(
+        x: transform.constrainedX(dimensions.imageWidth, sliderWidth),
+        y: dimensions.centerY
+      )
+      .zIndex(Double(transform.zIndex))
+      .animation(.spring(response: 0.3, dampingFraction: 0.7), value: pageValue)
+    }
+  }
+}
+
 struct PageJumpSheetView: View {
   let bookId: String
   let totalPages: Int
@@ -69,18 +215,6 @@ struct PageJumpSheetView: View {
     BookService.shared.getBookPageThumbnailURL(bookId: bookId, page: page)
   }
 
-  private func adjustedProgress(for progress: Double) -> Double {
-    readingDirection == .rtl ? 1.0 - progress : progress
-  }
-
-  private var xOffsetMultiplier: CGFloat {
-    readingDirection == .rtl ? -1 : 1
-  }
-
-  private var rotationMultiplier: Double {
-    readingDirection == .rtl ? -1 : 1
-  }
-
   private var sliderScaleX: CGFloat {
     readingDirection == .rtl ? -1 : 1
   }
@@ -91,6 +225,13 @@ struct PageJumpSheetView: View {
     } else {
       return (left: "1", right: "\(totalPages)")
     }
+  }
+
+  private func jumpToPage() {
+    guard canJump else { return }
+    let clampedValue = min(max(pageValue, 1), totalPages)
+    onJump(clampedValue)
+    dismiss()
   }
 
   var body: some View {
@@ -113,77 +254,23 @@ struct PageJumpSheetView: View {
               // Preview view above slider - scrolling fan effect
               GeometryReader { geometry in
                 let sliderWidth = geometry.size.width
-                let previewHeight: CGFloat = 360
-                let imageWidth: CGFloat = 180
-                let imageHeight: CGFloat = 250
-                let centerY = previewHeight / 2
 
                 ZStack {
-                  ForEach(Array(previewPages.enumerated()), id: \.element) { index, page in
-                    let isCenter = page == pageValue
-                    let offset = page - pageValue
-                    let progress = (Double(pageValue) - 1) / Double(maxPage - 1)
-                    let adjustedProgress = adjustedProgress(for: progress)
-                    let baseX = adjustedProgress * sliderWidth
-
-                    // Calculate position with fan effect
-                    let spacing: CGFloat = 150
-                    let xOffset = CGFloat(offset) * spacing * xOffsetMultiplier
-                    let x = baseX + xOffset
-                    let rotation = Double(offset) * 8.0 * rotationMultiplier  // Rotation angle in degrees
-                    let scale = isCenter ? 1.0 : 0.75
-                    let opacity = isCenter ? 1.0 : 0.6
-                    let zIndex = isCenter ? 10 : abs(offset)
-
-                    if let imageURL = getPreviewImageURL(page: page) {
-                      VStack(spacing: 4) {
-                        WebImage(
-                          url: imageURL,
-                          options: [.retryFailed, .scaleDownLargeImages],
-                          context: [.customManager: SDImageCacheProvider.thumbnailManager]
-                        )
-                        .resizable()
-                        .placeholder {
-                          RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.gray.opacity(0.3))
-                            .overlay {
-                              ProgressView()
-                            }
-                        }
-                        .indicator(.activity)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: imageWidth, height: imageHeight)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .shadow(
-                          color: Color.black.opacity(isCenter ? 0.4 : 0.2),
-                          radius: isCenter ? 8 : 4, x: 0, y: 2)
-
-                        if isCenter {
-                          Text("\(page)")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background {
-                              RoundedRectangle(cornerRadius: 4)
-                                .fill(themeColor.color)
-                            }
-                        }
-                      }
-                      .scaleEffect(scale)
-                      .opacity(opacity)
-                      .rotationEffect(.degrees(rotation))
-                      .position(
-                        x: max(imageWidth / 2, min(x, sliderWidth - imageWidth / 2)),
-                        y: centerY
-                      )
-                      .zIndex(Double(zIndex))
-                      .animation(.spring(response: 0.3, dampingFraction: 0.7), value: pageValue)
-                    }
+                  ForEach(previewPages, id: \.self) { page in
+                    PagePreviewItem(
+                      page: page,
+                      pageValue: pageValue,
+                      imageURL: getPreviewImageURL(page: page),
+                      availableHeight: geometry.size.height,
+                      sliderWidth: sliderWidth,
+                      themeColor: themeColor,
+                      maxPage: maxPage,
+                      readingDirection: readingDirection
+                    )
                   }
                 }
               }
-              .frame(height: 360)
+              .frame(minHeight: 200, maxHeight: 360)
 
               Slider(
                 value: sliderBinding,
@@ -228,12 +315,5 @@ struct PageJumpSheetView: View {
         }
       }
     }
-  }
-
-  private func jumpToPage() {
-    guard canJump else { return }
-    let clampedValue = min(max(pageValue, 1), totalPages)
-    onJump(clampedValue)
-    dismiss()
   }
 }
