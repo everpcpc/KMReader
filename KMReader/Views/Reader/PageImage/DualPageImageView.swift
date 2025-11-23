@@ -19,6 +19,8 @@ struct DualPageImageView: View {
   @State private var lastScale: CGFloat = 1.0
   @State private var offset: CGSize = .zero
   @State private var lastOffset: CGSize = .zero
+  private let minScale: CGFloat = 1.0
+  private let maxScale: CGFloat = 4.0
 
   var imageWidth: CGFloat {
     screenSize.width / 2
@@ -56,30 +58,22 @@ struct DualPageImageView: View {
         .onChanged { value in
           let delta = value / lastScale
           lastScale = value
-          scale *= delta
+          applyScale(delta: delta)
         }
         .onEnded { _ in
           lastScale = 1.0
-          if scale < 1.0 {
+          if scale <= minScale {
             withAnimation {
-              scale = 1.0
-              offset = .zero
-              lastOffset = .zero
-            }
-          } else if scale > 4.0 {
-            withAnimation {
-              scale = 4.0
+              resetTransform()
             }
           }
         }
     )
     .onTapGesture(count: 2) {
       // Double tap to zoom in/out
-      if scale > 1.0 {
+      if scale > minScale {
         withAnimation {
-          scale = 1.0
-          offset = .zero
-          lastOffset = .zero
+          resetTransform()
         }
       } else {
         withAnimation {
@@ -89,30 +83,65 @@ struct DualPageImageView: View {
     }
     .simultaneousGesture(
       DragGesture(
-        minimumDistance: scale > 1.0 ? 0 : CGFloat.greatestFiniteMagnitude
+        minimumDistance: scale > minScale ? 0 : CGFloat.greatestFiniteMagnitude
       )
       .onChanged { value in
-        guard scale > 1.0 else { return }
+        guard scale > minScale else { return }
         offset = CGSize(
           width: lastOffset.width + value.translation.width,
           height: lastOffset.height + value.translation.height
         )
       }
       .onEnded { _ in
-        if scale > 1.0 {
+        if scale > minScale {
           lastOffset = offset
         } else {
-          lastOffset = .zero
-          offset = .zero
+          resetPanState()
         }
       }
     )
-    .task(id: firstPageIndex) {
+    .task(id: "\(firstPageIndex)-\(secondPageIndex)") {
       // Reset zoom state when switching pages
-      scale = 1.0
-      lastScale = 1.0
-      offset = .zero
-      lastOffset = .zero
+      resetTransform()
     }
+    .onDisappear {
+      resetTransform()
+    }
+  }
+
+  private func applyScale(delta: CGFloat) {
+    let previousScale = scale
+    let newScale = min(max(previousScale * delta, minScale), maxScale)
+    scale = newScale
+
+    if newScale == minScale {
+      withAnimation(.easeOut(duration: 0.2)) {
+        resetPanState()
+      }
+      return
+    }
+
+    let factor = previousScale == 0 ? 1 : newScale / previousScale
+    guard factor.isFinite else { return }
+
+    offset = CGSize(
+      width: offset.width * factor,
+      height: offset.height * factor
+    )
+    lastOffset = CGSize(
+      width: lastOffset.width * factor,
+      height: lastOffset.height * factor
+    )
+  }
+
+  private func resetTransform() {
+    scale = minScale
+    lastScale = minScale
+    resetPanState()
+  }
+
+  private func resetPanState() {
+    offset = .zero
+    lastOffset = .zero
   }
 }
