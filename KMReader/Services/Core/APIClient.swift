@@ -47,16 +47,17 @@ class APIClient {
     let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
 
     #if canImport(UIKit)
-      let systemInfo = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
-      let deviceInfo = "\(UIDevice.current.model); Build \(buildNumber)"
+      let device = UIDevice.current.model
+      let iosVersion = UIDevice.current.systemVersion
+      self.userAgent =
+        "\(appName)/\(appVersion) (\(device); iOS \(iosVersion); Build \(buildNumber))"
     #else
       let osVersion = ProcessInfo.processInfo.operatingSystemVersion
       let systemInfo =
         "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
-      let deviceInfo = "Unknown; Build \(buildNumber)"
+      self.userAgent =
+        "\(appName)/\(appVersion) (Unknown; macOS \(systemInfo); Build \(buildNumber))"
     #endif
-
-    self.userAgent = "\(appName)/\(appVersion) (\(systemInfo); \(deviceInfo))"
   }
 
   func setServer(url: String) {
