@@ -73,7 +73,7 @@ struct SettingsAppearanceView: View {
         VStack(alignment: .leading, spacing: 8) {
           Stepper(
             value: landscapeColumnsBinding,
-            in: 1...8,
+            in: 1...16,
             step: 1
           ) {
             HStack {
