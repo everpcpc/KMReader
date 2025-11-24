@@ -7,7 +7,10 @@
 
 import Foundation
 import OSLog
-import UIKit
+
+#if canImport(UIKit)
+  import UIKit
+#endif
 
 class APIClient {
   static let shared = APIClient()
@@ -42,8 +45,17 @@ class APIClient {
     let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
-    let systemInfo = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
-    let deviceInfo = "\(UIDevice.current.model); Build \(buildNumber)"
+
+    #if canImport(UIKit)
+      let systemInfo = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+      let deviceInfo = "\(UIDevice.current.model); Build \(buildNumber)"
+    #else
+      let osVersion = ProcessInfo.processInfo.operatingSystemVersion
+      let systemInfo =
+        "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
+      let deviceInfo = "Unknown; Build \(buildNumber)"
+    #endif
+
     self.userAgent = "\(appName)/\(appVersion) (\(systemInfo); \(deviceInfo))"
   }
 
@@ -108,7 +120,7 @@ class APIClient {
 
       guard let httpResponse = response as? HTTPURLResponse else {
         logger.error("❌ Invalid response from \(urlString)")
-        throw APIError.invalidResponse
+        throw APIError.invalidResponse(url: urlString)
       }
 
       let statusEmoji = (200...299).contains(httpResponse.statusCode) ? "✅" : "❌"
@@ -118,29 +130,35 @@ class APIClient {
 
       guard (200...299).contains(httpResponse.statusCode) else {
         let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+        let responseBody = String(data: data, encoding: .utf8)
 
         switch httpResponse.statusCode {
         case 400:
           logger.warning("🔒 Bad Request: \(urlString)")
-          throw APIError.badRequest(errorMessage)
+          throw APIError.badRequest(message: errorMessage, url: urlString, response: responseBody)
         case 401:
           logger.warning("🔒 Unauthorized: \(urlString)")
-          throw APIError.unauthorized
+          throw APIError.unauthorized(url: urlString)
         case 403:
           logger.warning("🔒 Forbidden: \(urlString)")
-          throw APIError.forbidden(errorMessage)
+          throw APIError.forbidden(message: errorMessage, url: urlString, response: responseBody)
         case 404:
           logger.warning("🔒 Not Found: \(urlString)")
-          throw APIError.notFound(errorMessage)
+          throw APIError.notFound(message: errorMessage, url: urlString, response: responseBody)
         case 429:
           logger.warning("🔒 Too Many Requests: \(urlString)")
-          throw APIError.tooManyRequests(errorMessage)
+          throw APIError.tooManyRequests(
+            message: errorMessage, url: urlString, response: responseBody)
         case 500...599:
           logger.error("❌ Server Error \(httpResponse.statusCode): \(errorMessage)")
-          throw APIError.serverError(errorMessage)
+          throw APIError.serverError(
+            code: httpResponse.statusCode, message: errorMessage, url: urlString,
+            response: responseBody)
         default:
           logger.error("❌ HTTP \(httpResponse.statusCode): \(errorMessage)")
-          throw APIError.httpError(httpResponse.statusCode, errorMessage)
+          throw APIError.httpError(
+            code: httpResponse.statusCode, message: errorMessage, url: urlString,
+            response: responseBody)
         }
       }
 
@@ -149,11 +167,11 @@ class APIClient {
       throw error
     } catch let nsError as NSError where nsError.domain == NSURLErrorDomain {
       logger.error("❌ Network error for \(urlString): \(nsError.localizedDescription)")
-      throw APIError.networkError(nsError)
+      throw APIError.networkError(nsError, url: urlString)
     } catch {
       let errorDesc = error.localizedDescription
       logger.error("❌ Network error for \(urlString): \(errorDesc)")
-      throw APIError.networkError(error)
+      throw APIError.networkError(error, url: urlString)
     }
   }
 
@@ -183,7 +201,10 @@ class APIClient {
         throw APIError.decodingError(
           NSError(
             domain: "APIClient", code: -1,
-            userInfo: [NSLocalizedDescriptionKey: "Empty response data"]))
+            userInfo: [NSLocalizedDescriptionKey: "Empty response data"]),
+          url: urlString,
+          response: nil
+        )
       }
     }
 
@@ -211,24 +232,27 @@ class APIClient {
       }
 
       // Log raw response for debugging
-      if let jsonString = String(data: data, encoding: .utf8) {
+      let responseBody = String(data: data, encoding: .utf8)
+      if let jsonString = responseBody {
         let truncated = String(jsonString.prefix(1000))
         logger.debug("Response data: \(truncated)")
       }
 
-      throw APIError.decodingError(decodingError)
+      let urlString = urlRequest.url?.absoluteString ?? ""
+      throw APIError.decodingError(decodingError, url: urlString, response: responseBody)
     } catch {
       let urlString = urlRequest.url?.absoluteString ?? ""
       let errorDesc = error.localizedDescription
       logger.error("❌ Decoding error for \(urlString): \(errorDesc)")
 
       // Log raw response for debugging
-      if let jsonString = String(data: data, encoding: .utf8) {
+      let responseBody = String(data: data, encoding: .utf8)
+      if let jsonString = responseBody {
         let truncated = String(jsonString.prefix(1000))
         logger.debug("Response data: \(truncated)")
       }
 
-      throw APIError.decodingError(error)
+      throw APIError.decodingError(error, url: urlString, response: responseBody)
     }
   }
 

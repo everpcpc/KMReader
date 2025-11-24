@@ -72,7 +72,7 @@ class ErrorManager {
     logger.error("Error occurred: \(error.localizedDescription)")
 
     if let apiError = error as? APIError {
-      return apiError.userMessage
+      return apiError.description
     }
 
     // Handle other error types
@@ -87,7 +87,7 @@ class ErrorManager {
         case NSURLErrorCancelled:
           return ""  // Don't show cancelled errors
         default:
-          return "Network error. Please check your connection."
+          return "Network error: \(error.localizedDescription)"
         }
       default:
         return error.localizedDescription
@@ -99,7 +99,7 @@ class ErrorManager {
 
   private func shouldShowError(_ error: Error) -> Bool {
     if let apiError = error as? APIError {
-      if case .networkError(let underlyingError) = apiError {
+      if case .networkError(let underlyingError, url: _) = apiError {
         if let nsError = underlyingError as NSError?,
           nsError.code == NSURLErrorCancelled
         {

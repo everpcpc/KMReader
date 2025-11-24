@@ -415,7 +415,7 @@ struct SettingsMetricsView: View {
 
   private func getErrorMessage(_ error: Error) -> String {
     if let apiError = error as? APIError {
-      return apiError.userMessage
+      return apiError.description
     }
     return error.localizedDescription
   }
