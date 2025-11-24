@@ -21,7 +21,7 @@ struct DashboardSeriesSection: View {
         .padding(.horizontal)
 
       ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
           ForEach(series) { s in
             NavigationLink(value: NavDestination.seriesDetail(seriesId: s.id)) {
               SeriesCardView(

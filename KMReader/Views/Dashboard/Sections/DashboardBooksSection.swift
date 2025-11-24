@@ -21,7 +21,7 @@ struct DashboardBooksSection: View {
         .padding(.horizontal)
 
       ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
           ForEach(books) { book in
             BookCardView(
               book: book,
