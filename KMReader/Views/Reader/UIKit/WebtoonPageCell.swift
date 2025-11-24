@@ -5,107 +5,109 @@
 //  Created by Komga iOS Client
 //
 
-import Foundation
-import SDWebImage
-import SwiftUI
-import UIKit
+#if canImport(UIKit)
+  import Foundation
+  import SDWebImage
+  import SwiftUI
+  import UIKit
 
-class WebtoonPageCell: UICollectionViewCell {
-  private let imageView = UIImageView()
-  private let loadingIndicator = UIActivityIndicatorView(style: .medium)
-  private var pageIndex: Int = -1
-  private var loadImage: ((Int) async -> Void)?
+  class WebtoonPageCell: UICollectionViewCell {
+    private let imageView = UIImageView()
+    private let loadingIndicator = UIActivityIndicatorView(style: .medium)
+    private var pageIndex: Int = -1
+    private var loadImage: ((Int) async -> Void)?
 
-  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+    @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
-  override init(frame: CGRect) {
-    super.init(frame: frame)
-    setupUI()
-  }
+    override init(frame: CGRect) {
+      super.init(frame: frame)
+      setupUI()
+    }
 
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
+    required init?(coder: NSCoder) {
+      fatalError("init(coder:) has not been implemented")
+    }
 
-  private func setupUI() {
-    contentView.backgroundColor = UIColor(readerBackground.color)
+    private func setupUI() {
+      contentView.backgroundColor = UIColor(readerBackground.color)
 
-    imageView.contentMode = .scaleAspectFit
-    imageView.backgroundColor = UIColor(readerBackground.color)
-    imageView.clipsToBounds = false
-    imageView.translatesAutoresizingMaskIntoConstraints = false
-    contentView.addSubview(imageView)
+      imageView.contentMode = .scaleAspectFit
+      imageView.backgroundColor = UIColor(readerBackground.color)
+      imageView.clipsToBounds = false
+      imageView.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(imageView)
 
-    loadingIndicator.color = .white
-    loadingIndicator.hidesWhenStopped = true
-    loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
-    contentView.addSubview(loadingIndicator)
+      loadingIndicator.color = .white
+      loadingIndicator.hidesWhenStopped = true
+      loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(loadingIndicator)
 
-    NSLayoutConstraint.activate([
-      imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-      imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-      imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-      imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-      loadingIndicator.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-      loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-    ])
-  }
+      NSLayoutConstraint.activate([
+        imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+        imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+        imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+        imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+        loadingIndicator.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+        loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+      ])
+    }
 
-  func configure(
-    pageIndex: Int, image: UIImage?, loadImage: @escaping (Int) async -> Void
-  ) {
-    self.pageIndex = pageIndex
-    self.loadImage = loadImage
+    func configure(
+      pageIndex: Int, image: UIImage?, loadImage: @escaping (Int) async -> Void
+    ) {
+      self.pageIndex = pageIndex
+      self.loadImage = loadImage
 
-    imageView.image = nil
-    imageView.alpha = 0.0
-    loadingIndicator.isHidden = false
-    loadingIndicator.startAnimating()
-  }
+      imageView.image = nil
+      imageView.alpha = 0.0
+      loadingIndicator.isHidden = false
+      loadingIndicator.startAnimating()
+    }
 
-  func setImageURL(_ url: URL, imageSize _: CGSize?) {
-    imageView.sd_setImage(
-      with: url,
-      placeholderImage: nil,
-      options: [.retryFailed, .scaleDownLargeImages],
-      context: [
-        .imageScaleDownLimitBytes: 50 * 1024 * 1024,
-        .customManager: SDImageCacheProvider.pageImageManager,
-        .storeCacheType: SDImageCacheType.memory.rawValue,
-        .queryCacheType: SDImageCacheType.memory.rawValue,
-      ],
-      progress: nil,
-      completed: { [weak self] image, error, _, _ in
-        guard let self = self else { return }
+    func setImageURL(_ url: URL, imageSize _: CGSize?) {
+      imageView.sd_setImage(
+        with: url,
+        placeholderImage: nil,
+        options: [.retryFailed, .scaleDownLargeImages],
+        context: [
+          .imageScaleDownLimitBytes: 50 * 1024 * 1024,
+          .customManager: SDImageCacheProvider.pageImageManager,
+          .storeCacheType: SDImageCacheType.memory.rawValue,
+          .queryCacheType: SDImageCacheType.memory.rawValue,
+        ],
+        progress: nil,
+        completed: { [weak self] image, error, _, _ in
+          guard let self = self else { return }
 
-        if error != nil {
-          self.imageView.image = nil
-          self.imageView.alpha = 0.0
-          self.loadingIndicator.stopAnimating()
-        } else if image != nil {
-          self.loadingIndicator.stopAnimating()
-          UIView.animate(withDuration: 0.2) {
-            self.imageView.alpha = 1.0
+          if error != nil {
+            self.imageView.image = nil
+            self.imageView.alpha = 0.0
+            self.loadingIndicator.stopAnimating()
+          } else if image != nil {
+            self.loadingIndicator.stopAnimating()
+            UIView.animate(withDuration: 0.2) {
+              self.imageView.alpha = 1.0
+            }
           }
         }
-      }
-    )
-  }
+      )
+    }
 
-  func showError() {
-    imageView.image = nil
-    imageView.alpha = 0.0
-    loadingIndicator.stopAnimating()
-  }
+    func showError() {
+      imageView.image = nil
+      imageView.alpha = 0.0
+      loadingIndicator.stopAnimating()
+    }
 
-  override func prepareForReuse() {
-    super.prepareForReuse()
-    imageView.sd_cancelCurrentImageLoad()
-    imageView.image = nil
-    imageView.alpha = 0.0
-    loadingIndicator.stopAnimating()
-    loadingIndicator.isHidden = true
-    pageIndex = -1
-    loadImage = nil
+    override func prepareForReuse() {
+      super.prepareForReuse()
+      imageView.sd_cancelCurrentImageLoad()
+      imageView.image = nil
+      imageView.alpha = 0.0
+      loadingIndicator.stopAnimating()
+      loadingIndicator.isHidden = true
+      pageIndex = -1
+      loadImage = nil
+    }
   }
-}
+#endif

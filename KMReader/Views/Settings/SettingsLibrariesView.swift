@@ -58,9 +58,15 @@ struct SettingsLibrariesView: View {
         }
       }
     }
-    .listStyle(.insetGrouped)
+    #if canImport(UIKit)
+      .listStyle(.insetGrouped)
+    #else
+      .listStyle(.sidebar)
+    #endif
     .navigationTitle("Libraries")
-    .navigationBarTitleDisplayMode(.inline)
+    #if canImport(UIKit)
+      .navigationBarTitleDisplayMode(.inline)
+    #endif
     .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
       Button("Delete", role: .destructive) {
         deleteConfirmedLibrary()
@@ -90,7 +96,7 @@ struct SettingsLibrariesView: View {
       )
     }
     .toolbar {
-      ToolbarItem(placement: .navigationBarTrailing) {
+      ToolbarItem(placement: .automatic) {
         Menu {
           Button {
             performGlobalAction {
@@ -371,7 +377,9 @@ private struct LibraryActionsSheet: View {
         .disabled(isPerforming || !AppConfig.isAdmin)
       }
       .navigationTitle(library.name)
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button(role: .cancel) {

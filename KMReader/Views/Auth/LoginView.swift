@@ -51,12 +51,14 @@ struct LoginView: View {
 
                 TextField("https://demo.komga.org", text: $serverURL)
                   .textContentType(.URL)
-                  .autocapitalization(.none)
-                  .keyboardType(.URL)
+                  #if canImport(UIKit)
+                    .autocapitalization(.none)
+                    .keyboardType(.URL)
+                  #endif
                   .autocorrectionDisabled()
               }
               .padding()
-              .background(Color(.secondarySystemBackground))
+              .background(PlatformHelper.secondarySystemBackgroundColor)
               .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
@@ -73,11 +75,13 @@ struct LoginView: View {
 
                 TextField("Enter your username", text: $username)
                   .textContentType(.username)
-                  .autocapitalization(.none)
+                  #if canImport(UIKit)
+                    .autocapitalization(.none)
+                  #endif
                   .autocorrectionDisabled()
               }
               .padding()
-              .background(Color(.secondarySystemBackground))
+              .background(PlatformHelper.secondarySystemBackgroundColor)
               .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
@@ -96,7 +100,7 @@ struct LoginView: View {
                   .textContentType(.password)
               }
               .padding()
-              .background(Color(.secondarySystemBackground))
+              .background(PlatformHelper.secondarySystemBackgroundColor)
               .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
@@ -131,7 +135,9 @@ struct LoginView: View {
         .padding(.bottom, 40)
       }
       .navigationTitle("")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
     }
   }
 

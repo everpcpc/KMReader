@@ -13,6 +13,9 @@ struct ReadHistorySection: View {
   var onLoadMore: (() -> Void)?
   var onBookUpdated: (() -> Void)? = nil
 
+  #if canImport(AppKit)
+    @Environment(\.openWindow) private var openWindow
+  #endif
   @State private var readerState: BookReaderState?
   @State private var showReadListPicker = false
   @State private var selectedBookId: String?
@@ -85,16 +88,27 @@ struct ReadHistorySection: View {
         )
       }
     }
-    .fullScreenCover(
-      isPresented: isBookReaderPresented,
-      onDismiss: {
-        onBookUpdated?()
+    #if canImport(UIKit)
+      .fullScreenCover(
+        isPresented: isBookReaderPresented,
+        onDismiss: {
+          onBookUpdated?()
+        }
+      ) {
+        if let state = readerState, let bookId = state.bookId {
+          BookReaderView(bookId: bookId, incognito: state.incognito)
+        }
       }
-    ) {
-      if let state = readerState, let bookId = state.bookId {
-        BookReaderView(bookId: bookId, incognito: state.incognito)
+    #else
+      .onChange(of: readerState) { _, newState in
+        if let state = newState, let bookId = state.bookId {
+          ReaderWindowManager.shared.openReader(bookId: bookId, incognito: state.incognito)
+          openWindow(id: "reader")
+        } else {
+          ReaderWindowManager.shared.closeReader()
+        }
       }
-    }
+    #endif
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {
         bookToDelete = nil

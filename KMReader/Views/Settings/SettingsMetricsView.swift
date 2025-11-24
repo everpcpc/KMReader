@@ -266,7 +266,9 @@ struct SettingsMetricsView: View {
       }
     }
     .navigationTitle("Metrics")
-    .navigationBarTitleDisplayMode(.inline)
+    #if canImport(UIKit)
+      .navigationBarTitleDisplayMode(.inline)
+    #endif
     .task {
       await loadMetrics()
     }

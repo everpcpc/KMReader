@@ -33,16 +33,18 @@ struct BrowseView: View {
         }
         .handleNavigation()
         .navigationTitle("Browse")
-        .navigationBarTitleDisplayMode(.inline)
+        #if canImport(UIKit)
+          .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
-          ToolbarItem(placement: .navigationBarLeading) {
+          ToolbarItem(placement: .automatic) {
             Button {
               showLibraryPickerSheet = true
             } label: {
               Image(systemName: "books.vertical")
             }
           }
-          ToolbarItem(placement: .navigationBarTrailing) {
+          ToolbarItem(placement: .automatic) {
             Menu {
               Picker("Layout", selection: $browseLayout) {
                 ForEach(BrowseLayoutMode.allCases) { mode in
@@ -58,7 +60,7 @@ struct BrowseView: View {
         .sheet(isPresented: $showLibraryPickerSheet) {
           LibraryPickerSheet()
         }
-        .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .automatic))
+        .searchable(text: $searchQuery)
         .onSubmit(of: .search) {
           activeSearchText = searchQuery
         }

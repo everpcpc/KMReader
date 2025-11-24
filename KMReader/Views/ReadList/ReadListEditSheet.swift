@@ -34,16 +34,18 @@ struct ReadListEditSheet: View {
         }
       }
       .navigationTitle("Edit Read List")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             saveChanges()
           } label: {

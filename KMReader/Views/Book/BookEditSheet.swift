@@ -47,9 +47,13 @@ struct BookEditSheet: View {
           TextField("Title", text: $title)
           TextField("Number", text: $number)
           TextField("Release Date", text: $releaseDate)
-            .keyboardType(.default)
+            #if canImport(UIKit)
+              .keyboardType(.default)
+            #endif
           TextField("ISBN", text: $isbn)
-            .keyboardType(.default)
+            #if canImport(UIKit)
+              .keyboardType(.default)
+            #endif
           TextField("Summary", text: $summary, axis: .vertical)
             .lineLimit(3...10)
         }
@@ -135,8 +139,10 @@ struct BookEditSheet: View {
           VStack {
             TextField("Label", text: $newLinkLabel)
             TextField("URL", text: $newLinkURL)
-              .keyboardType(.URL)
-              .autocapitalization(.none)
+              #if canImport(UIKit)
+                .keyboardType(.URL)
+                .autocapitalization(.none)
+              #endif
             Button {
               if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
                 links.append(WebLink(label: newLinkLabel, url: newLinkURL))
@@ -151,16 +157,18 @@ struct BookEditSheet: View {
         }
       }
       .navigationTitle("Edit Book")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             saveChanges()
           } label: {

@@ -10,7 +10,6 @@ import OSLog
 import Photos
 import SDWebImage
 import SwiftUI
-import UIKit
 
 struct PagePair: Hashable {
   let first: Int
@@ -253,7 +252,7 @@ class ReaderViewModel {
 
     // Unsupported type: convert to PNG in-memory and add via resource API
     guard let image = await loadImageWithSDWebImage(from: fileURL),
-      let pngData = image.pngData()
+      let pngData = PlatformHelper.pngData(from: image)
     else {
       return .failure(.failedToLoadImageData)
     }
@@ -273,27 +272,53 @@ class ReaderViewModel {
 
   /// Load image using SDWebImage
   /// - Parameter fileURL: Local file URL
-  /// - Returns: UIImage if successfully loaded, nil otherwise
-  private func loadImageWithSDWebImage(from fileURL: URL) async -> UIImage? {
-    return await withCheckedContinuation { continuation in
-      SDImageCacheProvider.pageImageCache.queryImage(
-        forKey: fileURL.absoluteString,
-        options: [],
-        context: nil
-      ) { image, data, cacheType in
-        if let image = image {
-          continuation.resume(returning: image)
-        } else {
-          if let imageData = try? Data(contentsOf: fileURL),
-            let image = SDImageCodersManager.shared.decodedImage(with: imageData, options: nil)
-          {
+  /// - Returns: PlatformImage if successfully loaded, nil otherwise
+  private func loadImageWithSDWebImage(from fileURL: URL) async -> PlatformImage? {
+    #if canImport(UIKit)
+      return await withCheckedContinuation { continuation in
+        SDImageCacheProvider.pageImageCache.queryImage(
+          forKey: fileURL.absoluteString,
+          options: [],
+          context: nil
+        ) { image, data, cacheType in
+          if let image = image {
             continuation.resume(returning: image)
           } else {
-            continuation.resume(returning: nil)
+            if let imageData = try? Data(contentsOf: fileURL),
+              let image = SDImageCodersManager.shared.decodedImage(with: imageData, options: nil)
+                as? UIImage
+            {
+              continuation.resume(returning: image)
+            } else {
+              continuation.resume(returning: nil)
+            }
           }
         }
       }
-    }
+    #elseif canImport(AppKit)
+      return await withCheckedContinuation { continuation in
+        SDImageCacheProvider.pageImageCache.queryImage(
+          forKey: fileURL.absoluteString,
+          options: [],
+          context: nil
+        ) { image, data, cacheType in
+          if let image = image {
+            continuation.resume(returning: image)
+          } else {
+            if let imageData = try? Data(contentsOf: fileURL),
+              let image = SDImageCodersManager.shared.decodedImage(
+                with: imageData, options: nil)
+            {
+              continuation.resume(returning: image)
+            } else {
+              continuation.resume(returning: nil)
+            }
+          }
+        }
+      }
+    #else
+      return nil
+    #endif
   }
 }
 

@@ -35,9 +35,11 @@ struct BookBrowseOptionsSheet: View {
         )
       }
       .navigationTitle("Filter & Sort")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             if tempOpts != browseOpts {
               browseOpts = tempOpts

@@ -22,7 +22,7 @@ struct ThemeColor: RawRepresentable {
   var rawValue: String {
     // Extract RGB components from Color in sRGB color space
     // Use CGColor to ensure consistent color space conversion
-    let cgColor = UIColor(color).cgColor
+    let cgColor = PlatformHelper.cgColor(from: color)
 
     // Convert to sRGB color space if not already
     guard let sRGBColorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {

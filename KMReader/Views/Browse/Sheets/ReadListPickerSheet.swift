@@ -51,10 +51,12 @@ struct ReadListPickerSheet: View {
         }
       }
       .navigationTitle("Select Read List")
-      .navigationBarTitleDisplayMode(.inline)
-      .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic))
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
+      .searchable(text: $searchText)
       .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             if let selectedReadListId = selectedReadListId {
               onSelect(selectedReadListId)
@@ -65,16 +67,14 @@ struct ReadListPickerSheet: View {
           }
           .disabled(selectedReadListId == nil)
         }
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
         }
-      }
-      .toolbar {
-        ToolbarItem(placement: .bottomBar) {
+        ToolbarItem(placement: .automatic) {
           Button {
             showCreateSheet = true
           } label: {
@@ -138,16 +138,18 @@ struct CreateReadListSheet: View {
         }
       }
       .navigationTitle("Create Read List")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             createReadList()
           } label: {

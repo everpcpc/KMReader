@@ -137,15 +137,29 @@ struct BookReaderView: View {
               }
 
             case .webtoon:
-              WebtoonPageView(
-                viewModel: viewModel,
-                isAtBottom: $isAtBottom,
-                nextBook: nextBook,
-                onDismiss: { dismiss() },
-                onNextBook: { openNextBook(nextBookId: $0) },
-                toggleControls: toggleControls,
-                screenSize: geometry.size
-              ).ignoresSafeArea()
+              #if canImport(UIKit)
+                WebtoonPageView(
+                  viewModel: viewModel,
+                  isAtBottom: $isAtBottom,
+                  nextBook: nextBook,
+                  onDismiss: { dismiss() },
+                  onNextBook: { openNextBook(nextBookId: $0) },
+                  toggleControls: toggleControls,
+                  screenSize: geometry.size
+                ).ignoresSafeArea()
+              #else
+                // Webtoon requires UIKit, fallback to vertical
+                VerticalPageView(
+                  viewModel: viewModel,
+                  nextBook: nextBook,
+                  onDismiss: { dismiss() },
+                  onNextBook: { openNextBook(nextBookId: $0) },
+                  goToNextPage: goToNextPage,
+                  goToPreviousPage: goToPreviousPage,
+                  toggleControls: toggleControls,
+                  screenSize: geometry.size
+                ).ignoresSafeArea()
+              #endif
             }
           }
           .id(screenKey)
@@ -177,7 +191,12 @@ struct BookReaderView: View {
           case .vertical:
             VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
           case .webtoon:
-            WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
+            #if canImport(UIKit)
+              WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
+            #else
+              // Webtoon requires UIKit, fallback to vertical
+              VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
+            #endif
           }
         }
         .ignoresSafeArea()
@@ -219,7 +238,9 @@ struct BookReaderView: View {
       }
     }
     .ignoresSafeArea()
-    .statusBar(hidden: !shouldShowControls)
+    #if canImport(UIKit)
+      .statusBar(hidden: !shouldShowControls)
+    #endif
     .task(id: currentBookId) {
       await loadBook(bookId: currentBookId)
     }
@@ -251,7 +272,9 @@ struct BookReaderView: View {
       // Get series reading direction
       let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
       if let readingDirectionString = series.metadata.readingDirection {
-        readingDirection = ReadingDirection.fromString(readingDirectionString)
+        let direction = ReadingDirection.fromString(readingDirectionString)
+        // Fallback to vertical if webtoon is not supported on current platform
+        readingDirection = direction.isSupported ? direction : .vertical
       }
 
       // Load next book

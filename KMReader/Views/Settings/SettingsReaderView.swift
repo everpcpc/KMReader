@@ -64,26 +64,30 @@ struct SettingsReaderView: View {
         }
       }
 
-      Section(header: Text("Webtoon")) {
-        VStack(alignment: .leading, spacing: 8) {
-          HStack {
-            Text("Page Width")
-            Spacer()
-            Text("\(Int(webtoonPageWidthPercentage))%")
+      #if canImport(UIKit)
+        Section(header: Text("Webtoon")) {
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Text("Page Width")
+              Spacer()
+              Text("\(Int(webtoonPageWidthPercentage))%")
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: $webtoonPageWidthPercentage,
+              in: 50...100,
+              step: 5
+            )
+            Text("Adjust the width of webtoon pages as a percentage of screen width")
+              .font(.caption)
               .foregroundColor(.secondary)
           }
-          Slider(
-            value: $webtoonPageWidthPercentage,
-            in: 50...100,
-            step: 5
-          )
-          Text("Adjust the width of webtoon pages as a percentage of screen width")
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
-      }
+      #endif
     }
     .navigationTitle("Reader")
-    .navigationBarTitleDisplayMode(.inline)
+    #if canImport(UIKit)
+      .navigationBarTitleDisplayMode(.inline)
+    #endif
   }
 }

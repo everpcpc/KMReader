@@ -15,6 +15,9 @@ struct SeriesDetailView: View {
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
 
   @Environment(\.dismiss) private var dismiss
+  #if canImport(AppKit)
+    @Environment(\.openWindow) private var openWindow
+  #endif
 
   @State private var seriesViewModel = SeriesViewModel()
   @State private var bookViewModel = BookViewModel()
@@ -350,17 +353,30 @@ struct SeriesDetailView: View {
         .padding(.horizontal)
       }
       .navigationTitle("Series")
-      .navigationBarTitleDisplayMode(.inline)
-      .fullScreenCover(
-        isPresented: isBookReaderPresented,
-        onDismiss: {
-          refreshAfterReading()
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
+      #if canImport(UIKit)
+        .fullScreenCover(
+          isPresented: isBookReaderPresented,
+          onDismiss: {
+            refreshAfterReading()
+          }
+        ) {
+          if let state = readerState, let bookId = state.bookId {
+            BookReaderView(bookId: bookId, incognito: state.incognito)
+          }
         }
-      ) {
-        if let state = readerState, let bookId = state.bookId {
-          BookReaderView(bookId: bookId, incognito: state.incognito)
+      #else
+        .onChange(of: readerState) { _, newState in
+          if let state = newState, let bookId = state.bookId {
+            ReaderWindowManager.shared.openReader(bookId: bookId, incognito: state.incognito)
+            openWindow(id: "reader")
+          } else {
+            ReaderWindowManager.shared.closeReader()
+          }
         }
-      }
+      #endif
       .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
         Button("Delete", role: .destructive) {
           deleteSeries()
@@ -370,7 +386,7 @@ struct SeriesDetailView: View {
         Text("This will permanently delete \(series?.metadata.title ?? "this series") from Komga.")
       }
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           HStack(spacing: 8) {
             Menu {
               Picker("Layout", selection: $layoutMode) {

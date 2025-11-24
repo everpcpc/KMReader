@@ -227,7 +227,9 @@ struct SettingsServerInfoView: View {
       }
     }
     .navigationTitle("Server Info")
-    .navigationBarTitleDisplayMode(.inline)
+    #if canImport(UIKit)
+      .navigationBarTitleDisplayMode(.inline)
+    #endif
     .task {
       await loadServerInfo()
     }

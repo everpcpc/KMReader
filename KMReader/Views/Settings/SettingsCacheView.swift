@@ -79,7 +79,9 @@ struct SettingsCacheView: View {
       }
     }
     .navigationTitle("Cache")
-    .navigationBarTitleDisplayMode(.inline)
+    #if canImport(UIKit)
+      .navigationBarTitleDisplayMode(.inline)
+    #endif
     .alert("Clear Disk Cache", isPresented: $showClearCacheConfirmation) {
       Button("Clear Cache", role: .destructive) {
         Task {

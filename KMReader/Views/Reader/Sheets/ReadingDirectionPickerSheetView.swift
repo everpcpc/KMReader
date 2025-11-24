@@ -16,7 +16,7 @@ struct ReadingDirectionPickerSheetView: View {
     NavigationStack {
       Form {
         Picker("Reading Direction", selection: $readingDirection) {
-          ForEach(ReadingDirection.allCases, id: \.self) { direction in
+          ForEach(ReadingDirection.availableCases, id: \.self) { direction in
             HStack(spacing: 12) {
               Image(systemName: direction.icon)
                 .foregroundStyle(themeColor.color)
@@ -27,7 +27,9 @@ struct ReadingDirectionPickerSheetView: View {
         }.pickerStyle(.inline)
       }
       .navigationTitle("Reading Mode")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
     }
   }
 }

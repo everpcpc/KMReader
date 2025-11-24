@@ -67,16 +67,18 @@ struct HistoryView: View {
       }
       .handleNavigation()
       .navigationTitle("History")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             showLibraryPickerSheet = true
           } label: {
             Image(systemName: "books.vertical")
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             Task {
               await bookViewModel.loadRecentlyReadBooks(

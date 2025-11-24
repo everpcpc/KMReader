@@ -92,7 +92,9 @@ struct CollectionDetailView: View {
         .padding(.horizontal)
       }
       .navigationTitle("Collection")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
         Button("Delete", role: .destructive) {
           Task {
@@ -104,7 +106,7 @@ struct CollectionDetailView: View {
         Text("This will permanently delete \(collection?.name ?? "this collection") from Komga.")
       }
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           HStack(spacing: 8) {
             Menu {
               Picker("Layout", selection: $layoutMode) {

@@ -17,6 +17,9 @@ struct BooksBrowseView: View {
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  #if canImport(AppKit)
+    @Environment(\.openWindow) private var openWindow
+  #endif
 
   @State private var viewModel = BookViewModel()
   @State private var readerState: BookReaderState?
@@ -85,11 +88,19 @@ struct BooksBrowseView: View {
     .onAppear {
       browseOpts.libraryId = selectedLibraryId
     }
-    .fullScreenCover(isPresented: isBookReaderPresented) {
-      if let state = readerState, let bookId = state.bookId {
-        BookReaderView(bookId: bookId, incognito: state.incognito)
+    #if canImport(UIKit)
+      .fullScreenCover(isPresented: isBookReaderPresented) {
+        if let state = readerState, let bookId = state.bookId {
+          BookReaderView(bookId: bookId, incognito: state.incognito)
+        }
       }
-    }
+    #else
+      .sheet(isPresented: isBookReaderPresented) {
+        if let state = readerState, let bookId = state.bookId {
+          BookReaderView(bookId: bookId, incognito: state.incognito)
+        }
+      }
+    #endif
   }
 
   private var gridView: some View {

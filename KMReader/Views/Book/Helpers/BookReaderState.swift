@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct BookReaderState {
+struct BookReaderState: Equatable {
   var bookId: String?
   var incognito: Bool = false
 }

@@ -78,7 +78,9 @@ struct SettingsView: View {
 
       .handleNavigation()
       .navigationTitle("Settings")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .alert("Logout", isPresented: $showLogoutAlert) {
         Button("Cancel", role: .cancel) {}
         Button("Logout", role: .destructive) {

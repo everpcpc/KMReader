@@ -14,6 +14,26 @@ enum ReadingDirection: CaseIterable, Hashable {
   case vertical
   case webtoon
 
+  /// Get available reading directions for current platform
+  static var availableCases: [ReadingDirection] {
+    #if canImport(UIKit)
+      return allCases
+    #else
+      // Webtoon requires UIKit
+      return [.ltr, .rtl, .vertical]
+    #endif
+  }
+
+  /// Check if this reading direction is supported on current platform
+  var isSupported: Bool {
+    #if canImport(UIKit)
+      return true
+    #else
+      // Webtoon requires UIKit
+      return self != .webtoon
+    #endif
+  }
+
   static func fromString(_ direction: String?) -> ReadingDirection {
     guard let direction = direction else {
       return .ltr

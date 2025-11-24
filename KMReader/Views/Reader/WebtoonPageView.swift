@@ -5,51 +5,53 @@
 //  Created by Komga iOS Client
 //
 
-import SwiftUI
+#if canImport(UIKit)
+  import SwiftUI
 
-struct WebtoonPageView: View {
-  let viewModel: ReaderViewModel
-  @Binding var isAtBottom: Bool
-  let nextBook: Book?
-  let onDismiss: () -> Void
-  let onNextBook: (String) -> Void
-  let toggleControls: () -> Void
-  let screenSize: CGSize
+  struct WebtoonPageView: View {
+    let viewModel: ReaderViewModel
+    @Binding var isAtBottom: Bool
+    let nextBook: Book?
+    let onDismiss: () -> Void
+    let onNextBook: (String) -> Void
+    let toggleControls: () -> Void
+    let screenSize: CGSize
 
-  @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
+    @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
 
-  var body: some View {
-    let pageWidth = screenSize.width * (webtoonPageWidthPercentage / 100.0)
+    var body: some View {
+      let pageWidth = screenSize.width * (webtoonPageWidthPercentage / 100.0)
 
-    ZStack {
-      WebtoonReaderView(
-        pages: viewModel.pages,
-        viewModel: viewModel,
-        pageWidth: pageWidth,
-        onPageChange: { pageIndex in
-          viewModel.currentPageIndex = pageIndex
-        },
-        onCenterTap: {
-          toggleControls()
-        },
-        onScrollToBottom: { atBottom in
-          isAtBottom = atBottom
+      ZStack {
+        WebtoonReaderView(
+          pages: viewModel.pages,
+          viewModel: viewModel,
+          pageWidth: pageWidth,
+          onPageChange: { pageIndex in
+            viewModel.currentPageIndex = pageIndex
+          },
+          onCenterTap: {
+            toggleControls()
+          },
+          onScrollToBottom: { atBottom in
+            isAtBottom = atBottom
+          }
+        )
+
+        if isAtBottom {
+          VStack {
+            Spacer()
+            EndPageView(
+              nextBook: nextBook,
+              onDismiss: onDismiss,
+              onNextBook: onNextBook,
+              isRTL: false,
+            )
+            .padding(.bottom, 160)
+          }
+          .transition(.opacity)
         }
-      )
-
-      if isAtBottom {
-        VStack {
-          Spacer()
-          EndPageView(
-            nextBook: nextBook,
-            onDismiss: onDismiss,
-            onNextBook: onNextBook,
-            isRTL: false,
-          )
-          .padding(.bottom, 160)
-        }
-        .transition(.opacity)
       }
     }
   }
-}
+#endif

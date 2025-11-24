@@ -58,7 +58,7 @@ struct ContentView: View {
         ErrorManager.shared.vanishError()
       }
       Button("Copy") {
-        UIPasteboard.general.string = errorManager.currentError?.description
+        PlatformHelper.generalPasteboard.string = errorManager.currentError?.description
         ErrorManager.shared.notify(message: "Copied")
       }
     } message: {

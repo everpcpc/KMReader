@@ -28,7 +28,7 @@ enum ReaderBackground: String, CaseIterable, Hashable {
     case .black: return .black
     case .white: return .white
     case .gray: return .gray
-    case .system: return Color(.systemBackground)
+    case .system: return PlatformHelper.systemBackgroundColor
     }
   }
 }

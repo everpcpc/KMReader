@@ -11,6 +11,9 @@ struct BookDetailView: View {
   let bookId: String
 
   @Environment(\.dismiss) private var dismiss
+  #if canImport(AppKit)
+    @Environment(\.openWindow) private var openWindow
+  #endif
   @State private var book: Book?
   @State private var isLoading = true
   @State private var readerState: BookReaderState?
@@ -209,19 +212,32 @@ struct BookDetailView: View {
       .padding()
     }
     .navigationTitle("Book")
-    .navigationBarTitleDisplayMode(.inline)
-    .fullScreenCover(
-      isPresented: isBookReaderPresented,
-      onDismiss: {
-        Task {
-          await loadBook()
+    #if canImport(UIKit)
+      .navigationBarTitleDisplayMode(.inline)
+    #endif
+    #if canImport(UIKit)
+      .fullScreenCover(
+        isPresented: isBookReaderPresented,
+        onDismiss: {
+          Task {
+            await loadBook()
+          }
+        }
+      ) {
+        if let state = readerState, let bookId = state.bookId {
+          BookReaderView(bookId: bookId, incognito: state.incognito)
         }
       }
-    ) {
-      if let state = readerState, let bookId = state.bookId {
-        BookReaderView(bookId: bookId, incognito: state.incognito)
+    #else
+      .onChange(of: readerState) { _, newState in
+        if let state = newState, let bookId = state.bookId {
+          ReaderWindowManager.shared.openReader(bookId: bookId, incognito: state.incognito)
+          openWindow(id: "reader")
+        } else {
+          ReaderWindowManager.shared.closeReader()
+        }
       }
-    }
+    #endif
     .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteBook()
@@ -231,7 +247,7 @@ struct BookDetailView: View {
       Text("This will permanently delete \(book?.metadata.title ?? "this book") from Komga.")
     }
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      ToolbarItem(placement: .automatic) {
         Menu {
           Button {
             showEditSheet = true

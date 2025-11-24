@@ -25,6 +25,13 @@ struct KomgaApp: App {
           configureSDWebImage()
         }
     }
+    #if canImport(AppKit)
+      WindowGroup("Reader", id: "reader") {
+        ReaderWindowView()
+          .environment(authViewModel)
+      }
+      .defaultSize(width: 1200, height: 800)
+    #endif
   }
 
   private func configureSDWebImage() {

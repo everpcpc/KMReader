@@ -296,7 +296,9 @@ struct PageJumpSheetView: View {
       }
       .padding()
       .navigationTitle("Go to Page")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button(role: .cancel) {

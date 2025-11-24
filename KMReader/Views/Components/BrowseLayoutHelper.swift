@@ -19,7 +19,7 @@ struct BrowseLayoutHelper {
   }
 
   var isLandscape: Bool {
-    let orientation = UIDevice.current.orientation
+    let orientation = PlatformHelper.deviceOrientation
     return orientation.isLandscape || (orientation == .unknown && width > height)
   }
 

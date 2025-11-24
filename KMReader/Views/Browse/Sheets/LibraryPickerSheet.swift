@@ -23,9 +23,11 @@ struct LibraryPickerSheet: View {
         .pickerStyle(.inline)
       }
       .navigationTitle("Select Library")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {

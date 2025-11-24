@@ -8,10 +8,6 @@
 import Foundation
 import OSLog
 
-#if canImport(UIKit)
-  import UIKit
-#endif
-
 class APIClient {
   static let shared = APIClient()
 
@@ -46,18 +42,17 @@ class APIClient {
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
 
+    let device = PlatformHelper.deviceModel
+    let osVersion = PlatformHelper.osVersion
     #if canImport(UIKit)
-      let device = UIDevice.current.model
-      let iosVersion = UIDevice.current.systemVersion
-      self.userAgent =
-        "\(appName)/\(appVersion) (\(device); iOS \(iosVersion); Build \(buildNumber))"
+      let platform = "iOS"
+    #elseif canImport(AppKit)
+      let platform = "macOS"
     #else
-      let osVersion = ProcessInfo.processInfo.operatingSystemVersion
-      let systemInfo =
-        "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
-      self.userAgent =
-        "\(appName)/\(appVersion) (Unknown; macOS \(systemInfo); Build \(buildNumber))"
+      let platform = "Unknown"
     #endif
+    self.userAgent =
+      "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
   }
 
   func setServer(url: String) {

@@ -49,7 +49,7 @@ struct BrowseColumns: Equatable, RawRepresentable {
 }
 
 private func getDefaultPortraitColumns() -> Int {
-  if UIDevice.current.userInterfaceIdiom == .pad {
+  if PlatformHelper.isPad {
     return 4
   } else {
     return 2
@@ -57,7 +57,7 @@ private func getDefaultPortraitColumns() -> Int {
 }
 
 private func getDefaultLandscapeColumns() -> Int {
-  if UIDevice.current.userInterfaceIdiom == .pad {
+  if PlatformHelper.isPad {
     return 6
   } else {
     return 4

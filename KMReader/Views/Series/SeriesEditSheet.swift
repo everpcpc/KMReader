@@ -62,7 +62,9 @@ struct SeriesEditSheet: View {
             .lineLimit(3...10)
           TextField("Publisher", text: $publisher)
           TextField("Age Rating", text: $ageRating)
-            .keyboardType(.numberPad)
+            #if canImport(UIKit)
+              .keyboardType(.numberPad)
+            #endif
           TextField("Language", text: $language)
           Picker("Reading Direction", selection: $readingDirection) {
             ForEach(ReadingDirection.allCases, id: \.self) { direction in
@@ -149,8 +151,10 @@ struct SeriesEditSheet: View {
           VStack {
             TextField("Label", text: $newLinkLabel)
             TextField("URL", text: $newLinkURL)
-              .keyboardType(.URL)
-              .autocapitalization(.none)
+              #if canImport(UIKit)
+                .keyboardType(.URL)
+                .autocapitalization(.none)
+              #endif
             Button {
               if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
                 links.append(WebLink(label: newLinkLabel, url: newLinkURL))
@@ -200,16 +204,18 @@ struct SeriesEditSheet: View {
         }
       }
       .navigationTitle("Edit Series")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             saveChanges()
           } label: {

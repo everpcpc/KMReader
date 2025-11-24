@@ -51,10 +51,12 @@ struct CollectionPickerSheet: View {
         }
       }
       .navigationTitle("Select Collection")
-      .navigationBarTitleDisplayMode(.inline)
-      .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic))
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
+      .searchable(text: $searchText)
       .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             if let selectedCollectionId = selectedCollectionId {
               onSelect(selectedCollectionId)
@@ -65,16 +67,14 @@ struct CollectionPickerSheet: View {
           }
           .disabled(selectedCollectionId == nil)
         }
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
         }
-      }
-      .toolbar {
-        ToolbarItem(placement: .bottomBar) {
+        ToolbarItem(placement: .automatic) {
           Button {
             showCreateSheet = true
           } label: {
@@ -135,16 +135,18 @@ struct CreateCollectionSheet: View {
         }
       }
       .navigationTitle("Create Collection")
-      .navigationBarTitleDisplayMode(.inline)
+      #if canImport(UIKit)
+        .navigationBarTitleDisplayMode(.inline)
+      #endif
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .automatic) {
           Button {
             createCollection()
           } label: {
