@@ -48,6 +48,7 @@ struct MangaPageView: View {
               SinglePageImageView(
                 viewModel: viewModel,
                 pageIndex: pageIndex,
+                screenSize: screenSize
               )
               .frame(width: screenSize.width, height: screenSize.height)
               .contentShape(Rectangle())

@@ -52,6 +52,7 @@ struct VerticalDualPageView: View {
                     SinglePageImageView(
                       viewModel: viewModel,
                       pageIndex: pagePair.first,
+                      screenSize: screenSize
                     )
                   }
                 }

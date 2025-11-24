@@ -15,12 +15,10 @@ struct DualPageImageView: View {
   let screenSize: CGSize
   let isRTL: Bool
 
-  @State private var scale: CGFloat = 1.0
-  @State private var lastScale: CGFloat = 1.0
-  @State private var offset: CGSize = .zero
-  @State private var lastOffset: CGSize = .zero
-  private let minScale: CGFloat = 1.0
-  private let maxScale: CGFloat = 4.0
+  @Environment(\.zoomableContentSizeReporter) private var reportContentSize
+
+  @State private var leftPageSize: CGSize = .zero
+  @State private var rightPageSize: CGSize = .zero
 
   var imageWidth: CGFloat {
     screenSize.width / 2
@@ -30,118 +28,77 @@ struct DualPageImageView: View {
     screenSize.height
   }
 
+  var resetID: String {
+    "\(firstPageIndex)-\(secondPageIndex)"
+  }
+
   var body: some View {
-    HStack(spacing: 0) {
-      if isRTL {
-        PageImageView(viewModel: viewModel, pageIndex: secondPageIndex)
-          .frame(width: imageWidth, height: imageHeight, alignment: .trailing)
-          .clipped()
-
-        PageImageView(viewModel: viewModel, pageIndex: firstPageIndex)
-          .frame(width: imageWidth, height: imageHeight, alignment: .leading)
-          .clipped()
-      } else {
-        PageImageView(viewModel: viewModel, pageIndex: firstPageIndex)
-          .frame(width: imageWidth, height: imageHeight, alignment: .trailing)
-          .clipped()
-
-        PageImageView(viewModel: viewModel, pageIndex: secondPageIndex)
-          .frame(width: imageWidth, height: imageHeight, alignment: .leading)
-          .clipped()
-      }
-    }
-    .frame(width: screenSize.width, height: screenSize.height)
-    .scaleEffect(scale, anchor: .center)
-    .offset(offset)
-    .gesture(
-      MagnificationGesture()
-        .onChanged { value in
-          let delta = value / lastScale
-          lastScale = value
-          applyScale(delta: delta)
-        }
-        .onEnded { _ in
-          lastScale = 1.0
-          if scale <= minScale {
-            withAnimation {
-              resetTransform()
-            }
-          }
-        }
-    )
-    .onTapGesture(count: 2) {
-      // Double tap to zoom in/out
-      if scale > minScale {
-        withAnimation {
-          resetTransform()
-        }
-      } else {
-        withAnimation {
-          scale = 2.0
-        }
-      }
-    }
-    .simultaneousGesture(
-      DragGesture(
-        minimumDistance: scale > minScale ? 0 : CGFloat.greatestFiniteMagnitude
-      )
-      .onChanged { value in
-        guard scale > minScale else { return }
-        offset = CGSize(
-          width: lastOffset.width + value.translation.width,
-          height: lastOffset.height + value.translation.height
-        )
-      }
-      .onEnded { _ in
-        if scale > minScale {
-          lastOffset = offset
+    ZoomableImageContainer(screenSize: screenSize, resetID: resetID) {
+      HStack(spacing: 0) {
+        if isRTL {
+          pageView(
+            index: secondPageIndex,
+            alignment: .trailing,
+            update: updateLeftPageSize
+          )
+          pageView(
+            index: firstPageIndex,
+            alignment: .leading,
+            update: updateRightPageSize
+          )
         } else {
-          resetPanState()
+          pageView(
+            index: firstPageIndex,
+            alignment: .trailing,
+            update: updateLeftPageSize
+          )
+          pageView(
+            index: secondPageIndex,
+            alignment: .leading,
+            update: updateRightPageSize
+          )
         }
       }
-    )
-    .task(id: "\(firstPageIndex)-\(secondPageIndex)") {
-      // Reset zoom state when switching pages
-      resetTransform()
-    }
-    .onDisappear {
-      resetTransform()
+      .frame(width: screenSize.width, height: screenSize.height)
     }
   }
 
-  private func applyScale(delta: CGFloat) {
-    let previousScale = scale
-    let newScale = min(max(previousScale * delta, minScale), maxScale)
-    scale = newScale
-
-    if newScale == minScale {
-      withAnimation(.easeOut(duration: 0.2)) {
-        resetPanState()
-      }
-      return
-    }
-
-    let factor = previousScale == 0 ? 1 : newScale / previousScale
-    guard factor.isFinite else { return }
-
-    offset = CGSize(
-      width: offset.width * factor,
-      height: offset.height * factor
-    )
-    lastOffset = CGSize(
-      width: lastOffset.width * factor,
-      height: lastOffset.height * factor
-    )
+  private func updateLeftPageSize(_ size: CGSize) {
+    leftPageSize = size
+    reportCombinedSize()
   }
 
-  private func resetTransform() {
-    scale = minScale
-    lastScale = minScale
-    resetPanState()
+  private func updateRightPageSize(_ size: CGSize) {
+    rightPageSize = size
+    reportCombinedSize()
   }
 
-  private func resetPanState() {
-    offset = .zero
-    lastOffset = .zero
+  @ViewBuilder
+  private func pageView(
+    index: Int,
+    alignment: Alignment,
+    update: @escaping (CGSize) -> Void
+  ) -> some View {
+    PageImageView(viewModel: viewModel, pageIndex: index)
+      .reportSize(update)
+      .frame(width: imageWidth, height: imageHeight, alignment: alignment)
+      .clipped()
+  }
+
+  private func reportCombinedSize() {
+    let combinedWidth =
+      effectiveDimension(leftPageSize.width, fallback: imageWidth)
+      + effectiveDimension(rightPageSize.width, fallback: imageWidth)
+    let combinedHeight = max(
+      effectiveDimension(leftPageSize.height, fallback: imageHeight),
+      effectiveDimension(rightPageSize.height, fallback: imageHeight)
+    )
+    let combined = CGSize(width: combinedWidth, height: combinedHeight)
+    guard combined.width > 0 && combined.height > 0 else { return }
+    reportContentSize(combined)
+  }
+
+  private func effectiveDimension(_ value: CGFloat, fallback: CGFloat) -> CGFloat {
+    value > 0 ? value : fallback
   }
 }
