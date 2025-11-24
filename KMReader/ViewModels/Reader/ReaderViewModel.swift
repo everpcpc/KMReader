@@ -286,7 +286,6 @@ class ReaderViewModel {
           } else {
             if let imageData = try? Data(contentsOf: fileURL),
               let image = SDImageCodersManager.shared.decodedImage(with: imageData, options: nil)
-                as? UIImage
             {
               continuation.resume(returning: image)
             } else {
