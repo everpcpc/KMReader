@@ -9,7 +9,7 @@ import SwiftUI
 
 struct LoginView: View {
   @Environment(AuthViewModel.self) private var authViewModel
-  @AppStorage("serverURL") private var serverURL: String = ""
+  @AppStorage("serverURL") private var serverURL: String = "https://demo.komga.org"
   @AppStorage("username") private var username: String = ""
   @State private var password = ""
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -49,7 +49,7 @@ struct LoginView: View {
                   .foregroundStyle(.secondary)
                   .frame(width: 20)
 
-                TextField("https://demo.komga.org", text: $serverURL)
+                TextField("Enter your server URL", text: $serverURL)
                   .textContentType(.URL)
                   #if canImport(UIKit)
                     .autocapitalization(.none)
