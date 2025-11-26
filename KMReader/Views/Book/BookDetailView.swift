@@ -100,7 +100,7 @@ struct BookDetailView: View {
                 } else {
                   InfoChip(
                     label: "Page \(readProgress.page) / \(book.media.pagesCount)",
-                    systemImage: "book.pages",
+                    systemImage: "circle.righthalf.filled",
                     backgroundColor: Color.orange.opacity(0.2),
                     foregroundColor: .orange
                   )

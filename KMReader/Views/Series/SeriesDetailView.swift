@@ -99,14 +99,14 @@ struct SeriesDetailView: View {
                     if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount {
                       InfoChip(
                         label: "\(series.booksUnreadCount) unread",
-                        systemImage: "circlebadge",
+                        systemImage: "circle",
                         backgroundColor: Color.gray.opacity(0.2),
                         foregroundColor: .gray
                       )
                     } else if series.booksInProgressCount > 0 {
                       InfoChip(
                         label: "\(series.booksInProgressCount) in progress",
-                        systemImage: "book.pages",
+                        systemImage: "circle.righthalf.filled",
                         backgroundColor: Color.orange.opacity(0.2),
                         foregroundColor: .orange
                       )
@@ -125,6 +125,7 @@ struct SeriesDetailView: View {
                     if let status = series.metadata.status, !status.isEmpty {
                       InfoChip(
                         label: series.statusDisplayName,
+                        systemImage: series.statusIcon,
                         backgroundColor: series.statusColor.opacity(0.8),
                         foregroundColor: .white
                       )
@@ -132,6 +133,7 @@ struct SeriesDetailView: View {
                     if let language = series.metadata.language, !language.isEmpty {
                       InfoChip(
                         label: languageDisplayName(language),
+                        systemImage: "globe",
                         backgroundColor: Color.purple.opacity(0.2),
                         foregroundColor: .purple
                       )
@@ -139,6 +141,7 @@ struct SeriesDetailView: View {
                     if let direction = series.metadata.readingDirection, !direction.isEmpty {
                       InfoChip(
                         label: ReadingDirection.fromString(direction).displayName,
+                        systemImage: ReadingDirection.fromString(direction).icon,
                         backgroundColor: Color.cyan.opacity(0.2),
                         foregroundColor: .cyan
                       )
