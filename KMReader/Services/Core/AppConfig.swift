@@ -80,6 +80,16 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "maxDiskCacheSizeMB") }
   }
 
+  // MARK: - Custom Fonts
+  static var customFontNames: [String] {
+    get {
+      defaults.stringArray(forKey: "customFontNames") ?? []
+    }
+    set {
+      defaults.set(newValue, forKey: "customFontNames")
+    }
+  }
+
   // MARK: - Clear all auth data
   static func clearAuthData() {
     authToken = nil
