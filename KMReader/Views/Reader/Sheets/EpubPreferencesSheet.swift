@@ -30,8 +30,8 @@ struct EpubPreferencesSheet: View {
             }
           }
           VStack(alignment: .leading) {
-            Slider(value: $draft.typeScale, in: 0.8...1.4, step: 0.05)
-            Text("Size: \(Int(draft.typeScale * 100))%")
+            Slider(value: $draft.fontSize, in: 0.5...2.0, step: 0.05)
+            Text("Size: \(String(format: "%.2f", draft.fontSize))")
               .font(.caption)
               .foregroundStyle(.secondary)
           }

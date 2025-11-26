@@ -13,20 +13,20 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
   typealias RawValue = String
 
   var fontFamily: FontFamilyChoice
-  var typeScale: Double
+  var fontSize: Double
   var pagination: PaginationMode
   var layout: LayoutChoice
   var theme: ThemeChoice
 
   init(
     fontFamily: FontFamilyChoice = .publisher,
-    typeScale: Double = 1.0,
+    fontSize: Double = 1.0,
     pagination: PaginationMode = .paged,
     layout: LayoutChoice = .auto,
     theme: ThemeChoice = .system
   ) {
     self.fontFamily = fontFamily
-    self.typeScale = typeScale
+    self.fontSize = fontSize
     self.pagination = pagination
     self.layout = layout
     self.theme = theme
@@ -35,7 +35,7 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
   init() {
     self.init(
       fontFamily: .publisher,
-      typeScale: 1.0,
+      fontSize: 1.0,
       pagination: .paged,
       layout: .auto,
       theme: .system
@@ -57,18 +57,18 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
 
     let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
     let font = FontFamilyChoice(rawValue: fontString)
-    let typeScale = dict["typeScale"] as? Double ?? 1.0
+    let fontSize = dict["fontSize"] as? Double ?? 1.0
     let pagination = (dict["pagination"] as? String).flatMap(PaginationMode.init) ?? .paged
     let layout = (dict["layout"] as? String).flatMap(LayoutChoice.init) ?? .auto
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
     self.init(
-      fontFamily: font, typeScale: typeScale, pagination: pagination, layout: layout, theme: theme)
+      fontFamily: font, fontSize: fontSize, pagination: pagination, layout: layout, theme: theme)
   }
 
   var rawValue: String {
     let dict: [String: Any] = [
       "fontFamily": fontFamily.rawValue,
-      "typeScale": typeScale,
+      "fontSize": fontSize,
       "pagination": pagination.rawValue,
       "layout": layout.rawValue,
       "theme": theme.rawValue,
@@ -84,17 +84,17 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
   func toPreferences() -> EPUBPreferences {
     EPUBPreferences(
       fontFamily: fontFamily.fontFamily,
+      fontSize: fontSize,
       scroll: pagination == .scroll,
       spread: layout.spread,
       theme: theme.theme,
-      typeScale: typeScale
     )
   }
 
   static func from(preferences: EPUBPreferences) -> EpubReaderPreferences {
     EpubReaderPreferences(
       fontFamily: FontFamilyChoice.from(preferences.fontFamily),
-      typeScale: preferences.typeScale ?? 1.0,
+      fontSize: preferences.fontSize ?? 1.0,
       pagination: (preferences.scroll ?? false) ? .scroll : .paged,
       layout: LayoutChoice.from(preferences.spread),
       theme: ThemeChoice.from(preferences.theme)
