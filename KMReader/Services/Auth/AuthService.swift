@@ -53,6 +53,9 @@ class AuthService {
     // Clear local data
     apiClient.setAuthToken(nil)
     AppConfig.clearAuthData()
+
+    // Clear library data
+    LibraryManager.shared.clearLibraries()
   }
 
   func isLoggedIn() -> Bool {

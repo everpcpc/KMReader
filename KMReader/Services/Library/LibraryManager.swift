@@ -47,4 +47,9 @@ class LibraryManager {
     hasLoaded = false
     await loadLibraries()
   }
+
+  func clearLibraries() {
+    libraries = []
+    hasLoaded = false
+  }
 }
