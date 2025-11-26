@@ -53,7 +53,13 @@ struct SeriesDetailView: View {
 
   private var hasAdditionalInfo: Bool {
     guard let series else { return false }
-    return series.metadata.status != nil || series.metadata.readingDirection != nil
+    if let status = series.metadata.status, !status.isEmpty {
+      return true
+    }
+    if let readDirection = series.metadata.readingDirection, !readDirection.isEmpty {
+      return true
+    }
+    return false
   }
 
   var body: some View {
