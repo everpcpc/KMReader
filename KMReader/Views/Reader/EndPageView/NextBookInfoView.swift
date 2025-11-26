@@ -14,9 +14,11 @@ struct NextBookInfoView: View {
 
   var body: some View {
     if let nextBook = nextBook {
-      VStack {
+      VStack(spacing: 4) {
         Label("UP NEXT: #\(Int(nextBook.number))", systemImage: "arrow.right.circle")
         Text(nextBook.metadata.title)
+        Text("\(nextBook.media.pagesCount) pages • \(nextBook.size)")
+          .font(.footnote)
       }
       .foregroundColor(.white)
       .padding(.horizontal, 16)
