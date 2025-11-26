@@ -137,7 +137,6 @@ struct BookDetailView: View {
                 }
               }
             }
-            Spacer()
           }
 
           BookActionsSection(

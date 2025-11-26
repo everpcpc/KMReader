@@ -195,9 +195,7 @@ struct SeriesDetailView: View {
                     }
                   }
                 }
-                Spacer()
               }
-              Spacer(minLength: 0)
             }
 
             // Genres
@@ -248,7 +246,6 @@ struct SeriesDetailView: View {
                 backgroundColor: Color.purple.opacity(0.2),
                 foregroundColor: .purple
               )
-              Spacer(minLength: 0)
             }
 
             if !isLoadingCollections && !containingCollections.isEmpty {

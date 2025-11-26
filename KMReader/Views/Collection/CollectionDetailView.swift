@@ -39,12 +39,22 @@ struct CollectionDetailView: View {
 
                 // Info chips
                 VStack(alignment: .leading, spacing: 6) {
-                  InfoChip(
-                    label: "\(collection.seriesIds.count) series",
-                    systemImage: "square.grid.2x2",
-                    backgroundColor: Color.blue.opacity(0.2),
-                    foregroundColor: .blue
-                  )
+                  HStack(spacing: 6) {
+                    InfoChip(
+                      label: "\(collection.seriesIds.count) series",
+                      systemImage: "square.grid.2x2",
+                      backgroundColor: Color.blue.opacity(0.2),
+                      foregroundColor: .blue
+                    )
+                    if collection.ordered {
+                      InfoChip(
+                        label: "Ordered",
+                        systemImage: "arrow.up.arrow.down",
+                        backgroundColor: Color.cyan.opacity(0.2),
+                        foregroundColor: .cyan
+                      )
+                    }
+                  }
                   InfoChip(
                     label: "Created: \(formatDate(collection.createdDate))",
                     systemImage: "calendar.badge.plus",
@@ -52,23 +62,14 @@ struct CollectionDetailView: View {
                     foregroundColor: .blue
                   )
                   InfoChip(
-                    label: "Last Modified: \(formatDate(collection.lastModifiedDate))",
+                    label: "Modified: \(formatDate(collection.lastModifiedDate))",
                     systemImage: "clock",
                     backgroundColor: Color.purple.opacity(0.2),
                     foregroundColor: .purple
                   )
-                  if collection.ordered {
-                    InfoChip(
-                      label: "Ordered",
-                      systemImage: "arrow.up.arrow.down",
-                      backgroundColor: Color.cyan.opacity(0.2),
-                      foregroundColor: .cyan
-                    )
-                  }
+
                 }
               }
-
-              Spacer()
             }
 
             // Series list

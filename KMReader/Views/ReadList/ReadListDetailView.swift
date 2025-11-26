@@ -81,15 +81,13 @@ struct ReadListDetailView: View {
                     foregroundColor: .blue
                   )
                   InfoChip(
-                    label: "Last Modified: \(formatDate(readList.lastModifiedDate))",
+                    label: "Modified: \(formatDate(readList.lastModifiedDate))",
                     systemImage: "clock",
                     backgroundColor: Color.purple.opacity(0.2),
                     foregroundColor: .purple
                   )
                 }
               }
-
-              Spacer()
             }
 
             // Books list
