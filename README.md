@@ -6,7 +6,7 @@
   <img src="icon.svg" alt="KMReader Icon" width="128" height="128">
 </div>
 
-**A beautiful, native iOS and macOS client for [Komga](https://github.com/gotson/komga)**
+**A beautiful, native iOS and macOS client for [Komga](https://github.com/gotson/komga) with comic and EPUB readers**
 
 _A media server for comics, mangas, BDs, and magazines_
 
@@ -55,6 +55,13 @@ _A media server for comics, mangas, BDs, and magazines_
   - Page jump functionality with visual page counter
   - Dynamic reading direction switching
   - **macOS**: Dedicated reader window for enhanced reading experience
+- **EPUB Reader**:
+  - Full-book EPUB downloads cached for offline and incognito reading
+  - Pick any installed typeface or stick with the publisher's choice
+  - Adjustable font size slider with paged or continuous scroll modes
+  - Auto, single, or dual-column layouts tuned for iPad and macOS
+  - System, light, sepia, or dark themes with automatic switching
+  - Table of contents browser with real-time progress indicator
 - **Progress Tracking**:
   - Automatic synchronization across all devices
   - Resume from last page
@@ -109,6 +116,7 @@ _A media server for comics, mangas, BDs, and magazines_
   - Page layout selection (single/dual page)
   - Skip cover in dual page mode
   - Webtoon page width adjustment (50%-100%)
+  - EPUB preferences: fonts, font size, pagination, layout, and theme presets (system/light/sepia/dark)
 - **Cache Management**:
   - Configurable disk cache size (512MB-8GB, adjustable in 256MB steps)
   - Real-time cache size and image count display
@@ -131,6 +139,7 @@ _A media server for comics, mangas, BDs, and magazines_
 - **Intelligent Preloading**: Automatic page preloading for seamless reading
 - **Offline Capability**: Access recently viewed content when offline
 - **Efficient Image Loading**: Smart image loading with progressive enhancement
+- **EPUB Cache**: Whole-book EPUB downloads stored securely for instant reopen and offline support
 
 ---
 
@@ -158,7 +167,7 @@ Built with **SwiftUI** following **MVVM** pattern:
 1. Clone and open in Xcode:
 
    ```bash
-   git clone https://github.com/yourusername/KMReader.git
+   git clone https://github.com/everpcpc/KMReader.git
    cd KMReader
    open KMReader.xcodeproj
    ```
@@ -200,8 +209,7 @@ The app includes comprehensive API logging using Apple's unified logging system 
 
 ## 🛣️ Roadmap
 
-- [ ] ~~Live Text support~~ automatically page translation
-- [ ] EPUB reader
+- [ ] Live Text support / automatic page translation
 
 ---
 

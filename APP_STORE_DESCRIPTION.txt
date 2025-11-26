@@ -1,21 +1,16 @@
-KMReader - Full-Featured iOS & macOS Client for Komga
+KMReader - Native Komga Reader for iOS & macOS
 
-A comprehensive, native iOS and macOS client for Komga media servers. Manage and enjoy your comics, mangas, BDs, and magazines collection on the go.
+KMReader is a full-featured Komga client with dedicated comic and EPUB readers. Browse, manage, and enjoy your comics, manga, BDs, magazines, and novels across iPhone, iPad, and Mac.
 
-FEATURES
+KEY FEATURES
 
-• Complete Library Management: Browse Series, Books, Collections, and Read Lists with advanced search, filtering, and sorting
-• Multiple Reading Modes: LTR, RTL, Vertical, and Webtoon (iOS only) with customizable settings
-• Dual Page Mode: Enjoy two-page spreads in landscape orientation with optional cover skipping
-• Auto-Sync Progress: Automatic reading progress synchronization across all devices
-• Incognito Mode: Read without updating your progress
-• Dashboard: Keep Reading, On Deck, Recently Added Books, Recently Added Series, and Recently Updated Series sections
-• Reading History: Complete reading history with infinite scroll and quick resume
-• Collections & Read Lists: Organize your library and create custom reading lists
-• Server Management: View server information, metrics, and manage libraries (admin features)
-• Smart Caching: Intelligent two-tier caching system (512MB-8GB configurable) for smooth, offline-capable experience
-• Customizable Experience: Themes, layout modes, reader settings, page layouts, and more
-• Save Pages: Export favorite pages to Photos or Files in multiple formats (JPEG, PNG, HEIF, WebP)
-• macOS Support: Native macOS app with dedicated reader window for enhanced desktop reading experience
+• Unified Library Management: Browse Series, Books, Collections, and Read Lists with advanced search, filtering, and sorting that remember your layout preferences.
+• Personalized Dashboard & History: Keep Reading, On Deck, Recently Added, Recently Updated, and infinite-scroll reading history make it easy to jump back into any book.
+• Reader Modes for Comics & Webtoons: LTR, RTL, vertical, and adjustable-width webtoon reading, dual-page spreads with optional cover skipping, pinch-to-zoom, customizable tap zones, auto-hide controls, page jumps, and page exports (JPEG/PNG/HEIF/WebP).
+• EPUB Reader Powered by Readium: Full-book EPUB downloads cached for offline or incognito reading, choose any installed font or the publisher default, adjust font size, toggle paged vs. continuous scroll, pick auto/single/dual-column layouts, and switch between system, light, sepia, or dark themes with a live chapter navigator.
+• Complete Progress Tracking: Automatic sync across devices, resume from the last page, in-progress indicators, and incognito mode when you want to read without leaving a trace.
+• Collections & Read Lists: Build curated collections, add/remove entries, and manage your backlog from anywhere.
+• Server Controls & Smart Caching: Admin tools for server info, metrics, scans, metadata refresh, and trash management alongside a configurable 512MB–8GB cache for instant image and EPUB loading—even offline.
+• Native macOS Experience: Dedicated reader window, keyboard shortcuts, and full feature parity with iOS.
 
 Connect to your Komga server and take full control of your digital library today.
