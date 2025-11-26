@@ -48,32 +48,37 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
       return
     }
 
-    var values: [String: String] = [:]
-    rawValue
-      .split(separator: ";")
-      .forEach { component in
-        let pair = component.split(separator: "=", maxSplits: 1).map(String.init)
-        guard pair.count == 2 else { return }
-        values[pair[0]] = Self.decode(pair[1])
-      }
+    guard let data = rawValue.data(using: .utf8),
+      let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+      self.init()
+      return
+    }
 
+    let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
+    let font = FontFamilyChoice(rawValue: fontString)
+    let typeScale = dict["typeScale"] as? Double ?? 1.0
+    let pagination = (dict["pagination"] as? String).flatMap(PaginationMode.init) ?? .paged
+    let layout = (dict["layout"] as? String).flatMap(LayoutChoice.init) ?? .auto
+    let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
     self.init(
-      fontFamily: FontFamilyChoice(rawValue: values["fontFamily"] ?? "") ?? .publisher,
-      typeScale: values["typeScale"].flatMap(Double.init) ?? 1.0,
-      pagination: PaginationMode(rawValue: values["pagination"] ?? "") ?? .paged,
-      layout: LayoutChoice(rawValue: values["layout"] ?? "") ?? .auto,
-      theme: ThemeChoice(rawValue: values["theme"] ?? "") ?? .system
-    )
+      fontFamily: font, typeScale: typeScale, pagination: pagination, layout: layout, theme: theme)
   }
 
   var rawValue: String {
-    [
-      "fontFamily=\(Self.encode(fontFamily.rawValue))",
-      "typeScale=\(typeScale)",
-      "pagination=\(pagination.rawValue)",
-      "layout=\(layout.rawValue)",
-      "theme=\(theme.rawValue)",
-    ].joined(separator: ";")
+    let dict: [String: Any] = [
+      "fontFamily": fontFamily.rawValue,
+      "typeScale": typeScale,
+      "pagination": pagination.rawValue,
+      "layout": layout.rawValue,
+      "theme": theme.rawValue,
+    ]
+    if let data = try? JSONSerialization.data(withJSONObject: dict),
+      let json = String(data: data, encoding: .utf8)
+    {
+      return json
+    }
+    return "{}"
   }
 
   func toPreferences() -> EPUBPreferences {
@@ -94,62 +99,6 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
       layout: LayoutChoice.from(preferences.spread),
       theme: ThemeChoice.from(preferences.theme)
     )
-  }
-
-  private static func encode(_ value: String) -> String {
-    value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
-  }
-
-  private static func decode(_ value: String) -> String {
-    value.removingPercentEncoding ?? value
-  }
-}
-
-enum FontFamilyChoice: String, CaseIterable, Identifiable {
-  case publisher
-  case serif
-  case sans
-  case dyslexic
-  case duo
-  case georgia
-  case helvetica
-
-  var id: String { rawValue }
-
-  var title: String {
-    switch self {
-    case .publisher: return "Publisher Default"
-    case .serif: return "Serif"
-    case .sans: return "Sans Serif"
-    case .dyslexic: return "Open Dyslexic"
-    case .duo: return "IA Writer Duospace"
-    case .georgia: return "Georgia"
-    case .helvetica: return "Helvetica Neue"
-    }
-  }
-
-  var fontFamily: FontFamily? {
-    switch self {
-    case .publisher: return nil
-    case .serif: return .serif
-    case .sans: return .sansSerif
-    case .dyslexic: return .openDyslexic
-    case .duo: return .iaWriterDuospace
-    case .georgia: return .georgia
-    case .helvetica: return .helveticaNeue
-    }
-  }
-
-  static func from(_ fontFamily: FontFamily?) -> FontFamilyChoice {
-    switch fontFamily {
-    case .some(.serif): return .serif
-    case .some(.sansSerif): return .sans
-    case .some(.openDyslexic): return .dyslexic
-    case .some(.iaWriterDuospace): return .duo
-    case .some(.georgia): return .georgia
-    case .some(.helveticaNeue): return .helvetica
-    default: return .publisher
-    }
   }
 }
 
@@ -243,5 +192,43 @@ enum ThemeChoice: String, CaseIterable, Identifiable {
     case .some(.dark): return .dark
     default: return .system
     }
+  }
+}
+
+enum FontFamilyChoice: Hashable, Identifiable {
+  case publisher
+  case system(String)
+
+  static let publisherValue = "Publisher Default"
+
+  var id: String { rawValue }
+
+  var rawValue: String {
+    switch self {
+    case .publisher: return FontFamilyChoice.publisherValue
+    case .system(let name): return name
+    }
+  }
+
+  init(rawValue: String) {
+    if rawValue == FontFamilyChoice.publisherValue {
+      self = .publisher
+    } else {
+      self = .system(rawValue)
+    }
+  }
+
+  var fontFamily: FontFamily? {
+    switch self {
+    case .publisher: return nil
+    case .system(let name): return FontFamily(rawValue: name)
+    }
+  }
+
+  static func from(_ fontFamily: FontFamily?) -> FontFamilyChoice {
+    guard let name = fontFamily?.rawValue else {
+      return .publisher
+    }
+    return .system(name)
   }
 }

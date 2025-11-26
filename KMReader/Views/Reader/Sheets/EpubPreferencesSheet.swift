@@ -5,13 +5,15 @@
 //  Created by Komga iOS Client
 //
 
+import CoreText
 import ReadiumNavigator
 import SwiftUI
 
 struct EpubPreferencesSheet: View {
-  @Environment(\.dismiss) private var dismiss
   let onApply: (EpubReaderPreferences) -> Void
   @State private var draft: EpubReaderPreferences
+
+  @Environment(\.dismiss) private var dismiss
 
   init(_ pref: EpubReaderPreferences, onApply: @escaping (EpubReaderPreferences) -> Void) {
     self._draft = State(initialValue: pref)
@@ -23,8 +25,8 @@ struct EpubPreferencesSheet: View {
       Form {
         Section("Font") {
           Picker("Typeface", selection: $draft.fontFamily) {
-            ForEach(FontFamilyChoice.allCases) { choice in
-              Text(choice.title).tag(choice)
+            ForEach(FontProvider.allChoices) { choice in
+              Text(choice.rawValue).tag(choice)
             }
           }
           VStack(alignment: .leading) {
@@ -80,4 +82,12 @@ struct EpubPreferencesSheet: View {
       #endif
     }
   }
+}
+
+private enum FontProvider {
+  static let allChoices: [FontFamilyChoice] = {
+    let names = (CTFontManagerCopyAvailableFontFamilyNames() as? [String]) ?? []
+    let sorted = names.sorted()
+    return [.publisher] + sorted.map { .system($0) }
+  }()
 }
