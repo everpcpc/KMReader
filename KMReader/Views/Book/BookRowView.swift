@@ -60,7 +60,6 @@ struct BookRowView: View {
         HStack(spacing: 4) {
           if let releaseDate = book.metadata.releaseDate, !releaseDate.isEmpty {
             Label(releaseDate, systemImage: "calendar")
-            Text("•")
           } else {
             Label(book.created.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
           }

@@ -165,9 +165,6 @@ struct BookCardView: View {
           .transition(.scale.animation(.easeInOut))
         }
       }
-      .transaction { transaction in
-        transaction.disablesAnimations = true
-      }
     #else
       .onChange(of: readerState) { _, newState in
         if let state = newState, let book = state.book {
