@@ -118,7 +118,7 @@ struct BookContextMenu: View {
 
       Button(role: .destructive) {
         Task {
-          await ImageCache.clearDiskCache(forBookId: book.id)
+          await CacheManager.clearCache(forBookId: book.id)
         }
       } label: {
         Label("Clear Cache", systemImage: "xmark.circle")

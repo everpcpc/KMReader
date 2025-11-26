@@ -9,9 +9,13 @@ import SwiftUI
 
 struct SettingsCacheView: View {
   @AppStorage("maxDiskCacheSizeMB") private var maxDiskCacheSizeMB: Int = 2048
-  @State private var showClearCacheConfirmation = false
-  @State private var diskCacheSize: Int64 = 0
-  @State private var diskCacheCount: Int = 0
+  @State private var showClearImageCacheConfirmation = false
+  @State private var showClearBookFileCacheConfirmation = false
+  @State private var showClearThumbnailCacheConfirmation = false
+  @State private var imageCacheSize: Int64 = 0
+  @State private var imageCacheCount: Int = 0
+  @State private var bookFileCacheSize: Int64 = 0
+  @State private var bookFileCacheCount: Int = 0
   @State private var isLoadingCacheSize = false
 
   private var maxCacheSizeBinding: Binding<Double> {
@@ -23,7 +27,7 @@ struct SettingsCacheView: View {
 
   var body: some View {
     List {
-      Section(header: Text("Page Cache")) {
+      Section(header: Text("Page")) {
         VStack(alignment: .leading, spacing: 8) {
           HStack {
             Text("Maximum Size")
@@ -50,7 +54,7 @@ struct SettingsCacheView: View {
             ProgressView()
               .scaleEffect(0.8)
           } else {
-            Text(formatCacheSize(diskCacheSize))
+            Text(formatCacheSize(imageCacheSize))
               .foregroundColor(.secondary)
           }
         }
@@ -62,17 +66,65 @@ struct SettingsCacheView: View {
             ProgressView()
               .scaleEffect(0.8)
           } else {
-            Text(formatCacheCount(diskCacheCount))
+            Text(formatCacheCount(imageCacheCount))
               .foregroundColor(.secondary)
           }
         }
 
         Button(role: .destructive) {
-          showClearCacheConfirmation = true
+          showClearImageCacheConfirmation = true
         } label: {
           HStack {
             Spacer()
-            Text("Clear Disk Cache")
+            Text("Clear")
+            Spacer()
+          }
+        }
+      }
+
+      Section(header: Text("Book File")) {
+        HStack {
+          Text("Cached Size")
+          Spacer()
+          if isLoadingCacheSize {
+            ProgressView()
+              .scaleEffect(0.8)
+          } else {
+            Text(formatCacheSize(bookFileCacheSize))
+              .foregroundColor(.secondary)
+          }
+        }
+
+        HStack {
+          Text("Cached Files")
+          Spacer()
+          if isLoadingCacheSize {
+            ProgressView()
+              .scaleEffect(0.8)
+          } else {
+            Text(formatCacheCount(bookFileCacheCount))
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Button(role: .destructive) {
+          showClearBookFileCacheConfirmation = true
+        } label: {
+          HStack {
+            Spacer()
+            Text("Clear")
+            Spacer()
+          }
+        }
+      }
+
+      Section(header: Text("Thumbnail")) {
+        Button(role: .destructive) {
+          showClearThumbnailCacheConfirmation = true
+        } label: {
+          HStack {
+            Spacer()
+            Text("Clear")
             Spacer()
           }
         }
@@ -82,8 +134,8 @@ struct SettingsCacheView: View {
     #if canImport(UIKit)
       .navigationBarTitleDisplayMode(.inline)
     #endif
-    .alert("Clear Disk Cache", isPresented: $showClearCacheConfirmation) {
-      Button("Clear Cache", role: .destructive) {
+    .alert("Clear Page", isPresented: $showClearImageCacheConfirmation) {
+      Button("Clear", role: .destructive) {
         Task {
           await ImageCache.clearAllDiskCache()
           await loadCacheSize()
@@ -92,7 +144,33 @@ struct SettingsCacheView: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       Text(
-        "This will remove all cached images from disk. Images will be re-downloaded when needed.")
+        "This will remove all cached page images from disk. Images will be re-downloaded when needed."
+      )
+    }
+    .alert("Clear Book File", isPresented: $showClearBookFileCacheConfirmation) {
+      Button("Clear", role: .destructive) {
+        Task {
+          await BookFileCache.clearAllDiskCache()
+          await loadCacheSize()
+        }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text(
+        "This will remove all cached EPUB files from disk. Files will be re-downloaded when needed."
+      )
+    }
+    .alert("Clear Thumbnail", isPresented: $showClearThumbnailCacheConfirmation) {
+      Button("Clear", role: .destructive) {
+        Task {
+          await CacheManager.clearThumbnailCache()
+        }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text(
+        "This will remove all cached thumbnails from memory and disk. Thumbnails will be re-downloaded when needed."
+      )
     }
     .task {
       await loadCacheSize()
@@ -108,10 +186,14 @@ struct SettingsCacheView: View {
 
   private func loadCacheSize() async {
     isLoadingCacheSize = true
-    async let size = ImageCache.getDiskCacheSize()
-    async let count = ImageCache.getDiskCacheCount()
-    diskCacheSize = await size
-    diskCacheCount = await count
+    async let imageSize = ImageCache.getDiskCacheSize()
+    async let imageCount = ImageCache.getDiskCacheCount()
+    async let bookFileSize = BookFileCache.getDiskCacheSize()
+    async let bookFileCount = BookFileCache.getDiskCacheCount()
+    imageCacheSize = await imageSize
+    imageCacheCount = await imageCount
+    bookFileCacheSize = await bookFileSize
+    bookFileCacheCount = await bookFileCount
     isLoadingCacheSize = false
   }
 

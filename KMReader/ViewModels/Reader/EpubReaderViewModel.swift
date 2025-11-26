@@ -65,7 +65,7 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
 
   func load(bookId: String) async {
     if self.bookId != bookId && !self.bookId.isEmpty {
-      await WebResourceCache.shared.clear(bookId: self.bookId)
+      await BookFileCache.shared.clear(bookId: self.bookId)
     }
 
     self.bookId = bookId
@@ -78,11 +78,11 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
     do {
       // Check if EPUB file is already cached
       let epubURL: URL
-      if let cachedURL = await WebResourceCache.shared.cachedEpubFileURL(bookId: bookId) {
+      if let cachedURL = await BookFileCache.shared.cachedEpubFileURL(bookId: bookId) {
         epubURL = cachedURL
       } else {
         // Download the entire EPUB file
-        epubURL = try await WebResourceCache.shared.ensureEpubFile(bookId: bookId) {
+        epubURL = try await BookFileCache.shared.ensureEpubFile(bookId: bookId) {
           try await BookService.shared.downloadEpubFile(bookId: bookId)
         }
       }
@@ -283,7 +283,8 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
   }
 
   func navigator(
-    _ navigator: Navigator, shouldNavigateToNoteAt link: ReadiumShared.Link, content: String, referrer: String?
+    _ navigator: Navigator, shouldNavigateToNoteAt link: ReadiumShared.Link, content: String,
+    referrer: String?
   ) -> Bool {
     // Default behavior: navigate to note
     return true

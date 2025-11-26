@@ -200,7 +200,7 @@ struct BookCardView: View {
     Task {
       do {
         try await BookService.shared.deleteBook(bookId: book.id)
-        await ImageCache.clearDiskCache(forBookId: book.id)
+        await CacheManager.clearCache(forBookId: book.id)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Book deleted")
           onBookUpdated?()

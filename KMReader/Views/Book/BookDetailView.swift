@@ -432,7 +432,7 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.deleteBook(bookId: bookId)
-        await ImageCache.clearDiskCache(forBookId: bookId)
+        await CacheManager.clearCache(forBookId: bookId)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Book deleted")
           dismiss()
@@ -479,7 +479,7 @@ struct BookDetailView: View {
 
   private func clearCache() {
     Task {
-      await ImageCache.clearDiskCache(forBookId: bookId)
+      await CacheManager.clearCache(forBookId: bookId)
     }
   }
 
