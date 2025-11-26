@@ -30,6 +30,7 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
   var navigatorViewController: EPUBNavigatorViewController?
   var currentLocator: Locator?
   var tableOfContents: [Link] = []
+  var preferences: EPUBPreferences = .empty
 
   private var bookId: String = ""
   private var epubFileURL: URL?
@@ -125,6 +126,7 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
       navigator.delegate = self
 
       self.navigatorViewController = navigator
+      navigator.submitPreferences(preferences)
 
       isLoading = false
     } catch {
@@ -156,6 +158,11 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
     Task {
       _ = await navigator.go(to: link, options: .animated)
     }
+  }
+
+  func applyPreferences(_ stored: EpubReaderPreferences) {
+    preferences = stored.toPreferences()
+    navigatorViewController?.submitPreferences(preferences)
   }
 
   // Convert R2Locator to Readium Locator

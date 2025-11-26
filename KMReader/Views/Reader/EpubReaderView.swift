@@ -15,6 +15,7 @@ struct EpubReaderView: View {
 
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
   @Environment(\.dismiss) private var dismiss
 
   @State private var viewModel: EpubReaderViewModel
@@ -24,6 +25,7 @@ struct EpubReaderView: View {
   @State private var overlayTimer: Timer?
   @State private var currentBook: Book?
   @State private var showingChapterSheet = false
+  @State private var showingPreferencesSheet = false
 
   init(bookId: String, incognito: Bool = false) {
     self.bookId = bookId
@@ -41,6 +43,9 @@ struct EpubReaderView: View {
         await loadBook()
         resetControlsTimer()
         triggerTapZoneDisplay()
+      }
+      .task(id: readerPrefs) {
+        viewModel.applyPreferences(readerPrefs)
       }
       .onDisappear {
         controlsTimer?.invalidate()
@@ -181,8 +186,8 @@ struct EpubReaderView: View {
 
           Spacer()
 
-          // TODO: reader style
           Button {
+            showingPreferencesSheet = true
           } label: {
             Image(systemName: "gearshape")
               .font(.title3)
@@ -231,6 +236,12 @@ struct EpubReaderView: View {
           viewModel.goToChapter(link: link)
         }
       )
+    }
+    .sheet(isPresented: $showingPreferencesSheet) {
+      EpubPreferencesSheet(readerPrefs) { newPreferences in
+        readerPrefs = newPreferences
+        viewModel.applyPreferences(newPreferences)
+      }
     }
   }
 
