@@ -292,10 +292,10 @@ struct EpubReaderView: View {
             Spacer()
             if let chapterProgression {
               HStack(spacing: 4) {
-                Image(systemName: "hourglass")
+                Image(systemName: "doc.text.fill")
                   .font(.caption2)
                   .foregroundStyle(.secondary)
-                Text("\(Int((1 - chapterProgression) * 100))%")
+                Text("\(Int(chapterProgression * 100))%")
                   .font(.caption)
                   .foregroundStyle(.secondary)
                   .monospacedDigit()

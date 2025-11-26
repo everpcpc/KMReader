@@ -34,8 +34,6 @@ struct EpubPreferencesSheet: View {
     NavigationStack {
       VStack(spacing: 0) {
         VStack(alignment: .leading, spacing: 8) {
-          Text("Preview")
-            .font(.headline)
           EpubPreviewView(preferences: draft)
             .frame(height: 200)
             .cornerRadius(8)

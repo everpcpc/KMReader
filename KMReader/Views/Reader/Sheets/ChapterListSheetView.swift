@@ -29,8 +29,7 @@ struct ChapterListSheetView: View {
               if let currentLink,
                 currentLink.href == link.href
               {
-                Image(systemName: "checkmark.circle.fill")
-                  .font(.caption)
+                Image(systemName: "bookmark.fill")
                   .foregroundStyle(.tint)
               }
             }
@@ -40,8 +39,11 @@ struct ChapterListSheetView: View {
           .id(link.href)
         }
         .onAppear {
-          if let target = currentLink {
-            proxy.scrollTo(target.href, anchor: .center)
+          // Wait for the List to fully render before scrolling
+          DispatchQueue.main.async {
+            if let target = currentLink {
+              proxy.scrollTo(target.href, anchor: .center)
+            }
           }
         }
       }
