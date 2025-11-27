@@ -18,7 +18,7 @@ struct ContentView: View {
         if authViewModel.isLoggedIn {
           MainTabView()
         } else {
-          LoginView()
+          LandingView()
         }
       }
       .tint(themeColor.color)
