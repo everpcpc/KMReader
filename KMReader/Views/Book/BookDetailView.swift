@@ -22,6 +22,7 @@ struct BookDetailView: View {
   @State private var showEditSheet = false
   @State private var bookReadLists: [ReadList] = []
   @State private var isLoadingRelations = false
+  @State private var showDownloadSheet = false
 
   private var thumbnailURL: URL? {
     return BookService.shared.getBookThumbnailURL(id: bookId)
@@ -325,6 +326,14 @@ struct BookDetailView: View {
           Divider()
 
           Button {
+            showDownloadSheet = true
+          } label: {
+            Label("Download", systemImage: "arrow.down.circle")
+          }
+
+          Divider()
+
+          Button {
             showReadListPicker = true
           } label: {
             Label("Add to Read List", systemImage: "list.bullet")
@@ -391,6 +400,14 @@ struct BookDetailView: View {
               await loadBook()
             }
           }
+      }
+    }
+    .sheet(isPresented: $showDownloadSheet) {
+      if let book = book {
+        BookDownloadSheet(book: book)
+      } else {
+        ProgressView()
+          .presentationDetents([.medium])
       }
     }
     .task {

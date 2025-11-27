@@ -7,6 +7,12 @@
 
 import Foundation
 
+struct BookFileDownloadResult {
+  let data: Data
+  let contentType: String?
+  let suggestedFilename: String?
+}
+
 class BookService {
   static let shared = BookService()
   private let apiClient = APIClient.shared
@@ -65,9 +71,19 @@ class BookService {
     )
   }
 
+  /// Download the book file (any supported format)
+  func downloadBookFile(bookId: String) async throws -> BookFileDownloadResult {
+    let result = try await apiClient.requestData(path: "/api/v1/books/\(bookId)/file")
+    return BookFileDownloadResult(
+      data: result.data,
+      contentType: result.contentType,
+      suggestedFilename: result.suggestedFilename
+    )
+  }
+
   /// Download the entire EPUB file for a book
   func downloadEpubFile(bookId: String) async throws -> Data {
-    let result = try await apiClient.requestData(path: "/api/v1/books/\(bookId)/file")
+    let result = try await downloadBookFile(bookId: bookId)
     return result.data
   }
 
@@ -129,7 +145,8 @@ class BookService {
   }
 
   func getBookPage(bookId: String, page: Int) async throws -> (data: Data, contentType: String?) {
-    return try await apiClient.requestData(path: "/api/v1/books/\(bookId)/pages/\(page)")
+    let result = try await apiClient.requestData(path: "/api/v1/books/\(bookId)/pages/\(page)")
+    return (data: result.data, contentType: result.contentType)
   }
 
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async throws {

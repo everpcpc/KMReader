@@ -57,10 +57,7 @@ actor BookFileCache {
 
   func cachedEpubFileURL(bookId: String) -> URL? {
     let fileURL = epubFileURL(bookId: bookId)
-    if fileManager.fileExists(atPath: fileURL.path) {
-      return fileURL
-    }
-    return nil
+    return cachedFileURL(at: fileURL)
   }
 
   func ensureEpubFile(
@@ -68,29 +65,58 @@ actor BookFileCache {
     downloader: @escaping () async throws -> Data
   ) async throws -> URL {
     let destination = epubFileURL(bookId: bookId)
-    let fileExisted = fileManager.fileExists(atPath: destination.path)
+    return try await ensureFile(
+      bookId: bookId,
+      cacheKey: "epub#\(bookId)",
+      destination: destination,
+      downloader: downloader
+    )
+  }
 
-    if let existing = cachedEpubFileURL(bookId: bookId) {
+  func cachedOriginalFileURL(bookId: String, fileName: String) -> URL? {
+    let sanitizedName = FileNameHelper.sanitizedFileName(
+      fileName, defaultBaseName: "book-\(bookId.prefix(8))")
+    return cachedFileURL(at: originalFileURL(bookId: bookId, fileName: sanitizedName))
+  }
+
+  func ensureOriginalFile(
+    bookId: String,
+    fileName: String,
+    downloader: @escaping () async throws -> Data
+  ) async throws -> URL {
+    let sanitizedName = FileNameHelper.sanitizedFileName(
+      fileName, defaultBaseName: "book-\(bookId.prefix(8))")
+    let destination = originalFileURL(bookId: bookId, fileName: sanitizedName)
+
+    return try await ensureFile(
+      bookId: bookId,
+      cacheKey: "original#\(bookId)#\(sanitizedName)",
+      destination: destination,
+      downloader: downloader
+    )
+  }
+
+  private func cachedFileURL(at destination: URL) -> URL? {
+    if fileManager.fileExists(atPath: destination.path) {
+      return destination
+    }
+    return nil
+  }
+
+  private func ensureFile(
+    bookId: String,
+    cacheKey: String,
+    destination: URL,
+    downloader: @escaping () async throws -> Data
+  ) async throws -> URL {
+    if let existing = cachedFileURL(at: destination) {
       return existing
     }
 
-    let cacheKey = "epub#\(bookId)"
     if let task = downloadTasks[cacheKey] {
       return try await task.value
     }
 
-    // Get old file size before writing
-    let oldFileSize: Int64
-    if fileExisted,
-      let attributes = try? fileManager.attributesOfItem(atPath: destination.path),
-      let size = attributes[.size] as? Int64
-    {
-      oldFileSize = size
-    } else {
-      oldFileSize = 0
-    }
-
-    // Capture destination path for use in Task
     let destinationPath = destination.path
     let task = Task<URL, Error> {
       let data = try await downloader()
@@ -109,25 +135,14 @@ actor BookFileCache {
       let value = try await task.value
       downloadTasks[cacheKey] = nil
 
-      // Update cache size after storing file
-      let newFileSize: Int64
       if let attributes = try? fileManager.attributesOfItem(atPath: value.path),
         let size = attributes[.size] as? Int64
       {
-        newFileSize = size
-      } else {
-        // If we can't get file size, invalidate cache
-        await Self.cacheSizeActor.invalidate()
-        return value
-      }
-
-      if !fileExisted {
-        // New file added
-        await Self.cacheSizeActor.updateSize(delta: newFileSize)
+        // Treat as a new cached file every time ensureFile writes
+        await Self.cacheSizeActor.updateSize(delta: size)
         await Self.cacheSizeActor.updateCount(delta: 1)
       } else {
-        // File was replaced, update size difference
-        await Self.cacheSizeActor.updateSize(delta: newFileSize - oldFileSize)
+        await Self.cacheSizeActor.invalidate()
       }
 
       return value
@@ -137,9 +152,15 @@ actor BookFileCache {
     }
   }
 
+
   private func epubFileURL(bookId: String) -> URL {
     let base = bookRootURL(bookId: bookId)
     return base.appendingPathComponent("book.epub", isDirectory: false)
+  }
+
+  private func originalFileURL(bookId: String, fileName: String) -> URL {
+    let base = bookRootURL(bookId: bookId)
+    return base.appendingPathComponent(fileName, isDirectory: false)
   }
 
   /// Get the disk cache directory URL (static helper)

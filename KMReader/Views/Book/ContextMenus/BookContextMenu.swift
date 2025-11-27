@@ -16,6 +16,7 @@ struct BookContextMenu: View {
   var onShowReadListPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+  var onDownloadRequested: (() -> Void)? = nil
 
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
@@ -41,6 +42,16 @@ struct BookContextMenu: View {
       }
 
       Divider()
+
+      if let onDownloadRequested = onDownloadRequested {
+        Button {
+          onDownloadRequested()
+        } label: {
+          Label("Download", systemImage: "arrow.down.circle")
+        }
+
+        Divider()
+      }
 
       Menu {
         Button {

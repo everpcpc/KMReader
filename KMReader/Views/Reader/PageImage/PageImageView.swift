@@ -69,7 +69,7 @@ struct PageImageView: View {
         }
         .fileExporter(
           isPresented: $showDocumentPicker,
-          document: fileToSave.map { ImageFileDocument(url: $0) },
+          document: fileToSave.map { CachedFileDocument(url: $0) },
           contentType: .item,
           defaultFilename: fileToSave?.lastPathComponent ?? "page"
         ) { result in

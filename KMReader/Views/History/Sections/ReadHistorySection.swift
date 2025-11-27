@@ -21,6 +21,7 @@ struct ReadHistorySection: View {
   @State private var selectedBookId: String?
   @State private var showDeleteConfirmation = false
   @State private var bookToDelete: Book?
+  @State private var downloadSheetBook: Book?
 
   private var isBookReaderPresented: Binding<Bool> {
     Binding(
@@ -53,6 +54,9 @@ struct ReadHistorySection: View {
                   onDeleteRequested: {
                     bookToDelete = book
                     showDeleteConfirmation = true
+                  },
+                  onDownloadRequested: {
+                    downloadSheetBook = book
                   }
                 )
               }
@@ -121,6 +125,9 @@ struct ReadHistorySection: View {
       }
     } message: {
       Text("Are you sure you want to delete this book? This action cannot be undone.")
+    }
+    .sheet(item: $downloadSheetBook) { book in
+      BookDownloadSheet(book: book)
     }
   }
 

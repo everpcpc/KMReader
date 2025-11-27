@@ -280,12 +280,14 @@ class APIClient {
   func requestData(
     path: String,
     method: String = "GET"
-  ) async throws -> (data: Data, contentType: String?) {
+  ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
     let urlRequest = try buildRequest(path: path, method: method)
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
     // Get content type from response
     let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")
+    let suggestedFilename = filenameFromContentDisposition(
+      httpResponse.value(forHTTPHeaderField: "Content-Disposition"))
 
     // Log response with data size
     let dataSize = ByteCountFormatter.string(
@@ -294,6 +296,35 @@ class APIClient {
     let urlString = urlRequest.url?.absoluteString ?? ""
     logger.info("\(httpResponse.statusCode) \(method) \(urlString) [\(dataSize)]")
 
-    return (data, contentType)
+    return (data, contentType, suggestedFilename)
+  }
+
+
+  private func filenameFromContentDisposition(_ header: String?) -> String? {
+    guard let header = header else { return nil }
+    let parts = header.split(separator: ";")
+
+    for part in parts {
+      let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
+      let lowercased = trimmed.lowercased()
+
+      if lowercased.hasPrefix("filename*=") {
+        let value = trimmed.dropFirst("filename*=".count)
+        let components = value.split(
+          separator: "'", maxSplits: 2, omittingEmptySubsequences: false)
+        if components.count == 3 {
+          let encodedFileName = String(components[2])
+          return encodedFileName.removingPercentEncoding
+        }
+      } else if lowercased.hasPrefix("filename=") {
+        var fileName = trimmed.dropFirst("filename=".count)
+        if fileName.hasPrefix("\""), fileName.hasSuffix("\"") {
+          fileName = fileName.dropFirst().dropLast()
+        }
+        return String(fileName)
+      }
+    }
+
+    return nil
   }
 }

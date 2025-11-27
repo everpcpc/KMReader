@@ -1,5 +1,5 @@
 //
-//  ImageFileDocument.swift
+//  CachedFileDocument.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -9,8 +9,8 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-// File document wrapper for fileExporter
-struct ImageFileDocument: FileDocument {
+/// Generic file-document wrapper used by fileExporter to expose cached files.
+struct CachedFileDocument: FileDocument {
   let url: URL
   let fileType: UTType?
 
