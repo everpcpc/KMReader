@@ -17,8 +17,16 @@ struct KomgaApp: App {
 
   init() {
     do {
+      let schema = Schema([
+        KomgaInstance.self,
+        KomgaLibrary.self,
+        CustomFont.self,
+      ])
+      let configuration = ModelConfiguration(schema: schema)
       modelContainer = try ModelContainer(
-        for: KomgaInstance.self, KomgaLibrary.self, CustomFont.self)
+        for: schema,
+        configurations: [configuration]
+      )
     } catch {
       fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
     }
