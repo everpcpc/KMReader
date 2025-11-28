@@ -80,22 +80,23 @@ struct SeriesDetailView: View {
         VStack(alignment: .leading) {
           if let series = series {
             // Header with thumbnail and info
+            HStack {
+              Text(series.metadata.title)
+                .font(.title3)
+              Spacer()
+              if let ageRating = series.metadata.ageRating, ageRating > 0 {
+                InfoChip(
+                  label: "\(ageRating)+",
+                  backgroundColor: ageRating > 16 ? Color.red : Color.green,
+                  foregroundColor: .white
+                )
+              }
+            }
+
             HStack(alignment: .top) {
               ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 120)
 
               VStack(alignment: .leading) {
-                HStack {
-                  Text(series.metadata.title)
-                    .font(.title3)
-                  Spacer()
-                  if let ageRating = series.metadata.ageRating, ageRating > 0 {
-                    InfoChip(
-                      label: "\(ageRating)+",
-                      backgroundColor: ageRating > 16 ? Color.red : Color.green,
-                      foregroundColor: .white
-                    )
-                  }
-                }
 
                 // Status and info chips
                 VStack(alignment: .leading, spacing: 6) {

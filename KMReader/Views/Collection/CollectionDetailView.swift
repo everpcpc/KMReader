@@ -30,12 +30,13 @@ struct CollectionDetailView: View {
         VStack(alignment: .leading) {
           if let collection = collection {
             // Header with thumbnail and info
+            Text(collection.name)
+              .font(.title3)
+
             HStack(alignment: .top) {
               ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 120)
 
               VStack(alignment: .leading) {
-                Text(collection.name)
-                  .font(.title3)
 
                 // Info chips
                 VStack(alignment: .leading, spacing: 6) {

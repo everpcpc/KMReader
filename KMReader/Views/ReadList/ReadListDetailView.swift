@@ -41,12 +41,13 @@ struct ReadListDetailView: View {
         VStack(alignment: .leading) {
           if let readList = readList {
             // Header with thumbnail and info
+            Text(readList.name)
+              .font(.title3)
+
             HStack(alignment: .top) {
               ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 120)
 
               VStack(alignment: .leading) {
-                Text(readList.name)
-                  .font(.title3)
 
                 // Summary
                 if !readList.summary.isEmpty {

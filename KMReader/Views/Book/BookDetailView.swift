@@ -54,19 +54,19 @@ struct BookDetailView: View {
     ScrollView {
       VStack(alignment: .leading) {
         if let book = book {
+          Text(book.seriesTitle)
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+          Text(book.metadata.title)
+            .font(.headline)
+            .fixedSize(horizontal: false, vertical: true)
+
           HStack(alignment: .top) {
             ThumbnailImage(url: thumbnailURL, width: 120)
 
             VStack(alignment: .leading) {
-              Text(book.seriesTitle)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-              Text(book.metadata.title)
-                .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
-
               HStack(spacing: 6) {
                 InfoChip(
                   label: "\(book.metadata.number)",
@@ -126,14 +126,16 @@ struct BookDetailView: View {
 
               // Authors as chips
               if let authors = book.metadata.authors, !authors.isEmpty {
-                HStack(spacing: 6) {
-                  ForEach(authors, id: \.name) { author in
-                    InfoChip(
-                      label: author.name,
-                      systemImage: "person",
-                      backgroundColor: Color.indigo.opacity(0.2),
-                      foregroundColor: .indigo
-                    )
+                ScrollView(.horizontal, showsIndicators: false) {
+                  HStack(spacing: 6) {
+                    ForEach(authors, id: \.name) { author in
+                      InfoChip(
+                        label: author.name,
+                        systemImage: "person",
+                        backgroundColor: Color.indigo.opacity(0.2),
+                        foregroundColor: .indigo
+                      )
+                    }
                   }
                 }
               }
