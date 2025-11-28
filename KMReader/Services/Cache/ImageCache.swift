@@ -140,7 +140,7 @@ class ImageCache {
   /// Clear disk cache for a specific book (static method for use from anywhere)
   static func clearDiskCache(forBookId bookId: String) async {
     let fileManager = FileManager.default
-    let diskCacheURL = namespacedDiskCacheURL()
+    let diskCacheURL = await namespacedDiskCacheURL()
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
 
     await Task.detached(priority: .userInitiated) {
@@ -184,7 +184,7 @@ class ImageCache {
   /// Checks current cache size against configured max size and cleans up if needed
   static func cleanupDiskCacheIfNeeded() async {
     let fileManager = FileManager.default
-    let diskCacheURL = namespacedDiskCacheURL()
+    let diskCacheURL = await namespacedDiskCacheURL()
     let maxCacheSizeMB = getMaxDiskCacheSizeMB()
 
     await Task.detached(priority: .utility) {
@@ -207,7 +207,7 @@ class ImageCache {
 
     // Cache miss or invalid, calculate size and count
     let fileManager = FileManager.default
-    let diskCacheURL = namespacedDiskCacheURL()
+    let diskCacheURL = await namespacedDiskCacheURL()
 
     let result: (size: Int64, count: Int) = await Task.detached(priority: .utility) {
       guard fileManager.fileExists(atPath: diskCacheURL.path) else {
@@ -232,8 +232,10 @@ class ImageCache {
   // MARK: - Private Methods
 
   /// Namespaced disk cache directory URL (static helper)
-  nonisolated private static func namespacedDiskCacheURL() -> URL {
-    CacheNamespace.directory(for: "KomgaImageCache")
+  nonisolated private static func namespacedDiskCacheURL() async -> URL {
+    await MainActor.run {
+      CacheNamespace.directory(for: "KomgaImageCache")
+    }
   }
 
   /// Recursively collect all files in a directory

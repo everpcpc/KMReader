@@ -34,7 +34,7 @@ enum CacheNamespace {
   }
 
   /// Root directory shared by all namespaces for the cache.
-  static func baseDirectory(for cacheName: String) -> URL {
+  nonisolated static func baseDirectory(for cacheName: String) -> URL {
     let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
     let base = cachesDir.appendingPathComponent(cacheName, isDirectory: true)
     ensureDirectoryExists(at: base)
@@ -42,7 +42,7 @@ enum CacheNamespace {
   }
 
   /// Removes the namespace directory for the given cache and instance id.
-  static func removeNamespace(for cacheName: String, instanceId: String) {
+  nonisolated static func removeNamespace(for cacheName: String, instanceId: String) {
     let sanitizedId = sanitize(instanceId)
     let url = baseDirectory(for: cacheName).appendingPathComponent(sanitizedId, isDirectory: true)
     try? FileManager.default.removeItem(at: url)
@@ -50,7 +50,7 @@ enum CacheNamespace {
 
   // MARK: - Helpers
 
-  private static func ensureDirectoryExists(at url: URL) {
+  nonisolated private static func ensureDirectoryExists(at url: URL) {
     var isDirectory: ObjCBool = false
     if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
       isDirectory.boolValue
@@ -60,7 +60,7 @@ enum CacheNamespace {
     try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
   }
 
-  private static func sanitize(_ value: String) -> String {
+  nonisolated private static func sanitize(_ value: String) -> String {
     let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._"))
     let sanitized = value.reduce(into: "") { partialResult, character in
       if character.unicodeScalars.allSatisfy({ allowed.contains($0) }) {

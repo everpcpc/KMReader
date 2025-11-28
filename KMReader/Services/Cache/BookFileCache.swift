@@ -18,30 +18,30 @@ actor BookFileCache {
 
   init() {}
 
-  func bookRootURL(bookId: String) -> URL {
-    let url = namespacedRootDirectory().appendingPathComponent(bookId, isDirectory: true)
+  func bookRootURL(bookId: String) async -> URL {
+    let url = await namespacedRootDirectory().appendingPathComponent(bookId, isDirectory: true)
     if !fileManager.fileExists(atPath: url.path) {
       try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
     }
     return url
   }
 
-  func clear(bookId: String) {
-    let url = namespacedRootDirectory().appendingPathComponent(bookId, isDirectory: true)
+  func clear(bookId: String) async {
+    let url = await namespacedRootDirectory().appendingPathComponent(bookId, isDirectory: true)
     try? fileManager.removeItem(at: url)
-    Task {
-      await Self.cacheSizeActor.invalidate()
-    }
+    await Self.cacheSizeActor.invalidate()
   }
 
-  private func namespacedRootDirectory() -> URL {
-    CacheNamespace.directory(for: "KomgaBookFileCache")
+  private func namespacedRootDirectory() async -> URL {
+    await MainActor.run {
+      CacheNamespace.directory(for: "KomgaBookFileCache")
+    }
   }
 
   /// Clear disk cache for a specific book (static method for use from anywhere)
   static func clearDiskCache(forBookId bookId: String) async {
     let fileManager = FileManager.default
-    let diskCacheURL = namespacedDiskCacheURL()
+    let diskCacheURL = await namespacedDiskCacheURL()
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
 
     await Task.detached(priority: .userInitiated) {
@@ -54,8 +54,8 @@ actor BookFileCache {
 
   // MARK: - EPUB File Cache
 
-  func cachedEpubFileURL(bookId: String) -> URL? {
-    let fileURL = epubFileURL(bookId: bookId)
+  func cachedEpubFileURL(bookId: String) async -> URL? {
+    let fileURL = await epubFileURL(bookId: bookId)
     return cachedFileURL(at: fileURL)
   }
 
@@ -63,7 +63,7 @@ actor BookFileCache {
     bookId: String,
     downloader: @escaping () async throws -> Data
   ) async throws -> URL {
-    let destination = epubFileURL(bookId: bookId)
+    let destination = await epubFileURL(bookId: bookId)
     return try await ensureFile(
       bookId: bookId,
       cacheKey: "epub#\(bookId)",
@@ -72,10 +72,10 @@ actor BookFileCache {
     )
   }
 
-  func cachedOriginalFileURL(bookId: String, fileName: String) -> URL? {
+  func cachedOriginalFileURL(bookId: String, fileName: String) async -> URL? {
     let sanitizedName = FileNameHelper.sanitizedFileName(
       fileName, defaultBaseName: "book-\(bookId.prefix(8))")
-    return cachedFileURL(at: originalFileURL(bookId: bookId, fileName: sanitizedName))
+    return cachedFileURL(at: await originalFileURL(bookId: bookId, fileName: sanitizedName))
   }
 
   func ensureOriginalFile(
@@ -85,7 +85,7 @@ actor BookFileCache {
   ) async throws -> URL {
     let sanitizedName = FileNameHelper.sanitizedFileName(
       fileName, defaultBaseName: "book-\(bookId.prefix(8))")
-    let destination = originalFileURL(bookId: bookId, fileName: sanitizedName)
+    let destination = await originalFileURL(bookId: bookId, fileName: sanitizedName)
 
     return try await ensureFile(
       bookId: bookId,
@@ -151,20 +151,21 @@ actor BookFileCache {
     }
   }
 
-
-  private func epubFileURL(bookId: String) -> URL {
-    let base = bookRootURL(bookId: bookId)
+  private func epubFileURL(bookId: String) async -> URL {
+    let base = await bookRootURL(bookId: bookId)
     return base.appendingPathComponent("book.epub", isDirectory: false)
   }
 
-  private func originalFileURL(bookId: String, fileName: String) -> URL {
-    let base = bookRootURL(bookId: bookId)
+  private func originalFileURL(bookId: String, fileName: String) async -> URL {
+    let base = await bookRootURL(bookId: bookId)
     return base.appendingPathComponent(fileName, isDirectory: false)
   }
 
   /// Namespaced disk cache directory URL (static helper)
-  nonisolated private static func namespacedDiskCacheURL() -> URL {
-    CacheNamespace.directory(for: "KomgaBookFileCache")
+  nonisolated private static func namespacedDiskCacheURL() async -> URL {
+    await MainActor.run {
+      CacheNamespace.directory(for: "KomgaBookFileCache")
+    }
   }
 
   /// Root cache directory shared by all namespaces.
@@ -211,7 +212,7 @@ actor BookFileCache {
 
     // Cache miss or invalid, calculate size and count
     let fileManager = FileManager.default
-    let diskCacheURL = namespacedDiskCacheURL()
+    let diskCacheURL = await namespacedDiskCacheURL()
 
     let result: (size: Int64, count: Int) = await Task.detached(priority: .utility) {
       guard fileManager.fileExists(atPath: diskCacheURL.path) else {
