@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftSoup
 
 struct ReaderXHTMLImageInfo {
   let url: URL
@@ -16,11 +17,7 @@ struct ReaderXHTMLImageInfo {
 
 enum ReaderXHTMLParser {
   static func firstImageInfo(from data: Data, baseURL: URL) -> ReaderXHTMLImageInfo? {
-    guard let html = decodeText(from: data) else { return nil }
-    return extractFirstImageInfo(from: html, baseURL: baseURL)
-  }
-
-  private static func decodeText(from data: Data) -> String? {
+    // Try different encodings to decode the data
     let encodings: [String.Encoding] = [
       .utf8,
       .utf16,
@@ -31,102 +28,70 @@ enum ReaderXHTMLParser {
     ]
 
     for encoding in encodings {
-      if let string = String(data: data, encoding: encoding) {
-        return string
+      guard let htmlString = String(data: data, encoding: encoding) else {
+        continue
+      }
+
+      do {
+        let doc = try SwiftSoup.parse(htmlString, baseURL.absoluteString)
+
+        // Try to find <img> tag first
+        if let img = try doc.select("img").first() {
+          if let src = try? img.attr("src"),
+            !src.isEmpty,
+            let resolvedURL = URL(string: src, relativeTo: baseURL)?.absoluteURL
+          {
+            return createImageInfo(
+              element: img,
+              url: resolvedURL
+            )
+          }
+        }
+
+        // Try to find <image> tag (SVG)
+        if let image = try doc.select("image").first() {
+          // Try xlink:href first, then href
+          let href = (try? image.attr("xlink:href")) ?? (try? image.attr("href")) ?? ""
+
+          if !href.isEmpty,
+            let resolvedURL = URL(string: href, relativeTo: baseURL)?.absoluteURL
+          {
+            return createImageInfo(
+              element: image,
+              url: resolvedURL
+            )
+          }
+        }
+      } catch {
+        // Continue to next encoding if parsing fails
+        continue
       }
     }
+
     return nil
   }
 
-  private static func extractFirstImageInfo(from html: String, baseURL: URL)
-    -> ReaderXHTMLImageInfo?
-  {
-    let searchTargets = [
-      ("img", "src"),
-      ("image", "xlink:href"),
-      ("image", "href"),
-    ]
+  private static func createImageInfo(element: Element, url: URL) -> ReaderXHTMLImageInfo {
+    let width = parseDimension(from: try? element.attr("width"))
+    let height = parseDimension(from: try? element.attr("height"))
+    let explicitType = try? element.attr("type")
+    let normalizedType = ReaderMediaHelper.normalizedMimeType(explicitType)
 
-    for (tag, attribute) in searchTargets {
-      if
-        let match = matchTag(named: tag, attribute: attribute, in: html),
-        let resolvedURL = URL(string: match.value, relativeTo: baseURL)?.absoluteURL
-      {
-        let width = parseDimension(attribute: "width", in: match.tag)
-        let height = parseDimension(attribute: "height", in: match.tag)
-        let explicitType = extractAttribute(named: "type", in: match.tag)
-        let normalizedType = ReaderMediaHelper.normalizedMimeType(explicitType)
-        return ReaderXHTMLImageInfo(
-          url: resolvedURL,
-          width: width,
-          height: height,
-          mediaType: normalizedType.isEmpty ? nil : normalizedType
-        )
-      }
-    }
-
-    return nil
-  }
-
-  private static func matchTag(
-    named tagName: String,
-    attribute: String,
-    in html: String
-  ) -> TagMatch? {
-    let escapedAttribute = NSRegularExpression.escapedPattern(for: attribute)
-    let pattern = "<\(tagName)\\b[^>]*\(escapedAttribute)\\s*=\\s*['\"]([^'\"]+)['\"][^>]*>"
-    guard let regex = try? NSRegularExpression(
-      pattern: pattern,
-      options: [.caseInsensitive, .dotMatchesLineSeparators]
-    ) else {
-      return nil
-    }
-
-    let range = NSRange(html.startIndex..., in: html)
-    guard let match = regex.firstMatch(in: html, options: [], range: range) else {
-      return nil
-    }
-
-    guard
-      let tagRange = Range(match.range(at: 0), in: html),
-      let valueRange = Range(match.range(at: 1), in: html)
-    else {
-      return nil
-    }
-
-    return TagMatch(
-      tag: String(html[tagRange]),
-      value: String(html[valueRange])
+    return ReaderXHTMLImageInfo(
+      url: url,
+      width: width,
+      height: height,
+      mediaType: normalizedType.isEmpty ? nil : normalizedType
     )
   }
 
-  private static func extractAttribute(named name: String, in tag: String) -> String? {
-    let escapedName = NSRegularExpression.escapedPattern(for: name)
-    let pattern = "\(escapedName)\\s*=\\s*['\"]([^'\"]+)['\"]"
-    guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-      return nil
-    }
-    let range = NSRange(tag.startIndex..., in: tag)
-    guard let match = regex.firstMatch(in: tag, options: [], range: range) else {
-      return nil
-    }
-    guard let valueRange = Range(match.range(at: 1), in: tag) else {
-      return nil
-    }
-    return String(tag[valueRange])
-  }
-
-  private static func parseDimension(attribute: String, in tag: String) -> Int? {
-    guard let rawValue = extractAttribute(named: attribute, in: tag) else { return nil }
+  private static func parseDimension(from value: String?) -> Int? {
+    guard let rawValue = value, !rawValue.isEmpty else { return nil }
+    // Extract numeric value (handle cases like "100px", "100", "100.5")
     let filtered = rawValue.filter { "0123456789.".contains($0) }
     guard let doubleValue = Double(filtered) else {
       return nil
     }
     return Int(doubleValue.rounded())
-  }
-
-  private struct TagMatch {
-    let tag: String
-    let value: String
   }
 }
