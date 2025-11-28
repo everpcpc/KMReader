@@ -1,14 +1,19 @@
 KMReader - Native Komga Reader for iOS & macOS
 
-KMReader is a multi-server native Komga client that keeps your comics, manga, and novels perfectly in sync across iPhone, iPad, and Mac. Connect once, save every server you care about, and enjoy the same polished experience on every Apple platform.
+KMReader is a beautiful, multi-server native Komga client that keeps your comics, manga, and novels perfectly in sync across iPhone, iPad, and Mac. Connect once, save every server you care about, and enjoy the same polished experience on every Apple platform.
 
 HIGHLIGHTS
 
-• Guided Onboarding & Multi-Server Vault: The first launch walks you directly into server setup, then remembers every Komga instance with custom names, roles, and last-used info. Switch accounts instantly, review authentication history, and clear cached data automatically when removing a server.
-• Unified Library & Dashboard: Browse Series, Books, Collections, and Read Lists with advanced search and filtering while personalized sections like Keep Reading, On Deck, and Recently Added keep your next read ready. History stays in sync so you can resume from any device.
-• Dual-Format Readers: Enjoy a comic reader built for LTR/RTL/vertical/Webtoon styles with dual-page spreads, pinch zoom, tap zones, page jumps, and page exports. The EPUB reader keeps entire books available for offline or incognito sessions with adjustable fonts, themes, pagination, and an option to view compatible titles like comics.
-• Admin & Monitoring Tools: Edit metadata, manage read lists, run scans or analyses per library or across all libraries, and review server info plus easy-to-read metrics without leaving the couch.
-• Smart Caching & Offline Access: Page, book, and thumbnail caches load everything instantly while respecting storage. Check live usage, clear individual caches when needed, and rely on saved content when you’re offline.
-• Native Apple Experience: Optimized layouts for iPhone, iPad, and Mac include a dedicated reader window on macOS, rich keyboard shortcuts, customizable theme colors and column counts, adjustable Webtoon width, and incognito reading across both reader engines.
+• Guided Onboarding & Multi-Server Vault: The first launch walks you directly into server setup, then remembers every Komga instance with custom names, roles, and last-used info. Switch accounts instantly, review authentication history with IP/User-Agent/API key metadata, and clear cached data automatically when removing a server. Role-based access control automatically unlocks admin-only tools.
+
+• Unified Library & Dashboard: Browse Series, Books, Collections, and Read Lists with advanced search and filtering while personalized sections like Keep Reading, On Deck, Recently Added Books, Recently Added Series, and Recently Updated Series keep your next read ready. History stays in sync so you can resume from any device with infinite scroll and library filtering.
+
+• Dual-Format Readers: Enjoy a comic reader built for LTR/RTL/vertical/Webtoon styles with dual-page spreads, pinch zoom, customizable tap zones, page jumps with visual counter, and page exports in multiple formats (JPEG, PNG, HEIF, WebP). The EPUB reader keeps entire books available for offline or incognito sessions with adjustable fonts, themes (system/light/sepia/dark), pagination modes, column layouts, and an optional image-view mode for comic-style rendering.
+
+• Admin & Monitoring Tools: Edit metadata, manage collections and read lists, run scans or analyses per library or across all libraries, and review server info plus easy-to-read metrics dashboard with disk usage, task analytics, and per-library drill-downs—all without leaving the couch.
+
+• Smart Caching & Offline Access: Three-tier caching system (pages, book files, thumbnails) loads everything instantly while respecting storage. Check live usage and file counts, clear individual caches when needed, and rely on saved content when you're offline. Automatic cleanup when limits are exceeded.
+
+• Native Apple Experience: Optimized layouts for iPhone, iPad, and Mac include a dedicated reader window on macOS, rich keyboard shortcuts, customizable theme colors and orientation-aware column counts, adjustable Webtoon width, tap zone hints, and incognito reading across both reader engines.
 
 Connect to your Komga server and take full control of your digital library today.
