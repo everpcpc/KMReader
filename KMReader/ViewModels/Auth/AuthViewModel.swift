@@ -48,6 +48,7 @@ class AuthViewModel {
       LibraryManager.shared.clearAllLibraries()
       AppConfig.selectedLibraryId = ""
       persistInstance(serverURL: serverURL, username: username, displayName: displayName)
+      await LibraryManager.shared.loadLibraries()
       credentialsVersion = UUID()
     } catch {
       ErrorManager.shared.alert(error: error)

@@ -102,11 +102,9 @@ struct SettingsServersView: View {
       }
       Button("Cancel", role: .cancel) {}
     } message: { instance in
-      if isActive(instance) {
-        Text("Deleting \(instance.name) will logout the current session and remove cached data for this server.")
-      } else {
-        Text("This will remove \(instance.name), its credentials, and all cached data for this server.")
-      }
+      Text(
+        "This will remove \(instance.name), its credentials, and all cached data for this server."
+      )
     }
     .alert("Logout", isPresented: $showLogoutAlert) {
       Button("Cancel", role: .cancel) {}
@@ -169,34 +167,57 @@ struct SettingsServersView: View {
 
   private func serverRow(for instance: KomgaInstance) -> some View {
     Button {
-      switchTo(instance)
-    } label: {
-      HStack {
-        VStack(alignment: .leading, spacing: 6) {
-          HStack(spacing: 6) {
-            Text(instance.name.isEmpty ? instance.serverURL : instance.name)
-              .font(.headline)
-            if isActive(instance) {
-              Label("Active", systemImage: "checkmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.green)
-            }
-          }
-          Text(instance.serverURL)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-          Text("User: \(instance.username)")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-          Text(instance.isAdmin ? "Role: Admin" : "Role: User")
-            .font(.caption)
-            .foregroundStyle(instance.isAdmin ? .green : .secondary)
-        }
-        Spacer()
+      withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+        switchTo(instance)
       }
-      .padding(.vertical, 6)
+    } label: {
+      VStack(alignment: .leading, spacing: 12) {
+        HStack(spacing: 8) {
+          Text(instance.displayName)
+            .font(.headline)
+            .foregroundStyle(.primary)
+          Spacer()
+          if isActive(instance) {
+            Label("Active", systemImage: "checkmark.seal.fill")
+              .font(.caption)
+              .foregroundStyle(themeColor.color)
+              .padding(.horizontal, 8)
+              .padding(.vertical, 4)
+              .background(
+                Capsule()
+                  .fill(themeColor.color.opacity(0.15))
+              )
+          }
+        }
+
+        detailRow(icon: "globe", text: instance.serverURL)
+        detailRow(icon: "person", text: "User: \(instance.username)")
+
+        let roleText = instance.isAdmin ? "Role: Admin" : "Role: User"
+        let roleColor: Color = instance.isAdmin ? .green : .secondary
+        detailRow(icon: "shield", text: roleText, color: roleColor)
+      }
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(
+        RoundedRectangle(cornerRadius: 18)
+          .fill(
+            isActive(instance)
+              ? themeColor.color.opacity(0.08)
+              : PlatformHelper.secondarySystemBackgroundColor
+          )
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 18)
+          .stroke(
+            isActive(instance) ? themeColor.color.opacity(0.6) : Color.clear,
+            lineWidth: 1.5
+          )
+      )
     }
+    .animation(.easeInOut(duration: 0.25), value: isActive(instance))
     .buttonStyle(.plain)
+    .disabled(isActive(instance))
     .swipeActions(edge: .trailing) {
       if !isActive(instance) {
         Button {
@@ -235,6 +256,7 @@ struct SettingsServersView: View {
   }
 
   private func switchTo(_ instance: KomgaInstance) {
+    guard !isActive(instance) else { return }
     authViewModel.switchTo(instance: instance)
     instance.lastUsedAt = Date()
     saveChanges()
@@ -258,6 +280,22 @@ struct SettingsServersView: View {
       try modelContext.save()
     } catch {
       ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  @ViewBuilder
+  private func detailRow(icon: String, text: String, color: Color = .secondary) -> some View {
+    HStack(alignment: .center, spacing: 8) {
+      Image(systemName: icon)
+        .font(.subheadline)
+        .foregroundStyle(color)
+        .frame(width: 16)
+      Text(text)
+        .font(.footnote)
+        .foregroundStyle(color)
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
+      Spacer()
     }
   }
 }

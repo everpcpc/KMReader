@@ -38,4 +38,8 @@ final class KomgaInstance {
     self.createdAt = createdAt
     self.lastUsedAt = lastUsedAt
   }
+
+  var displayName: String {
+    name.isEmpty ? serverURL : name
+  }
 }
