@@ -85,17 +85,13 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
       )
     case .networkError(let error, let url):
       let errorMessage: String
-      if let nsError = error as NSError? {
-        switch nsError.code {
-        case NSURLErrorNotConnectedToInternet:
-          errorMessage = "No internet connection. Please check your network settings."
-        case NSURLErrorTimedOut:
-          errorMessage = "Request timed out. Please try again later."
-        case NSURLErrorCancelled:
-          errorMessage = "Request cancelled"
-        default:
-          errorMessage = "Network error: \(error.localizedDescription)"
-        }
+      // Handle AppErrorType first
+      if let appError = error as? AppErrorType {
+        errorMessage = appError.description
+      } else if let nsError = error as NSError? {
+        // Convert NSError to AppErrorType
+        let appError = AppErrorType.from(nsError)
+        errorMessage = appError.description
       } else {
         errorMessage = "Network error: \(error.localizedDescription)"
       }

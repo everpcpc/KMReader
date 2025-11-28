@@ -93,9 +93,7 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
       // Retrieve asset from URL using AssetRetriever
       // Convert URL to AbsoluteURL via AnyURL
       guard let absoluteURL = AnyURL(url: epubURL).absoluteURL else {
-        throw NSError(
-          domain: "EpubReader", code: -1,
-          userInfo: [NSLocalizedDescriptionKey: "Invalid EPUB file URL"])
+        throw AppErrorType.invalidFileURL(url: epubURL.absoluteString)
       }
       let asset = try await assetRetriever.retrieve(url: absoluteURL).get()
 
@@ -131,7 +129,9 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
 
       isLoading = false
     } catch {
-      errorMessage = error.localizedDescription
+      let message = error.localizedDescription
+      errorMessage = message
+      ErrorManager.shared.alert(error: error)
       isLoading = false
     }
   }
@@ -267,8 +267,9 @@ class EpubReaderViewModel: EPUBNavigatorDelegate {
   }
 
   func navigator(_ navigator: Navigator, presentError error: NavigatorError) {
-    // Handle errors if needed
-    errorMessage = error.localizedDescription
+    let message = error.localizedDescription
+    errorMessage = message
+    ErrorManager.shared.alert(error: error)
   }
 
   func navigator(_ navigator: Navigator, presentExternalURL url: URL) {

@@ -22,9 +22,7 @@ final class KomgaLibraryStore {
 
   private func makeContext() throws -> ModelContext {
     guard let container else {
-      throw NSError(
-        domain: "KomgaLibraryStore", code: -1,
-        userInfo: [NSLocalizedDescriptionKey: "ModelContainer is not configured"])
+      throw AppErrorType.storageNotConfigured(message: "ModelContainer is not configured")
     }
     return ModelContext(container)
   }

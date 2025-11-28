@@ -100,8 +100,8 @@ struct PageImageView: View {
               } else {
                 imageURL = nil
               }
-              if imageURL == nil {
-                loadError = "Please check your network connection"
+              if imageURL == nil && loadError == nil {
+                loadError = "Failed to load page image. Please check your network connection"
               }
             }
           }
@@ -124,12 +124,12 @@ struct PageImageView: View {
         imageURL = await viewModel.getPageImageFileURL(page: page)
       } else {
         imageURL = nil
-        loadError = "Invalid page index."
+        loadError = "Invalid page index"
       }
 
       // If download failed, show error
       if imageURL == nil && loadError == nil {
-        loadError = "Failed to load page image. Please check your network connection."
+        loadError = "Failed to load page image. Please check your network connection"
       }
     }
     .onDisappear {
@@ -149,7 +149,7 @@ struct PageImageView: View {
     }
     switch result {
     case .success:
-      ErrorManager.shared.alert(message: "Image saved to Photos successfully")
+      ErrorManager.shared.notify(message: "Image saved to Photos successfully")
     case .failure(let error):
       ErrorManager.shared.alert(error: error)
     }

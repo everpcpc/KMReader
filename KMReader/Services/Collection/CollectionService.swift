@@ -80,11 +80,7 @@ class CollectionService {
   ) async throws -> KomgaCollection {
     // SeriesIds cannot be empty when creating a collection
     guard !seriesIds.isEmpty else {
-      throw NSError(
-        domain: "CollectionService",
-        code: -1,
-        userInfo: [NSLocalizedDescriptionKey: "Cannot create collection without series"]
-      )
+      throw AppErrorType.validationFailed(message: "Cannot create collection without series")
     }
 
     let body = ["name": name, "ordered": ordered, "seriesIds": seriesIds] as [String: Any]
@@ -114,11 +110,7 @@ class CollectionService {
 
     // Throw error if result would be empty
     guard !updatedSeriesIds.isEmpty else {
-      throw NSError(
-        domain: "CollectionService",
-        code: -1,
-        userInfo: [NSLocalizedDescriptionKey: "Cannot remove all series from collection"]
-      )
+      throw AppErrorType.operationNotAllowed(message: "Cannot remove all series from collection")
     }
 
     // Update collection with new series list

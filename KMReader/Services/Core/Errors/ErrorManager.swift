@@ -69,38 +69,42 @@ class ErrorManager {
   // MARK: - Private Error Handling
 
   private func handleError(_ error: Error) -> String {
-    logger.error("Error occurred: \(error.localizedDescription)")
-
+    // Handle APIError
     if let apiError = error as? APIError {
       return apiError.description
     }
 
-    // Handle other error types
+    // Handle AppErrorType
+    if let appError = error as? AppErrorType {
+      return appError.description
+    }
+
+    // Convert NSError to AppErrorType and handle
     if let nsError = error as NSError? {
-      switch nsError.domain {
-      case NSURLErrorDomain:
-        switch nsError.code {
-        case NSURLErrorNotConnectedToInternet:
-          return "No internet connection. Please check your network settings."
-        case NSURLErrorTimedOut:
-          return "Request timed out. Please try again later."
-        case NSURLErrorCancelled:
-          return ""  // Don't show cancelled errors
-        default:
-          return "Network error: \(error.localizedDescription)"
-        }
-      default:
-        return error.localizedDescription
-      }
+      let appError = AppErrorType.from(nsError)
+      return appError.description
     }
 
     return error.localizedDescription
   }
 
   private func shouldShowError(_ error: Error) -> Bool {
+    // Handle AppErrorType
+    if let appError = error as? AppErrorType {
+      return appError.shouldShow
+    }
+
+    // Handle APIError
     if let apiError = error as? APIError {
       if case .networkError(let underlyingError, url: _) = apiError {
+        // Check if underlying error is cancelled
+        if let appError = underlyingError as? AppErrorType,
+          case .networkCancelled = appError
+        {
+          return false
+        }
         if let nsError = underlyingError as NSError?,
+          nsError.domain == NSURLErrorDomain,
           nsError.code == NSURLErrorCancelled
         {
           return false
@@ -108,11 +112,10 @@ class ErrorManager {
       }
     }
 
-    if let nsError = error as NSError?,
-      nsError.domain == NSURLErrorDomain,
-      nsError.code == NSURLErrorCancelled
-    {
-      return false
+    // Convert NSError to AppErrorType and check
+    if let nsError = error as NSError? {
+      let appError = AppErrorType.from(nsError)
+      return appError.shouldShow
     }
 
     return true

@@ -83,11 +83,7 @@ class ReadListService {
   ) async throws -> ReadList {
     // BookIds cannot be empty when creating a readlist
     guard !bookIds.isEmpty else {
-      throw NSError(
-        domain: "ReadListService",
-        code: -1,
-        userInfo: [NSLocalizedDescriptionKey: "Cannot create read list without books"]
-      )
+      throw AppErrorType.validationFailed(message: "Cannot create read list without books")
     }
 
     let body =
@@ -118,11 +114,7 @@ class ReadListService {
 
     // Throw error if result would be empty
     guard !updatedBookIds.isEmpty else {
-      throw NSError(
-        domain: "ReadListService",
-        code: -1,
-        userInfo: [NSLocalizedDescriptionKey: "Cannot remove all books from read list"]
-      )
+      throw AppErrorType.operationNotAllowed(message: "Cannot remove all books from read list")
     }
 
     // Update readlist with new book list

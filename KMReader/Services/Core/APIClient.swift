@@ -177,9 +177,20 @@ class APIClient {
       return (data, httpResponse)
     } catch let error as APIError {
       throw error
+    } catch let appError as AppErrorType {
+      // Convert AppErrorType to APIError if it's a network error
+      switch appError {
+      case .networkUnavailable, .networkTimeout, .networkCancelled, .networkError:
+        logger.error("❌ Network error for \(urlString): \(appError.description)")
+        throw APIError.networkError(appError, url: urlString)
+      default:
+        throw APIError.networkError(appError, url: urlString)
+      }
     } catch let nsError as NSError where nsError.domain == NSURLErrorDomain {
-      logger.error("❌ Network error for \(urlString): \(nsError.localizedDescription)")
-      throw APIError.networkError(nsError, url: urlString)
+      // Convert NSError to AppErrorType first, then to APIError
+      let appError = AppErrorType.from(nsError)
+      logger.error("❌ Network error for \(urlString): \(appError.description)")
+      throw APIError.networkError(appError, url: urlString)
     } catch {
       let errorDesc = error.localizedDescription
       logger.error("❌ Network error for \(urlString): \(errorDesc)")
@@ -212,9 +223,7 @@ class APIClient {
         let urlString = urlRequest.url?.absoluteString ?? ""
         logger.warning("⚠️ Empty response data from \(urlString)")
         throw APIError.decodingError(
-          NSError(
-            domain: "APIClient", code: -1,
-            userInfo: [NSLocalizedDescriptionKey: "Empty response data"]),
+          AppErrorType.missingRequiredData(message: "Empty response data"),
           url: urlString,
           response: nil
         )
@@ -315,7 +324,6 @@ class APIClient {
     let (data, httpResponse) = try await executeRequest(urlRequest)
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)
   }
-
 
   private func logAndExtractDataResponse(
     data: Data,
