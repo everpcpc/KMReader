@@ -12,18 +12,12 @@ struct BookReaderView: View {
   let incognito: Bool
 
   @Environment(\.dismiss) private var dismiss
-  @AppStorage("respectCompatibleEpub") private var respectCompatibleEpub: Bool = true
 
   private var shouldUseDivinaReader: Bool {
-    guard let profile = book.media.mediaProfile else { return false }
+    guard let profile = book.media.mediaProfile else { return true }
     switch profile {
     case .epub:
-      let compatible = book.media.epubDivinaCompatible ?? false
-      if compatible && respectCompatibleEpub {
-        return true
-      } else {
-        return false
-      }
+      return book.media.epubDivinaCompatible ?? false
     case .divina, .pdf, .unknown:
       return true
     }

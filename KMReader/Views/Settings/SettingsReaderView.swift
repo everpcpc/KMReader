@@ -13,7 +13,6 @@ struct SettingsReaderView: View {
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .dual
   @AppStorage("dualPageNoCover") private var dualPageNoCover: Bool = false
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
-  @AppStorage("respectCompatibleEpub") private var respectCompatibleEpub: Bool = true
 
   var body: some View {
     List {
@@ -61,19 +60,6 @@ struct SettingsReaderView: View {
             Text("Don't show the cover page in dual page mode")
               .font(.caption)
               .foregroundColor(.secondary)
-          }
-        }
-      }
-
-      Section(header: Text("EPUB Reader")) {
-        Toggle(isOn: $respectCompatibleEpub) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Use Image View for Compatible EPUBs")
-            Text(
-              "When enabled, compatible EPUB files will be displayed in image view mode (like comics) instead of text view mode"
-            )
-            .font(.caption)
-            .foregroundColor(.secondary)
           }
         }
       }
