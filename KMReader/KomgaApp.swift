@@ -24,7 +24,7 @@ struct KomgaApp: App {
     KomgaInstanceStore.shared.configure(with: modelContainer)
     KomgaLibraryStore.shared.configure(with: modelContainer)
     _authViewModel = State(initialValue: AuthViewModel())
-    configureSDWebImage()
+    SDImageCacheProvider.configureSDWebImage()
   }
 
   var body: some Scene {
@@ -32,12 +32,6 @@ struct KomgaApp: App {
       ContentView()
         .environment(authViewModel)
         .modelContainer(modelContainer)
-        .onChange(of: authViewModel.isLoggedIn) {
-          configureSDWebImage()
-        }
-        .onChange(of: authViewModel.credentialsVersion) {
-          configureSDWebImage()
-        }
     }
     #if canImport(AppKit)
       WindowGroup("Reader", id: "reader") {
@@ -47,18 +41,5 @@ struct KomgaApp: App {
       }
       .defaultSize(width: 1200, height: 800)
     #endif
-  }
-
-  private func configureSDWebImage() {
-    // Set authentication header for SDWebImage
-    if let authToken = AppConfig.authToken {
-      SDWebImageDownloader.shared.setValue(
-        "Basic \(authToken)", forHTTPHeaderField: "Authorization")
-    } else {
-      SDWebImageDownloader.shared.setValue(nil, forHTTPHeaderField: "Authorization")
-    }
-
-    // Register WebP coder
-    SDImageCodersManager.shared.addCoder(SDImageWebPCoder.shared)
   }
 }

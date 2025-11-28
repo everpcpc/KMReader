@@ -27,6 +27,7 @@ struct SettingsServersView: View {
     SortDescriptor(\KomgaInstance.lastUsedAt, order: .reverse),
     SortDescriptor(\KomgaInstance.name, order: .forward),
   ]) private var instances: [KomgaInstance]
+  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
   @State private var instancePendingDeletion: KomgaInstance?
@@ -64,7 +65,7 @@ struct SettingsServersView: View {
 
       addServerSection
 
-      if mode == .management, authViewModel.isLoggedIn {
+      if mode == .management, isLoggedIn {
         Section {
           Button(role: .destructive) {
             showLogoutAlert = true
@@ -117,7 +118,7 @@ struct SettingsServersView: View {
     .navigationDestination(isPresented: $showLogin) {
       LoginView()
     }
-    .onChange(of: authViewModel.isLoggedIn) { _, loggedIn in
+    .onChange(of: isLoggedIn) { _, loggedIn in
       if loggedIn && mode == .onboarding {
         dismiss()
       }

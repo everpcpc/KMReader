@@ -10,23 +10,39 @@ import SwiftUI
 struct LibraryPickerSheet: View {
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @Environment(\.dismiss) private var dismiss
+  @State private var libraryManager = LibraryManager.shared
 
   var body: some View {
     NavigationStack {
       Form {
-        Picker("Library", selection: $selectedLibraryId) {
-          Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-          ForEach(LibraryManager.shared.libraries) { library in
-            Label(library.name, systemImage: "books.vertical").tag(library.id)
+        if libraryManager.isLoading && libraryManager.libraries.isEmpty {
+          ProgressView()
+            .frame(maxWidth: .infinity)
+        } else {
+          Picker("Library", selection: $selectedLibraryId) {
+            Label("All Libraries", systemImage: "square.grid.2x2").tag("")
+            ForEach(libraryManager.libraries) { library in
+              Label(library.name, systemImage: "books.vertical").tag(library.id)
+            }
           }
+          .pickerStyle(.inline)
         }
-        .pickerStyle(.inline)
       }
       .navigationTitle("Select Library")
       #if canImport(UIKit)
         .navigationBarTitleDisplayMode(.inline)
       #endif
       .toolbar {
+        ToolbarItem(placement: .automatic) {
+          Button {
+            Task {
+              await libraryManager.refreshLibraries()
+            }
+          } label: {
+            Label("Refresh", systemImage: "arrow.clockwise")
+          }
+          .disabled(libraryManager.isLoading)
+        }
         ToolbarItem(placement: .automatic) {
           Button {
             dismiss()
@@ -40,6 +56,9 @@ struct LibraryPickerSheet: View {
         if oldValue != newValue {
           dismiss()
         }
+      }
+      .task {
+        await libraryManager.loadLibraries()
       }
     }
   }

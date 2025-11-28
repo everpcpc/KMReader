@@ -57,10 +57,6 @@ class AuthService {
     LibraryManager.shared.clearAllLibraries()
   }
 
-  func isLoggedIn() -> Bool {
-    return AppConfig.isLoggedIn
-  }
-
   func getCurrentUser() async throws -> User {
     return try await apiClient.request(path: "/api/v2/users/me")
   }

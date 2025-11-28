@@ -7,6 +7,7 @@
 
 import Foundation
 import SDWebImage
+import SDWebImageWebPCoder
 
 enum SDImageCacheProvider {
   static let thumbnailCache: SDImageCache = {
@@ -36,4 +37,17 @@ enum SDImageCacheProvider {
   static let pageImageManager: SDWebImageManager = {
     SDWebImageManager(cache: pageImageCache, loader: SDWebImageDownloader.shared)
   }()
+
+  static func configureSDWebImage() {
+    // Set authentication header for SDWebImage
+    if let authToken = AppConfig.authToken {
+      SDWebImageDownloader.shared.setValue(
+        "Basic \(authToken)", forHTTPHeaderField: "Authorization")
+    } else {
+      SDWebImageDownloader.shared.setValue(nil, forHTTPHeaderField: "Authorization")
+    }
+
+    // Register WebP coder
+    SDImageCodersManager.shared.addCoder(SDImageWebPCoder.shared)
+  }
 }

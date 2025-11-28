@@ -12,16 +12,6 @@ import SwiftUI
 @MainActor
 @Observable
 class AuthViewModel {
-  private var loggedInState: Bool
-  var isLoggedIn: Bool {
-    get { loggedInState }
-    set {
-      if loggedInState != newValue {
-        loggedInState = newValue
-        AppConfig.isLoggedIn = newValue
-      }
-    }
-  }
   var isLoading = false
   var user: User?
   var credentialsVersion = UUID()
@@ -30,7 +20,6 @@ class AuthViewModel {
   private let instanceStore = KomgaInstanceStore.shared
 
   init() {
-    self.loggedInState = authService.isLoggedIn()
   }
 
   func login(
@@ -44,19 +33,16 @@ class AuthViewModel {
     do {
       user = try await authService.login(
         username: username, password: password, serverURL: serverURL)
-      isLoggedIn = true
+      AppConfig.isLoggedIn = true
       LibraryManager.shared.clearAllLibraries()
       AppConfig.selectedLibraryId = ""
       persistInstance(serverURL: serverURL, username: username, displayName: displayName)
       await LibraryManager.shared.loadLibraries()
       credentialsVersion = UUID()
+      ErrorManager.shared.notify(message: "Logged in successfully")
     } catch {
       ErrorManager.shared.alert(error: error)
-      isLoggedIn = false
-    }
-
-    if isLoggedIn {
-      ErrorManager.shared.notify(message: "Logged in successfully")
+      AppConfig.isLoggedIn = false
     }
 
     isLoading = false
@@ -66,7 +52,7 @@ class AuthViewModel {
     Task {
       try? await authService.logout()
     }
-    isLoggedIn = false
+    AppConfig.isLoggedIn = false
     user = nil
     credentialsVersion = UUID()
     LibraryManager.shared.clearAllLibraries()
@@ -100,7 +86,7 @@ class AuthViewModel {
     AppConfig.username = instance.username
     AppConfig.isAdmin = instance.isAdmin
     AppConfig.serverDisplayName = instance.displayName
-    isLoggedIn = true
+    AppConfig.isLoggedIn = true
     AppConfig.currentInstanceId = instance.id.uuidString
     credentialsVersion = UUID()
 

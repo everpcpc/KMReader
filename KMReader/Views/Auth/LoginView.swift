@@ -12,6 +12,7 @@ struct LoginView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("serverURL") private var serverURL: String = "https://demo.komga.org"
   @AppStorage("username") private var username: String = ""
+  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @State private var password = ""
   @State private var instanceName = ""
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -176,7 +177,7 @@ struct LoginView: View {
         serverURL: serverURL,
         displayName: displayName
       )
-      if authViewModel.isLoggedIn {
+      if isLoggedIn {
         dismiss()
       }
     }

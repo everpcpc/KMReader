@@ -10,12 +10,13 @@ import SwiftUI
 struct ContentView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @State private var errorManager = ErrorManager.shared
 
   var body: some View {
     ZStack {
       Group {
-        if authViewModel.isLoggedIn {
+        if isLoggedIn {
           MainTabView()
         } else {
           LandingView()
@@ -23,18 +24,25 @@ struct ContentView: View {
       }
       .tint(themeColor.color)
       .task {
-        if authViewModel.isLoggedIn {
+        if isLoggedIn {
           await authViewModel.loadCurrentUser()
           await LibraryManager.shared.loadLibraries()
         }
       }
-      .onChange(of: authViewModel.isLoggedIn) { _, isLoggedIn in
+      .onChange(of: isLoggedIn) { _, isLoggedIn in
+        SDImageCacheProvider.configureSDWebImage()
         if isLoggedIn {
           Task {
             await authViewModel.loadCurrentUser()
             await LibraryManager.shared.loadLibraries()
           }
         }
+      }
+      .onChange(of: authViewModel.credentialsVersion) {
+        SDImageCacheProvider.configureSDWebImage()
+      }
+      .onAppear {
+        SDImageCacheProvider.configureSDWebImage()
       }
 
       // Notification overlay

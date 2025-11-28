@@ -21,8 +21,6 @@ class LibraryManager {
   private var hasLoaded = false
   private var loadedInstanceId: String?
 
-  private init() {}
-
   func loadLibraries() async {
     guard let instanceId = AppConfig.currentInstanceId else {
       libraries = []
