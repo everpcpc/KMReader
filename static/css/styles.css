@@ -110,6 +110,28 @@ h1 {
   font-size: 1.05rem;
 }
 
+.multi-server-callout {
+  max-width: 640px;
+  margin: 0 auto 2rem;
+  padding: 1.2rem 1.5rem;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(0, 94, 209, 0.12), rgba(0, 94, 209, 0.04));
+  border: 1px solid rgba(0, 94, 209, 0.18);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.multi-server-callout strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--heading);
+}
+
+.multi-server-callout p {
+  margin: 0.2rem 0 0;
+  color: var(--text);
+}
+
 .cta {
   display: flex;
   justify-content: center;
@@ -187,6 +209,77 @@ section {
 .section-subtitle {
   color: var(--muted);
   margin-bottom: 2.1rem;
+}
+
+.privacy-wrapper {
+  width: min(720px, 90vw);
+  margin: 0 auto;
+  padding: 64px 0 90px;
+}
+
+.privacy-hero {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.back-link {
+  align-self: flex-start;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.privacy-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4.5vw, 2.8rem);
+  color: var(--heading);
+}
+
+.privacy-tagline {
+  margin: 0;
+  color: var(--muted);
+  max-width: 520px;
+}
+
+.privacy-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.6rem 1.8rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+.privacy-section h2 {
+  margin: 0 0 0.4rem;
+  color: var(--heading);
+}
+
+.privacy-list {
+  padding-left: 1.2rem;
+  margin: 0 0 1.2rem;
+}
+
+.privacy-contact {
+  border: 1px solid rgba(0, 94, 209, 0.18);
+  border-radius: 24px;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(0, 94, 209, 0.12), rgba(0, 94, 209, 0.04));
+  box-shadow: var(--shadow);
+  margin-top: 2.5rem;
+}
+
+.privacy-contact h2 {
+  margin-top: 0;
+  color: var(--heading);
+}
+
+.privacy-updated {
+  margin: 1.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
 }
 
 .feature-grid {

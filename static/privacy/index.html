@@ -1,89 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
-    <link rel="stylesheet" type="text/css" href="../css/dayone.css" />
-    <title>Privacy Policy - KMReader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy · KMReader</title>
+    <link rel="stylesheet" type="text/css" href="../css/styles.css" />
   </head>
-  <body>
-    <h1>Privacy Policy</h1>
+  <body class="privacy-body">
+    <div class="privacy-wrapper">
+      <header class="privacy-hero">
+        <a class="back-link" href="../">&larr; Back to KMReader</a>
+        <p class="eyebrow">Privacy Policy</p>
+        <h1>Your reading, your data</h1>
+        <p class="privacy-tagline">
+          KMReader keeps every Komga login, preference, and cache on your device
+          only. Nothing is uploaded, shared, or sold.
+        </p>
+      </header>
 
-    <p>
-      KMReader respects your privacy. This privacy policy explains how we handle
-      your information when you use the KMReader app.
-    </p>
+      <section class="privacy-section">
+        <h2>What we collect</h2>
+        <p>
+          We don&rsquo;t run servers for KMReader and never see your personal
+          information. The app stores everything locally so you can enjoy
+          multi-server support, fast loading, and uninterrupted reading.
+        </p>
+        <ul class="privacy-list">
+          <li>Komga server addresses, display names, and encrypted credentials</li>
+          <li>Reading progress, cached images, and downloaded EPUB files</li>
+          <li>Preferences like themes, layouts, and cache budgets</li>
+        </ul>
+        <p>
+          iCloud, analytics, and crash reporting are not used. We can&rsquo;t
+          view or retrieve the items listed above.
+        </p>
+      </section>
 
-    <h3>Information Collection</h3>
+      <section class="privacy-section">
+        <h2>How local storage works</h2>
+        <p>
+          Sensitive details such as passwords live in Keychain, while caches and
+          preferences are stored in KMReader&rsquo;s app sandbox. Removing a
+          server profile clears its cached pages, thumbnails, and EPUB files.
+        </p>
+        <p>
+          You control when to clear caches or sign out. Uninstalling the app
+          removes everything.
+        </p>
+      </section>
 
-    <p>
-      KMReader does not collect, transmit, or store any personal information or
-      user data. All data related to your usage of the app, including
-      authentication credentials, reading progress, and cached content, is
-      stored locally on your device only.
-    </p>
+      <section class="privacy-section">
+        <h2>Connections to your server</h2>
+        <p>
+          KMReader talks directly to the Komga servers you add. All requests stay
+          between your Apple device and your Komga instance using HTTPS if your
+          server supports it. We never proxy, log, or inspect that traffic.
+        </p>
+      </section>
 
-    <h3>Local Data Storage</h3>
+      <section class="privacy-section">
+        <h2>No third-party tracking</h2>
+        <p>
+          The app ships without advertising SDKs, analytics beacons, social
+          trackers, or data brokers. What happens in KMReader stays with you.
+        </p>
+      </section>
 
-    <p>
-      To provide you with a better user experience, KMReader stores the
-      following information locally on your device:
-    </p>
+      <section class="privacy-section">
+        <h2>Managing or deleting data</h2>
+        <p>
+          Because everything lives on-device, you can:
+        </p>
+        <ul class="privacy-list">
+          <li>Log out of a server to wipe its credentials and content caches</li>
+          <li>Use the in-app cache controls to clear pages, books, or thumbnails</li>
+          <li>Delete the app to remove every remaining file and preference</li>
+        </ul>
+        <p>
+          If you reinstall KMReader, you&rsquo;ll start with a clean slate.
+        </p>
+      </section>
 
-    <ul>
-      <li>Server URL and authentication credentials</li>
-      <li>Cached images and content for offline access</li>
-      <li>App preferences and settings</li>
-    </ul>
+      <section class="privacy-section">
+        <h2>Updates to this policy</h2>
+        <p>
+          We occasionally refine this document to reflect new features or legal
+          requirements. When that happens, we update the date below and publish
+          the latest version on this page.
+        </p>
+      </section>
 
-    <p>
-      All of this data remains on your device and is never transmitted to any
-      external servers or third parties. We do not have access to any of this
-      information.
-    </p>
-
-    <h3>Server Connection</h3>
-
-    <p>
-      KMReader connects directly to your Komga server instance. All
-      communication occurs between your device and your server. We do not
-      intercept, monitor, or store any data transmitted between your app and
-      your server.
-    </p>
-
-    <h3>Third-Party Services</h3>
-
-    <p>
-      KMReader does not use any third-party analytics, advertising, or tracking
-      services. The app does not include any code that would collect or transmit
-      your personal information.
-    </p>
-
-    <h3>Data Deletion</h3>
-
-    <p>
-      Since all data is stored locally on your device, you can delete all
-      information associated with KMReader by uninstalling the app. To ensure
-      complete removal of authentication credentials stored in Keychain, you may
-      need to log out from within the app before uninstalling.
-    </p>
-
-    <h3>Changes to This Policy</h3>
-
-    <p>
-      We may update this privacy policy from time to time. Any changes will be
-      posted on this page. We encourage you to review this policy periodically.
-    </p>
-
-    <h3>Contact</h3>
-
-    <p>
-      If you have any questions about this privacy policy, please contact us
-      through the project's GitHub repository.
-    </p>
-
-    <p>
-      <em>Last updated: January 2025</em>
-    </p>
+      <section class="privacy-contact">
+        <div>
+          <h2>Questions?</h2>
+          <p>
+            Reach out anytime on
+            <a
+              href="https://github.com/everpcpc/KMReader"
+              target="_blank"
+              rel="noreferrer"
+              >GitHub</a
+            >
+            or
+            <a href="mailto:everpcpc+kmreader@icloud.com">email us</a>.
+          </p>
+          <p class="privacy-updated">Last updated: January 2025</p>
+        </div>
+      </section>
+    </div>
   </body>
 </html>
