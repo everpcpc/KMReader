@@ -23,13 +23,8 @@ struct MangaDualPageView: View {
   @State private var scrollPosition: Int?
   @State private var isZoomed = false
 
-  #if os(tvOS)
-    @FocusState private var navigationFocused: Bool
-  #endif
-
   var body: some View {
-    ZStack {
-      ScrollViewReader { proxy in
+    ScrollViewReader { proxy in
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           // Dual page mode for RTL (reversed order)
@@ -77,82 +72,47 @@ struct MangaDualPageView: View {
             #endif
             .id(pagePair.first)
           }
-          }
-          .scrollTargetLayout()
         }
-        .scrollTargetBehavior(.paging)
-        .scrollIndicators(.hidden)
-        .scrollPosition(id: $scrollPosition)
-        .scrollDisabled(isZoomed)
-        .onAppear {
-          synchronizeInitialScrollIfNeeded(proxy: proxy)
-        }
-        .onChange(of: viewModel.pages.count) {
-          hasSyncedInitialScroll = false
-          synchronizeInitialScrollIfNeeded(proxy: proxy)
-        }
-        .onChange(of: viewModel.targetPageIndex) { _, newTargetIndex in
-          guard let newTargetIndex = newTargetIndex else { return }
-          guard hasSyncedInitialScroll else { return }
-          guard !viewModel.pages.isEmpty else { return }
+        .scrollTargetLayout()
+      }
+      .scrollTargetBehavior(.paging)
+      .scrollIndicators(.hidden)
+      .scrollPosition(id: $scrollPosition)
+      .scrollDisabled(isZoomed)
+      .onAppear {
+        synchronizeInitialScrollIfNeeded(proxy: proxy)
+      }
+      .onChange(of: viewModel.pages.count) {
+        hasSyncedInitialScroll = false
+        synchronizeInitialScrollIfNeeded(proxy: proxy)
+      }
+      .onChange(of: viewModel.targetPageIndex) { _, newTargetIndex in
+        guard let newTargetIndex = newTargetIndex else { return }
+        guard hasSyncedInitialScroll else { return }
+        guard !viewModel.pages.isEmpty else { return }
 
-          let targetPair = viewModel.dualPageIndices[newTargetIndex]
-          guard let targetPair = targetPair else { return }
+        let targetPair = viewModel.dualPageIndices[newTargetIndex]
+        guard let targetPair = targetPair else { return }
 
-          // Update scroll position and currentPageIndex
-          if scrollPosition != targetPair.first {
-            withAnimation(ReaderAnimations.pageTurn) {
-              scrollPosition = targetPair.first
-              proxy.scrollTo(targetPair.first, anchor: .trailing)
-            }
-          }
-
-          // Update currentPageIndex
-          if viewModel.currentPageIndex != targetPair.first {
-            viewModel.currentPageIndex = targetPair.first
-            Task(priority: .userInitiated) {
-              await viewModel.preloadPages()
-            }
+        // Update scroll position and currentPageIndex
+        if scrollPosition != targetPair.first {
+          withAnimation(ReaderAnimations.pageTurn) {
+            scrollPosition = targetPair.first
+            proxy.scrollTo(targetPair.first, anchor: .trailing)
           }
         }
-        .onChange(of: scrollPosition) { _, newTarget in
-          handleScrollPositionChange(newTarget)
+
+        // Update currentPageIndex
+        if viewModel.currentPageIndex != targetPair.first {
+          viewModel.currentPageIndex = targetPair.first
+          Task(priority: .userInitiated) {
+            await viewModel.preloadPages()
+          }
         }
       }
-
-      #if os(tvOS)
-        // Hidden navigation overlay
-        Color.clear
-          .frame(width: screenSize.width, height: screenSize.height)
-          .contentShape(Rectangle())
-          .focusable(viewModel.currentPageIndex < viewModel.pages.count)
-          .focused($navigationFocused)
-          .allowsHitTesting(viewModel.currentPageIndex < viewModel.pages.count)
-          .onMoveCommand { direction in
-            switch direction {
-            case .left:
-              goToNextPage()
-            case .right:
-              goToPreviousPage()
-            default:
-              break
-            }
-          }
-          .onChange(of: viewModel.currentPageIndex) { _, newIndex in
-            // When at endpage, remove focus to allow EndPageView buttons to get focus
-            if newIndex >= viewModel.pages.count {
-              navigationFocused = false
-            } else if !navigationFocused {
-              // When leaving endpage, restore focus
-              navigationFocused = true
-            }
-          }
-          .onAppear {
-            if viewModel.currentPageIndex < viewModel.pages.count {
-              navigationFocused = true
-            }
-          }
-      #endif
+      .onChange(of: scrollPosition) { _, newTarget in
+        handleScrollPositionChange(newTarget)
+      }
     }
   }
 

@@ -22,32 +22,27 @@ struct ComicPageView: View {
   @State private var isZoomed = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
-  #if os(tvOS)
-    @FocusState private var navigationFocused: Bool
-  #endif
-
   var body: some View {
-    ZStack {
-      ScrollViewReader { proxy in
-        ScrollView(.horizontal) {
-          LazyHStack(spacing: 0) {
-            // Single page mode
-            ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-              SinglePageImageView(
-                viewModel: viewModel,
-                pageIndex: pageIndex,
-                screenSize: screenSize,
-                isZoomed: $isZoomed
+    ScrollViewReader { proxy in
+      ScrollView(.horizontal) {
+        LazyHStack(spacing: 0) {
+          // Single page mode
+          ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
+            SinglePageImageView(
+              viewModel: viewModel,
+              pageIndex: pageIndex,
+              screenSize: screenSize,
+              isZoomed: $isZoomed
+            )
+            .frame(width: screenSize.width, height: screenSize.height)
+            .contentShape(Rectangle())
+            #if os(iOS)
+              .simultaneousGesture(
+                horizontalTapGesture(width: screenSize.width, proxy: proxy)
               )
-              .frame(width: screenSize.width, height: screenSize.height)
-              .contentShape(Rectangle())
-              #if os(iOS)
-                .simultaneousGesture(
-                  horizontalTapGesture(width: screenSize.width, proxy: proxy)
-                )
-              #endif
-              .id(pageIndex)
-            }
+            #endif
+            .id(pageIndex)
+          }
 
           // End page at the end for LTR
           ZStack {
@@ -112,42 +107,7 @@ struct ComicPageView: View {
         handleScrollPositionChange(newTarget)
       }
     }
-
-    #if os(tvOS)
-      // Hidden navigation overlay
-      Color.clear
-        .frame(width: screenSize.width, height: screenSize.height)
-        .contentShape(Rectangle())
-        .focusable(viewModel.currentPageIndex < viewModel.pages.count)
-        .focused($navigationFocused)
-        .allowsHitTesting(viewModel.currentPageIndex < viewModel.pages.count)
-        .onMoveCommand { direction in
-          switch direction {
-          case .left:
-            goToPreviousPage()
-          case .right:
-            goToNextPage()
-          default:
-            break
-          }
-        }
-        .onChange(of: viewModel.currentPageIndex) { _, newIndex in
-          // When at endpage, remove focus to allow EndPageView buttons to get focus
-          if newIndex >= viewModel.pages.count {
-            navigationFocused = false
-          } else if !navigationFocused {
-            // When leaving endpage, restore focus
-            navigationFocused = true
-          }
-        }
-        .onAppear {
-          if viewModel.currentPageIndex < viewModel.pages.count {
-            navigationFocused = true
-          }
-        }
-    #endif
   }
-}
 
   #if os(iOS)
     private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {

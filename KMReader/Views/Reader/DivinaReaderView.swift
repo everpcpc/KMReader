@@ -256,11 +256,62 @@ struct DivinaReaderView: View {
           .opacity(showHelperOverlay ? 1.0 : 0.0)
           .allowsHitTesting(showHelperOverlay)
         #endif
+
       }
       #if os(tvOS)
         .onPlayPauseCommand {
           // Manual toggle on tvOS should not auto-hide
           toggleControls(autoHide: false)
+        }
+        .onMoveCommand { direction in
+          // ignore if showing controls
+          if showingControls {
+            return
+          }
+
+          let useDualPage = shouldUseDualPage(screenSize: geometry.size)
+          switch readingDirection {
+          case .ltr, .rtl:
+            // Horizontal navigation
+            switch direction {
+            case .left:
+              // RTL: left means next, LTR: left means previous
+              if readingDirection == .rtl {
+                goToNextPage(dualPageEnabled: useDualPage)
+              } else {
+                goToPreviousPage(dualPageEnabled: useDualPage)
+              }
+            case .right:
+              // RTL: right means previous, LTR: right means next
+              if readingDirection == .rtl {
+                goToPreviousPage(dualPageEnabled: useDualPage)
+              } else {
+                goToNextPage(dualPageEnabled: useDualPage)
+              }
+            default:
+              break
+            }
+          case .vertical:
+            // Vertical navigation
+            switch direction {
+            case .up:
+              goToPreviousPage(dualPageEnabled: useDualPage)
+            case .down:
+              goToNextPage(dualPageEnabled: useDualPage)
+            default:
+              break
+            }
+          case .webtoon:
+            // Webtoon navigation (vertical)
+            switch direction {
+            case .up:
+              goToPreviousPage(dualPageEnabled: useDualPage)
+            case .down:
+              goToNextPage(dualPageEnabled: useDualPage)
+            default:
+              break
+            }
+          }
         }
       #endif
     }
@@ -422,7 +473,6 @@ struct DivinaReaderView: View {
       }
     }
   }
-
 
   private func toggleControls(autoHide: Bool = true) {
     #if os(tvOS)

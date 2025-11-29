@@ -105,18 +105,6 @@ struct EndPageView: View {
           .buttonStyle(.plain)
         }
       }
-      #if os(tvOS)
-        .focusSection()
-        .onMoveCommand { direction in
-          // Handle going back to previous page
-          switch direction {
-          case .left where !isRTL, .right where isRTL, .up:
-            goToPreviousPage?()
-          default:
-            break
-          }
-        }
-      #endif
       NextBookInfoView(nextBook: nextBook)
     }
   }
