@@ -26,7 +26,7 @@ struct DashboardSeriesSection: View {
             NavigationLink(value: NavDestination.seriesDetail(seriesId: s.id)) {
               SeriesCardView(
                 series: s,
-                cardWidth: 120,
+                cardWidth: PlatformHelper.dashboardCardWidth,
                 onActionCompleted: onSeriesUpdated
               )
             }

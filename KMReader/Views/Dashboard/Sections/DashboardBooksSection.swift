@@ -26,7 +26,7 @@ struct DashboardBooksSection: View {
             BookCardView(
               book: book,
               viewModel: bookViewModel,
-              cardWidth: 120,
+              cardWidth: PlatformHelper.dashboardCardWidth,
               onBookUpdated: onBookUpdated,
               showSeriesTitle: true,
             )

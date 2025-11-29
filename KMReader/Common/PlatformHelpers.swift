@@ -68,28 +68,25 @@ struct PlatformHelper {
   static var isPad: Bool {
     #if canImport(UIKit)
       return UIDevice.current.userInterfaceIdiom == .pad
-    #elseif canImport(AppKit)
-      return false
     #else
       return false
     #endif
   }
 
-  /// Check if running on macOS
-  static var isMacOS: Bool {
-    #if canImport(AppKit)
-      return true
+  /// Get dashboard card width based on platform
+  /// - iOS (iPhone): 120
+  /// - iOS (iPad): 160
+  /// - macOS: 240
+  /// - tvOS: 320
+  static var dashboardCardWidth: CGFloat {
+    #if os(tvOS)
+      return 320
+    #elseif os(macOS)
+      return 240
+    #elseif os(iOS)
+      return isPad ? 160 : 120
     #else
-      return false
-    #endif
-  }
-
-  /// Check if running on iOS
-  static var isIOS: Bool {
-    #if canImport(UIKit) && !os(watchOS) && !os(tvOS)
-      return true
-    #else
-      return false
+      return 120
     #endif
   }
 
