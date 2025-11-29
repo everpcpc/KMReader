@@ -36,9 +36,11 @@ struct VerticalPageView: View {
               )
               .frame(width: screenSize.width, height: screenSize.height)
               .contentShape(Rectangle())
-              .simultaneousGesture(
-                verticalTapGesture(height: screenSize.height, proxy: proxy)
-              )
+              #if os(iOS)
+                .simultaneousGesture(
+                  verticalTapGesture(height: screenSize.height, proxy: proxy)
+                )
+              #endif
               .id(pageIndex)
             }
 
@@ -55,9 +57,11 @@ struct VerticalPageView: View {
             // IMPORTANT: Add 100 to the height to prevent the bounce behavior
             .frame(width: screenSize.width, height: screenSize.height + 100)
             .contentShape(Rectangle())
-            .simultaneousGesture(
-              verticalTapGesture(height: screenSize.height, proxy: proxy)
-            )
+            #if os(iOS)
+              .simultaneousGesture(
+                verticalTapGesture(height: screenSize.height, proxy: proxy)
+              )
+            #endif
             .id(viewModel.pages.count)
           }
           .scrollTargetLayout()
@@ -104,28 +108,30 @@ struct VerticalPageView: View {
     }
   }
 
-  private func verticalTapGesture(height: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
-    SpatialTapGesture()
-      .onEnded { value in
-        guard !isZoomed else { return }
-        guard height > 0 else { return }
-        let normalizedY = max(0, min(1, value.location.y / height))
-        if normalizedY < 0.3 {
-          guard !viewModel.pages.isEmpty else { return }
-          guard viewModel.currentPageIndex > 0 else { return }
-          // Previous page (top tap)
-          let current = min(viewModel.currentPageIndex, viewModel.pages.count)
-          viewModel.targetPageIndex = current - 1
-        } else if normalizedY > 0.7 {
-          guard !viewModel.pages.isEmpty else { return }
-          // Next page (bottom tap)
-          viewModel.targetPageIndex = min(
-            viewModel.currentPageIndex + 1, viewModel.pages.count)
-        } else {
-          toggleControls()
+  #if os(iOS)
+    private func verticalTapGesture(height: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
+      SpatialTapGesture()
+        .onEnded { value in
+          guard !isZoomed else { return }
+          guard height > 0 else { return }
+          let normalizedY = max(0, min(1, value.location.y / height))
+          if normalizedY < 0.3 {
+            guard !viewModel.pages.isEmpty else { return }
+            guard viewModel.currentPageIndex > 0 else { return }
+            // Previous page (top tap)
+            let current = min(viewModel.currentPageIndex, viewModel.pages.count)
+            viewModel.targetPageIndex = current - 1
+          } else if normalizedY > 0.7 {
+            guard !viewModel.pages.isEmpty else { return }
+            // Next page (bottom tap)
+            viewModel.targetPageIndex = min(
+              viewModel.currentPageIndex + 1, viewModel.pages.count)
+          } else {
+            toggleControls()
+          }
         }
-      }
-  }
+    }
+  #endif
 
   private func synchronizeInitialScrollIfNeeded(proxy: ScrollViewProxy) {
     guard !hasSyncedInitialScroll else { return }

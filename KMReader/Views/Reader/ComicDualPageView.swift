@@ -62,9 +62,11 @@ struct ComicDualPageView: View {
               }
               .frame(width: screenSize.width, height: screenSize.height)
               .contentShape(Rectangle())
-              .simultaneousGesture(
-                horizontalTapGesture(width: screenSize.width, proxy: proxy)
-              )
+              #if os(iOS)
+                .simultaneousGesture(
+                  horizontalTapGesture(width: screenSize.width, proxy: proxy)
+                )
+              #endif
               .id(pagePair.first)
             }
           }
@@ -112,36 +114,38 @@ struct ComicDualPageView: View {
     }
   }
 
-  private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
-    SpatialTapGesture()
-      .onEnded { value in
-        guard !isZoomed else { return }
-        guard width > 0 else { return }
-        let normalizedX = max(0, min(1, value.location.x / width))
-        if normalizedX < 0.3 {
-          guard !viewModel.pages.isEmpty else { return }
-          guard viewModel.currentPageIndex > 0 else { return }
+  #if os(iOS)
+    private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
+      SpatialTapGesture()
+        .onEnded { value in
+          guard !isZoomed else { return }
+          guard width > 0 else { return }
+          let normalizedX = max(0, min(1, value.location.x / width))
+          if normalizedX < 0.3 {
+            guard !viewModel.pages.isEmpty else { return }
+            guard viewModel.currentPageIndex > 0 else { return }
 
-          // Previous page (left tap)
-          let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-          guard let currentPair = currentPair else { return }
-          viewModel.targetPageIndex = max(0, currentPair.first - 1)
-        } else if normalizedX > 0.7 {
-          guard !viewModel.pages.isEmpty else { return }
+            // Previous page (left tap)
+            let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
+            guard let currentPair = currentPair else { return }
+            viewModel.targetPageIndex = max(0, currentPair.first - 1)
+          } else if normalizedX > 0.7 {
+            guard !viewModel.pages.isEmpty else { return }
 
-          // Next page (right tap)
-          let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-          guard let currentPair = currentPair else { return }
-          if let second = currentPair.second {
-            viewModel.targetPageIndex = min(viewModel.pages.count, second + 1)
+            // Next page (right tap)
+            let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
+            guard let currentPair = currentPair else { return }
+            if let second = currentPair.second {
+              viewModel.targetPageIndex = min(viewModel.pages.count, second + 1)
+            } else {
+              viewModel.targetPageIndex = min(viewModel.pages.count, currentPair.first + 1)
+            }
           } else {
-            viewModel.targetPageIndex = min(viewModel.pages.count, currentPair.first + 1)
+            toggleControls()
           }
-        } else {
-          toggleControls()
         }
-      }
-  }
+    }
+  #endif
 
   private func synchronizeInitialScrollIfNeeded(proxy: ScrollViewProxy) {
     guard !hasSyncedInitialScroll else { return }

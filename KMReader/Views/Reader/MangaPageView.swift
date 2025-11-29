@@ -39,9 +39,11 @@ struct MangaPageView: View {
             }
             .frame(width: screenSize.width, height: screenSize.height)
             .contentShape(Rectangle())
-            .simultaneousGesture(
-              horizontalTapGesture(width: screenSize.width, proxy: proxy)
-            )
+            #if os(iOS)
+              .simultaneousGesture(
+                horizontalTapGesture(width: screenSize.width, proxy: proxy)
+              )
+            #endif
             .id(viewModel.pages.count)
 
             // Single page mode - Pages in reverse order for RTL (last to first)
@@ -54,9 +56,11 @@ struct MangaPageView: View {
               )
               .frame(width: screenSize.width, height: screenSize.height)
               .contentShape(Rectangle())
-              .simultaneousGesture(
-                horizontalTapGesture(width: screenSize.width, proxy: proxy)
-              )
+              #if os(iOS)
+                .simultaneousGesture(
+                  horizontalTapGesture(width: screenSize.width, proxy: proxy)
+                )
+              #endif
               .id(pageIndex)
             }
           }
@@ -105,32 +109,34 @@ struct MangaPageView: View {
     }
   }
 
-  private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
-    SpatialTapGesture()
-      .onEnded { value in
-        guard !isZoomed else { return }
-        guard width > 0 else { return }
-        let normalizedX = max(0, min(1, value.location.x / width))
-        if normalizedX < 0.3 {
-          guard !viewModel.pages.isEmpty else { return }
-          // Next page (left tap for RTL means go forward)
+  #if os(iOS)
+    private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
+      SpatialTapGesture()
+        .onEnded { value in
+          guard !isZoomed else { return }
+          guard width > 0 else { return }
+          let normalizedX = max(0, min(1, value.location.x / width))
+          if normalizedX < 0.3 {
+            guard !viewModel.pages.isEmpty else { return }
+            // Next page (left tap for RTL means go forward)
 
-          // Single page mode only
-          let newIndex = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
-          viewModel.targetPageIndex = newIndex
-        } else if normalizedX > 0.7 {
-          guard !viewModel.pages.isEmpty else { return }
-          // Previous page (right tap for RTL means go back)
-          guard viewModel.currentPageIndex > 0 else { return }
+            // Single page mode only
+            let newIndex = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
+            viewModel.targetPageIndex = newIndex
+          } else if normalizedX > 0.7 {
+            guard !viewModel.pages.isEmpty else { return }
+            // Previous page (right tap for RTL means go back)
+            guard viewModel.currentPageIndex > 0 else { return }
 
-          // Single page mode only
-          let newIndex = min(viewModel.currentPageIndex - 1, viewModel.pages.count)
-          viewModel.targetPageIndex = newIndex
-        } else {
-          toggleControls()
+            // Single page mode only
+            let newIndex = min(viewModel.currentPageIndex - 1, viewModel.pages.count)
+            viewModel.targetPageIndex = newIndex
+          } else {
+            toggleControls()
+          }
         }
-      }
-  }
+    }
+  #endif
 
   private func synchronizeInitialScrollIfNeeded(proxy: ScrollViewProxy) {
     guard !hasSyncedInitialScroll else { return }

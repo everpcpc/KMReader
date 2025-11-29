@@ -25,9 +25,9 @@ struct DivinaReaderView: View {
   @State private var isAtBottom = false
   @State private var showingReadingDirectionPicker = false
   @State private var readingDirection: ReadingDirection = .ltr
-  @State private var showTapZoneOverlay = false
-  @State private var overlayTimer: Timer?
-  @State private var showingKeyboardHelp = false
+  @State private var showHelperOverlay = false
+  @State private var helperOverlayTimer: Timer?
+  @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
 
   init(bookId: String, incognito: Bool = false) {
     self.incognito = incognito
@@ -182,44 +182,41 @@ struct DivinaReaderView: View {
           )
         }
 
-        // Tap zone overlay(always rendered, use opacity to control visibility)
-        Group {
-          switch readingDirection {
-          case .ltr:
-            ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
-          case .rtl:
-            MangaTapZoneOverlay(isVisible: $showTapZoneOverlay)
-          case .vertical:
-            VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
-          case .webtoon:
-            #if canImport(UIKit) && !os(watchOS) && !os(tvOS)
-              WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
-            #else
-              // Webtoon requires UIKit on iOS/iPadOS, fallback to vertical
-              VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
-            #endif
+        // Helper overlay (only used on iOS; always rendered, use opacity to control visibility)
+        #if os(iOS)
+          Group {
+            switch readingDirection {
+            case .ltr:
+              ComicTapZoneOverlay(isVisible: $showHelperOverlay)
+            case .rtl:
+              MangaTapZoneOverlay(isVisible: $showHelperOverlay)
+            case .vertical:
+              VerticalTapZoneOverlay(isVisible: $showHelperOverlay)
+            case .webtoon:
+              WebtoonTapZoneOverlay(isVisible: $showHelperOverlay)
+            }
           }
-        }
-        .ignoresSafeArea()
-        .onChange(of: viewModel.pages.count) { oldCount, newCount in
-          // Show tap zone overlay when pages are first loaded
-          if oldCount == 0 && newCount > 0 {
-            triggerTapZoneDisplay()
+          .ignoresSafeArea()
+          .onChange(of: viewModel.pages.count) { oldCount, newCount in
+            // Show helper overlay when pages are first loaded
+            if oldCount == 0 && newCount > 0 {
+              triggerHelperOverlay()
+            }
           }
-        }
-        .onChange(of: showTapZoneOverlay) { _, newValue in
-          if newValue {
-            resetOverlayTimer()
-          } else {
-            overlayTimer?.invalidate()
+          .onChange(of: showHelperOverlay) { _, newValue in
+            if newValue {
+              resetHelperOverlayTimer()
+            } else {
+              helperOverlayTimer?.invalidate()
+            }
           }
-        }
-        .onChange(of: screenKey) {
-          // Show tap zone overlay when screen orientation changes
-          if !viewModel.pages.isEmpty {
-            triggerTapZoneDisplay()
+          .onChange(of: screenKey) {
+            // Show helper overlay when screen orientation changes
+            if !viewModel.pages.isEmpty {
+              triggerHelperOverlay()
+            }
           }
-        }
+        #endif
 
         // Controls overlay (always rendered, use opacity to control visibility)
         ReaderControlsView(
@@ -233,7 +230,7 @@ struct DivinaReaderView: View {
           onDismiss: { dismiss() },
           goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
           goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-          showingKeyboardHelp: $showingKeyboardHelp
+          showingKeyboardHelp: $showHelperOverlay
         )
         .padding(.vertical, 24)
         .padding(.horizontal, 8)
@@ -247,11 +244,11 @@ struct DivinaReaderView: View {
             readingDirection: readingDirection,
             hasTOC: !viewModel.tableOfContents.isEmpty,
             onDismiss: {
-              showingKeyboardHelp = false
+              showHelperOverlay = false
             }
           )
-          .opacity(showingKeyboardHelp ? 1.0 : 0.0)
-          .allowsHitTesting(showingKeyboardHelp)
+          .opacity(showHelperOverlay ? 1.0 : 0.0)
+          .allowsHitTesting(showHelperOverlay)
         #endif
       }
     }
@@ -274,7 +271,8 @@ struct DivinaReaderView: View {
     #endif
     #if canImport(AppKit)
       .onAppear {
-        // Make sure keyboard help overlay can be shown even when controls are hidden
+        // Optionally show helper overlay briefly on macOS when enabled in settings
+        triggerHelperOverlay()
       }
     #endif
     .task(id: currentBookId) {
@@ -282,7 +280,7 @@ struct DivinaReaderView: View {
     }
     .onDisappear {
       controlsTimer?.invalidate()
-      overlayTimer?.invalidate()
+      helperOverlayTimer?.invalidate()
     }
   }
 
@@ -428,19 +426,34 @@ struct DivinaReaderView: View {
     }
   }
 
-  private func triggerTapZoneDisplay() {
-    guard !viewModel.pages.isEmpty else { return }
-    showTapZoneOverlay = false
+  /// Show reader helper overlay (Tap zones on iOS, keyboard help on macOS)
+  private func triggerHelperOverlay() {
+    // Respect user preference and ensure we have content
+    guard showReaderHelperOverlay, !viewModel.pages.isEmpty else { return }
+
+    // Restart overlay with a tiny delay so animations look nicer
+    showHelperOverlay = false
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-      showTapZoneOverlay = true
+      showHelperOverlay = true
+      resetHelperOverlayTimer()
     }
   }
 
-  private func resetOverlayTimer() {
-    overlayTimer?.invalidate()
-    overlayTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
+  /// Auto-hide helper overlay after a platform-specific delay
+  private func resetHelperOverlayTimer() {
+    helperOverlayTimer?.invalidate()
+    let timeout: TimeInterval
+    #if os(iOS)
+      timeout = 1.5
+    #elseif os(macOS)
+      timeout = 2.0
+    #else
+      timeout = 1.5
+    #endif
+
+    helperOverlayTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
       withAnimation {
-        showTapZoneOverlay = false
+        showHelperOverlay = false
       }
     }
   }
@@ -456,7 +469,7 @@ struct DivinaReaderView: View {
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false
     // Reset overlay state
-    showTapZoneOverlay = false
+    showHelperOverlay = false
   }
 
 }

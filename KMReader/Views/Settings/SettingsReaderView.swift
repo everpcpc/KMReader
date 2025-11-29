@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SettingsReaderView: View {
-  @AppStorage("showTapZone") private var showTapZone: Bool = true
+  @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .dual
   @AppStorage("dualPageNoCover") private var dualPageNoCover: Bool = false
@@ -16,15 +16,26 @@ struct SettingsReaderView: View {
 
   var body: some View {
     List {
-      Section(header: Text("Tap Zone")) {
-        Toggle(isOn: $showTapZone) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Show Tap Zone Hints")
-            Text("Display tap zone hints when entering reader")
-              .font(.caption)
-              .foregroundColor(.secondary)
+      Section(header: Text("Overlay Hints")) {
+        #if os(macOS)
+          Toggle(isOn: $showReaderHelperOverlay) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Show Keyboard Help Overlay")
+              Text("Briefly show keyboard shortcuts when opening the reader")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
-        }
+        #else
+          Toggle(isOn: $showReaderHelperOverlay) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Show Tap Zone Hints")
+              Text("Display tap zone hints when entering reader")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        #endif
       }
 
       Section(header: Text("Background")) {
@@ -64,7 +75,7 @@ struct SettingsReaderView: View {
         }
       }
 
-      #if canImport(UIKit)
+      #if os(iOS)
         Section(header: Text("Webtoon")) {
           VStack(alignment: .leading, spacing: 8) {
             HStack {
