@@ -98,3 +98,26 @@ struct ThemeColor: RawRepresentable {
     ThemeColor(color: color)
   }
 }
+
+#if os(tvOS)
+  struct PresetColor {
+    let name: String
+    let color: Color
+  }
+
+  extension ThemeColor {
+    static let presetColors: [PresetColor] = [
+      PresetColor(name: "Orange", color: .orange),
+      PresetColor(name: "Red", color: .red),
+      PresetColor(name: "Pink", color: .pink),
+      PresetColor(name: "Purple", color: .purple),
+      PresetColor(name: "Blue", color: .blue),
+      PresetColor(name: "Cyan", color: .cyan),
+      PresetColor(name: "Teal", color: .teal),
+      PresetColor(name: "Green", color: .green),
+      PresetColor(name: "Mint", color: .mint),
+      PresetColor(name: "Yellow", color: .yellow),
+      PresetColor(name: "Indigo", color: .indigo),
+    ]
+  }
+#endif

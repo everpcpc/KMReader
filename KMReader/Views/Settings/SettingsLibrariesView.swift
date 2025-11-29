@@ -58,9 +58,9 @@ struct SettingsLibrariesView: View {
         }
       }
     }
-    #if canImport(UIKit)
+    #if os(iOS)
       .listStyle(.insetGrouped)
-    #else
+    #elseif os(macOS)
       .listStyle(.sidebar)
     #endif
     .navigationTitle("Libraries")

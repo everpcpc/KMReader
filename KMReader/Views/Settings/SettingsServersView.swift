@@ -221,22 +221,24 @@ struct SettingsServersView: View {
     .animation(.easeInOut(duration: 0.25), value: isActive(instance))
     .buttonStyle(.plain)
     .disabled(isActive(instance))
-    .swipeActions(edge: .trailing) {
-      if !isActive(instance) {
-        Button {
-          editingInstance = instance
-        } label: {
-          Label("Edit", systemImage: "pencil")
-        }
-        .tint(.blue)
+    #if os(iOS) || os(macOS)
+      .swipeActions(edge: .trailing) {
+        if !isActive(instance) {
+          Button {
+            editingInstance = instance
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
+          .tint(.blue)
 
-        Button(role: .destructive) {
-          instancePendingDeletion = instance
-        } label: {
-          Label("Delete", systemImage: "trash")
+          Button(role: .destructive) {
+            instancePendingDeletion = instance
+          } label: {
+            Label("Delete", systemImage: "trash")
+          }
         }
       }
-    }
+    #endif
     .contextMenu {
       if !isActive(instance) {
         Button {

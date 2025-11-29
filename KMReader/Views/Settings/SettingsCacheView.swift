@@ -17,29 +17,62 @@ struct SettingsCacheView: View {
   @State private var bookFileCacheSize: Int64 = 0
   @State private var bookFileCacheCount: Int = 0
   @State private var isLoadingCacheSize = false
+  #if os(iOS) || os(macOS)
+    private var maxCacheSizeBinding: Binding<Double> {
+      Binding(
+        get: { Double(maxDiskCacheSizeMB) },
+        set: { maxDiskCacheSizeMB = Int($0) }
+      )
+    }
+  #else
+    @State private var cacheSizeText: String = ""
 
-  private var maxCacheSizeBinding: Binding<Double> {
-    Binding(
-      get: { Double(maxDiskCacheSizeMB) },
-      set: { maxDiskCacheSizeMB = Int($0) }
-    )
-  }
+    private var cacheSizeTextFieldBinding: Binding<String> {
+      Binding(
+        get: { cacheSizeText.isEmpty ? "\(maxDiskCacheSizeMB)" : cacheSizeText },
+        set: { newValue in
+          cacheSizeText = newValue
+          if let value = Int(newValue), value >= 512, value <= 8192 {
+            maxDiskCacheSizeMB = value
+          }
+        }
+      )
+    }
+  #endif
 
   var body: some View {
     List {
       Section(header: Text("Page")) {
         VStack(alignment: .leading, spacing: 8) {
-          HStack {
-            Text("Maximum Size")
-            Spacer()
-            Text("\(maxDiskCacheSizeMB) MB")
-              .foregroundColor(.secondary)
-          }
-          Slider(
-            value: maxCacheSizeBinding,
-            in: 512...8192,
-            step: 256
-          )
+          #if os(iOS) || os(macOS)
+            HStack {
+              Text("Maximum Size")
+              Spacer()
+              Text("\(maxDiskCacheSizeMB) MB")
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: maxCacheSizeBinding,
+              in: 512...8192,
+              step: 256
+            )
+          #else
+            HStack {
+              Text("Maximum Size (MB)")
+              Spacer()
+              TextField("MB", text: cacheSizeTextFieldBinding)
+                .frame(width: 100)
+                .multilineTextAlignment(.trailing)
+                .onAppear {
+                  cacheSizeText = "\(maxDiskCacheSizeMB)"
+                }
+                .onChange(of: maxDiskCacheSizeMB) { _, newValue in
+                  if cacheSizeText != "\(newValue)" {
+                    cacheSizeText = "\(newValue)"
+                  }
+                }
+            }
+          #endif
           Text(
             "Adjust the maximum size of the page cache. Cache will be cleaned automatically when exceeded."
           )
