@@ -76,6 +76,8 @@ struct SettingsLibrariesView: View {
       .listStyle(.insetGrouped)
     #elseif os(macOS)
       .listStyle(.sidebar)
+    #elseif os(tvOS)
+      .focusSection()
     #endif
     .inlineNavigationBarTitle("Libraries")
     .alert("Delete Library?", isPresented: isDeleteAlertPresented) {

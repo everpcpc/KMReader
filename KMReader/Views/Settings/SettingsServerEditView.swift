@@ -59,6 +59,9 @@ struct SettingsServerEditView: View {
             .textContentType(.password)
         }
       }
+      #if os(tvOS)
+        .focusSection()
+      #endif
       .inlineNavigationBarTitle("Edit Server")
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {

@@ -136,6 +136,9 @@ struct AuthenticationActivityView: View {
         }
       }
     }
+    #if os(tvOS)
+      .focusSection()
+    #endif
     .inlineNavigationBarTitle("Authentication Activity")
     .task {
       if isAdmin {

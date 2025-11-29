@@ -91,6 +91,9 @@ struct SettingsCacheView: View {
               .foregroundColor(.secondary)
           }
         }
+        #if os(tvOS)
+          .focusable()
+        #endif
 
         HStack {
           Text("Cached Images")
@@ -103,6 +106,9 @@ struct SettingsCacheView: View {
               .foregroundColor(.secondary)
           }
         }
+        #if os(tvOS)
+          .focusable()
+        #endif
 
         Button(role: .destructive) {
           showClearImageCacheConfirmation = true
@@ -127,6 +133,9 @@ struct SettingsCacheView: View {
               .foregroundColor(.secondary)
           }
         }
+        #if os(tvOS)
+          .focusable()
+        #endif
 
         HStack {
           Text("Cached Files")
@@ -139,6 +148,9 @@ struct SettingsCacheView: View {
               .foregroundColor(.secondary)
           }
         }
+        #if os(tvOS)
+          .focusable()
+        #endif
 
         Button(role: .destructive) {
           showClearBookFileCacheConfirmation = true
@@ -163,6 +175,9 @@ struct SettingsCacheView: View {
         }
       }
     }
+    #if os(tvOS)
+      .focusSection()
+    #endif
     .inlineNavigationBarTitle("Cache")
     .alert("Clear Page", isPresented: $showClearImageCacheConfirmation) {
       Button("Clear", role: .destructive) {

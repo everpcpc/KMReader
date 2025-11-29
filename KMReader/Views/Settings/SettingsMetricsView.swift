@@ -48,6 +48,9 @@ struct SettingsMetricsView: View {
               Text(formatFileSize(value))
                 .foregroundColor(.secondary)
             }
+            #if os(tvOS)
+              .focusable()
+            #endif
           }
           if let series = allLibrariesMetrics.series, let value = series.measurements.first?.value {
             HStack {
@@ -56,6 +59,9 @@ struct SettingsMetricsView: View {
               Text(formatNumber(value))
                 .foregroundColor(.secondary)
             }
+            #if os(tvOS)
+              .focusable()
+            #endif
           }
           if let books = allLibrariesMetrics.books, let value = books.measurements.first?.value {
             HStack {
@@ -64,6 +70,9 @@ struct SettingsMetricsView: View {
               Text(formatNumber(value))
                 .foregroundColor(.secondary)
             }
+            #if os(tvOS)
+              .focusable()
+            #endif
           }
           if let collections = allLibrariesMetrics.collections,
             let value = collections.measurements.first?.value
@@ -74,6 +83,9 @@ struct SettingsMetricsView: View {
               Text(formatNumber(value))
                 .foregroundColor(.secondary)
             }
+            #if os(tvOS)
+              .focusable()
+            #endif
           }
           if let readlists = allLibrariesMetrics.readlists,
             let value = readlists.measurements.first?.value
@@ -84,6 +96,9 @@ struct SettingsMetricsView: View {
               Text(formatNumber(value))
                 .foregroundColor(.secondary)
             }
+            #if os(tvOS)
+              .focusable()
+            #endif
           }
           if let sidecars = allLibrariesMetrics.sidecars,
             let value = sidecars.measurements.first?.value
@@ -94,6 +109,9 @@ struct SettingsMetricsView: View {
               Text(formatNumber(value))
                 .foregroundColor(.secondary)
             }
+            #if os(tvOS)
+              .focusable()
+            #endif
           }
           // Show individual metric errors
           ForEach(Array(allLibrariesMetricErrors.keys.sorted()), id: \.self) { metricKey in
@@ -112,6 +130,9 @@ struct SettingsMetricsView: View {
                 }
                 Spacer()
               }
+              #if os(tvOS)
+                .focusable()
+              #endif
             }
           }
         }
@@ -127,6 +148,9 @@ struct SettingsMetricsView: View {
                   Text(formatNumber(count))
                     .foregroundColor(.secondary)
                 }
+                #if os(tvOS)
+                  .focusable()
+                #endif
               }
             }
             if let error = metricErrors[.tasksExecuted] {
@@ -137,6 +161,9 @@ struct SettingsMetricsView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
+              #if os(tvOS)
+                .focusable()
+              #endif
             }
           }
         }
@@ -151,6 +178,9 @@ struct SettingsMetricsView: View {
                   Text(String(format: "%.2f s", time))
                     .foregroundColor(.secondary)
                 }
+                #if os(tvOS)
+                  .focusable()
+                #endif
               }
             }
             if let error = metricErrors[.tasksTotalTime] {
@@ -161,6 +191,9 @@ struct SettingsMetricsView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
+              #if os(tvOS)
+                .focusable()
+              #endif
             }
           }
         }
@@ -177,6 +210,9 @@ struct SettingsMetricsView: View {
                   Text(formatFileSize(size))
                     .foregroundColor(.secondary)
                 }
+                #if os(tvOS)
+                  .focusable()
+                #endif
               }
             }
             if let error = metricErrors[.libraryDiskSpace] {
@@ -187,6 +223,9 @@ struct SettingsMetricsView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
+              #if os(tvOS)
+                .focusable()
+              #endif
             }
           }
         }
@@ -201,6 +240,9 @@ struct SettingsMetricsView: View {
                   Text(formatNumber(count))
                     .foregroundColor(.secondary)
                 }
+                #if os(tvOS)
+                  .focusable()
+                #endif
               }
             }
             if let error = metricErrors[.libraryBooks] {
@@ -211,6 +253,9 @@ struct SettingsMetricsView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
+              #if os(tvOS)
+                .focusable()
+              #endif
             }
           }
         }
@@ -225,6 +270,9 @@ struct SettingsMetricsView: View {
                   Text(formatNumber(count))
                     .foregroundColor(.secondary)
                 }
+                #if os(tvOS)
+                  .focusable()
+                #endif
               }
             }
             if let error = metricErrors[.librarySeries] {
@@ -235,6 +283,9 @@ struct SettingsMetricsView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
+              #if os(tvOS)
+                .focusable()
+              #endif
             }
           }
         }
@@ -250,6 +301,9 @@ struct SettingsMetricsView: View {
                   Text(formatNumber(count))
                     .foregroundColor(.secondary)
                 }
+                #if os(tvOS)
+                  .focusable()
+                #endif
               }
             }
             if let error = metricErrors[.librarySidecars] {
@@ -260,11 +314,17 @@ struct SettingsMetricsView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
+              #if os(tvOS)
+                .focusable()
+              #endif
             }
           }
         }
       }
     }
+    #if os(tvOS)
+      .focusSection()
+    #endif
     .inlineNavigationBarTitle("Metrics")
     .task {
       await loadMetrics()
