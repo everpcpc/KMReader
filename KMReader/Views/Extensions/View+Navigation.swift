@@ -9,11 +9,14 @@ import SwiftUI
 
 extension View {
   /// Apply inline navigation bar title style on supported platforms.
-  /// - On iOS (and other UIKit platforms where available): uses `.navigationBarTitleDisplayMode(.inline)`
-  /// - On tvOS and non-UIKit platforms: no-op
-  func inlineNavigationBarTitle() -> some View {
-    #if canImport(UIKit) && !os(tvOS)
-      return self.navigationBarTitleDisplayMode(.inline)
+  /// - On iOS: sets navigation title and uses `.navigationBarTitleDisplayMode(.inline)`
+  /// - On macOS: sets navigation title only
+  /// - On other platforms (tvOS, etc.): no-op (does not set title)
+  func inlineNavigationBarTitle(_ title: String) -> some View {
+    #if os(iOS)
+      return self.navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+    #elseif os(macOS)
+      return self.navigationTitle(title)
     #else
       return self
     #endif

@@ -136,8 +136,7 @@ struct AuthenticationActivityView: View {
         }
       }
     }
-    .navigationTitle("Authentication Activity")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("Authentication Activity")
     .task {
       if isAdmin {
         await loadActivities(refresh: true)

@@ -39,8 +39,8 @@ struct LibraryPickerSheet: View {
           .pickerStyle(.inline)
         }
       }
-      .navigationTitle("Select Library")
-      .inlineNavigationBarTitle()
+      .padding()
+      .inlineNavigationBarTitle("Select Library")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

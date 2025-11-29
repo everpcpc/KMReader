@@ -226,8 +226,7 @@ struct SettingsServerInfoView: View {
         }
       }
     }
-    .navigationTitle("Server Info")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("Server Info")
     .task {
       await loadServerInfo()
     }

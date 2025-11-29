@@ -113,8 +113,7 @@ struct ReadListDetailView: View {
         }
         .padding(.horizontal)
       }
-      .navigationTitle("Read List")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Read List")
       #if canImport(UIKit)
         .fullScreenCover(
           isPresented: isBookReaderPresented,

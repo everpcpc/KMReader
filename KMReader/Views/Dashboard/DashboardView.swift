@@ -113,8 +113,7 @@ struct DashboardView: View {
         .padding(.vertical)
       }
       .handleNavigation()
-      .navigationTitle("Dashboard")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Dashboard")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

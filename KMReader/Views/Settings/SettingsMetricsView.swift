@@ -265,8 +265,7 @@ struct SettingsMetricsView: View {
         }
       }
     }
-    .navigationTitle("Metrics")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("Metrics")
     .task {
       await loadMetrics()
     }

@@ -156,8 +156,7 @@ struct BookEditSheet: View {
           }
         }
       }
-      .navigationTitle("Edit Book")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Edit Book")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

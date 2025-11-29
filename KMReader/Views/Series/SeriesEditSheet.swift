@@ -203,8 +203,7 @@ struct SeriesEditSheet: View {
           }
         }
       }
-      .navigationTitle("Edit Series")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Edit Series")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

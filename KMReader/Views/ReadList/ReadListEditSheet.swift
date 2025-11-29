@@ -33,8 +33,7 @@ struct ReadListEditSheet: View {
           Toggle("Ordered", isOn: $ordered)
         }
       }
-      .navigationTitle("Edit Read List")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Edit Read List")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

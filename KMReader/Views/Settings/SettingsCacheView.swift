@@ -163,8 +163,7 @@ struct SettingsCacheView: View {
         }
       }
     }
-    .navigationTitle("Cache")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("Cache")
     .alert("Clear Page", isPresented: $showClearImageCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {

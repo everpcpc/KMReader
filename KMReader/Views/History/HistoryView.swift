@@ -66,8 +66,7 @@ struct HistoryView: View {
         .padding(.vertical)
       }
       .handleNavigation()
-      .navigationTitle("History")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("History")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

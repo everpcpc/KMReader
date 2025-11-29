@@ -40,8 +40,7 @@ struct ReaderTOCSheetView: View {
         }
         .buttonStyle(.plain)
       }
-      .navigationTitle("Table of Contents")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Table of Contents")
     }
     .presentationDragIndicator(.visible)
     #if canImport(UIKit)

@@ -25,8 +25,7 @@ struct SimpleSortOptionsSheet: View {
           sortDirection: $tempOpts.sortDirection
         )
       }
-      .navigationTitle("Sort")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Sort")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

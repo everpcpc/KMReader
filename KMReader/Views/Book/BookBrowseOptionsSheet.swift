@@ -34,8 +34,7 @@ struct BookBrowseOptionsSheet: View {
           sortDirection: $tempOpts.sortDirection
         )
       }
-      .navigationTitle("Filter & Sort")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Filter & Sort")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

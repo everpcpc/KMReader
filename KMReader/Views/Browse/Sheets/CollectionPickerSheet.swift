@@ -50,8 +50,7 @@ struct CollectionPickerSheet: View {
           .pickerStyle(.inline)
         }
       }
-      .navigationTitle("Select Collection")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Select Collection")
       .searchable(text: $searchText)
       .toolbar {
         ToolbarItem(placement: .automatic) {
@@ -137,8 +136,7 @@ struct CreateCollectionSheet: View {
           TextField("Collection Name", text: $name)
         }
       }
-      .navigationTitle("Create Collection")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Create Collection")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

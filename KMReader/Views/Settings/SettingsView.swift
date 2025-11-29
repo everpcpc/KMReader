@@ -83,8 +83,7 @@ struct SettingsView: View {
       }
 
       .handleNavigation()
-      .navigationTitle("Settings")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Settings")
     }
   }
 

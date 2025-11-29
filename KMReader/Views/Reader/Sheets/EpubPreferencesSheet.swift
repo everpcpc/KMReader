@@ -148,7 +148,7 @@
             }
           }
         }
-        .navigationTitle("Reading Options")
+        .inlineNavigationBarTitle("Reading Options")
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {
             Button(role: .cancel) {
@@ -166,7 +166,6 @@
             }
           }
         }
-        .inlineNavigationBarTitle()
         .sheet(isPresented: $showCustomFontsSheet) {
           CustomFontsSheet()
             .onDisappear {

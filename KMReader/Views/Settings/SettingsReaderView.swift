@@ -96,7 +96,6 @@ struct SettingsReaderView: View {
         }
       #endif
     }
-    .navigationTitle("Reader")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("Reader")
   }
 }

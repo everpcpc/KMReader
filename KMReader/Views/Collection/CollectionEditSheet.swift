@@ -29,8 +29,7 @@ struct CollectionEditSheet: View {
           Toggle("Ordered", isOn: $ordered)
         }
       }
-      .navigationTitle("Edit Collection")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Edit Collection")
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

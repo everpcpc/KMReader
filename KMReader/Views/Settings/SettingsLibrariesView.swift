@@ -63,8 +63,7 @@ struct SettingsLibrariesView: View {
     #elseif os(macOS)
       .listStyle(.sidebar)
     #endif
-    .navigationTitle("Libraries")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("Libraries")
     .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
       Button("Delete", role: .destructive) {
         deleteConfirmedLibrary()
@@ -374,8 +373,7 @@ private struct LibraryActionsSheet: View {
         }
         .disabled(isPerforming || !AppConfig.isAdmin)
       }
-      .navigationTitle(library.name)
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle(library.name)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button(role: .cancel) {

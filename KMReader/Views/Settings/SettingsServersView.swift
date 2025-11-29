@@ -80,8 +80,7 @@ struct SettingsServersView: View {
         }
       }
     }
-    .navigationTitle(navigationTitle)
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle(navigationTitle)
     .sheet(item: $editingInstance) { instance in
       SettingsServerEditView(instance: instance)
     }

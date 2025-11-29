@@ -32,8 +32,7 @@ struct BrowseView: View {
           }
         }
         .handleNavigation()
-        .navigationTitle("Browse")
-        .inlineNavigationBarTitle()
+        .inlineNavigationBarTitle("Browse")
         .toolbar {
           ToolbarItem(placement: .automatic) {
             Button {

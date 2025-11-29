@@ -404,8 +404,7 @@ struct SeriesDetailView: View {
         }
         .padding(.horizontal)
       }
-      .navigationTitle("Series")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Series")
       #if canImport(UIKit)
         .fullScreenCover(
           isPresented: isBookReaderPresented,

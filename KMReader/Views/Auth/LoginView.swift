@@ -157,8 +157,7 @@ struct LoginView: View {
       }
       .padding(.bottom, 40)
     }
-    .navigationTitle("")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("")
   }
 
   private var isFormValid: Bool {

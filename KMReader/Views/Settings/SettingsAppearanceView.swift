@@ -211,7 +211,6 @@ struct SettingsAppearanceView: View {
         }
       }
     }
-    .navigationTitle("Appearance")
-    .inlineNavigationBarTitle()
+    .inlineNavigationBarTitle("Appearance")
   }
 }

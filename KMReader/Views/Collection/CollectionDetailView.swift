@@ -92,8 +92,7 @@ struct CollectionDetailView: View {
         }
         .padding(.horizontal)
       }
-      .navigationTitle("Collection")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Collection")
       .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
         Button("Delete", role: .destructive) {
           Task {

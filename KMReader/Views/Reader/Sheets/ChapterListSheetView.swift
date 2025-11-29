@@ -48,8 +48,7 @@
             }
           }
         }
-        .navigationTitle("Chapters")
-        .inlineNavigationBarTitle()
+        .inlineNavigationBarTitle("Chapters")
       }
       .presentationDragIndicator(.visible)
     }

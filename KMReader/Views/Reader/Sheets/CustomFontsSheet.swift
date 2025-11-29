@@ -102,7 +102,7 @@
             }
           }
         }
-        .navigationTitle("Custom Fonts")
+        .inlineNavigationBarTitle("Custom Fonts")
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {
             Button {
@@ -112,7 +112,6 @@
             }
           }
         }
-        .inlineNavigationBarTitle()
         .sheet(isPresented: $showFontPicker) {
           FontPickerView(isPresented: $showFontPicker) { selectedFont in
             handleFontPickerSelection(selectedFont)

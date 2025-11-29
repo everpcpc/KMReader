@@ -59,8 +59,7 @@ struct SettingsServerEditView: View {
             .textContentType(.password)
         }
       }
-      .navigationTitle("Edit Server")
-      .inlineNavigationBarTitle()
+      .inlineNavigationBarTitle("Edit Server")
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button("Cancel") {
