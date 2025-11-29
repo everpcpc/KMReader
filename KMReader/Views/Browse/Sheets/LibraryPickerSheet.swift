@@ -39,7 +39,7 @@ struct LibraryPickerSheet: View {
           .pickerStyle(.inline)
         }
       }
-      .padding()
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Select Library")
       .toolbar {
         ToolbarItem(placement: .automatic) {

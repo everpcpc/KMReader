@@ -375,6 +375,13 @@ private struct LibraryActionsSheet: View {
         }
         .disabled(isPerforming || !AppConfig.isAdmin)
       }
+      .padding(PlatformHelper.sheetPadding)
+      .presentationDragIndicator(.visible)
+      #if canImport(UIKit)
+        .presentationDetents([.medium, .large])
+      #else
+        .frame(minWidth: 400, minHeight: 500)
+      #endif
       .inlineNavigationBarTitle(library.name)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {

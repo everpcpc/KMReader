@@ -28,9 +28,6 @@ struct DivinaReaderView: View {
   @State private var showHelperOverlay = false
   @State private var helperOverlayTimer: Timer?
   @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
-  #if os(tvOS)
-    @FocusState private var mainViewFocused: Bool
-  #endif
 
   init(bookId: String, incognito: Bool = false) {
     self.incognito = incognito
@@ -39,8 +36,14 @@ struct DivinaReaderView: View {
 
   var shouldShowControls: Bool {
     // Always show controls when no pages are loaded or when explicitly shown
-    viewModel.pages.isEmpty || showingControls || isShowingEndPage
-      || (readingDirection == .webtoon && isAtBottom)
+    #if os(tvOS)
+      // On tvOS, don't force controls at endpage to allow navigation back
+      viewModel.pages.isEmpty || showingControls
+        || (readingDirection == .webtoon && isAtBottom)
+    #else
+      viewModel.pages.isEmpty || showingControls || isShowingEndPage
+        || (readingDirection == .webtoon && isAtBottom)
+    #endif
   }
 
   private var isShowingEndPage: Bool {
@@ -253,18 +256,6 @@ struct DivinaReaderView: View {
           .opacity(showHelperOverlay ? 1.0 : 0.0)
           .allowsHitTesting(showHelperOverlay)
         #endif
-
-        #if os(tvOS)
-          // Background view that handles move commands only when controls are hidden
-          // Place it inside ZStack to ensure proper view updates
-          RemoteControlBackgroundView(
-            controlsVisible: shouldShowControls,
-            mainViewFocusedBinding: $mainViewFocused,
-            onMoveCommand: { direction in
-              handleRemoteControlMove(direction: direction, dualPageEnabled: useDualPage)
-            }
-          )
-        #endif
       }
       #if os(tvOS)
         .onPlayPauseCommand {
@@ -303,22 +294,6 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       helperOverlayTimer?.invalidate()
     }
-    #if os(tvOS)
-      .onChange(of: shouldShowControls) { _, newValue in
-        // Sync focus state with controls visibility
-        if newValue {
-          // When controls are shown, remove focus from main view
-          // Focus will naturally move to the first button in controls
-          mainViewFocused = false
-        } else {
-          // When controls are hidden, focus on main view for page navigation
-          // Use a small delay to ensure controls are fully hidden
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            mainViewFocused = true
-          }
-        }
-      }
-    #endif
     #if os(macOS) || os(tvOS)
       .onChange(of: showingControls) { oldValue, newValue in
         // On macOS and tvOS, if controls are manually shown (from false to true),
@@ -448,86 +423,20 @@ struct DivinaReaderView: View {
     }
   }
 
-  #if os(tvOS)
-    // Background view that handles remote control commands only when controls are hidden
-    private struct RemoteControlBackgroundView: View {
-      let controlsVisible: Bool
-      let mainViewFocusedBinding: FocusState<Bool>.Binding
-      let onMoveCommand: (MoveCommandDirection) -> Void
-
-      var body: some View {
-        // Use conditional view to completely remove onMoveCommand when controls are visible
-        // This ensures move commands are not intercepted at all when controls are shown
-        // Use .id() to force view rebuild when showingControls changes
-        Group {
-          if controlsVisible {
-            // When controls are visible, return empty view without any command handlers
-            Color.clear
-          } else {
-            // When controls are hidden, handle move commands for page navigation
-            Color.clear
-              .focusable()
-              .focused(mainViewFocusedBinding)
-              .onMoveCommand { direction in
-                onMoveCommand(direction)
-              }
-          }
-        }
-        // Force rebuild so command handlers are fully removed when controls are visible
-        .id(controlsVisible ? "controlsVisible" : "controlsHidden")
-      }
-    }
-
-    // Handle tvOS remote control movement
-    private func handleRemoteControlMove(direction: MoveCommandDirection, dualPageEnabled: Bool) {
-      guard !viewModel.pages.isEmpty else { return }
-
-      switch readingDirection {
-      case .ltr:
-        switch direction {
-        case .right:
-          goToNextPage(dualPageEnabled: dualPageEnabled)
-        case .left:
-          goToPreviousPage(dualPageEnabled: dualPageEnabled)
-        default:
-          break
-        }
-      case .rtl:
-        switch direction {
-        case .left:
-          goToNextPage(dualPageEnabled: dualPageEnabled)
-        case .right:
-          goToPreviousPage(dualPageEnabled: dualPageEnabled)
-        default:
-          break
-        }
-      case .vertical:
-        switch direction {
-        case .down:
-          goToNextPage(dualPageEnabled: dualPageEnabled)
-        case .up:
-          goToPreviousPage(dualPageEnabled: dualPageEnabled)
-        default:
-          break
-        }
-      case .webtoon:
-        switch direction {
-        case .down:
-          goToNextPage(dualPageEnabled: dualPageEnabled)
-        case .up:
-          goToPreviousPage(dualPageEnabled: dualPageEnabled)
-        default:
-          break
-        }
-      }
-    }
-  #endif
 
   private func toggleControls(autoHide: Bool = true) {
-    // Don't hide controls when at end page or webtoon at bottom
-    if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
-      return
-    }
+    #if os(tvOS)
+      // On tvOS, allow toggling controls even at endpage to enable navigation back
+      // Only prevent hiding for webtoon at bottom
+      if readingDirection == .webtoon && isAtBottom {
+        return
+      }
+    #else
+      // Don't hide controls when at end page or webtoon at bottom
+      if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
+        return
+      }
+    #endif
     withAnimation {
       showingControls.toggle()
     }
@@ -544,10 +453,18 @@ struct DivinaReaderView: View {
   }
 
   private func resetControlsTimer() {
-    // Don't start timer when at end page or webtoon at bottom
-    if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
-      return
-    }
+    #if os(tvOS)
+      // On tvOS, allow timer to hide controls even at endpage
+      // Only prevent for webtoon at bottom
+      if readingDirection == .webtoon && isAtBottom {
+        return
+      }
+    #else
+      // Don't start timer when at end page or webtoon at bottom
+      if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
+        return
+      }
+    #endif
     controlsTimer?.invalidate()
     controlsTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
       withAnimation {

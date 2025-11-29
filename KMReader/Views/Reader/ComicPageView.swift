@@ -22,6 +22,10 @@ struct ComicPageView: View {
   @State private var isZoomed = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
+  #if os(tvOS)
+    @FocusState private var navigationFocused: Bool
+  #endif
+
   var body: some View {
     ZStack {
       ScrollViewReader { proxy in
@@ -45,69 +49,105 @@ struct ComicPageView: View {
               .id(pageIndex)
             }
 
-            // End page at the end for LTR
-            ZStack {
-              readerBackground.color.ignoresSafeArea()
-              EndPageView(
-                nextBook: nextBook,
-                onDismiss: onDismiss,
-                onNextBook: onNextBook,
-                isRTL: false
-              )
-            }
-            .frame(width: screenSize.width, height: screenSize.height)
-            .contentShape(Rectangle())
-            #if os(iOS)
-              .simultaneousGesture(
-                horizontalTapGesture(width: screenSize.width, proxy: proxy)
-              )
-            #endif
-            .id(viewModel.pages.count)
+          // End page at the end for LTR
+          ZStack {
+            readerBackground.color.ignoresSafeArea()
+            EndPageView(
+              nextBook: nextBook,
+              onDismiss: onDismiss,
+              onNextBook: onNextBook,
+              isRTL: false,
+              goToPreviousPage: goToPreviousPage
+            )
           }
-          .scrollTargetLayout()
+          .frame(width: screenSize.width, height: screenSize.height)
+          .contentShape(Rectangle())
+          #if os(iOS)
+            .simultaneousGesture(
+              horizontalTapGesture(width: screenSize.width, proxy: proxy)
+            )
+          #endif
+          .id(viewModel.pages.count)
         }
-        .scrollTargetBehavior(.paging)
-        .scrollIndicators(.hidden)
-        .scrollPosition(id: $scrollPosition)
-        .scrollDisabled(isZoomed)
-        .onAppear {
-          synchronizeInitialScrollIfNeeded(proxy: proxy)
-        }
-        .onChange(of: viewModel.pages.count) {
-          hasSyncedInitialScroll = false
-          synchronizeInitialScrollIfNeeded(proxy: proxy)
-        }
-        .onChange(of: viewModel.targetPageIndex) { _, newTarget in
-          guard let newTarget = newTarget else { return }
-          guard hasSyncedInitialScroll else { return }
-          guard newTarget >= 0 else { return }
-          guard !viewModel.pages.isEmpty else { return }
+        .scrollTargetLayout()
+      }
+      .scrollTargetBehavior(.paging)
+      .scrollIndicators(.hidden)
+      .scrollPosition(id: $scrollPosition)
+      .scrollDisabled(isZoomed)
+      .onAppear {
+        synchronizeInitialScrollIfNeeded(proxy: proxy)
+      }
+      .onChange(of: viewModel.pages.count) {
+        hasSyncedInitialScroll = false
+        synchronizeInitialScrollIfNeeded(proxy: proxy)
+      }
+      .onChange(of: viewModel.targetPageIndex) { _, newTarget in
+        guard let newTarget = newTarget else { return }
+        guard hasSyncedInitialScroll else { return }
+        guard newTarget >= 0 else { return }
+        guard !viewModel.pages.isEmpty else { return }
 
-          // Single page mode only
-          let target = min(newTarget, viewModel.pages.count)
+        // Single page mode only
+        let target = min(newTarget, viewModel.pages.count)
 
-          // Update scroll position and currentPageIndex
-          if scrollPosition != target {
-            withAnimation {
-              scrollPosition = target
-              proxy.scrollTo(target, anchor: .leading)
-            }
-          }
-
-          // Update currentPageIndex
-          if viewModel.currentPageIndex != newTarget {
-            viewModel.currentPageIndex = newTarget
-            Task(priority: .userInitiated) {
-              await viewModel.preloadPages()
-            }
+        // Update scroll position and currentPageIndex
+        if scrollPosition != target {
+          withAnimation(ReaderAnimations.pageTurn) {
+            scrollPosition = target
+            proxy.scrollTo(target, anchor: .leading)
           }
         }
-        .onChange(of: scrollPosition) { _, newTarget in
-          handleScrollPositionChange(newTarget)
+
+        // Update currentPageIndex
+        if viewModel.currentPageIndex != newTarget {
+          viewModel.currentPageIndex = newTarget
+          Task(priority: .userInitiated) {
+            await viewModel.preloadPages()
+          }
         }
+
+      }
+      .onChange(of: scrollPosition) { _, newTarget in
+        handleScrollPositionChange(newTarget)
       }
     }
+
+    #if os(tvOS)
+      // Hidden navigation overlay
+      Color.clear
+        .frame(width: screenSize.width, height: screenSize.height)
+        .contentShape(Rectangle())
+        .focusable(viewModel.currentPageIndex < viewModel.pages.count)
+        .focused($navigationFocused)
+        .allowsHitTesting(viewModel.currentPageIndex < viewModel.pages.count)
+        .onMoveCommand { direction in
+          switch direction {
+          case .left:
+            goToPreviousPage()
+          case .right:
+            goToNextPage()
+          default:
+            break
+          }
+        }
+        .onChange(of: viewModel.currentPageIndex) { _, newIndex in
+          // When at endpage, remove focus to allow EndPageView buttons to get focus
+          if newIndex >= viewModel.pages.count {
+            navigationFocused = false
+          } else if !navigationFocused {
+            // When leaving endpage, restore focus
+            navigationFocused = true
+          }
+        }
+        .onAppear {
+          if viewModel.currentPageIndex < viewModel.pages.count {
+            navigationFocused = true
+          }
+        }
+    #endif
   }
+}
 
   #if os(iOS)
     private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {

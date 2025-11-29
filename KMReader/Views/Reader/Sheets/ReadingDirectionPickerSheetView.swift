@@ -28,6 +28,7 @@ struct ReadingDirectionPickerSheetView: View {
         .buttonStyle(.plain)
       }
       .inlineNavigationBarTitle("Reading Direction")
+      .padding(PlatformHelper.sheetPadding)
     }
     .presentationDragIndicator(.visible)
     #if canImport(UIKit)

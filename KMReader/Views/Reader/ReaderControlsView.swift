@@ -89,6 +89,30 @@ struct ReaderControlsView: View {
     case failure(String)
   }
 
+  private var buttonPadding: CGFloat {
+    #if os(tvOS)
+      return 12
+    #else
+      return 6
+    #endif
+  }
+
+  private var buttonSpacing: CGFloat {
+    #if os(tvOS)
+      return 36
+    #else
+      return 12
+    #endif
+  }
+
+  private var buttonMargin: CGFloat {
+    #if os(tvOS)
+      return 36
+    #else
+      return 12
+    #endif
+  }
+
   private var displayedCurrentPage: String {
     guard viewModel.pages.count > 0 else { return "0" }
     if viewModel.currentPageIndex >= viewModel.pages.count {
@@ -117,86 +141,86 @@ struct ReaderControlsView: View {
 
   var body: some View {
     VStack {
-      // Top bar
-      VStack(spacing: 12) {
 
-        // Close button and action buttons
-        HStack {
+      // Top bar
+      HStack {
+        // Close button
+        Button {
+          onDismiss()
+        } label: {
+          Image(systemName: "xmark")
+            .foregroundColor(.white)
+            .frame(minWidth: 40, minHeight: 40)
+            .padding(buttonPadding)
+            .background(themeColor.color.opacity(0.9))
+            .clipShape(Circle())
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+        }
+        #if os(tvOS)
+          .focused($focusedControl, equals: .close)
+          .id("closeButton")
+        #endif
+
+        Spacer()
+
+        // Action buttons
+        HStack(spacing: buttonSpacing) {
+          // TOC button (only show if TOC exists)
+          if !viewModel.tableOfContents.isEmpty {
+            Button {
+              showingTOCSheet = true
+            } label: {
+              Image(systemName: "list.bullet.rectangle.portrait")
+                .foregroundColor(.white)
+                .frame(width: 40, height: 40)
+                .padding(buttonPadding)
+                .background(themeColor.color.opacity(0.9))
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            }
+            #if os(tvOS)
+              .focused($focusedControl, equals: .toc)
+            #endif
+          }
+
+          // Jump to page button
           Button {
-            onDismiss()
+            guard !viewModel.pages.isEmpty else { return }
+            showingPageJumpSheet = true
           } label: {
-            Image(systemName: "xmark")
+            Image(systemName: "photo.stack")
               .foregroundColor(.white)
-              .frame(minWidth: 40, minHeight: 40)
-              .padding(6)
+              .frame(width: 40, height: 40)
+              .padding(buttonPadding)
               .background(themeColor.color.opacity(0.9))
               .clipShape(Circle())
               .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
           #if os(tvOS)
-            .focused($focusedControl, equals: .close)
-            .id("closeButton")
+            .focused($focusedControl, equals: .jump)
           #endif
 
-          Spacer()
-
-          // Action buttons
-          HStack(spacing: 12) {
-            // TOC button (only show if TOC exists)
-            if !viewModel.tableOfContents.isEmpty {
-              Button {
-                showingTOCSheet = true
-              } label: {
-                Image(systemName: "list.bullet.rectangle.portrait")
-                  .foregroundColor(.white)
-                  .frame(width: 40, height: 40)
-                  .padding(6)
-                  .background(themeColor.color.opacity(0.9))
-                  .clipShape(Circle())
-                  .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-              }
-              #if os(tvOS)
-                .focused($focusedControl, equals: .toc)
-              #endif
-            }
-
-            // Jump to page button
-            Button {
-              guard !viewModel.pages.isEmpty else { return }
-              showingPageJumpSheet = true
-            } label: {
-              Image(systemName: "photo.stack")
-                .foregroundColor(.white)
-                .frame(width: 40, height: 40)
-                .padding(6)
-                .background(themeColor.color.opacity(0.9))
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-            }
-            #if os(tvOS)
-              .focused($focusedControl, equals: .jump)
-            #endif
-
-            // Reading direction button
-            Button {
-              showingReadingDirectionPicker = true
-            } label: {
-              Image(systemName: readingDirection.icon)
-                .foregroundColor(.white)
-                .frame(width: 40, height: 40)
-                .padding(6)
-                .background(themeColor.color.opacity(0.9))
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-            }
-            #if os(tvOS)
-              .focused($focusedControl, equals: .readingDirection)
-            #endif
+          // Reading direction button
+          Button {
+            showingReadingDirectionPicker = true
+          } label: {
+            Image(systemName: readingDirection.icon)
+              .foregroundColor(.white)
+              .frame(width: 40, height: 40)
+              .padding(buttonPadding)
+              .background(themeColor.color.opacity(0.9))
+              .clipShape(Circle())
+              .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
+          #if os(tvOS)
+            .focused($focusedControl, equals: .readingDirection)
+          #endif
+        }
 
-        }.buttonStyle(.plain)
       }
-      .padding()
+      .buttonStyle(.plain)
+      .padding(.horizontal, buttonMargin)
+      .padding(.vertical, buttonPadding)
       .allowsHitTesting(true)
 
       // Series and book title

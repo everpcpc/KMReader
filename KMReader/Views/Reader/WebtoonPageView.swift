@@ -45,6 +45,7 @@
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             isRTL: false,
+            goToPreviousPage: nil
           )
           .padding(.bottom, 160)
         }

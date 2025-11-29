@@ -23,53 +23,60 @@ struct MangaDualPageView: View {
   @State private var scrollPosition: Int?
   @State private var isZoomed = false
 
+  #if os(tvOS)
+    @FocusState private var navigationFocused: Bool
+  #endif
+
   var body: some View {
     ZStack {
       ScrollViewReader { proxy in
-        ScrollView(.horizontal) {
-          LazyHStack(spacing: 0) {
-            // Dual page mode for RTL (reversed order)
-            ForEach(viewModel.pagePairs.reversed(), id: \.self) { pagePair in
-              Group {
-                if pagePair.first == viewModel.pages.count {
-                  ZStack {
-                    readerBackground.color.ignoresSafeArea()
-                    EndPageView(
-                      nextBook: nextBook,
-                      onDismiss: onDismiss,
-                      onNextBook: onNextBook,
-                      isRTL: true
-                    )
-                  }
+      ScrollView(.horizontal) {
+        LazyHStack(spacing: 0) {
+          // Dual page mode for RTL (reversed order)
+          ForEach(viewModel.pagePairs.reversed(), id: \.self) { pagePair in
+            Group {
+              if pagePair.first == viewModel.pages.count {
+                // End page
+                ZStack {
+                  readerBackground.color.ignoresSafeArea()
+                  EndPageView(
+                    nextBook: nextBook,
+                    onDismiss: onDismiss,
+                    onNextBook: onNextBook,
+                    isRTL: true,
+                    goToPreviousPage: goToPreviousPage
+                  )
+                }
+              } else {
+                // Regular pages
+                if let second = pagePair.second {
+                  DualPageImageView(
+                    viewModel: viewModel,
+                    firstPageIndex: pagePair.first,
+                    secondPageIndex: second,
+                    screenSize: screenSize,
+                    isRTL: true,
+                    isZoomed: $isZoomed
+                  )
                 } else {
-                  if let second = pagePair.second {
-                    DualPageImageView(
-                      viewModel: viewModel,
-                      firstPageIndex: pagePair.first,
-                      secondPageIndex: second,
-                      screenSize: screenSize,
-                      isRTL: true,
-                      isZoomed: $isZoomed
-                    )
-                  } else {
-                    SinglePageImageView(
-                      viewModel: viewModel,
-                      pageIndex: pagePair.first,
-                      screenSize: screenSize,
-                      isZoomed: $isZoomed
-                    )
-                  }
+                  SinglePageImageView(
+                    viewModel: viewModel,
+                    pageIndex: pagePair.first,
+                    screenSize: screenSize,
+                    isZoomed: $isZoomed
+                  )
                 }
               }
-              .frame(width: screenSize.width, height: screenSize.height)
-              .contentShape(Rectangle())
-              #if os(iOS)
-                .simultaneousGesture(
-                  horizontalTapGesture(width: screenSize.width, proxy: proxy)
-                )
-              #endif
-              .id(pagePair.first)
             }
+            .frame(width: screenSize.width, height: screenSize.height)
+            .contentShape(Rectangle())
+            #if os(iOS)
+              .simultaneousGesture(
+                horizontalTapGesture(width: screenSize.width, proxy: proxy)
+              )
+            #endif
+            .id(pagePair.first)
+          }
           }
           .scrollTargetLayout()
         }
@@ -94,7 +101,7 @@ struct MangaDualPageView: View {
 
           // Update scroll position and currentPageIndex
           if scrollPosition != targetPair.first {
-            withAnimation {
+            withAnimation(ReaderAnimations.pageTurn) {
               scrollPosition = targetPair.first
               proxy.scrollTo(targetPair.first, anchor: .trailing)
             }
@@ -112,6 +119,40 @@ struct MangaDualPageView: View {
           handleScrollPositionChange(newTarget)
         }
       }
+
+      #if os(tvOS)
+        // Hidden navigation overlay
+        Color.clear
+          .frame(width: screenSize.width, height: screenSize.height)
+          .contentShape(Rectangle())
+          .focusable(viewModel.currentPageIndex < viewModel.pages.count)
+          .focused($navigationFocused)
+          .allowsHitTesting(viewModel.currentPageIndex < viewModel.pages.count)
+          .onMoveCommand { direction in
+            switch direction {
+            case .left:
+              goToNextPage()
+            case .right:
+              goToPreviousPage()
+            default:
+              break
+            }
+          }
+          .onChange(of: viewModel.currentPageIndex) { _, newIndex in
+            // When at endpage, remove focus to allow EndPageView buttons to get focus
+            if newIndex >= viewModel.pages.count {
+              navigationFocused = false
+            } else if !navigationFocused {
+              // When leaving endpage, restore focus
+              navigationFocused = true
+            }
+          }
+          .onAppear {
+            if viewModel.currentPageIndex < viewModel.pages.count {
+              navigationFocused = true
+            }
+          }
+      #endif
     }
   }
 

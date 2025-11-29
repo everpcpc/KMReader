@@ -90,6 +90,14 @@ struct PlatformHelper {
     #endif
   }
 
+  static var sheetPadding: CGFloat {
+    #if os(tvOS)
+      return 24
+    #else
+      return 8
+    #endif
+  }
+
   /// Get device orientation
   /// - iOS: use `UIDevice.current.orientation`
   /// - tvOS / macOS: always return `.landscape`

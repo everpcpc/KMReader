@@ -22,6 +22,10 @@ struct MangaPageView: View {
   @State private var isZoomed = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
+  #if os(tvOS)
+    @FocusState private var navigationFocused: Bool
+  #endif
+
   var body: some View {
     ZStack {
       ScrollViewReader { proxy in
@@ -35,6 +39,7 @@ struct MangaPageView: View {
                 onDismiss: onDismiss,
                 onNextBook: onNextBook,
                 isRTL: true,
+                goToPreviousPage: goToPreviousPage
               )
             }
             .frame(width: screenSize.width, height: screenSize.height)
@@ -88,7 +93,7 @@ struct MangaPageView: View {
 
           // Update scroll position and currentPageIndex
           if scrollPosition != target {
-            withAnimation {
+            withAnimation(ReaderAnimations.pageTurn) {
               scrollPosition = target
               proxy.scrollTo(target, anchor: .trailing)
             }
@@ -101,11 +106,46 @@ struct MangaPageView: View {
               await viewModel.preloadPages()
             }
           }
+
         }
         .onChange(of: scrollPosition) { _, newTarget in
           handleScrollPositionChange(newTarget)
         }
       }
+
+      #if os(tvOS)
+        // Hidden navigation overlay
+        Color.clear
+          .frame(width: screenSize.width, height: screenSize.height)
+          .contentShape(Rectangle())
+          .focusable(viewModel.currentPageIndex < viewModel.pages.count)
+          .focused($navigationFocused)
+          .allowsHitTesting(viewModel.currentPageIndex < viewModel.pages.count)
+          .onMoveCommand { direction in
+            switch direction {
+            case .left:
+              goToNextPage()  // RTL: left means next
+            case .right:
+              goToPreviousPage()  // RTL: right means previous
+            default:
+              break
+            }
+          }
+          .onChange(of: viewModel.currentPageIndex) { _, newIndex in
+            // When at endpage, remove focus to allow EndPageView buttons to get focus
+            if newIndex >= viewModel.pages.count {
+              navigationFocused = false
+            } else if !navigationFocused {
+              // When leaving endpage, restore focus
+              navigationFocused = true
+            }
+          }
+          .onAppear {
+            if viewModel.currentPageIndex < viewModel.pages.count {
+              navigationFocused = true
+            }
+          }
+      #endif
     }
   }
 

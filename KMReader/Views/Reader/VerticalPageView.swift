@@ -22,27 +22,31 @@ struct VerticalPageView: View {
   @State private var isZoomed = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
+  #if os(tvOS)
+    @FocusState private var navigationFocused: Bool
+  #endif
+
   var body: some View {
     ZStack {
       ScrollViewReader { proxy in
-        ScrollView(.vertical) {
-          LazyVStack(spacing: 0) {
-            ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-              SinglePageImageView(
-                viewModel: viewModel,
-                pageIndex: pageIndex,
-                screenSize: screenSize,
-                isZoomed: $isZoomed
+      ScrollView(.vertical) {
+        LazyVStack(spacing: 0) {
+          ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
+            SinglePageImageView(
+              viewModel: viewModel,
+              pageIndex: pageIndex,
+              screenSize: screenSize,
+              isZoomed: $isZoomed
+            )
+            .frame(width: screenSize.width, height: screenSize.height)
+            .contentShape(Rectangle())
+            #if os(iOS)
+              .simultaneousGesture(
+                verticalTapGesture(height: screenSize.height, proxy: proxy)
               )
-              .frame(width: screenSize.width, height: screenSize.height)
-              .contentShape(Rectangle())
-              #if os(iOS)
-                .simultaneousGesture(
-                  verticalTapGesture(height: screenSize.height, proxy: proxy)
-                )
-              #endif
-              .id(pageIndex)
-            }
+            #endif
+            .id(pageIndex)
+          }
 
             // End page after last page
             ZStack {
@@ -51,7 +55,8 @@ struct VerticalPageView: View {
                 nextBook: nextBook,
                 onDismiss: onDismiss,
                 onNextBook: onNextBook,
-                isRTL: false
+                isRTL: false,
+                goToPreviousPage: goToPreviousPage
               )
             }
             // IMPORTANT: Add 100 to the height to prevent the bounce behavior
@@ -87,7 +92,7 @@ struct VerticalPageView: View {
 
           // Update scroll position and currentPageIndex
           if scrollPosition != target {
-            withAnimation {
+            withAnimation(ReaderAnimations.pageTurn) {
               scrollPosition = target
               proxy.scrollTo(target, anchor: .top)
             }
@@ -105,6 +110,40 @@ struct VerticalPageView: View {
           handleScrollPositionChange(newTarget)
         }
       }
+
+      #if os(tvOS)
+        // Hidden navigation overlay
+        Color.clear
+          .frame(width: screenSize.width, height: screenSize.height)
+          .contentShape(Rectangle())
+          .focusable(viewModel.currentPageIndex < viewModel.pages.count)
+          .focused($navigationFocused)
+          .allowsHitTesting(viewModel.currentPageIndex < viewModel.pages.count)
+          .onMoveCommand { direction in
+            switch direction {
+            case .up:
+              goToPreviousPage()
+            case .down:
+              goToNextPage()
+            default:
+              break
+            }
+          }
+          .onChange(of: viewModel.currentPageIndex) { _, newIndex in
+            // When at endpage, remove focus to allow EndPageView buttons to get focus
+            if newIndex >= viewModel.pages.count {
+              navigationFocused = false
+            } else if !navigationFocused {
+              // When leaving endpage, restore focus
+              navigationFocused = true
+            }
+          }
+          .onAppear {
+            if viewModel.currentPageIndex < viewModel.pages.count {
+              navigationFocused = true
+            }
+          }
+      #endif
     }
   }
 

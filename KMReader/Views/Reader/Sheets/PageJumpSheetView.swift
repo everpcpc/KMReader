@@ -309,7 +309,7 @@ struct PageJumpSheetView: View {
 
         Spacer()
       }
-      .padding()
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Go to Page")
       .toolbar {
         ToolbarItem(placement: .confirmationAction) {
