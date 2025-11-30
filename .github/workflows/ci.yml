@@ -26,7 +26,7 @@ jobs:
 
       - name: Resolve Package Dependencies
         run: |
-          xcodebuild -quiet -resolvePackageDependencies \
+          xcodebuild -resolvePackageDependencies \
             -project KMReader.xcodeproj \
             -scheme KMReader \
             -sdk iphonesimulator
@@ -60,7 +60,7 @@ jobs:
 
       - name: Resolve Package Dependencies
         run: |
-          xcodebuild -quiet -resolvePackageDependencies \
+          xcodebuild -resolvePackageDependencies \
             -project KMReader.xcodeproj \
             -scheme KMReader \
             -sdk macosx
@@ -94,7 +94,7 @@ jobs:
 
       - name: Resolve Package Dependencies
         run: |
-          xcodebuild -quiet -resolvePackageDependencies \
+          xcodebuild -resolvePackageDependencies \
             -project KMReader.xcodeproj \
             -scheme KMReader \
             -sdk appletvsimulator
