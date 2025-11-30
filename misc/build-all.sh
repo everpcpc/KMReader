@@ -1,11 +1,16 @@
 #!/bin/bash
 
 # Build all platforms script for KMReader
-# Usage: ./build-all.sh [--show-in-organizer] [--skip-export]
+# Usage: ./build-all.sh [--show-in-organizer] [--skip-export] [--verbose]
 # --show-in-organizer: Save archives to Xcode's default location
 # --skip-export: Only create archives, skip export step
+# --verbose: Show verbose output during export
 
 set -e
+
+# Auto-load .env file if it exists (in project root or script directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -14,13 +19,23 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Get script directory and project root
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Auto-load .env file if it exists (in project root or script directory)
+if [ -f "$PROJECT_ROOT/.env" ]; then
+	echo -e "${GREEN}Loading environment variables from .env file...${NC}"
+	set -a # automatically export all variables
+	source "$PROJECT_ROOT/.env"
+	set +a # stop automatically exporting
+elif [ -f "$SCRIPT_DIR/.env" ]; then
+	echo -e "${GREEN}Loading environment variables from .env file...${NC}"
+	set -a
+	source "$SCRIPT_DIR/.env"
+	set +a
+fi
 
 # Parse arguments
 SHOW_IN_ORGANIZER=false
 SKIP_EXPORT=false
+VERBOSE=false
 
 for arg in "$@"; do
 	case "$arg" in
@@ -30,9 +45,12 @@ for arg in "$@"; do
 	--skip-export)
 		SKIP_EXPORT=true
 		;;
+	--verbose)
+		VERBOSE=true
+		;;
 	*)
 		echo -e "${RED}Unknown option: $arg${NC}"
-		echo "Usage: ./build-all.sh [--show-in-organizer] [--skip-export]"
+		echo "Usage: ./build-all.sh [--show-in-organizer] [--skip-export] [--verbose]"
 		exit 1
 		;;
 	esac
@@ -179,7 +197,22 @@ if [ "$SKIP_EXPORT" = false ]; then
 		echo -e "${YELLOW}Exporting $PLATFORM_NAME archive...${NC}"
 		echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-		"$SCRIPT_DIR/export.sh" "$archive_path" "$EXPORT_OPTIONS" "$EXPORTS_DIR"
+		# Build export command with optional API key arguments
+		EXPORT_CMD=("$SCRIPT_DIR/export.sh" "$archive_path" "$EXPORT_OPTIONS" "$EXPORTS_DIR")
+
+		# Add API key arguments if environment variables are set
+		if [ -n "$APP_STORE_CONNECT_API_KEY_PATH" ] && [ -n "$APP_STORE_CONNECT_API_ISSUER_ID" ] && [ -n "$APP_STORE_CONNECT_API_KEY_ID" ]; then
+			EXPORT_CMD+=("--api-key-path" "$APP_STORE_CONNECT_API_KEY_PATH")
+			EXPORT_CMD+=("--api-issuer-id" "$APP_STORE_CONNECT_API_ISSUER_ID")
+			EXPORT_CMD+=("--api-key-id" "$APP_STORE_CONNECT_API_KEY_ID")
+		fi
+
+		# Add verbose flag if requested
+		if [ "$VERBOSE" = true ]; then
+			EXPORT_CMD+=("--verbose")
+		fi
+
+		"${EXPORT_CMD[@]}"
 
 		echo ""
 	done
