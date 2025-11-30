@@ -96,9 +96,7 @@ struct SettingsReaderView: View {
         }
       #endif
     }
-    #if os(tvOS)
-      .focusSection()
-    #endif
+    .optimizedListStyle()
     .inlineNavigationBarTitle("Reader")
   }
 }

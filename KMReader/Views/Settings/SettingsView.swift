@@ -81,7 +81,7 @@ struct SettingsView: View {
           Spacer()
         }
       }
-
+      .optimizedListStyle(alternatesRowBackgrounds: true)
       .handleNavigation()
       .inlineNavigationBarTitle("Settings")
     }

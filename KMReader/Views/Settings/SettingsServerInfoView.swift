@@ -286,9 +286,7 @@ struct SettingsServerInfoView: View {
         }
       }
     }
-    #if os(tvOS)
-      .focusSection()
-    #endif
+    .optimizedListStyle(alternatesRowBackgrounds: true)
     .inlineNavigationBarTitle("Server Info")
     .task {
       await loadServerInfo()

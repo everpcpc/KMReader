@@ -246,9 +246,7 @@ struct SettingsAppearanceView: View {
         }
       }
     }
-    #if os(tvOS)
-      .focusSection()
-    #endif
+    .optimizedListStyle()
     .inlineNavigationBarTitle("Appearance")
   }
 }

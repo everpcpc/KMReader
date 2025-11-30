@@ -80,9 +80,7 @@ struct SettingsServersView: View {
         }
       }
     }
-    #if os(tvOS)
-      .focusSection()
-    #endif
+    .optimizedListStyle()
     .inlineNavigationBarTitle(navigationTitle)
     .sheet(item: $editingInstance) { instance in
       SettingsServerEditView(instance: instance)

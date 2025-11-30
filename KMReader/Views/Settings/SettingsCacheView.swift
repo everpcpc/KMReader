@@ -175,9 +175,7 @@ struct SettingsCacheView: View {
         }
       }
     }
-    #if os(tvOS)
-      .focusSection()
-    #endif
+    .optimizedListStyle()
     .inlineNavigationBarTitle("Cache")
     .alert("Clear Page", isPresented: $showClearImageCacheConfirmation) {
       Button("Clear", role: .destructive) {

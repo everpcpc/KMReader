@@ -73,13 +73,7 @@ struct SettingsLibrariesView: View {
         }
       }
     }
-    #if os(iOS)
-      .listStyle(.insetGrouped)
-    #elseif os(macOS)
-      .listStyle(.sidebar)
-    #elseif os(tvOS)
-      .focusSection()
-    #endif
+    .optimizedListStyle()
     .inlineNavigationBarTitle("Libraries")
     .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
       Button("Delete", role: .destructive) {
@@ -290,7 +284,11 @@ struct SettingsLibrariesView: View {
               .transition(.scale.combined(with: .opacity))
           }
         }
-        .padding(.vertical, 6)
+        #if os(macOS)
+          .padding(.vertical, 10)
+        #else
+          .padding(.vertical, 6)
+        #endif
       }
       .contentShape(Rectangle())
     }
@@ -416,7 +414,11 @@ struct SettingsLibrariesView: View {
         }
       }
     }
-    .padding(.vertical, 6)
+    #if os(macOS)
+      .padding(.vertical, 10)
+    #else
+      .padding(.vertical, 6)
+    #endif
   }
 
   private func hasMetrics(_ library: KomgaLibrary) -> Bool {

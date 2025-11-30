@@ -93,9 +93,7 @@ struct SettingsTasksView: View {
         }
       }
     }
-    #if os(tvOS)
-      .focusSection()
-    #endif
+    .optimizedListStyle(alternatesRowBackgrounds: true)
     .inlineNavigationBarTitle("Tasks")
     .toolbar {
       if AppConfig.isAdmin {
