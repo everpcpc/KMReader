@@ -225,6 +225,7 @@ The app includes comprehensive API logging.
 
 ## 🛣️ Roadmap
 
+- [ ] Offline reading
 - [ ] Live Text support / automatic page translation
 
 ---
