@@ -33,6 +33,7 @@ struct ReadListEditSheet: View {
           Toggle("Ordered", isOn: $ordered)
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Edit Read List")
       .toolbar {
         ToolbarItem(placement: .automatic) {

@@ -48,6 +48,7 @@
             }
           }
         }
+        .padding(PlatformHelper.sheetPadding)
         .inlineNavigationBarTitle("Chapters")
       }
       .presentationDragIndicator(.visible)

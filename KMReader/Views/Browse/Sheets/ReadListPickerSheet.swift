@@ -50,6 +50,7 @@ struct ReadListPickerSheet: View {
           .pickerStyle(.inline)
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Select Read List")
       .searchable(text: $searchText)
       .toolbar {
@@ -139,6 +140,7 @@ struct CreateReadListSheet: View {
             .lineLimit(3...6)
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Create Read List")
       .toolbar {
         ToolbarItem(placement: .automatic) {

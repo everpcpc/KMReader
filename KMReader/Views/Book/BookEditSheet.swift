@@ -156,6 +156,7 @@ struct BookEditSheet: View {
           }
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Edit Book")
       .toolbar {
         ToolbarItem(placement: .automatic) {

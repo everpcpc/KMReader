@@ -102,6 +102,7 @@
             }
           }
         }
+        .padding(PlatformHelper.sheetPadding)
         .inlineNavigationBarTitle("Custom Fonts")
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {

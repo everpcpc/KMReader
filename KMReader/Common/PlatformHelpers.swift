@@ -93,6 +93,8 @@ struct PlatformHelper {
   static var sheetPadding: CGFloat {
     #if os(tvOS)
       return 24
+    #elseif os(macOS)
+      return 16
     #else
       return 8
     #endif
@@ -101,6 +103,8 @@ struct PlatformHelper {
   static var buttonSpacing: CGFloat {
     #if os(tvOS)
       return 36
+    #elseif os(macOS)
+      return 24
     #else
       return 12
     #endif

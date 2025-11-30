@@ -29,6 +29,7 @@ struct CollectionEditSheet: View {
           Toggle("Ordered", isOn: $ordered)
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Edit Collection")
       .toolbar {
         ToolbarItem(placement: .automatic) {

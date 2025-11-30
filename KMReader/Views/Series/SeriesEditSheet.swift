@@ -203,6 +203,7 @@ struct SeriesEditSheet: View {
           }
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Edit Series")
       .toolbar {
         ToolbarItem(placement: .automatic) {

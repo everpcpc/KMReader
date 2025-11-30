@@ -167,6 +167,7 @@ struct BrowseOptionsSheet: View {
           }
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Filter & Sort")
       .toolbar {
         ToolbarItem(placement: .automatic) {

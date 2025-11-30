@@ -50,6 +50,7 @@ struct CollectionPickerSheet: View {
           .pickerStyle(.inline)
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Select Collection")
       .searchable(text: $searchText)
       .toolbar {
@@ -136,6 +137,7 @@ struct CreateCollectionSheet: View {
           TextField("Collection Name", text: $name)
         }
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Create Collection")
       .toolbar {
         ToolbarItem(placement: .automatic) {

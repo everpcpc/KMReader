@@ -148,6 +148,7 @@
             }
           }
         }
+        .padding(PlatformHelper.sheetPadding)
         .inlineNavigationBarTitle("Reading Options")
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {

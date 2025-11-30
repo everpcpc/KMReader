@@ -53,7 +53,7 @@ struct BookDownloadSheet: View {
         .buttonStyle(.borderedProminent)
       }
     }
-    .padding()
+    .padding(PlatformHelper.sheetPadding)
     .presentationDragIndicator(.visible)
     #if os(iOS)
       .presentationDetents([.medium])

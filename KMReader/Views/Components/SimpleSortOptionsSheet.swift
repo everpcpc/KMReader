@@ -25,6 +25,7 @@ struct SimpleSortOptionsSheet: View {
           sortDirection: $tempOpts.sortDirection
         )
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Sort")
       .toolbar {
         ToolbarItem(placement: .automatic) {

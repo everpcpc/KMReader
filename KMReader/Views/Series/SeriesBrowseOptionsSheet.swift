@@ -41,6 +41,7 @@ struct SeriesBrowseOptionsSheet: View {
           sortDirection: $tempOpts.sortDirection
         )
       }
+      .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Filter & Sort")
       .toolbar {
         ToolbarItem(placement: .automatic) {
