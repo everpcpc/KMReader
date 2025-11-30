@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- REQUIRED: Distribution method -->
+    <!-- Options: app-store, ad-hoc, enterprise, development, developer-id (for macOS) -->
+    <key>method</key>
+    <string>app-store</string>
+
+    <!-- RECOMMENDED: Your Apple Developer Team ID -->
+    <!-- Find it in: Xcode > Preferences > Accounts > Select your team -->
+    <!-- Or: https://developer.apple.com/account -->
+    <key>teamID</key>
+    <string>M777UHWZA4</string>
+
+    <!-- OPTIONAL: Specify signing certificate (if not using Automatic Signing) -->
+    <!-- Common values: "Apple Development", "Apple Distribution", "iPhone Distribution" -->
+    <!-- <key>signingCertificate</key> -->
+    <!-- <string>Apple Distribution</string> -->
+
+    <!-- OPTIONAL: Specify provisioning profiles (if not using Automatic Signing) -->
+    <!-- <key>provisioningProfiles</key> -->
+    <!-- <dict> -->
+    <!--     <key>com.everpcpc.Komga</key> -->
+    <!--     <string>Your Provisioning Profile Name</string> -->
+    <!-- </dict> -->
+
+    <!-- OPTIONAL: Upload directly to App Store Connect (only for app-store method) -->
+    <!-- <key>uploadToAppStore</key> -->
+    <!-- <true/> -->
+
+    <!-- OPTIONAL: Upload symbols for crash reporting (recommended for app-store) -->
+    <!-- <key>uploadSymbols</key> -->
+    <!-- <true/> -->
+
+    <!-- OPTIONAL: For macOS - Notarize the app (only for developer-id method) -->
+    <!-- <key>notarize</key> -->
+    <!-- <true/> -->
+</dict>
+</plist>

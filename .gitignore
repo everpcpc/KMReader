@@ -14,3 +14,7 @@ Package.resolved
 .vscode/
 .claude/
 .cursor/
+
+misc/exportOptions.plist
+archives/
+exports/
