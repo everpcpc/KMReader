@@ -107,6 +107,8 @@ xcodebuild clean \
 
 # Archive
 echo -e "${YELLOW}Archiving...${NC}"
+# For App Store distribution, code signing must be enabled so entitlements are applied
+# Remove CODE_SIGNING_REQUIRED=NO and CODE_SIGNING_ALLOWED=NO to allow proper signing
 xcodebuild archive \
 	-project "$PROJECT" \
 	-scheme "$SCHEME" \
@@ -115,10 +117,7 @@ xcodebuild archive \
 	-configuration Release \
 	-archivePath "$ARCHIVE_PATH" \
 	-allowProvisioningUpdates \
-	-quiet \
-	CODE_SIGN_IDENTITY="" \
-	CODE_SIGNING_REQUIRED=NO \
-	CODE_SIGNING_ALLOWED=NO
+	-quiet
 
 if [ $? -eq 0 ]; then
 	echo -e "${GREEN}✓ Archive created successfully!${NC}"
