@@ -339,7 +339,7 @@ struct DivinaReaderView: View {
               if showHelperOverlay {
                 hideOverlay()
               } else {
-                showOverlay(timeout: 3)
+                triggerHelperOverlay(timeout: 3)
               }
             }
           }

@@ -64,7 +64,7 @@ ios)
 	;;
 macos)
 	SDK="macosx"
-	DESTINATION="generic/platform=macOS"
+	DESTINATION="platform=macOS"
 	ARCHIVE_NAME="KMReader-macOS"
 	;;
 tvos)
@@ -102,7 +102,8 @@ xcodebuild clean \
 	-project "$PROJECT" \
 	-scheme "$SCHEME" \
 	-sdk "$SDK" \
-	-configuration Release
+	-configuration Release \
+	-quiet
 
 # Archive
 echo -e "${YELLOW}Archiving...${NC}"
@@ -114,6 +115,7 @@ xcodebuild archive \
 	-configuration Release \
 	-archivePath "$ARCHIVE_PATH" \
 	-allowProvisioningUpdates \
+	-quiet \
 	CODE_SIGN_IDENTITY="" \
 	CODE_SIGNING_REQUIRED=NO \
 	CODE_SIGNING_ALLOWED=NO
