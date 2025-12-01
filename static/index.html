@@ -147,9 +147,12 @@
                 Real-time updates via Server-Sent Events (SSE) keep your library
                 synchronized instantly when content changes, with live task
                 queue status, thumbnail generation progress, session expiration
-                alerts, and automatic reconnection. Toggle SSE on or off with
-                optional connection status and task completion notifications
-                from a dedicated settings page
+                alerts, and automatic reconnection. Dashboard automatically
+                refreshes when content changes via SSE events with smart
+                debouncing to ensure the last event always triggers a refresh.
+                Toggle SSE on or off with optional connection status and task
+                completion notifications, plus independent control over
+                dashboard auto-refresh behavior from a dedicated settings page
               </li>
             </ul>
           </article>
@@ -185,7 +188,9 @@
               viewed pages and downloaded EPUB files when offline. Real-time
               synchronization via Server-Sent Events ensures your library stays
               up-to-date without manual refresh, with live task queue status,
-              thumbnail generation progress, and session expiration alerts.
+              thumbnail generation progress, session expiration alerts, and
+              automatic dashboard refresh when content changes with smart
+              debouncing.
             </p>
           </article>
           <article class="card">

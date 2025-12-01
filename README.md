@@ -138,8 +138,10 @@ _A media server for comics, mangas, BDs, and magazines_
   - Live task queue status monitoring with automatic updates
   - Thumbnail generation progress updates for books, series, collections, and read lists
   - Session expiration notifications
+  - **Automatic Dashboard Refresh**: Dashboard automatically refreshes when content changes via SSE events with smart debouncing (5 seconds) to ensure the last event always triggers a refresh
   - Toggle real-time updates on or off in Settings with a dedicated SSE settings page
   - Optional connection status and task completion notifications
+  - Independent control over auto-refresh behavior (can disable dashboard auto-refresh while keeping other SSE features enabled)
   - Automatic reconnection on connection loss
 
 ### ⚙️ Settings & Customization
@@ -174,9 +176,11 @@ _A media server for comics, mangas, BDs, and magazines_
 - **Real-Time Updates**:
   - Dedicated SSE settings page with connection and notification controls
   - Enable or disable Server-Sent Events (SSE) for real-time synchronization
+  - Toggle dashboard auto-refresh independently (can disable auto-refresh while keeping other SSE features)
   - Toggle connection status and task completion notifications
   - Automatic reconnection on connection loss
   - Real-time updates for content changes, read progress, task queue status, and thumbnail generation
+  - Smart debouncing ensures dashboard refreshes after events settle (5 seconds), guaranteeing the last event always triggers a refresh
 
 ### 💾 Performance & Optimization
 
