@@ -234,96 +234,118 @@ struct PageJumpSheetView: View {
     dismiss()
   }
 
+  private func adjustPage(step: Int) {
+    guard canJump else { return }
+    let newValue = min(max(pageValue + step, 1), maxPage)
+    pageValue = newValue
+  }
+
   var body: some View {
     NavigationStack {
-      VStack(spacing: 24) {
-        VStack(spacing: 8) {
-          Text(rangeDescription)
-            .font(.headline)
-            .foregroundStyle(.secondary)
-          if canJump {
-            Text("Current page: \(currentPage)")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-          }
-        }
-
-        if canJump {
+      VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 24) {
           VStack(spacing: 8) {
-            VStack(spacing: 0) {
-              // Preview view above slider - scrolling fan effect
-              GeometryReader { geometry in
-                let sliderWidth = geometry.size.width
-
-                ZStack {
-                  ForEach(previewPages, id: \.self) { page in
-                    PagePreviewItem(
-                      page: page,
-                      pageValue: pageValue,
-                      imageURL: getPreviewImageURL(page: page),
-                      availableHeight: geometry.size.height,
-                      sliderWidth: sliderWidth,
-                      maxPage: maxPage,
-                      readingDirection: readingDirection
-                    )
-                  }
-                }
-              }
-              .frame(minHeight: 200, maxHeight: 360)
-
-              #if os(tvOS)
-                // TODO: switch to UIPanGestureRecognizer later for better UX
-                HStack(spacing: 16) {
-                  Button {
-                    pageValue = max(1, pageValue - 1)
-                  } label: {
-                    Image(systemName: "minus.circle.fill")
-                  }
-
-                  Text("Page \(pageValue)")
-                    .font(.body)
-
-                  Button {
-                    pageValue = min(maxPage, pageValue + 1)
-                  } label: {
-                    Image(systemName: "plus.circle.fill")
-                  }
-                }
-              #else
-                Slider(
-                  value: sliderBinding,
-                  in: 1...Double(maxPage),
-                  step: 1
-                )
-                .scaleEffect(x: sliderScaleX, y: 1)
-              #endif
-
-              HStack {
-                Text(pageLabels.left)
-                Spacer()
-                Text(pageLabels.right)
-              }
-              .font(.footnote)
+            Text(rangeDescription)
+              .font(.headline)
               .foregroundStyle(.secondary)
+            if canJump {
+              Text("Current page: \(currentPage)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             }
           }
-          .frame(maxWidth: .infinity, alignment: .leading)
-        }
 
-        Spacer()
+          if canJump {
+            VStack(spacing: 16) {
+              VStack(spacing: 0) {
+                // Preview view above slider - scrolling fan effect
+                GeometryReader { geometry in
+                  let sliderWidth = geometry.size.width
+
+                  ZStack {
+                    ForEach(previewPages, id: \.self) { page in
+                      PagePreviewItem(
+                        page: page,
+                        pageValue: pageValue,
+                        imageURL: getPreviewImageURL(page: page),
+                        availableHeight: geometry.size.height,
+                        sliderWidth: sliderWidth,
+                        maxPage: maxPage,
+                        readingDirection: readingDirection
+                      )
+                    }
+                  }
+                }
+                .frame(minHeight: 200, maxHeight: 360)
+
+                #if os(tvOS)
+                  HStack(spacing: 16) {
+                    let leftStep = readingDirection == .rtl ? 1 : -1
+                    let rightStep = readingDirection == .rtl ? -1 : 1
+                    let leftIcon =
+                      readingDirection == .rtl ? "plus.circle.fill" : "minus.circle.fill"
+                    let rightIcon =
+                      readingDirection == .rtl ? "minus.circle.fill" : "plus.circle.fill"
+
+                    Button {
+                      adjustPage(step: leftStep)
+                    } label: {
+                      Image(systemName: leftIcon)
+                    }
+                    .adaptiveButtonStyle(.plain)
+
+                    Text("Page \(pageValue)")
+                      .font(.body)
+
+                    Button {
+                      adjustPage(step: rightStep)
+                    } label: {
+                      Image(systemName: rightIcon)
+                    }
+                    .adaptiveButtonStyle(.plain)
+                  }
+                  .focusSection()
+                #else
+                  Slider(
+                    value: sliderBinding,
+                    in: 1...Double(maxPage),
+                    step: 1
+                  )
+                  .scaleEffect(x: sliderScaleX, y: 1)
+
+                  HStack {
+                    Text(pageLabels.left)
+                    Spacer()
+                    Text(pageLabels.right)
+                  }
+                  .font(.footnote)
+                  .foregroundStyle(.secondary)
+                #endif
+              }
+
+              HStack {
+                Button {
+                  jumpToPage()
+                } label: {
+                  HStack(spacing: 4) {
+                    Text("Jump")
+                    Image(systemName: "arrow.right.to.line")
+                  }
+                }
+                .adaptiveButtonStyle(.borderedProminent)
+                .disabled(!canJump || pageValue == currentPage)
+              }
+
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+          }
+
+          Spacer()
+        }
+        .padding(.top, 8)
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Go to Page")
-      .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
-          Button {
-            jumpToPage()
-          } label: {
-            Image(systemName: "arrow.right.to.line")
-          }
-          .disabled(!canJump || pageValue == currentPage)
-        }
-      }
     }
     .presentationDragIndicator(.visible)
     .platformSheetPresentation(detents: [.large])

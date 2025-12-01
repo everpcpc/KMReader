@@ -37,9 +37,7 @@ struct ReaderSettingsSheet: View {
               }
             }
             .pickerStyle(.segmented)
-            Text("Only applies while reading the current book")
-              .font(.caption)
-              .foregroundColor(.secondary)
+            .labelsHidden()
           }
 
           switch readingDirection {
@@ -83,6 +81,7 @@ struct ReaderSettingsSheet: View {
         }
       }
       .pickerStyle(.segmented)
+      .labelsHidden()
 
       if pageLayout == .dual {
         Toggle(isOn: $dualPageNoCover) {
