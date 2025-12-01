@@ -13,6 +13,7 @@ struct SettingsView: View {
   @AppStorage("serverDisplayName") private var serverDisplayName: String = ""
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
+  @AppStorage("enableSSE") private var enableSSE: Bool = true
 
   var body: some View {
     NavigationStack {
@@ -31,20 +32,7 @@ struct SettingsView: View {
             Label("Reader", systemImage: "book.pages")
           }
 
-          Toggle(
-            isOn: Binding(
-              get: { AppConfig.enableSSE },
-              set: { newValue in
-                AppConfig.enableSSE = newValue
-                // Always disconnect first to ensure clean state
-                SSEService.shared.disconnect()
-                // Then connect if enabled and logged in
-                if newValue && AppConfig.isLoggedIn {
-                  SSEService.shared.connect()
-                }
-              }
-            )
-          ) {
+          Toggle(isOn: $enableSSE) {
             VStack(alignment: .leading, spacing: 4) {
               HStack(spacing: 6) {
                 Image(systemName: "antenna.radiowaves.left.and.right")
@@ -53,6 +41,14 @@ struct SettingsView: View {
               Text("Enable Server-Sent Events for real-time updates")
                 .font(.caption)
                 .foregroundColor(.secondary)
+            }
+          }
+          .onChange(of: enableSSE) { oldValue, newValue in
+            // Always disconnect first to ensure clean state
+            SSEService.shared.disconnect()
+            // Then connect if enabled and logged in
+            if newValue && AppConfig.isLoggedIn {
+              SSEService.shared.connect()
             }
           }
         }
