@@ -132,6 +132,13 @@ _A media server for comics, mangas, BDs, and magazines_
   - Monitor total execution time per task type
   - Cancel all running tasks with confirmation
   - Error handling for metrics with inline error messages
+- **Real-Time Updates (SSE)**: Stay synchronized with your Komga server through Server-Sent Events
+  - Instant notifications when libraries, series, books, collections, or read lists are added, changed, or deleted
+  - Real-time read progress updates across all devices
+  - Live task queue status monitoring
+  - Thumbnail generation progress updates
+  - Session expiration notifications
+  - Toggle real-time updates on or off in Settings
 
 ### ⚙️ Settings & Customization
 
@@ -162,6 +169,10 @@ _A media server for comics, mangas, BDs, and magazines_
   - Add/edit/delete Komga instances, rename them, and switch instantly between saved sessions
   - Stored credentials remain on-device and can be cleared by deleting a server entry
   - View user information, admin status, and authentication activity logs before logging out
+- **Real-Time Updates**:
+  - Enable or disable Server-Sent Events (SSE) for real-time synchronization
+  - Automatic reconnection on connection loss
+  - Real-time updates for content changes, read progress, and task status
 
 ### 💾 Performance & Optimization
 

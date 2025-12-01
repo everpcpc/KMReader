@@ -328,7 +328,6 @@ class SSEService {
       }
 
     case "TaskQueueStatus":
-      logger.info("🔍 Handling TaskQueueStatus event: \(data)")
       if let dto = try? decoder.decode(TaskQueueSSEDto.self, from: jsonData) {
         // Check if status has changed
         let previousStatus = AppConfig.taskQueueStatus
