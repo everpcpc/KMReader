@@ -65,7 +65,7 @@ struct SettingsAppearanceView: View {
   #endif
 
   var body: some View {
-    List {
+    Form {
       Section(header: Text("Theme")) {
         #if os(iOS) || os(macOS)
           ColorPicker("Color", selection: themeColorBinding, supportsOpacity: false)
@@ -247,7 +247,7 @@ struct SettingsAppearanceView: View {
         }
       }
     }
-    .optimizedListStyle()
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Appearance")
   }
 }

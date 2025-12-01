@@ -41,7 +41,7 @@ struct SettingsCacheView: View {
   #endif
 
   var body: some View {
-    List {
+    Form {
       Section(header: Text("Page")) {
         VStack(alignment: .leading, spacing: 8) {
           #if os(iOS) || os(macOS)
@@ -175,7 +175,7 @@ struct SettingsCacheView: View {
         }
       }
     }
-    .optimizedListStyle()
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Cache")
     .alert("Clear Page", isPresented: $showClearImageCacheConfirmation) {
       Button("Clear", role: .destructive) {

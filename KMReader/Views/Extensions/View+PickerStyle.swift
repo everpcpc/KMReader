@@ -18,7 +18,7 @@ extension View {
     #elseif os(macOS)
       // NOTE: bug on macOS with segmented picker + List
       // could cause error: AttributeGraph: cycle detected through attribute
-      return self.pickerStyle(.radioGroup)
+      return self.pickerStyle(.menu)
     #else
       return self.pickerStyle(.segmented)
     #endif

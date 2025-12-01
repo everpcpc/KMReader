@@ -16,7 +16,7 @@ struct SettingsReaderView: View {
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
 
   var body: some View {
-    List {
+    Form {
       Section(header: Text("Overlay Hints")) {
         #if os(macOS)
           Toggle(isOn: $showReaderHelperOverlay) {
@@ -46,11 +46,7 @@ struct SettingsReaderView: View {
               Text(background.displayName).tag(background)
             }
           }
-          #if os(macOS)
-            .pickerStyle(.radioGroup)
-          #else
-            .pickerStyle(.segmented)
-          #endif
+          .optimizedPickerStyle()
           Text("The background color of the reader")
             .font(.caption)
             .foregroundColor(.secondary)
@@ -116,7 +112,7 @@ struct SettingsReaderView: View {
         }
       #endif
     }
-    .optimizedListStyle()
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Reader")
   }
 }

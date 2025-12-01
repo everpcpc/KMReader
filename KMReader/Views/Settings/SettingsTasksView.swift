@@ -23,7 +23,7 @@ struct SettingsTasksView: View {
   @State private var metricErrors: [TaskErrorKey: String] = [:]
 
   var body: some View {
-    List {
+    Form {
       if !isAdmin {
         AdminRequiredView()
       } else if isLoading {
@@ -196,7 +196,7 @@ struct SettingsTasksView: View {
         }
       }
     }
-    .optimizedListStyle(alternatesRowBackgrounds: true)
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Tasks")
     .alert("Cancel All Tasks", isPresented: $showCancelAllConfirmation) {
       Button("Cancel", role: .cancel) {}

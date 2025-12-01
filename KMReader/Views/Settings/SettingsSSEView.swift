@@ -14,7 +14,7 @@ struct SettingsSSEView: View {
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
 
   var body: some View {
-    List {
+    Form {
       Section {
         Toggle(isOn: $enableSSE) {
           VStack(alignment: .leading, spacing: 4) {
@@ -89,7 +89,7 @@ struct SettingsSSEView: View {
         )
       }
     }
-    .optimizedListStyle()
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Real-time Updates")
   }
 }

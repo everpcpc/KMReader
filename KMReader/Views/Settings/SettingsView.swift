@@ -17,7 +17,7 @@ import SwiftUI
 
     var body: some View {
       NavigationStack {
-        List {
+        Form {
           Section {
             NavigationLink(value: NavDestination.settingsAppearance) {
               Label("Appearance", systemImage: "paintbrush")
@@ -114,7 +114,7 @@ import SwiftUI
             }
           }
         }
-        .optimizedListStyle(alternatesRowBackgrounds: true)
+        .formStyle(.grouped)
         .handleNavigation()
         .inlineNavigationBarTitle("Settings")
       }

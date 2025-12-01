@@ -11,7 +11,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct KomgaApp: App {
+struct MainApp: App {
   private let modelContainer: ModelContainer
   @State private var authViewModel: AuthViewModel
 

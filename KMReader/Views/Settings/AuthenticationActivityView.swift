@@ -16,7 +16,7 @@ struct AuthenticationActivityView: View {
   @State private var hasMorePages = true
 
   var body: some View {
-    List {
+    Form {
       if isLoading && activities.isEmpty {
         Section {
           HStack {
@@ -119,7 +119,7 @@ struct AuthenticationActivityView: View {
         }
       }
     }
-    .optimizedListStyle(alternatesRowBackgrounds: true)
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Authentication Activity")
     .task {
       if isAdmin {

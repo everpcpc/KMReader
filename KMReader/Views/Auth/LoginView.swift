@@ -178,10 +178,3 @@ struct LoginView: View {
     }
   }
 }
-
-#Preview {
-  NavigationStack {
-    LoginView()
-      .environment(AuthViewModel())
-  }
-}

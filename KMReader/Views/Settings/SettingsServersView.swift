@@ -41,7 +41,7 @@ struct SettingsServersView: View {
   }
 
   var body: some View {
-    List {
+    Form {
       if let introText {
         Section {
           Text(introText)
@@ -80,7 +80,7 @@ struct SettingsServersView: View {
         }
       }
     }
-    .optimizedListStyle()
+    .formStyle(.grouped)
     .inlineNavigationBarTitle(navigationTitle)
     .sheet(item: $editingInstance) { instance in
       SettingsServerEditView(instance: instance)

@@ -13,7 +13,7 @@ struct SettingsServerInfoView: View {
   @State private var isLoading = false
 
   var body: some View {
-    List {
+    Form {
       if !isAdmin {
         AdminRequiredView()
       } else if isLoading {
@@ -289,7 +289,7 @@ struct SettingsServerInfoView: View {
         }
       }
     }
-    .optimizedListStyle(alternatesRowBackgrounds: true)
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Server Info")
     .task {
       if isAdmin {

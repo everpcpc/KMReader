@@ -107,7 +107,7 @@ struct SettingsDashboardView: View {
   }
 
   var body: some View {
-    List {
+    Form {
       #if os(tvOS)
         HStack {
           Spacer()
@@ -259,7 +259,7 @@ struct SettingsDashboardView: View {
         }
       }
     }
-    .optimizedListStyle()
+    .formStyle(.grouped)
     .inlineNavigationBarTitle("Dashboard")
     .animation(.default, value: dashboard)
     #if os(tvOS)

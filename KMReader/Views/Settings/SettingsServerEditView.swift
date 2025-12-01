@@ -75,6 +75,7 @@ struct SettingsServerEditView: View {
           .frame(maxWidth: .infinity)
         }
       }
+      .formStyle(.grouped)
       #if os(tvOS)
         .focusSection()
       #endif

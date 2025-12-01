@@ -43,7 +43,7 @@ struct SettingsLibrariesView: View {
   }
 
   var body: some View {
-    List {
+    Form {
       if isLoading && libraries.isEmpty {
         Section {
           HStack {
@@ -85,7 +85,7 @@ struct SettingsLibrariesView: View {
         .listRowBackground(Color.clear)
       }
     }
-    .optimizedListStyle()
+    .formStyle(.grouped)
     #if os(iOS) || os(macOS)
       .scrollContentBackground(.hidden)
     #endif
