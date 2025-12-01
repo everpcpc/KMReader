@@ -98,8 +98,10 @@ class SSEService {
     // Clear task queue status when disconnecting
     AppConfig.taskQueueStatus = TaskQueueSSEDto()
 
-    // Notify user that SSE disconnected
-    ErrorManager.shared.notify(message: "Real-time updates disconnected")
+    // Notify user that SSE disconnected (if notifications enabled)
+    if AppConfig.enableSSENotifications {
+      ErrorManager.shared.notify(message: "Real-time updates disconnected")
+    }
   }
 
   private func handleSSEStream(url: URL) async {
@@ -141,8 +143,10 @@ class SSEService {
 
       logger.info("✅ SSE connected")
 
-      // Notify user that SSE connected successfully
-      ErrorManager.shared.notify(message: "Real-time updates connected")
+      // Notify user that SSE connected successfully (if notifications enabled)
+      if AppConfig.enableSSENotifications {
+        ErrorManager.shared.notify(message: "Real-time updates connected")
+      }
 
       var lineBuffer = ""
       var currentEventType: String?
@@ -340,8 +344,8 @@ class SSEService {
           // Notify the listener
           onTaskQueueStatus?(dto)
 
-          // Notify if tasks completed (went from > 0 to 0)
-          if previousStatus.count > 0 && dto.count == 0 {
+          // Notify if tasks completed (went from > 0 to 0) and notifications enabled
+          if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotifications {
             ErrorManager.shared.notify(message: "All server tasks finished")
           }
         }

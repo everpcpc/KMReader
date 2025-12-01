@@ -45,6 +45,8 @@ extension View {
           SettingsReaderView()
         case .settingsDashboard:
           SettingsDashboardView()
+        case .settingsSSE:
+          SettingsSSEView()
         case .settingsServerInfo:
           SettingsServerInfoView()
         case .settingsMetrics:
