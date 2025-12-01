@@ -253,4 +253,5 @@ struct SettingsCacheView: View {
     formatter.groupingSeparator = ","
     return formatter.string(from: NSNumber(value: count)) ?? "\(count)"
   }
+
 }

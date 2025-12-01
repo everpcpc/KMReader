@@ -129,6 +129,153 @@ enum AppConfig {
     }
   }
 
+  // MARK: - Appearance
+  static var themeColor: ThemeColor {
+    get {
+      if let stored = defaults.string(forKey: "themeColorHex"),
+        let color = ThemeColor(rawValue: stored)
+      {
+        return color
+      }
+      return .orange
+    }
+    set {
+      defaults.set(newValue.rawValue, forKey: "themeColorHex")
+    }
+  }
+
+  static var browseLayout: BrowseLayoutMode {
+    get {
+      if let stored = defaults.string(forKey: "browseLayout"),
+        let layout = BrowseLayoutMode(rawValue: stored)
+      {
+        return layout
+      }
+      return .grid
+    }
+    set {
+      defaults.set(newValue.rawValue, forKey: "browseLayout")
+    }
+  }
+
+  static var browseColumns: BrowseColumns {
+    get {
+      if let stored = defaults.string(forKey: "browseColumns"),
+        let columns = BrowseColumns(rawValue: stored)
+      {
+        return columns
+      }
+      return BrowseColumns()
+    }
+    set {
+      defaults.set(newValue.rawValue, forKey: "browseColumns")
+    }
+  }
+
+  static var showSeriesCardTitle: Bool {
+    get {
+      if defaults.object(forKey: "showSeriesCardTitle") != nil {
+        return defaults.bool(forKey: "showSeriesCardTitle")
+      }
+      return true
+    }
+    set {
+      defaults.set(newValue, forKey: "showSeriesCardTitle")
+    }
+  }
+
+  static var showBookCardSeriesTitle: Bool {
+    get {
+      if defaults.object(forKey: "showBookCardSeriesTitle") != nil {
+        return defaults.bool(forKey: "showBookCardSeriesTitle")
+      }
+      return true
+    }
+    set {
+      defaults.set(newValue, forKey: "showBookCardSeriesTitle")
+    }
+  }
+
+  static var thumbnailPreserveAspectRatio: Bool {
+    get {
+      if defaults.object(forKey: "thumbnailPreserveAspectRatio") != nil {
+        return defaults.bool(forKey: "thumbnailPreserveAspectRatio")
+      }
+      return true
+    }
+    set {
+      defaults.set(newValue, forKey: "thumbnailPreserveAspectRatio")
+    }
+  }
+
+  // MARK: - Reader
+  static var showReaderHelperOverlay: Bool {
+    get {
+      if defaults.object(forKey: "showReaderHelperOverlay") != nil {
+        return defaults.bool(forKey: "showReaderHelperOverlay")
+      }
+      return true
+    }
+    set {
+      defaults.set(newValue, forKey: "showReaderHelperOverlay")
+    }
+  }
+
+  static var readerBackground: ReaderBackground {
+    get {
+      if let stored = defaults.string(forKey: "readerBackground"),
+        let background = ReaderBackground(rawValue: stored)
+      {
+        return background
+      }
+      return .system
+    }
+    set {
+      defaults.set(newValue.rawValue, forKey: "readerBackground")
+    }
+  }
+
+  static var pageLayout: PageLayout {
+    get {
+      if let stored = defaults.string(forKey: "pageLayout"),
+        let layout = PageLayout(rawValue: stored)
+      {
+        return layout
+      }
+      return .dual
+    }
+    set {
+      defaults.set(newValue.rawValue, forKey: "pageLayout")
+    }
+  }
+
+  static var webtoonPageWidthPercentage: Double {
+    get {
+      if defaults.object(forKey: "webtoonPageWidthPercentage") != nil {
+        return defaults.double(forKey: "webtoonPageWidthPercentage")
+      }
+      return 100.0
+    }
+    set {
+      defaults.set(newValue, forKey: "webtoonPageWidthPercentage")
+    }
+  }
+
+  // MARK: - Dashboard
+  static var dashboard: DashboardConfiguration {
+    get {
+      if let stored = defaults.string(forKey: "dashboard"),
+        let config = DashboardConfiguration(rawValue: stored)
+      {
+        return config
+      }
+      return DashboardConfiguration()
+    }
+    set {
+      defaults.set(newValue.rawValue, forKey: "dashboard")
+    }
+  }
+
   // MARK: - Clear selected library IDs
   static func clearSelectedLibraryIds() {
     if let rawValue = defaults.string(forKey: "dashboard"),

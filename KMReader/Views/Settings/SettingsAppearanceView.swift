@@ -104,7 +104,8 @@ struct SettingsAppearanceView: View {
           ForEach(BrowseLayoutMode.allCases) { mode in
             Label(mode.displayName, systemImage: mode.iconName).tag(mode)
           }
-        }.pickerStyle(.segmented)
+        }
+        .optimizedPickerStyle()
 
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {

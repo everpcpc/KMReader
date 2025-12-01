@@ -26,7 +26,7 @@ struct SettingsSSEView: View {
               .foregroundColor(.secondary)
           }
         }
-        .onChange(of: enableSSE) { oldValue, newValue in
+        .onChange(of: enableSSE) { _, newValue in
           // Always disconnect first to ensure clean state
           SSEService.shared.disconnect()
           // Then connect if enabled and logged in

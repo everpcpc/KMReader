@@ -8,7 +8,7 @@
 import SwiftUI
 
 // ThemeColor type that embeds Color and supports RawRepresentable
-struct ThemeColor: RawRepresentable {
+struct ThemeColor: RawRepresentable, Equatable {
   let color: Color
 
   init(color: Color) {
