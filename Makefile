@@ -1,4 +1,4 @@
-.PHONY: help archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export build-all build-all-organizer clean-archives clean-exports
+.PHONY: help archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer clean-archives clean-exports
 
 # Configuration
 SCHEME = KMReader
@@ -28,8 +28,8 @@ help: ## Show this help message
 	@echo "    Example: make export ARCHIVE=archives/KMReader-iOS_20240101_120000.xcarchive"
 	@echo ""
 	@echo "Build all platforms:"
-	@echo "  make build-all           - Archive and export all platforms (iOS, macOS, tvOS)"
-	@echo "  make build-all-organizer - Archive and export all platforms (appears in Organizer)"
+	@echo "  make release           - Archive and export all platforms (iOS, macOS, tvOS)"
+	@echo "  make release-organizer - Archive and export all platforms (appears in Organizer)"
 	@echo ""
 	@echo "Clean commands:"
 	@echo "  make clean-archives   - Remove all archives"
@@ -69,13 +69,13 @@ export: ## Export archive (requires ARCHIVE=<path>)
 	fi
 	@$(MISC_DIR)/export.sh "$(ARCHIVE)" "$(OPTIONS)" "$(DEST)"
 
-build-all: ## Archive and export all platforms (iOS, macOS, tvOS)
+release: ## Archive and export all platforms (iOS, macOS, tvOS)
 	@echo "$(GREEN)Building all platforms...$(NC)"
-	@$(MISC_DIR)/build-all.sh
+	@$(MISC_DIR)/release.sh
 
-build-all-organizer: ## Archive and export all platforms (appears in Xcode Organizer)
+release-organizer: ## Archive and export all platforms (appears in Xcode Organizer)
 	@echo "$(GREEN)Building all platforms (will appear in Organizer)...$(NC)"
-	@$(MISC_DIR)/build-all.sh --show-in-organizer
+	@$(MISC_DIR)/release.sh --show-in-organizer
 
 clean-archives: ## Remove all archives
 	@echo "$(YELLOW)Cleaning archives...$(NC)"

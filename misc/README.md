@@ -26,8 +26,8 @@ make archive-tvos-organizer    # tvOS platform, appears in Organizer
 make export ARCHIVE=archives/KMReader-iOS_20240101_120000.xcarchive
 
 # Build all platforms (archive + export)
-make build-all           # Archive and export all platforms (iOS, macOS, tvOS)
-make build-all-organizer # Archive and export all platforms (appears in Organizer)
+make release           # Archive and export all platforms (iOS, macOS, tvOS)
+make release-organizer # Archive and export all platforms (appears in Organizer)
 
 # Clean commands
 make clean-archives   # Remove all archives
@@ -48,7 +48,7 @@ make clean            # Remove archives and exports
 ./misc/export.sh [archive_path] [export_options_plist] [destination]
 
 # Build all platforms (archive + export)
-./misc/build-all.sh [--show-in-organizer] [--skip-export]
+./misc/release.sh [--show-in-organizer] [--skip-export]
 # --show-in-organizer: Save archives to Xcode's default location
 # --skip-export: Only create archives, skip export step
 ```
@@ -57,7 +57,7 @@ make clean            # Remove archives and exports
 
 - `archive.sh` - Executes xcodebuild archive command to create .xcarchive files
 - `export.sh` - Exports archive to IPA/APP files
-- `build-all.sh` - Archives and exports all platforms (iOS, macOS, tvOS) in one command
+- `release.sh` - Archives and exports all platforms (iOS, macOS, tvOS) in one command
 - `exportOptions.plist.example` - Export configuration example file
 
 ## Configuring Export Options

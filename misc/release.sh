@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Build all platforms script for KMReader
-# Usage: ./build-all.sh [--show-in-organizer] [--skip-export] [--verbose]
+# Release script for KMReader (builds all platforms)
+# Usage: ./release.sh [--show-in-organizer] [--skip-export] [--verbose]
 # --show-in-organizer: Save archives to Xcode's default location
 # --skip-export: Only create archives, skip export step
 # --verbose: Show verbose output during export
@@ -50,7 +50,7 @@ for arg in "$@"; do
 		;;
 	*)
 		echo -e "${RED}Unknown option: $arg${NC}"
-		echo "Usage: ./build-all.sh [--show-in-organizer] [--skip-export] [--verbose]"
+		echo "Usage: ./release.sh [--show-in-organizer] [--skip-export] [--verbose]"
 		exit 1
 		;;
 	esac
@@ -76,7 +76,7 @@ declare -a ARCHIVE_PATHS
 ARCHIVE_FAILED=false
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}KMReader - Build All Platforms${NC}"
+echo -e "${BLUE}KMReader - Release${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
@@ -223,7 +223,7 @@ fi
 
 # Summary
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Build Summary${NC}"
+echo -e "${BLUE}Release Summary${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 echo -e "${GREEN}Archives created:${NC}"
@@ -245,4 +245,4 @@ if [ "$SKIP_EXPORT" = false ]; then
 	echo ""
 fi
 
-echo -e "${GREEN}✓ Build process completed!${NC}"
+echo -e "${GREEN}✓ Release process completed!${NC}"
