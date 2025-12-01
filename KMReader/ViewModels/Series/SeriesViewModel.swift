@@ -15,10 +15,48 @@ class SeriesViewModel {
   var isLoading = false
 
   private let seriesService = SeriesService.shared
+  private let sseService = SSEService.shared
   private var currentPage = 0
   private var hasMorePages = true
   private var currentState: SeriesBrowseOptions?
   private var currentSearchText: String = ""
+
+  init() {
+    setupSSEListeners()
+  }
+
+  private func setupSSEListeners() {
+    // Series events
+    sseService.onSeriesChanged = { [weak self] event in
+      Task { @MainActor in
+        // Update series in list if it exists
+        if let index = self?.series.firstIndex(where: { $0.id == event.seriesId }) {
+          if let updatedSeries = try? await self?.seriesService.getOneSeries(id: event.seriesId) {
+            self?.series[index] = updatedSeries
+          }
+        }
+      }
+    }
+
+    sseService.onSeriesDeleted = { [weak self] event in
+      Task { @MainActor in
+        // Remove series from list
+        self?.series.removeAll { $0.id == event.seriesId }
+      }
+    }
+
+    // Read progress series events
+    sseService.onReadProgressSeriesChanged = { [weak self] event in
+      Task { @MainActor in
+        // Update series in list if it exists
+        if let index = self?.series.firstIndex(where: { $0.id == event.seriesId }) {
+          if let updatedSeries = try? await self?.seriesService.getOneSeries(id: event.seriesId) {
+            self?.series[index] = updatedSeries
+          }
+        }
+      }
+    }
+  }
 
   func loadSeries(
     browseOpts: SeriesBrowseOptions, searchText: String = "", libraryIds: [String]? = nil,

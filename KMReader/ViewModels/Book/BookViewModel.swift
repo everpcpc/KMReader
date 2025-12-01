@@ -16,6 +16,7 @@ class BookViewModel {
   var isLoading = false
 
   private let bookService = BookService.shared
+  private let sseService = SSEService.shared
   private var currentPage = 0
   private var hasMorePages = true
   private var currentSeriesId: String?
@@ -23,6 +24,55 @@ class BookViewModel {
   private var currentBrowseState: BookBrowseOptions?
   private var currentBrowseSort: String?
   private var currentBrowseSearch: String = ""
+
+  init() {
+    setupSSEListeners()
+  }
+
+  private func setupSSEListeners() {
+    // Book events
+    sseService.onBookChanged = { [weak self] event in
+      Task { @MainActor in
+        // Refresh current book if it matches
+        if self?.currentBook?.id == event.bookId {
+          await self?.loadBook(id: event.bookId)
+        }
+        // Refresh books list if it contains this book
+        if let index = self?.books.firstIndex(where: { $0.id == event.bookId }) {
+          if let updatedBook = try? await self?.bookService.getBook(id: event.bookId) {
+            self?.books[index] = updatedBook
+          }
+        }
+      }
+    }
+
+    sseService.onBookDeleted = { [weak self] event in
+      Task { @MainActor in
+        // Remove book from list
+        self?.books.removeAll { $0.id == event.bookId }
+        // Clear current book if it matches
+        if self?.currentBook?.id == event.bookId {
+          self?.currentBook = nil
+        }
+      }
+    }
+
+    // Read progress events
+    sseService.onReadProgressChanged = { [weak self] event in
+      Task { @MainActor in
+        // Refresh current book if it matches
+        if self?.currentBook?.id == event.bookId {
+          await self?.loadBook(id: event.bookId)
+        }
+        // Update book in list if it exists
+        if let index = self?.books.firstIndex(where: { $0.id == event.bookId }) {
+          if let updatedBook = try? await self?.bookService.getBook(id: event.bookId) {
+            self?.books[index] = updatedBook
+          }
+        }
+      }
+    }
+  }
 
   func loadBooks(
     seriesId: String, browseOpts: BookBrowseOptions, libraryIds: [String]? = nil,

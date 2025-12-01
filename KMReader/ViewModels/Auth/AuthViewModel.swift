@@ -18,6 +18,7 @@ class AuthViewModel {
 
   private let authService = AuthService.shared
   private let instanceStore = KomgaInstanceStore.shared
+  private let sseService = SSEService.shared
 
   init() {
   }
@@ -40,6 +41,9 @@ class AuthViewModel {
       await LibraryManager.shared.loadLibraries()
       credentialsVersion = UUID()
       ErrorManager.shared.notify(message: "Logged in successfully")
+
+      // Connect to SSE after successful login
+      sseService.connect()
     } catch {
       ErrorManager.shared.alert(error: error)
       AppConfig.isLoggedIn = false
@@ -49,6 +53,9 @@ class AuthViewModel {
   }
 
   func logout() {
+    // Disconnect SSE before logout
+    sseService.disconnect()
+
     Task {
       try? await authService.logout()
     }
@@ -94,6 +101,10 @@ class AuthViewModel {
       await loadCurrentUser()
       await LibraryManager.shared.loadLibraries()
       ErrorManager.shared.notify(message: "Switched to \(instance.name)")
+
+      // Reconnect SSE with new instance
+      sseService.disconnect()
+      sseService.connect()
     }
   }
 

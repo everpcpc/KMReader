@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsTasksView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @State private var isLoading = false
   @State private var isCancelling = false
   @State private var showCancelAllConfirmation = false
@@ -17,6 +18,9 @@ struct SettingsTasksView: View {
   @State private var tasks: Metric?
   @State private var tasksCountByType: [String: Double] = [:]
   @State private var tasksTotalTimeByType: [String: Double] = [:]
+
+  // Task queue status from SSE
+  @State private var taskQueueStatus: TaskQueueSSEDto?
 
   // Error messages for each metric section
   @State private var metricErrors: [TaskErrorKey: String] = [:]
@@ -50,6 +54,69 @@ struct SettingsTasksView: View {
             .disabled(isCancelling)
           }
         #endif
+
+        // Task Queue Status Section (from SSE)
+        if let queueStatus = taskQueueStatus {
+          Section {
+            VStack(spacing: 12) {
+              // Total Tasks with highlight
+              HStack {
+                Label("Total Tasks", systemImage: "list.bullet.clipboard")
+                  .font(.headline)
+                Spacer()
+                Text("\(queueStatus.count)")
+                  .font(.title2)
+                  .fontWeight(.bold)
+                  .foregroundColor(queueStatus.count > 0 ? themeColor.color : .secondary)
+                  .contentTransition(.numericText())
+              }
+              .padding(.vertical, 4)
+              #if os(tvOS)
+                .focusable()
+              #endif
+
+              // Task types with animation
+              if !queueStatus.countByType.isEmpty {
+                Divider()
+                ForEach(Array(queueStatus.countByType.keys.sorted()), id: \.self) { taskType in
+                  if let count = queueStatus.countByType[taskType] {
+                    HStack {
+                      Label(taskType, systemImage: "gearshape")
+                        .font(.subheadline)
+                      Spacer()
+                      Text("\(count)")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(count > 0 ? themeColor.color : .secondary)
+                        .contentTransition(.numericText())
+                    }
+                    .padding(.vertical, 2)
+                    #if os(tvOS)
+                      .focusable()
+                    #endif
+                  }
+                }
+              }
+            }
+            .padding(.vertical, 8)
+          } header: {
+            HStack {
+              Text("Task Queue Status")
+                .font(.headline)
+              Spacer()
+              if queueStatus.count > 0 {
+                Circle()
+                  .fill(themeColor.color)
+                  .frame(width: 8, height: 8)
+                  .opacity(1.0)
+              }
+            }
+          }
+          .transition(.opacity.combined(with: .move(edge: .top)))
+          .animation(.spring(response: 0.3, dampingFraction: 0.7), value: taskQueueStatus?.count)
+          .animation(
+            .spring(response: 0.3, dampingFraction: 0.7), value: taskQueueStatus?.countByType)
+        }
 
         // Tasks Section
         if !tasksCountByType.isEmpty || metricErrors[.tasksExecuted] != nil {
@@ -144,7 +211,12 @@ struct SettingsTasksView: View {
     .task {
       if isAdmin {
         await loadMetrics()
+        setupSSEListener()
       }
+    }
+    .onDisappear {
+      // Clean up SSE listener when view disappears
+      SSEService.shared.onTaskQueueStatus = nil
     }
     .refreshable {
       if isAdmin {
@@ -254,6 +326,20 @@ struct SettingsTasksView: View {
     formatter.numberStyle = .decimal
     formatter.maximumFractionDigits = 0
     return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
+  }
+
+  private func setupSSEListener() {
+    // Capture the binding to update state from closure
+    let statusBinding = Binding(
+      get: { taskQueueStatus },
+      set: { newValue in taskQueueStatus = newValue }
+    )
+
+    SSEService.shared.onTaskQueueStatus = { status in
+      Task { @MainActor in
+        statusBinding.wrappedValue = status
+      }
+    }
   }
 }
 
