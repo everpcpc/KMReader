@@ -1,5 +1,5 @@
 //
-//  ReadingDirectionPickerSheetView.swift
+//  DivinaPreferencesSheet.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ReadingDirectionPickerSheetView: View {
+struct DivinaPreferencesSheet: View {
   @Binding var readingDirection: ReadingDirection
 
   var body: some View {
@@ -31,6 +31,6 @@ struct ReadingDirectionPickerSheetView: View {
       .padding(PlatformHelper.sheetPadding)
     }
     .presentationDragIndicator(.visible)
-    .platformSheetPresentation(detents: [.height(400)])
+    .platformSheetPresentation(detents: [.large])
   }
 }

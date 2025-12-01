@@ -8,54 +8,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-#if os(macOS)
-  import AppKit
-
-  // Window-level keyboard event handler
-  private struct KeyboardEventHandler: NSViewRepresentable {
-    let onKeyPress: (UInt16, NSEvent.ModifierFlags) -> Void
-
-    func makeNSView(context: Context) -> KeyboardHandlerView {
-      let view = KeyboardHandlerView()
-      view.onKeyPress = onKeyPress
-      return view
-    }
-
-    func updateNSView(_ nsView: KeyboardHandlerView, context: Context) {
-      nsView.onKeyPress = onKeyPress
-    }
-  }
-
-  private class KeyboardHandlerView: NSView {
-    var onKeyPress: ((UInt16, NSEvent.ModifierFlags) -> Void)?
-
-    override var acceptsFirstResponder: Bool {
-      return true
-    }
-
-    override func becomeFirstResponder() -> Bool {
-      return true
-    }
-
-    override func keyDown(with event: NSEvent) {
-      onKeyPress?(event.keyCode, event.modifierFlags)
-    }
-
-    override func viewDidMoveToWindow() {
-      super.viewDidMoveToWindow()
-      // Make this view the first responder when added to window
-      DispatchQueue.main.async { [weak self] in
-        self?.window?.makeFirstResponder(self)
-      }
-    }
-
-    // Don't intercept mouse events - let them pass through
-    override func hitTest(_ point: NSPoint) -> NSView? {
-      return nil
-    }
-  }
-#endif
-
 struct ReaderControlsView: View {
   @Binding var showingControls: Bool
   @Binding var showingKeyboardHelp: Bool
@@ -315,7 +267,7 @@ struct ReaderControlsView: View {
       )
     }
     .sheet(isPresented: $showingReadingDirectionPicker) {
-      ReadingDirectionPickerSheetView(readingDirection: $readingDirection)
+      DivinaPreferencesSheet(readingDirection: $readingDirection)
     }
     .sheet(isPresented: $showingTOCSheet) {
       ReaderTOCSheetView(
