@@ -15,6 +15,7 @@ struct SettingsLibrariesView: View {
     [KomgaLibrary]
   @State private var performingLibraryIds: Set<String> = []
   @State private var libraryPendingDelete: KomgaLibrary?
+  @State private var deleteConfirmationText: String = ""
   @State private var isPerformingGlobalAction = false
   @State private var isLoading = false
   @State private var allLibrariesMetrics: AllLibrariesMetricsData?
@@ -31,7 +32,12 @@ struct SettingsLibrariesView: View {
   private var isDeleteAlertPresented: Binding<Bool> {
     Binding(
       get: { libraryPendingDelete != nil },
-      set: { if !$0 { libraryPendingDelete = nil } }
+      set: {
+        if !$0 {
+          libraryPendingDelete = nil
+          deleteConfirmationText = ""
+        }
+      }
     )
   }
 
@@ -84,13 +90,21 @@ struct SettingsLibrariesView: View {
     #endif
     .inlineNavigationBarTitle("Libraries")
     .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
-      Button("Delete", role: .destructive) {
-        deleteConfirmedLibrary()
+      if let libraryPendingDelete {
+        TextField("Enter library name", text: $deleteConfirmationText)
+        Button("Delete", role: .destructive) {
+          deleteConfirmedLibrary()
+        }
+        .disabled(deleteConfirmationText != libraryPendingDelete.name)
+        Button("Cancel", role: .cancel) {
+          deleteConfirmationText = ""
+        }
       }
-      Button("Cancel", role: .cancel) {}
     } message: {
       if let libraryPendingDelete {
-        Text("This will permanently delete \(libraryPendingDelete.name) from Komga.")
+        Text(
+          "This will permanently delete \(libraryPendingDelete.name) from Komga.\n\nTo confirm, please type the library name: \(libraryPendingDelete.name)"
+        )
       }
     }
     .refreshable {
@@ -417,6 +431,7 @@ struct SettingsLibrariesView: View {
         Divider()
 
         Button(role: .destructive) {
+          deleteConfirmationText = ""
           libraryPendingDelete = library
         } label: {
           Label("Delete Library", systemImage: "trash")
@@ -661,6 +676,7 @@ struct SettingsLibrariesView: View {
       _ = await MainActor.run {
         performingLibraryIds.remove(library.libraryId)
         libraryPendingDelete = nil
+        deleteConfirmationText = ""
       }
     }
   }
