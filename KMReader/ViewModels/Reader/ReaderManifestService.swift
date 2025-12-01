@@ -94,7 +94,7 @@ struct ReaderManifestService {
       }
 
       guard mediaType.hasPrefix("image/") else {
-        throw ManifestProcessingError.unsupportedType(mediaType)
+        throw AppErrorType.manifestUnsupportedType(mediaType)
       }
 
       downloadURL = resourceURL
@@ -179,24 +179,4 @@ struct PageBuildResult {
 enum ReaderPageResource {
   case direct(URL)
   case xhtml(URL)
-}
-
-enum ManifestProcessingError: LocalizedError {
-  case invalidHref(String)
-  case unsupportedType(String)
-  case unableToDecodeDocument(String)
-  case imageTagNotFound(String)
-
-  var errorDescription: String? {
-    switch self {
-    case .invalidHref(let href):
-      return "Invalid manifest href: \(href)"
-    case .unsupportedType(let type):
-      return "Unsupported manifest resource type: \(type)"
-    case .unableToDecodeDocument(let href):
-      return "Unable to decode XHTML document: \(href)"
-    case .imageTagNotFound(let href):
-      return "No image tag found in XHTML document: \(href)"
-    }
-  }
 }

@@ -56,17 +56,6 @@ class ReaderViewModel {
   /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
 
-  private enum ReaderViewModelError: LocalizedError {
-    case noRenderablePages
-
-    var errorDescription: String? {
-      switch self {
-      case .noRenderablePages:
-        return NSLocalizedString("无法解析任何页面", comment: "No renderable pages error")
-      }
-    }
-  }
-
   private var pageResources: [Int: ReaderPageResource] = [:]
 
   var currentPage: BookPage? {
@@ -100,7 +89,7 @@ class ReaderViewModel {
         logger: logger
       ).resolve(manifest: manifest)
       guard !manifestResolution.pages.isEmpty else {
-        throw ReaderViewModelError.noRenderablePages
+        throw AppErrorType.noRenderablePages
       }
 
       pages = manifestResolution.pages
@@ -342,7 +331,7 @@ class ReaderViewModel {
   /// Save page image to Photos from cache
   /// - Parameter page: Book page to save
   /// - Returns: Result indicating success or failure with error message
-  func savePageImageToPhotos(page: BookPage) async -> Result<Void, SaveImageError> {
+  func savePageImageToPhotos(page: BookPage) async -> Result<Void, AppErrorType> {
     guard !bookId.isEmpty else {
       return .failure(.bookIdEmpty)
     }
@@ -368,7 +357,7 @@ class ReaderViewModel {
         }
         return .success(())
       } catch {
-        return .failure(.saveError(error.localizedDescription))
+        return .failure(.saveImageError(error.localizedDescription))
       }
     }
 
@@ -388,7 +377,7 @@ class ReaderViewModel {
       }
       return .success(())
     } catch {
-      return .failure(.saveError(error.localizedDescription))
+      return .failure(.saveImageError(error.localizedDescription))
     }
   }
 

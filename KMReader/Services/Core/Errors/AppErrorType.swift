@@ -40,6 +40,20 @@ enum AppErrorType: Error, CustomStringConvertible, LocalizedError {
   case resourceNotFound(message: String)
   case operationFailed(message: String)
 
+  // Reader errors
+  case noRenderablePages
+  case manifestInvalidHref(String)
+  case manifestUnsupportedType(String)
+  case manifestUnableToDecodeDocument(String)
+  case manifestImageTagNotFound(String)
+
+  // Save image errors
+  case bookIdEmpty
+  case imageNotCached
+  case photoLibraryAccessDenied
+  case failedToLoadImageData
+  case saveImageError(String)
+
   // Generic
   case unknown(message: String)
   case underlying(Error)
@@ -84,6 +98,26 @@ enum AppErrorType: Error, CustomStringConvertible, LocalizedError {
       return "Resource not found: \(message)"
     case .operationFailed(let message):
       return "Operation failed: \(message)"
+    case .noRenderablePages:
+      return "No renderable pages"
+    case .manifestInvalidHref(let href):
+      return "Invalid manifest href: \(href)"
+    case .manifestUnsupportedType(let type):
+      return "Unsupported manifest resource type: \(type)"
+    case .manifestUnableToDecodeDocument(let href):
+      return "Unable to decode XHTML document: \(href)"
+    case .manifestImageTagNotFound(let href):
+      return "No image tag found in XHTML document: \(href)"
+    case .bookIdEmpty:
+      return "Book ID is empty"
+    case .imageNotCached:
+      return "Image not cached yet"
+    case .photoLibraryAccessDenied:
+      return "Photo library access denied"
+    case .failedToLoadImageData:
+      return "Failed to load image data"
+    case .saveImageError(let message):
+      return message
     case .unknown(let message):
       return message
     case .underlying(let error):
