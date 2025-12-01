@@ -117,6 +117,25 @@ struct TaskQueueSSEDto: Codable, Equatable, RawRepresentable {
   let count: Int
   let countByType: [String: Int]
 
+  // MARK: - Codable
+  enum CodingKeys: String, CodingKey {
+    case count
+    case countByType
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    count = try container.decode(Int.self, forKey: .count)
+    countByType = try container.decode([String: Int].self, forKey: .countByType)
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(count, forKey: .count)
+    try container.encode(countByType, forKey: .countByType)
+  }
+
+  // MARK: - RawRepresentable
   var rawValue: String {
     let dict: [String: Any] = [
       "count": count,
@@ -147,6 +166,7 @@ struct TaskQueueSSEDto: Codable, Equatable, RawRepresentable {
     self.countByType = dict["countByType"] as? [String: Int] ?? [:]
   }
 
+  // MARK: - Initializers
   init(count: Int = 0, countByType: [String: Int] = [:]) {
     self.count = count
     self.countByType = countByType

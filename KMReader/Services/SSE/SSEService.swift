@@ -335,13 +335,15 @@ class SSEService {
 
         // Only update if status has changed
         if previousStatus != dto {
-          onTaskQueueStatus?(dto)
           // Store in AppConfig for AppStorage access
           AppConfig.taskQueueStatus = dto
 
+          // Notify the listener
+          onTaskQueueStatus?(dto)
+
           // Notify if tasks completed (went from > 0 to 0)
           if previousStatus.count > 0 && dto.count == 0 {
-            ErrorManager.shared.notify(message: "All tasks completed")
+            ErrorManager.shared.notify(message: "All server tasks finished")
           }
         }
       }
