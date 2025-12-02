@@ -93,7 +93,7 @@ struct MangaPageView: View {
 
         // Update scroll position and currentPageIndex
         if scrollPosition != target {
-          withAnimation(ReaderAnimations.pageTurn) {
+          withAnimation(PlatformHelper.readerAnimation) {
             scrollPosition = target
             proxy.scrollTo(target, anchor: .trailing)
           }

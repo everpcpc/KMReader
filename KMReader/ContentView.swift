@@ -123,6 +123,7 @@ struct MainTabView: View {
             Label("Settings", systemImage: "gearshape")
           }
       #endif
-    }
+
+    }.tabBarMinimizeBehaviorIfAvailable()
   }
 }

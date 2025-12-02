@@ -8,10 +8,10 @@
 import SwiftUI
 
 enum AdaptiveButtonStyleType {
-  case bordered
   case borderedProminent
-  case plain
+  case bordered
   case borderless
+  case plain
 }
 
 extension View {
@@ -19,10 +19,10 @@ extension View {
   func adaptiveButtonStyle(_ style: AdaptiveButtonStyleType) -> some View {
     if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
       switch style {
-      case .bordered:
-        self.buttonStyle(.glass)
       case .borderedProminent:
         self.buttonStyle(.glassProminent)
+      case .bordered:
+        self.buttonStyle(.glass)
       case .borderless:
         self.buttonStyle(.glass)
       case .plain:
@@ -33,10 +33,10 @@ extension View {
         self.buttonStyle(.plain)
       #else
         switch style {
-        case .bordered:
-          self.buttonStyle(.bordered)
         case .borderedProminent:
           self.buttonStyle(.borderedProminent)
+        case .bordered:
+          self.buttonStyle(.bordered)
         case .borderless:
           self.buttonStyle(.borderless)
         case .plain:

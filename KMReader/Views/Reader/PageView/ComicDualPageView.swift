@@ -100,7 +100,7 @@ struct ComicDualPageView: View {
 
         // Update scroll position and currentPageIndex
         if scrollPosition != targetPair.first {
-          withAnimation(ReaderAnimations.pageTurn) {
+          withAnimation(PlatformHelper.readerAnimation) {
             scrollPosition = targetPair.first
             proxy.scrollTo(targetPair.first, anchor: .leading)
           }
