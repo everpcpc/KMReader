@@ -119,6 +119,7 @@ struct SettingsCacheView: View {
             Spacer()
           }
         }
+        .adaptiveButtonStyle(.borderedProminent)
       }
 
       Section(header: Text("Book File")) {
@@ -161,6 +162,7 @@ struct SettingsCacheView: View {
             Spacer()
           }
         }
+        .adaptiveButtonStyle(.borderedProminent)
       }
 
       Section(header: Text("Thumbnail")) {
@@ -173,6 +175,7 @@ struct SettingsCacheView: View {
             Spacer()
           }
         }
+        .adaptiveButtonStyle(.borderedProminent)
       }
     }
     .formStyle(.grouped)

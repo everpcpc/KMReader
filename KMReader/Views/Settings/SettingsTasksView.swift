@@ -36,17 +36,21 @@ struct SettingsTasksView: View {
           }
         }
       } else {
-        #if os(tvOS)
+        #if os(tvOS) || os(macOS)
           if isAdmin {
-            HStack {
-              Spacer()
-              if isCancelling {
-                ProgressView()
-              }
+            Section {
               Button(role: .destructive) {
                 showCancelAllConfirmation = true
               } label: {
-                Label("Cancel All Tasks", systemImage: "xmark.circle")
+                HStack {
+                  Spacer()
+                  if isCancelling {
+                    ProgressView()
+                  } else {
+                    Label("Cancel All Tasks", systemImage: "xmark.circle")
+                  }
+                  Spacer()
+                }
               }
               .adaptiveButtonStyle(.borderedProminent)
               .disabled(isCancelling || isLoading)
@@ -182,7 +186,7 @@ struct SettingsTasksView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle("Tasks")
-    #if !os(tvOS)
+    #if os(iOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           Button(role: .destructive) {

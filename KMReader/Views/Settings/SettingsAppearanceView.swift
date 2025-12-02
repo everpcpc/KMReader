@@ -92,7 +92,6 @@ struct SettingsAppearanceView: View {
                     }
                   }
                 }
-                .adaptiveButtonStyle(.plain)
               }
             }
           }
@@ -107,7 +106,7 @@ struct SettingsAppearanceView: View {
         }
         .optimizedPickerStyle()
 
-        #if os(iOS) || os(macOS)
+        #if os(iOS)
           VStack(alignment: .leading, spacing: 8) {
             Stepper(
               value: portraitColumnsBinding,
@@ -120,11 +119,10 @@ struct SettingsAppearanceView: View {
                   .foregroundColor(.secondary)
               }
             }
-            Text("Number of columns in portrait orientation")
+            Text("Number of columns in portrait orientation for grid browse layout")
               .font(.caption)
               .foregroundColor(.secondary)
           }
-
           VStack(alignment: .leading, spacing: 8) {
             Stepper(
               value: landscapeColumnsBinding,
@@ -137,113 +135,90 @@ struct SettingsAppearanceView: View {
                   .foregroundColor(.secondary)
               }
             }
-            Text("Number of columns in landscape orientation")
+            Text("Number of columns in landscape orientation for grid browse layout")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        #elseif os(macOS)
+          VStack(alignment: .leading, spacing: 8) {
+            Stepper(
+              value: landscapeColumnsBinding,
+              in: 1...16,
+              step: 1
+            ) {
+              HStack {
+                Text("Number of Columns")
+                Text("\(browseColumns.landscape)")
+                  .foregroundColor(.secondary)
+              }
+            }
+            Text("Number of columns for grid browse layout")
               .font(.caption)
               .foregroundColor(.secondary)
           }
         #else
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              Text("Portrait Columns")
-              Spacer()
-              HStack(spacing: 16) {
-                Button {
-                  portraitColumnsBinding.wrappedValue = max(
-                    1, portraitColumnsBinding.wrappedValue - 1)
-                } label: {
-                  Image(systemName: "minus.circle.fill")
-                    .font(.title2)
-                }
-                #if os(tvOS)
-                  .focused($focusedButton, equals: .portraitMinus)
-                  .adaptiveButtonStyle(.plain)
-                #endif
-                Text("\(browseColumns.portrait)")
-                  .font(.body)
-                  .frame(minWidth: 30)
-                Button {
-                  portraitColumnsBinding.wrappedValue = min(
-                    8, portraitColumnsBinding.wrappedValue + 1)
-                } label: {
-                  Image(systemName: "plus.circle.fill")
-                    .font(.title2)
-                }
-                #if os(tvOS)
-                  .focused($focusedButton, equals: .portraitPlus)
-                  .adaptiveButtonStyle(.plain)
-                #endif
-              }
+          HStack {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Number of Columns")
+              Text("Number of columns for grid browse layout")
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
-            Text("Number of columns in portrait orientation")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              Text("Landscape Columns")
-              Spacer()
-              HStack(spacing: 16) {
-                Button {
-                  landscapeColumnsBinding.wrappedValue = max(
-                    1, landscapeColumnsBinding.wrappedValue - 1)
-                } label: {
-                  Image(systemName: "minus.circle.fill")
-                    .font(.title2)
-                }
-                #if os(tvOS)
-                  .focused($focusedButton, equals: .landscapeMinus)
-                  .adaptiveButtonStyle(.plain)
-                #endif
-                Text("\(browseColumns.landscape)")
-                  .font(.body)
-                  .frame(minWidth: 30)
-                Button {
-                  landscapeColumnsBinding.wrappedValue = min(
-                    16, landscapeColumnsBinding.wrappedValue + 1)
-                } label: {
-                  Image(systemName: "plus.circle.fill")
-                    .font(.title2)
-                }
-                #if os(tvOS)
-                  .focused($focusedButton, equals: .landscapePlus)
-                  .adaptiveButtonStyle(.plain)
-                #endif
+            Spacer()
+            HStack(spacing: 36) {
+              Button {
+                landscapeColumnsBinding.wrappedValue = max(
+                  1, landscapeColumnsBinding.wrappedValue - 1)
+              } label: {
+                Image(systemName: "minus.circle.fill")
               }
+              #if os(tvOS)
+                .focused($focusedButton, equals: .landscapeMinus)
+                .adaptiveButtonStyle(.plain)
+              #endif
+              Text("\(browseColumns.landscape)")
+                .frame(minWidth: 30)
+              Button {
+                landscapeColumnsBinding.wrappedValue = min(
+                  16, landscapeColumnsBinding.wrappedValue + 1)
+              } label: {
+                Image(systemName: "plus.circle.fill")
+              }
+              #if os(tvOS)
+                .focused($focusedButton, equals: .landscapePlus)
+                .adaptiveButtonStyle(.plain)
+              #endif
             }
-            Text("Number of columns in landscape orientation")
-              .font(.caption)
-              .foregroundColor(.secondary)
           }
         #endif
       }
 
       Section(header: Text("Cards")) {
-        VStack(alignment: .leading, spacing: 8) {
-          Toggle(isOn: $showSeriesCardTitle) {
+        Toggle(isOn: $showSeriesCardTitle) {
+          VStack(alignment: .leading, spacing: 4) {
             Text("Show Series Card Titles")
+            Text("Show titles for series in view cards")
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
-          Text("Show titles for series in view cards")
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
 
-        VStack(alignment: .leading, spacing: 8) {
-          Toggle(isOn: $showBookCardSeriesTitle) {
+        Toggle(isOn: $showBookCardSeriesTitle) {
+          VStack(alignment: .leading, spacing: 4) {
             Text("Show Book Card Series Titles")
+            Text("Show series titles for books in view cards")
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
-          Text("Show series titles for books in view cards")
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
 
-        VStack(alignment: .leading, spacing: 8) {
-          Toggle(isOn: $thumbnailPreserveAspectRatio) {
+        Toggle(isOn: $thumbnailPreserveAspectRatio) {
+          VStack(alignment: .leading, spacing: 4) {
             Text("Preserve Thumbnail Aspect Ratio")
+            Text("Preserve aspect ratio for thumbnail images")
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
-          Text("Preserve aspect ratio for thumbnail images")
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
       }
     }

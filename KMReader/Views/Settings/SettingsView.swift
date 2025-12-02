@@ -97,7 +97,7 @@ import SwiftUI
             }
           }
 
-          Section {
+          Section(header: Text("About")) {
             Link(destination: URL(string: "https://everpcpc.github.io/KMReader/privacy/")!) {
               Label("Privacy Policy", systemImage: "hand.raised")
             }
