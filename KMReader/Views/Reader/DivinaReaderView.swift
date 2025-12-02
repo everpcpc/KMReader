@@ -31,6 +31,10 @@ struct DivinaReaderView: View {
   @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
   #if os(tvOS)
     @State private var isEndPageButtonFocused = false
+    private enum ReaderFocusAnchor: Hashable {
+      case contentGuard
+    }
+    @FocusState private var readerFocusAnchor: ReaderFocusAnchor?
   #endif
 
   init(bookId: String, incognito: Bool = false) {
@@ -93,6 +97,15 @@ struct DivinaReaderView: View {
 
       ZStack {
         readerBackground.color.ignoresSafeArea()
+        #if os(tvOS)
+          // Invisible focus anchor that receives focus when controls are hidden.
+          Color.clear
+            .frame(width: 1, height: 1)
+            .allowsHitTesting(false)
+            .focusable(true)
+            .focused($readerFocusAnchor, equals: .contentGuard)
+            .opacity(0.001)
+        #endif
 
         if !viewModel.pages.isEmpty {
           // Page viewer based on reading direction
@@ -371,6 +384,9 @@ struct DivinaReaderView: View {
     #endif
     .onAppear {
       viewModel.updateDualPageSettings(noCover: dualPageNoCover)
+      #if os(tvOS)
+        updateContentFocusAnchor()
+      #endif
     }
     .onChange(of: dualPageNoCover) { _, newValue in
       viewModel.updateDualPageSettings(noCover: newValue)
@@ -398,6 +414,9 @@ struct DivinaReaderView: View {
           // cancel any existing auto-hide timer
           controlsTimer?.invalidate()
         }
+        #if os(tvOS)
+          updateContentFocusAnchor()
+        #endif
       }
     #endif
       .environment(\.readerBackgroundPreference, readerBackground)
@@ -518,6 +537,12 @@ struct DivinaReaderView: View {
       }
     }
   }
+
+  #if os(tvOS)
+    private func updateContentFocusAnchor() {
+      readerFocusAnchor = showingControls ? nil : .contentGuard
+    }
+  #endif
 
   private func toggleControls(autoHide: Bool = true) {
     #if os(tvOS)
