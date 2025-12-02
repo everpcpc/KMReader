@@ -119,6 +119,22 @@ enum AppConfig {
     }
   }
 
+  static var serverLastUpdate: Date? {
+    get {
+      guard let timeInterval = defaults.object(forKey: "serverLastUpdate") as? TimeInterval else {
+        return nil
+      }
+      return Date(timeIntervalSince1970: timeInterval)
+    }
+    set {
+      if let date = newValue {
+        defaults.set(date.timeIntervalSince1970, forKey: "serverLastUpdate")
+      } else {
+        defaults.removeObject(forKey: "serverLastUpdate")
+      }
+    }
+  }
+
   // MARK: - Custom Fonts
   static var customFontNames: [String] {
     get {
@@ -308,5 +324,6 @@ enum AppConfig {
     isAdmin = false
     clearSelectedLibraryIds()
     currentInstanceId = ""
+    serverLastUpdate = nil
   }
 }

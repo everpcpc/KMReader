@@ -62,6 +62,7 @@ class AuthViewModel {
       try? await authService.logout()
     }
     AppConfig.isLoggedIn = false
+    AppConfig.serverLastUpdate = nil
     user = nil
     credentialsVersion = UUID()
     LibraryManager.shared.clearAllLibraries()
@@ -89,6 +90,7 @@ class AuthViewModel {
     if previousInstanceId != instance.id.uuidString {
       LibraryManager.shared.clearAllLibraries()
       AppConfig.clearSelectedLibraryIds()
+      AppConfig.serverLastUpdate = nil
     }
     APIClient.shared.setServer(url: instance.serverURL)
     APIClient.shared.setAuthToken(instance.authToken)

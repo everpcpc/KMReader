@@ -18,9 +18,17 @@ struct DashboardView: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
+  @AppStorage("enableSSE") private var enableSSE: Bool = true
+  @AppStorage("serverLastUpdate") private var serverLastUpdateInterval: TimeInterval = 0
 
   private let sseService = SSEService.shared
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
+
+  private var lastServerEventText: Text {
+    guard serverLastUpdateInterval > 0 else { return Text("Server not updated yet") }
+    let lastEventTime = Date(timeIntervalSince1970: serverLastUpdateInterval)
+    return Text("Server updated \(lastEventTime, style: .relative) ago")
+  }
 
   private func performRefresh() {
     // Update refresh trigger to cause all sections to reload
@@ -37,6 +45,11 @@ struct DashboardView: View {
     // Cancel any pending debounced refresh
     pendingRefreshTask?.cancel()
     pendingRefreshTask = nil
+
+    // Update last event time for manual refreshes
+    if immediate {
+      serverLastUpdateInterval = Date().timeIntervalSince1970
+    }
 
     // Perform refresh immediately
     performRefresh()
@@ -75,6 +88,27 @@ struct DashboardView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 0) {
+          HStack {
+            if enableSSE {
+              #if os(tvOS)
+                Button {
+                  refreshDashboard(immediate: true)
+                } label: {
+                  Label("Refresh", systemImage: "arrow.clockwise.circle")
+                }
+                .disabled(isRefreshDisabled)
+              #endif
+              HStack {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                  .foregroundColor(.secondary)
+                lastServerEventText
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+            Spacer()
+          }.padding()
+
           ForEach(dashboard.sections, id: \.id) { section in
             switch section {
             case .keepReading, .onDeck, .recentlyReadBooks, .recentlyReleasedBooks,
@@ -104,6 +138,8 @@ struct DashboardView: View {
       .inlineNavigationBarTitle("Dashboard")
       .animation(.default, value: dashboard)
       .onChange(of: currentInstanceId) { _, _ in
+        // Reset server last update time when switching servers
+        serverLastUpdateInterval = 0
         // Bypass auto-refresh setting for configuration changes
         refreshDashboard(immediate: true)
       }

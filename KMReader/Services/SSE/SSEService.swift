@@ -204,6 +204,9 @@ class SSEService {
   }
 
   private func handleSSEEvent(type: String, data: String) {
+    // Update last event time
+    AppConfig.serverLastUpdate = Date()
+
     guard let jsonData = data.data(using: .utf8) else {
       logger.warning("Invalid SSE data: \(data)")
       return
