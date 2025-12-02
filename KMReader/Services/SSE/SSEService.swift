@@ -175,6 +175,8 @@ class SSEService {
             }
             currentEventType = nil
             currentData = nil
+          } else if line.hasPrefix(":") {
+            // SSE comment line (heartbeat) - ignore but confirms connection is alive
           } else if line.hasPrefix("event:") {
             currentEventType = String(line.dropFirst(6).trimmingCharacters(in: .whitespaces))
           } else if line.hasPrefix("data:") {
@@ -186,9 +188,24 @@ class SSEService {
               currentData! += "\n" + data
             }
           }
-          // Ignore id: and retry: lines for now
+          // Ignore id: and retry: lines
         } else {
           lineBuffer.append(character)
+        }
+      }
+
+      // Stream ended - connection closed
+      logger.warning("SSE stream ended - connection closed")
+      isConnected = false
+
+      // Attempt to reconnect if still logged in
+      if AppConfig.isLoggedIn && AppConfig.enableSSE && !Task.isCancelled {
+        Task {
+          try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
+          if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE {
+            logger.info("Reconnecting SSE after stream ended")
+            connect()
+          }
         }
       }
     } catch {
@@ -197,10 +214,13 @@ class SSEService {
         isConnected = false
 
         // Attempt to reconnect after a delay
-        Task {
-          try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
-          if AppConfig.isLoggedIn && !isConnected {
-            connect()
+        if AppConfig.isLoggedIn && AppConfig.enableSSE {
+          Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
+            if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE {
+              logger.info("Reconnecting SSE after error")
+              connect()
+            }
           }
         }
       }
