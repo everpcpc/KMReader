@@ -405,6 +405,12 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       helperOverlayTimer?.invalidate()
     }
+    #if os(iOS)
+      .onChange(of: readingDirection) { _, _ in
+        // When switching read mode via settings, briefly show tap zones again
+        triggerHelperOverlay(timeout: 1)
+      }
+    #endif
     #if os(macOS) || os(tvOS)
       .onChange(of: showingControls) { oldValue, newValue in
         // On macOS and tvOS, if controls are manually shown (from false to true),
@@ -419,7 +425,7 @@ struct DivinaReaderView: View {
         #endif
       }
     #endif
-      .environment(\.readerBackgroundPreference, readerBackground)
+    .environment(\.readerBackgroundPreference, readerBackground)
   }
 
   private func loadBook(bookId: String) async {
