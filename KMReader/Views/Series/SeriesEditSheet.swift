@@ -202,30 +202,49 @@ struct SeriesEditSheet: View {
             .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
           }
         }
+        #if os(tvOS)
+          Section {
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+
+            Button(action: saveChanges) {
+              if isSaving {
+                ProgressView()
+              } else {
+                Label("Save", systemImage: "checkmark")
+              }
+            }
+            .disabled(isSaving)
+          }
+          .listRowBackground(Color.clear)
+        #endif
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Edit Series")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            dismiss()
-          } label: {
-            Label("Cancel", systemImage: "xmark")
-          }
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            saveChanges()
-          } label: {
-            if isSaving {
-              ProgressView()
-            } else {
-              Label("Save", systemImage: "checkmark")
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
             }
           }
-          .disabled(isSaving)
+          ToolbarItem(placement: .automatic) {
+            Button(action: saveChanges) {
+              if isSaving {
+                ProgressView()
+              } else {
+                Label("Save", systemImage: "checkmark")
+              }
+            }
+            .disabled(isSaving)
+          }
         }
-      }
+      #endif
     }
     .platformSheetPresentation(detents: [.large])
   }

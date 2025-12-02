@@ -166,28 +166,41 @@ struct BrowseOptionsSheet: View {
             }
           }
         }
+
+        #if os(tvOS)
+          Section {
+            Button(action: applyChanges) {
+              Label("Done", systemImage: "checkmark")
+            }
+          }
+          .listRowBackground(Color.clear)
+        #endif
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Filter & Sort")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            if let tempSeriesOpts = tempSeriesOpts, let seriesOpts = seriesOpts,
-              tempSeriesOpts != seriesOpts
-            {
-              self.seriesOpts = tempSeriesOpts
-            } else if let tempBookOpts = tempBookOpts, let bookOpts = bookOpts,
-              tempBookOpts != bookOpts
-            {
-              self.bookOpts = tempBookOpts
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button(action: applyChanges) {
+              Label("Done", systemImage: "checkmark")
             }
-            dismiss()
-          } label: {
-            Label("Done", systemImage: "checkmark")
           }
         }
-      }
+      #endif
     }
     .platformSheetPresentation(detents: [.medium], minWidth: 400, minHeight: 400)
+  }
+
+  private func applyChanges() {
+    if let tempSeriesOpts = tempSeriesOpts, let seriesOpts = seriesOpts,
+      tempSeriesOpts != seriesOpts
+    {
+      self.seriesOpts = tempSeriesOpts
+    } else if let tempBookOpts = tempBookOpts, let bookOpts = bookOpts,
+      tempBookOpts != bookOpts
+    {
+      self.bookOpts = tempBookOpts
+    }
+    dismiss()
   }
 }

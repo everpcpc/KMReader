@@ -25,6 +25,23 @@ struct HistoryView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
+          #if os(tvOS)
+            HStack {
+              Spacer()
+              Button {
+                Task {
+                  await bookViewModel.loadRecentlyReadBooks(
+                    libraryIds: dashboard.libraryIds, refresh: true)
+                }
+              } label: {
+                Label("Refresh", systemImage: "arrow.clockwise.circle")
+              }
+              .disabled(bookViewModel.isLoading)
+              Spacer()
+            }
+            .padding(.horizontal)
+          #endif
+
           if bookViewModel.isLoading && bookViewModel.books.isEmpty {
             ProgressView()
               .frame(maxWidth: .infinity)

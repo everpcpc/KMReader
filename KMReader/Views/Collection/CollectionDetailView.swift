@@ -81,6 +81,11 @@ struct CollectionDetailView: View {
             }
           }
 
+          #if os(tvOS)
+            collectionToolbarContent
+              .padding(.vertical, 8)
+          #endif
+
           // Series list
           if containerWidth > 0 {
             CollectionSeriesListView(
@@ -108,42 +113,13 @@ struct CollectionDetailView: View {
     } message: {
       Text("This will permanently delete \(collection?.name ?? "this collection") from Komga.")
     }
-    .toolbar {
-      ToolbarItem(placement: .automatic) {
-        HStack(spacing: 8) {
-          Menu {
-            Picker("Layout", selection: $layoutMode) {
-              ForEach(BrowseLayoutMode.allCases) { mode in
-                Label(mode.displayName, systemImage: mode.iconName).tag(mode)
-              }
-            }
-            .pickerStyle(.inline)
-          } label: {
-            Image(systemName: layoutMode.iconName)
-          }
-
-          Menu {
-            Button {
-              showEditSheet = true
-            } label: {
-              Label("Edit", systemImage: "pencil")
-            }
-            .disabled(!isAdmin)
-
-            Divider()
-
-            Button(role: .destructive) {
-              showDeleteConfirmation = true
-            } label: {
-              Label("Delete Collection", systemImage: "trash")
-            }
-            .disabled(!isAdmin)
-          } label: {
-            Image(systemName: "ellipsis.circle")
-          }
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .automatic) {
+          collectionToolbarContent
         }
       }
-    }
+    #endif
     .sheet(isPresented: $showEditSheet) {
       if let collection = collection {
         CollectionEditSheet(collection: collection)
@@ -210,5 +186,51 @@ extension CollectionDetailView {
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
     return formatter.string(from: date)
+  }
+
+  @ViewBuilder
+  private var collectionToolbarContent: some View {
+    HStack(spacing: 8) {
+      layoutMenu
+      actionsMenu
+    }
+  }
+
+  @ViewBuilder
+  private var layoutMenu: some View {
+    Menu {
+      Picker("Layout", selection: $layoutMode) {
+        ForEach(BrowseLayoutMode.allCases) { mode in
+          Label(mode.displayName, systemImage: mode.iconName).tag(mode)
+        }
+      }
+      .pickerStyle(.inline)
+    } label: {
+      Label("Layout", systemImage: layoutMode.iconName)
+        .labelStyle(.iconOnly)
+    }
+  }
+
+  @ViewBuilder
+  private var actionsMenu: some View {
+    Menu {
+      Button {
+        showEditSheet = true
+      } label: {
+        Label("Edit", systemImage: "pencil")
+      }
+      .disabled(!isAdmin)
+
+      Divider()
+
+      Button(role: .destructive) {
+        showDeleteConfirmation = true
+      } label: {
+        Label("Delete Collection", systemImage: "trash")
+      }
+      .disabled(!isAdmin)
+    } label: {
+      Image(systemName: "ellipsis.circle")
+    }
   }
 }

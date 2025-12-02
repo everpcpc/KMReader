@@ -50,38 +50,57 @@ struct ReadListPickerSheet: View {
           }
           .pickerStyle(.inline)
         }
+        #if os(tvOS)
+          Section {
+            Button(action: confirmSelection) {
+              Label("Done", systemImage: "checkmark")
+            }
+            .disabled(selectedReadListId == nil)
+
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+
+            Button {
+              showCreateSheet = true
+            } label: {
+              Label("Create New", systemImage: "plus.circle.fill")
+            }
+            .disabled(!isAdmin)
+          }
+          .listRowBackground(Color.clear)
+        #endif
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Select Read List")
       .searchable(text: $searchText)
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            if let selectedReadListId = selectedReadListId {
-              onSelect(selectedReadListId)
-              dismiss()
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button(action: confirmSelection) {
+              Label("Done", systemImage: "checkmark")
             }
-          } label: {
-            Label("Done", systemImage: "checkmark")
+            .disabled(selectedReadListId == nil)
           }
-          .disabled(selectedReadListId == nil)
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            dismiss()
-          } label: {
-            Label("Cancel", systemImage: "xmark")
+          ToolbarItem(placement: .automatic) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+          }
+          ToolbarItem(placement: .automatic) {
+            Button {
+              showCreateSheet = true
+            } label: {
+              Label("Create New", systemImage: "plus.circle.fill")
+            }
+            .disabled(!isAdmin)
           }
         }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            showCreateSheet = true
-          } label: {
-            Label("Create New", systemImage: "plus.circle.fill")
-          }
-          .disabled(!isAdmin)
-        }
-      }
+      #endif
       .task {
         await loadReadLists()
       }
@@ -117,6 +136,13 @@ struct ReadListPickerSheet: View {
 
     isLoading = false
   }
+
+  private func confirmSelection() {
+    if let selectedReadListId = selectedReadListId {
+      onSelect(selectedReadListId)
+      dismiss()
+    }
+  }
 }
 
 struct CreateReadListSheet: View {
@@ -136,21 +162,15 @@ struct CreateReadListSheet: View {
           TextField("Summary (Optional)", text: $summary, axis: .vertical)
             .lineLimit(3...6)
         }
-      }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Create Read List")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
+      #if os(tvOS)
+        Section {
           Button {
             dismiss()
           } label: {
             Label("Cancel", systemImage: "xmark")
           }
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            createReadList()
-          } label: {
+
+          Button(action: createReadList) {
             if isCreating {
               ProgressView()
             } else {
@@ -159,7 +179,32 @@ struct CreateReadListSheet: View {
           }
           .disabled(name.isEmpty || isCreating)
         }
+        .listRowBackground(Color.clear)
+      #endif
       }
+      .padding(PlatformHelper.sheetPadding)
+      .inlineNavigationBarTitle("Create Read List")
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+          }
+          ToolbarItem(placement: .automatic) {
+            Button(action: createReadList) {
+              if isCreating {
+                ProgressView()
+              } else {
+                Label("Create", systemImage: "checkmark")
+              }
+            }
+            .disabled(name.isEmpty || isCreating)
+          }
+        }
+      #endif
     }
     .platformSheetPresentation(detents: [.medium], minWidth: 400, minHeight: 300)
   }

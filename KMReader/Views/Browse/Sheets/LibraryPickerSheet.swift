@@ -49,28 +49,41 @@ struct LibraryPickerSheet: View {
           }
           .pickerStyle(.inline)
         }
+        #if os(tvOS)
+          Section {
+            Button(action: refreshLibraries) {
+              Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .disabled(libraryManager.isLoading)
+
+            Button {
+              dismiss()
+            } label: {
+              Label("Done", systemImage: "checkmark")
+            }
+          }
+          .listRowBackground(Color.clear)
+        #endif
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Select Library")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            Task {
-              await libraryManager.refreshLibraries()
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button(action: refreshLibraries) {
+              Label("Refresh", systemImage: "arrow.clockwise")
             }
-          } label: {
-            Label("Refresh", systemImage: "arrow.clockwise")
+            .disabled(libraryManager.isLoading)
           }
-          .disabled(libraryManager.isLoading)
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            dismiss()
-          } label: {
-            Label("Done", systemImage: "checkmark")
+          ToolbarItem(placement: .automatic) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Done", systemImage: "checkmark")
+            }
           }
         }
-      }
+      #endif
       .onChange(of: dashboard.libraryIds) { oldValue, newValue in
         // Dismiss when user selects a different library
         let oldFirst = oldValue.first ?? ""
@@ -84,5 +97,11 @@ struct LibraryPickerSheet: View {
       }
     }
     .platformSheetPresentation(detents: [.large])
+  }
+
+  private func refreshLibraries() {
+    Task {
+      await libraryManager.refreshLibraries()
+    }
   }
 }

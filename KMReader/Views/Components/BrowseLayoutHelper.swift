@@ -14,7 +14,16 @@ struct BrowseLayoutHelper {
   let browseColumns: BrowseColumns
   let isLandscape: Bool
 
-  init(width: CGFloat = 0, spacing: CGFloat = 12, browseColumns: BrowseColumns = BrowseColumns()) {
+  #if os(tvOS)
+    static let defaultSpacing: CGFloat = 24
+  #else
+    static let defaultSpacing: CGFloat = 12
+  #endif
+
+  init(
+    width: CGFloat = 0, spacing: CGFloat = defaultSpacing,
+    browseColumns: BrowseColumns = BrowseColumns()
+  ) {
     self.width = width
     self.spacing = spacing
     self.browseColumns = browseColumns

@@ -382,6 +382,11 @@ struct SeriesDetailView: View {
             }
           }
 
+          #if os(tvOS)
+            seriesToolbarContent
+              .padding(.vertical, 8)
+          #endif
+
           // Books list
           if containerWidth > 0 {
             BooksListViewForSeries(
@@ -413,86 +418,13 @@ struct SeriesDetailView: View {
     } message: {
       Text("This will permanently delete \(series?.metadata.title ?? "this series") from Komga.")
     }
-    .toolbar {
-      ToolbarItem(placement: .automatic) {
-        HStack(spacing: 8) {
-          Menu {
-            Picker("Layout", selection: $layoutMode) {
-              ForEach(BrowseLayoutMode.allCases) { mode in
-                Label(mode.displayName, systemImage: mode.iconName).tag(mode)
-              }
-            }
-            .pickerStyle(.inline)
-          } label: {
-            Image(systemName: layoutMode.iconName)
-          }
-
-          Menu {
-          Button {
-            showEditSheet = true
-          } label: {
-            Label("Edit", systemImage: "pencil")
-          }
-          .disabled(!isAdmin)
-
-            Divider()
-
-          Button {
-            analyzeSeries()
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-          .disabled(!isAdmin)
-
-          Button {
-            refreshSeriesMetadata()
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
-          }
-          .disabled(!isAdmin)
-
-            Divider()
-
-            Button {
-              showCollectionPicker = true
-            } label: {
-              Label("Add to Collection", systemImage: "square.grid.2x2")
-            }
-
-            Divider()
-
-            if series != nil {
-              if canMarkSeriesAsRead {
-                Button {
-                  markSeriesAsRead()
-                } label: {
-                  Label("Mark as Read", systemImage: "checkmark.circle")
-                }
-              }
-
-              if canMarkSeriesAsUnread {
-                Button {
-                  markSeriesAsUnread()
-                } label: {
-                  Label("Mark as Unread", systemImage: "circle")
-                }
-              }
-            }
-
-            Divider()
-
-          Button(role: .destructive) {
-            showDeleteConfirmation = true
-          } label: {
-            Label("Delete Series", systemImage: "trash")
-          }
-          .disabled(!isAdmin)
-          } label: {
-            Image(systemName: "ellipsis.circle")
-          }
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .automatic) {
+          seriesToolbarContent
         }
       }
-    }
+    #endif
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
         seriesIds: [seriesId],
@@ -754,5 +686,86 @@ extension SeriesDetailView {
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
     return formatter.string(from: date)
+  }
+
+  @ViewBuilder
+  private var seriesToolbarContent: some View {
+    HStack(spacing: 8) {
+      Menu {
+        Picker("Layout", selection: $layoutMode) {
+          ForEach(BrowseLayoutMode.allCases) { mode in
+            Label(mode.displayName, systemImage: mode.iconName).tag(mode)
+          }
+        }
+        .pickerStyle(.inline)
+      } label: {
+        Label("Layout", systemImage: layoutMode.iconName)
+          .labelStyle(.iconOnly)
+      }
+
+      Menu {
+        Button {
+          showEditSheet = true
+        } label: {
+          Label("Edit", systemImage: "pencil")
+        }
+        .disabled(!isAdmin)
+
+        Divider()
+
+        Button {
+          analyzeSeries()
+        } label: {
+          Label("Analyze", systemImage: "waveform.path.ecg")
+        }
+        .disabled(!isAdmin)
+
+        Button {
+          refreshSeriesMetadata()
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+        }
+        .disabled(!isAdmin)
+
+        Divider()
+
+        Button {
+          showCollectionPicker = true
+        } label: {
+          Label("Add to Collection", systemImage: "square.grid.2x2")
+        }
+
+        Divider()
+
+        if series != nil {
+          if canMarkSeriesAsRead {
+            Button {
+              markSeriesAsRead()
+            } label: {
+              Label("Mark as Read", systemImage: "checkmark.circle")
+            }
+          }
+
+          if canMarkSeriesAsUnread {
+            Button {
+              markSeriesAsUnread()
+            } label: {
+              Label("Mark as Unread", systemImage: "circle")
+            }
+          }
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+          showDeleteConfirmation = true
+        } label: {
+          Label("Delete Series", systemImage: "trash")
+        }
+        .disabled(!isAdmin)
+      } label: {
+        Image(systemName: "ellipsis.circle")
+      }
+    }
   }
 }

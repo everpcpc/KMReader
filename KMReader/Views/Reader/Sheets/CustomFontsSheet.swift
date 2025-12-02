@@ -101,18 +101,30 @@
               Text("\(customFonts.count) custom font\(customFonts.count == 1 ? "" : "s") added")
             }
           }
+          #if os(tvOS)
+            Section {
+              Button {
+                dismiss()
+              } label: {
+                Label("Done", systemImage: "checkmark")
+              }
+            }
+            .listRowBackground(Color.clear)
+          #endif
         }
         .padding(PlatformHelper.sheetPadding)
         .inlineNavigationBarTitle("Custom Fonts")
-        .toolbar {
-          ToolbarItem(placement: .cancellationAction) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Done", systemImage: "checkmark")
+        #if !os(tvOS)
+          .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+              Button {
+                dismiss()
+              } label: {
+                Label("Done", systemImage: "checkmark")
+              }
             }
           }
-        }
+        #endif
         .sheet(isPresented: $showFontPicker) {
           FontPickerView(isPresented: $showFontPicker) { selectedFont in
             handleFontPickerSelection(selectedFont)

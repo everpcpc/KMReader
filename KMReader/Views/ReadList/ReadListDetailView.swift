@@ -92,6 +92,11 @@ struct ReadListDetailView: View {
             }
           }
 
+          #if os(tvOS)
+            readListToolbarContent
+              .padding(.vertical, 8)
+          #endif
+
           // Books list
           if containerWidth > 0 {
             BooksListViewForReadList(
@@ -127,42 +132,13 @@ struct ReadListDetailView: View {
     } message: {
       Text("This will permanently delete \(readList?.name ?? "this read list") from Komga.")
     }
-    .toolbar {
-      ToolbarItem(placement: .automatic) {
-        HStack(spacing: 8) {
-          Menu {
-            Picker("Layout", selection: $layoutMode) {
-              ForEach(BrowseLayoutMode.allCases) { mode in
-                Label(mode.displayName, systemImage: mode.iconName).tag(mode)
-              }
-            }
-            .pickerStyle(.inline)
-          } label: {
-            Image(systemName: layoutMode.iconName)
-          }
-
-          Menu {
-            Button {
-              showEditSheet = true
-            } label: {
-              Label("Edit", systemImage: "pencil")
-            }
-            .disabled(!isAdmin)
-
-            Divider()
-
-            Button(role: .destructive) {
-              showDeleteConfirmation = true
-            } label: {
-              Label("Delete Read List", systemImage: "trash")
-            }
-            .disabled(!isAdmin)
-          } label: {
-            Image(systemName: "ellipsis.circle")
-          }
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .automatic) {
+          readListToolbarContent
         }
       }
-    }
+    #endif
     .sheet(isPresented: $showEditSheet) {
       if let readList = readList {
         ReadListEditSheet(readList: readList)
@@ -229,5 +205,42 @@ extension ReadListDetailView {
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
     return formatter.string(from: date)
+  }
+
+  @ViewBuilder
+  private var readListToolbarContent: some View {
+    HStack(spacing: 8) {
+      Menu {
+        Picker("Layout", selection: $layoutMode) {
+          ForEach(BrowseLayoutMode.allCases) { mode in
+            Label(mode.displayName, systemImage: mode.iconName).tag(mode)
+          }
+        }
+        .pickerStyle(.inline)
+      } label: {
+        Label("Layout", systemImage: layoutMode.iconName)
+          .labelStyle(.iconOnly)
+      }
+
+      Menu {
+        Button {
+          showEditSheet = true
+        } label: {
+          Label("Edit", systemImage: "pencil")
+        }
+        .disabled(!isAdmin)
+
+        Divider()
+
+        Button(role: .destructive) {
+          showDeleteConfirmation = true
+        } label: {
+          Label("Delete Read List", systemImage: "trash")
+        }
+        .disabled(!isAdmin)
+      } label: {
+        Image(systemName: "ellipsis.circle")
+      }
+    }
   }
 }

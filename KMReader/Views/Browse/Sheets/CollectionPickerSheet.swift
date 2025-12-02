@@ -50,38 +50,57 @@ struct CollectionPickerSheet: View {
           }
           .pickerStyle(.inline)
         }
+        #if os(tvOS)
+          Section {
+            Button(action: confirmSelection) {
+              Label("Done", systemImage: "checkmark")
+            }
+            .disabled(selectedCollectionId == nil)
+
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+
+            Button {
+              showCreateSheet = true
+            } label: {
+              Label("Create New", systemImage: "plus.circle.fill")
+            }
+            .disabled(!isAdmin)
+          }
+          .listRowBackground(Color.clear)
+        #endif
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Select Collection")
       .searchable(text: $searchText)
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            if let selectedCollectionId = selectedCollectionId {
-              onSelect(selectedCollectionId)
-              dismiss()
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button(action: confirmSelection) {
+              Label("Done", systemImage: "checkmark")
             }
-          } label: {
-            Label("Done", systemImage: "checkmark")
+            .disabled(selectedCollectionId == nil)
           }
-          .disabled(selectedCollectionId == nil)
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            dismiss()
-          } label: {
-            Label("Cancel", systemImage: "xmark")
+          ToolbarItem(placement: .automatic) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+          }
+          ToolbarItem(placement: .automatic) {
+            Button {
+              showCreateSheet = true
+            } label: {
+              Label("Create New", systemImage: "plus.circle.fill")
+            }
+            .disabled(!isAdmin)
           }
         }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            showCreateSheet = true
-          } label: {
-            Label("Create New", systemImage: "plus.circle.fill")
-          }
-          .disabled(!isAdmin)
-        }
-      }
+      #endif
       .task {
         await loadCollections()
       }
@@ -117,6 +136,13 @@ struct CollectionPickerSheet: View {
 
     isLoading = false
   }
+
+  private func confirmSelection() {
+    if let selectedCollectionId = selectedCollectionId {
+      onSelect(selectedCollectionId)
+      dismiss()
+    }
+  }
 }
 
 struct CreateCollectionSheet: View {
@@ -133,30 +159,49 @@ struct CreateCollectionSheet: View {
         Section {
           TextField("Collection Name", text: $name)
         }
+        #if os(tvOS)
+          Section {
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+
+            Button(action: createCollection) {
+              if isCreating {
+                ProgressView()
+              } else {
+                Label("Create", systemImage: "checkmark")
+              }
+            }
+            .disabled(name.isEmpty || isCreating)
+          }
+          .listRowBackground(Color.clear)
+        #endif
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Create Collection")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            dismiss()
-          } label: {
-            Label("Cancel", systemImage: "xmark")
-          }
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            createCollection()
-          } label: {
-            if isCreating {
-              ProgressView()
-            } else {
-              Label("Create", systemImage: "checkmark")
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
             }
           }
-          .disabled(name.isEmpty || isCreating)
+          ToolbarItem(placement: .automatic) {
+            Button(action: createCollection) {
+              if isCreating {
+                ProgressView()
+              } else {
+                Label("Create", systemImage: "checkmark")
+              }
+            }
+            .disabled(name.isEmpty || isCreating)
+          }
         }
-      }
+      #endif
     }
     .platformSheetPresentation(detents: [.medium], minWidth: 400, minHeight: 300)
   }

@@ -164,6 +164,11 @@ struct BookDetailView: View {
           )
           Divider()
 
+          #if os(tvOS)
+            bookToolbarContent
+              .padding(.vertical, 8)
+          #endif
+
           if !isLoadingRelations && !bookReadLists.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
               HStack(spacing: 4) {
@@ -275,87 +280,13 @@ struct BookDetailView: View {
     } message: {
       Text("This will permanently delete \(book?.metadata.title ?? "this book") from Komga.")
     }
-    .toolbar {
-      ToolbarItem(placement: .automatic) {
-        Menu {
-          Button {
-            showEditSheet = true
-          } label: {
-            Label("Edit", systemImage: "pencil")
-          }
-          .disabled(!isAdmin)
-
-          Divider()
-
-          Button {
-            analyzeBook()
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-          .disabled(!isAdmin)
-
-          Button {
-            refreshMetadata()
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
-          }
-          .disabled(!isAdmin)
-
-          Divider()
-
-          Button {
-            showDownloadSheet = true
-          } label: {
-            Label("Download", systemImage: "arrow.down.circle")
-          }
-
-          Divider()
-
-          Button {
-            showReadListPicker = true
-          } label: {
-            Label("Add to Read List", systemImage: "list.bullet")
-          }
-
-          Divider()
-
-          if let book = book {
-            if !(book.readProgress?.completed ?? false) {
-              Button {
-                markBookAsRead()
-              } label: {
-                Label("Mark as Read", systemImage: "checkmark.circle")
-              }
-            }
-
-            if book.readProgress != nil {
-              Button {
-                markBookAsUnread()
-              } label: {
-                Label("Mark as Unread", systemImage: "circle")
-              }
-            }
-          }
-
-          Divider()
-
-          Button(role: .destructive) {
-            showDeleteConfirmation = true
-          } label: {
-            Label("Delete Book", systemImage: "trash")
-          }
-          .disabled(!isAdmin)
-
-          Button(role: .destructive) {
-            clearCache()
-          } label: {
-            Label("Clear Cache", systemImage: "xmark.circle")
-          }
-        } label: {
-          Image(systemName: "ellipsis.circle")
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .automatic) {
+          bookToolbarContent
         }
       }
-    }
+    #endif
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
         bookIds: [bookId],
@@ -546,6 +477,87 @@ struct BookDetailView: View {
           ErrorManager.shared.alert(error: error)
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  private var bookToolbarContent: some View {
+    Menu {
+      Button {
+        showEditSheet = true
+      } label: {
+        Label("Edit", systemImage: "pencil")
+      }
+      .disabled(!isAdmin)
+
+      Divider()
+
+      Button {
+        analyzeBook()
+      } label: {
+        Label("Analyze", systemImage: "waveform.path.ecg")
+      }
+      .disabled(!isAdmin)
+
+      Button {
+        refreshMetadata()
+      } label: {
+        Label("Refresh Metadata", systemImage: "arrow.clockwise")
+      }
+      .disabled(!isAdmin)
+
+      Divider()
+
+      Button {
+        showDownloadSheet = true
+      } label: {
+        Label("Download", systemImage: "arrow.down.circle")
+      }
+
+      Divider()
+
+      Button {
+        showReadListPicker = true
+      } label: {
+        Label("Add to Read List", systemImage: "list.bullet")
+      }
+
+      Divider()
+
+      if let book = book {
+        if !(book.readProgress?.completed ?? false) {
+          Button {
+            markBookAsRead()
+          } label: {
+            Label("Mark as Read", systemImage: "checkmark.circle")
+          }
+        }
+
+        if book.readProgress != nil {
+          Button {
+            markBookAsUnread()
+          } label: {
+            Label("Mark as Unread", systemImage: "circle")
+          }
+        }
+      }
+
+      Divider()
+
+      Button(role: .destructive) {
+        showDeleteConfirmation = true
+      } label: {
+        Label("Delete Book", systemImage: "trash")
+      }
+      .disabled(!isAdmin)
+
+      Button(role: .destructive) {
+        clearCache()
+      } label: {
+        Label("Clear Cache", systemImage: "xmark.circle")
+      }
+    } label: {
+      Image(systemName: "ellipsis.circle")
     }
   }
 }

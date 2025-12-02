@@ -145,11 +145,29 @@
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
-            }
           }
         }
-        .padding(PlatformHelper.sheetPadding)
-        .inlineNavigationBarTitle("Reading Options")
+        #if os(tvOS)
+          Section {
+            Button(role: .cancel) {
+              dismiss()
+            } label: {
+              Label("Cancel", systemImage: "xmark")
+            }
+
+            Button {
+              onApply(draft)
+              dismiss()
+            } label: {
+              Label("Save", systemImage: "checkmark")
+            }
+          }
+          .listRowBackground(Color.clear)
+        #endif
+      }
+      .padding(PlatformHelper.sheetPadding)
+      .inlineNavigationBarTitle("Reading Options")
+      #if !os(tvOS)
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {
             Button(role: .cancel) {
@@ -167,8 +185,9 @@
             }
           }
         }
-        .sheet(isPresented: $showCustomFontsSheet) {
-          CustomFontsSheet()
+      #endif
+      .sheet(isPresented: $showCustomFontsSheet) {
+        CustomFontsSheet()
             .onDisappear {
               // Refresh font list when custom fonts sheet is dismissed
               FontProvider.refresh()

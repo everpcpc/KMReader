@@ -33,22 +33,35 @@ struct BookBrowseOptionsSheet: View {
           sortField: $tempOpts.sortField,
           sortDirection: $tempOpts.sortDirection
         )
+
+        #if os(tvOS)
+          Section {
+            Button(action: applyChanges) {
+              Label("Done", systemImage: "checkmark")
+            }
+          }
+          .listRowBackground(Color.clear)
+        #endif
       }
       .padding(PlatformHelper.sheetPadding)
       .inlineNavigationBarTitle("Filter & Sort")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            if tempOpts != browseOpts {
-              browseOpts = tempOpts
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button(action: applyChanges) {
+              Label("Done", systemImage: "checkmark")
             }
-            dismiss()
-          } label: {
-            Label("Done", systemImage: "checkmark")
           }
         }
-      }
+      #endif
     }
     .platformSheetPresentation(detents: [.medium])
+  }
+
+  private func applyChanges() {
+    if tempOpts != browseOpts {
+      browseOpts = tempOpts
+    }
+    dismiss()
   }
 }
