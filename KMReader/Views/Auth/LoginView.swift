@@ -21,132 +21,17 @@ struct LoginView: View {
   var body: some View {
     ScrollView {
       VStack(spacing: 32) {
-        // Logo/Title Section
-        VStack(spacing: 12) {
-          Image("Komga")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(height: 72)
-            .drawingGroup()
-
-          Text("Sign in to Komga")
-            .font(.system(size: 32, weight: .bold))
-            .foregroundStyle(.primary)
-
-          Text("Enter the credentials you use to access your Komga server.")
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 12)
-        }
-        .padding(.top, 60)
-        .padding(.bottom, 20)
-
-        // Login Form
-        VStack(spacing: 20) {
-          // Server URL Field
-          VStack(alignment: .leading, spacing: 8) {
-            Label("Server URL", systemImage: "server.rack")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-
-            HStack {
-              Image(systemName: "link")
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-
-              TextField("Enter your server URL", text: $serverURLText)
-                .textContentType(.URL)
-                #if os(iOS) || os(tvOS)
-                  .autocapitalization(.none)
-                  .keyboardType(.URL)
-                #endif
-                .autocorrectionDisabled()
-            }
-            .padding()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-          }
-
-          // Instance Name Field (Optional)
-          VStack(alignment: .leading, spacing: 8) {
-            Label("Instance Name (Optional)", systemImage: "tag")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-
-            HStack {
-              Image(systemName: "tag.circle")
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-
-              TextField("e.g. \"Home\" or \"Work\"", text: $instanceName)
-                .autocorrectionDisabled()
-            }
-            .padding()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-          }
-
-          // Username Field
-          VStack(alignment: .leading, spacing: 8) {
-            Label("Username", systemImage: "person")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-
-            HStack {
-              Image(systemName: "person.circle")
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-
-              TextField("Enter your username", text: $usernameText)
-                .textContentType(.username)
-                #if os(iOS) || os(tvOS)
-                  .autocapitalization(.none)
-                #endif
-                .autocorrectionDisabled()
-            }
-            .padding()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-          }
-
-          // Password Field
-          VStack(alignment: .leading, spacing: 8) {
-            Label("Password", systemImage: "lock")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-
-            HStack {
-              Image(systemName: "lock.circle")
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-
-              SecureField("Enter your password", text: $password)
-                .textContentType(.password)
-            }
-            .padding()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-          }
-
-          // Login Button
-          Button(action: login) {
-            HStack {
-              if authViewModel.isLoading {
-                ProgressView()
-              } else {
-                Text("Login")
-                  .fontWeight(.semibold)
-                Image(systemName: "arrow.right.circle.fill")
-                  .font(.title3)
-              }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-          }
-          .adaptiveButtonStyle(.borderedProminent)
-          .disabled(!isFormValid || authViewModel.isLoading)
-          .padding(.top, 8)
-        }
-        .padding(.horizontal, 24)
+        headerSection
+        formSection
       }
-      .padding(.bottom, 40)
+      .padding(.vertical, 40)
+      .padding(.horizontal, 24)
+      #if os(tvOS)
+        .frame(maxWidth: 800)
+      #else
+        .frame(maxWidth: 520)
+      #endif
+      .frame(maxWidth: .infinity)
     }
     .inlineNavigationBarTitle("Connect to a Server")
     .task {
@@ -175,6 +60,144 @@ struct LoginView: View {
       if isLoggedIn {
         dismiss()
       }
+    }
+  }
+
+  private var headerSection: some View {
+    VStack(spacing: 12) {
+      Image("Komga")
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(height: 72)
+        .drawingGroup()
+
+      Text("Sign in to Komga")
+        .font(.system(size: 32, weight: .bold))
+        .foregroundStyle(.primary)
+
+      Text("Enter the credentials you use to access your Komga server.")
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 12)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.top, 20)
+  }
+
+  private var formSection: some View {
+    VStack(spacing: 20) {
+      FieldContainer(
+        title: "Server URL",
+        systemImage: "server.rack",
+        containerBackground: fieldBackgroundColor
+      ) {
+        TextField("Enter your server URL", text: $serverURLText)
+          .textContentType(.URL)
+          #if os(iOS) || os(tvOS)
+            .autocapitalization(.none)
+            .keyboardType(.URL)
+          #endif
+          .autocorrectionDisabled()
+      }
+
+      FieldContainer(
+        title: "Instance Name (Optional)",
+        systemImage: "tag",
+        containerBackground: fieldBackgroundColor
+      ) {
+        TextField("e.g. \"Home\" or \"Work\"", text: $instanceName)
+          .autocorrectionDisabled()
+      }
+
+      FieldContainer(
+        title: "Username",
+        systemImage: "person",
+        containerBackground: fieldBackgroundColor
+      ) {
+        TextField("Enter your username", text: $usernameText)
+          .textContentType(.username)
+          #if os(iOS) || os(tvOS)
+            .autocapitalization(.none)
+          #endif
+          .autocorrectionDisabled()
+      }
+
+      FieldContainer(
+        title: "Password",
+        systemImage: "lock",
+        containerBackground: fieldBackgroundColor
+      ) {
+        SecureField("Enter your password", text: $password)
+          .textContentType(.password)
+      }
+
+      Button(action: login) {
+        HStack(spacing: 8) {
+          Spacer()
+          if authViewModel.isLoading {
+            ProgressView()
+          } else {
+            Text("Login")
+            Image(systemName: "arrow.right.circle.fill")
+          }
+          Spacer()
+        }
+        .padding(.vertical, 12)
+      }
+      .adaptiveButtonStyle(.borderedProminent)
+      .disabled(!isFormValid || authViewModel.isLoading)
+      .padding(.top, 8)
+    }
+  }
+
+  private var fieldBackgroundColor: Color {
+    #if os(macOS)
+      Color(nsColor: .textBackgroundColor)
+    #elseif os(iOS)
+      Color(.secondarySystemBackground)
+    #else
+      Color.white.opacity(0.08)
+    #endif
+  }
+}
+
+private struct FieldContainer<Content: View>: View {
+  let title: String
+  let systemImage: String
+  let containerBackground: Color
+  private let content: Content
+
+  init(
+    title: String,
+    systemImage: String,
+    containerBackground: Color,
+    @ViewBuilder content: () -> Content
+  ) {
+    self.title = title
+    self.systemImage = systemImage
+    self.containerBackground = containerBackground
+    self.content = content()
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Label(title, systemImage: systemImage)
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+
+      content
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+          RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(containerBackground)
+        )
+        .overlay(
+          RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .strokeBorder(.primary.opacity(0.05))
+        )
     }
   }
 }
