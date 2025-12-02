@@ -39,12 +39,13 @@ struct BrowseView: View {
         VStack(spacing: 0) {
           HStack {
             Spacer()
-            Picker("Content", selection: $browseContent) {
+            Picker("", selection: $browseContent) {
               ForEach(BrowseContentType.allCases) { type in
                 Text(type.displayName).tag(type)
               }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             Spacer()
           }
           .padding(.horizontal, horizontalPadding)
