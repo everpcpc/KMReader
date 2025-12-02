@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SettingsCacheView: View {
-  @AppStorage("maxDiskCacheSizeMB") private var maxDiskCacheSizeMB: Int = 2048
+  @AppStorage("maxDiskCacheSize") private var maxDiskCacheSize: Int = 8
   @State private var showClearImageCacheConfirmation = false
   @State private var showClearBookFileCacheConfirmation = false
   @State private var showClearThumbnailCacheConfirmation = false
@@ -20,8 +20,8 @@ struct SettingsCacheView: View {
   #if os(iOS) || os(macOS)
     private var maxCacheSizeBinding: Binding<Double> {
       Binding(
-        get: { Double(maxDiskCacheSizeMB) },
-        set: { maxDiskCacheSizeMB = Int($0) }
+        get: { Double(maxDiskCacheSize) },
+        set: { maxDiskCacheSize = Int($0) }
       )
     }
   #else
@@ -29,11 +29,11 @@ struct SettingsCacheView: View {
 
     private var cacheSizeTextFieldBinding: Binding<String> {
       Binding(
-        get: { cacheSizeText.isEmpty ? "\(maxDiskCacheSizeMB)" : cacheSizeText },
+        get: { cacheSizeText.isEmpty ? "\(maxDiskCacheSize)" : cacheSizeText },
         set: { newValue in
           cacheSizeText = newValue
-          if let value = Int(newValue), value >= 512, value <= 8192 {
-            maxDiskCacheSizeMB = value
+          if let value = Int(newValue), value >= 1, value <= 20 {
+            maxDiskCacheSize = value
           }
         }
       )
@@ -48,25 +48,25 @@ struct SettingsCacheView: View {
             HStack {
               Text("Maximum Size")
               Spacer()
-              Text("\(maxDiskCacheSizeMB) MB")
+              Text("\(maxDiskCacheSize) GB")
                 .foregroundColor(.secondary)
             }
             Slider(
               value: maxCacheSizeBinding,
-              in: 512...8192,
-              step: 256
+              in: 1...20,
+              step: 1
             )
           #else
             HStack {
-              Text("Maximum Size (MB)")
+              Text("Maximum Size (GB)")
               Spacer()
-              TextField("MB", text: cacheSizeTextFieldBinding)
-                .frame(width: 100)
+              TextField("GB", text: cacheSizeTextFieldBinding)
+                .frame(maxWidth: 240)
                 .multilineTextAlignment(.trailing)
                 .onAppear {
-                  cacheSizeText = "\(maxDiskCacheSizeMB)"
+                  cacheSizeText = "\(maxDiskCacheSize)"
                 }
-                .onChange(of: maxDiskCacheSizeMB) { _, newValue in
+                .onChange(of: maxDiskCacheSize) { _, newValue in
                   if cacheSizeText != "\(newValue)" {
                     cacheSizeText = "\(newValue)"
                   }
@@ -221,7 +221,7 @@ struct SettingsCacheView: View {
     .task {
       await loadCacheSize()
     }
-    .onChange(of: maxDiskCacheSizeMB) {
+    .onChange(of: maxDiskCacheSize) {
       // Trigger cache cleanup when max cache size changes
       Task {
         await ImageCache.cleanupDiskCacheIfNeeded()

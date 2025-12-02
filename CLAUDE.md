@@ -74,7 +74,7 @@ The app uses **three separate caches** managed through namespaced directories:
 
 1. **Page Cache (`ImageCache`)** - `KomgaImageCache` namespace
    - Stores raw comic page images (DIVINA format)
-   - Configurable limit: 512MB-8GB (default 2GB, configurable via `AppConfig.maxDiskCacheSizeMB`)
+   - Configurable limit (configurable via `AppConfig.maxDiskCacheSize`)
    - Auto-cleanup when exceeding 90% of limit
    - Uses `CacheSizeActor` for thread-safe size tracking
    - Scoped per-server using `CacheNamespace.directory(for:)`

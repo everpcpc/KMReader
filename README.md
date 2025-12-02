@@ -24,7 +24,7 @@
 - **Unified library**: browse Series, Books, Collections, and Read Lists with grid/list layouts, orientation-aware columns, rich filters, and infinite-scroll history. Personalize dashboard sections (Keep Reading, On Deck, Recently Added/Read/Released/Updated) per library.
 - **Powerful readers**: DIVINA supports LTR/RTL/vertical/Webtoon (dual pages, pinch zoom, custom tap zones, page export, macOS window, tvOS remote). EPUB reader (iOS/iPadOS/macOS) offers offline downloads, custom fonts/themes/layouts, column modes, TOC navigation, and optional image-view fallback. Incognito reading is available in both engines.
 - **Admin & monitoring**: edit metadata, manage collections/read lists, trigger scans/analyses per library or globally, and inspect disk usage plus task analytics. Live Server-Sent Events keep dashboards, task queues, thumbnails, and sessions in sync with opt-in notifications.
-- **Smart caching & offline access**: dedicated caches for pages, book files, and thumbnails with adjustable limits (512MB-8GB), live size/file counters, manual clearing, automatic cleanup, and offline reopening for recent pages/EPUB files.
+- **Smart caching & offline access**: dedicated caches for pages, book files, and thumbnails with adjustable limits, live size/file counters, manual clearing, automatic cleanup, and offline reopening for recent pages/EPUB files.
 - **Native Apple touches**: accent color and layout controls, keyboard shortcuts, adjustable Webtoon width, tap zone hints, tvOS focus navigation, and a dedicated macOS reader window.
 
 ---

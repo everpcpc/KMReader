@@ -63,14 +63,14 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "currentInstanceId") }
   }
 
-  static var maxDiskCacheSizeMB: Int {
+  static var maxDiskCacheSize: Int {
     get {
-      if defaults.object(forKey: "maxDiskCacheSizeMB") != nil {
-        return defaults.integer(forKey: "maxDiskCacheSizeMB")
+      if defaults.object(forKey: "maxDiskCacheSize") != nil {
+        return defaults.integer(forKey: "maxDiskCacheSize")
       }
-      return 2048
+      return 8  // Default 8 GB
     }
-    set { defaults.set(newValue, forKey: "maxDiskCacheSizeMB") }
+    set { defaults.set(newValue, forKey: "maxDiskCacheSize") }
   }
 
   // MARK: - SSE (Server-Sent Events)

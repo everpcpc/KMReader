@@ -14,7 +14,7 @@ HIGHLIGHTS
 
 • Admin & Monitoring Tools: Edit metadata, manage collections and read lists, trigger scans or analyses per library or globally, and inspect server info plus a metrics dashboard showing disk usage, task analytics, and per-library stats. Task analytics include execution counts, total time, inline errors, and cancel-all controls. SSE delivers live updates for task queues, thumbnail generation, session expiry, and dashboard refreshes with opt-in notifications and independent toggles for automation.
 
-• Smart Caching & Offline Access: Three-tier caching (pages, book files, thumbnails) keeps everything instant while respecting storage. Adjust limits (512MB-8GB), monitor size and file counts, clear caches individually, and let automatic cleanup protect space. Recently viewed pages and downloaded EPUB files remain available offline.
+• Smart Caching & Offline Access: Three-tier caching (pages, book files, thumbnails) keeps everything instant while respecting storage. Adjust limits, monitor size and file counts, clear caches individually, and let automatic cleanup protect space. Recently viewed pages and downloaded EPUB files remain available offline.
 
 • Native Apple Experience: Layouts tailored to each platform bring a dedicated macOS reader window, extensive keyboard shortcuts, customizable theme colors, orientation-aware column counts, adjustable Webtoon width (iOS/iPadOS), tap zone hints, incognito reading, and focus-friendly tvOS navigation. Dashboard preferences let you reorder sections and filter by libraries.
 

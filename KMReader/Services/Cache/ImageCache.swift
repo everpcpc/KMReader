@@ -20,18 +20,18 @@ class ImageCache {
   // Disk cache
   private let diskCacheURL: URL
   private let fileManager = FileManager.default
-  private let maxDiskCacheSizeMB: Int
+  private let maxDiskCacheSize: Int
 
   // Get max disk cache size from AppConfig (with fallback to default)
-  private static func getMaxDiskCacheSizeMB() -> Int {
-    AppConfig.maxDiskCacheSizeMB
+  private static func getMaxDiskCacheSize() -> Int {
+    AppConfig.maxDiskCacheSize
   }
 
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
 
-  init(maxDiskCacheMB: Int = 2048) {
-    self.maxDiskCacheSizeMB = maxDiskCacheMB
+  init(maxDiskCacheSize: Int = 8) {
+    self.maxDiskCacheSize = maxDiskCacheSize
 
     // Setup disk cache directory scoped to the active server namespace
     diskCacheURL = CacheNamespace.directory(for: "KomgaImageCache")
@@ -74,8 +74,8 @@ class ImageCache {
 
     // Check cache size before storing and trigger cleanup if needed
     let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
-    let maxCacheSizeMB = Self.getMaxDiskCacheSizeMB()
-    let maxSize = Int64(maxCacheSizeMB) * 1024 * 1024
+    let maxCacheSize = Self.getMaxDiskCacheSize()
+    let maxSize = Int64(maxCacheSize) * 1024 * 1024 * 1024
     let newFileSize = Int64(data.count)
 
     // Helper to trigger cleanup asynchronously
@@ -185,13 +185,13 @@ class ImageCache {
   static func cleanupDiskCacheIfNeeded() async {
     let fileManager = FileManager.default
     let diskCacheURL = await namespacedDiskCacheURL()
-    let maxCacheSizeMB = getMaxDiskCacheSizeMB()
+    let maxCacheSize = getMaxDiskCacheSize()
 
     await Task.detached(priority: .utility) {
       await performDiskCacheCleanup(
         diskCacheURL: diskCacheURL,
         fileManager: fileManager,
-        maxCacheSizeMB: maxCacheSizeMB
+        maxCacheSize: maxCacheSize
       )
     }.value
   }
@@ -295,9 +295,9 @@ class ImageCache {
   nonisolated private static func performDiskCacheCleanup(
     diskCacheURL: URL,
     fileManager: FileManager,
-    maxCacheSizeMB: Int
+    maxCacheSize: Int
   ) async {
-    let maxSize = Int64(maxCacheSizeMB) * 1024 * 1024
+    let maxSize = Int64(maxCacheSize) * 1024 * 1024 * 1024
     let (_, fileInfo, totalSize) = collectFileInfo(
       at: diskCacheURL,
       fileManager: fileManager,
@@ -348,12 +348,12 @@ class ImageCache {
 
   private func cleanupDiskCache() async {
     // Calculate total disk cache size and clean up in background task
-    let maxCacheSizeMB = Self.getMaxDiskCacheSizeMB()
-    await Task.detached(priority: .utility) { [diskCacheURL, fileManager, maxCacheSizeMB] in
+    let maxCacheSize = Self.getMaxDiskCacheSize()
+    await Task.detached(priority: .utility) { [diskCacheURL, fileManager, maxCacheSize] in
       await Self.performDiskCacheCleanup(
         diskCacheURL: diskCacheURL,
         fileManager: fileManager,
-        maxCacheSizeMB: maxCacheSizeMB
+        maxCacheSize: maxCacheSize
       )
     }.value
   }
