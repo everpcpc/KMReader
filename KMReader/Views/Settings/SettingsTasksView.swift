@@ -36,22 +36,24 @@ struct SettingsTasksView: View {
           }
         }
       } else {
-        if isAdmin {
-          HStack {
-            Spacer()
-            if isCancelling {
-              ProgressView()
+        #if os(tvOS)
+          if isAdmin {
+            HStack {
+              Spacer()
+              if isCancelling {
+                ProgressView()
+              }
+              Button(role: .destructive) {
+                showCancelAllConfirmation = true
+              } label: {
+                Label("Cancel All Tasks", systemImage: "xmark.circle")
+              }
+              .adaptiveButtonStyle(.borderedProminent)
+              .disabled(isCancelling || isLoading)
             }
-            Button(role: .destructive) {
-              showCancelAllConfirmation = true
-            } label: {
-              Label("Cancel All Tasks", systemImage: "xmark.circle")
-            }
-            .adaptiveButtonStyle(.bordered)
-            .disabled(isCancelling || isLoading)
+            .listRowBackground(Color.clear)
           }
-          .listRowBackground(Color.clear)
-        }
+        #endif
 
         // Task Queue Status Section (from SSE)
         if taskQueueStatus.count > 0 {
@@ -180,6 +182,18 @@ struct SettingsTasksView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle("Tasks")
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .primaryAction) {
+          Button(role: .destructive) {
+            showCancelAllConfirmation = true
+          } label: {
+            Label("Cancel All Tasks", systemImage: "xmark.circle")
+          }
+          .disabled(isCancelling || isLoading)
+        }
+      }
+    #endif
     .alert("Cancel All Tasks", isPresented: $showCancelAllConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Confirm", role: .destructive) {
