@@ -50,21 +50,45 @@ struct SettingsServersView: View {
             .multilineTextAlignment(.leading)
             .padding(.vertical, 4)
         }
+        .listRowBackground(Color.clear)
       }
 
       Section(footer: footerText) {
         if instances.isEmpty {
-          Text("Login to a Komga server to see it listed here.")
-            .foregroundStyle(.secondary)
-            .padding(.vertical, 16)
+          VStack(spacing: 12) {
+            Image(systemName: "list.bullet.rectangle")
+              .font(.largeTitle)
+              .foregroundStyle(.secondary)
+            Text("No servers found")
+              .font(.headline)
+            Text("Login to a Komga server to see it listed here.")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .multilineTextAlignment(.center)
+            Button("Retry") {
+              showLogin = true
+            }
+          }
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 16)
+          .listRowBackground(Color.clear)
         } else {
           ForEach(instances) { instance in
             serverRow(for: instance)
+              .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+              .listRowSeparator(.hidden)
           }
         }
       }
+      .listRowBackground(Color.clear)
 
-      addServerSection
+      Section {
+        Button {
+          showLogin = true
+        } label: {
+          Label(addButtonTitle, systemImage: "plus.circle")
+        }
+      }
 
       if mode == .management, isLoggedIn {
         Section {
@@ -81,6 +105,9 @@ struct SettingsServersView: View {
       }
     }
     .formStyle(.grouped)
+    #if os(iOS) || os(macOS)
+      .scrollContentBackground(.hidden)
+    #endif
     .inlineNavigationBarTitle(navigationTitle)
     .sheet(item: $editingInstance) { instance in
       SettingsServerEditView(instance: instance)
@@ -209,19 +236,19 @@ struct SettingsServersView: View {
       .padding(16)
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(
-        RoundedRectangle(cornerRadius: 18)
+        RoundedRectangle(cornerRadius: 12)
           .fill(
             isActive(instance)
-              ? themeColor.color.opacity(0.1)
-              : PlatformHelper.secondarySystemBackgroundColor
+              ? themeColor.color.opacity(0.15)
+              : Color.secondary.opacity(0.1)
           )
       )
       .overlay(
-        RoundedRectangle(cornerRadius: 18)
-          .stroke(
+        RoundedRectangle(cornerRadius: 12)
+          .strokeBorder(
             isActive(instance)
-              ? themeColor.color.opacity(0.8)
-              : Color.primary.opacity(0.2),
+              ? themeColor.color.opacity(0.5)
+              : Color.primary.opacity(0.08),
             lineWidth: 1.5
           )
       )

@@ -202,7 +202,9 @@ struct SettingsLibrariesView: View {
       }
     }
 
-    allLibrariesMetrics = metrics
+    withAnimation {
+      allLibrariesMetrics = metrics
+    }
   }
 
   private func loadLibraryMetrics() async {
@@ -286,13 +288,8 @@ struct SettingsLibrariesView: View {
             .font(.headline)
           if let metrics = allLibrariesMetrics, hasAllLibrariesMetrics(metrics) {
             VStack(alignment: .leading, spacing: 2) {
-              if !formatAllLibrariesMetricsLine1(metrics).isEmpty {
-                Text(formatAllLibrariesMetricsLine1(metrics))
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-              if !formatAllLibrariesMetricsLine2(metrics).isEmpty {
-                Text(formatAllLibrariesMetricsLine2(metrics))
+              if !formatAllLibrariesMetrics(metrics).isEmpty {
+                Text(formatAllLibrariesMetrics(metrics))
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
@@ -526,7 +523,7 @@ struct SettingsLibrariesView: View {
       || metrics.readlistsCount != nil
   }
 
-  private func formatAllLibrariesMetricsLine1(_ metrics: AllLibrariesMetricsData) -> String {
+  private func formatAllLibrariesMetrics(_ metrics: AllLibrariesMetricsData) -> String {
     var parts: [String] = []
 
     if let seriesCount = metrics.seriesCount {
@@ -541,12 +538,6 @@ struct SettingsLibrariesView: View {
     if let fileSize = metrics.fileSize {
       parts.append(formatFileSize(fileSize))
     }
-
-    return parts.joined(separator: " · ")
-  }
-
-  private func formatAllLibrariesMetricsLine2(_ metrics: AllLibrariesMetricsData) -> String {
-    var parts: [String] = []
 
     if let collectionsCount = metrics.collectionsCount {
       parts.append("\(formatNumber(collectionsCount)) collections")
