@@ -15,13 +15,10 @@ struct ReadListDetailView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
-  #if os(macOS)
-    @Environment(\.openWindow) private var openWindow
-  #endif
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var bookViewModel = BookViewModel()
   @State private var readList: ReadList?
-  @State private var readerState: BookReaderState?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var containerWidth: CGFloat = 0
@@ -105,7 +102,7 @@ struct ReadListDetailView: View {
               readListId: readListId,
               bookViewModel: bookViewModel,
               onReadBook: { book, incognito in
-                readerState = BookReaderState(book: book, incognito: incognito)
+                presentReader(book: book, incognito: incognito)
               },
               layoutMode: layoutMode,
               layoutHelper: layoutHelper
@@ -119,11 +116,6 @@ struct ReadListDetailView: View {
       .padding(.horizontal, horizontalPadding)
     }
     .inlineNavigationBarTitle("Read List")
-    .readerPresentation(readerState: $readerState) {
-      Task {
-        await loadReadListDetails()
-      }
-    }
     .alert("Delete Read List?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         Task {
@@ -184,6 +176,14 @@ extension ReadListDetailView {
       readList = try await ReadListService.shared.getReadList(id: readListId)
     } catch {
       ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func presentReader(book: Book, incognito: Bool) {
+    readerPresentation.present(book: book, incognito: incognito) {
+      Task {
+        await loadReadListDetails()
+      }
     }
   }
 

@@ -18,11 +18,10 @@
     @State private var showFontPicker: Bool = false
 
     @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
-      NavigationStack {
+      SheetView(title: "Custom Fonts", size: .large) {
         Form {
           Section {
             Button {
@@ -101,34 +100,11 @@
               Text("\(customFonts.count) custom font\(customFonts.count == 1 ? "" : "s") added")
             }
           }
-          #if os(tvOS)
-            Section {
-              Button {
-                dismiss()
-              } label: {
-                Label("Done", systemImage: "checkmark")
-              }
-            }
-            .listRowBackground(Color.clear)
-          #endif
         }
-        .padding(PlatformHelper.sheetPadding)
-        .inlineNavigationBarTitle("Custom Fonts")
-        #if !os(tvOS)
-          .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-              Button {
-                dismiss()
-              } label: {
-                Label("Done", systemImage: "checkmark")
-              }
-            }
-          }
-        #endif
-        .sheet(isPresented: $showFontPicker) {
-          FontPickerView(isPresented: $showFontPicker) { selectedFont in
-            handleFontPickerSelection(selectedFont)
-          }
+      }
+      .sheet(isPresented: $showFontPicker) {
+        FontPickerView(isPresented: $showFontPicker) { selectedFont in
+          handleFontPickerSelection(selectedFont)
         }
       }
     }

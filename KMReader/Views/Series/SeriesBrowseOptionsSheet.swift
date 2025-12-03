@@ -18,8 +18,8 @@ struct SeriesBrowseOptionsSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
-      Form {
+    SheetView(title: "Filter & Sort", size: .medium) {
+        Form {
         Section("Filters") {
           Picker("Read Status", selection: $tempOpts.readStatusFilter) {
             ForEach(ReadStatusFilter.allCases, id: \.self) { filter in
@@ -40,29 +40,13 @@ struct SeriesBrowseOptionsSheet: View {
           sortField: $tempOpts.sortField,
           sortDirection: $tempOpts.sortDirection
         )
-
-        #if os(tvOS)
-          Section {
-            Button(action: applyChanges) {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
-          .listRowBackground(Color.clear)
-        #endif
-      }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Filter & Sort")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button(action: applyChanges) {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
         }
-      #endif
+      }
+    controls: {
+      Button(action: applyChanges) {
+        Label("Done", systemImage: "checkmark")
+      }
     }
-    .platformSheetPresentation(detents: [.medium])
   }
 
   private func applyChanges() {

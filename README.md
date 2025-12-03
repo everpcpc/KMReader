@@ -85,6 +85,12 @@ Released under the terms of the [LICENSE](LICENSE) file.
 
 ---
 
+## 💬 Discuss
+
+Join the discussion on [Discord](https://discord.gg/komga-678794935368941569).
+
+---
+
 <div align="center">
 
 **Made with ❤️ for the Komga community**

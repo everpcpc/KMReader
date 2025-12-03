@@ -24,79 +24,57 @@ struct LibraryPickerSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
-      Form {
-        if libraryManager.isLoading && libraries.isEmpty {
-          ProgressView()
-            .frame(maxWidth: .infinity)
-        } else {
-          // For single selection in picker, use first libraryId
-          let binding = Binding(
-            get: { dashboard.libraryIds.first ?? "" },
-            set: { newValue in
-              if newValue.isEmpty {
-                dashboard.libraryIds = []
-              } else {
-                dashboard.libraryIds = [newValue]
+    SheetView(title: "Select Library", size: .large) {
+        Form {
+          if libraryManager.isLoading && libraries.isEmpty {
+            ProgressView()
+              .frame(maxWidth: .infinity)
+          } else {
+            // For single selection in picker, use first libraryId
+            let binding = Binding(
+              get: { dashboard.libraryIds.first ?? "" },
+              set: { newValue in
+                if newValue.isEmpty {
+                  dashboard.libraryIds = []
+                } else {
+                  dashboard.libraryIds = [newValue]
+                }
+              }
+            )
+            Picker("Library", selection: binding) {
+              Label("All Libraries", systemImage: "square.grid.2x2").tag("")
+              ForEach(libraries) { library in
+                Label(library.name, systemImage: "books.vertical").tag(library.libraryId)
               }
             }
-          )
-          Picker("Library", selection: binding) {
-            Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-            ForEach(libraries) { library in
-              Label(library.name, systemImage: "books.vertical").tag(library.libraryId)
-            }
+            .pickerStyle(.inline)
           }
-          .pickerStyle(.inline)
         }
-        #if os(tvOS)
-          Section {
-            Button(action: refreshLibraries) {
-              Label("Refresh", systemImage: "arrow.clockwise")
-            }
-            .disabled(libraryManager.isLoading)
+    }
+    controls: {
+      HStack(spacing: 12) {
+        Button(action: refreshLibraries) {
+          Label("Refresh", systemImage: "arrow.clockwise")
+        }
+        .disabled(libraryManager.isLoading)
 
-            Button {
-              dismiss()
-            } label: {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
-          .listRowBackground(Color.clear)
-        #endif
-      }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Select Library")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button(action: refreshLibraries) {
-              Label("Refresh", systemImage: "arrow.clockwise")
-            }
-            .disabled(libraryManager.isLoading)
-          }
-          ToolbarItem(placement: .automatic) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
-        }
-      #endif
-      .onChange(of: dashboard.libraryIds) { oldValue, newValue in
-        // Dismiss when user selects a different library
-        let oldFirst = oldValue.first ?? ""
-        let newFirst = newValue.first ?? ""
-        if oldFirst != newFirst {
+        Button {
           dismiss()
+        } label: {
+          Label("Done", systemImage: "checkmark")
         }
-      }
-      .task {
-        await libraryManager.loadLibraries()
       }
     }
-    .platformSheetPresentation(detents: [.large])
+    .onChange(of: dashboard.libraryIds) { oldValue, newValue in
+      let oldFirst = oldValue.first ?? ""
+      let newFirst = newValue.first ?? ""
+      if oldFirst != newFirst {
+        dismiss()
+      }
+    }
+    .task {
+      await libraryManager.loadLibraries()
+    }
   }
 
   private func refreshLibraries() {

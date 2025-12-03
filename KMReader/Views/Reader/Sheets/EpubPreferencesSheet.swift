@@ -28,7 +28,7 @@
     }
 
     var body: some View {
-      NavigationStack {
+      SheetView(title: "Reading Options", size: .large) {
         VStack(spacing: 0) {
           VStack(alignment: .leading, spacing: 8) {
             EpubPreviewView(preferences: draft)
@@ -145,66 +145,33 @@
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
+            }
           }
         }
-        #if os(tvOS)
-          Section {
-            Button(role: .cancel) {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-
-            Button {
-              onApply(draft)
-              dismiss()
-            } label: {
-              Label("Save", systemImage: "checkmark")
-            }
-          }
-          .listRowBackground(Color.clear)
-        #endif
+      } controls: {
+        Button {
+          onApply(draft)
+          dismiss()
+        } label: {
+          Label("Save", systemImage: "checkmark")
+        }
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Reading Options")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .cancellationAction) {
-            Button(role: .cancel) {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-          }
-          ToolbarItem(placement: .confirmationAction) {
-            Button {
-              onApply(draft)
-              dismiss()
-            } label: {
-              Label("Save", systemImage: "checkmark")
-            }
-          }
-        }
-      #endif
       .sheet(isPresented: $showCustomFontsSheet) {
         CustomFontsSheet()
-            .onDisappear {
-              // Refresh font list when custom fonts sheet is dismissed
-              FontProvider.refresh()
-              fontListRefreshId = UUID()
+          .onDisappear {
+            FontProvider.refresh()
+            fontListRefreshId = UUID()
 
-              // If current selection is a removed font, reset to publisher default
-              let customFontNames = customFonts.map { $0.name }
-              if !customFontNames.contains(draft.fontFamily.rawValue)
-                && draft.fontFamily != .publisher
-                && !FontProvider.allChoices.contains(where: {
-                  $0.rawValue == draft.fontFamily.rawValue
-                })
-              {
-                draft.fontFamily = .publisher
-              }
+            let customFontNames = customFonts.map { $0.name }
+            if !customFontNames.contains(draft.fontFamily.rawValue)
+              && draft.fontFamily != .publisher
+              && !FontProvider.allChoices.contains(where: {
+                $0.rawValue == draft.fontFamily.rawValue
+              })
+            {
+              draft.fontFamily = .publisher
             }
-        }
+          }
       }
     }
   }

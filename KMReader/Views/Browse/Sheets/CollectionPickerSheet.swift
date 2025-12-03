@@ -34,7 +34,7 @@ struct CollectionPickerSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Select Collection", size: .large) {
       Form {
         if isLoading && collectionViewModel.collections.isEmpty {
           ProgressView()
@@ -50,78 +50,41 @@ struct CollectionPickerSheet: View {
           }
           .pickerStyle(.inline)
         }
-        #if os(tvOS)
-          Section {
-            Button(action: confirmSelection) {
-              Label("Done", systemImage: "checkmark")
-            }
-            .disabled(selectedCollectionId == nil)
-
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-
-            Button {
-              showCreateSheet = true
-            } label: {
-              Label("Create New", systemImage: "plus.circle.fill")
-            }
-            .disabled(!isAdmin)
-          }
-          .listRowBackground(Color.clear)
-        #endif
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Select Collection")
-      .searchable(text: $searchText)
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button(action: confirmSelection) {
-              Label("Done", systemImage: "checkmark")
-            }
-            .disabled(selectedCollectionId == nil)
-          }
-          ToolbarItem(placement: .automatic) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-          }
-          ToolbarItem(placement: .automatic) {
-            Button {
-              showCreateSheet = true
-            } label: {
-              Label("Create New", systemImage: "plus.circle.fill")
-            }
-            .disabled(!isAdmin)
-          }
+    } controls: {
+      HStack(spacing: 12) {
+        Button(action: confirmSelection) {
+          Label("Done", systemImage: "checkmark")
         }
-      #endif
-      .task {
-        await loadCollections()
-      }
-      .onChange(of: searchText) { _, newValue in
-        Task {
-          await loadCollections(searchText: newValue)
+        .disabled(selectedCollectionId == nil)
+
+        Button {
+          showCreateSheet = true
+        } label: {
+          Label("Create New", systemImage: "plus.circle.fill")
         }
-      }
-      .sheet(isPresented: $showCreateSheet) {
-        CreateCollectionSheet(
-          isCreating: $isCreating,
-          seriesIds: seriesIds,
-          onCreate: { collectionId in
-            // Create already adds series, so just complete and dismiss
-            onComplete?()
-            dismiss()
-          }
-        )
+        .disabled(!isAdmin)
       }
     }
-    .platformSheetPresentation(detents: [.large])
+    .searchable(text: $searchText)
+    .task {
+      await loadCollections()
+    }
+    .onChange(of: searchText) { _, newValue in
+      Task {
+        await loadCollections(searchText: newValue)
+      }
+    }
+    .sheet(isPresented: $showCreateSheet) {
+      CreateCollectionSheet(
+        isCreating: $isCreating,
+        seriesIds: seriesIds,
+        onCreate: { _ in
+          onComplete?()
+          dismiss()
+        }
+      )
+    }
   }
 
   private func loadCollections(searchText: String = "") async {
@@ -154,56 +117,22 @@ struct CreateCollectionSheet: View {
   @State private var name: String = ""
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Create Collection", size: .medium) {
       Form {
         Section {
           TextField("Collection Name", text: $name)
         }
-        #if os(tvOS)
-          Section {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-
-            Button(action: createCollection) {
-              if isCreating {
-                ProgressView()
-              } else {
-                Label("Create", systemImage: "checkmark")
-              }
-            }
-            .disabled(name.isEmpty || isCreating)
-          }
-          .listRowBackground(Color.clear)
-        #endif
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Create Collection")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-          }
-          ToolbarItem(placement: .automatic) {
-            Button(action: createCollection) {
-              if isCreating {
-                ProgressView()
-              } else {
-                Label("Create", systemImage: "checkmark")
-              }
-            }
-            .disabled(name.isEmpty || isCreating)
-          }
+    } controls: {
+      Button(action: createCollection) {
+        if isCreating {
+          ProgressView()
+        } else {
+          Label("Create", systemImage: "checkmark")
         }
-      #endif
+      }
+      .disabled(name.isEmpty || isCreating)
     }
-    .platformSheetPresentation(detents: [.medium], minWidth: 400, minHeight: 300)
   }
 
   private func createCollection() {

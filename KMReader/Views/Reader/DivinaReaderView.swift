@@ -66,7 +66,8 @@ struct DivinaReaderView: View {
 
   private func shouldUseDualPage(screenSize: CGSize) -> Bool {
     guard screenSize.width > screenSize.height else { return false }  // Only in landscape
-    return pageLayout == .dual
+    guard pageLayout == .dual else { return false }
+    return readingDirection != .vertical
   }
 
   private func resetReaderPreferencesForCurrentBook() {
@@ -166,31 +167,17 @@ struct DivinaReaderView: View {
               }
 
             case .vertical:
-              if useDualPage {
-                VerticalDualPageView(
-                  viewModel: viewModel,
-                  nextBook: nextBook,
-                  onDismiss: { dismiss() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  onEndPageFocusChange: endPageFocusChangeHandler
-                ).ignoresSafeArea()
-              } else {
-                VerticalPageView(
-                  viewModel: viewModel,
-                  nextBook: nextBook,
-                  onDismiss: { dismiss() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  onEndPageFocusChange: endPageFocusChangeHandler
-                ).ignoresSafeArea()
-              }
+              VerticalPageView(
+                viewModel: viewModel,
+                nextBook: nextBook,
+                onDismiss: { dismiss() },
+                onNextBook: { openNextBook(nextBookId: $0) },
+                goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+                toggleControls: { toggleControls() },
+                screenSize: geometry.size,
+                onEndPageFocusChange: endPageFocusChangeHandler
+              ).ignoresSafeArea()
 
             case .webtoon:
               #if os(iOS)

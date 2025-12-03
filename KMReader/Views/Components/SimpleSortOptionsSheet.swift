@@ -18,35 +18,18 @@ struct SimpleSortOptionsSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Sort", size: .medium) {
       Form {
         SortOptionView(
           sortField: $tempOpts.sortField,
           sortDirection: $tempOpts.sortDirection
         )
-
-        #if os(tvOS)
-          Section {
-            Button(action: applyChanges) {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
-          .listRowBackground(Color.clear)
-        #endif
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Sort")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button(action: applyChanges) {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
-        }
-      #endif
+    } controls: {
+      Button(action: applyChanges) {
+        Label("Done", systemImage: "checkmark")
+      }
     }
-    .platformSheetPresentation(detents: [.medium])
   }
 
   private func applyChanges() {

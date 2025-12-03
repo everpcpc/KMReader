@@ -11,13 +11,10 @@ struct BookDetailView: View {
   let bookId: String
 
   @Environment(\.dismiss) private var dismiss
-  #if os(macOS)
-    @Environment(\.openWindow) private var openWindow
-  #endif
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @State private var book: Book?
   @State private var isLoading = true
-  @State private var readerState: BookReaderState?
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
@@ -159,7 +156,11 @@ struct BookDetailView: View {
           BookActionsSection(
             book: book,
             onRead: { incognito in
-              readerState = BookReaderState(book: book, incognito: incognito)
+              readerPresentation.present(book: book, incognito: incognito) {
+                Task {
+                  await loadBook()
+                }
+              }
             }
           )
           Divider()
@@ -267,11 +268,6 @@ struct BookDetailView: View {
       .padding()
     }
     .inlineNavigationBarTitle("Book")
-    .readerPresentation(readerState: $readerState) {
-      Task {
-        await loadBook()
-      }
-    }
     .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteBook()
@@ -560,4 +556,5 @@ struct BookDetailView: View {
       Image(systemName: "ellipsis.circle")
     }
   }
+
 }

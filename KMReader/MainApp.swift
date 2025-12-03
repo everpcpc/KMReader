@@ -14,6 +14,7 @@ import SwiftUI
 struct MainApp: App {
   private let modelContainer: ModelContainer
   @State private var authViewModel: AuthViewModel
+  @State private var readerPresentation = ReaderPresentationManager()
 
   init() {
     do {
@@ -41,12 +42,14 @@ struct MainApp: App {
     WindowGroup {
       ContentView()
         .environment(authViewModel)
+        .environment(readerPresentation)
         .modelContainer(modelContainer)
     }
     #if os(macOS)
       WindowGroup(id: "reader") {
         ReaderWindowView()
           .environment(authViewModel)
+          .environment(readerPresentation)
           .modelContainer(modelContainer)
       }
       .defaultSize(width: 1200, height: 800)

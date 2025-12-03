@@ -9,6 +9,10 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(AuthViewModel.self) private var authViewModel
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
+  #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+  #endif
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
@@ -20,7 +24,11 @@ struct ContentView: View {
     ZStack {
       Group {
         if isLoggedIn {
-          MainTabView()
+          if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
+            MainTabView()
+          } else {
+            OldTabView()
+          }
         } else {
           LandingView()
         }
@@ -96,29 +104,121 @@ struct ContentView: View {
         Text("Unknown Error")
       }
     }
+    #if os(iOS) || os(tvOS)
+      .fullScreenCover(isPresented: readerIsPresented) {
+        if let state = readerPresentation.readerState, let book = state.book {
+          BookReaderView(book: book, incognito: state.incognito)
+          .transition(.scale.animation(.easeInOut))
+        } else {
+          ReaderPlaceholderView {
+            readerPresentation.closeReader()
+          }
+        }
+      }
+    #elseif os(macOS)
+      .background(
+        MacReaderWindowConfigurator(openWindow: {
+          openWindow(id: "reader")
+        }))
+    #endif
   }
 }
 
+@available(iOS 18.0, macOS 15.0, tvOS 18.0, *)
 struct MainTabView: View {
-  var body: some View {
-    TabView {
-      DashboardView()
-        .tabItem {
-          Label("Home", systemImage: "house")
-        }
+  @State private var selectedTab: TabItem = .home
 
-      BrowseView()
-        .tabItem {
-          Label("Browse", systemImage: "books.vertical")
-        }
+  var body: some View {
+    TabView(selection: $selectedTab) {
+      Tab(TabItem.home.title, systemImage: TabItem.home.icon, value: TabItem.home) {
+        TabItem.home.content
+      }
+
+      Tab(TabItem.browse.title, systemImage: TabItem.browse.icon, value: TabItem.browse) {
+        TabItem.browse.content
+      }
 
       #if !os(macOS)
-        SettingsView()
-          .tabItem {
-            Label("Settings", systemImage: "gearshape")
-          }
+        Tab(
+          TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings,
+          role: .search
+        ) {
+          TabItem.settings.content
+        }
       #endif
 
     }.tabBarMinimizeBehaviorIfAvailable()
   }
 }
+
+struct OldTabView: View {
+  @State private var selectedTab: TabItem = .home
+
+  var body: some View {
+    TabView(selection: $selectedTab) {
+      TabItem.home.content
+        .tabItem { TabItem.home.label }
+
+      TabItem.browse.content
+        .tabItem { TabItem.browse.label }
+
+      #if !os(macOS)
+        TabItem.settings.content
+          .tabItem { TabItem.settings.label }
+      #endif
+
+    }
+  }
+}
+
+#if os(iOS) || os(tvOS)
+  extension ContentView {
+    fileprivate var readerIsPresented: Binding<Bool> {
+      Binding(
+        get: { readerPresentation.readerState != nil },
+        set: { newValue in
+          if !newValue {
+            readerPresentation.closeReader()
+          }
+        }
+      )
+    }
+  }
+
+  private struct ReaderPlaceholderView: View {
+    let onClose: () -> Void
+
+    var body: some View {
+      VStack(spacing: 16) {
+        ProgressView()
+          .progressViewStyle(.circular)
+
+        Text("Preparing reader…")
+          .font(.headline)
+          .foregroundColor(.secondary)
+
+        Button {
+          onClose()
+        } label: {
+          Label("Cancel", systemImage: "xmark.circle")
+            .font(.headline)
+        }
+        .adaptiveButtonStyle(.bordered)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background(PlatformHelper.systemBackgroundColor.ignoresSafeArea())
+    }
+  }
+#elseif os(macOS)
+  private struct MacReaderWindowConfigurator: View {
+    @Environment(ReaderPresentationManager.self) private var readerPresentation
+    let openWindow: () -> Void
+
+    var body: some View {
+      Color.clear
+        .onAppear {
+          readerPresentation.configureWindowOpener(openWindow)
+        }
+    }
+  }
+#endif

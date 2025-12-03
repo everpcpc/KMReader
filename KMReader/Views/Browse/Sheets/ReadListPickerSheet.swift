@@ -34,7 +34,7 @@ struct ReadListPickerSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Select Read List", size: .large) {
       Form {
         if isLoading && readListViewModel.readLists.isEmpty {
           ProgressView()
@@ -50,78 +50,41 @@ struct ReadListPickerSheet: View {
           }
           .pickerStyle(.inline)
         }
-        #if os(tvOS)
-          Section {
-            Button(action: confirmSelection) {
-              Label("Done", systemImage: "checkmark")
-            }
-            .disabled(selectedReadListId == nil)
-
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-
-            Button {
-              showCreateSheet = true
-            } label: {
-              Label("Create New", systemImage: "plus.circle.fill")
-            }
-            .disabled(!isAdmin)
-          }
-          .listRowBackground(Color.clear)
-        #endif
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Select Read List")
-      .searchable(text: $searchText)
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button(action: confirmSelection) {
-              Label("Done", systemImage: "checkmark")
-            }
-            .disabled(selectedReadListId == nil)
-          }
-          ToolbarItem(placement: .automatic) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-          }
-          ToolbarItem(placement: .automatic) {
-            Button {
-              showCreateSheet = true
-            } label: {
-              Label("Create New", systemImage: "plus.circle.fill")
-            }
-            .disabled(!isAdmin)
-          }
+    } controls: {
+      HStack(spacing: 12) {
+        Button(action: confirmSelection) {
+          Label("Done", systemImage: "checkmark")
         }
-      #endif
-      .task {
-        await loadReadLists()
-      }
-      .onChange(of: searchText) { _, newValue in
-        Task {
-          await loadReadLists(searchText: newValue)
+        .disabled(selectedReadListId == nil)
+
+        Button {
+          showCreateSheet = true
+        } label: {
+          Label("Create New", systemImage: "plus.circle.fill")
         }
-      }
-      .sheet(isPresented: $showCreateSheet) {
-        CreateReadListSheet(
-          isCreating: $isCreating,
-          bookIds: bookIds,
-          onCreate: { readListId in
-            // Create already adds books, so just complete and dismiss
-            onComplete?()
-            dismiss()
-          }
-        )
+        .disabled(!isAdmin)
       }
     }
-    .platformSheetPresentation(detents: [.large])
+    .searchable(text: $searchText)
+    .task {
+      await loadReadLists()
+    }
+    .onChange(of: searchText) { _, newValue in
+      Task {
+        await loadReadLists(searchText: newValue)
+      }
+    }
+    .sheet(isPresented: $showCreateSheet) {
+      CreateReadListSheet(
+        isCreating: $isCreating,
+        bookIds: bookIds,
+        onCreate: { _ in
+          onComplete?()
+          dismiss()
+        }
+      )
+    }
   }
 
   private func loadReadLists(searchText: String = "") async {
@@ -155,58 +118,24 @@ struct CreateReadListSheet: View {
   @State private var summary: String = ""
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Create Read List", size: .medium) {
       Form {
         Section {
           TextField("Read List Name", text: $name)
           TextField("Summary (Optional)", text: $summary, axis: .vertical)
             .lineLimit(3...6)
         }
-      #if os(tvOS)
-        Section {
-          Button {
-            dismiss()
-          } label: {
-            Label("Cancel", systemImage: "xmark")
-          }
-
-          Button(action: createReadList) {
-            if isCreating {
-              ProgressView()
-            } else {
-              Label("Create", systemImage: "checkmark")
-            }
-          }
-          .disabled(name.isEmpty || isCreating)
-        }
-        .listRowBackground(Color.clear)
-      #endif
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Create Read List")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-          }
-          ToolbarItem(placement: .automatic) {
-            Button(action: createReadList) {
-              if isCreating {
-                ProgressView()
-              } else {
-                Label("Create", systemImage: "checkmark")
-              }
-            }
-            .disabled(name.isEmpty || isCreating)
-          }
+    } controls: {
+      Button(action: createReadList) {
+        if isCreating {
+          ProgressView()
+        } else {
+          Label("Create", systemImage: "checkmark")
         }
-      #endif
+      }
+      .disabled(name.isEmpty || isCreating)
     }
-    .platformSheetPresentation(detents: [.medium], minWidth: 400, minHeight: 300)
   }
 
   private func createReadList() {

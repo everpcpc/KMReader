@@ -41,8 +41,8 @@ struct BookEditSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
-      Form {
+    SheetView(title: "Edit Book", size: .large) {
+        Form {
         Section("Basic Information") {
           TextField("Title", text: $title)
           TextField("Number", text: $number)
@@ -155,51 +155,18 @@ struct BookEditSheet: View {
             .disabled(newLinkLabel.isEmpty || newLinkURL.isEmpty)
           }
         }
-        #if os(tvOS)
-          Section {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-
-            Button(action: saveChanges) {
-              if isSaving {
-                ProgressView()
-              } else {
-                Label("Save", systemImage: "checkmark")
-              }
-            }
-            .disabled(isSaving)
-          }
-          .listRowBackground(Color.clear)
-        #endif
-      }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Edit Book")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-          }
-          ToolbarItem(placement: .automatic) {
-            Button(action: saveChanges) {
-              if isSaving {
-                ProgressView()
-              } else {
-                Label("Save", systemImage: "checkmark")
-              }
-            }
-            .disabled(isSaving)
-          }
         }
-      #endif
+      }
+    controls: {
+      Button(action: saveChanges) {
+        if isSaving {
+          ProgressView()
+        } else {
+          Label("Save", systemImage: "checkmark")
+        }
+      }
+      .disabled(isSaving)
     }
-    .platformSheetPresentation(detents: [.large])
   }
 
   private func saveChanges() {

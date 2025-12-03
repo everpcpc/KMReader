@@ -15,11 +15,7 @@ struct BookCardView: View {
   var showSeriesTitle: Bool = false
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
-  #if os(macOS)
-    @Environment(\.openWindow) private var openWindow
-  #endif
-
-  @State private var readerState: BookReaderState?
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -50,7 +46,7 @@ struct BookCardView: View {
 
   var body: some View {
     Button {
-      readerState = BookReaderState(book: book, incognito: false)
+      presentReader(incognito: false)
     } label: {
       VStack(alignment: .leading, spacing: 6) {
         ThumbnailImage(url: thumbnailURL, width: cardWidth) {
@@ -106,7 +102,7 @@ struct BookCardView: View {
         book: book,
         viewModel: viewModel,
         onReadBook: { incognito in
-          readerState = BookReaderState(book: book, incognito: incognito)
+          presentReader(incognito: incognito)
         },
         onActionCompleted: onBookUpdated,
         onShowReadListPicker: {
@@ -152,7 +148,6 @@ struct BookCardView: View {
     .sheet(isPresented: $showDownloadSheet) {
       BookDownloadSheet(book: book)
     }
-    .readerPresentation(readerState: $readerState, onDismiss: onBookUpdated)
   }
 
   private func addToReadList(readListId: String) {
@@ -189,5 +184,13 @@ struct BookCardView: View {
         }
       }
     }
+  }
+
+  private func presentReader(incognito: Bool) {
+    readerPresentation.present(
+      book: book,
+      incognito: incognito,
+      onDismiss: onBookUpdated
+    )
   }
 }

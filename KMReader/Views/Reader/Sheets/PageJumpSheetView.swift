@@ -241,7 +241,7 @@ struct PageJumpSheetView: View {
   }
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Go to Page", size: .large) {
       VStack(alignment: .leading, spacing: 16) {
         VStack(spacing: 24) {
           VStack(spacing: 8) {
@@ -312,7 +312,6 @@ struct PageJumpSheetView: View {
                     step: 1
                   )
                   .scaleEffect(x: sliderScaleX, y: 1)
-
                   HStack {
                     Text(pageLabels.left)
                     Spacer()
@@ -322,7 +321,6 @@ struct PageJumpSheetView: View {
                   .foregroundStyle(.secondary)
                 #endif
               }
-
               HStack {
                 Button {
                   jumpToPage()
@@ -335,19 +333,14 @@ struct PageJumpSheetView: View {
                 .adaptiveButtonStyle(.borderedProminent)
                 .disabled(!canJump || pageValue == currentPage)
               }
-
             }
             .frame(maxWidth: .infinity, alignment: .leading)
           }
-
           Spacer()
         }
-        .padding(.top, 8)
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Go to Page")
+      .padding(.top, 8)
     }
     .presentationDragIndicator(.visible)
-    .platformSheetPresentation(detents: [.large])
   }
 }

@@ -13,6 +13,7 @@
     let chapters: [ReadiumShared.Link]
     let currentLink: ReadiumShared.Link?
     let goToChapter: (ReadiumShared.Link) -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
       NavigationStack {
@@ -49,6 +50,15 @@
         }
         .padding(PlatformHelper.sheetPadding)
         .inlineNavigationBarTitle("Chapters")
+        .toolbar {
+          ToolbarItem(placement: .cancellationAction) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Close", systemImage: "xmark")
+            }
+          }
+        }
       }
       .presentationDragIndicator(.visible)
     }

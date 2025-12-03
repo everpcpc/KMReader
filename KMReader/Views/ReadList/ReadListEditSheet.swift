@@ -24,59 +24,26 @@ struct ReadListEditSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
-      Form {
-        Section("Basic Information") {
-          TextField("Name", text: $name)
-          TextField("Summary", text: $summary, axis: .vertical)
-            .lineLimit(3...10)
-          Toggle("Ordered", isOn: $ordered)
-        }
-        #if os(tvOS)
-          Section {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-
-            Button(action: saveChanges) {
-              if isSaving {
-                ProgressView()
-              } else {
-                Label("Save", systemImage: "checkmark")
-              }
-            }
-            .disabled(isSaving || name.isEmpty)
+    SheetView(title: "Edit Read List", size: .medium) {
+        Form {
+          Section("Basic Information") {
+            TextField("Name", text: $name)
+            TextField("Summary", text: $summary, axis: .vertical)
+              .lineLimit(3...10)
+            Toggle("Ordered", isOn: $ordered)
           }
-          .listRowBackground(Color.clear)
-        #endif
+        }
       }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Edit Read List")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Cancel", systemImage: "xmark")
-            }
-          }
-          ToolbarItem(placement: .automatic) {
-            Button(action: saveChanges) {
-              if isSaving {
-                ProgressView()
-              } else {
-                Label("Save", systemImage: "checkmark")
-              }
-            }
-            .disabled(isSaving || name.isEmpty)
-          }
+    controls: {
+      Button(action: saveChanges) {
+        if isSaving {
+          ProgressView()
+        } else {
+          Label("Save", systemImage: "checkmark")
         }
-      #endif
+      }
+      .disabled(isSaving || name.isEmpty)
     }
-    .platformSheetPresentation(detents: [.medium])
   }
 
   private func saveChanges() {

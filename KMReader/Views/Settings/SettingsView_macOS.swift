@@ -69,6 +69,9 @@ import SwiftUI
             Link(destination: URL(string: "https://kmreader.userjot.com/")!) {
               Label("Feedback", systemImage: "message")
             }
+            Link(destination: URL(string: "https://discord.gg/komga-678794935368941569")!) {
+              Label("Discuss", systemImage: "bubble.left.and.bubble.right")
+            }
             Link(destination: URL(string: "https://github.com/everpcpc/KMReader")!) {
               Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
             }

@@ -20,8 +20,7 @@ struct BrowseView: View {
   @State private var contentWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
 
-  // SwiftUI's default horizontal padding is 16 on each side (32 total)
-  private let horizontalPadding: CGFloat = 16
+  private let horizontalPadding: CGFloat = PlatformHelper.sheetPadding
 
   private func refreshBrowse() {
     refreshTrigger = UUID()

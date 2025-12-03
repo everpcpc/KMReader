@@ -52,6 +52,13 @@ struct BookDownloadSheet: View {
         }
         .adaptiveButtonStyle(.borderedProminent)
       }
+
+      Button {
+        dismiss()
+      } label: {
+        Label("Close", systemImage: "xmark")
+      }
+      .adaptiveButtonStyle(.plain)
     }
     .padding(PlatformHelper.sheetPadding)
     .presentationDragIndicator(.visible)

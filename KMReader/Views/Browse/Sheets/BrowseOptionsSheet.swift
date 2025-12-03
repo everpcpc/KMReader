@@ -46,8 +46,8 @@ struct BrowseOptionsSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
-      Form {
+    SheetView(title: "Filter & Sort", size: .medium) {
+        Form {
         if contentType.supportsReadStatusFilter || contentType.supportsSeriesStatusFilter {
           Section("Filters") {
             if contentType.supportsReadStatusFilter {
@@ -166,29 +166,13 @@ struct BrowseOptionsSheet: View {
             }
           }
         }
-
-        #if os(tvOS)
-          Section {
-            Button(action: applyChanges) {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
-          .listRowBackground(Color.clear)
-        #endif
-      }
-      .padding(PlatformHelper.sheetPadding)
-      .inlineNavigationBarTitle("Filter & Sort")
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button(action: applyChanges) {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
         }
-      #endif
+      }
+    controls: {
+      Button(action: applyChanges) {
+        Label("Done", systemImage: "checkmark")
+      }
     }
-    .platformSheetPresentation(detents: [.medium], minWidth: 400, minHeight: 400)
   }
 
   private func applyChanges() {
