@@ -165,6 +165,14 @@ class BookService {
     return (data: result.data, contentType: result.contentType)
   }
 
+  func downloadImageResource(at url: URL) async throws -> (data: Data, contentType: String?) {
+    let result = try await apiClient.requestData(
+      url: url,
+      headers: ["Accept": "image/*"]
+    )
+    return (data: result.data, contentType: result.contentType)
+  }
+
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async throws {
     let body = ["page": page, "completed": completed] as [String: Any]
     let jsonData = try JSONSerialization.data(withJSONObject: body)

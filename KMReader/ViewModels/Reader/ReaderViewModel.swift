@@ -159,7 +159,7 @@ class ReaderViewModel {
 
         let activePage = self.pages.first(where: { $0.number == page.number }) ?? page
 
-        let result = try await BookService.shared.downloadResource(at: remoteURL)
+        let result = try await BookService.shared.downloadImageResource(at: remoteURL)
         let data = result.data
 
         let dataSize = ByteCountFormatter.string(
