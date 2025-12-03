@@ -43,6 +43,8 @@ struct ReaderSettingsSheet: View {
           switch readingDirection {
           case .webtoon:
             webtoonSection
+          case .vertical:
+            EmptyView()
           default:
             layoutSection
           }
