@@ -197,16 +197,8 @@ if [ "$SKIP_EXPORT" = false ]; then
 		echo -e "${YELLOW}Exporting $PLATFORM_NAME archive...${NC}"
 		echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-		# Build export command with optional API key arguments
-		# Keep archive for artifacts.sh to extract .app file for DMG creation
+		# Build export command; keep archive for artifacts.sh to extract .app file for DMG creation
 		EXPORT_CMD=("$SCRIPT_DIR/export.sh" "$archive_path" "$EXPORT_OPTIONS" "$EXPORTS_DIR" "--keep-archive")
-
-		# Add API key arguments if environment variables are set
-		if [ -n "$APP_STORE_CONNECT_API_KEY_PATH" ] && [ -n "$APP_STORE_CONNECT_API_ISSUER_ID" ] && [ -n "$APP_STORE_CONNECT_API_KEY_ID" ]; then
-			EXPORT_CMD+=("--api-key-path" "$APP_STORE_CONNECT_API_KEY_PATH")
-			EXPORT_CMD+=("--api-issuer-id" "$APP_STORE_CONNECT_API_ISSUER_ID")
-			EXPORT_CMD+=("--api-key-id" "$APP_STORE_CONNECT_API_KEY_ID")
-		fi
 
 		# Add verbose flag if requested
 		if [ "$VERBOSE" = true ]; then

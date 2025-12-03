@@ -86,6 +86,7 @@ jobs:
           xcode-version: "latest-stable"
 
       - name: Prepare App Store Connect API key
+        id: prepare
         env:
           APP_STORE_CONNECT_API_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
         run: |
@@ -97,10 +98,26 @@ jobs:
           umask 077
           KEY_PATH="$RUNNER_TEMP/appstoreconnect_key.p8"
           printf "%s" "$APP_STORE_CONNECT_API_PRIVATE_KEY" > "$KEY_PATH"
-          echo "APP_STORE_CONNECT_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare exportOptions.plist
+        run: |
+          set -euo pipefail
+          EXPORT_OPTIONS="misc/exportOptions.plist"
+          EXPORT_OPTIONS_EXAMPLE="misc/exportOptions.plist.example"
+
+          if [ ! -f "$EXPORT_OPTIONS_EXAMPLE" ]; then
+            echo "Error: $EXPORT_OPTIONS_EXAMPLE not found" >&2
+            exit 1
+          fi
+
+          # Copy example to actual file
+          cp "$EXPORT_OPTIONS_EXAMPLE" "$EXPORT_OPTIONS"
+          echo "Created $EXPORT_OPTIONS from example file"
 
       - name: Run make release
         env:
+          APP_STORE_CONNECT_API_KEY_PATH: ${{ steps.prepare.outputs.APP_STORE_CONNECT_API_KEY_PATH }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
         run: make release

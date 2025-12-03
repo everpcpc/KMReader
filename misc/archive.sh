@@ -96,6 +96,17 @@ echo "Destination: $DESTINATION"
 echo "Archive path: $ARCHIVE_PATH"
 echo ""
 
+# Configure authentication flags if App Store Connect API credentials are available
+AUTH_ARGS=()
+if [ -n "${APP_STORE_CONNECT_API_KEY_PATH:-}" ] && [ -n "${APP_STORE_CONNECT_API_KEY_ID:-}" ] && [ -n "${APP_STORE_CONNECT_API_ISSUER_ID:-}" ]; then
+	AUTH_ARGS+=(
+		-authenticationKeyPath "$APP_STORE_CONNECT_API_KEY_PATH"
+		-authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID"
+		-authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID"
+	)
+	echo -e "${GREEN}Using App Store Connect API key for authentication${NC}"
+fi
+
 # Clean build folder first
 echo -e "${YELLOW}Cleaning build folder...${NC}"
 xcodebuild clean \
@@ -103,7 +114,8 @@ xcodebuild clean \
 	-scheme "$SCHEME" \
 	-sdk "$SDK" \
 	-configuration Release \
-	-quiet
+	-quiet \
+	"${AUTH_ARGS[@]}"
 
 # Archive
 echo -e "${YELLOW}Archiving...${NC}"
@@ -117,7 +129,8 @@ xcodebuild archive \
 	-configuration Release \
 	-archivePath "$ARCHIVE_PATH" \
 	-allowProvisioningUpdates \
-	-quiet
+	-quiet \
+	"${AUTH_ARGS[@]}"
 
 if [ $? -eq 0 ]; then
 	echo -e "${GREEN}✓ Archive created successfully!${NC}"

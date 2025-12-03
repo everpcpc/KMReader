@@ -30,15 +30,15 @@
     <!-- OPTIONAL: Upload directly to App Store Connect (only for app-store method) -->
     <!-- When enabled, the export script will automatically upload to App Store Connect -->
     <!-- Requires App Store Connect API key or interactive Apple ID login -->
-    <!-- <key>uploadToAppStore</key> -->
-    <!-- <true/> -->
+    <key>uploadToAppStore</key>
+    <true/>
 
     <!-- OPTIONAL: Upload symbols for crash reporting (recommended for app-store method) -->
-    <!-- <key>uploadSymbols</key> -->
-    <!-- <true/> -->
+    <key>uploadSymbols</key>
+    <true/>
 
     <!-- OPTIONAL: For macOS - Notarize the app (only for developer-id method) -->
-    <!-- <key>notarize</key> -->
-    <!-- <true/> -->
+    <key>notarize</key>
+    <true/>
 </dict>
 </plist>

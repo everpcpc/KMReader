@@ -181,15 +181,15 @@ When `uploadToAppStore` is set to `true` in `exportOptions.plist`, the export sc
 
 **Method 1: App Store Connect API Key (Recommended for CI/CD)**
 
-Use App Store Connect API key for automated uploads without interactive login:
+Use App Store Connect API key for automated uploads without interactive login. Set the credentials as environment variables (directly or in `.env`) before running the script:
 
 ```bash
+APP_STORE_CONNECT_API_KEY_PATH=/path/to/AuthKey_XXXXXXXXXX.p8 \
+APP_STORE_CONNECT_API_ISSUER_ID=YOUR_ISSUER_ID \
+APP_STORE_CONNECT_API_KEY_ID=YOUR_KEY_ID \
 ./export.sh ./archives/KMReader-iOS_20240101_120000.xcarchive \
   exportOptions.plist \
-  ./exports \
-  --api-key-path /path/to/AuthKey_XXXXXXXXXX.p8 \
-  --api-issuer-id YOUR_ISSUER_ID \
-  --api-key-id YOUR_KEY_ID
+  ./exports
 ```
 
 ### How to Get App Store Connect API Key
@@ -238,15 +238,15 @@ You should have:
 
 #### Step 5: Use the API Key
 
-Now you can use the API key in the export script:
+Now you can use the API key in the export script by providing environment variables (or `.env`):
 
 ```bash
+APP_STORE_CONNECT_API_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_XXXXXXXXXX.p8 \
+APP_STORE_CONNECT_API_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \
+APP_STORE_CONNECT_API_KEY_ID=XXXXXXXXXX \
 ./misc/export.sh ./archives/KMReader-iOS_xxx.xcarchive \
   misc/exportOptions.plist \
-  ./exports \
-  --api-key-path ~/.appstoreconnect/private_keys/AuthKey_XXXXXXXXXX.p8 \
-  --api-issuer-id xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \
-  --api-key-id XXXXXXXXXX
+  ./exports
 ```
 
 #### Security Best Practices
@@ -319,7 +319,7 @@ APP_STORE_CONNECT_API_KEY_ID="your-key-id" \
 ./misc/export.sh ./archives/KMReader-iOS_xxx.xcarchive
 ```
 
-**Note:** The export script will automatically use environment variables if they are set, so you don't need to pass `--api-key-path` etc. if the environment variables are already configured.
+**Note:** The export script automatically reads these environment variables, so no additional command-line flags are required.
 
 ## Notes
 
