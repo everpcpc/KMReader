@@ -15,14 +15,11 @@ struct SeriesDetailView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
-  #if os(macOS)
-    @Environment(\.openWindow) private var openWindow
-  #endif
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var seriesViewModel = SeriesViewModel()
   @State private var bookViewModel = BookViewModel()
   @State private var series: Series?
-  @State private var readerState: BookReaderState?
   @State private var showDeleteConfirmation = false
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
@@ -395,7 +392,7 @@ struct SeriesDetailView: View {
               seriesId: seriesId,
               bookViewModel: bookViewModel,
               onReadBook: { book, incognito in
-                readerState = BookReaderState(book: book, incognito: incognito)
+                presentReader(book: book, incognito: incognito)
               },
               layoutMode: layoutMode,
               layoutHelper: layoutHelper
@@ -409,9 +406,6 @@ struct SeriesDetailView: View {
       .padding(.horizontal, horizontalPadding)
     }
     .inlineNavigationBarTitle("Series")
-    .readerPresentation(readerState: $readerState) {
-      refreshAfterReading()
-    }
     .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteSeries()
@@ -479,6 +473,12 @@ struct SeriesDetailView: View {
 
 // Helper functions for SeriesDetailView
 extension SeriesDetailView {
+  private func presentReader(book: Book, incognito: Bool) {
+    readerPresentation.present(book: book, incognito: incognito) {
+      refreshAfterReading()
+    }
+  }
+
   private func refreshAfterReading() {
     Task {
       await refreshSeriesData()

@@ -9,6 +9,10 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(AuthViewModel.self) private var authViewModel
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
+  #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+  #endif
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
@@ -96,6 +100,23 @@ struct ContentView: View {
         Text("Unknown Error")
       }
     }
+    #if os(iOS) || os(tvOS)
+      .fullScreenCover(isPresented: readerIsPresented) {
+        if let state = readerPresentation.readerState, let book = state.book {
+          BookReaderView(book: book, incognito: state.incognito)
+          .transition(.scale.animation(.easeInOut))
+        } else {
+          ReaderPlaceholderView {
+            readerPresentation.closeReader()
+          }
+        }
+      }
+    #elseif os(macOS)
+      .background(
+        MacReaderWindowConfigurator(openWindow: {
+          openWindow(id: "reader")
+        }))
+    #endif
   }
 }
 
@@ -122,3 +143,55 @@ struct MainTabView: View {
     }.tabBarMinimizeBehaviorIfAvailable()
   }
 }
+
+#if os(iOS) || os(tvOS)
+  extension ContentView {
+    fileprivate var readerIsPresented: Binding<Bool> {
+      Binding(
+        get: { readerPresentation.readerState != nil },
+        set: { newValue in
+          if !newValue {
+            readerPresentation.closeReader()
+          }
+        }
+      )
+    }
+  }
+
+  private struct ReaderPlaceholderView: View {
+    let onClose: () -> Void
+
+    var body: some View {
+      VStack(spacing: 16) {
+        ProgressView()
+          .progressViewStyle(.circular)
+
+        Text("Preparing reader…")
+          .font(.headline)
+          .foregroundColor(.secondary)
+
+        Button {
+          onClose()
+        } label: {
+          Label("Cancel", systemImage: "xmark.circle")
+            .font(.headline)
+        }
+        .adaptiveButtonStyle(.bordered)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background(Color(.systemBackground).ignoresSafeArea())
+    }
+  }
+#elseif os(macOS)
+  private struct MacReaderWindowConfigurator: View {
+    @Environment(ReaderPresentationManager.self) private var readerPresentation
+    let openWindow: () -> Void
+
+    var body: some View {
+      Color.clear
+        .onAppear {
+          readerPresentation.configureWindowOpener(openWindow)
+        }
+    }
+  }
+#endif

@@ -15,12 +15,8 @@ struct BooksBrowseView: View {
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
-  #if os(macOS)
-    @Environment(\.openWindow) private var openWindow
-  #endif
-
   @State private var viewModel = BookViewModel()
-  @State private var readerState: BookReaderState?
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
   @State private var hasInitialized = false
 
   var body: some View {
@@ -68,7 +64,6 @@ struct BooksBrowseView: View {
         await loadBooks(refresh: true)
       }
     }
-    .readerPresentation(readerState: $readerState)
   }
 
   private var gridView: some View {
@@ -104,7 +99,7 @@ struct BooksBrowseView: View {
           book: book,
           viewModel: viewModel,
           onReadBook: { incognito in
-            readerState = BookReaderState(book: book, incognito: incognito)
+            readerPresentation.present(book: book, incognito: incognito)
           },
           onBookUpdated: {
             Task {
@@ -132,4 +127,5 @@ struct BooksBrowseView: View {
       refresh: refresh
     )
   }
+
 }
