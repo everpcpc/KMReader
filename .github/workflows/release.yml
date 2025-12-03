@@ -1,0 +1,106 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.current }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect project version changes
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            KMReader.xcodeproj/project.pbxproj
+
+      - name: Read marketing version
+        id: version
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          set -euo pipefail
+          FILE="KMReader.xcodeproj/project.pbxproj"
+          if [ ! -f "$FILE" ]; then
+            echo "project.pbxproj not found at $FILE" >&2
+            exit 1
+          fi
+          VERSION=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          if [ -z "$VERSION" ]; then
+            echo "MARKETING_VERSION not found in $FILE" >&2
+            exit 1
+          fi
+          echo "Detected MARKETING_VERSION: $VERSION"
+          echo "current=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: No project change affecting marketing version
+        if: steps.changed-files.outputs.any_changed != 'true'
+        run: |
+          echo "KMReader.xcodeproj/project.pbxproj did not change; skipping release."
+
+  create:
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.detect.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping creation."
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          fi
+
+  publish:
+    runs-on: macos-latest
+    needs: [detect, create]
+    if: needs.detect.outputs.version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "latest-stable"
+
+      - name: Prepare App Store Connect API key
+        env:
+          APP_STORE_CONNECT_API_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_STORE_CONNECT_API_PRIVATE_KEY}" ]; then
+            echo "APP_STORE_CONNECT_API_PRIVATE_KEY is not set." >&2
+            exit 1
+          fi
+          umask 077
+          KEY_PATH="$RUNNER_TEMP/appstoreconnect_key.p8"
+          printf "%s" "$APP_STORE_CONNECT_API_PRIVATE_KEY" > "$KEY_PATH"
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Run make release
+        env:
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+        run: make release
