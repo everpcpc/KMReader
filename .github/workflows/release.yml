@@ -67,12 +67,18 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists, skipping creation."
           else
-            # Check version format: X.Y (stable) vs X.Y.Z (prerelease)
-            if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+$'; then
-              echo "Creating stable release: $TAG"
-              gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+            # Stable when patch version is .0 (e.g., 1.2.0); otherwise prerelease (e.g., 1.2.1)
+            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
+              PATCH="${BASH_REMATCH[1]}"
+              if [ "$PATCH" = "0" ]; then
+                echo "Creating stable release (patch is 0): $TAG"
+                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+              else
+                echo "Creating prerelease (patch is $PATCH): $TAG"
+                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
+              fi
             else
-              echo "Creating prerelease: $TAG"
+              echo "Version '$VERSION' is not in expected format X.Y.Z; defaulting to prerelease."
               gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
             fi
           fi
