@@ -12,10 +12,10 @@ struct BooksListViewForSeries: View {
   let seriesId: String
   @Bindable var bookViewModel: BookViewModel
   var onReadBook: (Book, Bool) -> Void
-  let layoutMode: BrowseLayoutMode
   let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
+  @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("seriesBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()

@@ -11,10 +11,10 @@ import SwiftUI
 struct CollectionSeriesListView: View {
   let collectionId: String
   @Bindable var seriesViewModel: SeriesViewModel
-  let layoutMode: BrowseLayoutMode
   let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
+  @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("collectionSeriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
   @AppStorage("isAdmin") private var isAdmin: Bool = false

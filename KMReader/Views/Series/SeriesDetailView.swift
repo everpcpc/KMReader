@@ -393,7 +393,6 @@ struct SeriesDetailView: View {
               onReadBook: { book, incognito in
                 presentReader(book: book, incognito: incognito)
               },
-              layoutMode: layoutMode,
               layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )
@@ -695,19 +694,6 @@ extension SeriesDetailView {
         showFilterSheet = true
       } label: {
         Image(systemName: "line.3.horizontal.decrease.circle")
-      }
-      .toolbarButtonStyle()
-
-      Menu {
-        Picker("Layout", selection: $layoutMode) {
-          ForEach(BrowseLayoutMode.allCases) { mode in
-            Label(mode.displayName, systemImage: mode.iconName).tag(mode)
-          }
-        }
-        .pickerStyle(.inline)
-      } label: {
-        Label("Layout", systemImage: layoutMode.iconName)
-          .labelStyle(.iconOnly)
       }
       .toolbarButtonStyle()
 

@@ -13,6 +13,8 @@ struct BookFilterView: View {
 
   var body: some View {
     HStack(spacing: 8) {
+      LayoutModePicker()
+
       Button {
         showFilterSheet = true
       } label: {

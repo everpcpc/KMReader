@@ -92,7 +92,6 @@ struct CollectionDetailView: View {
             CollectionSeriesListView(
               collectionId: collectionId,
               seriesViewModel: seriesViewModel,
-              layoutMode: layoutMode,
               layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )
@@ -198,25 +197,8 @@ extension CollectionDetailView {
       }
       .toolbarButtonStyle()
 
-      layoutMenu
       actionsMenu
     }
-  }
-
-  @ViewBuilder
-  private var layoutMenu: some View {
-    Menu {
-      Picker("Layout", selection: $layoutMode) {
-        ForEach(BrowseLayoutMode.allCases) { mode in
-          Label(mode.displayName, systemImage: mode.iconName).tag(mode)
-        }
-      }
-      .pickerStyle(.inline)
-    } label: {
-      Label("Layout", systemImage: layoutMode.iconName)
-        .labelStyle(.iconOnly)
-    }
-    .toolbarButtonStyle()
   }
 
   @ViewBuilder
