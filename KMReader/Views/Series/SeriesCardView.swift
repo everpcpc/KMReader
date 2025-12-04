@@ -26,8 +26,8 @@ struct SeriesCardView: View {
     VStack(alignment: .leading, spacing: 6) {
       ThumbnailImage(url: thumbnailURL, width: cardWidth) {
         VStack(alignment: .trailing) {
-          if series.booksUnreadCount > 0 {
-            UnreadCountBadge(count: series.booksUnreadCount)
+          if series.unreadCount > 0 {
+            UnreadCountBadge(count: series.unreadCount)
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }

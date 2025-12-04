@@ -22,4 +22,8 @@ struct Series: Codable, Identifiable, Equatable {
   let booksMetadata: SeriesBooksMetadata
   let deleted: Bool
   let oneshot: Bool
+
+  var unreadCount: Int {
+    booksUnreadCount + booksInProgressCount
+  }
 }
