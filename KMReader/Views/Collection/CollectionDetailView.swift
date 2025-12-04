@@ -188,7 +188,7 @@ extension CollectionDetailView {
 
   @ViewBuilder
   private var collectionToolbarContent: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: PlatformHelper.buttonSpacing) {
       layoutMenu
       actionsMenu
     }
@@ -207,6 +207,7 @@ extension CollectionDetailView {
       Label("Layout", systemImage: layoutMode.iconName)
         .labelStyle(.iconOnly)
     }
+    .toolbarButtonStyle()
   }
 
   @ViewBuilder
@@ -230,5 +231,6 @@ extension CollectionDetailView {
     } label: {
       Image(systemName: "ellipsis.circle")
     }
+    .toolbarButtonStyle()
   }
 }

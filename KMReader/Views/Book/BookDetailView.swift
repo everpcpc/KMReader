@@ -553,6 +553,7 @@ struct BookDetailView: View {
     } label: {
       Image(systemName: "ellipsis.circle")
     }
+    .toolbarButtonStyle()
   }
 
 }

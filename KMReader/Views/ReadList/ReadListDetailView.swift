@@ -207,7 +207,7 @@ extension ReadListDetailView {
 
   @ViewBuilder
   private var readListToolbarContent: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: PlatformHelper.buttonSpacing) {
       Menu {
         Picker("Layout", selection: $layoutMode) {
           ForEach(BrowseLayoutMode.allCases) { mode in
@@ -219,6 +219,7 @@ extension ReadListDetailView {
         Label("Layout", systemImage: layoutMode.iconName)
           .labelStyle(.iconOnly)
       }
+      .toolbarButtonStyle()
 
       Menu {
         Button {
@@ -239,6 +240,7 @@ extension ReadListDetailView {
       } label: {
         Image(systemName: "ellipsis.circle")
       }
+      .toolbarButtonStyle()
     }
   }
 }
