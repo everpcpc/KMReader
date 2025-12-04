@@ -1,34 +1,25 @@
-name: release
+name: Publish
 
 on:
   push:
     branches:
       - main
 
-permissions:
-  contents: write
-
 jobs:
   detect:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.current }}
+      marketing_version: ${{ steps.version.outputs.marketing }}
+      build_number: ${{ steps.version.outputs.build }}
+      build_changed: ${{ steps.changed.outputs.changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Detect project version changes
-        id: changed-files
-        uses: tj-actions/changed-files@v45
-        with:
-          files: |
-            KMReader.xcodeproj/project.pbxproj
-
-      - name: Read marketing version
+      - name: Read versions
         id: version
-        if: steps.changed-files.outputs.any_changed == 'true'
         run: |
           set -euo pipefail
           FILE="KMReader.xcodeproj/project.pbxproj"
@@ -36,57 +27,54 @@ jobs:
             echo "project.pbxproj not found at $FILE" >&2
             exit 1
           fi
-          VERSION=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
-          if [ -z "$VERSION" ]; then
+          MARKETING=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          BUILD=$(awk 'match($0,/CURRENT_PROJECT_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          if [ -z "$MARKETING" ]; then
             echo "MARKETING_VERSION not found in $FILE" >&2
             exit 1
           fi
-          echo "Detected MARKETING_VERSION: $VERSION"
-          echo "current=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ -z "$BUILD" ]; then
+            echo "CURRENT_PROJECT_VERSION not found in $FILE" >&2
+            exit 1
+          fi
+          echo "Detected MARKETING_VERSION: $MARKETING"
+          echo "Detected CURRENT_PROJECT_VERSION: $BUILD"
+          {
+            echo "marketing=$MARKETING"
+            echo "build=$BUILD"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: No project change affecting marketing version
-        if: steps.changed-files.outputs.any_changed != 'true'
-        run: |
-          echo "KMReader.xcodeproj/project.pbxproj did not change; skipping release."
-
-  create:
-    runs-on: ubuntu-latest
-    needs: detect
-    if: needs.detect.outputs.version
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.detect.outputs.version }}
+      - name: Detect build number change
+        id: changed
         run: |
           set -euo pipefail
-          TAG="v${VERSION}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists, skipping creation."
-          else
-            # Stable when patch version is .0 (e.g., 1.2.0); otherwise prerelease (e.g., 1.2.1)
-            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
-              PATCH="${BASH_REMATCH[1]}"
-              if [ "$PATCH" = "0" ]; then
-                echo "Creating stable release (patch is 0): $TAG"
-                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
-              else
-                echo "Creating prerelease (patch is $PATCH): $TAG"
-                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
-              fi
+          FILE="KMReader.xcodeproj/project.pbxproj"
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            if git rev-parse "${HEAD}^" >/dev/null 2>&1; then
+              BASE="$(git rev-parse "${HEAD}^")"
             else
-              echo "Version '$VERSION' is not in expected format X.Y.Z; defaulting to prerelease."
-              gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
+              BASE=""
             fi
           fi
 
-  build:
+          CHANGED=false
+          if [ -n "$BASE" ] && git cat-file -e "$BASE"^{commit} 2>/dev/null; then
+            DIFF=$(git diff "$BASE" "$HEAD" -- "$FILE" || true)
+            if echo "$DIFF" | grep -q 'CURRENT_PROJECT_VERSION'; then
+              CHANGED=true
+            fi
+          else
+            CHANGED=true
+          fi
+
+          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+
+  publish:
     runs-on: macos-latest
-    needs: [detect, create]
-    if: needs.detect.outputs.version
+    needs: detect
+    if: needs.detect.outputs.build_changed == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,11 +118,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          # List available certificates for debugging
+          echo "Current build number: ${{ needs.detect.outputs.build_number }}"
+
           echo "Available signing certificates:"
           security find-identity -v -p codesigning | grep "Apple Distribution" || echo "No Apple Distribution certificate found"
 
-          # List imported provisioning profiles
           PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           echo ""
           echo "Available provisioning profiles:"
@@ -153,50 +141,47 @@ jobs:
       - name: Run make artifacts
         run: make artifacts
 
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-artifacts
-          path: artifacts/*
-          retention-days: 1
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: [detect, create, build]
-    if: needs.detect.outputs.version
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download release artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: release-artifacts
-          path: artifacts
-
-      - name: Upload to GitHub Release
+      - name: Ensure GitHub release exists
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.detect.outputs.version }}
+          VERSION: ${{ needs.detect.outputs.marketing_version }}
         run: |
           set -euo pipefail
           TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+          else
+            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
+              PATCH="${BASH_REMATCH[1]}"
+              if [ "$PATCH" = "0" ]; then
+                echo "Creating stable release (patch is 0): $TAG"
+                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+              else
+                echo "Creating prerelease (patch is $PATCH): $TAG"
+                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
+              fi
+            else
+              echo "Version '$VERSION' is not in expected format X.Y.Z; defaulting to prerelease."
+              gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
+            fi
+          fi
 
-          # Find all .ipa and .dmg files (already prepared with platform identifiers)
+      - name: Upload artifacts to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.detect.outputs.marketing_version }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
           ARTIFACTS=$(find artifacts -type f \( -name "*.ipa" -o -name "*.dmg" \) | sort)
-
           if [ -z "$ARTIFACTS" ]; then
             echo "No artifacts found"
             ls -la artifacts/ || true
             exit 1
           fi
-
-          echo "Found artifacts (already prepared with platform identifiers):"
+          echo "Found artifacts:"
           echo "$ARTIFACTS"
-          echo ""
-
-          # Upload each artifact to GitHub Release
           for artifact in $ARTIFACTS; do
-            echo "Uploading: $(basename "$artifact")"
+            echo "Uploading $(basename "$artifact")"
             gh release upload "$TAG" "$artifact" --clobber
           done
