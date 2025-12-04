@@ -548,57 +548,64 @@ struct DivinaReaderView: View {
     }
   #endif
 
-  private func toggleControls(autoHide: Bool = true) {
-    #if os(tvOS)
-      let shouldAutoHide = false
-    #else
-      let shouldAutoHide = autoHide
-    #endif
-    #if os(tvOS)
+  #if os(tvOS)
+    private func toggleControls(autoHide: Bool = true) {
       // On tvOS, allow toggling controls even at endpage to enable navigation back
       // Only prevent hiding for webtoon at bottom
       if readingDirection == .webtoon && isAtBottom {
         return
       }
-    #else
-      // Don't hide controls when at end page or webtoon at bottom
-      if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
-        return
+      withAnimation {
+        showingControls.toggle()
       }
-    #endif
-    withAnimation {
-      showingControls.toggle()
-    }
-    if showingControls {
-      // Only auto-hide if autoHide is true
-      // On macOS and tvOS, manual toggle should not auto-hide
-      if shouldAutoHide {
-        resetControlsTimer(timeout: 3)
-      } else {
+      if showingControls {
+        // On tvOS, manual toggle should not auto-hide
         // Cancel any existing timer when manually opened
         controlsTimer?.invalidate()
       }
     }
-  }
+  #else
+    private func toggleControls(autoHide: Bool = true) {
+      // Don't hide controls when at end page or webtoon at bottom
+      if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
+        return
+      }
+      withAnimation {
+        showingControls.toggle()
+      }
+      if showingControls {
+        // Only auto-hide if autoHide is true
+        // On macOS, manual toggle should not auto-hide
+        if autoHide {
+          resetControlsTimer(timeout: 3)
+        } else {
+          // Cancel any existing timer when manually opened
+          controlsTimer?.invalidate()
+        }
+      }
+    }
+  #endif
 
-  private func resetControlsTimer(timeout: TimeInterval) {
-    #if os(tvOS)
+  #if os(tvOS)
+    private func resetControlsTimer(timeout: TimeInterval) {
       // Controls remain visible on tvOS
-      return
-    #else
+      // No-op on tvOS
+    }
+  #else
+    private func resetControlsTimer(timeout: TimeInterval) {
       // Don't start timer when at end page or webtoon at bottom
       if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
         return
       }
-    #endif
 
-    controlsTimer?.invalidate()
-    controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-      withAnimation {
-        showingControls = false
+      controlsTimer?.invalidate()
+      controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
+        withAnimation {
+          showingControls = false
+        }
       }
     }
-  }
+  #endif
 
   /// Hide helper overlay and cancel timer
   private func hideOverlay() {
