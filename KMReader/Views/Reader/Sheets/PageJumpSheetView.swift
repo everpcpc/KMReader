@@ -257,55 +257,66 @@ struct PageJumpSheetView: View {
 
           if canJump {
             VStack(spacing: 16) {
-              VStack(spacing: 0) {
-                // Preview view above slider - scrolling fan effect
-                GeometryReader { geometry in
-                  let sliderWidth = geometry.size.width
+              // Preview view above slider - scrolling fan effect
+              GeometryReader { geometry in
+                let sliderWidth = geometry.size.width
 
-                  ZStack {
-                    ForEach(previewPages, id: \.self) { page in
-                      PagePreviewItem(
-                        page: page,
-                        pageValue: pageValue,
-                        imageURL: getPreviewImageURL(page: page),
-                        availableHeight: geometry.size.height,
-                        sliderWidth: sliderWidth,
-                        maxPage: maxPage,
-                        readingDirection: readingDirection
-                      )
-                    }
+                ZStack {
+                  ForEach(previewPages, id: \.self) { page in
+                    PagePreviewItem(
+                      page: page,
+                      pageValue: pageValue,
+                      imageURL: getPreviewImageURL(page: page),
+                      availableHeight: geometry.size.height,
+                      sliderWidth: sliderWidth,
+                      maxPage: maxPage,
+                      readingDirection: readingDirection
+                    )
                   }
                 }
-                .frame(minHeight: 200, maxHeight: 360)
+              }
+              .frame(minHeight: 200, maxHeight: 360)
 
-                #if os(tvOS)
-                  HStack(spacing: 16) {
-                    let leftStep = readingDirection == .rtl ? 1 : -1
-                    let rightStep = readingDirection == .rtl ? -1 : 1
-                    let leftIcon =
-                      readingDirection == .rtl ? "plus.circle.fill" : "minus.circle.fill"
-                    let rightIcon =
-                      readingDirection == .rtl ? "minus.circle.fill" : "plus.circle.fill"
-
+              #if os(tvOS)
+                VStack(spacing: 40) {
+                  HStack(spacing: 32) {
                     Button {
-                      adjustPage(step: leftStep)
+                      adjustPage(step: readingDirection == .rtl ? 1 : -1)
                     } label: {
-                      Image(systemName: leftIcon)
+                      Image(
+                        systemName: readingDirection == .rtl
+                          ? "plus.circle.fill" : "minus.circle.fill")
                     }
-                    .adaptiveButtonStyle(.plain)
 
                     Text("Page \(pageValue)")
-                      .font(.body)
+                      .monospacedDigit()
 
                     Button {
-                      adjustPage(step: rightStep)
+                      adjustPage(step: readingDirection == .rtl ? -1 : 1)
                     } label: {
-                      Image(systemName: rightIcon)
+                      Image(
+                        systemName: readingDirection == .rtl
+                          ? "minus.circle.fill" : "plus.circle.fill")
                     }
-                    .adaptiveButtonStyle(.plain)
                   }
-                  .focusSection()
-                #else
+
+                  Button {
+                    jumpToPage()
+                  } label: {
+                    // must be a full width button, otherwise it will not be focused
+                    HStack(spacing: 4) {
+                      Spacer()
+                      Text("Jump")
+                      Image(systemName: "arrow.right.to.line")
+                      Spacer()
+                    }
+                  }
+                  .adaptiveButtonStyle(.borderedProminent)
+                  .disabled(!canJump || pageValue == currentPage)
+                }
+                .focusSection()
+              #else
+                VStack(spacing: 0) {
                   Slider(
                     value: sliderBinding,
                     in: 1...Double(maxPage),
@@ -319,20 +330,21 @@ struct PageJumpSheetView: View {
                   }
                   .font(.footnote)
                   .foregroundStyle(.secondary)
-                #endif
-              }
-              HStack {
-                Button {
-                  jumpToPage()
-                } label: {
-                  HStack(spacing: 4) {
-                    Text("Jump")
-                    Image(systemName: "arrow.right.to.line")
-                  }
                 }
-                .adaptiveButtonStyle(.borderedProminent)
-                .disabled(!canJump || pageValue == currentPage)
-              }
+
+                HStack {
+                  Button {
+                    jumpToPage()
+                  } label: {
+                    HStack(spacing: 4) {
+                      Text("Jump")
+                      Image(systemName: "arrow.right.to.line")
+                    }
+                  }
+                  .adaptiveButtonStyle(.borderedProminent)
+                  .disabled(!canJump || pageValue == currentPage)
+                }
+              #endif
             }
             .frame(maxWidth: .infinity, alignment: .leading)
           }
