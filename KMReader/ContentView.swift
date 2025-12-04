@@ -128,6 +128,14 @@ struct ContentView: View {
 struct MainTabView: View {
   @State private var selectedTab: TabItem = .home
 
+  private var settingsTabRole: TabRole? {
+    #if os(iOS)
+      PlatformHelper.isPad ? nil : .search
+    #else
+      nil
+    #endif
+  }
+
   var body: some View {
     TabView(selection: $selectedTab) {
       Tab(TabItem.home.title, systemImage: TabItem.home.icon, value: TabItem.home) {
@@ -141,7 +149,7 @@ struct MainTabView: View {
       #if !os(macOS)
         Tab(
           TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings,
-          role: .search
+          role: settingsTabRole
         ) {
           TabItem.settings.content
         }
