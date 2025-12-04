@@ -14,7 +14,6 @@
   class WebtoonPageCell: UICollectionViewCell {
     private let imageView = UIImageView()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
-    private let pageNumberLabel = UILabel()
     private var pageIndex: Int = -1
     private var loadImage: ((Int) async -> Void)?
 
@@ -43,16 +42,6 @@
       loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
       contentView.addSubview(loadingIndicator)
 
-      pageNumberLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-      pageNumberLabel.textColor = .white
-      pageNumberLabel.textAlignment = .center
-      pageNumberLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-      pageNumberLabel.layer.cornerRadius = 8
-      pageNumberLabel.clipsToBounds = true
-      pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
-      pageNumberLabel.isHidden = true
-      contentView.addSubview(pageNumberLabel)
-
       NSLayoutConstraint.activate([
         imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
         imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -60,10 +49,6 @@
         imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
         loadingIndicator.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
         loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-        pageNumberLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
-        pageNumberLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-        pageNumberLabel.heightAnchor.constraint(equalToConstant: 28),
-        pageNumberLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 40),
       ])
     }
 
@@ -82,8 +67,6 @@
       imageView.alpha = 0.0
       loadingIndicator.isHidden = false
       loadingIndicator.startAnimating()
-
-      updatePageNumber()
     }
 
     func setImageURL(_ url: URL, imageSize _: CGSize?) {
@@ -121,19 +104,6 @@
       loadingIndicator.stopAnimating()
     }
 
-    private func updatePageNumber() {
-      let showPageNumber = UserDefaults.standard.bool(forKey: "showPageNumber")
-      pageNumberLabel.isHidden = !showPageNumber
-      if showPageNumber && pageIndex >= 0 {
-        pageNumberLabel.text = "\(pageIndex + 1)"
-        pageNumberLabel.sizeToFit()
-      }
-    }
-
-    func updatePageNumberDisplay() {
-      updatePageNumber()
-    }
-
     override func prepareForReuse() {
       super.prepareForReuse()
       imageView.sd_cancelCurrentImageLoad()
@@ -143,7 +113,6 @@
       loadingIndicator.isHidden = true
       pageIndex = -1
       loadImage = nil
-      pageNumberLabel.isHidden = true
     }
   }
 #endif

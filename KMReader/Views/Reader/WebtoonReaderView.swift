@@ -237,7 +237,6 @@
         for cell in collectionView.visibleCells {
           if let pageCell = cell as? WebtoonPageCell {
             pageCell.readerBackground = readerBackground
-            pageCell.updatePageNumberDisplay()
           } else if let footerCell = cell as? WebtoonFooterCell {
             footerCell.readerBackground = readerBackground
           }

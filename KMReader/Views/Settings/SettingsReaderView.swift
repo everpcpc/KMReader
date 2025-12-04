@@ -69,7 +69,7 @@ struct SettingsReaderView: View {
         }
       }
 
-      Section(header: Text("Page Display")) {
+      Section(header: Text("Page Layout")) {
         VStack(alignment: .leading, spacing: 8) {
           Picker("Page Layout", selection: $pageLayout) {
             ForEach(PageLayout.allCases, id: \.self) { mode in
@@ -90,6 +90,9 @@ struct SettingsReaderView: View {
               .foregroundColor(.secondary)
           }
         }
+      }
+
+      Section(header: Text("Page Display")) {
         Toggle(isOn: $showPageNumber) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Always Show Page Number")

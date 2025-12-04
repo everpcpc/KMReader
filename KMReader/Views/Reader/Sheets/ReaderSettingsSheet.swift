@@ -44,12 +44,12 @@ struct ReaderSettingsSheet: View {
           case .webtoon:
             webtoonSection
           case .vertical:
-            EmptyView()
+            pageNumberSection
           default:
             layoutSection
+            pageNumberSection
           }
 
-          pageNumberSection
         }
         .padding(24)
       }
