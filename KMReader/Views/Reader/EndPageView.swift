@@ -10,6 +10,7 @@ import SwiftUI
 struct EndPageView: View {
   @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
+  let readList: ReadList?
   let onDismiss: () -> Void
   let onNextBook: (String) -> Void
   let isRTL: Bool
@@ -154,7 +155,7 @@ struct EndPageView: View {
           #endif
         }
       }
-      NextBookInfoView(nextBook: nextBook)
+      NextBookInfoView(nextBook: nextBook, readList: readList)
     }
     #if os(tvOS)
       .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")

@@ -16,7 +16,7 @@
     var body: some View {
       Group {
         if let state = readerState, let book = state.book {
-          BookReaderView(book: book, incognito: state.incognito)
+          BookReaderView(book: book, incognito: state.incognito, readList: state.readList)
             .id("\(book.id)-\(state.incognito)")
             .background(WindowTitleUpdater(book: book))
         } else {

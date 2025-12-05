@@ -11,11 +11,11 @@ struct BookCardView: View {
   let book: Book
   var viewModel: BookViewModel
   let cardWidth: CGFloat
+  var onReadBook: ((Bool) -> Void)? = nil
   var onBookUpdated: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -46,7 +46,7 @@ struct BookCardView: View {
 
   var body: some View {
     Button {
-      presentReader(incognito: false)
+      onReadBook?(false)
     } label: {
       VStack(alignment: .leading, spacing: 6) {
         ThumbnailImage(url: thumbnailURL, width: cardWidth) {
@@ -106,9 +106,7 @@ struct BookCardView: View {
       BookContextMenu(
         book: book,
         viewModel: viewModel,
-        onReadBook: { incognito in
-          presentReader(incognito: incognito)
-        },
+        onReadBook: onReadBook,
         onActionCompleted: onBookUpdated,
         onShowReadListPicker: {
           showReadListPicker = true
@@ -189,13 +187,5 @@ struct BookCardView: View {
         }
       }
     }
-  }
-
-  private func presentReader(incognito: Bool) {
-    readerPresentation.present(
-      book: book,
-      incognito: incognito,
-      onDismiss: onBookUpdated
-    )
   }
 }

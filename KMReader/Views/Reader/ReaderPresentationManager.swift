@@ -18,7 +18,9 @@ final class ReaderPresentationManager {
     private var isWindowDrivenClose = false
   #endif
 
-  func present(book: Book, incognito: Bool, onDismiss: (() -> Void)? = nil) {
+  func present(
+    book: Book, incognito: Bool, readList: ReadList? = nil, onDismiss: (() -> Void)? = nil
+  ) {
     #if !os(macOS)
       // On iOS/tvOS we need to re-trigger the presentation cycle by dismissing first
       if readerState != nil {
@@ -26,7 +28,7 @@ final class ReaderPresentationManager {
       }
     #endif
 
-    let state = BookReaderState(book: book, incognito: incognito)
+    let state = BookReaderState(book: book, incognito: incognito, readList: readList)
     readerState = state
     self.onDismiss = onDismiss
 
@@ -39,6 +41,7 @@ final class ReaderPresentationManager {
       ReaderWindowManager.shared.openReader(
         book: book,
         incognito: incognito,
+        readList: readList,
         openWindow: openWindowHandler,
         onDismiss: { [weak self] in
           self?.handleWindowDismissal()

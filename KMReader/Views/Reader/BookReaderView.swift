@@ -10,6 +10,7 @@ import SwiftUI
 struct BookReaderView: View {
   let book: Book
   let incognito: Bool
+  let readList: ReadList?
 
   @Environment(\.dismiss) private var dismiss
 
@@ -57,10 +58,10 @@ struct BookReaderView: View {
           switch book.media.status {
           case .ready:
             if shouldUseDivinaReader {
-              DivinaReaderView(bookId: book.id, incognito: incognito)
+              DivinaReaderView(bookId: book.id, incognito: incognito, readList: readList)
             } else {
               #if os(iOS)
-                EpubReaderView(bookId: book.id, incognito: incognito)
+                EpubReaderView(bookId: book.id, incognito: incognito, readList: readList)
               #else
                 VStack(spacing: 24) {
                   Image(systemName: "exclamationmark.triangle")

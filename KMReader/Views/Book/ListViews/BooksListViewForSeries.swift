@@ -45,6 +45,9 @@ struct BooksListViewForSeries: View {
                   book: book,
                   viewModel: bookViewModel,
                   cardWidth: layoutHelper.cardWidth,
+                  onReadBook: { incognito in
+                    onReadBook(book, incognito)
+                  },
                   onBookUpdated: {
                     refreshBooks()
                   },

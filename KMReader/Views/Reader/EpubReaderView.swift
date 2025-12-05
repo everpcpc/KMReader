@@ -13,6 +13,7 @@
   struct EpubReaderView: View {
     private let bookId: String
     private let incognito: Bool
+    private let readList: ReadList?
 
     @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -29,9 +30,10 @@
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
 
-    init(bookId: String, incognito: Bool = false) {
+    init(bookId: String, incognito: Bool = false, readList: ReadList? = nil) {
       self.bookId = bookId
       self.incognito = incognito
+      self.readList = readList
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
     }
 

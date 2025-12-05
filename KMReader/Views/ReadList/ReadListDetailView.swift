@@ -179,7 +179,7 @@ extension ReadListDetailView {
   }
 
   private func presentReader(book: Book, incognito: Bool) {
-    readerPresentation.present(book: book, incognito: incognito) {
+    readerPresentation.present(book: book, incognito: incognito, readList: readList) {
       Task {
         await loadReadListDetails()
       }

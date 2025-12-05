@@ -90,10 +90,11 @@ struct BooksListViewForReadList: View {
                       book: book,
                       viewModel: bookViewModel,
                       cardWidth: layoutHelper.cardWidth,
+                      onReadBook: { _ in },
                       onBookUpdated: {
                         refreshBooks()
                       },
-                      showSeriesTitle: true,
+                      showSeriesTitle: true
                     )
                     .focusPadding()
                     .allowsHitTesting(false)
@@ -134,10 +135,13 @@ struct BooksListViewForReadList: View {
                       book: book,
                       viewModel: bookViewModel,
                       cardWidth: layoutHelper.cardWidth,
+                      onReadBook: { incognito in
+                        onReadBook(book, incognito)
+                      },
                       onBookUpdated: {
                         refreshBooks()
                       },
-                      showSeriesTitle: true,
+                      showSeriesTitle: true
                     )
                     .focusPadding()
                   }

@@ -191,9 +191,19 @@ class BookService {
     )
   }
 
-  func getNextBook(bookId: String) async throws -> Book? {
+  func getNextBook(bookId: String, readListId: String? = nil) async throws -> Book? {
     do {
-      return try await apiClient.request(path: "/api/v1/books/\(bookId)/next")
+      if let readListId = readListId {
+        // Use readlist-specific endpoint when readListId is provided
+        return try await apiClient.request(
+          path: "/api/v1/readlists/\(readListId)/books/\(bookId)/next"
+        )
+      } else {
+        // Use series endpoint when no readListId
+        return try await apiClient.request(
+          path: "/api/v1/books/\(bookId)/next"
+        )
+      }
     } catch {
       return nil
     }

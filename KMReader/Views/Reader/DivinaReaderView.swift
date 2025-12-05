@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DivinaReaderView: View {
   let incognito: Bool
+  let readList: ReadList?
 
   @State private var readerBackground: ReaderBackground
   @State private var readingDirection: ReadingDirection
@@ -37,8 +38,9 @@ struct DivinaReaderView: View {
     @FocusState private var readerFocusAnchor: ReaderFocusAnchor?
   #endif
 
-  init(bookId: String, incognito: Bool = false) {
+  init(bookId: String, incognito: Bool = false, readList: ReadList? = nil) {
     self.incognito = incognito
+    self.readList = readList
     self._currentBookId = State(initialValue: bookId)
     self._readerBackground = State(initialValue: AppConfig.readerBackground)
     self._readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
@@ -117,6 +119,7 @@ struct DivinaReaderView: View {
                 ComicDualPageView(
                   viewModel: viewModel,
                   nextBook: nextBook,
+                  readList: readList,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
@@ -130,6 +133,7 @@ struct DivinaReaderView: View {
                 ComicPageView(
                   viewModel: viewModel,
                   nextBook: nextBook,
+                  readList: readList,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
@@ -146,6 +150,7 @@ struct DivinaReaderView: View {
                 MangaDualPageView(
                   viewModel: viewModel,
                   nextBook: nextBook,
+                  readList: readList,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
@@ -159,6 +164,7 @@ struct DivinaReaderView: View {
                 MangaPageView(
                   viewModel: viewModel,
                   nextBook: nextBook,
+                  readList: readList,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
@@ -174,6 +180,7 @@ struct DivinaReaderView: View {
               VerticalPageView(
                 viewModel: viewModel,
                 nextBook: nextBook,
+                readList: readList,
                 onDismiss: { dismiss() },
                 onNextBook: { openNextBook(nextBookId: $0) },
                 goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
@@ -190,6 +197,7 @@ struct DivinaReaderView: View {
                   viewModel: viewModel,
                   isAtBottom: $isAtBottom,
                   nextBook: nextBook,
+                  readList: readList,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   toggleControls: { toggleControls() },
@@ -203,6 +211,7 @@ struct DivinaReaderView: View {
                 VerticalPageView(
                   viewModel: viewModel,
                   nextBook: nextBook,
+                  readList: readList,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
@@ -450,7 +459,9 @@ struct DivinaReaderView: View {
       }
 
       // Load next book
-      if let nextBook = try await BookService.shared.getNextBook(bookId: bookId) {
+      if let nextBook = try await BookService.shared.getNextBook(
+        bookId: bookId, readListId: readList?.id)
+      {
         self.nextBook = nextBook
       } else {
         nextBook = nil

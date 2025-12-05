@@ -107,7 +107,7 @@ struct ContentView: View {
     #if os(iOS) || os(tvOS)
       .fullScreenCover(isPresented: readerIsPresented) {
         if let state = readerPresentation.readerState, let book = state.book {
-          BookReaderView(book: book, incognito: state.incognito)
+          BookReaderView(book: book, incognito: state.incognito, readList: state.readList)
           .transition(.scale.animation(.easeInOut))
         } else {
           ReaderPlaceholderView {

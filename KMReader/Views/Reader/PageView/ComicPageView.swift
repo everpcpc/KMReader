@@ -10,6 +10,7 @@ import SwiftUI
 struct ComicPageView: View {
   @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
+  let readList: ReadList?
   let onDismiss: () -> Void
   let onNextBook: (String) -> Void
   let goToNextPage: () -> Void
@@ -51,6 +52,7 @@ struct ComicPageView: View {
             EndPageView(
               viewModel: viewModel,
               nextBook: nextBook,
+              readList: readList,
               onDismiss: onDismiss,
               onNextBook: onNextBook,
               isRTL: false,

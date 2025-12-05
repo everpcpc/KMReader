@@ -14,6 +14,7 @@ struct DashboardBooksSection: View {
   var onBookUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var books: [Book] = []
   @State private var currentPage = 0
@@ -52,6 +53,9 @@ struct DashboardBooksSection: View {
                   book: book,
                   viewModel: bookViewModel,
                   cardWidth: PlatformHelper.dashboardCardWidth,
+                  onReadBook: { incognito in
+                    readerPresentation.present(book: book, incognito: incognito)
+                  },
                   onBookUpdated: onBookUpdated,
                   showSeriesTitle: true,
                 )

@@ -12,6 +12,7 @@
     let viewModel: ReaderViewModel
     @Binding var isAtBottom: Bool
     let nextBook: Book?
+    let readList: ReadList?
     let onDismiss: () -> Void
     let onNextBook: (String) -> Void
     let toggleControls: () -> Void
@@ -44,6 +45,7 @@
           EndPageView(
             viewModel: viewModel,
             nextBook: nextBook,
+            readList: readList,
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             isRTL: false,

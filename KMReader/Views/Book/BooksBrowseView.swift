@@ -74,6 +74,9 @@ struct BooksBrowseView: View {
           book: book,
           viewModel: viewModel,
           cardWidth: layoutHelper.cardWidth,
+          onReadBook: { incognito in
+            readerPresentation.present(book: book, incognito: incognito)
+          },
           onBookUpdated: {
             Task {
               await loadBooks(refresh: true)
