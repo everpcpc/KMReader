@@ -120,6 +120,18 @@ struct PlatformHelper {
     #endif
   }
 
+  static var progressBarHeight: CGFloat {
+    #if os(tvOS)
+      return 8
+    #elseif os(macOS)
+      return 6
+    #elseif os(iOS)
+      return isPad ? 6 : 4
+    #else
+      return 4
+    #endif
+  }
+
   static var readerAnimation: Animation? {
     #if os(tvOS)
       return nil

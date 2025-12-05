@@ -11,21 +11,37 @@ struct ReadingProgressBar: View {
   let progress: Double
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
+  private var progressBarHeight: CGFloat {
+    PlatformHelper.progressBarHeight
+  }
+
+  private var progressBarCornerRadius: CGFloat {
+    progressBarHeight / 2
+  }
+
+  private var progressBarPadding: CGFloat {
+    progressBarCornerRadius
+  }
+
   var body: some View {
     GeometryReader { geometry in
       ZStack(alignment: .leading) {
         Rectangle()
-          .fill(Color.gray.opacity(0.2))
-          .frame(height: 4)
-          .cornerRadius(2)
+          .fill(Color.white.opacity(0.3))
+          .frame(height: progressBarHeight)
+          .cornerRadius(progressBarCornerRadius)
 
         Rectangle()
           .fill(themeColor.color)
-          .frame(width: geometry.size.width * progress, height: 4)
-          .cornerRadius(2)
+          .frame(
+            width: max(geometry.size.width * progress, progress > 0 ? 4 : 0),
+            height: progressBarHeight
+          )
+          .cornerRadius(progressBarCornerRadius)
+          .shadow(color: themeColor.color.opacity(0.6), radius: 2, x: 0, y: 0)
       }
     }
-    .frame(height: 4)
-    .padding(4)
+    .frame(height: progressBarHeight)
+    .padding(progressBarPadding)
   }
 }

@@ -50,14 +50,19 @@ struct BookCardView: View {
     } label: {
       VStack(alignment: .leading, spacing: 6) {
         ThumbnailImage(url: thumbnailURL, width: cardWidth) {
-          if let readProgress = book.readProgress {
-            if !readProgress.completed {
-              ReadingProgressBar(progress: progress)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+          ZStack {
+            if let readProgress = book.readProgress {
+              if !readProgress.completed {
+                ThumbnailOverlayGradient(position: .bottom)
+                ReadingProgressBar(progress: progress)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+              } else {
+                EmptyView()
+              }
+            } else {
+              UnreadIndicator()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
-          } else {
-            UnreadIndicator()
-              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
 

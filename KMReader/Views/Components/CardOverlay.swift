@@ -34,6 +34,7 @@ struct UnreadCountBadge: View {
       .padding(.vertical, padding)
       .background(themeColor.color)
       .clipShape(Capsule())
+      .shadow(color: .black.opacity(0.5), radius: 3, x: 0, y: 1)
       .padding(padding)
   }
 }
@@ -59,6 +60,7 @@ struct UnreadIndicator: View {
     Circle()
       .fill(themeColor.color)
       .frame(width: size, height: size)
+      .shadow(color: .black.opacity(0.5), radius: 3, x: 0, y: 1)
       .padding(padding)
   }
 }
