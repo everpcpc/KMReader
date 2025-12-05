@@ -1,4 +1,4 @@
-.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer artifacts clean-archives clean-exports clean-artifacts
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer artifacts clean-archives clean-exports clean-artifacts bump major minor patch
 
 # Configuration
 SCHEME = KMReader
@@ -43,6 +43,12 @@ help: ## Show this help message
 	@echo "  make clean-exports    - Remove all exports"
 	@echo "  make clean-artifacts  - Remove prepared artifacts"
 	@echo "  make clean            - Remove archives, exports, and artifacts"
+	@echo ""
+	@echo "Version commands:"
+	@echo "  make bump             - Increment CURRENT_PROJECT_VERSION in project.pbxproj"
+	@echo "  make major            - Increment major version (MARKETING_VERSION)"
+	@echo "  make minor            - Increment minor version (MARKETING_VERSION)"
+	@echo "  make patch            - Increment patch version (MARKETING_VERSION)"
 	@echo ""
 
 build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS)
@@ -129,3 +135,15 @@ clean-artifacts: ## Remove prepared artifacts
 	@rm -rf artifacts
 
 clean: clean-archives clean-exports clean-artifacts ## Remove archives, exports, and artifacts
+
+bump: ## Increment CURRENT_PROJECT_VERSION in project.pbxproj
+	@$(MISC_DIR)/bump.sh
+
+major: ## Increment major version (MARKETING_VERSION)
+	@$(MISC_DIR)/bump-version.sh major
+
+minor: ## Increment minor version (MARKETING_VERSION)
+	@$(MISC_DIR)/bump-version.sh minor
+
+patch: ## Increment patch version (MARKETING_VERSION)
+	@$(MISC_DIR)/bump-version.sh patch
