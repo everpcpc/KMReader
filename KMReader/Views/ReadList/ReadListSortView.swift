@@ -16,19 +16,21 @@ struct ReadListSortView: View {
     HStack(spacing: 8) {
       LayoutModePicker()
 
-      Button {
-        showFilterSheet = true
-      } label: {
-        Image(systemName: "arrow.up.arrow.down.circle")
-          .imageScale(.large)
-      }
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {
-          FilterChip(
-            label:
-              "\(sortOpts.sortField.displayName) \(sortOpts.sortDirection == .ascending ? "↑" : "↓")",
-            systemImage: "arrow.up.arrow.down"
-          )
+          Image(systemName: "arrow.up.arrow.down.circle")
+            .padding(.leading, 4)
+
+          Button {
+            showFilterSheet = true
+          } label: {
+            FilterChip(
+              label:
+                "\(sortOpts.sortField.displayName) \(sortOpts.sortDirection == .ascending ? "↑" : "↓")",
+              systemImage: "arrow.up.arrow.down"
+            )
+          }
+          .buttonStyle(.plain)
         }
         .padding(.horizontal, 4)
       }

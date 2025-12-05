@@ -15,33 +15,45 @@ struct SeriesFilterView: View {
     HStack(spacing: 8) {
       LayoutModePicker()
 
-      Button {
-        showFilterSheet = true
-      } label: {
-        Image(systemName: "line.3.horizontal.decrease.circle")
-          .imageScale(.large)
-      }
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {
+          Image(systemName: "line.3.horizontal.decrease.circle")
+            .padding(.leading, 4)
+
           if browseOpts.readStatusFilter != .all {
-            FilterChip(
-              label: "Read: \(browseOpts.readStatusFilter.displayName)",
-              systemImage: "eye"
-            )
+            Button {
+              showFilterSheet = true
+            } label: {
+              FilterChip(
+                label: "Read: \(browseOpts.readStatusFilter.displayName)",
+                systemImage: "eye"
+              )
+            }
+            .buttonStyle(.plain)
           }
 
           if browseOpts.seriesStatusFilter != .all {
-            FilterChip(
-              label: "Status: \(browseOpts.seriesStatusFilter.displayName)",
-              systemImage: "chart.bar"
-            )
+            Button {
+              showFilterSheet = true
+            } label: {
+              FilterChip(
+                label: "Status: \(browseOpts.seriesStatusFilter.displayName)",
+                systemImage: "chart.bar"
+              )
+            }
+            .buttonStyle(.plain)
           }
 
-          FilterChip(
-            label:
-              "\(browseOpts.sortField.displayName) \(browseOpts.sortDirection == .ascending ? "↑" : "↓")",
-            systemImage: "arrow.up.arrow.down"
-          )
+          Button {
+            showFilterSheet = true
+          } label: {
+            FilterChip(
+              label:
+                "\(browseOpts.sortField.displayName) \(browseOpts.sortDirection == .ascending ? "↑" : "↓")",
+              systemImage: "arrow.up.arrow.down"
+            )
+          }
+          .buttonStyle(.plain)
         }
         .padding(.horizontal, 4)
       }
