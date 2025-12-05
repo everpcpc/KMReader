@@ -22,20 +22,21 @@
 
 ## ✨ Highlights
 
-- **Guided onboarding & multi-server vault**: first launch walks straight into Komga login, stores unlimited servers with custom names/roles, logs authentication history, and wipes cached data on removal.
-- **Unified library**: browse Series, Books, Collections, and Read Lists with grid/list layouts, orientation-aware columns, rich filters, and infinite-scroll history. Personalize dashboard sections (Keep Reading, On Deck, Recently Added/Read/Released/Updated) per library.
-- **Powerful readers**: DIVINA supports LTR/RTL/vertical/Webtoon (dual pages, pinch zoom, custom tap zones, page export, macOS window, tvOS remote). EPUB reader (iOS/iPadOS/macOS) offers offline downloads, custom fonts/themes/layouts, column modes, TOC navigation, and optional image-view fallback. Incognito reading is available in both engines.
-- **Admin & monitoring**: edit metadata, manage collections/read lists, trigger scans/analyses per library or globally, and inspect disk usage plus task analytics. Live Server-Sent Events keep dashboards, task queues, thumbnails, and sessions in sync with opt-in notifications.
-- **Smart caching & offline access**: dedicated caches for pages, book files, and thumbnails with adjustable limits, live size/file counters, manual clearing, automatic cleanup, and offline reopening for recent pages/EPUB files.
-- **Native Apple touches**: accent color and layout controls, keyboard shortcuts, adjustable Webtoon width, tap zone hints, tvOS focus navigation, and a dedicated macOS reader window.
+- **Guided onboarding & unlimited servers**: First launch drops straight into Komga login, stores unlimited instances with custom names/roles, records authentication history (IP, user-agent, API key), and clears cached credentials or downloads when removing a server.
+- **Adaptive browse & dashboards**: Series, Books, Collections, and Read Lists share one browse surface with search, filters, orientation-aware grid/list layouts, infinite scroll, and customizable dashboard sections (Keep Reading, On Deck, Recently Added/Read/Released/Updated) per library.
+- **Deep metadata & inline editing**: Rich series and collection pages expose release timelines, directions, publishers, genres, tags, alternate titles, creators, and related collections alongside actions for edit, analyze, refresh metadata, mark read/unread, add/remove collections, and delete with confirmations.
+- **Two optimized readers**: DIVINA covers LTR/RTL/vertical/Webtoon on iOS/iPadOS/macOS/tvOS with dual-page spreads, pinch zoom, configurable tap zones, quick page jumps, exports, tvOS remote gestures, and a macOS reader window. EPUB reader (iOS/iPadOS/macOS) keeps titles offline or incognito with custom fonts, themes, pagination, column layouts, TOC navigation, and an optional image-first mode.
+- **Live admin & monitoring**: Edit metadata, manage collections/read lists, trigger scans or analyses per library or globally, cancel outstanding tasks, and inspect disk usage plus per-library metrics while SSE pushes live updates for dashboards, task queues, thumbnails, and session expirations with opt-in notifications.
+- **Smart caching & native polish**: Three-tier caches for pages, book files, and thumbnails expose adjustable budgets, live size/file counts, one-tap clearing, and automatic cleanup so recently viewed pages and EPUB downloads reopen offline. Accent colors, Webtoon width controls, tap-zone hints, keyboard shortcuts, focus-friendly tvOS navigation, and incognito reading keep everything feeling native.
 
 ---
 
 ## 🧭 Overview
 
-- Clean separation between browsing, reading, settings, and admin tools keeps navigation predictable.
-- Reusable services centralize networking, caching, SSE handling, and error reporting for identical behavior on every device.
-- Local storage remembers every Komga profile so you can jump between servers instantly.
+- Scenes for browsing, readers, dashboard, and admin tasks keep navigation predictable across iPhone, iPad, Mac, and Apple TV.
+- SwiftData stores Komga instances, libraries, and custom fonts so every server profile, cache budget, and dashboard preference stays local to the device.
+- Shared services handle API access, authentication, caching, SSE subscriptions, and error surfaces for consistent behavior on every platform.
+- Local storage remembers each Komga profile, last activity, and cached downloads so switching servers never means losing state.
 
 ---
 

@@ -1,21 +1,19 @@
 KMReader - Native Komga Reader for iOS, macOS & tvOS
 
-KMReader is a sleek multi-server Komga client that keeps comics, manga, and novels synced across iPhone, iPad, Mac, and Apple TV. Save every server once, then enjoy the same polished interface everywhere.
+KMReader keeps every Komga library a tap away on iPhone, iPad, Mac, and Apple TV. Store unlimited servers, jump between dashboards, and sink into polished comic and EPUB readers that stay in sync no matter where you are.
 
 HIGHLIGHTS
 
-• Guided Onboarding & Multi-Server Vault: First launch flows directly into server setup, storing unlimited Komga instances with custom names, roles, and last-used info. Switch instantly, review auth history (IP, user-agent, API key), and optionally purge cached data when removing a server. Role-based permissions unlock admin controls automatically.
+• Guided Onboarding & Server Vault: First launch heads straight into Komga login, storing unlimited instances with custom names, last activity, detected roles, and human-readable auth history (IP, user-agent, API key). Remove a server to scrub cached pages, downloads, and credentials instantly.
 
-• Unified Library & Dashboard: Browse Series, Books, Collections, and Read Lists with rich filters while sections like Keep Reading, On Deck, Recently Added, Recently Read, Recently Released, and Recently Updated keep the next read waiting. Show or hide sections, reorder them, pick libraries, and resume anywhere thanks to synced history and infinite scroll.
+• Adaptive Library & Dashboards: Series, Books, Collections, and Read Lists share one browse surface with search, filters, grid/list layouts, and orientation-aware column counts. Dashboard sections such as Keep Reading, On Deck, Recently Added/Read/Released/Updated can be toggled or reordered per library with infinite-scroll history.
 
-• Deep Series & Collection Views: Series pages surface release timelines, reading directions, publishers, genres, tags, alternate titles, creators, links, timestamps, summaries, and parent collections alongside actions to edit, analyze, refresh metadata, mark read/unread, add to collections, or delete. Collection pages display layouts, counts, dates, and filters with multi-select batch removal plus inline edit/delete.
+• Deep Metadata & Inline Editing: Series and collection pages surface release timelines, directions, publishers, genres, tags, alternate titles, creators, timelines, and related collections. Inline actions let you edit metadata, analyze, refresh covers, mark read/unread, add/remove collections, delete, or multi-select safely.
 
-• Dual-Format Readers: Comic reader supports LTR/RTL/vertical/Webtoon (Webtoon on iOS/iPadOS) with dual-page spreads, pinch zoom (iOS/iPadOS/macOS), customizable tap zones, quick page jumps, and exports (JPEG, PNG, HEIF, WebP). EPUB reader (iOS/iPadOS/macOS) keeps books offline or incognito with adjustable fonts, themes, pagination, column layouts, and an optional image-first mode. tvOS adds DIVINA reading tuned for the Siri Remote.
+• Dual Readers with Offline Control: DIVINA handles LTR/RTL/vertical/Webtoon modes on iOS/iPadOS/macOS/tvOS with dual-page spreads, pinch zoom, configurable tap zones, quick jumps, exports, tvOS remote gestures, and a dedicated macOS reader window. EPUB reader (iOS/iPadOS/macOS) keeps books offline or incognito with custom fonts, themes, pagination, column layouts, TOC navigation, and an optional image-first mode.
 
-• Admin & Monitoring Tools: Edit metadata, manage collections and read lists, trigger scans or analyses per library or globally, and inspect server info plus a metrics dashboard showing disk usage, task analytics, and per-library stats. Task analytics include execution counts, total time, inline errors, and cancel-all controls. SSE delivers live updates for task queues, thumbnail generation, session expiry, and dashboard refreshes with opt-in notifications and independent toggles for automation.
+• Admin, SSE & Monitoring: Edit metadata, manage collections/read lists, trigger scans or analyses per library or globally, cancel queued tasks, and inspect disk usage plus per-library metrics. Server-Sent Events push live updates for dashboards, task queues, thumbnails, and session expiration with optional notifications and automation toggles.
 
-• Smart Caching & Offline Access: Three-tier caching (pages, book files, thumbnails) keeps everything instant while respecting storage. Adjust limits, monitor size and file counts, clear caches individually, and let automatic cleanup protect space. Recently viewed pages and downloaded EPUB files remain available offline.
+• Smart Caching & Apple-First Polish: Three-tier caches for pages, book files, and thumbnails provide adjustable budgets, live size/file counters, one-tap clearing, and automatic cleanup so recent pages and downloaded EPUB files reopen offline. Accent colors, adjustable Webtoon width, tap-zone hints, keyboard shortcuts, tvOS focus navigation, and incognito modes keep everything feeling native.
 
-• Native Apple Experience: Layouts tailored to each platform bring a dedicated macOS reader window, extensive keyboard shortcuts, customizable theme colors, orientation-aware column counts, adjustable Webtoon width (iOS/iPadOS), tap zone hints, incognito reading, and focus-friendly tvOS navigation. Dashboard preferences let you reorder sections and filter by libraries.
-
-Connect to your Komga server and take full control of your digital library today.
+Connect your Komga server and own your digital library everywhere you read.
