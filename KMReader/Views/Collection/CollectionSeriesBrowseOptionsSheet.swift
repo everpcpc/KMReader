@@ -35,12 +35,22 @@ struct CollectionSeriesBrowseOptionsSheet: View {
           }
           .pickerStyle(.menu)
         }
+
+        Section {
+          Button(action: resetOptions) {
+            Label("Reset", systemImage: "arrow.counterclockwise")
+          }
+        }
       }
     } controls: {
       Button(action: applyChanges) {
         Label("Done", systemImage: "checkmark")
       }
     }
+  }
+
+  private func resetOptions() {
+    tempOpts = CollectionSeriesBrowseOptions()
   }
 
   private func applyChanges() {

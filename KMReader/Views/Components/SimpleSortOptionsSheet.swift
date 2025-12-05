@@ -24,12 +24,22 @@ struct SimpleSortOptionsSheet: View {
           sortField: $tempOpts.sortField,
           sortDirection: $tempOpts.sortDirection
         )
+
+        Section {
+          Button(action: resetOptions) {
+            Label("Reset", systemImage: "arrow.counterclockwise")
+          }
+        }
       }
     } controls: {
       Button(action: applyChanges) {
         Label("Done", systemImage: "checkmark")
       }
     }
+  }
+
+  private func resetOptions() {
+    tempOpts = SimpleSortOptions()
   }
 
   private func applyChanges() {
