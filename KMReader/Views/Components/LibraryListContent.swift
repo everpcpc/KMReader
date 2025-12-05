@@ -17,6 +17,7 @@ struct LibraryListContent: View {
   @State private var performingLibraryIds: Set<String> = []
   @State private var isPerformingGlobalAction = false
   @State private var isLoading = false
+  @State private var selectedLibraryIds: [String] = []
 
   let showMetrics: Bool
   let showDeleteAction: Bool
@@ -111,6 +112,14 @@ struct LibraryListContent: View {
     }
     .refreshable {
       await refreshLibraries()
+    }
+    .onAppear {
+      selectedLibraryIds = dashboard.libraryIds
+    }
+    .onDisappear {
+      if dashboard.libraryIds != selectedLibraryIds {
+        dashboard.libraryIds = selectedLibraryIds
+      }
     }
   }
 
@@ -321,11 +330,11 @@ struct LibraryListContent: View {
 
   @ViewBuilder
   private func allLibrariesRowView() -> some View {
-    let isSelected = dashboard.libraryIds.isEmpty
+    let isSelected = selectedLibraryIds.isEmpty
 
     Button {
       withAnimation(.easeInOut(duration: 0.2)) {
-        dashboard.libraryIds = []
+        selectedLibraryIds = []
         onLibrarySelected?("")
       }
     } label: {
@@ -399,11 +408,11 @@ struct LibraryListContent: View {
   @ViewBuilder
   private func libraryRowView(_ library: KomgaLibrary) -> some View {
     let isPerforming = performingLibraryIds.contains(library.libraryId)
-    let isSelected = dashboard.libraryIds.contains(library.libraryId)
+    let isSelected = selectedLibraryIds.contains(library.libraryId)
 
     Button {
       withAnimation(.easeInOut(duration: 0.2)) {
-        var currentIds = dashboard.libraryIds
+        var currentIds = selectedLibraryIds
         if isSelected {
           currentIds.removeAll { $0 == library.libraryId }
         } else {
@@ -412,7 +421,7 @@ struct LibraryListContent: View {
           }
         }
         var seen = Set<String>()
-        dashboard.libraryIds = currentIds.filter { seen.insert($0).inserted }
+        selectedLibraryIds = currentIds.filter { seen.insert($0).inserted }
         onLibrarySelected?(isSelected ? nil : library.libraryId)
       }
     } label: {

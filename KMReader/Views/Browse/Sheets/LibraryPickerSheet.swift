@@ -9,8 +9,6 @@ import SwiftData
 import SwiftUI
 
 struct LibraryPickerSheet: View {
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-
   var body: some View {
     SheetView(title: "Select Library", size: .large) {
       LibraryListContent(
