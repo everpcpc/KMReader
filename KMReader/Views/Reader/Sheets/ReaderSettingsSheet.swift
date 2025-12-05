@@ -103,26 +103,30 @@ struct ReaderSettingsSheet: View {
   }
 
   private var webtoonSection: some View {
-    cardSection(title: "Webtoon") {
-      VStack(alignment: .leading, spacing: 12) {
-        HStack {
-          Text("Page Width")
-          Spacer()
-          Text("\(Int(webtoonPageWidthPercentage))%")
+    #if os(iOS)
+      cardSection(title: "Webtoon") {
+        VStack(alignment: .leading, spacing: 12) {
+          HStack {
+            Text("Page Width")
+            Spacer()
+            Text("\(Int(webtoonPageWidthPercentage))%")
+              .foregroundColor(.secondary)
+          }
+          Slider(
+            value: $webtoonPageWidthPercentage,
+            in: 50...100,
+            step: 5
+          )
+          Text("Adjust the width of webtoon pages as a percentage of screen width")
+            .font(.caption)
             .foregroundColor(.secondary)
+            .lineLimit(nil)
+            .multilineTextAlignment(.leading)
         }
-        Slider(
-          value: $webtoonPageWidthPercentage,
-          in: 50...100,
-          step: 5
-        )
-        Text("Adjust the width of webtoon pages as a percentage of screen width")
-          .font(.caption)
-          .foregroundColor(.secondary)
-          .lineLimit(nil)
-          .multilineTextAlignment(.leading)
       }
-    }
+    #else
+      EmptyView()
+    #endif
   }
 
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
