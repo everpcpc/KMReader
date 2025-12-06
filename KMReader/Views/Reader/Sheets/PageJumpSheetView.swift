@@ -351,7 +351,7 @@ struct PageJumpSheetView: View {
           Spacer()
         }
       }
-      .padding(.top, 8)
+      .padding()
     }
     .presentationDragIndicator(.visible)
   }
