@@ -304,6 +304,14 @@ struct DivinaReaderView: View {
         #endif
 
       }
+      #if os(macOS)
+        .simultaneousGesture(
+          TapGesture()
+            .onEnded {
+              toggleControls(autoHide: false)
+            }
+        )
+      #endif
       #if os(tvOS)
         .onPlayPauseCommand {
           // Manual toggle on tvOS should not auto-hide
