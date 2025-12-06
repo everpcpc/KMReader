@@ -135,7 +135,7 @@ class ReaderViewModel {
       logger.warning("⚠️ Book ID is empty, cannot load page image")
       return nil
     }
-    if let cachedFileURL = getCachedImageFileURL(page: page) {
+    if let cachedFileURL = await getCachedImageFileURL(page: page) {
       logger.debug("✅ Using cached image for page \(page.number) for book \(self.bookId)")
       return cachedFileURL
     }
@@ -146,7 +146,7 @@ class ReaderViewModel {
       if let result = await existingTask.value {
         return result
       }
-      if let cachedFileURL = getCachedImageFileURL(page: page) {
+      if let cachedFileURL = await getCachedImageFileURL(page: page) {
         return cachedFileURL
       }
       return nil
@@ -178,7 +178,7 @@ class ReaderViewModel {
           page: activePage
         )
 
-        if let fileURL = getCachedImageFileURL(page: activePage) {
+        if let fileURL = await getCachedImageFileURL(page: activePage) {
           logger.debug("💾 Saved page \(page.number) to disk cache for book \(self.bookId)")
           return fileURL
         } else {
@@ -204,15 +204,14 @@ class ReaderViewModel {
   /// Get cached image file URL from disk cache for a specific page
   /// - Parameter page: Book page metadata
   /// - Returns: Local file URL if the cached file exists, nil otherwise
-  func getCachedImageFileURL(page: BookPage) -> URL? {
+  func getCachedImageFileURL(page: BookPage) async -> URL? {
     guard !bookId.isEmpty else {
       return nil
     }
 
-    let fileURL = pageImageCache.imageFileURL(bookId: bookId, page: page)
-
-    if FileManager.default.fileExists(atPath: fileURL.path) {
-      return fileURL
+    // Use async check to avoid blocking main thread
+    if await pageImageCache.hasImage(bookId: bookId, page: page) {
+      return pageImageCache.imageFileURL(bookId: bookId, page: page)
     }
     return nil
   }
@@ -230,7 +229,8 @@ class ReaderViewModel {
       for index in pagesToPreload {
         // Only preload if not already cached
         let page = pages[index]
-        if !pageImageCache.hasImage(bookId: bookId, page: page) {
+        let hasImage = await pageImageCache.hasImage(bookId: bookId, page: page)
+        if !hasImage {
           group.addTask {
             _ = await self.getPageImageFileURL(page: page)
           }
@@ -371,7 +371,7 @@ class ReaderViewModel {
       return .failure(.bookIdEmpty)
     }
 
-    guard let fileURL = getCachedImageFileURL(page: page) else {
+    guard let fileURL = await getCachedImageFileURL(page: page) else {
       return .failure(.imageNotCached)
     }
 

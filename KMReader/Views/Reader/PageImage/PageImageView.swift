@@ -187,7 +187,7 @@ struct PageImageView: View {
     }
 
     // Get page image info
-    guard let cachedFileURL = viewModel.getCachedImageFileURL(page: page) else {
+    guard let cachedFileURL = await viewModel.getCachedImageFileURL(page: page) else {
       await MainActor.run {
         isSaving = false
         ErrorManager.shared.alert(message: "Image not available")

@@ -570,7 +570,7 @@
           return
         }
 
-        let isFromCache = viewModel.pageImageCache.hasImage(
+        let isFromCache = await viewModel.pageImageCache.hasImage(
           bookId: viewModel.bookId,
           page: page
         )
@@ -725,7 +725,7 @@
 
           for i in max(0, minVisible - 2)...min(self.pages.count - 1, maxVisible + 2) {
             let page = self.pages[i]
-            if !viewModel.pageImageCache.hasImage(bookId: viewModel.bookId, page: page) {
+            if !(await viewModel.pageImageCache.hasImage(bookId: viewModel.bookId, page: page)) {
               await self.loadImageForPage(i)
             }
           }

@@ -11,8 +11,7 @@ import SwiftUI
 
 /// Disk cache system for storing raw image data
 /// Used to avoid re-downloading images. Decoding is handled by SDWebImage or on-demand.
-@MainActor
-class ImageCache {
+actor ImageCache {
   // Logger for cache operations
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Komga", category: "ImageCache")
@@ -48,11 +47,11 @@ class ImageCache {
   func hasImage(bookId: String, page: BookPage) -> Bool {
     guard !bookId.isEmpty else { return false }
     let fileURL = imageFileURL(bookId: bookId, page: page)
-    return fileManager.fileExists(atPath: fileURL.path)
+    return FileManager.default.fileExists(atPath: fileURL.path)
   }
 
   /// Get cached image URL (creates no directories, may not exist on disk)
-  func imageFileURL(bookId: String, page: BookPage) -> URL {
+  nonisolated func imageFileURL(bookId: String, page: BookPage) -> URL {
     diskCacheFileURL(bookId: bookId, page: page, ensureDirectory: false)
   }
 
@@ -239,7 +238,7 @@ class ImageCache {
   }
 
   /// Recursively collect all files in a directory
-  nonisolated private static func collectFiles(at url: URL, fileManager: FileManager) -> [URL] {
+  static func collectFiles(at url: URL, fileManager: FileManager) -> [URL] {
     var files: [URL] = []
     guard
       let contents = try? fileManager.contentsOfDirectory(
@@ -264,7 +263,7 @@ class ImageCache {
   }
 
   /// Collect file information (size and modification date) for all files
-  nonisolated private static func collectFileInfo(
+  static func collectFileInfo(
     at diskCacheURL: URL,
     fileManager: FileManager,
     includeDate: Bool = false
@@ -292,7 +291,7 @@ class ImageCache {
   }
 
   /// Perform disk cache cleanup
-  nonisolated private static func performDiskCacheCleanup(
+  static func performDiskCacheCleanup(
     diskCacheURL: URL,
     fileManager: FileManager,
     maxCacheSize: Int
@@ -325,11 +324,14 @@ class ImageCache {
     }
   }
 
-  private func diskCacheFileURL(
+  nonisolated private func diskCacheFileURL(
     bookId: String,
     page: BookPage,
     ensureDirectory: Bool
   ) -> URL {
+    // Note: This matches the implementation used in imageFileURL but allows folder creation
+    // We construct path manually to be safe for non-isolated access
+    let diskCacheURL = CacheNamespace.baseDirectory(for: "KomgaImageCache")
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
     let pageDirectory =
       bookCacheDir
@@ -337,7 +339,7 @@ class ImageCache {
       .appendingPathComponent("\(page.number)", isDirectory: true)
 
     if ensureDirectory {
-      try? fileManager.createDirectory(at: pageDirectory, withIntermediateDirectories: true)
+      try? FileManager.default.createDirectory(at: pageDirectory, withIntermediateDirectories: true)
     }
 
     let sanitizedFileName = (page.fileName as NSString).lastPathComponent

@@ -10,7 +10,7 @@ import Foundation
 /// Provides a per-instance namespace for cache folders so multiple servers don't share disk state.
 enum CacheNamespace {
   /// Returns the active Komga instance identifier for namespace segregation.
-  static func identifier() -> String {
+  static nonisolated func identifier() -> String {
     let instanceId = AppConfig.currentInstanceId
     guard !instanceId.isEmpty else {
       return "default"
@@ -19,12 +19,12 @@ enum CacheNamespace {
   }
 
   /// Namespace-aware cache directory for the given cache name.
-  static func directory(for cacheName: String) -> URL {
+  static nonisolated func directory(for cacheName: String) -> URL {
     directory(for: cacheName, instanceId: identifier())
   }
 
   /// Namespace-aware cache directory for a specific Komga instance.
-  static func directory(for cacheName: String, instanceId: String) -> URL {
+  static nonisolated func directory(for cacheName: String, instanceId: String) -> URL {
     let sanitizedId = sanitize(instanceId)
     let base = baseDirectory(for: cacheName)
     let url = base.appendingPathComponent(sanitizedId, isDirectory: true)

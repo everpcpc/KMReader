@@ -9,104 +9,103 @@ import Foundation
 
 /// Centralized configuration management using UserDefaults
 enum AppConfig {
-  private static let defaults = UserDefaults.standard
 
   // MARK: - Server & Auth
   static var serverURL: String {
-    get { defaults.string(forKey: "serverURL") ?? "" }
-    set { defaults.set(newValue, forKey: "serverURL") }
+    get { UserDefaults.standard.string(forKey: "serverURL") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "serverURL") }
   }
 
   static var serverDisplayName: String {
-    get { defaults.string(forKey: "serverDisplayName") ?? "" }
-    set { defaults.set(newValue, forKey: "serverDisplayName") }
+    get { UserDefaults.standard.string(forKey: "serverDisplayName") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "serverDisplayName") }
   }
 
   static var authToken: String {
-    get { defaults.string(forKey: "authToken") ?? "" }
-    set { defaults.set(newValue, forKey: "authToken") }
+    get { UserDefaults.standard.string(forKey: "authToken") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "authToken") }
   }
 
   static var username: String {
-    get { defaults.string(forKey: "username") ?? "" }
-    set { defaults.set(newValue, forKey: "username") }
+    get { UserDefaults.standard.string(forKey: "username") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "username") }
   }
 
   static var isLoggedIn: Bool {
-    get { defaults.bool(forKey: "isLoggedIn") }
-    set { defaults.set(newValue, forKey: "isLoggedIn") }
+    get { UserDefaults.standard.bool(forKey: "isLoggedIn") }
+    set { UserDefaults.standard.set(newValue, forKey: "isLoggedIn") }
   }
 
   static var isAdmin: Bool {
-    get { defaults.bool(forKey: "isAdmin") }
-    set { defaults.set(newValue, forKey: "isAdmin") }
+    get { UserDefaults.standard.bool(forKey: "isAdmin") }
+    set { UserDefaults.standard.set(newValue, forKey: "isAdmin") }
   }
 
   static var deviceIdentifier: String? {
-    get { defaults.string(forKey: "deviceIdentifier") }
+    get { UserDefaults.standard.string(forKey: "deviceIdentifier") }
     set {
       if let value = newValue {
-        defaults.set(value, forKey: "deviceIdentifier")
+        UserDefaults.standard.set(value, forKey: "deviceIdentifier")
       } else {
-        defaults.removeObject(forKey: "deviceIdentifier")
+        UserDefaults.standard.removeObject(forKey: "deviceIdentifier")
       }
     }
   }
 
   static var dualPageNoCover: Bool {
-    get { defaults.bool(forKey: "dualPageNoCover") }
-    set { defaults.set(newValue, forKey: "dualPageNoCover") }
+    get { UserDefaults.standard.bool(forKey: "dualPageNoCover") }
+    set { UserDefaults.standard.set(newValue, forKey: "dualPageNoCover") }
   }
 
-  static var currentInstanceId: String {
-    get { defaults.string(forKey: "currentInstanceId") ?? "" }
-    set { defaults.set(newValue, forKey: "currentInstanceId") }
+  static nonisolated var currentInstanceId: String {
+    get { UserDefaults.standard.string(forKey: "currentInstanceId") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "currentInstanceId") }
   }
 
-  static var maxDiskCacheSize: Int {
+  static nonisolated var maxDiskCacheSize: Int {
     get {
-      if defaults.object(forKey: "maxDiskCacheSize") != nil {
-        return defaults.integer(forKey: "maxDiskCacheSize")
+      if UserDefaults.standard.object(forKey: "maxDiskCacheSize") != nil {
+        return UserDefaults.standard.integer(forKey: "maxDiskCacheSize")
       }
       return 8  // Default 8 GB
     }
-    set { defaults.set(newValue, forKey: "maxDiskCacheSize") }
+    set { UserDefaults.standard.set(newValue, forKey: "maxDiskCacheSize") }
   }
 
   // MARK: - SSE (Server-Sent Events)
   static var enableSSE: Bool {
     get {
-      if defaults.object(forKey: "enableSSE") != nil {
-        return defaults.bool(forKey: "enableSSE")
+      if UserDefaults.standard.object(forKey: "enableSSE") != nil {
+        return UserDefaults.standard.bool(forKey: "enableSSE")
       }
       return true  // Default to enabled
     }
-    set { defaults.set(newValue, forKey: "enableSSE") }
+    set { UserDefaults.standard.set(newValue, forKey: "enableSSE") }
   }
 
   static var enableSSENotify: Bool {
     get {
-      if defaults.object(forKey: "enableSSENotify") != nil {
-        return defaults.bool(forKey: "enableSSENotify")
+      if UserDefaults.standard.object(forKey: "enableSSENotify") != nil {
+        return UserDefaults.standard.bool(forKey: "enableSSENotify")
       }
       return false  // Default to disabled
     }
-    set { defaults.set(newValue, forKey: "enableSSENotify") }
+    set { UserDefaults.standard.set(newValue, forKey: "enableSSENotify") }
   }
 
   static var enableSSEAutoRefresh: Bool {
     get {
-      if defaults.object(forKey: "enableSSEAutoRefresh") != nil {
-        return defaults.bool(forKey: "enableSSEAutoRefresh")
+      if UserDefaults.standard.object(forKey: "enableSSEAutoRefresh") != nil {
+        return UserDefaults.standard.bool(forKey: "enableSSEAutoRefresh")
       }
       return true  // Default to enabled
     }
-    set { defaults.set(newValue, forKey: "enableSSEAutoRefresh") }
+    set { UserDefaults.standard.set(newValue, forKey: "enableSSEAutoRefresh") }
   }
 
   static var taskQueueStatus: TaskQueueSSEDto {
     get {
-      guard let rawValue = defaults.string(forKey: "taskQueueStatus"),
+      guard let rawValue = UserDefaults.standard.string(forKey: "taskQueueStatus"),
         !rawValue.isEmpty,
         let status = TaskQueueSSEDto(rawValue: rawValue)
       else {
@@ -115,22 +114,24 @@ enum AppConfig {
       return status
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "taskQueueStatus")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "taskQueueStatus")
     }
   }
 
   static var serverLastUpdate: Date? {
     get {
-      guard let timeInterval = defaults.object(forKey: "serverLastUpdate") as? TimeInterval else {
+      guard
+        let timeInterval = UserDefaults.standard.object(forKey: "serverLastUpdate") as? TimeInterval
+      else {
         return nil
       }
       return Date(timeIntervalSince1970: timeInterval)
     }
     set {
       if let date = newValue {
-        defaults.set(date.timeIntervalSince1970, forKey: "serverLastUpdate")
+        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: "serverLastUpdate")
       } else {
-        defaults.removeObject(forKey: "serverLastUpdate")
+        UserDefaults.standard.removeObject(forKey: "serverLastUpdate")
       }
     }
   }
@@ -138,17 +139,17 @@ enum AppConfig {
   // MARK: - Custom Fonts
   static var customFontNames: [String] {
     get {
-      defaults.stringArray(forKey: "customFontNames") ?? []
+      UserDefaults.standard.stringArray(forKey: "customFontNames") ?? []
     }
     set {
-      defaults.set(newValue, forKey: "customFontNames")
+      UserDefaults.standard.set(newValue, forKey: "customFontNames")
     }
   }
 
   // MARK: - Appearance
   static var themeColor: ThemeColor {
     get {
-      if let stored = defaults.string(forKey: "themeColorHex"),
+      if let stored = UserDefaults.standard.string(forKey: "themeColorHex"),
         let color = ThemeColor(rawValue: stored)
       {
         return color
@@ -156,13 +157,13 @@ enum AppConfig {
       return .orange
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "themeColorHex")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "themeColorHex")
     }
   }
 
   static var browseLayout: BrowseLayoutMode {
     get {
-      if let stored = defaults.string(forKey: "browseLayout"),
+      if let stored = UserDefaults.standard.string(forKey: "browseLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
       {
         return layout
@@ -170,13 +171,13 @@ enum AppConfig {
       return .grid
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "browseLayout")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "browseLayout")
     }
   }
 
   static var browseColumns: BrowseColumns {
     get {
-      if let stored = defaults.string(forKey: "browseColumns"),
+      if let stored = UserDefaults.standard.string(forKey: "browseColumns"),
         let columns = BrowseColumns(rawValue: stored)
       {
         return columns
@@ -184,62 +185,62 @@ enum AppConfig {
       return BrowseColumns()
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "browseColumns")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "browseColumns")
     }
   }
 
   static var showSeriesCardTitle: Bool {
     get {
-      if defaults.object(forKey: "showSeriesCardTitle") != nil {
-        return defaults.bool(forKey: "showSeriesCardTitle")
+      if UserDefaults.standard.object(forKey: "showSeriesCardTitle") != nil {
+        return UserDefaults.standard.bool(forKey: "showSeriesCardTitle")
       }
       return true
     }
     set {
-      defaults.set(newValue, forKey: "showSeriesCardTitle")
+      UserDefaults.standard.set(newValue, forKey: "showSeriesCardTitle")
     }
   }
 
   static var showBookCardSeriesTitle: Bool {
     get {
-      if defaults.object(forKey: "showBookCardSeriesTitle") != nil {
-        return defaults.bool(forKey: "showBookCardSeriesTitle")
+      if UserDefaults.standard.object(forKey: "showBookCardSeriesTitle") != nil {
+        return UserDefaults.standard.bool(forKey: "showBookCardSeriesTitle")
       }
       return true
     }
     set {
-      defaults.set(newValue, forKey: "showBookCardSeriesTitle")
+      UserDefaults.standard.set(newValue, forKey: "showBookCardSeriesTitle")
     }
   }
 
   static var thumbnailPreserveAspectRatio: Bool {
     get {
-      if defaults.object(forKey: "thumbnailPreserveAspectRatio") != nil {
-        return defaults.bool(forKey: "thumbnailPreserveAspectRatio")
+      if UserDefaults.standard.object(forKey: "thumbnailPreserveAspectRatio") != nil {
+        return UserDefaults.standard.bool(forKey: "thumbnailPreserveAspectRatio")
       }
       return true
     }
     set {
-      defaults.set(newValue, forKey: "thumbnailPreserveAspectRatio")
+      UserDefaults.standard.set(newValue, forKey: "thumbnailPreserveAspectRatio")
     }
   }
 
   // MARK: - Reader
   static var showReaderHelperOverlay: Bool {
     get {
-      if defaults.object(forKey: "showReaderHelperOverlay") != nil {
-        return defaults.bool(forKey: "showReaderHelperOverlay")
+      if UserDefaults.standard.object(forKey: "showReaderHelperOverlay") != nil {
+        return UserDefaults.standard.bool(forKey: "showReaderHelperOverlay")
       }
       return true
     }
     set {
-      defaults.set(newValue, forKey: "showReaderHelperOverlay")
+      UserDefaults.standard.set(newValue, forKey: "showReaderHelperOverlay")
     }
   }
 
   static var readerBackground: ReaderBackground {
     get {
-      if let stored = defaults.string(forKey: "readerBackground"),
+      if let stored = UserDefaults.standard.string(forKey: "readerBackground"),
         let background = ReaderBackground(rawValue: stored)
       {
         return background
@@ -247,13 +248,13 @@ enum AppConfig {
       return .system
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "readerBackground")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "readerBackground")
     }
   }
 
   static var pageLayout: PageLayout {
     get {
-      if let stored = defaults.string(forKey: "pageLayout") {
+      if let stored = UserDefaults.standard.string(forKey: "pageLayout") {
         if stored == "dual" {
           return .auto
         }
@@ -264,13 +265,13 @@ enum AppConfig {
       return .auto
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "pageLayout")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "pageLayout")
     }
   }
 
   static var defaultReadingDirection: ReadingDirection {
     get {
-      if let stored = defaults.string(forKey: "defaultReadingDirection"),
+      if let stored = UserDefaults.standard.string(forKey: "defaultReadingDirection"),
         let direction = ReadingDirection(rawValue: stored)
       {
         return direction
@@ -278,38 +279,38 @@ enum AppConfig {
       return .ltr
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "defaultReadingDirection")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "defaultReadingDirection")
     }
   }
 
   static var webtoonPageWidthPercentage: Double {
     get {
-      if defaults.object(forKey: "webtoonPageWidthPercentage") != nil {
-        return defaults.double(forKey: "webtoonPageWidthPercentage")
+      if UserDefaults.standard.object(forKey: "webtoonPageWidthPercentage") != nil {
+        return UserDefaults.standard.double(forKey: "webtoonPageWidthPercentage")
       }
       return 100.0
     }
     set {
-      defaults.set(newValue, forKey: "webtoonPageWidthPercentage")
+      UserDefaults.standard.set(newValue, forKey: "webtoonPageWidthPercentage")
     }
   }
 
   static var showPageNumber: Bool {
     get {
-      if defaults.object(forKey: "showPageNumber") != nil {
-        return defaults.bool(forKey: "showPageNumber")
+      if UserDefaults.standard.object(forKey: "showPageNumber") != nil {
+        return UserDefaults.standard.bool(forKey: "showPageNumber")
       }
       return true
     }
     set {
-      defaults.set(newValue, forKey: "showPageNumber")
+      UserDefaults.standard.set(newValue, forKey: "showPageNumber")
     }
   }
 
   // MARK: - Dashboard
   static var dashboard: DashboardConfiguration {
     get {
-      if let stored = defaults.string(forKey: "dashboard"),
+      if let stored = UserDefaults.standard.string(forKey: "dashboard"),
         let config = DashboardConfiguration(rawValue: stored)
       {
         return config
@@ -317,17 +318,17 @@ enum AppConfig {
       return DashboardConfiguration()
     }
     set {
-      defaults.set(newValue.rawValue, forKey: "dashboard")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "dashboard")
     }
   }
 
   // MARK: - Clear selected library IDs
   static func clearSelectedLibraryIds() {
-    if let rawValue = defaults.string(forKey: "dashboard"),
+    if let rawValue = UserDefaults.standard.string(forKey: "dashboard"),
       var config = DashboardConfiguration(rawValue: rawValue)
     {
       config.libraryIds = []
-      defaults.set(config.rawValue, forKey: "dashboard")
+      UserDefaults.standard.set(config.rawValue, forKey: "dashboard")
     }
   }
 
