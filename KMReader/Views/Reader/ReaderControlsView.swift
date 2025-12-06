@@ -221,7 +221,7 @@ struct ReaderControlsView: View {
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
         // Bottom slider
-        ReadingProgressBar(progress: progress)
+        ReadingProgressBar(progress: progress, backgroundColor: .gray)
           .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
       }
       .padding()

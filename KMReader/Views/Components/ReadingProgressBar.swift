@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ReadingProgressBar: View {
   let progress: Double
+  let backgroundColor: Color
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
@@ -16,11 +17,16 @@ struct ReadingProgressBar: View {
     PlatformHelper.progressBarHeight
   }
 
+  init(progress: Double, backgroundColor: Color = .white) {
+    self.progress = progress
+    self.backgroundColor = backgroundColor
+  }
+
   var body: some View {
     GeometryReader { geometry in
       ZStack(alignment: .leading) {
         Capsule()
-          .fill(Color.white.opacity(0.6))
+          .fill(backgroundColor.opacity(0.6))
           .frame(height: progressBarHeight)
 
         Capsule()
