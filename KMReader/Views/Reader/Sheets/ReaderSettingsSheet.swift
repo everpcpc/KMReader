@@ -15,7 +15,7 @@ struct ReaderSettingsSheet: View {
   @Binding var webtoonPageWidthPercentage: Double
 
   var body: some View {
-    SheetView(title: "Reader Settings", size: .large, applyFormStyle: true) {
+    SheetView(title: "Reader Settings", size: .medium, applyFormStyle: true) {
       Form {
         Section(header: Text("Appearance")) {
           Picker("Reader Background", selection: $readerBackground) {

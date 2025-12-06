@@ -141,7 +141,7 @@ enum SheetPresentationSize {
     var detents: Set<PresentationDetent> {
       switch self {
       case .medium:
-        return [.medium]
+        return [.medium, .large]
       case .large:
         return [.large]
       case .both:
