@@ -30,32 +30,24 @@ class AuthViewModel {
     password: String,
     serverURL: String,
     displayName: String? = nil
-  ) async -> Bool {
+  ) async throws {
     isLoading = true
     defer { isLoading = false }
 
-    do {
-      // Validate authentication using temporary request
-      let result = try await authService.login(
-        username: username, password: password, serverURL: serverURL)
+    // Validate authentication using temporary request
+    let result = try await authService.login(
+      username: username, password: password, serverURL: serverURL)
 
-      // Apply login configuration
-      try await applyLoginConfiguration(
-        serverURL: serverURL,
-        username: username,
-        authToken: result.authToken,
-        user: result.user,
-        displayName: displayName,
-        shouldPersistInstance: true,
-        successMessage: "Logged in successfully"
-      )
-
-      return true
-    } catch {
-      // Login failed - AuthService uses temporary request, so AppConfig is not modified
-      ErrorManager.shared.alert(error: error)
-      return false
-    }
+    // Apply login configuration
+    try await applyLoginConfiguration(
+      serverURL: serverURL,
+      username: username,
+      authToken: result.authToken,
+      user: result.user,
+      displayName: displayName,
+      shouldPersistInstance: true,
+      successMessage: "Logged in successfully"
+    )
   }
 
   func logout() {

@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import Foundation
 import SwiftUI
 
 struct LoginView: View {
@@ -17,6 +18,7 @@ struct LoginView: View {
   @State private var usernameText: String = ""
   @State private var password = ""
   @State private var instanceName = ""
+  @State private var loginErrorMessage: String?
 
   var body: some View {
     ScrollView {
@@ -33,7 +35,6 @@ struct LoginView: View {
       #endif
       .frame(maxWidth: .infinity)
     }
-    .inlineNavigationBarTitle("Connect to a Server")
     .task {
       serverURLText = serverURL
       usernameText = username
@@ -46,23 +47,21 @@ struct LoginView: View {
 
   private func login() {
     Task {
+      loginErrorMessage = nil
       let trimmedName = instanceName.trimmingCharacters(in: .whitespacesAndNewlines)
       let displayName = trimmedName.isEmpty ? nil : trimmedName
 
-      // Attempt login - AuthViewModel will handle saving to AppConfig
-      let success = await authViewModel.login(
-        username: usernameText,
-        password: password,
-        serverURL: serverURLText,
-        displayName: displayName
-      )
-
-      // Dismiss only if login was successful
-      // AppConfig is already updated by AuthViewModel, which syncs with @AppStorage
-      if success {
+      do {
+        try await authViewModel.login(
+          username: usernameText,
+          password: password,
+          serverURL: serverURLText,
+          displayName: displayName
+        )
         dismiss()
+      } catch {
+        loginErrorMessage = formattedErrorMessage(from: error)
       }
-      // If login failed, stay on login screen
     }
   }
 
@@ -101,6 +100,9 @@ struct LoginView: View {
             .keyboardType(.URL)
           #endif
           .autocorrectionDisabled()
+          .onChange(of: serverURLText) { _, _ in
+            loginErrorMessage = nil
+          }
       }
 
       FieldContainer(
@@ -123,6 +125,9 @@ struct LoginView: View {
             .autocapitalization(.none)
           #endif
           .autocorrectionDisabled()
+          .onChange(of: usernameText) { _, _ in
+            loginErrorMessage = nil
+          }
       }
 
       FieldContainer(
@@ -132,6 +137,9 @@ struct LoginView: View {
       ) {
         SecureField("Enter your password", text: $password)
           .textContentType(.password)
+          .onChange(of: password) { _, _ in
+            loginErrorMessage = nil
+          }
       }
 
       Button(action: login) {
@@ -150,6 +158,19 @@ struct LoginView: View {
       .adaptiveButtonStyle(.borderedProminent)
       .disabled(!isFormValid || authViewModel.isLoading)
       .padding(.top, 8)
+
+      if let loginErrorMessage {
+        HStack(alignment: .top, spacing: 8) {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(.red)
+          Text(loginErrorMessage)
+            .font(.footnote)
+            .foregroundStyle(.red)
+            .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+      }
     }
   }
 
@@ -161,6 +182,16 @@ struct LoginView: View {
     #else
       Color.white.opacity(0.08)
     #endif
+  }
+
+  private func formattedErrorMessage(from error: Error) -> String {
+    if let apiError = error as? APIError {
+      return apiError.description
+    }
+    if let localizedError = error as? LocalizedError, let message = localizedError.errorDescription {
+      return message
+    }
+    return error.localizedDescription
   }
 }
 

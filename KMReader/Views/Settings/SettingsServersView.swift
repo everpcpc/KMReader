@@ -146,10 +146,19 @@ struct SettingsServersView: View {
     }
     #if os(macOS)
       .sheet(isPresented: $showLogin) {
-        NavigationStack {
+        SheetView(title: "Connect to a Server", size: .large) {
           LoginView()
         }
-        .frame(minWidth: 400, minHeight: 600)
+      }
+    #elseif os(iOS)
+      .sheet(isPresented: iPadLoginBinding) {
+        SheetView(title: "Connect to a Server", size: .large) {
+          LoginView()
+        }
+        .presentationDragIndicator(.visible)
+      }
+      .navigationDestination(isPresented: iPhoneLoginBinding) {
+        LoginView()
       }
     #else
       .navigationDestination(isPresented: $showLogin) {
@@ -238,7 +247,9 @@ struct SettingsServersView: View {
             text: instance.isAdmin ? "Admin Access" : "User Access",
             textColor: instance.isAdmin ? .green : .secondary
           )
-          infoDetailRow(icon: "clock.arrow.circlepath", text: lastUsedDescription(for: instance), textColor: .secondary)
+          infoDetailRow(
+            icon: "clock.arrow.circlepath", text: lastUsedDescription(for: instance),
+            textColor: .secondary)
         }
       }
       .padding(18)
@@ -300,7 +311,9 @@ struct SettingsServersView: View {
       ProgressView()
         .scaleEffect(0.85)
     } else if isActive {
-      infoTag(icon: "checkmark.seal.fill", text: "Active", tint: themeColor.color, textColor: themeColor.color)
+      infoTag(
+        icon: "checkmark.seal.fill", text: "Active", tint: themeColor.color,
+        textColor: themeColor.color)
     } else {
       Image(systemName: "chevron.right")
         .font(.body.weight(.semibold))
@@ -384,14 +397,17 @@ struct SettingsServersView: View {
   }
 
   private func lastUsedDescription(for instance: KomgaInstance) -> String {
-    let relativeText = instance.lastUsedAt.formatted(.relative(presentation: .named, unitsStyle: .abbreviated))
+    let relativeText = instance.lastUsedAt.formatted(
+      .relative(presentation: .named, unitsStyle: .abbreviated))
     return "Last used \(relativeText)"
   }
 
   private func cardBackground(isActive: Bool) -> some View {
     let inactiveTop = colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)
-    let inactiveBottom = colorScheme == .dark ? Color.white.opacity(0.03) : Color.black.opacity(0.02)
-    let colors = isActive
+    let inactiveBottom =
+      colorScheme == .dark ? Color.white.opacity(0.03) : Color.black.opacity(0.02)
+    let colors =
+      isActive
       ? [
         themeColor.color.opacity(0.45),
         themeColor.color.opacity(0.2),
@@ -457,3 +473,33 @@ struct SettingsServersView: View {
   }
 
 }
+
+#if os(iOS)
+  extension SettingsServersView {
+    private var iPadLoginBinding: Binding<Bool> {
+      Binding(
+        get: {
+          PlatformHelper.isPad ? showLogin : false
+        },
+        set: { newValue in
+          if PlatformHelper.isPad {
+            showLogin = newValue
+          }
+        }
+      )
+    }
+
+    private var iPhoneLoginBinding: Binding<Bool> {
+      Binding(
+        get: {
+          PlatformHelper.isPad ? false : showLogin
+        },
+        set: { newValue in
+          if !PlatformHelper.isPad {
+            showLogin = newValue
+          }
+        }
+      )
+    }
+  }
+#endif
