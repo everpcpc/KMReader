@@ -306,15 +306,20 @@
         locator: r2Locator
       )
 
-      // Update progression on server
-      do {
-        try await BookService.shared.updateWebPubProgression(
-          bookId: bookId,
-          progression: progression
-        )
-      } catch {
-        // Silently fail - progression update is not critical
-        logger.error("Failed to update progression: \(error.localizedDescription)")
+      let activeBookId = bookId
+      let logger = self.logger
+
+      // Update progression off the main actor to keep navigation responsive
+      Task.detached(priority: .utility) {
+        do {
+          try await BookService.shared.updateWebPubProgression(
+            bookId: activeBookId,
+            progression: progression
+          )
+        } catch {
+          // Silently fail - progression update is not critical
+          logger.error("Failed to update progression: \(error.localizedDescription)")
+        }
       }
     }
 

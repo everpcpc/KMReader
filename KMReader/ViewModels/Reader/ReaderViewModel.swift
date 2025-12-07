@@ -248,16 +248,24 @@ class ReaderViewModel {
     guard !bookId.isEmpty else { return }
     guard let currentPage = currentPage else { return }
 
+    let activeBookId = bookId
+    let currentPageNumber = currentPage.number
     let completed = currentPageIndex >= pages.count - 1
 
-    do {
-      try await BookService.shared.updatePageReadProgress(
-        bookId: bookId,
-        page: currentPage.number,
-        completed: completed
-      )
-    } catch {
-      // Progress updates are non-critical, fail silently
+    let progressLogger = logger
+    Task.detached(priority: .utility) {
+      do {
+        try await BookService.shared.updatePageReadProgress(
+          bookId: activeBookId,
+          page: currentPageNumber,
+          completed: completed
+        )
+      } catch {
+        // Progress updates are non-critical, fail silently
+        progressLogger.error(
+          "Failed to update page progress for book \(activeBookId) page \(currentPageNumber): \(error.localizedDescription)"
+        )
+      }
     }
   }
 
