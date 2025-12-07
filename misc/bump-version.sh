@@ -76,6 +76,6 @@ echo -e "${GREEN}Version bumped successfully!${NC}"
 # Commit the changes
 echo -e "${GREEN}Committing changes...${NC}"
 git add "$PROJECT"
-git commit -m "bump version to $NEXT_VERSION"
+git commit -m "chore: bump version to $NEXT_VERSION"
 
 echo -e "${GREEN}Version bump committed!${NC}"
