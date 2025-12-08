@@ -264,7 +264,7 @@ final class SSEService {
   }
 
   private func handleSSEEvent(type: String, data: String) async {
-    // Update last event time
+    // Track last event time for UI badges
     AppConfig.serverLastUpdate = Date()
 
     guard let jsonData = data.data(using: .utf8) else {

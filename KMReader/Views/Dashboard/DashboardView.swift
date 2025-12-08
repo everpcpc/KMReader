@@ -6,6 +6,7 @@
 //
 
 import Combine
+import OSLog
 import SwiftUI
 
 struct DashboardView: View {
@@ -21,20 +22,16 @@ struct DashboardView: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
-  @AppStorage("serverLastUpdate") private var serverLastUpdateInterval: TimeInterval = 0
 
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   private let sseService = SSEService.shared
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
+  private let logger = Logger(subsystem: "KMReader", category: "Dashboard")
 
-  private var lastServerEventText: Text {
-    guard serverLastUpdateInterval > 0 else { return Text("Server not updated yet") }
-    let lastEventTime = Date(timeIntervalSince1970: serverLastUpdateInterval)
-    return Text("Server updated \(lastEventTime, style: .relative) ago")
-  }
+  private func performRefresh(reason: String) {
+    logger.debug("Dashboard refresh start: \(reason, privacy: .public)")
 
-  private func performRefresh() {
     // Update refresh trigger to cause all sections to reload
     refreshTrigger = UUID()
     isRefreshDisabled = true
@@ -44,14 +41,16 @@ struct DashboardView: View {
     }
   }
 
-  private func refreshDashboard() {
+  private func refreshDashboard(reason: String) {
+    logger.debug("Dashboard refresh requested: \(reason, privacy: .public)")
+
     // Cancel any pending debounced refresh
     pendingRefreshTask?.cancel()
     pendingRefreshTask = nil
     shouldRefreshAfterReading = false
 
     // Update last event time for manual refreshes
-    serverLastUpdateInterval = Date().timeIntervalSince1970
+    AppConfig.serverLastUpdate = Date()
 
     // Check SSE connection status and reconnect if disconnected
     if enableSSE && !sseService.connected {
@@ -59,10 +58,12 @@ struct DashboardView: View {
     }
 
     // Perform refresh immediately
-    performRefresh()
+    performRefresh(reason: reason)
   }
 
-  private func scheduleRefresh() {
+  private func scheduleRefresh(reason: String) {
+    logger.debug("Dashboard auto-refresh scheduled: \(reason, privacy: .public)")
+
     // Skip if auto-refresh is disabled
     guard enableSSEAutoRefresh else { return }
 
@@ -73,8 +74,12 @@ struct DashboardView: View {
     // Defer refresh while actively reading
     if isReaderActive {
       shouldRefreshAfterReading = true
+      AppConfig.serverLastUpdate = Date()
       return
     }
+
+    // Record latest event time immediately
+    AppConfig.serverLastUpdate = Date()
 
     // Schedule a new refresh after debounce interval
     // This ensures the last event will always trigger a refresh
@@ -86,12 +91,10 @@ struct DashboardView: View {
 
       // Perform the refresh
       await MainActor.run {
-        // If reader became active while waiting, defer refresh until it closes
         if isReaderActive {
           shouldRefreshAfterReading = true
         } else {
-          // Debounce expired - refresh to ensure last event always triggers
-          performRefresh()
+          performRefresh(reason: "Auto after debounce: \(reason)")
         }
         pendingRefreshTask = nil
       }
@@ -116,19 +119,13 @@ struct DashboardView: View {
             if enableSSE {
               #if os(tvOS)
                 Button {
-                  refreshDashboard()
+                  refreshDashboard(reason: "Manual tvOS button")
                 } label: {
                   Label("Refresh", systemImage: "arrow.clockwise.circle")
                 }
                 .disabled(isRefreshDisabled)
               #endif
-              HStack {
-                Image(systemName: "antenna.radiowaves.left.and.right")
-                  .foregroundColor(.secondary)
-                lastServerEventText
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
+              ServerUpdateStatusView()
             }
             Spacer()
           }.padding()
@@ -141,7 +138,9 @@ struct DashboardView: View {
                 section: section,
                 bookViewModel: bookViewModel,
                 refreshTrigger: refreshTrigger,
-                onBookUpdated: refreshDashboard,
+                onBookUpdated: {
+                  refreshDashboard(reason: "Book action completed")
+                }
               )
               .transition(.move(edge: .top).combined(with: .opacity))
 
@@ -150,7 +149,9 @@ struct DashboardView: View {
                 section: section,
                 seriesViewModel: seriesViewModel,
                 refreshTrigger: refreshTrigger,
-                onSeriesUpdated: refreshDashboard,
+                onSeriesUpdated: {
+                  refreshDashboard(reason: "Series action completed")
+                }
               )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -163,13 +164,12 @@ struct DashboardView: View {
       .animation(.default, value: dashboard)
       .onChange(of: currentInstanceId) { _, _ in
         // Reset server last update time when switching servers
-        serverLastUpdateInterval = 0
         // Bypass auto-refresh setting for configuration changes
-        refreshDashboard()
+        refreshDashboard(reason: "Instance changed")
       }
       .onChange(of: dashboard.libraryIds) { _, _ in
         // Bypass auto-refresh setting for configuration changes
-        refreshDashboard()
+        refreshDashboard(reason: "Library filter changed")
       }
       .onAppear {
         setupSSEHandlers()
@@ -194,10 +194,10 @@ struct DashboardView: View {
           pendingRefreshTask = nil
         } else if shouldRefreshAfterReading {
           shouldRefreshAfterReading = false
-          refreshDashboard()
+          refreshDashboard(reason: "Deferred after reader closed")
         } else if !enableSSE {
           // Without SSE events we refresh when exiting the reader
-          refreshDashboard()
+          refreshDashboard(reason: "Reader closed without SSE")
         }
       }
       #if !os(tvOS)
@@ -211,7 +211,7 @@ struct DashboardView: View {
           }
           ToolbarItem(placement: .confirmationAction) {
             Button {
-              refreshDashboard()
+              refreshDashboard(reason: "Manual toolbar button")
             } label: {
               Image(systemName: "arrow.clockwise.circle")
             }
@@ -219,7 +219,7 @@ struct DashboardView: View {
           }
         }
         .refreshable {
-          refreshDashboard()
+          refreshDashboard(reason: "Pull to refresh")
         }
         .sheet(isPresented: $showLibraryPicker) {
           LibraryPickerSheet()
@@ -232,49 +232,49 @@ struct DashboardView: View {
     // Series events
     sseService.onSeriesAdded = { event in
       if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh()
+        scheduleRefresh(reason: "SSE SeriesAdded \(event.seriesId)")
       }
     }
     sseService.onSeriesChanged = { event in
       if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh()
+        scheduleRefresh(reason: "SSE SeriesChanged \(event.seriesId)")
       }
     }
     sseService.onSeriesDeleted = { event in
       if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh()
+        scheduleRefresh(reason: "SSE SeriesDeleted \(event.seriesId)")
       }
     }
 
     // Book events
     sseService.onBookAdded = { event in
       if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh()
+        scheduleRefresh(reason: "SSE BookAdded \(event.bookId)")
       }
     }
     sseService.onBookChanged = { event in
       if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh()
+        scheduleRefresh(reason: "SSE BookChanged \(event.bookId)")
       }
     }
     sseService.onBookDeleted = { event in
       if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh()
+        scheduleRefresh(reason: "SSE BookDeleted \(event.bookId)")
       }
     }
 
     // Read progress events - always refresh as they affect multiple sections
     sseService.onReadProgressChanged = { _ in
-      scheduleRefresh()
+      scheduleRefresh(reason: "SSE ReadProgressChanged")
     }
     sseService.onReadProgressDeleted = { _ in
-      scheduleRefresh()
+      scheduleRefresh(reason: "SSE ReadProgressDeleted")
     }
     sseService.onReadProgressSeriesChanged = { _ in
-      scheduleRefresh()
+      scheduleRefresh(reason: "SSE ReadProgressSeriesChanged")
     }
     sseService.onReadProgressSeriesDeleted = { _ in
-      scheduleRefresh()
+      scheduleRefresh(reason: "SSE ReadProgressSeriesDeleted")
     }
   }
 

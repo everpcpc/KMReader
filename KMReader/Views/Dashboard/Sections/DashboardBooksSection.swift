@@ -57,7 +57,7 @@ struct DashboardBooksSection: View {
                     readerPresentation.present(book: book, incognito: incognito)
                   },
                   onBookUpdated: onBookUpdated,
-                  showSeriesTitle: true,
+                  showSeriesTitle: true
                 )
                 .focusPadding()
                 .onAppear {
