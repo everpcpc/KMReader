@@ -161,9 +161,10 @@ enum AppConfig {
     }
   }
 
-  static var browseLayout: BrowseLayoutMode {
+  // MARK: - Browse Layouts
+  static var seriesBrowseLayout: BrowseLayoutMode {
     get {
-      if let stored = UserDefaults.standard.string(forKey: "browseLayout"),
+      if let stored = UserDefaults.standard.string(forKey: "seriesBrowseLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
       {
         return layout
@@ -171,7 +172,92 @@ enum AppConfig {
       return .grid
     }
     set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "browseLayout")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "seriesBrowseLayout")
+    }
+  }
+
+  static var collectionBrowseLayout: BrowseLayoutMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "collectionBrowseLayout"),
+        let layout = BrowseLayoutMode(rawValue: stored)
+      {
+        return layout
+      }
+      return .grid
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "collectionBrowseLayout")
+    }
+  }
+
+  static var bookBrowseLayout: BrowseLayoutMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "bookBrowseLayout"),
+        let layout = BrowseLayoutMode(rawValue: stored)
+      {
+        return layout
+      }
+      return .grid
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "bookBrowseLayout")
+    }
+  }
+
+  static var readListBrowseLayout: BrowseLayoutMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "readListBrowseLayout"),
+        let layout = BrowseLayoutMode(rawValue: stored)
+      {
+        return layout
+      }
+      return .grid
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "readListBrowseLayout")
+    }
+  }
+
+  // MARK: - Detail Layouts
+  static var seriesDetailLayout: BrowseLayoutMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "seriesDetailLayout"),
+        let layout = BrowseLayoutMode(rawValue: stored)
+      {
+        return layout
+      }
+      return .list
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "seriesDetailLayout")
+    }
+  }
+
+  static var collectionDetailLayout: BrowseLayoutMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "collectionDetailLayout"),
+        let layout = BrowseLayoutMode(rawValue: stored)
+      {
+        return layout
+      }
+      return .list
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "collectionDetailLayout")
+    }
+  }
+
+  static var readListDetailLayout: BrowseLayoutMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "readListDetailLayout"),
+        let layout = BrowseLayoutMode(rawValue: stored)
+      {
+        return layout
+      }
+      return .list
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "readListDetailLayout")
     }
   }
 

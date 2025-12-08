@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct LayoutModePicker: View {
-  @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
+  @Binding var selection: BrowseLayoutMode
 
   private var animatedSelection: Binding<BrowseLayoutMode> {
     Binding(
-      get: { layoutMode },
+      get: { selection },
       set: { newValue in
         withAnimation {
-          layoutMode = newValue
+          selection = newValue
         }
       }
     )

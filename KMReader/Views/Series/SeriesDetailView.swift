@@ -11,7 +11,6 @@ import SwiftUI
 struct SeriesDetailView: View {
   let seriesId: String
 
-  @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 

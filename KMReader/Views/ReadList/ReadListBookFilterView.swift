@@ -10,6 +10,7 @@ import SwiftUI
 struct ReadListBookFilterView: View {
   @Binding var browseOpts: ReadListBookBrowseOptions
   @Binding var showFilterSheet: Bool
+  @Binding var layoutMode: BrowseLayoutMode
 
   var emptyFilter: Bool {
     return browseOpts.readStatusFilter == .all
@@ -17,7 +18,7 @@ struct ReadListBookFilterView: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      LayoutModePicker()
+      LayoutModePicker(selection: $layoutMode)
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {

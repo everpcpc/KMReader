@@ -10,6 +10,7 @@ import SwiftUI
 struct CollectionSeriesFilterView: View {
   @Binding var browseOpts: CollectionSeriesBrowseOptions
   @Binding var showFilterSheet: Bool
+  @Binding var layoutMode: BrowseLayoutMode
 
   var emptyFilter: Bool {
     return browseOpts.readStatusFilter == .all && browseOpts.seriesStatusFilter == .all
@@ -17,7 +18,7 @@ struct CollectionSeriesFilterView: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      LayoutModePicker()
+      LayoutModePicker(selection: $layoutMode)
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {

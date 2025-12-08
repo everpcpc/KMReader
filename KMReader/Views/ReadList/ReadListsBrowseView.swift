@@ -16,12 +16,12 @@ struct ReadListsBrowseView: View {
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = ReadListViewModel()
 
   var body: some View {
     VStack(spacing: 0) {
-      ReadListSortView(showFilterSheet: $showFilterSheet)
+      ReadListSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
         .padding(layoutHelper.spacing)
 
       BrowseStateView(

@@ -10,7 +10,6 @@ import SwiftUI
 struct ReadListDetailView: View {
   let readListId: String
 
-  @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 

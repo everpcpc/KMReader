@@ -15,7 +15,7 @@ struct BooksListViewForSeries: View {
   let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
-  @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
+  @AppStorage("seriesDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("seriesBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
@@ -28,7 +28,11 @@ struct BooksListViewForSeries: View {
 
         Spacer()
 
-        BookFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
+        BookFilterView(
+          browseOpts: $browseOpts,
+          showFilterSheet: $showFilterSheet,
+          layoutMode: $layoutMode
+        )
       }
 
       if bookViewModel.isLoading && bookViewModel.books.isEmpty {

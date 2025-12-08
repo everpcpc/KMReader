@@ -15,15 +15,19 @@ struct BooksBrowseView: View {
 
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = BookViewModel()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @State private var hasInitialized = false
 
   var body: some View {
     VStack(spacing: 0) {
-      BookFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
-        .padding(layoutHelper.spacing)
+      BookFilterView(
+        browseOpts: $browseOpts,
+        showFilterSheet: $showFilterSheet,
+        layoutMode: $browseLayout
+      )
+      .padding(layoutHelper.spacing)
 
       BrowseStateView(
         isLoading: viewModel.isLoading,

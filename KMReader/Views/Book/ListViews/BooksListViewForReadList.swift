@@ -15,7 +15,7 @@ struct BooksListViewForReadList: View {
   let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
-  @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
+  @AppStorage("readListDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("readListBookBrowseOptions") private var browseOpts: ReadListBookBrowseOptions =
     ReadListBookBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
@@ -42,7 +42,11 @@ struct BooksListViewForReadList: View {
         Spacer()
 
         HStack(spacing: 8) {
-          ReadListBookFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
+          ReadListBookFilterView(
+            browseOpts: $browseOpts,
+            showFilterSheet: $showFilterSheet,
+            layoutMode: $layoutMode
+          )
 
           if supportsSelectionMode && !isSelectionMode && isAdmin {
             Button {

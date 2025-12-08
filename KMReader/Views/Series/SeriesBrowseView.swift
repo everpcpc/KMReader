@@ -16,14 +16,18 @@ struct SeriesBrowseView: View {
   @AppStorage("seriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
 
   @State private var viewModel = SeriesViewModel()
 
   var body: some View {
     VStack(spacing: 0) {
-      SeriesFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
-        .padding(layoutHelper.spacing)
+      SeriesFilterView(
+        browseOpts: $browseOpts,
+        showFilterSheet: $showFilterSheet,
+        layoutMode: $browseLayout
+      )
+      .padding(layoutHelper.spacing)
 
       BrowseStateView(
         isLoading: viewModel.isLoading,

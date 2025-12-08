@@ -11,6 +11,7 @@ struct ReadListSortView: View {
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @Binding var showFilterSheet: Bool
+  @Binding var layoutMode: BrowseLayoutMode
 
   var sortString: String {
     return
@@ -19,7 +20,7 @@ struct ReadListSortView: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      LayoutModePicker()
+      LayoutModePicker(selection: $layoutMode)
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {

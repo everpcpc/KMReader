@@ -18,12 +18,12 @@ struct CollectionsBrowseView: View {
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = CollectionViewModel()
 
   var body: some View {
     VStack(spacing: 0) {
-      CollectionSortView(showFilterSheet: $showFilterSheet)
+      CollectionSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
         .padding(spacing)
 
       BrowseStateView(

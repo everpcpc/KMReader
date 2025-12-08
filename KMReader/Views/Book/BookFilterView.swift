@@ -10,6 +10,7 @@ import SwiftUI
 struct BookFilterView: View {
   @Binding var browseOpts: BookBrowseOptions
   @Binding var showFilterSheet: Bool
+  @Binding var layoutMode: BrowseLayoutMode
 
   var sortString: String {
     return
@@ -18,7 +19,7 @@ struct BookFilterView: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      LayoutModePicker()
+      LayoutModePicker(selection: $layoutMode)
 
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {
