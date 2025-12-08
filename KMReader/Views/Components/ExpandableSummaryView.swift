@@ -24,9 +24,11 @@ struct ExpandableSummaryView: View {
   @State private var collapsedTextHeight: CGFloat = 0
 
   private let collapsedLineLimit = 3
+  private let heightTolerance: CGFloat = 1.0
 
   private var needsExpansion: Bool {
-    fullTextHeight > collapsedTextHeight && collapsedTextHeight > 0 && fullTextHeight > 0
+    let heightDifference = fullTextHeight - collapsedTextHeight
+    return heightDifference > heightTolerance && collapsedTextHeight > 0 && fullTextHeight > 0
   }
 
   init(
@@ -91,6 +93,7 @@ struct ExpandableSummaryView: View {
               Text(summary)
                 .font(.body)
                 .lineLimit(collapsedLineLimit)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(width: geometry.size.width, alignment: .leading)
                 .background(
                   GeometryReader { textGeometry in
@@ -104,6 +107,7 @@ struct ExpandableSummaryView: View {
 
               Text(summary)
                 .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(width: geometry.size.width, alignment: .leading)
                 .background(
                   GeometryReader { textGeometry in
@@ -116,6 +120,7 @@ struct ExpandableSummaryView: View {
                 )
             }
             .opacity(0)
+            .frame(width: geometry.size.width, alignment: .topLeading)
           }
         )
 
@@ -135,12 +140,12 @@ struct ExpandableSummaryView: View {
       }
     }
     .onPreferenceChange(TextHeightPreferenceKey.self) { height in
-      if collapsedTextHeight == 0 && height > 0 {
+      if height > 0 {
         collapsedTextHeight = height
       }
     }
     .onPreferenceChange(FullTextHeightPreferenceKey.self) { height in
-      if fullTextHeight == 0 && height > 0 {
+      if height > 0 {
         fullTextHeight = height
       }
     }
