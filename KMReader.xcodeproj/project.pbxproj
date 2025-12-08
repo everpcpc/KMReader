@@ -12,6 +12,7 @@
 		19600B3D2ED6160E0066E8A4 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */; };
 		19600B3F2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */; };
 		196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 196028582ED9F7980066E8A4 /* SwiftSoup */; };
+		19AEC07F2EE714150073EB5F /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 19AEC07E2EE714150073EB5F /* Flow */; };
 		19FDF1152EC9DDC700F7C3D9 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6ACB831E4AA344E7B2C3D4DB1846B6A4 /* SDWebImageSwiftUI */; };
 		19FDF1162EC9DDC700F7C3D9 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 585D1923D403492AAB307C02B56DBF71 /* SDWebImage */; };
 		19FDF1172EC9DDC700F7C3D9 /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 366522FBE7874AE69F5766E100695813 /* SDWebImageWebPCoder */; };
@@ -55,6 +56,7 @@
 				196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */,
 				19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */,
 				19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */,
+				19AEC07F2EE714150073EB5F /* Flow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -113,6 +115,7 @@
 				19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */,
 				19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */,
 				196028582ED9F7980066E8A4 /* SwiftSoup */,
+				19AEC07E2EE714150073EB5F /* Flow */,
 			);
 			productName = KMReader;
 			productReference = 192E6F7D2EC4B4E20040D165 /* KMReader.app */;
@@ -147,6 +150,7 @@
 				E33A9BBEAD1748D5A8E6C01BF9317DFD /* XCRemoteSwiftPackageReference "SDWebImageWebPCoder" */,
 				19600B362ED615C20066E8A4 /* XCRemoteSwiftPackageReference "swift-toolkit" */,
 				196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+				19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 192E6F7E2EC4B4E20040D165 /* Products */;
@@ -450,6 +454,14 @@
 				minimumVersion = 2.11.2;
 			};
 		};
+		19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tevelee/SwiftUI-Flow";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.1.1;
+			};
+		};
 		2613A3AD30B447F5930F404F87737776 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SDWebImage/SDWebImageSwiftUI.git";
@@ -493,6 +505,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
 			productName = SwiftSoup;
+		};
+		19AEC07E2EE714150073EB5F /* Flow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
+			productName = Flow;
 		};
 		366522FBE7874AE69F5766E100695813 /* SDWebImageWebPCoder */ = {
 			isa = XCSwiftPackageProductDependency;

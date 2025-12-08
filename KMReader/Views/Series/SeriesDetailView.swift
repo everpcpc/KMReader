@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import Flow
 import SwiftUI
 
 struct SeriesDetailView: View {
@@ -188,16 +189,14 @@ struct SeriesDetailView: View {
                 }
 
                 if let authors = series.booksMetadata.authors, !authors.isEmpty {
-                  ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                      ForEach(authors, id: \.name) { author in
-                        InfoChip(
-                          label: author.name,
-                          systemImage: "person",
-                          backgroundColor: Color.indigo.opacity(0.2),
-                          foregroundColor: .indigo
-                        )
-                      }
+                  HFlow {
+                    ForEach(authors, id: \.self) { author in
+                      InfoChip(
+                        label: author.name,
+                        systemImage: author.roleIcon,
+                        backgroundColor: Color.indigo.opacity(0.2),
+                        foregroundColor: .indigo
+                      )
                     }
                   }
                 }
@@ -206,33 +205,29 @@ struct SeriesDetailView: View {
           }
 
           if let genres = series.metadata.genres, !genres.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-              HStack(spacing: 6) {
-                ForEach(genres.sorted(), id: \.self) { genre in
-                  InfoChip(
-                    label: genre,
-                    systemImage: "bookmark",
-                    backgroundColor: Color.blue.opacity(0.1),
-                    foregroundColor: .blue,
-                    cornerRadius: 8
-                  )
-                }
+            HFlow {
+              ForEach(genres.sorted(), id: \.self) { genre in
+                InfoChip(
+                  label: genre,
+                  systemImage: "bookmark",
+                  backgroundColor: Color.blue.opacity(0.1),
+                  foregroundColor: .blue,
+                  cornerRadius: 8
+                )
               }
             }
           }
 
           if let tags = series.metadata.tags, !tags.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-              HStack(spacing: 6) {
-                ForEach(tags.sorted(), id: \.self) { tag in
-                  InfoChip(
-                    label: tag,
-                    systemImage: "tag",
-                    backgroundColor: Color.secondary.opacity(0.1),
-                    foregroundColor: .secondary,
-                    cornerRadius: 8
-                  )
-                }
+            HFlow {
+              ForEach(tags.sorted(), id: \.self) { tag in
+                InfoChip(
+                  label: tag,
+                  systemImage: "tag",
+                  backgroundColor: Color.secondary.opacity(0.1),
+                  foregroundColor: .secondary,
+                  cornerRadius: 8
+                )
               }
             }
           }
@@ -605,29 +600,6 @@ extension SeriesDetailView {
       grouped[author.role]?.append(author.name)
     }
     return grouped
-  }
-
-  private func roleDisplayName(_ role: String) -> String {
-    switch role.lowercased() {
-    case "writer", "author":
-      return "Writer"
-    case "penciller", "artist", "illustrator":
-      return "Artist"
-    case "colorist":
-      return "Colorist"
-    case "letterer":
-      return "Letterer"
-    case "cover":
-      return "Cover"
-    case "editor":
-      return "Editor"
-    case "translator":
-      return "Translator"
-    case "inker":
-      return "Inker"
-    default:
-      return role.capitalized
-    }
   }
 
   private func formatDate(_ date: Date) -> String {

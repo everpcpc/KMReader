@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import Flow
 import SwiftUI
 
 struct BookDetailView: View {
@@ -118,16 +119,14 @@ struct BookDetailView: View {
 
               // Authors as chips
               if let authors = book.metadata.authors, !authors.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                  HStack(spacing: 6) {
-                    ForEach(authors, id: \.name) { author in
-                      InfoChip(
-                        label: author.name,
-                        systemImage: "person",
-                        backgroundColor: Color.indigo.opacity(0.2),
-                        foregroundColor: .indigo
-                      )
-                    }
+                HFlow {
+                  ForEach(authors, id: \.self) { author in
+                    InfoChip(
+                      label: author.name,
+                      systemImage: author.roleIcon,
+                      backgroundColor: Color.indigo.opacity(0.2),
+                      foregroundColor: .indigo
+                    )
                   }
                 }
               }
