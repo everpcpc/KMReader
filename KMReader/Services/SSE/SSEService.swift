@@ -37,6 +37,8 @@ final class SSEService {
 
   private var isConnected = false
   private let streamActor = SSEStreamActor()
+  private var lastServerUpdateAt = Date(timeIntervalSince1970: 0)
+  private let serverUpdateThrottle: TimeInterval = 1.0
 
   @MainActor
   var connected: Bool {
@@ -264,8 +266,7 @@ final class SSEService {
   }
 
   private func handleSSEEvent(type: String, data: String) async {
-    // Track last event time for UI badges
-    AppConfig.serverLastUpdate = Date()
+    recordServerUpdate()
 
     guard let jsonData = data.data(using: .utf8) else {
       logger.warning("Invalid SSE data: \(data)")
@@ -429,6 +430,15 @@ final class SSEService {
     guard let handler else { return }
     Task { @MainActor in
       handler(value)
+    }
+  }
+
+  private func recordServerUpdate() {
+    let now = Date()
+    if now.timeIntervalSince1970 - lastServerUpdateAt.timeIntervalSince1970 >= serverUpdateThrottle
+    {
+      lastServerUpdateAt = now
+      AppConfig.serverLastUpdate = now
     }
   }
 }
