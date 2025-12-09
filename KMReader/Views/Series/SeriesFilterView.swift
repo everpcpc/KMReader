@@ -29,7 +29,7 @@ struct SeriesFilterView: View {
 
           if browseOpts.readStatusFilter != .all {
             FilterChip(
-              label: "Read: \(browseOpts.readStatusFilter.displayName)",
+              label: browseOpts.readStatusFilter.displayName,
               systemImage: "eye",
               openSheet: $showFilterSheet
             )
@@ -37,7 +37,7 @@ struct SeriesFilterView: View {
 
           if browseOpts.seriesStatusFilter != .all {
             FilterChip(
-              label: "Status: \(browseOpts.seriesStatusFilter.displayName)",
+              label: browseOpts.seriesStatusFilter.displayName,
               systemImage: "chart.bar",
               openSheet: $showFilterSheet
             )

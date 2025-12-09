@@ -28,7 +28,7 @@ struct ReadListBookFilterView: View {
 
           if browseOpts.readStatusFilter != .all {
             FilterChip(
-              label: "Read: \(browseOpts.readStatusFilter.displayName)",
+              label: browseOpts.readStatusFilter.displayName,
               systemImage: "eye",
               openSheet: $showFilterSheet
             )
@@ -36,7 +36,7 @@ struct ReadListBookFilterView: View {
 
           if emptyFilter {
             FilterChip(
-              label: "Filter",
+              label: String(localized: "Filter"),
               systemImage: "line.3.horizontal.decrease.circle",
               openSheet: $showFilterSheet
             )

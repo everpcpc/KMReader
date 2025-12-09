@@ -16,7 +16,9 @@ struct SelectionToolbar: View {
   let onCancel: () -> Void
 
   var selectAllLabel: String {
-    selectedCount == totalCount ? "Deselect All" : "Select All"
+    selectedCount == totalCount
+      ? String(localized: "Deselect All")
+      : String(localized: "Select All")
   }
 
   var selectAllImage: String {
@@ -24,7 +26,9 @@ struct SelectionToolbar: View {
   }
 
   var deleteLabel: String {
-    selectedCount == 0 ? "Delete" : "Delete (\(selectedCount))"
+    selectedCount == 0
+      ? String(localized: "Delete")
+      : String(localized: "Delete (\(selectedCount))")
   }
 
   var submitDisabled: Bool {
@@ -62,7 +66,7 @@ struct SelectionToolbar: View {
           onCancel()
         }
       } label: {
-        Label("Cancel", systemImage: "xmark.circle")
+        Label(String(localized: "Cancel"), systemImage: "xmark.circle")
           .font(.footnote)
       }
       .adaptiveButtonStyle(.bordered)

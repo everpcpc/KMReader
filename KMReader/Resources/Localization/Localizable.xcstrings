@@ -2703,6 +2703,22 @@
         }
       }
     },
+    "Delete (%lld)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 (%lld)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除 (%lld)"
+          }
+        }
+      }
+    },
     "Delete Book" : {
       "localizations" : {
         "en" : {
@@ -2919,6 +2935,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除伺服器"
+          }
+        }
+      }
+    },
+    "Deselect All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部取消"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部取消"
           }
         }
       }
@@ -7492,6 +7524,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "深度掃描圖書館檔案"
+          }
+        }
+      }
+    },
+    "Select All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择全部"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇全部"
           }
         }
       }

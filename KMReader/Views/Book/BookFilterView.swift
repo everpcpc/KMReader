@@ -29,7 +29,7 @@ struct BookFilterView: View {
 
           if browseOpts.readStatusFilter != .all {
             FilterChip(
-              label: "Read: \(browseOpts.readStatusFilter.displayName)",
+              label: browseOpts.readStatusFilter.displayName,
               systemImage: "eye",
               openSheet: $showFilterSheet
             )
