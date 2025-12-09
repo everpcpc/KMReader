@@ -16,9 +16,14 @@
     var body: some View {
       Group {
         if let state = readerState, let book = state.book {
-          BookReaderView(book: book, incognito: state.incognito, readList: state.readList)
-            .id("\(book.id)-\(state.incognito)")
-            .background(WindowTitleUpdater(book: book))
+          BookReaderView(
+            book: book,
+            incognito: state.incognito,
+            readList: state.readList,
+            onClose: { ReaderWindowManager.shared.closeReader() }
+          )
+          .id("\(book.id)-\(state.incognito)")
+          .background(WindowTitleUpdater(book: book))
         } else {
           ProgressView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)

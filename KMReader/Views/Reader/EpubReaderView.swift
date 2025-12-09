@@ -14,6 +14,7 @@
     private let bookId: String
     private let incognito: Bool
     private let readList: ReadList?
+    private let onClose: (() -> Void)?
 
     @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -30,11 +31,24 @@
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
 
-    init(bookId: String, incognito: Bool = false, readList: ReadList? = nil) {
+    init(
+      bookId: String,
+      incognito: Bool = false,
+      readList: ReadList? = nil,
+      onClose: (() -> Void)? = nil
+    ) {
       self.bookId = bookId
       self.incognito = incognito
       self.readList = readList
+      self.onClose = onClose
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
+    }
+    private func closeReader() {
+      if let onClose {
+        onClose()
+      } else {
+        dismiss()
+      }
     }
 
     var shouldShowControls: Bool {
@@ -146,7 +160,7 @@
         VStack(spacing: 12) {
           HStack {
             Button {
-              dismiss()
+              closeReader()
             } label: {
               Image(systemName: "xmark")
                 .font(.title3)

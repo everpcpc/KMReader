@@ -107,16 +107,40 @@ struct ContentView: View {
       }
     }
     #if os(iOS) || os(tvOS)
-      .fullScreenCover(isPresented: readerIsPresented) {
-        if let state = readerPresentation.readerState, let book = state.book {
-          BookReaderView(book: book, incognito: state.incognito, readList: state.readList)
-          .transition(.scale.animation(.easeInOut))
-        } else {
-          ReaderPlaceholderView {
-            readerPresentation.closeReader()
+      .overlay(alignment: .center) {
+        if let state = readerPresentation.readerState {
+          ZStack {
+            Color.black.opacity(0.35)
+            .readerIgnoresSafeArea()
+            .transition(.opacity)
+
+            if let book = state.book {
+              BookReaderView(
+                book: book,
+                incognito: state.incognito,
+                readList: state.readList,
+                onClose: { readerPresentation.closeReader() }
+              )
+              .transition(
+                .asymmetric(
+                  insertion: .scale(scale: 0.9).combined(with: .opacity),
+                  removal: .scale(scale: 0.94).combined(with: .opacity)
+                )
+              )
+            } else {
+              ReaderPlaceholderView {
+                readerPresentation.closeReader()
+              }
+              .transition(.opacity)
+            }
           }
+          .allowsHitTesting(true)
         }
       }
+      .animation(
+        .spring(response: 0.4, dampingFraction: 0.9, blendDuration: 0.1),
+        value: readerPresentation.readerState != nil
+      )
     #elseif os(macOS)
       .background(
         MacReaderWindowConfigurator(openWindow: {
@@ -187,9 +211,16 @@ struct OldTabView: View {
       Binding(
         get: { readerPresentation.readerState != nil },
         set: { newValue in
-          if !newValue {
-            readerPresentation.closeReader()
-          }
+          #if os(tvOS)
+            // Block system-initiated dismiss (e.g., Menu/Back). Reader handles close explicitly.
+            if !newValue {
+              return
+            }
+          #else
+            if !newValue {
+              readerPresentation.closeReader()
+            }
+          #endif
         }
       )
     }

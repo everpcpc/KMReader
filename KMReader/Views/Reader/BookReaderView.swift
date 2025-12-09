@@ -11,6 +11,7 @@ struct BookReaderView: View {
   let book: Book
   let incognito: Bool
   let readList: ReadList?
+  let onClose: (() -> Void)?
 
   @Environment(\.dismiss) private var dismiss
 
@@ -24,6 +25,10 @@ struct BookReaderView: View {
     case .divina, .pdf, .unknown:
       return true
     }
+  }
+
+  private var closeReader: () -> Void {
+    onClose ?? { dismiss() }
   }
 
   var body: some View {
@@ -43,7 +48,7 @@ struct BookReaderView: View {
             }
 
             Button {
-              dismiss()
+              closeReader()
             } label: {
               Label("Close", systemImage: "xmark.circle.fill")
                 .font(.headline)
@@ -58,10 +63,20 @@ struct BookReaderView: View {
           switch book.media.status {
           case .ready:
             if shouldUseDivinaReader {
-              DivinaReaderView(bookId: book.id, incognito: incognito, readList: readList)
+              DivinaReaderView(
+                bookId: book.id,
+                incognito: incognito,
+                readList: readList,
+                onClose: closeReader
+              )
             } else {
               #if os(iOS)
-                EpubReaderView(bookId: book.id, incognito: incognito, readList: readList)
+                EpubReaderView(
+                  bookId: book.id,
+                  incognito: incognito,
+                  readList: readList,
+                  onClose: closeReader
+                )
               #else
                 VStack(spacing: 24) {
                   Image(systemName: "exclamationmark.triangle")
@@ -80,7 +95,7 @@ struct BookReaderView: View {
                   }
 
                   Button {
-                    dismiss()
+                    closeReader()
                   } label: {
                     Label("Close", systemImage: "xmark.circle.fill")
                       .font(.headline)
@@ -111,7 +126,7 @@ struct BookReaderView: View {
               }
 
               Button {
-                dismiss()
+                closeReader()
               } label: {
                 Label("Close", systemImage: "xmark.circle.fill")
                   .font(.headline)
