@@ -6026,13 +6026,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "单本"
+            "value" : "单行本"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "單本"
+            "value" : "單行本"
           }
         }
       }
