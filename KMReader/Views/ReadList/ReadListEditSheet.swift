@@ -24,7 +24,7 @@ struct ReadListEditSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Read List", size: .medium, applyFormStyle: true) {
+    SheetView(title: String(localized: "Edit Read List"), size: .medium, applyFormStyle: true) {
       Form {
         Section("Basic Information") {
           TextField("Name", text: $name)

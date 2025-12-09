@@ -22,7 +22,7 @@ struct CollectionEditSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Collection", size: .medium, applyFormStyle: true) {
+    SheetView(title: String(localized: "Edit Collection"), size: .medium, applyFormStyle: true) {
       Form {
         Section("Basic Information") {
           TextField("Name", text: $name)

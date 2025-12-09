@@ -53,7 +53,7 @@ struct SeriesEditSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Series", size: .large, applyFormStyle: true) {
+    SheetView(title: String(localized: "Edit Series"), size: .large, applyFormStyle: true) {
       Form {
         Section("Basic Information") {
           TextField("Title", text: $title)

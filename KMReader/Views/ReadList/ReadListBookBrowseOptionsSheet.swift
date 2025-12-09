@@ -18,7 +18,9 @@ struct ReadListBookBrowseOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Filter", size: .both, onReset: resetOptions, applyFormStyle: true) {
+    SheetView(
+      title: String(localized: "Filter"), size: .both, onReset: resetOptions, applyFormStyle: true
+    ) {
       Form {
         Section("Filters") {
           Picker("Read Status", selection: $tempOpts.readStatusFilter) {

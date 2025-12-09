@@ -13,7 +13,7 @@ struct ReaderTOCSheetView: View {
   let onSelect: (ReaderTOCEntry) -> Void
 
   var body: some View {
-    SheetView(title: "Table of Contents", size: .large) {
+    SheetView(title: String(localized: "Table of Contents"), size: .large) {
       List {
         ForEach(entries) { entry in
           Button {

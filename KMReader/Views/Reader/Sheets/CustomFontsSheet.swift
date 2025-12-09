@@ -21,7 +21,7 @@
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
-      SheetView(title: "Custom Fonts", size: .large, applyFormStyle: true) {
+      SheetView(title: String(localized: "Custom Fonts"), size: .large, applyFormStyle: true) {
         Form {
           Section {
             Button {

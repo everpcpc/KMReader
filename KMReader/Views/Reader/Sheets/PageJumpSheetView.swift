@@ -258,7 +258,7 @@ struct PageJumpSheetView: View {
   }
 
   var body: some View {
-    SheetView(title: "Go to Page", size: .medium) {
+    SheetView(title: String(localized: "Go to Page"), size: .medium) {
       VStack(alignment: .leading, spacing: 16) {
         VStack(spacing: 24) {
           VStack(spacing: 8) {

@@ -28,7 +28,7 @@
     }
 
     var body: some View {
-      SheetView(title: "Reading Options", size: .large) {
+      SheetView(title: String(localized: "Reading Options"), size: .large) {
         VStack(spacing: 0) {
           VStack(alignment: .leading, spacing: 8) {
             EpubPreviewView(preferences: draft)

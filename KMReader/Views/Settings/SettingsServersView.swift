@@ -146,13 +146,13 @@ struct SettingsServersView: View {
     }
     #if os(macOS)
       .sheet(isPresented: $showLogin) {
-        SheetView(title: "Connect to a Server", size: .large) {
+        SheetView(title: String(localized: "Connect to a Server"), size: .large) {
           LoginView()
         }
       }
     #elseif os(iOS)
       .sheet(isPresented: iPadLoginBinding) {
-        SheetView(title: "Connect to a Server", size: .large) {
+        SheetView(title: String(localized: "Connect to a Server"), size: .large) {
           LoginView()
         }
         .presentationDragIndicator(.visible)

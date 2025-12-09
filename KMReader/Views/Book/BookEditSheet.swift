@@ -41,7 +41,7 @@ struct BookEditSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Book", size: .large, applyFormStyle: true) {
+    SheetView(title: String(localized: "Edit Book"), size: .large, applyFormStyle: true) {
       Form {
         Section("Basic Information") {
           TextField("Title", text: $title)

@@ -34,7 +34,7 @@ struct ReadListPickerSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Select Read List", size: .large, applyFormStyle: true) {
+    SheetView(title: String(localized: "Select Read List"), size: .large, applyFormStyle: true) {
       Form {
         if isLoading && readListViewModel.readLists.isEmpty {
           ProgressView()
@@ -118,7 +118,7 @@ struct CreateReadListSheet: View {
   @State private var summary: String = ""
 
   var body: some View {
-    SheetView(title: "Create Read List", size: .medium, applyFormStyle: true) {
+    SheetView(title: String(localized: "Create Read List"), size: .medium, applyFormStyle: true) {
       Form {
         Section {
           TextField("Read List Name", text: $name)

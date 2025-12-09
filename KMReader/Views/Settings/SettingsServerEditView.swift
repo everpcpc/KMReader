@@ -48,7 +48,7 @@ struct SettingsServerEditView: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Server", size: .large, applyFormStyle: true) {
+    SheetView(title: String(localized: "Edit Server"), size: .large, applyFormStyle: true) {
       Form {
         Section(header: Text("Display")) {
           TextField("Name", text: $name)

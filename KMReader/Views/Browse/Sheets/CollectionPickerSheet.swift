@@ -34,7 +34,7 @@ struct CollectionPickerSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Select Collection", size: .large, applyFormStyle: true) {
+    SheetView(title: String(localized: "Select Collection"), size: .large, applyFormStyle: true) {
       Form {
         if isLoading && collectionViewModel.collections.isEmpty {
           ProgressView()
@@ -117,7 +117,7 @@ struct CreateCollectionSheet: View {
   @State private var name: String = ""
 
   var body: some View {
-    SheetView(title: "Create Collection", size: .medium, applyFormStyle: true) {
+    SheetView(title: String(localized: "Create Collection"), size: .medium, applyFormStyle: true) {
       Form {
         Section {
           TextField("Collection Name", text: $name)
