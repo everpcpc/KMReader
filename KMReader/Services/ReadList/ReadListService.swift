@@ -60,17 +60,15 @@ class ReadListService {
     browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
-    let condition = BookSearch.buildCondition(
+    let filters = BookSearchFilters(
       libraryIds: libraryIds,
       includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
       excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
-      includeOneshot: browseOpts.oneshotFilter.includedBool,
-      excludeOneshot: browseOpts.oneshotFilter.excludedBool,
-      includeDeleted: browseOpts.deletedFilter.includedBool,
-      excludeDeleted: browseOpts.deletedFilter.excludedBool,
-      seriesId: nil,
+      oneshot: browseOpts.oneshotFilter.effectiveBool,
+      deleted: browseOpts.deletedFilter.effectiveBool,
       readListId: readListId
     )
+    let condition = BookSearch.buildCondition(filters: filters)
     let search = BookSearch(condition: condition)
     return try await BookService.shared.getBooksList(
       search: search,

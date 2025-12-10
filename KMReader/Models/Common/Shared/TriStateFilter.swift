@@ -149,4 +149,15 @@ extension TriStateFilter where Value == BoolTriStateFlag {
   var excludedBool: Bool? {
     excludedValue?.boolValue
   }
+
+  /// Prefer an explicit include value; otherwise flip the excluded value if present.
+  var effectiveBool: Bool? {
+    if let include = includedBool {
+      return include
+    }
+    if let exclude = excludedBool {
+      return !exclude
+    }
+    return nil
+  }
 }

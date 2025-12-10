@@ -37,21 +37,20 @@ class SeriesService {
 
     if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter {
       let condition = SeriesSearch.buildCondition(
-        libraryIds: libraryIds,
-        includeReadStatuses: includeReadStatuses.compactMap { $0.readStatusValue },
-        excludeReadStatuses: excludeReadStatuses.compactMap { $0.readStatusValue },
-        includeSeriesStatuses: includeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
-          !$0.isEmpty
-        },
-        excludeSeriesStatuses: excludeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
-          !$0.isEmpty
-        },
-        seriesStatusLogic: seriesStatusLogic,
-        includeOneshot: oneshotFilter.includedBool,
-        excludeOneshot: oneshotFilter.excludedBool,
-        includeDeleted: deletedFilter.includedBool,
-        excludeDeleted: deletedFilter.excludedBool
-      )
+        filters: SeriesSearchFilters(
+          libraryIds: libraryIds,
+          includeReadStatuses: includeReadStatuses.compactMap { $0.readStatusValue },
+          excludeReadStatuses: excludeReadStatuses.compactMap { $0.readStatusValue },
+          includeSeriesStatuses: includeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
+            !$0.isEmpty
+          },
+          excludeSeriesStatuses: excludeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
+            !$0.isEmpty
+          },
+          seriesStatusLogic: seriesStatusLogic,
+          oneshot: oneshotFilter.effectiveBool,
+          deleted: deletedFilter.effectiveBool
+        ))
 
       let search = SeriesSearch(
         condition: condition,

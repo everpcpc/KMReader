@@ -61,18 +61,17 @@ class CollectionService {
     libraryIds: [String]? = nil
   ) async throws -> Page<Series> {
     let condition = SeriesSearch.buildCondition(
-      libraryIds: libraryIds,
-      includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
-      excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
-      includeSeriesStatuses: browseOpts.includeSeriesStatuses.compactMap { $0.apiValue },
-      excludeSeriesStatuses: browseOpts.excludeSeriesStatuses.compactMap { $0.apiValue },
-      seriesStatusLogic: browseOpts.seriesStatusLogic,
-      includeOneshot: browseOpts.oneshotFilter.includedBool,
-      excludeOneshot: browseOpts.oneshotFilter.excludedBool,
-      includeDeleted: browseOpts.deletedFilter.includedBool,
-      excludeDeleted: browseOpts.deletedFilter.excludedBool,
-      collectionId: collectionId
-    )
+      filters: SeriesSearchFilters(
+        libraryIds: libraryIds,
+        includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
+        excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
+        includeSeriesStatuses: browseOpts.includeSeriesStatuses.compactMap { $0.apiValue },
+        excludeSeriesStatuses: browseOpts.excludeSeriesStatuses.compactMap { $0.apiValue },
+        seriesStatusLogic: browseOpts.seriesStatusLogic,
+        oneshot: browseOpts.oneshotFilter.effectiveBool,
+        deleted: browseOpts.deletedFilter.effectiveBool,
+        collectionId: collectionId
+      ))
     let search = SeriesSearch(condition: condition)
     return try await SeriesService.shared.getSeriesList(
       search: search,

@@ -36,7 +36,7 @@ struct ReadListBookFilterView: View {
           }
 
           if browseOpts.oneshotFilter.isActive,
-            let label = browseOpts.oneshotFilter.displayLabel(using: { _ in "Oneshot" })
+            let label = browseOpts.oneshotFilter.displayLabel(using: { _ in FilterStrings.oneshot })
           {
             FilterChip(
               label: label,
@@ -47,7 +47,7 @@ struct ReadListBookFilterView: View {
           }
 
           if browseOpts.deletedFilter.isActive,
-            let label = browseOpts.deletedFilter.displayLabel(using: { _ in "Deleted" })
+            let label = browseOpts.deletedFilter.displayLabel(using: { _ in FilterStrings.deleted })
           {
             FilterChip(
               label: label,

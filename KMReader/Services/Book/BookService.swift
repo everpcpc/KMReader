@@ -27,21 +27,16 @@ class BookService {
     libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
     let sort = browseOpts.sortString
-    let condition = BookSearch.buildCondition(
+    let filters = BookSearchFilters(
       libraryIds: libraryIds,
-      includeReadStatuses: browseOpts.includeReadStatuses.map { $0.readStatusValue }.compactMap {
-        $0
-      },
-      excludeReadStatuses: browseOpts.excludeReadStatuses.map { $0.readStatusValue }.compactMap {
-        $0
-      },
-      includeOneshot: browseOpts.oneshotFilter.includedBool,
-      excludeOneshot: browseOpts.oneshotFilter.excludedBool,
-      includeDeleted: browseOpts.deletedFilter.includedBool,
-      excludeDeleted: browseOpts.deletedFilter.excludedBool,
+      includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
+      excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
+      oneshot: browseOpts.oneshotFilter.effectiveBool,
+      deleted: browseOpts.deletedFilter.effectiveBool,
       seriesId: seriesId,
       readListId: nil
     )
+    let condition = BookSearch.buildCondition(filters: filters)
     let search = BookSearch(condition: condition)
 
     return try await getBooksList(
@@ -282,8 +277,10 @@ class BookService {
   ) async throws -> Page<Book> {
     // Get books with READ status, sorted by last read date
     let condition = BookSearch.buildCondition(
-      libraryIds: libraryIds,
-      includeReadStatuses: [.read]
+      filters: BookSearchFilters(
+        libraryIds: libraryIds,
+        includeReadStatuses: [.read]
+      )
     )
 
     let search = BookSearch(condition: condition)
@@ -304,7 +301,7 @@ class BookService {
     // Get books sorted by created date (most recent first)
     // Empty condition means match all books
     let condition = BookSearch.buildCondition(
-      libraryIds: libraryIds
+      filters: BookSearchFilters(libraryIds: libraryIds)
     )
 
     let search = BookSearch(condition: condition)
@@ -325,7 +322,7 @@ class BookService {
     // Get books sorted by release date (most recent first)
     // Only include books that have a release date
     let condition = BookSearch.buildCondition(
-      libraryIds: libraryIds
+      filters: BookSearchFilters(libraryIds: libraryIds)
     )
 
     let search = BookSearch(condition: condition)

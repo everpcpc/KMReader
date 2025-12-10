@@ -260,7 +260,8 @@ class BookViewModel {
     async
   {
     let sort = browseOpts.sortString
-    let paramsChanged = currentBrowseState != browseOpts
+    let paramsChanged =
+      currentBrowseState != browseOpts
       || currentBrowseSort != sort
       || currentBrowseSearch != searchText
 
@@ -279,11 +280,14 @@ class BookViewModel {
     isLoading = true
 
     do {
-      let condition = BookSearch.buildCondition(
+      let filters = BookSearchFilters(
         libraryIds: libraryIds,
         includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
-        excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue }
+        excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
+        oneshot: browseOpts.oneshotFilter.effectiveBool,
+        deleted: browseOpts.deletedFilter.effectiveBool
       )
+      let condition = BookSearch.buildCondition(filters: filters)
 
       let search = BookSearch(
         condition: condition,

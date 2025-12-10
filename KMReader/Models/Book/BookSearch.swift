@@ -43,23 +43,25 @@ struct BookSearch: Encodable {
   }
 }
 
+struct BookSearchFilters {
+  var libraryIds: [String]? = nil
+  var includeReadStatuses: [ReadStatus] = []
+  var excludeReadStatuses: [ReadStatus] = []
+  /// oneshot = true / false / nil
+  var oneshot: Bool? = nil
+  /// deleted = true / false / nil
+  var deleted: Bool? = nil
+  var seriesId: String? = nil
+  var readListId: String? = nil
+}
+
 // Helper functions to build conditions
 extension BookSearch {
-  static func buildCondition(
-    libraryIds: [String]? = nil,
-    includeReadStatuses: [ReadStatus] = [],
-    excludeReadStatuses: [ReadStatus] = [],
-    includeOneshot: Bool? = nil,
-    excludeOneshot: Bool? = nil,
-    includeDeleted: Bool? = nil,
-    excludeDeleted: Bool? = nil,
-    seriesId: String? = nil,
-    readListId: String? = nil
-  ) -> [String: Any]? {
+  static func buildCondition(filters: BookSearchFilters) -> [String: Any]? {
     var conditions: [[String: Any]] = []
 
     // Support multiple libraryIds using anyOf
-    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+    if let libraryIds = filters.libraryIds, !libraryIds.isEmpty {
       if libraryIds.count == 1 {
         // Single libraryId - use simple condition
         conditions.append([
@@ -74,60 +76,44 @@ extension BookSearch {
       }
     }
 
-    if !includeReadStatuses.isEmpty {
-      let statusConditions = includeReadStatuses.map {
+    if !filters.includeReadStatuses.isEmpty {
+      let statusConditions = filters.includeReadStatuses.map {
         ["readStatus": ["operator": "is", "value": $0.rawValue]]
       }
       conditions.append(["anyOf": statusConditions])
     }
 
-    if !excludeReadStatuses.isEmpty {
-      let statusConditions = excludeReadStatuses.map {
+    if !filters.excludeReadStatuses.isEmpty {
+      let statusConditions = filters.excludeReadStatuses.map {
         ["readStatus": ["operator": "isnot", "value": $0.rawValue]]
       }
       conditions.append(["allOf": statusConditions])
     }
 
-    if let seriesId = seriesId {
+    if let seriesId = filters.seriesId {
       conditions.append([
         "seriesId": ["operator": "is", "value": seriesId]
       ])
     }
 
-    if let readListId = readListId {
+    if let readListId = filters.readListId {
       conditions.append([
         "readListId": ["operator": "is", "value": readListId]
       ])
     }
 
-    if let includeOneshot {
+    if let oneshot = filters.oneshot {
       conditions.append([
         "oneshot": [
-          "operator": includeOneshot ? "istrue" : "isfalse"
+          "operator": oneshot ? "istrue" : "isfalse"
         ]
       ])
     }
 
-    if let excludeOneshot {
-      conditions.append([
-        "oneshot": [
-          "operator": excludeOneshot ? "isfalse" : "istrue"
-        ]
-      ])
-    }
-
-    if let includeDeleted {
+    if let deleted = filters.deleted {
       conditions.append([
         "deleted": [
-          "operator": includeDeleted ? "istrue" : "isfalse"
-        ]
-      ])
-    }
-
-    if let excludeDeleted {
-      conditions.append([
-        "deleted": [
-          "operator": excludeDeleted ? "isfalse" : "istrue"
+          "operator": deleted ? "istrue" : "isfalse"
         ]
       ])
     }

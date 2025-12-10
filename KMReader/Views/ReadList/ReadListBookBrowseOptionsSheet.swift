@@ -51,7 +51,7 @@ struct ReadListBookBrowseOptionsSheet: View {
             }
           } label: {
             HStack {
-              Text("Oneshot")
+              Text(FilterStrings.oneshot)
               Spacer()
               Image(systemName: icon(for: tempOpts.oneshotFilter.state(for: .yes)))
                 .foregroundStyle(color(for: tempOpts.oneshotFilter.state(for: .yes)))
@@ -64,7 +64,7 @@ struct ReadListBookBrowseOptionsSheet: View {
             }
           } label: {
             HStack {
-              Text("Deleted")
+              Text(FilterStrings.deleted)
               Spacer()
               Image(systemName: icon(for: tempOpts.deletedFilter.state(for: .yes)))
                 .foregroundStyle(color(for: tempOpts.deletedFilter.state(for: .yes)))
