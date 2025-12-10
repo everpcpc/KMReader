@@ -1,19 +1,17 @@
 KMReader - Native Komga Reader for iOS, macOS & tvOS
 
-KMReader keeps every Komga library a tap away on iPhone, iPad, Mac, and Apple TV. Store unlimited servers, jump between dashboards, and sink into polished comic and EPUB readers that stay in sync no matter where you are.
+KMReader keeps every Komga library close on iPhone, iPad, Mac, and Apple TV. Save multiple servers, browse adaptive dashboards, and read comics or EPUBs with settings that travel across devices.
 
 HIGHLIGHTS
 
-• Guided Onboarding & Server Vault: First launch heads straight into Komga login, storing unlimited instances with custom names, last activity, detected roles, and human-readable auth history (IP, user-agent, API key). Remove a server to scrub cached pages, downloads, and credentials instantly.
+• Multi-Server Vault: Sign in to unlimited Komga servers with custom names and role-aware access. Remove a profile to clear cached pages, downloads, and credentials stored on-device.
 
-• Adaptive Library & Dashboards: Series, Books, Collections, and Read Lists share one browse surface with search, filters, grid/list layouts, orientation-aware column counts, and a handy layout picker. Dashboard sections such as Keep Reading, On Deck, Recently Added/Read/Released/Updated can be toggled or reordered per library with infinite-scroll history.
+• Browse and Dashboards: Series, books, collections, and read lists share search, filters, grid/list layouts, and an orientation-aware layout picker. Dashboard sections (Keep Reading, On Deck, Recently Added/Read/Released/Updated) can be reordered or hidden per library with infinite scroll.
 
-• Deep Metadata & Inline Editing: Series and collection pages surface release timelines, directions, publishers, genres, tags, alternate titles, creators, timelines, and related collections. Inline actions let you edit metadata, analyze, refresh covers, mark read/unread, add/remove collections, delete, or multi-select safely.
+• Readers for Every Platform: DIVINA supports LTR/RTL/vertical/Webtoon on iOS/iPadOS/macOS/tvOS with spreads, zoom, configurable tap zones, quick jumps, exports, tvOS remote gestures, and a macOS reader window. EPUB on iOS/iPadOS/macOS adds offline downloads, custom fonts and themes, pagination, column layouts, TOC navigation, incognito mode, auto layout, and an optional image-first mode. tvOS currently supports DIVINA.
 
-• Dual Readers with Offline Control: DIVINA handles LTR/RTL/vertical/Webtoon modes on iOS/iPadOS/macOS/tvOS with dual-page spreads, pinch zoom, configurable tap zones (including macOS tap-to-toggle controls), quick jumps, exports, tvOS remote gestures, and a dedicated macOS reader window. EPUB reader (iOS/iPadOS/macOS) keeps books offline or incognito with custom fonts, themes, pagination, column layouts, TOC navigation, auto page layout, refreshed progress bars, and an optional image-first mode.
+• Admin and Live Updates: Edit metadata, manage collections and read lists, trigger scans or analyses per library or globally, cancel queued tasks, and inspect per-library metrics. Server-Sent Events keep dashboards, thumbnails, queues, and sessions in sync with optional notifications and auto-refresh toggles.
 
-• Admin, SSE & Monitoring: Edit metadata, manage collections/read lists, trigger scans or analyses per library or globally, cancel queued tasks, and inspect disk usage plus per-library metrics. Server-Sent Events push live updates for dashboards, task queues, thumbnails, and session expiration with optional notifications and automation toggles.
+• Caching and Polish: Three-tier caches for pages, book files, and thumbnails expose adjustable budgets, live size/file counters, one-tap clearing, and automatic cleanup so recent pages and EPUB downloads reopen offline. Accent colors, Webtoon width controls, tap-zone hints, keyboard shortcuts, tvOS focus navigation, and incognito reading keep everything feeling native.
 
-• Smart Caching & Apple-First Polish: Three-tier caches for pages, book files, and thumbnails provide adjustable budgets, live size/file counters, one-tap clearing, and automatic cleanup so recent pages and downloaded EPUB files reopen offline. Accent colors, adjustable Webtoon width, tap-zone hints, keyboard shortcuts, tvOS focus navigation, and incognito modes keep everything feeling native.
-
-Connect your Komga server and own your digital library everywhere you read with steadier dashboard refreshes, streamlined caches, and progress that stays synced after every session.
+Connect your Komga server and keep progress in sync with real-time updates, streamlined caches, and reliable offline access.

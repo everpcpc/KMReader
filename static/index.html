@@ -6,7 +6,7 @@
     <title>KMReader · Native Komga Reader for iOS, macOS & tvOS</title>
     <meta
       name="description"
-      content="KMReader is the native Komga client for iOS, macOS, and tvOS with a multi-server vault, adaptive dashboards, DIVINA and EPUB readers, live admin tools, and intelligent caching."
+      content="KMReader is the native Komga client for iOS, macOS, and tvOS with a multi-server vault, adaptive dashboards, DIVINA and EPUB readers, live admin tools, and three-tier caching."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,17 +23,16 @@
         <p class="eyebrow">Native client for Komga</p>
         <h1>KMReader</h1>
         <p class="tagline">
-          A polished multi-server Komga client that keeps comics, manga, and
-          novels synced across iPhone, iPad, Mac, and Apple TV with adaptive
-          dashboards, a quick layout picker, dual readers, and inline admin
-          tools.
+          A polished multi-server Komga client for iPhone, iPad, Mac, and Apple
+          TV with adaptive dashboards, configurable readers, live updates, and
+          built-in caching.
         </p>
         <div class="multi-server-callout">
           <strong>Unlimited server vault</strong>
           <p>
-            Store every Komga server once, assign custom names, review
-            authentication history, and clear cached pages or downloads
-            per-profile while credentials remain on-device.
+            Store every Komga server once, assign custom names, review roles,
+            and clear cached pages or downloads per profile while credentials
+            remain on-device.
           </p>
         </div>
         <div class="cta">
@@ -71,7 +70,9 @@
           </div>
           <div class="meta-card">
             <span>Reader Types</span>
-            <strong>Comics · EPUB books</strong>
+            <strong
+              >DIVINA (iOS/iPadOS/macOS/tvOS) · EPUB (iOS/iPadOS/macOS)</strong
+            >
           </div>
         </div>
       </header>
@@ -89,32 +90,30 @@
             <h3>Adaptive Library Views</h3>
             <p>
               Series, books, collections, read lists, and dashboard sections
-              live in one browse view with server-wide search, filters, and
-              grid/list layouts that respect portrait or landscape column
-              counts.
+              live in one browse view with search, filters, grid/list layouts,
+              and a layout picker that respects portrait or landscape columns.
             </p>
             <p>
               Rich series and collection pages surface timelines, directions,
               alternate titles, creators, links, and related collections.
               Customize dashboard sections such as Keep Reading or Recently
-              Added per library, reorder them, hide them entirely, or flip
-              layouts on demand with the picker.
+              Added per library, reorder or hide them, and switch layouts on
+              demand.
             </p>
           </article>
           <article class="card">
             <span class="pill">Reader</span>
             <h3>Optimized Reading Modes</h3>
             <p>
-              DIVINA handles LTR/RTL/vertical/Webtoon styles (dual-page spreads,
-              pinch zoom, tap zones, page exports, macOS reader window, tvOS
-              remote controls, and new tap-to-toggle gestures on macOS plus
-              smoother tvOS animations).
+              DIVINA handles LTR/RTL/vertical/Webtoon styles with spreads, zoom,
+              configurable tap zones, page exports, tvOS remote controls, and a
+              dedicated macOS reader window. tvOS currently supports DIVINA.
             </p>
             <p>
               EPUB on iOS/iPadOS/macOS adds offline downloads, custom fonts and
               themes, pagination, column layouts, TOC navigation, incognito
-              reading, auto page layout, refreshed progress indicators, and an
-              optional image-first mode so progress stays private.
+              reading, auto layout, refreshed progress indicators, and an
+              optional image-first mode.
             </p>
           </article>
           <article class="card">
@@ -128,8 +127,8 @@
             <p>
               Metrics dashboards spotlight disk usage, task analytics, cache
               sizes, and per-library counts while Server-Sent Events push live
-              updates for dashboards, thumbnails, and sessions with optional
-              notifications.
+              updates for dashboards, thumbnails, queues, and sessions with
+              optional notifications and auto-refresh.
             </p>
           </article>
         </div>
@@ -139,7 +138,8 @@
         <h2 class="section-title">Built for marathon reading sessions</h2>
         <p class="section-subtitle">
           KMReader tunes tap zones, cache budgets, and keyboard shortcuts so
-          comics, manga, and novels feel instantly responsive everywhere.
+          comics, manga, and novels feel responsive everywhere, even when
+          offline.
         </p>
         <div class="feature-grid">
           <article class="card">
@@ -195,6 +195,7 @@
               DIVINA comics work on iOS, iPadOS, macOS, and tvOS with every
               reading direction and gesture. EPUB books run on iOS/iPadOS/macOS
               with the same customization plus optional image-first rendering.
+              tvOS currently supports DIVINA.
             </p>
           </article>
           <article class="faq-item">
