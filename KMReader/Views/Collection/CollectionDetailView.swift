@@ -36,7 +36,7 @@ struct CollectionDetailView: View {
         if let collection = collection {
           // Header with thumbnail and info
           Text(collection.name)
-            .font(.title3)
+            .font(.title2)
 
           HStack(alignment: .top) {
             ThumbnailImage(

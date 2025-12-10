@@ -52,7 +52,7 @@ struct BookDetailView: View {
             .fixedSize(horizontal: false, vertical: true)
 
           Text(book.metadata.title)
-            .font(.headline)
+            .font(.title2)
             .fixedSize(horizontal: false, vertical: true)
 
           HStack(alignment: .top) {

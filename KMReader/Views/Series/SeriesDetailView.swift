@@ -74,9 +74,9 @@ struct SeriesDetailView: View {
     ScrollView {
       VStack(alignment: .leading) {
         if let series = series {
-          HStack {
+          HStack(alignment: .bottom) {
             Text(series.metadata.title)
-              .font(.title3)
+              .font(.title2)
             if let ageRating = series.metadata.ageRating, ageRating > 0 {
               AgeRatingBadge(ageRating: ageRating)
             }

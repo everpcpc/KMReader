@@ -37,7 +37,7 @@ struct ReadListDetailView: View {
         if let readList = readList {
           // Header with thumbnail and info
           Text(readList.name)
-            .font(.title3)
+            .font(.title2)
 
           HStack(alignment: .top) {
             ThumbnailImage(
