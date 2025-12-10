@@ -23,7 +23,7 @@ struct BookBrowseOptionsSheet: View {
       applyFormStyle: true
     ) {
       Form {
-        Section("Filters") {
+        Section("Read Status") {
           ForEach(ReadStatusFilter.selectableCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {

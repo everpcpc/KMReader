@@ -22,7 +22,7 @@ struct ReadListBookBrowseOptionsSheet: View {
       title: String(localized: "Filter"), size: .both, onReset: resetOptions, applyFormStyle: true
     ) {
       Form {
-        Section("Filters") {
+        Section("Read Status") {
           ForEach(ReadStatusFilter.selectableCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {
