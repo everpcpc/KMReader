@@ -75,7 +75,7 @@ struct ReadListEditSheet: View {
             ordered: orderedToUpdate
           )
           await MainActor.run {
-            ErrorManager.shared.notify(message: "Read list updated")
+            ErrorManager.shared.notify(message: String(localized: "notification.readList.updated"))
             dismiss()
           }
         } else {

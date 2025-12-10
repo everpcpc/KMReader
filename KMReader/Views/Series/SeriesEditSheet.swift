@@ -277,7 +277,7 @@ struct SeriesEditSheet: View {
           try await SeriesService.shared.updateSeriesMetadata(
             seriesId: series.id, metadata: metadata)
           await MainActor.run {
-            ErrorManager.shared.notify(message: "Series updated")
+            ErrorManager.shared.notify(message: String(localized: "notification.series.updated"))
             dismiss()
           }
         } else {

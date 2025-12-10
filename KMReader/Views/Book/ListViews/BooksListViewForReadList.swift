@@ -300,7 +300,7 @@ extension BooksListViewForReadList {
       )
 
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Books removed from read list")
+        ErrorManager.shared.notify(message: String(localized: "notification.readList.booksRemoved"))
       }
 
       // Clear selection and exit selection mode with animation

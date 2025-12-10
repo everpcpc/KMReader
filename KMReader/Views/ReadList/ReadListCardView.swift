@@ -83,7 +83,7 @@ struct ReadListCardView: View {
       do {
         try await ReadListService.shared.deleteReadList(readListId: readList.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Read list deleted")
+          ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
           onActionCompleted?()
         }
       } catch {

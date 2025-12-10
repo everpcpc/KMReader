@@ -96,7 +96,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.analyzeSeries(seriesId: series.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series analysis started")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.analysisStarted"))
           onActionCompleted?()
         }
       } catch {
@@ -112,7 +112,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.refreshMetadata(seriesId: series.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series metadata refreshed")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.metadataRefreshed"))
           onActionCompleted?()
         }
       } catch {
@@ -128,7 +128,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.markAsRead(seriesId: series.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series marked as read")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
           onActionCompleted?()
         }
       } catch {
@@ -144,7 +144,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.markAsUnread(seriesId: series.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series marked as unread")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
           onActionCompleted?()
         }
       } catch {
@@ -163,7 +163,7 @@ struct SeriesContextMenu: View {
           seriesIds: [series.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series added to collection")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.addedToCollection"))
           onActionCompleted?()
         }
       } catch {

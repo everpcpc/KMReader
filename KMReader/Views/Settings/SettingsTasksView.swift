@@ -251,7 +251,7 @@ struct SettingsTasksView: View {
       do {
         try await ManagementService.shared.cancelAllTasks()
         await MainActor.run {
-          ErrorManager.shared.notify(message: "All tasks cancelled")
+          ErrorManager.shared.notify(message: String(localized: "notification.tasks.cancelled"))
         }
         await loadMetrics()
       } catch {

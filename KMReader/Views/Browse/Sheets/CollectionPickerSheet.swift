@@ -147,7 +147,7 @@ struct CreateCollectionSheet: View {
           seriesIds: seriesIds
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Collection created")
+          ErrorManager.shared.notify(message: String(localized: "notification.collection.created"))
           isCreating = false
           onCreate(collection.id)
           dismiss()

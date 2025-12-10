@@ -192,7 +192,7 @@ class BookViewModel {
         currentBook = updatedBook
       }
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Marked as read")
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -210,7 +210,7 @@ class BookViewModel {
         currentBook = updatedBook
       }
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Marked as unread")
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
       }
     } catch {
       ErrorManager.shared.alert(error: error)

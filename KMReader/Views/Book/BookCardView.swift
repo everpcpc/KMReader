@@ -165,7 +165,7 @@ struct BookCardView: View {
           bookIds: [book.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Books added to read list")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.booksAddedToReadList"))
           onBookUpdated?()
         }
       } catch {
@@ -182,7 +182,7 @@ struct BookCardView: View {
         try await BookService.shared.deleteBook(bookId: book.id)
         await CacheManager.clearCache(forBookId: book.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Book deleted")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
           onBookUpdated?()
         }
       } catch {

@@ -175,7 +175,7 @@ struct PageImageView: View {
     }
     switch result {
     case .success:
-      ErrorManager.shared.notify(message: "Image saved to Photos successfully")
+      ErrorManager.shared.notify(message: String(localized: "notification.reader.imageSaved"))
     case .failure(let error):
       ErrorManager.shared.alert(error: error)
     }
@@ -190,7 +190,7 @@ struct PageImageView: View {
     guard let cachedFileURL = await viewModel.getCachedImageFileURL(page: page) else {
       await MainActor.run {
         isSaving = false
-        ErrorManager.shared.alert(message: "Image not available")
+        ErrorManager.shared.alert(message: String(localized: "alert.reader.imageUnavailable"))
       }
       return
     }
@@ -219,7 +219,11 @@ struct PageImageView: View {
     } catch {
       await MainActor.run {
         isSaving = false
-        ErrorManager.shared.alert(message: "Failed to prepare file: \(error)")
+        let message = String.localizedStringWithFormat(
+          String(localized: "alert.reader.prepareFailed"),
+          error.localizedDescription
+        )
+        ErrorManager.shared.alert(message: message)
       }
     }
   }

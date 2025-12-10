@@ -151,7 +151,7 @@ struct CreateReadListSheet: View {
           bookIds: bookIds
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Read list created")
+          ErrorManager.shared.notify(message: String(localized: "notification.readList.created"))
           isCreating = false
           onCreate(readList.id)
           dismiss()

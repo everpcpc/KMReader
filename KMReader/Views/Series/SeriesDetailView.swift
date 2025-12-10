@@ -492,7 +492,8 @@ extension SeriesDetailView {
       do {
         try await SeriesService.shared.analyzeSeries(seriesId: seriesId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series analysis started")
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.analysisStarted"))
         }
         await refreshSeriesData()
       } catch {
@@ -508,7 +509,8 @@ extension SeriesDetailView {
       do {
         try await SeriesService.shared.refreshMetadata(seriesId: seriesId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series metadata refreshed")
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.metadataRefreshed"))
         }
         await refreshSeriesData()
       } catch {
@@ -524,7 +526,7 @@ extension SeriesDetailView {
       do {
         try await SeriesService.shared.markAsRead(seriesId: seriesId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series marked as read")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
         }
         await refreshSeriesData()
       } catch {
@@ -540,7 +542,7 @@ extension SeriesDetailView {
       do {
         try await SeriesService.shared.markAsUnread(seriesId: seriesId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series marked as unread")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
         }
         await refreshSeriesData()
       } catch {
@@ -556,7 +558,7 @@ extension SeriesDetailView {
       do {
         try await SeriesService.shared.deleteSeries(seriesId: seriesId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series deleted")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
           dismiss()
         }
       } catch {
@@ -575,7 +577,8 @@ extension SeriesDetailView {
           seriesIds: [seriesId]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series added to collection")
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.addedToCollection"))
         }
         await refreshSeriesData()
       } catch {

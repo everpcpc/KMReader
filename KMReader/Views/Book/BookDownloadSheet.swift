@@ -72,7 +72,7 @@ struct BookDownloadSheet: View {
       ) { result in
         switch result {
         case .success:
-          ErrorManager.shared.notify(message: "Book saved to Files")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.savedToFiles"))
           dismiss()
         case .failure(let error):
           ErrorManager.shared.alert(error: error)

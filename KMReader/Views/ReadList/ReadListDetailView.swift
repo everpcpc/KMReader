@@ -190,7 +190,7 @@ extension ReadListDetailView {
     do {
       try await ReadListService.shared.deleteReadList(readListId: readListId)
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Read list deleted")
+        ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
         dismiss()
       }
     } catch {

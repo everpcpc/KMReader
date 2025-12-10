@@ -89,7 +89,7 @@ struct CollectionRowView: View {
       do {
         try await CollectionService.shared.deleteCollection(collectionId: collection.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Collection deleted")
+          ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
           onActionCompleted?()
         }
       } catch {

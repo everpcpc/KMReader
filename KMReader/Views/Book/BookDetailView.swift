@@ -309,7 +309,7 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.analyzeBook(bookId: bookId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Book analysis started")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.analysisStarted"))
         }
         await loadBook()
       } catch {
@@ -325,7 +325,7 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.refreshMetadata(bookId: bookId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Metadata refreshed")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.metadataRefreshed"))
         }
         await loadBook()
       } catch {
@@ -342,7 +342,7 @@ struct BookDetailView: View {
         try await BookService.shared.deleteBook(bookId: bookId)
         await CacheManager.clearCache(forBookId: bookId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Book deleted")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
           dismiss()
         }
       } catch {
@@ -358,7 +358,7 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.markAsRead(bookId: bookId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Marked as read")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         }
         await loadBook()
       } catch {
@@ -374,7 +374,7 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.markAsUnread(bookId: bookId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Marked as unread")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         }
         await loadBook()
       } catch {
@@ -449,7 +449,7 @@ struct BookDetailView: View {
           bookIds: [bookId]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Books added to read list")
+          ErrorManager.shared.notify(message: String(localized: "notification.book.booksAddedToReadList"))
         }
         await loadBook()
       } catch {

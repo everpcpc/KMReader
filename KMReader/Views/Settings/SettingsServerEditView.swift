@@ -204,7 +204,8 @@ struct SettingsServerEditView: View {
     instance.username = trimmedUsername
     if !password.isEmpty {
       guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
-        ErrorManager.shared.notify(message: "Unable to encode credentials.")
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.settings.encodeCredentialsFailed"))
         return
       }
       instance.authToken = token

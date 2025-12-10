@@ -146,7 +146,7 @@ class SeriesViewModel {
     do {
       try await seriesService.markAsRead(seriesId: seriesId)
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Series marked as read")
+        ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
       }
       await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
@@ -158,7 +158,7 @@ class SeriesViewModel {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Series marked as unread")
+        ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
       }
       await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {

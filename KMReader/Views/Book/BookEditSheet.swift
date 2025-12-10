@@ -208,7 +208,7 @@ struct BookEditSheet: View {
         if !metadata.isEmpty {
           try await BookService.shared.updateBookMetadata(bookId: book.id, metadata: metadata)
           await MainActor.run {
-            ErrorManager.shared.notify(message: "Book updated")
+            ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
             dismiss()
           }
         } else {

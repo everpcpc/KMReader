@@ -289,7 +289,8 @@ extension CollectionSeriesListView {
       )
 
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Series removed from collection")
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.removedFromCollection"))
       }
 
       // Clear selection and exit selection mode with animation

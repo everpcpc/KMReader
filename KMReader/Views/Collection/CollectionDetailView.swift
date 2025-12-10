@@ -171,7 +171,7 @@ extension CollectionDetailView {
     do {
       try await CollectionService.shared.deleteCollection(collectionId: collectionId)
       await MainActor.run {
-        ErrorManager.shared.notify(message: "Collection deleted")
+        ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
         dismiss()
       }
     } catch {

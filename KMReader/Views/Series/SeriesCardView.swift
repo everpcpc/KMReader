@@ -114,7 +114,7 @@ struct SeriesCardView: View {
           seriesIds: [series.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series added to collection")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.addedToCollection"))
           onActionCompleted?()
         }
       } catch {
@@ -130,7 +130,7 @@ struct SeriesCardView: View {
       do {
         try await SeriesService.shared.deleteSeries(seriesId: series.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Series deleted")
+          ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
           onActionCompleted?()
         }
       } catch {
