@@ -31,6 +31,7 @@ struct DivinaReaderView: View {
   @State private var showHelperOverlay = false
   @State private var helperOverlayTimer: Timer?
   @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
+  @State private var preserveReaderOptions = false
   #if os(tvOS)
     @State private var isEndPageButtonFocused = false
     private enum ReaderFocusAnchor: Hashable {
@@ -430,8 +431,11 @@ struct DivinaReaderView: View {
       viewModel.updatePageLayout(newValue)
     }
     .task(id: currentBookId) {
-      resetReaderPreferencesForCurrentBook()
-      await loadBook(bookId: currentBookId)
+      if !preserveReaderOptions {
+        resetReaderPreferencesForCurrentBook()
+      }
+      await loadBook(bookId: currentBookId, preserveReaderOptions: preserveReaderOptions)
+      preserveReaderOptions = false
     }
     .onChange(of: viewModel.pages.count) { oldCount, newCount in
       // Show helper overlay when pages are first loaded (iOS and macOS)
@@ -466,7 +470,7 @@ struct DivinaReaderView: View {
     .environment(\.readerBackgroundPreference, readerBackground)
   }
 
-  private func loadBook(bookId: String) async {
+  private func loadBook(bookId: String, preserveReaderOptions: Bool) async {
     // Mark that loading has started
     viewModel.isLoading = true
 
@@ -496,7 +500,9 @@ struct DivinaReaderView: View {
         preferredDirection = AppConfig.defaultReadingDirection
       }
       // Fallback to vertical if the preferred direction is unsupported
-      readingDirection = preferredDirection.isSupported ? preferredDirection : .vertical
+      if !preserveReaderOptions {
+        readingDirection = preferredDirection.isSupported ? preferredDirection : .vertical
+      }
 
       // Load next book
       if let nextBook = try await BookService.shared.getNextBook(
@@ -695,8 +701,8 @@ struct DivinaReaderView: View {
   private func openNextBook(nextBookId: String) {
     // Switch to next book by updating currentBookId
     // This will trigger the .task(id: currentBookId) to reload
+    preserveReaderOptions = true
     currentBookId = nextBookId
-    resetReaderPreferencesForCurrentBook()
     // Reset viewModel state for new book
     viewModel = ReaderViewModel(dualPageNoCover: dualPageNoCover, pageLayout: pageLayout)
     // Preserve incognito mode for next book
