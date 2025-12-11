@@ -44,6 +44,7 @@ struct ComicPageView: View {
               )
             #endif
             .id(pageIndex)
+            .readerPageScrollTransition()
           }
 
           // End page at the end for LTR

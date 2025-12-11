@@ -74,6 +74,7 @@ struct ComicDualPageView: View {
               )
             #endif
             .id(pagePair.first)
+            .readerPageScrollTransition()
           }
         }
         .scrollTargetLayout()

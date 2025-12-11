@@ -43,6 +43,7 @@ struct VerticalPageView: View {
               )
             #endif
             .id(pageIndex)
+            .readerPageScrollTransition()
           }
 
           // End page after last page

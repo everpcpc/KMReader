@@ -75,6 +75,7 @@ struct MangaDualPageView: View {
               )
             #endif
             .id(pagePair.first)
+            .readerPageScrollTransition()
           }
         }
         .scrollTargetLayout()

@@ -66,6 +66,7 @@ struct MangaPageView: View {
               )
             #endif
             .id(pageIndex)
+            .readerPageScrollTransition()
           }
         }
         .scrollTargetLayout()
