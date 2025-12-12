@@ -14,7 +14,7 @@ struct SettingsAboutSection: View {
       }
       Link(destination: URL(string: "https://kmreader.userjot.com/")!) {
         HStack {
-          Label("Feedback", systemImage: "message")
+          Label("Feedback", systemImage: "paperplane")
           Spacer()
           Image(systemName: "arrow.up.right.square")
             .font(.caption)
