@@ -39,7 +39,7 @@ struct ComicPageView: View {
             )
             .frame(width: screenSize.width, height: screenSize.height)
             .contentShape(Rectangle())
-            #if os(iOS)
+            #if os(iOS) || os(macOS)
               .simultaneousGesture(
                 horizontalTapGesture(width: screenSize.width, proxy: proxy)
               )
@@ -62,7 +62,7 @@ struct ComicPageView: View {
             )
           }
           .frame(width: screenSize.width, height: screenSize.height)
-          #if os(iOS)
+          #if os(iOS) || os(macOS)
             .contentShape(Rectangle())
             .simultaneousGesture(
               horizontalTapGesture(width: screenSize.width, proxy: proxy)
@@ -118,7 +118,7 @@ struct ComicPageView: View {
     }
   }
 
-  #if os(iOS)
+  #if os(iOS) || os(macOS)
     private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
       SpatialTapGesture()
         .onEnded { value in

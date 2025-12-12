@@ -69,7 +69,7 @@ struct MangaDualPageView: View {
               }
             }
             .frame(width: screenSize.width, height: screenSize.height)
-            #if os(iOS)
+            #if os(iOS) || os(macOS)
               .contentShape(Rectangle())
               .simultaneousGesture(
                 horizontalTapGesture(width: screenSize.width, proxy: proxy)
@@ -125,7 +125,7 @@ struct MangaDualPageView: View {
     }
   }
 
-  #if os(iOS)
+  #if os(iOS) || os(macOS)
     private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
       SpatialTapGesture()
         .onEnded { value in
