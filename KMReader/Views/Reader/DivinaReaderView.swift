@@ -209,7 +209,7 @@ struct DivinaReaderView: View {
               .readerIgnoresSafeArea()
 
             case .webtoon:
-              #if os(iOS)
+              #if os(iOS) || os(macOS)
                 WebtoonPageView(
                   viewModel: viewModel,
                   isAtBottom: $isAtBottom,
@@ -224,7 +224,7 @@ struct DivinaReaderView: View {
                 )
                 .readerIgnoresSafeArea()
               #else
-                // Webtoon requires UIKit on iOS/iPadOS, fallback to vertical
+                // Webtoon requires UIKit/AppKit on iOS/iPadOS/macOS, fallback to vertical
                 VerticalPageView(
                   viewModel: viewModel,
                   nextBook: nextBook,
@@ -259,8 +259,8 @@ struct DivinaReaderView: View {
           )
         }
 
-        // Helper overlay (only used on iOS; always rendered, use opacity to control visibility)
-        #if os(iOS)
+        // Helper overlay (iOS: always, macOS: with keyboard help)
+        #if os(iOS) || os(macOS)
           Group {
             switch readingDirection {
             case .ltr:
@@ -320,14 +320,6 @@ struct DivinaReaderView: View {
         #endif
 
       }
-      #if os(macOS)
-        .simultaneousGesture(
-          TapGesture()
-            .onEnded {
-              toggleControls(autoHide: false)
-            }
-        )
-      #endif
       #if os(tvOS)
         .onPlayPauseCommand {
           // Manual toggle on tvOS should not auto-hide

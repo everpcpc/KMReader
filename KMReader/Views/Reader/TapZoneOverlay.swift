@@ -101,7 +101,7 @@ struct VerticalTapZoneOverlay: View {
 }
 
 // Overlay for webtoon view - L-shaped tap zones
-#if os(iOS)
+#if os(iOS) || os(macOS)
   struct WebtoonTapZoneOverlay: View {
     @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
     @Binding var isVisible: Bool

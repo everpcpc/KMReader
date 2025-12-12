@@ -69,8 +69,8 @@ import SwiftUI
                 HelpRow(key: "↓", description: "Next page")
                 HelpRow(key: "↑", description: "Previous page")
               case .webtoon:
-                HelpRow(key: "↓ / →", description: "Next page")
-                HelpRow(key: "↑ / ←", description: "Previous page")
+                HelpRow(key: "↓", description: "Scroll down")
+                HelpRow(key: "↑", description: "Scroll up")
               }
             }
           }

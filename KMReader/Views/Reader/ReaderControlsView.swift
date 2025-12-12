@@ -397,14 +397,8 @@ struct ReaderControlsView: View {
           break
         }
       case .webtoon:
-        switch keyCode {
-        case 125, 124:  // Down arrow, Right arrow
-          goToNextPage()
-        case 126, 123:  // Up arrow, Left arrow
-          goToPreviousPage()
-        default:
-          break
-        }
+        // Webtoon scrolling is handled by WebtoonReaderView's own keyboard monitor
+        break
       }
     }
   #endif

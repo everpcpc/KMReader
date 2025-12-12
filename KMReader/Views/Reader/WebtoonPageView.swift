@@ -5,7 +5,7 @@
 //  Created by Komga iOS Client
 //
 
-#if os(iOS)
+#if os(iOS) || os(macOS)
   import SwiftUI
 
   struct WebtoonPageView: View {

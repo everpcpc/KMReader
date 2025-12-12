@@ -6,7 +6,6 @@
 //
 
 #if os(iOS)
-  import Foundation
   import UIKit
 
   class WebtoonLayout: UICollectionViewFlowLayout {
@@ -16,6 +15,19 @@
       minimumLineSpacing = 0
       minimumInteritemSpacing = 0
       sectionInset = .zero
+    }
+  }
+
+#elseif os(macOS)
+  import AppKit
+
+  class WebtoonLayout: NSCollectionViewFlowLayout {
+    override func prepare() {
+      super.prepare()
+      scrollDirection = .vertical
+      minimumLineSpacing = 0
+      minimumInteritemSpacing = 0
+      sectionInset = NSEdgeInsetsZero
     }
   }
 #endif
