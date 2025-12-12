@@ -4,7 +4,7 @@ extension View {
   @ViewBuilder
   func readerPageScrollTransition(style: PageTransitionStyle) -> some View {
     switch style {
-    case .instant, .none:
+    case .none, .default:
       self
     case .simple:
       scrollTransition(.interactive, axis: .horizontal) { content, phase in

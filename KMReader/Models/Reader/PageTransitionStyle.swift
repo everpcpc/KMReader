@@ -9,15 +9,15 @@ import Foundation
 import SwiftUI
 
 enum PageTransitionStyle: String, CaseIterable, Hashable {
-  case instant = "instant"
   case none = "none"
+  case `default` = "default"
   case simple = "simple"
   case fancy = "fancy"
 
   var displayName: String {
     switch self {
-    case .instant: return String(localized: "reader.transition.instant")
     case .none: return String(localized: "reader.transition.none")
+    case .default: return String(localized: "reader.transition.default")
     case .simple: return String(localized: "reader.transition.simple")
     case .fancy: return String(localized: "reader.transition.fancy")
     }
@@ -25,8 +25,8 @@ enum PageTransitionStyle: String, CaseIterable, Hashable {
 
   var description: String {
     switch self {
-    case .instant: return String(localized: "reader.transition.instant.description")
     case .none: return String(localized: "reader.transition.none.description")
+    case .default: return String(localized: "reader.transition.default.description")
     case .simple: return String(localized: "reader.transition.simple.description")
     case .fancy: return String(localized: "reader.transition.fancy.description")
     }
@@ -34,7 +34,7 @@ enum PageTransitionStyle: String, CaseIterable, Hashable {
 
   var scrollAnimation: Animation? {
     switch self {
-    case .instant: return nil
+    case .none: return nil
     default: return PlatformHelper.readerAnimation
     }
   }

@@ -12641,70 +12641,70 @@
         }
       }
     },
-    "reader.transition.instant" : {
+    "reader.transition.default" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instant"
+            "value" : "Default"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instantané"
+            "value" : "Par défaut"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "瞬時"
+            "value" : "デフォルト"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "瞬切"
+            "value" : "默认"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "瞬切"
+            "value" : "預設"
           }
         }
       }
     },
-    "reader.transition.instant.description" : {
+    "reader.transition.default.description" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instant page switch without any animation"
+            "value" : "Standard swipe without any transition effect"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Changement de page instantané sans animation"
+            "value" : "Balayage standard sans effet de transition"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アニメーションなしで瞬時にページ切り替え"
+            "value" : "トランジション効果なしの標準スワイプ"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无任何动画，瞬间切换页面"
+            "value" : "标准滑动，无过渡效果"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無任何動畫，瞬間切換頁面"
+            "value" : "標準滑動，無過渡效果"
           }
         }
       }
@@ -12748,31 +12748,31 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Standard swipe without any transition effect"
+            "value" : "Instant page switch without any animation"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Balayage standard sans effet de transition"
+            "value" : "Changement de page instantané sans animation"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "トランジション効果なしの標準スワイプ"
+            "value" : "アニメーションなしで瞬時にページ切り替え"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "标准滑动，无过渡效果"
+            "value" : "无任何动画，瞬间切换页面"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "標準滑動，無過渡效果"
+            "value" : "無任何動畫，瞬間切換頁面"
           }
         }
       }
