@@ -63,6 +63,7 @@ Build helpers (optional):
 
 ## 🔌 Compatibility
 
+- Requires **Komga 1.19.0** or later.
 - Works with **Komga API v1 and v2** (authentication, libraries/series/books, reading progress/pages, collections, and read lists).
 - SSE keeps dashboards and task analytics synchronized with toggles for auto-refresh and connection notifications.
 
