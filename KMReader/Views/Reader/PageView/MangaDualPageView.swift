@@ -20,6 +20,7 @@ struct MangaDualPageView: View {
   let onEndPageFocusChange: ((Bool) -> Void)?
 
   @Environment(\.readerBackgroundPreference) private var readerBackground
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
@@ -75,7 +76,7 @@ struct MangaDualPageView: View {
               )
             #endif
             .id(pagePair.first)
-            .readerPageScrollTransition()
+            .readerPageScrollTransition(style: pageTransitionStyle)
           }
         }
         .scrollTargetLayout()
@@ -104,7 +105,7 @@ struct MangaDualPageView: View {
 
         // Update scroll position and currentPageIndex
         if scrollPosition != targetPair.first {
-          withAnimation(PlatformHelper.readerAnimation) {
+          withAnimation(pageTransitionStyle.scrollAnimation) {
             scrollPosition = targetPair.first
             proxy.scrollTo(targetPair.first, anchor: .trailing)
           }

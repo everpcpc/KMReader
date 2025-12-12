@@ -15,6 +15,7 @@ struct SettingsReaderView: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
 
   var body: some View {
     Form {
@@ -27,6 +28,18 @@ struct SettingsReaderView: View {
           }
           .pickerStyle(.menu)
           Text("The background color of the reader")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Page Transition", selection: $pageTransitionStyle) {
+            ForEach(PageTransitionStyle.allCases, id: \.self) { style in
+              Text(style.displayName).tag(style)
+            }
+          }
+          .pickerStyle(.menu)
+          Text(pageTransitionStyle.description)
             .font(.caption)
             .foregroundColor(.secondary)
         }

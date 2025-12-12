@@ -1,12 +1,23 @@
 import SwiftUI
 
 extension View {
-  func readerPageScrollTransition() -> some View {
-    scrollTransition { content, phase in
-      content
-        .opacity(phase.isIdentity ? 1 : 0)
-        .scaleEffect(phase.isIdentity ? 1 : 0.5)
-        .blur(radius: phase.isIdentity ? 0 : 10)
+  @ViewBuilder
+  func readerPageScrollTransition(style: PageTransitionStyle) -> some View {
+    switch style {
+    case .instant, .none:
+      self
+    case .simple:
+      scrollTransition(.interactive, axis: .horizontal) { content, phase in
+        content
+          .opacity(phase.isIdentity ? 1 : 0.5)
+      }
+    case .fancy:
+      scrollTransition(.interactive, axis: .horizontal) { content, phase in
+        content
+          .opacity(phase.isIdentity ? 1 : 0.3)
+          .scaleEffect(phase.isIdentity ? 1 : 0.92)
+          .blur(radius: phase.isIdentity ? 0 : 3)
+      }
     }
   }
 }

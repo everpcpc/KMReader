@@ -23,6 +23,7 @@ struct VerticalPageView: View {
   @State private var scrollPosition: Int?
   @State private var isZoomed = false
   @Environment(\.readerBackgroundPreference) private var readerBackground
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
 
   var body: some View {
     ScrollViewReader { proxy in
@@ -43,7 +44,7 @@ struct VerticalPageView: View {
               )
             #endif
             .id(pageIndex)
-            .readerPageScrollTransition()
+            .readerPageScrollTransition(style: pageTransitionStyle)
           }
 
           // End page after last page
@@ -95,7 +96,7 @@ struct VerticalPageView: View {
 
         // Update scroll position and currentPageIndex
         if scrollPosition != target {
-          withAnimation(PlatformHelper.readerAnimation) {
+          withAnimation(pageTransitionStyle.scrollAnimation) {
             scrollPosition = target
             proxy.scrollTo(target, anchor: .top)
           }

@@ -409,6 +409,20 @@ enum AppConfig {
     }
   }
 
+  static var pageTransitionStyle: PageTransitionStyle {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "pageTransitionStyle"),
+        let style = PageTransitionStyle(rawValue: stored)
+      {
+        return style
+      }
+      return .simple
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "pageTransitionStyle")
+    }
+  }
+
   // MARK: - Dashboard
   static var dashboard: DashboardConfiguration {
     get {
