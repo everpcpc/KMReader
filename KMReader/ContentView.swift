@@ -128,12 +128,7 @@ struct ContentView: View {
             }
           }
           .allowsHitTesting(true)
-          .transition(
-            .asymmetric(
-              insertion: .opacity,
-              removal: .scale(scale: 0.8).combined(with: .opacity)
-            )
-          )
+          .transition(.opacity)
         }
       }
       .animation(
