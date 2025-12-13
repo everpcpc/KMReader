@@ -14,18 +14,31 @@ struct SeriesEditSheet: View {
 
   // Series metadata fields
   @State private var title: String
+  @State private var titleLock: Bool
   @State private var titleSort: String
+  @State private var titleSortLock: Bool
   @State private var summary: String
+  @State private var summaryLock: Bool
   @State private var publisher: String
+  @State private var publisherLock: Bool
   @State private var ageRating: String
+  @State private var ageRatingLock: Bool
   @State private var totalBookCount: String
+  @State private var totalBookCountLock: Bool
   @State private var language: String
+  @State private var languageLock: Bool
   @State private var readingDirection: ReadingDirection
+  @State private var readingDirectionLock: Bool
   @State private var status: SeriesStatus
+  @State private var statusLock: Bool
   @State private var genres: [String]
+  @State private var genresLock: Bool
   @State private var tags: [String]
+  @State private var tagsLock: Bool
   @State private var links: [WebLink]
+  @State private var linksLock: Bool
   @State private var alternateTitles: [AlternateTitle]
+  @State private var alternateTitlesLock: Bool
 
   @State private var newGenre: String = ""
   @State private var newTag: String = ""
@@ -37,21 +50,34 @@ struct SeriesEditSheet: View {
   init(series: Series) {
     self.series = series
     _title = State(initialValue: series.metadata.title)
+    _titleLock = State(initialValue: series.metadata.titleLock ?? false)
     _titleSort = State(initialValue: series.metadata.titleSort)
+    _titleSortLock = State(initialValue: series.metadata.titleSortLock ?? false)
     _summary = State(initialValue: series.metadata.summary ?? "")
+    _summaryLock = State(initialValue: series.metadata.summaryLock ?? false)
     _publisher = State(initialValue: series.metadata.publisher ?? "")
+    _publisherLock = State(initialValue: series.metadata.publisherLock ?? false)
     _ageRating = State(initialValue: series.metadata.ageRating.map { String($0) } ?? "")
+    _ageRatingLock = State(initialValue: series.metadata.ageRatingLock ?? false)
     _totalBookCount = State(initialValue: series.metadata.totalBookCount.map { String($0) } ?? "")
+    _totalBookCountLock = State(initialValue: series.metadata.totalBookCountLock ?? false)
     _language = State(initialValue: series.metadata.language ?? "")
+    _languageLock = State(initialValue: series.metadata.languageLock ?? false)
     _readingDirection = State(
       initialValue: ReadingDirection.fromString(series.metadata.readingDirection)
     )
+    _readingDirectionLock = State(initialValue: series.metadata.readingDirectionLock ?? false)
     _status = State(
       initialValue: SeriesStatus.fromString(series.metadata.status))
+    _statusLock = State(initialValue: series.metadata.statusLock ?? false)
     _genres = State(initialValue: series.metadata.genres ?? [])
+    _genresLock = State(initialValue: series.metadata.genresLock ?? false)
     _tags = State(initialValue: series.metadata.tags ?? [])
+    _tagsLock = State(initialValue: series.metadata.tagsLock ?? false)
     _links = State(initialValue: series.metadata.links ?? [])
+    _linksLock = State(initialValue: series.metadata.linksLock ?? false)
     _alternateTitles = State(initialValue: series.metadata.alternateTitles ?? [])
+    _alternateTitlesLock = State(initialValue: series.metadata.alternateTitlesLock ?? false)
   }
 
   var body: some View {
@@ -59,32 +85,41 @@ struct SeriesEditSheet: View {
       Form {
         Section("Basic Information") {
           TextField("Title", text: $title)
+            .lockToggle(isLocked: $titleLock)
           TextField("Title Sort", text: $titleSort)
+            .lockToggle(isLocked: $titleSortLock)
           TextField("Total Book Count", text: $totalBookCount)
             #if os(iOS) || os(tvOS)
               .keyboardType(.numberPad)
             #endif
+            .lockToggle(isLocked: $totalBookCountLock)
           TextField("Summary", text: $summary, axis: .vertical)
             .lineLimit(3...10)
+            .lockToggle(isLocked: $summaryLock)
           Picker("Status", selection: $status) {
             ForEach(SeriesStatus.allCases, id: \.self) { status in
               Text(status.displayName).tag(status)
             }
           }
+          .lockToggle(isLocked: $statusLock)
           LanguagePicker(selectedLanguage: $language)
+            .lockToggle(isLocked: $languageLock)
           Picker("Reading Direction", selection: $readingDirection) {
             ForEach(ReadingDirection.allCases, id: \.self) { direction in
               Text(direction.displayName).tag(direction)
             }
           }
+          .lockToggle(isLocked: $readingDirectionLock)
           TextField("Publisher", text: $publisher)
+            .lockToggle(isLocked: $publisherLock)
           TextField("Age Rating", text: $ageRating)
             #if os(iOS) || os(tvOS)
               .keyboardType(.numberPad)
             #endif
+            .lockToggle(isLocked: $ageRatingLock)
         }
 
-        Section("Alternate Titles") {
+        Section {
           ForEach(alternateTitles.indices, id: \.self) { index in
             VStack(alignment: .leading) {
               HStack {
@@ -92,7 +127,10 @@ struct SeriesEditSheet: View {
                   .font(.body)
                 Spacer()
                 Button(role: .destructive) {
-                  alternateTitles.remove(at: index)
+                  let indexToRemove = index
+                  _ = withAnimation {
+                    alternateTitles.remove(at: indexToRemove)
+                  }
                 } label: {
                   Image(systemName: "trash")
                 }
@@ -107,25 +145,40 @@ struct SeriesEditSheet: View {
             TextField("Title", text: $newAlternateTitle)
             Button {
               if !newAlternateTitleLabel.isEmpty && !newAlternateTitle.isEmpty {
-                alternateTitles.append(
-                  AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
-                newAlternateTitleLabel = ""
-                newAlternateTitle = ""
+                withAnimation {
+                  alternateTitles.append(
+                    AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
+                  newAlternateTitleLabel = ""
+                  newAlternateTitle = ""
+                }
               }
             } label: {
               Label("Add Alternate Title", systemImage: "plus.circle.fill")
             }
             .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
           }
+        } header: {
+          HStack {
+            Button(action: { alternateTitlesLock.toggle() }) {
+              Image(systemName: alternateTitlesLock ? "lock.fill" : "lock.open.fill")
+                .foregroundColor(alternateTitlesLock ? .secondary : .gray)
+            }
+            .buttonStyle(.plain)
+            Text("Alternate Titles")
+            Spacer()
+          }
         }
 
-        Section("Genres") {
+        Section {
           ForEach(genres.indices, id: \.self) { index in
             HStack {
               Text(genres[index])
               Spacer()
               Button(role: .destructive) {
-                genres.remove(at: index)
+                let indexToRemove = index
+                _ = withAnimation {
+                  genres.remove(at: indexToRemove)
+                }
               } label: {
                 Image(systemName: "trash")
               }
@@ -135,23 +188,31 @@ struct SeriesEditSheet: View {
             TextField("Genre", text: $newGenre)
             Button {
               if !newGenre.isEmpty && !genres.contains(newGenre) {
-                genres.append(newGenre)
-                newGenre = ""
+                withAnimation {
+                  genres.append(newGenre)
+                  newGenre = ""
+                }
               }
             } label: {
               Image(systemName: "plus.circle.fill")
             }
             .disabled(newGenre.isEmpty)
           }
+        } header: {
+          Text("Genres")
+            .lockToggle(isLocked: $genresLock)
         }
 
-        Section("Tags") {
+        Section {
           ForEach(tags.indices, id: \.self) { index in
             HStack {
               Text(tags[index])
               Spacer()
               Button(role: .destructive) {
-                tags.remove(at: index)
+                let indexToRemove = index
+                _ = withAnimation {
+                  tags.remove(at: indexToRemove)
+                }
               } label: {
                 Image(systemName: "trash")
               }
@@ -161,17 +222,22 @@ struct SeriesEditSheet: View {
             TextField("Tag", text: $newTag)
             Button {
               if !newTag.isEmpty && !tags.contains(newTag) {
-                tags.append(newTag)
-                newTag = ""
+                withAnimation {
+                  tags.append(newTag)
+                  newTag = ""
+                }
               }
             } label: {
               Image(systemName: "plus.circle.fill")
             }
             .disabled(newTag.isEmpty)
           }
+        } header: {
+          Text("Tags")
+            .lockToggle(isLocked: $tagsLock)
         }
 
-        Section("Links") {
+        Section {
           ForEach(links.indices, id: \.self) { index in
             VStack(alignment: .leading) {
               HStack {
@@ -179,7 +245,10 @@ struct SeriesEditSheet: View {
                   .font(.body)
                 Spacer()
                 Button(role: .destructive) {
-                  links.remove(at: index)
+                  let indexToRemove = index
+                  _ = withAnimation {
+                    links.remove(at: indexToRemove)
+                  }
                 } label: {
                   Image(systemName: "trash")
                 }
@@ -198,17 +267,21 @@ struct SeriesEditSheet: View {
               #endif
             Button {
               if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
-                links.append(WebLink(label: newLinkLabel, url: newLinkURL))
-                newLinkLabel = ""
-                newLinkURL = ""
+                withAnimation {
+                  links.append(WebLink(label: newLinkLabel, url: newLinkURL))
+                  newLinkLabel = ""
+                  newLinkURL = ""
+                }
               }
             } label: {
               Label("Add Link", systemImage: "plus.circle.fill")
             }
             .disabled(newLinkLabel.isEmpty || newLinkURL.isEmpty)
           }
+        } header: {
+          Text("Links")
+            .lockToggle(isLocked: $linksLock)
         }
-
       }
     } controls: {
       Button(action: saveChanges) {
@@ -231,20 +304,30 @@ struct SeriesEditSheet: View {
         if title != series.metadata.title {
           metadata["title"] = title
         }
+        metadata["titleLock"] = titleLock
+
         if titleSort != series.metadata.titleSort {
           metadata["titleSort"] = titleSort
         }
+        metadata["titleSortLock"] = titleSortLock
+
         if summary != (series.metadata.summary ?? "") {
           metadata["summary"] = summary.isEmpty ? NSNull() : summary
         }
+        metadata["summaryLock"] = summaryLock
+
         if publisher != (series.metadata.publisher ?? "") {
           metadata["publisher"] = publisher.isEmpty ? NSNull() : publisher
         }
+        metadata["publisherLock"] = publisherLock
+
         if let ageRatingInt = Int(ageRating), ageRatingInt != (series.metadata.ageRating ?? 0) {
           metadata["ageRating"] = ageRating.isEmpty ? NSNull() : ageRatingInt
         } else if ageRating.isEmpty && series.metadata.ageRating != nil {
           metadata["ageRating"] = NSNull()
         }
+        metadata["ageRatingLock"] = ageRatingLock
+
         if let totalBookCountInt = Int(totalBookCount),
           totalBookCountInt != (series.metadata.totalBookCount ?? 0)
         {
@@ -252,32 +335,42 @@ struct SeriesEditSheet: View {
         } else if totalBookCount.isEmpty && series.metadata.totalBookCount != nil {
           metadata["totalBookCount"] = NSNull()
         }
+        metadata["totalBookCountLock"] = totalBookCountLock
+
         if language != (series.metadata.language ?? "") {
           metadata["language"] = language.isEmpty ? NSNull() : language
         }
+        metadata["languageLock"] = languageLock
+
         let currentReadingDirection = ReadingDirection.fromString(series.metadata.readingDirection)
         if readingDirection != currentReadingDirection {
           metadata["readingDirection"] = readingDirection.rawValue
         }
+        metadata["readingDirectionLock"] = readingDirectionLock
+
         let currentStatus = SeriesStatus.fromString(series.metadata.status)
         if status != currentStatus {
           metadata["status"] = status.apiValue
         }
+        metadata["statusLock"] = statusLock
 
         let currentGenres = series.metadata.genres ?? []
         if genres != currentGenres {
           metadata["genres"] = genres
         }
+        metadata["genresLock"] = genresLock
 
         let currentTags = series.metadata.tags ?? []
         if tags != currentTags {
           metadata["tags"] = tags
         }
+        metadata["tagsLock"] = tagsLock
 
         let currentLinks = series.metadata.links ?? []
         if links != currentLinks {
           metadata["links"] = links.map { ["label": $0.label, "url": $0.url] }
         }
+        metadata["linksLock"] = linksLock
 
         let currentAlternateTitles = series.metadata.alternateTitles ?? []
         if alternateTitles != currentAlternateTitles {
@@ -285,6 +378,7 @@ struct SeriesEditSheet: View {
             ["label": $0.label, "title": $0.title]
           }
         }
+        metadata["alternateTitlesLock"] = alternateTitlesLock
 
         if !metadata.isEmpty {
           try await SeriesService.shared.updateSeriesMetadata(
