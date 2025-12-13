@@ -75,6 +75,22 @@ enum AuthorRole: Equatable, Hashable {
     }
   }
 
+  // Sort order for displaying authors
+  // Priority: Writers, Pencilers, Inkers, Colorists, Letterers, Cover, Editors, Translators, and custom roles
+  var sortOrder: Int {
+    switch self {
+    case .writer: return 0
+    case .penciller: return 1
+    case .inker: return 2
+    case .colorist: return 3
+    case .letterer: return 4
+    case .cover: return 5
+    case .editor: return 6
+    case .translator: return 7
+    case .custom: return 8
+    }
+  }
+
   // Initialize from string (for API responses)
   init(from string: String) {
     switch string.lowercased() {

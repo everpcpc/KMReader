@@ -145,7 +145,7 @@ struct BookDetailView: View {
               // Authors as chips
               if let authors = book.metadata.authors, !authors.isEmpty {
                 HFlow {
-                  ForEach(authors, id: \.self) { author in
+                  ForEach(authors.sortedByRole(), id: \.self) { author in
                     InfoChip(
                       label: author.name,
                       systemImage: author.role.icon,

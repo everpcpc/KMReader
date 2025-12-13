@@ -42,3 +42,10 @@ extension Author: Codable {
     try container.encode(role.rawValue, forKey: .role)
   }
 }
+
+// MARK: - Array Extension
+extension Array where Element == Author {
+  func sortedByRole() -> [Author] {
+    sorted(by: { $0.role.sortOrder < $1.role.sortOrder })
+  }
+}

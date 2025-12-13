@@ -189,7 +189,7 @@ struct SeriesDetailView: View {
 
                 if let authors = series.booksMetadata.authors, !authors.isEmpty {
                   HFlow {
-                    ForEach(authors, id: \.self) { author in
+                    ForEach(authors.sortedByRole(), id: \.self) { author in
                       InfoChip(
                         label: author.name,
                         systemImage: author.role.icon,
