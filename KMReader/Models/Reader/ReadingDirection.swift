@@ -45,13 +45,13 @@ enum ReadingDirection: String, CaseIterable, Hashable {
   var displayName: String {
     switch self {
     case .ltr:
-      return "LTR"
+      return String(localized: "reading_direction.ltr", defaultValue: "Left to Right")
     case .rtl:
-      return "RTL"
+      return String(localized: "reading_direction.rtl", defaultValue: "Right to Left")
     case .vertical:
-      return "Vertical"
+      return String(localized: "reading_direction.vertical", defaultValue: "Vertical")
     case .webtoon:
-      return "Webtoon"
+      return String(localized: "reading_direction.webtoon", defaultValue: "Webtoon")
     }
   }
 
