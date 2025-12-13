@@ -67,12 +67,22 @@ struct BookDetailView: View {
                   backgroundColor: Color.gray.opacity(0.2),
                   foregroundColor: .gray
                 )
-                InfoChip(
-                  labelKey: "\(book.media.pagesCount) pages",
-                  systemImage: "book.pages",
-                  backgroundColor: Color.blue.opacity(0.2),
-                  foregroundColor: .blue
-                )
+
+                if book.media.status == .unknown {
+                  InfoChip(
+                    labelKey: "Unknown",
+                    systemImage: "questionmark.circle",
+                    backgroundColor: Color.gray.opacity(0.2),
+                    foregroundColor: .gray
+                  )
+                } else {
+                  InfoChip(
+                    labelKey: "\(book.media.pagesCount) pages",
+                    systemImage: "book.pages",
+                    backgroundColor: Color.blue.opacity(0.2),
+                    foregroundColor: .blue
+                  )
+                }
               }
 
               if book.deleted {
@@ -81,6 +91,21 @@ struct BookDetailView: View {
                   backgroundColor: Color.red.opacity(0.2),
                   foregroundColor: .red
                 )
+              }
+
+              if book.media.status == .outdated {
+                InfoChip(
+                  labelKey: "Outdated",
+                  systemImage: "exclamationmark.triangle",
+                  backgroundColor: Color.orange.opacity(0.2),
+                  foregroundColor: .orange
+                )
+              }
+
+              if let comment = book.media.comment, !comment.isEmpty {
+                Text(comment)
+                  .font(.caption)
+                  .foregroundStyle(.red)
               }
 
               if let readProgress = book.readProgress {
@@ -129,6 +154,21 @@ struct BookDetailView: View {
                     )
                   }
                 }
+              }
+            }
+          }
+
+          // Tags
+          if let tags = book.metadata.tags, !tags.isEmpty {
+            HFlow {
+              ForEach(tags.sorted(), id: \.self) { tag in
+                InfoChip(
+                  label: tag,
+                  systemImage: "tag",
+                  backgroundColor: Color.secondary.opacity(0.1),
+                  foregroundColor: .secondary,
+                  cornerRadius: 8
+                )
               }
             }
           }
@@ -229,6 +269,42 @@ struct BookDetailView: View {
                 foregroundColor: .cyan
               )
             }
+          }
+
+          // Links
+          if let links = book.metadata.links, !links.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+              Text("Links")
+                .font(.headline)
+              VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(links.enumerated()), id: \.offset) { index, link in
+                  if let url = URL(string: link.url) {
+                    Link(destination: url) {
+                      HStack(spacing: 4) {
+                        Image(systemName: "link")
+                          .font(.caption)
+                        Text(link.label)
+                          .font(.caption)
+                          .foregroundColor(.blue)
+                        Spacer()
+                      }
+                    }
+                  } else {
+                    HStack(spacing: 4) {
+                      Image(systemName: "link")
+                        .font(.caption)
+                      Text(link.label)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                      Text("(\(link.url))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                      Spacer()
+                    }
+                  }
+                }
+              }
+            }.padding(.bottom, 8)
           }
 
           if let summary = book.metadata.summary, !summary.isEmpty {
