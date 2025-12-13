@@ -64,7 +64,7 @@ struct MainApp: App {
           .environment(authViewModel)
           .modelContainer(modelContainer)
       }
-      .defaultSize(width: 800, height: 600)
+      .defaultSize(width: 800, height: 640)
     #endif
   }
 }

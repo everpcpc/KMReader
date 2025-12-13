@@ -64,7 +64,6 @@ import SwiftUI
 
           SettingsAboutSection()
         }
-        .toolbar(removing: .sidebarToggle)
         .listStyle(.sidebar)
         .frame(minWidth: 200, minHeight: 400)
         .navigationTitle("Settings")
