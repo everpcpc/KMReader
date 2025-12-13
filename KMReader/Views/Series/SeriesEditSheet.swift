@@ -18,6 +18,7 @@ struct SeriesEditSheet: View {
   @State private var summary: String
   @State private var publisher: String
   @State private var ageRating: String
+  @State private var totalBookCount: String
   @State private var language: String
   @State private var readingDirection: ReadingDirection
   @State private var status: SeriesStatus
@@ -40,6 +41,7 @@ struct SeriesEditSheet: View {
     _summary = State(initialValue: series.metadata.summary ?? "")
     _publisher = State(initialValue: series.metadata.publisher ?? "")
     _ageRating = State(initialValue: series.metadata.ageRating.map { String($0) } ?? "")
+    _totalBookCount = State(initialValue: series.metadata.totalBookCount.map { String($0) } ?? "")
     _language = State(initialValue: series.metadata.language ?? "")
     _readingDirection = State(
       initialValue: ReadingDirection.fromString(series.metadata.readingDirection)
@@ -58,23 +60,62 @@ struct SeriesEditSheet: View {
         Section("Basic Information") {
           TextField("Title", text: $title)
           TextField("Title Sort", text: $titleSort)
-          TextField("Summary", text: $summary, axis: .vertical)
-            .lineLimit(3...10)
-          TextField("Publisher", text: $publisher)
-          TextField("Age Rating", text: $ageRating)
+          TextField("Total Book Count", text: $totalBookCount)
             #if os(iOS) || os(tvOS)
               .keyboardType(.numberPad)
             #endif
+          TextField("Summary", text: $summary, axis: .vertical)
+            .lineLimit(3...10)
+          Picker("Status", selection: $status) {
+            ForEach(SeriesStatus.allCases, id: \.self) { status in
+              Text(status.displayName).tag(status)
+            }
+          }
           LanguagePicker(selectedLanguage: $language)
           Picker("Reading Direction", selection: $readingDirection) {
             ForEach(ReadingDirection.allCases, id: \.self) { direction in
               Text(direction.displayName).tag(direction)
             }
           }
-          Picker("Status", selection: $status) {
-            ForEach(SeriesStatus.allCases, id: \.self) { status in
-              Text(status.displayName).tag(status)
+          TextField("Publisher", text: $publisher)
+          TextField("Age Rating", text: $ageRating)
+            #if os(iOS) || os(tvOS)
+              .keyboardType(.numberPad)
+            #endif
+        }
+
+        Section("Alternate Titles") {
+          ForEach(alternateTitles.indices, id: \.self) { index in
+            VStack(alignment: .leading) {
+              HStack {
+                Text(alternateTitles[index].label)
+                  .font(.body)
+                Spacer()
+                Button(role: .destructive) {
+                  alternateTitles.remove(at: index)
+                } label: {
+                  Image(systemName: "trash")
+                }
+              }
+              Text(alternateTitles[index].title)
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
+          }
+          VStack {
+            TextField("Label", text: $newAlternateTitleLabel)
+            TextField("Title", text: $newAlternateTitle)
+            Button {
+              if !newAlternateTitleLabel.isEmpty && !newAlternateTitle.isEmpty {
+                alternateTitles.append(
+                  AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
+                newAlternateTitleLabel = ""
+                newAlternateTitle = ""
+              }
+            } label: {
+              Label("Add Alternate Title", systemImage: "plus.circle.fill")
+            }
+            .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
           }
         }
 
@@ -168,40 +209,6 @@ struct SeriesEditSheet: View {
           }
         }
 
-        Section("Alternate Titles") {
-          ForEach(alternateTitles.indices, id: \.self) { index in
-            VStack(alignment: .leading) {
-              HStack {
-                Text(alternateTitles[index].label)
-                  .font(.body)
-                Spacer()
-                Button(role: .destructive) {
-                  alternateTitles.remove(at: index)
-                } label: {
-                  Image(systemName: "trash")
-                }
-              }
-              Text(alternateTitles[index].title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-          VStack {
-            TextField("Label", text: $newAlternateTitleLabel)
-            TextField("Title", text: $newAlternateTitle)
-            Button {
-              if !newAlternateTitleLabel.isEmpty && !newAlternateTitle.isEmpty {
-                alternateTitles.append(
-                  AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
-                newAlternateTitleLabel = ""
-                newAlternateTitle = ""
-              }
-            } label: {
-              Label("Add Alternate Title", systemImage: "plus.circle.fill")
-            }
-            .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
-          }
-        }
       }
     } controls: {
       Button(action: saveChanges) {
@@ -238,11 +245,17 @@ struct SeriesEditSheet: View {
         } else if ageRating.isEmpty && series.metadata.ageRating != nil {
           metadata["ageRating"] = NSNull()
         }
+        if let totalBookCountInt = Int(totalBookCount),
+          totalBookCountInt != (series.metadata.totalBookCount ?? 0)
+        {
+          metadata["totalBookCount"] = totalBookCountInt
+        } else if totalBookCount.isEmpty && series.metadata.totalBookCount != nil {
+          metadata["totalBookCount"] = NSNull()
+        }
         if language != (series.metadata.language ?? "") {
           metadata["language"] = language.isEmpty ? NSNull() : language
         }
-        let currentReadingDirection = ReadingDirection.fromString(
-          series.metadata.readingDirection ?? "LEFT_TO_RIGHT")
+        let currentReadingDirection = ReadingDirection.fromString(series.metadata.readingDirection)
         if readingDirection != currentReadingDirection {
           metadata["readingDirection"] = readingDirection.rawValue
         }
