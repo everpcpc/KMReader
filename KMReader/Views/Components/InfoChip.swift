@@ -51,7 +51,9 @@ struct InfoChip: View {
       label
         .font(.caption)
         .lineLimit(1)
-        .textSelection(.enabled)
+        #if os(macOS) || os(iOS)
+          .textSelection(.enabled)
+        #endif
     }
     .foregroundColor(foregroundColor)
     .padding(.horizontal, 8)
