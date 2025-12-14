@@ -124,6 +124,13 @@ struct BookDetailView: View {
                     foregroundColor: .orange
                   )
                 }
+
+                InfoChip(
+                  labelKey: "Last Read: \(formatDate(readProgress.readDate))",
+                  systemImage: "book.closed",
+                  backgroundColor: Color.teal.opacity(0.2),
+                  foregroundColor: .teal
+                )
               } else {
                 InfoChip(
                   labelKey: "Unread",
@@ -141,20 +148,6 @@ struct BookDetailView: View {
                   foregroundColor: .orange
                 )
               }
-
-              // Authors as chips
-              if let authors = book.metadata.authors, !authors.isEmpty {
-                HFlow {
-                  ForEach(authors.sortedByRole(), id: \.self) { author in
-                    InfoChip(
-                      label: author.name,
-                      systemImage: author.role.icon,
-                      backgroundColor: Color.indigo.opacity(0.2),
-                      foregroundColor: .indigo
-                    )
-                  }
-                }
-              }
             }
           }
 
@@ -168,6 +161,20 @@ struct BookDetailView: View {
                   backgroundColor: Color.secondary.opacity(0.1),
                   foregroundColor: .secondary,
                   cornerRadius: 8
+                )
+              }
+            }
+          }
+
+          // Authors as chips
+          if let authors = book.metadata.authors, !authors.isEmpty {
+            HFlow {
+              ForEach(authors.sortedByRole(), id: \.self) { author in
+                InfoChip(
+                  label: author.name,
+                  systemImage: author.role.icon,
+                  backgroundColor: Color.indigo.opacity(0.2),
+                  foregroundColor: .indigo
                 )
               }
             }
