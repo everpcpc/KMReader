@@ -234,7 +234,6 @@ struct BookDetailView: View {
                   } label: {
                     HStack {
                       Label(readList.name, systemImage: "list.bullet")
-                        .foregroundColor(.primary)
                       Spacer()
                       Image(systemName: "chevron.right")
                         .font(.caption)
@@ -254,17 +253,15 @@ struct BookDetailView: View {
           VStack(alignment: .leading, spacing: 8) {
             Text("Media Information")
               .font(.headline)
-              .foregroundColor(.primary)
 
             VStack(alignment: .leading, spacing: 6) {
               HStack {
-                Image(systemName: "doc.text")
+                Image(systemName: "doc.text.magnifyingglass")
                   .font(.caption)
                   .foregroundColor(.secondary)
                   .frame(minWidth: 16)
                 Text(book.media.mediaType.uppercased())
                   .font(.caption)
-                  .foregroundColor(.primary)
                 Spacer()
               }
 
@@ -275,18 +272,16 @@ struct BookDetailView: View {
                   .frame(minWidth: 16)
                 Text(book.size)
                   .font(.caption)
-                  .foregroundColor(.primary)
                 Spacer()
               }
 
               HStack(alignment: .top) {
-                Image(systemName: "document")
+                Image(systemName: "folder")
                   .font(.caption)
                   .foregroundColor(.secondary)
                   .frame(minWidth: 16)
                 Text(book.url)
                   .font(.caption)
-                  .foregroundColor(.primary)
                 Spacer()
               }
 
@@ -297,7 +292,6 @@ struct BookDetailView: View {
                     .foregroundColor(.secondary)
                   Text(comment)
                     .font(.caption)
-                    .foregroundColor(.red)
                 }
               }
             }
