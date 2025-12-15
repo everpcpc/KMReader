@@ -134,85 +134,7 @@ struct DivinaReaderView: View {
         if !viewModel.pages.isEmpty {
           // Page viewer based on reading direction
           Group {
-            switch readingDirection {
-            case .ltr:
-              if useDualPage {
-                ComicDualPageView(
-                  viewModel: viewModel,
-                  nextBook: nextBook,
-                  readList: readList,
-                  onDismiss: { closeReader() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  onEndPageFocusChange: endPageFocusChangeHandler
-                )
-                .readerIgnoresSafeArea()
-              } else {
-                ComicPageView(
-                  viewModel: viewModel,
-                  nextBook: nextBook,
-                  readList: readList,
-                  onDismiss: { closeReader() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  onEndPageFocusChange: endPageFocusChangeHandler
-                )
-                .readerIgnoresSafeArea()
-              }
-
-            case .rtl:
-              if useDualPage {
-                MangaDualPageView(
-                  viewModel: viewModel,
-                  nextBook: nextBook,
-                  readList: readList,
-                  onDismiss: { closeReader() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  onEndPageFocusChange: endPageFocusChangeHandler
-                )
-                .readerIgnoresSafeArea()
-              } else {
-                MangaPageView(
-                  viewModel: viewModel,
-                  nextBook: nextBook,
-                  readList: readList,
-                  onDismiss: { closeReader() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  onEndPageFocusChange: endPageFocusChangeHandler
-                )
-                .readerIgnoresSafeArea()
-              }
-
-            case .vertical:
-              VerticalPageView(
-                viewModel: viewModel,
-                nextBook: nextBook,
-                readList: readList,
-                onDismiss: { closeReader() },
-                onNextBook: { openNextBook(nextBookId: $0) },
-                goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                toggleControls: { toggleControls() },
-                screenSize: geometry.size,
-                onEndPageFocusChange: endPageFocusChangeHandler
-              )
-              .readerIgnoresSafeArea()
-
-            case .webtoon:
+            if readingDirection == .webtoon {
               #if os(iOS) || os(macOS)
                 WebtoonPageView(
                   viewModel: viewModel,
@@ -228,8 +150,9 @@ struct DivinaReaderView: View {
                 )
                 .readerIgnoresSafeArea()
               #else
-                // Webtoon requires UIKit/AppKit on iOS/iPadOS/macOS, fallback to vertical
-                VerticalPageView(
+                // Webtoon requires UIKit/AppKit, fallback to vertical
+                PageView(
+                  mode: .vertical,
                   viewModel: viewModel,
                   nextBook: nextBook,
                   readList: readList,
@@ -243,6 +166,21 @@ struct DivinaReaderView: View {
                 )
                 .readerIgnoresSafeArea()
               #endif
+            } else {
+              PageView(
+                mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                viewModel: viewModel,
+                nextBook: nextBook,
+                readList: readList,
+                onDismiss: { closeReader() },
+                onNextBook: { openNextBook(nextBookId: $0) },
+                goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+                toggleControls: { toggleControls() },
+                screenSize: geometry.size,
+                onEndPageFocusChange: endPageFocusChangeHandler
+              )
+              .readerIgnoresSafeArea()
             }
           }
           .id("\(currentBookId)-\(screenKey)")
