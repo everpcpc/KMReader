@@ -37,63 +37,66 @@ struct EndPageView: View {
     @State private var shouldSetFocus = false
   #endif
 
+  #if os(iOS)
+    var dragProgress: CGFloat {
+      guard nextBook != nil else { return 0 }
+      return min(abs(dragOffset) / swipeThreshold, 1.0)
+    }
+
+    var shouldShowArc: Bool {
+      guard nextBook != nil else { return false }
+      guard isDragging else { return false }
+      return isRTL ? dragOffset > 0 : dragOffset < 0
+    }
+  #endif
+
   var body: some View {
     ZStack {
-      #if os(iOS)
-        // Arc effect overlay
-        if isDragging, nextBook != nil {
-          let progress = min(abs(dragOffset) / swipeThreshold, 1.0)
-          let shouldShowArc = isRTL ? dragOffset > 0 : dragOffset < 0
+      Color.clear
+        #if os(iOS)
+          .overlay(
+            SwipeDetector(
+              isRTL: isRTL,
+              onUpdate: { translation in
+                guard nextBook != nil else { return }
+                isDragging = true
+                dragOffset = translation
 
-          if shouldShowArc {
-            ArcEffectView(
-              progress: progress,
-              isLeading: isRTL,
-              themeColor: themeColor.color
+                if abs(dragOffset) >= swipeThreshold && !hasTriggeredHaptic {
+                  let impact = UIImpactFeedbackGenerator(style: .medium)
+                  impact.impactOccurred()
+                  hasTriggeredHaptic = true
+                }
+              },
+              onEnd: { translation in
+                let shouldAcceptDrag = isRTL ? translation > 0 : translation < 0
+
+                if shouldAcceptDrag && abs(dragOffset) >= swipeThreshold, let nextBook = nextBook {
+                  onNextBook(nextBook.id)
+                }
+
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                  dragOffset = 0
+                  isDragging = false
+                  hasTriggeredHaptic = false
+                }
+              }
             )
-          }
+          )
+        #endif
+
+      #if os(iOS)
+        if shouldShowArc {
+          ArcEffectView(
+            progress: dragProgress,
+            isLeading: isRTL,
+            themeColor: themeColor.color
+          )
         }
       #endif
 
       content
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .contentShape(Rectangle())
-    #if os(iOS)
-      .overlay(
-        SwipeDetector(
-          isRTL: isRTL,
-          onUpdate: { translation in
-            guard nextBook != nil else { return }
-            isDragging = true
-            dragOffset = translation
-
-            // Trigger haptic feedback when threshold is reached
-            if abs(dragOffset) >= swipeThreshold && !hasTriggeredHaptic {
-              let impact = UIImpactFeedbackGenerator(style: .medium)
-              impact.impactOccurred()
-              hasTriggeredHaptic = true
-            }
-          },
-          onEnd: { translation in
-            let shouldAcceptDrag = isRTL ? translation > 0 : translation < 0
-
-            if shouldAcceptDrag && abs(dragOffset) >= swipeThreshold, let nextBook = nextBook {
-              // Trigger navigation to next book
-              onNextBook(nextBook.id)
-            }
-
-            // Reset state
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-              dragOffset = 0
-              isDragging = false
-              hasTriggeredHaptic = false
-            }
-          }
-        )
-      )
-    #endif
-
     #if os(tvOS)
       .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")
       .onAppear {

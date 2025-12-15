@@ -21,9 +21,11 @@
     let readerBackground: ReaderBackground
     @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
 
-    var body: some View {
-      let pageWidth = screenSize.width * (pageWidthPercentage / 100.0)
+    var pageWidth: CGFloat {
+      return screenSize.width * (pageWidthPercentage / 100.0)
+    }
 
+    var body: some View {
       ZStack {
         WebtoonReaderView(
           pages: viewModel.pages,
@@ -53,7 +55,8 @@
             isRTL: false,
             onFocusChange: nil
           )
-          .padding(.bottom, 160)
+          .padding(.bottom, WebtoonConstants.footerPadding)
+          .frame(height: WebtoonConstants.footerHeight)
         }
         .opacity(isAtBottom ? 1 : 0)
         .allowsHitTesting(isAtBottom)
