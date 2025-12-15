@@ -1,5 +1,5 @@
 //
-//  ReaderControlsView.swift
+//  KeyboardEventHandler.swift
 //  Komga
 //
 //  Created by Komga iOS Client

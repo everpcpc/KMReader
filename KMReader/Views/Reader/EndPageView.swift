@@ -17,6 +17,15 @@ struct EndPageView: View {
   let onFocusChange: ((Bool) -> Void)?
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  @Environment(\.readerBackgroundPreference) private var readerBackground
+
+  #if os(iOS)
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging = false
+    @State private var hasTriggeredHaptic = false
+    private let swipeThreshold: CGFloat = 200
+    @GestureState private var gestureTranslation: CGFloat = 0
+  #endif
 
   #if os(tvOS)
     private enum ButtonFocus: Hashable {
@@ -29,6 +38,93 @@ struct EndPageView: View {
   #endif
 
   var body: some View {
+    ZStack {
+      #if os(iOS)
+        // Arc effect overlay
+        if isDragging, nextBook != nil {
+          let progress = min(abs(dragOffset) / swipeThreshold, 1.0)
+          let shouldShowArc = isRTL ? dragOffset > 0 : dragOffset < 0
+
+          if shouldShowArc {
+            ArcEffectView(
+              progress: progress,
+              isLeading: isRTL,
+              themeColor: themeColor.color
+            )
+          }
+        }
+      #endif
+
+      content
+    }
+    #if os(iOS)
+      .gesture(
+        DragGesture(minimumDistance: 10)
+          .onChanged { value in
+            guard nextBook != nil else { return }
+
+            let translation = value.translation.width
+            let shouldAcceptDrag = isRTL ? translation > 0 : translation < 0
+
+            // Only update state for forward swipes
+            if shouldAcceptDrag {
+              isDragging = true
+              dragOffset = translation
+
+              // Trigger haptic feedback when threshold is reached
+              if abs(dragOffset) >= swipeThreshold && !hasTriggeredHaptic {
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+                hasTriggeredHaptic = true
+              }
+            }
+          }
+          .onEnded { value in
+            let translation = value.translation.width
+            let shouldAcceptDrag = isRTL ? translation > 0 : translation < 0
+
+            if shouldAcceptDrag && abs(dragOffset) >= swipeThreshold, let nextBook = nextBook {
+              // Trigger navigation to next book
+              onNextBook(nextBook.id)
+            }
+
+            // Reset state
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+              dragOffset = 0
+              isDragging = false
+              hasTriggeredHaptic = false
+            }
+          }
+      )
+    #endif
+    #if os(tvOS)
+      .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")
+      .onAppear {
+        if viewModel.currentPageIndex >= viewModel.pages.count {
+          shouldSetFocus = true
+        }
+      }
+      .onChange(of: viewModel.currentPageIndex) { _, newIndex in
+        if newIndex >= viewModel.pages.count {
+          shouldSetFocus = true
+        }
+      }
+      .onChange(of: shouldSetFocus) { _, shouldSet in
+        guard shouldSet else { return }
+        focusedButton = .close
+        onFocusChange?(true)
+        shouldSetFocus = false
+      }
+      .onChange(of: focusedButton) { _, newValue in
+        let hasFocus = newValue != nil && newValue != .hidden
+        onFocusChange?(hasFocus)
+      }
+      .defaultFocus($focusedButton, .close)
+      .focusSection()
+    #endif
+  }
+
+  private var content: some View {
     VStack(spacing: PlatformHelper.buttonSpacing) {
       HStack(spacing: PlatformHelper.buttonSpacing) {
 
@@ -157,30 +253,5 @@ struct EndPageView: View {
       }
       NextBookInfoView(nextBook: nextBook, readList: readList)
     }
-    #if os(tvOS)
-      .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")
-      .onAppear {
-        if viewModel.currentPageIndex >= viewModel.pages.count {
-          shouldSetFocus = true
-        }
-      }
-      .onChange(of: viewModel.currentPageIndex) { _, newIndex in
-        if newIndex >= viewModel.pages.count {
-          shouldSetFocus = true
-        }
-      }
-      .onChange(of: shouldSetFocus) { _, shouldSet in
-        guard shouldSet else { return }
-        focusedButton = .close
-        onFocusChange?(true)
-        shouldSetFocus = false
-      }
-      .onChange(of: focusedButton) { _, newValue in
-        let hasFocus = newValue != nil && newValue != .hidden
-        onFocusChange?(hasFocus)
-      }
-      .defaultFocus($focusedButton, .close)
-      .focusSection()
-    #endif
   }
 }

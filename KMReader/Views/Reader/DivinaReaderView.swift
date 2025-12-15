@@ -310,6 +310,7 @@ struct DivinaReaderView: View {
         .readerIgnoresSafeArea()
         .opacity(shouldShowControls ? 1.0 : 0.0)
         .allowsHitTesting(shouldShowControls)
+        .animation(.default, value: shouldShowControls)
 
         #if os(macOS)
           // Keyboard shortcuts help overlay (independent of controls visibility)
