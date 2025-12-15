@@ -128,7 +128,7 @@ struct PageView: View {
           onToggleControls: toggleControls
         )
         .id(pageIndex)
-        .readerPageScrollTransition(style: pageTransitionStyle)
+        .readerPageScrollTransition(style: pageTransitionStyle, axis: .vertical)
     }
 
     // End page
