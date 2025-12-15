@@ -147,27 +147,11 @@ struct SettingsServersView: View {
     } message: {
       Text(String(localized: "Are you sure you want to logout?"))
     }
-    #if os(macOS)
-      .sheet(isPresented: $showLogin) {
-        SheetView(title: String(localized: "Connect to a Server"), size: .large) {
-          LoginView()
-        }
-      }
-    #elseif os(iOS)
-      .sheet(isPresented: iPadLoginBinding) {
-        SheetView(title: String(localized: "Connect to a Server"), size: .large) {
-          LoginView()
-        }
-        .presentationDragIndicator(.visible)
-      }
-      .navigationDestination(isPresented: iPhoneLoginBinding) {
+    .sheet(isPresented: $showLogin) {
+      SheetView(title: String(localized: "Connect to a Server"), size: .large) {
         LoginView()
       }
-    #else
-      .navigationDestination(isPresented: $showLogin) {
-        LoginView()
-      }
-    #endif
+    }
     .onChange(of: isLoggedIn) { _, loggedIn in
       if loggedIn && mode == .onboarding {
         dismiss()
@@ -482,33 +466,3 @@ struct SettingsServersView: View {
   }
 
 }
-
-#if os(iOS)
-  extension SettingsServersView {
-    private var iPadLoginBinding: Binding<Bool> {
-      Binding(
-        get: {
-          PlatformHelper.isPad ? showLogin : false
-        },
-        set: { newValue in
-          if PlatformHelper.isPad {
-            showLogin = newValue
-          }
-        }
-      )
-    }
-
-    private var iPhoneLoginBinding: Binding<Bool> {
-      Binding(
-        get: {
-          PlatformHelper.isPad ? false : showLogin
-        },
-        set: { newValue in
-          if !PlatformHelper.isPad {
-            showLogin = newValue
-          }
-        }
-      )
-    }
-  }
-#endif
