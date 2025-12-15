@@ -153,6 +153,7 @@ struct DivinaReaderView: View {
                 // Webtoon requires UIKit/AppKit, fallback to vertical
                 PageView(
                   mode: .vertical,
+                  readingDirection: readingDirection,
                   viewModel: viewModel,
                   nextBook: nextBook,
                   readList: readList,
@@ -169,6 +170,7 @@ struct DivinaReaderView: View {
             } else {
               PageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                readingDirection: readingDirection,
                 viewModel: viewModel,
                 nextBook: nextBook,
                 readList: readList,

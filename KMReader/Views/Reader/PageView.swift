@@ -49,6 +49,7 @@ enum PageViewMode {
 
 struct PageView: View {
   let mode: PageViewMode
+  let readingDirection: ReadingDirection
   @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
   let readList: ReadList?
@@ -119,12 +120,13 @@ struct PageView: View {
     ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
       singlePageView(pageIndex: pageIndex)
         .frame(width: screenSize.width, height: screenSize.height)
-        #if os(iOS) || os(macOS)
-          .contentShape(Rectangle())
-          .simultaneousGesture(
-            verticalTapGesture(height: screenSize.height, proxy: proxy)
-          )
-        #endif
+        .pageTapGesture(
+          size: screenSize,
+          readingDirection: readingDirection,
+          onNextPage: goToNextPage,
+          onPreviousPage: goToPreviousPage,
+          onToggleControls: toggleControls
+        )
         .id(pageIndex)
         .readerPageScrollTransition(style: pageTransitionStyle)
     }
@@ -144,12 +146,13 @@ struct PageView: View {
     }
     // Add 100 to height to prevent bounce behavior
     .frame(width: screenSize.width, height: screenSize.height + 100)
-    #if os(iOS) || os(macOS)
-      .contentShape(Rectangle())
-      .simultaneousGesture(
-        verticalTapGesture(height: screenSize.height, proxy: proxy)
-      )
-    #endif
+    .pageTapGesture(
+      size: screenSize,
+      readingDirection: readingDirection,
+      onNextPage: goToNextPage,
+      onPreviousPage: goToPreviousPage,
+      onToggleControls: toggleControls
+    )
     .id(viewModel.pages.count)
   }
 
@@ -178,12 +181,13 @@ struct PageView: View {
       ForEach((0..<viewModel.pages.count).reversed(), id: \.self) { pageIndex in
         singlePageView(pageIndex: pageIndex)
           .frame(width: screenSize.width, height: screenSize.height)
-          #if os(iOS) || os(macOS)
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-              horizontalTapGesture(width: screenSize.width, proxy: proxy)
-            )
-          #endif
+          .pageTapGesture(
+            size: screenSize,
+            readingDirection: readingDirection,
+            onNextPage: goToNextPage,
+            onPreviousPage: goToPreviousPage,
+            onToggleControls: toggleControls
+          )
           .id(pageIndex)
           .readerPageScrollTransition(style: pageTransitionStyle)
       }
@@ -192,12 +196,13 @@ struct PageView: View {
       ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
         singlePageView(pageIndex: pageIndex)
           .frame(width: screenSize.width, height: screenSize.height)
-          #if os(iOS) || os(macOS)
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-              horizontalTapGesture(width: screenSize.width, proxy: proxy)
-            )
-          #endif
+          .pageTapGesture(
+            size: screenSize,
+            readingDirection: readingDirection,
+            onNextPage: goToNextPage,
+            onPreviousPage: goToPreviousPage,
+            onToggleControls: toggleControls
+          )
           .id(pageIndex)
           .readerPageScrollTransition(style: pageTransitionStyle)
       }
@@ -251,12 +256,13 @@ struct PageView: View {
         }
       }
       .frame(width: screenSize.width, height: screenSize.height)
-      #if os(iOS) || os(macOS)
-        .contentShape(Rectangle())
-        .simultaneousGesture(
-          horizontalTapGesture(width: screenSize.width, proxy: proxy)
-        )
-      #endif
+      .pageTapGesture(
+        size: screenSize,
+        readingDirection: readingDirection,
+        onNextPage: goToNextPage,
+        onPreviousPage: goToPreviousPage,
+        onToggleControls: toggleControls
+      )
       .id(pagePair.first)
       .readerPageScrollTransition(style: pageTransitionStyle)
     }
@@ -289,109 +295,13 @@ struct PageView: View {
       )
     }
     .frame(width: screenSize.width, height: screenSize.height)
-    #if os(iOS) || os(macOS)
-      .contentShape(Rectangle())
-      .simultaneousGesture(
-        horizontalTapGesture(width: screenSize.width, proxy: proxy)
-      )
-    #endif
-  }
-
-  // MARK: - Tap Gestures
-
-  #if os(iOS) || os(macOS)
-    private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
-      SpatialTapGesture()
-        .onEnded { value in
-          guard !isZoomed else { return }
-
-          if disableTapToTurnPage {
-            toggleControls()
-            return
-          }
-
-          guard width > 0 else { return }
-          let normalizedX = max(0, min(1, value.location.x / width))
-
-          if normalizedX < 0.3 {
-            guard !viewModel.pages.isEmpty else { return }
-            // Left tap
-            if mode.isRTL {
-              // RTL: left = next
-              handleNextPageTap()
-            } else {
-              // LTR: left = previous
-              handlePreviousPageTap()
-            }
-          } else if normalizedX > 0.7 {
-            guard !viewModel.pages.isEmpty else { return }
-            // Right tap
-            if mode.isRTL {
-              // RTL: right = previous
-              handlePreviousPageTap()
-            } else {
-              // LTR: right = next
-              handleNextPageTap()
-            }
-          } else {
-            toggleControls()
-          }
-        }
-    }
-
-    private func verticalTapGesture(height: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
-      SpatialTapGesture()
-        .onEnded { value in
-          guard !isZoomed else { return }
-
-          if disableTapToTurnPage {
-            toggleControls()
-            return
-          }
-
-          guard height > 0 else { return }
-          let normalizedY = max(0, min(1, value.location.y / height))
-
-          if normalizedY < 0.3 {
-            guard !viewModel.pages.isEmpty else { return }
-            guard viewModel.currentPageIndex > 0 else { return }
-            // Top tap = previous
-            let current = min(viewModel.currentPageIndex, viewModel.pages.count)
-            viewModel.targetPageIndex = current - 1
-          } else if normalizedY > 0.7 {
-            guard !viewModel.pages.isEmpty else { return }
-            // Bottom tap = next
-            viewModel.targetPageIndex = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
-          } else {
-            toggleControls()
-          }
-        }
-    }
-  #endif
-
-  private func handleNextPageTap() {
-    if mode.isDualPage {
-      let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-      guard let currentPair = currentPair else { return }
-      if let second = currentPair.second {
-        viewModel.targetPageIndex = min(viewModel.pages.count, second + 1)
-      } else {
-        viewModel.targetPageIndex = min(viewModel.pages.count, currentPair.first + 1)
-      }
-    } else {
-      viewModel.targetPageIndex = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
-    }
-  }
-
-  private func handlePreviousPageTap() {
-    guard viewModel.currentPageIndex > 0 else { return }
-    if mode.isDualPage {
-      let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-      guard let currentPair = currentPair else { return }
-      viewModel.targetPageIndex = max(0, currentPair.first - 1)
-    } else {
-      viewModel.targetPageIndex = min(viewModel.currentPageIndex - 1, viewModel.pages.count)
-    }
+    .pageTapGesture(
+      size: screenSize,
+      readingDirection: readingDirection,
+      onNextPage: goToNextPage,
+      onPreviousPage: goToPreviousPage,
+      onToggleControls: toggleControls
+    )
   }
 
   // MARK: - Scroll Synchronization
