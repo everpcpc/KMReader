@@ -7663,42 +7663,36 @@
         }
       }
     },
-    "EPUB reading is only supported on iOS. Please use Divina reader for this book." : {
+    "EPUB reading is only supported on iOS." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "EPUB reading is only supported on iOS. Please use Divina reader for this book."
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La lecture EPUB n'est disponible que sur iOS. Veuillez utiliser le lecteur Divina pour ce livre."
+            "value" : "La lecture EPUB n'est disponible que sur iOS."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB の閲覧は iOS でのみサポートされています。この本には Divina リーダーをご利用ください。"
+            "value" : "EPUB の閲覧は iOS でのみサポートされています。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB 읽기는 iOS에서만 지원됩니다. 이 책은 Divina 리더를 사용하세요."
+            "value" : "EPUB 읽기는 iOS에서만 지원됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB 阅读仅在 iOS 上支持。请使用 Divina 阅读器阅读本书。"
+            "value" : "EPUB 阅读仅在 iOS 上支持。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB 閱讀僅在 iOS 上支援。請使用 Divina 閱讀器閱讀本書。"
+            "value" : "EPUB 閱讀僅在 iOS 上支援。"
           }
         }
       }

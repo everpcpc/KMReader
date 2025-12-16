@@ -37,28 +37,11 @@ struct BookReaderView: View {
 
       Group {
         if book.deleted {
-          VStack(spacing: 24) {
-            Image(systemName: "trash.circle")
-              .font(.system(size: 60))
-              .foregroundColor(.secondary)
-
-            VStack(spacing: 8) {
-              Text("Book has been deleted")
-                .font(.headline)
-            }
-
-            Button {
-              closeReader()
-            } label: {
-              Label("Close", systemImage: "xmark.circle.fill")
-                .font(.headline)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            }
-            .adaptiveButtonStyle(.borderedProminent)
-          }
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .padding()
+          ReaderUnavailableView(
+            icon: "trash.circle",
+            title: "Book has been deleted",
+            onClose: closeReader
+          )
         } else {
           switch book.media.status {
           case .ready:
@@ -78,65 +61,24 @@ struct BookReaderView: View {
                   onClose: closeReader
                 )
               #else
-                VStack(spacing: 24) {
-                  Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 60))
-                    .foregroundColor(.secondary)
-
-                  VStack(spacing: 8) {
-                    Text("EPUB Reader Not Available")
-                      .font(.headline)
-                    Text(
-                      "EPUB reading is only supported on iOS. Please use Divina reader for this book."
-                    )
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                  }
-
-                  Button {
-                    closeReader()
-                  } label: {
-                    Label("Close", systemImage: "xmark.circle.fill")
-                      .font(.headline)
-                      .padding(.horizontal, 16)
-                      .padding(.vertical, 8)
-                  }
-                  .adaptiveButtonStyle(.borderedProminent)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding()
+                ReaderUnavailableView(
+                  icon: "exclamationmark.triangle",
+                  title: "EPUB Reader Not Available",
+                  message: String(
+                    localized:
+                      "EPUB reading is only supported on iOS."
+                  ),
+                  onClose: closeReader
+                )
               #endif
             }
           default:
-            VStack(spacing: 24) {
-              Image(systemName: book.media.status.icon)
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
-
-              VStack(spacing: 8) {
-                Text(book.media.status.message)
-                  .font(.headline)
-                if let comment = book.media.comment, !comment.isEmpty {
-                  Text(comment)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                }
-              }
-
-              Button {
-                closeReader()
-              } label: {
-                Label("Close", systemImage: "xmark.circle.fill")
-                  .font(.headline)
-                  .padding(.horizontal, 16)
-                  .padding(.vertical, 8)
-              }
-              .adaptiveButtonStyle(.borderedProminent)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding()
+            ReaderUnavailableView(
+              icon: book.media.status.icon,
+              title: LocalizedStringKey(book.media.status.message),
+              message: book.media.comment,
+              onClose: closeReader
+            )
           }
         }
       }
