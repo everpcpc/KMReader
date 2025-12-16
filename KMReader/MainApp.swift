@@ -13,6 +13,9 @@ import SwiftUI
 @main
 struct MainApp: App {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+  #endif
 
   private let modelContainer: ModelContainer
   @State private var authViewModel: AuthViewModel
@@ -43,6 +46,19 @@ struct MainApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
+        #if os(iOS) || os(tvOS)
+          .overlay {
+            ReaderOverlay()
+          }
+        #elseif os(macOS)
+          .background(
+            MacReaderWindowConfigurator(openWindow: {
+              openWindow(id: "reader")
+            }))
+        #endif
+        .overlay(alignment: .bottom) {
+          NotificationOverlay()
+        }
         #if os(iOS)
           .tint(themeColor.color)
         #endif
