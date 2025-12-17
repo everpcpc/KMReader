@@ -13,7 +13,7 @@ struct EndPageView: View {
   let readList: ReadList?
   let onDismiss: () -> Void
   let onNextBook: (String) -> Void
-  let isRTL: Bool
+  let readingDirection: ReadingDirection
   let onFocusChange: ((Bool) -> Void)?
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -46,7 +46,7 @@ struct EndPageView: View {
     var shouldShowArc: Bool {
       guard nextBook != nil else { return false }
       guard isDragging else { return false }
-      return isRTL ? dragOffset > 0 : dragOffset < 0
+      return readingDirection.isForwardSwipe(dragOffset)
     }
   #endif
 
@@ -56,7 +56,7 @@ struct EndPageView: View {
         #if os(iOS)
           .overlay(
             SwipeDetector(
-              isRTL: isRTL,
+              readingDirection: readingDirection,
               onUpdate: { translation in
                 guard nextBook != nil else { return }
                 isDragging = true
@@ -69,7 +69,7 @@ struct EndPageView: View {
                 }
               },
               onEnd: { translation in
-                let shouldAcceptDrag = isRTL ? translation > 0 : translation < 0
+                let shouldAcceptDrag = readingDirection.isForwardSwipe(translation)
 
                 if shouldAcceptDrag && abs(dragOffset) >= swipeThreshold, let nextBook = nextBook {
                   onNextBook(nextBook.id)
@@ -89,7 +89,7 @@ struct EndPageView: View {
         if shouldShowArc {
           ArcEffectView(
             progress: dragProgress,
-            isLeading: isRTL,
+            readingDirection: readingDirection,
             themeColor: themeColor.color
           )
         }
@@ -129,7 +129,7 @@ struct EndPageView: View {
       HStack(spacing: PlatformHelper.buttonSpacing) {
 
         // Next book button for RTL
-        if isRTL, let nextBook = nextBook {
+        if readingDirection == .rtl, let nextBook = nextBook {
           Button {
             onNextBook(nextBook.id)
           } label: {
@@ -161,7 +161,7 @@ struct EndPageView: View {
 
         // Hidden button for navigation
         #if os(tvOS)
-          if !isRTL {
+          if readingDirection != .rtl {
             Button {
             } label: {
               Color.clear
@@ -177,13 +177,13 @@ struct EndPageView: View {
           onDismiss()
         } label: {
           HStack(spacing: 8) {
-            if !isRTL {
+            if readingDirection != .rtl {
               Image(systemName: "xmark")
                 .font(.system(size: 16, weight: .semibold))
             }
             Text("Close")
               .font(.system(size: 16, weight: .medium))
-            if isRTL {
+            if readingDirection == .rtl {
               Image(systemName: "xmark")
                 .font(.system(size: 16, weight: .semibold))
             }
@@ -209,7 +209,7 @@ struct EndPageView: View {
 
         // Hidden button for navigation
         #if os(tvOS)
-          if isRTL {
+          if readingDirection == .rtl {
             Button {
             } label: {
               Color.clear
@@ -221,7 +221,7 @@ struct EndPageView: View {
         #endif
 
         // Next book button
-        if !isRTL, let nextBook = nextBook {
+        if readingDirection != .rtl, let nextBook = nextBook {
           Button {
             onNextBook(nextBook.id)
           } label: {
@@ -259,7 +259,7 @@ struct EndPageView: View {
 
 #if os(iOS)
   struct SwipeDetector: UIViewRepresentable {
-    var isRTL: Bool
+    var readingDirection: ReadingDirection
     var onUpdate: (CGFloat) -> Void
     var onEnd: (CGFloat) -> Void
 
@@ -289,7 +289,13 @@ struct EndPageView: View {
       }
 
       @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
-        let translation = gesture.translation(in: gesture.view).x
+        let translation: CGFloat
+        switch parent.readingDirection {
+        case .ltr, .rtl:
+          translation = gesture.translation(in: gesture.view).x
+        case .vertical, .webtoon:
+          translation = gesture.translation(in: gesture.view).y
+        }
         if gesture.state == .changed {
           parent.onUpdate(translation)
         } else if gesture.state == .ended || gesture.state == .cancelled {
@@ -301,15 +307,19 @@ struct EndPageView: View {
         guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
         let velocity = pan.velocity(in: pan.view)
 
-        // Ignore vertical swipes
-        if abs(velocity.y) > abs(velocity.x) { return false }
-
-        // LTR: Forward is Left (< 0), Backward is Right (> 0)
-        // RTL: Forward is Right (> 0), Backward is Left (< 0)
-        if parent.isRTL {
-          return velocity.x > 0  // Accept only Next Book (Right)
-        } else {
-          return velocity.x < 0  // Accept only Next Book (Left)
+        switch parent.readingDirection {
+        case .ltr:
+          // Ignore vertical swipes, accept leftward (< 0) for next
+          if abs(velocity.y) > abs(velocity.x) { return false }
+          return velocity.x < 0
+        case .rtl:
+          // Ignore vertical swipes, accept rightward (> 0) for next
+          if abs(velocity.y) > abs(velocity.x) { return false }
+          return velocity.x > 0
+        case .vertical, .webtoon:
+          // Ignore horizontal swipes, accept upward (< 0) for next
+          if abs(velocity.x) > abs(velocity.y) { return false }
+          return velocity.y < 0
         }
       }
     }

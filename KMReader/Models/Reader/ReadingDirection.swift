@@ -67,4 +67,9 @@ enum ReadingDirection: String, CaseIterable, Hashable {
       return "arrow.up.and.down.square"
     }
   }
+
+  /// Check if the given translation represents a forward swipe (toward next page/book)
+  func isForwardSwipe(_ translation: CGFloat) -> Bool {
+    self == .rtl ? translation > 0 : translation < 0
+  }
 }

@@ -34,17 +34,6 @@ enum PageViewMode {
   var isVertical: Bool {
     self == .vertical
   }
-
-  var scrollAnchor: UnitPoint {
-    switch self {
-    case .comicSingle, .comicDual:
-      return .leading
-    case .mangaSingle, .mangaDual:
-      return .trailing
-    case .vertical:
-      return .top
-    }
-  }
 }
 
 struct PageView: View {
@@ -140,12 +129,11 @@ struct PageView: View {
         readList: readList,
         onDismiss: onDismiss,
         onNextBook: onNextBook,
-        isRTL: false,
+        readingDirection: readingDirection,
         onFocusChange: onEndPageFocusChange
       )
     }
-    // Add 100 to height to prevent bounce behavior
-    .frame(width: screenSize.width, height: screenSize.height + 100)
+    .frame(width: screenSize.width, height: screenSize.height)
     .pageTapGesture(
       size: screenSize,
       readingDirection: readingDirection,
@@ -230,7 +218,7 @@ struct PageView: View {
               readList: readList,
               onDismiss: onDismiss,
               onNextBook: onNextBook,
-              isRTL: mode.isRTL,
+              readingDirection: readingDirection,
               onFocusChange: onEndPageFocusChange
             )
           }
@@ -290,7 +278,7 @@ struct PageView: View {
         readList: readList,
         onDismiss: onDismiss,
         onNextBook: onNextBook,
-        isRTL: mode.isRTL,
+        readingDirection: readingDirection,
         onFocusChange: onEndPageFocusChange
       )
     }
@@ -323,7 +311,7 @@ struct PageView: View {
 
     DispatchQueue.main.async {
       scrollPosition = target
-      proxy.scrollTo(target, anchor: mode.scrollAnchor)
+      proxy.scrollTo(target, anchor: .center)
       hasSyncedInitialScroll = true
     }
   }
@@ -349,7 +337,7 @@ struct PageView: View {
     if scrollPosition != targetScrollPosition {
       withAnimation(pageTransitionStyle.scrollAnimation) {
         scrollPosition = targetScrollPosition
-        proxy.scrollTo(targetScrollPosition, anchor: mode.scrollAnchor)
+        proxy.scrollTo(targetScrollPosition, anchor: .center)
       }
     }
 

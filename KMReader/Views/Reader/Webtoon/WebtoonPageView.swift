@@ -52,7 +52,7 @@
             readList: readList,
             onDismiss: onDismiss,
             onNextBook: onNextBook,
-            isRTL: false,
+            readingDirection: .webtoon,
             onFocusChange: nil
           )
           .padding(.bottom, WebtoonConstants.footerPadding)
