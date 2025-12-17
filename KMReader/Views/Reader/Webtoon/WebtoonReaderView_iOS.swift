@@ -17,6 +17,8 @@
     let onPageChange: ((Int) -> Void)?
     let onCenterTap: (() -> Void)?
     let onScrollToBottom: ((Bool) -> Void)?
+    let onNextBookPanUpdate: ((CGFloat) -> Void)?
+    let onNextBookPanEnd: ((CGFloat) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let disableTapToTurnPage: Bool
@@ -28,7 +30,9 @@
       disableTapToTurnPage: Bool = false,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
-      onScrollToBottom: ((Bool) -> Void)? = nil
+      onScrollToBottom: ((Bool) -> Void)? = nil,
+      onNextBookPanUpdate: ((CGFloat) -> Void)? = nil,
+      onNextBookPanEnd: ((CGFloat) -> Void)? = nil
     ) {
       self.pages = pages
       self.viewModel = viewModel
@@ -38,6 +42,8 @@
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
+      self.onNextBookPanUpdate = onNextBookPanUpdate
+      self.onNextBookPanEnd = onNextBookPanEnd
     }
 
     func makeUIView(context: Context) -> UICollectionView {
@@ -64,6 +70,14 @@
       tapGesture.numberOfTapsRequired = 1
       collectionView.addGestureRecognizer(tapGesture)
 
+      let nextBookPanGesture = UIPanGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleNextBookPan(_:))
+      )
+      nextBookPanGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(nextBookPanGesture)
+      context.coordinator.nextBookPanGesture = nextBookPanGesture
+
       context.coordinator.collectionView = collectionView
       context.coordinator.layout = layout
       context.coordinator.scheduleInitialScroll()
@@ -79,6 +93,8 @@
         onPageChange: onPageChange,
         onCenterTap: onCenterTap,
         onScrollToBottom: onScrollToBottom,
+        onNextBookPanUpdate: onNextBookPanUpdate,
+        onNextBookPanEnd: onNextBookPanEnd,
         pageWidth: pageWidth,
         collectionView: collectionView,
         readerBackground: readerBackground,
@@ -91,7 +107,7 @@
     }
 
     class Coordinator: NSObject, UICollectionViewDelegate, UICollectionViewDataSource,
-      UICollectionViewDelegateFlowLayout
+      UICollectionViewDelegateFlowLayout, UIGestureRecognizerDelegate
     {
       var parent: WebtoonReaderView
       var collectionView: UICollectionView?
@@ -102,6 +118,9 @@
       var onPageChange: ((Int) -> Void)?
       var onCenterTap: (() -> Void)?
       var onScrollToBottom: ((Bool) -> Void)?
+      var onNextBookPanUpdate: ((CGFloat) -> Void)?
+      var onNextBookPanEnd: ((CGFloat) -> Void)?
+      var nextBookPanGesture: UIPanGestureRecognizer?
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
       var hasScrolledToInitialPage: Bool = false
@@ -125,6 +144,8 @@
         self.onPageChange = parent.onPageChange
         self.onCenterTap = parent.onCenterTap
         self.onScrollToBottom = parent.onScrollToBottom
+        self.onNextBookPanUpdate = parent.onNextBookPanUpdate
+        self.onNextBookPanEnd = parent.onNextBookPanEnd
         self.lastPagesCount = parent.pages.count
         self.hasScrolledToInitialPage = false
         self.pageWidth = parent.pageWidth
@@ -214,6 +235,8 @@
         onPageChange: ((Int) -> Void)?,
         onCenterTap: (() -> Void)?,
         onScrollToBottom: ((Bool) -> Void)?,
+        onNextBookPanUpdate: ((CGFloat) -> Void)?,
+        onNextBookPanEnd: ((CGFloat) -> Void)?,
         pageWidth: CGFloat,
         collectionView: UICollectionView,
         readerBackground: ReaderBackground,
@@ -224,6 +247,8 @@
         self.onPageChange = onPageChange
         self.onCenterTap = onCenterTap
         self.onScrollToBottom = onScrollToBottom
+        self.onNextBookPanUpdate = onNextBookPanUpdate
+        self.onNextBookPanEnd = onNextBookPanEnd
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
         self.disableTapToTurnPage = disableTapToTurnPage
@@ -747,6 +772,47 @@
         case .bottomRight:
           scrollDown(collectionView: collectionView, screenHeight: screenHeight)
         }
+      }
+
+      @objc func handleNextBookPan(_ gesture: UIPanGestureRecognizer) {
+        guard isAtBottom else { return }
+        guard let view = gesture.view else { return }
+
+        let translation = gesture.translation(in: view).y
+
+        // Only handle upward pan (negative y)
+        if gesture.state == .changed {
+          if translation < 0 {
+            onNextBookPanUpdate?(translation)
+          }
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          onNextBookPanEnd?(translation)
+        }
+      }
+
+      // MARK: - UIGestureRecognizerDelegate
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        // Allow pan gesture to work simultaneously with scroll
+        if gestureRecognizer == nextBookPanGesture {
+          return true
+        }
+        return false
+      }
+
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer == nextBookPanGesture else { return true }
+        guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
+
+        // Only recognize if at bottom and swiping up
+        guard isAtBottom else { return false }
+
+        let velocity = pan.velocity(in: pan.view)
+        // Only allow upward pan (negative y velocity)
+        return velocity.y < 0 && abs(velocity.y) > abs(velocity.x)
       }
 
       private enum TapArea {

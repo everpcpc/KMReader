@@ -21,6 +21,9 @@
     let readerBackground: ReaderBackground
     @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
 
+    @State private var panUpdateHandler: ((CGFloat) -> Void)?
+    @State private var panEndHandler: ((CGFloat) -> Void)?
+
     var pageWidth: CGFloat {
       return screenSize.width * (pageWidthPercentage / 100.0)
     }
@@ -41,6 +44,12 @@
           },
           onScrollToBottom: { atBottom in
             isAtBottom = atBottom
+          },
+          onNextBookPanUpdate: { translation in
+            panUpdateHandler?(translation)
+          },
+          onNextBookPanEnd: { translation in
+            panEndHandler?(translation)
           }
         )
 
@@ -53,7 +62,13 @@
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             readingDirection: .webtoon,
-            onFocusChange: nil
+            onFocusChange: nil,
+            onExternalPanUpdate: { handler in
+              panUpdateHandler = handler
+            },
+            onExternalPanEnd: { handler in
+              panEndHandler = handler
+            }
           )
           .padding(.bottom, WebtoonConstants.footerPadding)
           .frame(height: WebtoonConstants.footerHeight)

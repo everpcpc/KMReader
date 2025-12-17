@@ -17,6 +17,8 @@
     let onPageChange: ((Int) -> Void)?
     let onCenterTap: (() -> Void)?
     let onScrollToBottom: ((Bool) -> Void)?
+    let onNextBookPanUpdate: ((CGFloat) -> Void)?
+    let onNextBookPanEnd: ((CGFloat) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let disableTapToTurnPage: Bool
@@ -28,7 +30,9 @@
       disableTapToTurnPage: Bool = false,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
-      onScrollToBottom: ((Bool) -> Void)? = nil
+      onScrollToBottom: ((Bool) -> Void)? = nil,
+      onNextBookPanUpdate: ((CGFloat) -> Void)? = nil,
+      onNextBookPanEnd: ((CGFloat) -> Void)? = nil
     ) {
       self.pages = pages
       self.viewModel = viewModel
@@ -38,6 +42,8 @@
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
+      self.onNextBookPanUpdate = onNextBookPanUpdate
+      self.onNextBookPanEnd = onNextBookPanEnd
     }
 
     func makeNSView(context: Context) -> NSScrollView {

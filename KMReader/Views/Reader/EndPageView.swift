@@ -15,6 +15,8 @@ struct EndPageView: View {
   let onNextBook: (String) -> Void
   let readingDirection: ReadingDirection
   let onFocusChange: ((Bool) -> Void)?
+  var onExternalPanUpdate: ((@escaping (CGFloat) -> Void) -> Void)?
+  var onExternalPanEnd: ((@escaping (CGFloat) -> Void) -> Void)?
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @Environment(\.readerBackgroundPreference) private var readerBackground
@@ -24,7 +26,6 @@ struct EndPageView: View {
     @State private var isDragging = false
     @State private var hasTriggeredHaptic = false
     private let swipeThreshold: CGFloat = 200
-    @GestureState private var gestureTranslation: CGFloat = 0
   #endif
 
   #if os(tvOS)
@@ -48,42 +49,54 @@ struct EndPageView: View {
       guard isDragging else { return false }
       return readingDirection.isForwardSwipe(dragOffset)
     }
+
+    func handlePanUpdate(_ translation: CGFloat) {
+      guard nextBook != nil else { return }
+      isDragging = true
+      dragOffset = translation
+
+      if abs(dragOffset) >= swipeThreshold && !hasTriggeredHaptic {
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        hasTriggeredHaptic = true
+      }
+    }
+
+    func handlePanEnd(_ translation: CGFloat) {
+      let shouldAcceptDrag = readingDirection.isForwardSwipe(translation)
+
+      if shouldAcceptDrag && abs(dragOffset) >= swipeThreshold, let nextBook = nextBook {
+        onNextBook(nextBook.id)
+      }
+
+      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+        dragOffset = 0
+        isDragging = false
+        hasTriggeredHaptic = false
+      }
+    }
   #endif
 
   var body: some View {
     ZStack {
-      Color.clear
-        #if os(iOS)
-          .overlay(
-            SwipeDetector(
-              readingDirection: readingDirection,
-              onUpdate: { translation in
-                guard nextBook != nil else { return }
-                isDragging = true
-                dragOffset = translation
-
-                if abs(dragOffset) >= swipeThreshold && !hasTriggeredHaptic {
-                  let impact = UIImpactFeedbackGenerator(style: .medium)
-                  impact.impactOccurred()
-                  hasTriggeredHaptic = true
-                }
-              },
-              onEnd: { translation in
-                let shouldAcceptDrag = readingDirection.isForwardSwipe(translation)
-
-                if shouldAcceptDrag && abs(dragOffset) >= swipeThreshold, let nextBook = nextBook {
-                  onNextBook(nextBook.id)
-                }
-
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                  dragOffset = 0
-                  isDragging = false
-                  hasTriggeredHaptic = false
-                }
+      #if os(iOS)
+        if readingDirection != .webtoon {
+          Color.clear
+            .overlay(
+              Group {
+                SwipeDetector(
+                  readingDirection: readingDirection,
+                  onUpdate: { translation in
+                    handlePanUpdate(translation)
+                  },
+                  onEnd: { translation in
+                    handlePanEnd(translation)
+                  }
+                )
               }
             )
-          )
-        #endif
+        }
+      #endif
 
       #if os(iOS)
         if shouldShowArc {
@@ -97,6 +110,12 @@ struct EndPageView: View {
 
       content
     }
+    #if os(iOS)
+      .onAppear {
+        onExternalPanUpdate?(handlePanUpdate)
+        onExternalPanEnd?(handlePanEnd)
+      }
+    #endif
     #if os(tvOS)
       .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")
       .onAppear {
@@ -252,6 +271,7 @@ struct EndPageView: View {
         }
       }
       NextBookInfoView(nextBook: nextBook, readList: readList)
+        .allowsHitTesting(false)
     }
   }
 

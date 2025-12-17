@@ -14,7 +14,7 @@ enum WebtoonConstants {
   static let heightChangeThreshold: CGFloat = 10
   static let bottomThreshold: CGFloat = 60
   static let footerHeight: CGFloat = 480
-  static let footerPadding: CGFloat = 180
+  static let footerPadding: CGFloat = 120
   static let scrollAmountMultiplier: CGFloat = 0.8
   static let topAreaThreshold: CGFloat = 0.3
   static let bottomAreaThreshold: CGFloat = 0.7
