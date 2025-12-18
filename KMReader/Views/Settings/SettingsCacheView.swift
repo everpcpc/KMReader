@@ -58,7 +58,7 @@ struct SettingsCacheView: View {
         },
         set: { newValue in
           thumbnailCacheSizeText = newValue
-          if let value = Int(newValue), value >= 1, value <= 20 {
+          if let value = Int(newValue), value >= 1, value <= 8 {
             maxThumbnailCacheSize = value
           }
         }
@@ -192,7 +192,7 @@ struct SettingsCacheView: View {
             }
             Slider(
               value: maxThumbnailCacheSizeBinding,
-              in: 1...20,
+              in: 1...8,
               step: 1
             )
           #else

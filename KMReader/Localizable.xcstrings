@@ -1153,7 +1153,44 @@
       }
     },
     "Adjust the maximum size of the thumbnail cache. Cache will be cleaned automatically when exceeded." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust the maximum size of the thumbnail cache. Cache will be cleaned automatically when exceeded."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustez la taille maximale du cache des vignettes. Le cache sera nettoyé automatiquement en cas de dépassement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サムネイルキャッシュの最大サイズを調整します。超過時は自動でクリーンされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "썸네일 캐시의 최대 크기를 조정합니다. 초과하면 자동으로 정리됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调节缩略图缓存上限，超出将自动清理。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調節縮圖快取上限，超出將自動清理。"
+          }
+        }
+      }
     },
     "Adjust the width of webtoon pages as a percentage of screen width" : {
       "localizations" : {
@@ -3784,7 +3821,44 @@
       }
     },
     "Cached Thumbnails" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached Thumbnails"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vignettes en cache"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サムネイルキャッシュ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "썸네일 캐시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缩略图缓存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縮圖快取"
+          }
+        }
+      }
     },
     "Cancel" : {
       "localizations" : {
@@ -24019,7 +24093,44 @@
       }
     },
     "Your personal manga reader" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your personal manga reader"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre lecteur personnel de mangas"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなた専用のマンガリーダー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개인 만화 리더"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的漫画阅读器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的漫畫閱讀器"
+          }
+        }
+      }
     },
     "Zoom level when double-tapping on a page" : {
       "localizations" : {
