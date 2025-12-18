@@ -22,6 +22,9 @@ struct SettingsCacheView: View {
   @State private var isLoadingCacheSize = false
 
   #if os(iOS) || os(macOS)
+    @State private var isEditingPageCacheSlider = false
+    @State private var isEditingThumbnailCacheSlider = false
+
     private var maxCacheSizeBinding: Binding<Double> {
       Binding(
         get: { Double(maxPageCacheSize) },
@@ -81,7 +84,9 @@ struct SettingsCacheView: View {
               value: maxCacheSizeBinding,
               in: 1...20,
               step: 1
-            )
+            ) { editing in
+              isEditingPageCacheSlider = editing
+            }
           #else
             HStack {
               Text("Maximum Size (GB)")
@@ -156,7 +161,9 @@ struct SettingsCacheView: View {
               value: maxThumbnailCacheSizeBinding,
               in: 1...8,
               step: 1
-            )
+            ) { editing in
+              isEditingThumbnailCacheSlider = editing
+            }
           #else
             HStack {
               Text("Maximum Size (GB)")
@@ -301,14 +308,20 @@ struct SettingsCacheView: View {
       await loadCacheSize()
     }
     .onChange(of: maxPageCacheSize) {
-      // Trigger cache cleanup when max cache size changes
+      // Only trigger cache cleanup after slider dragging ends
+      #if os(iOS) || os(macOS)
+        guard !isEditingPageCacheSlider else { return }
+      #endif
       Task {
         await ImageCache.cleanupDiskCacheIfNeeded()
         await loadCacheSize()
       }
     }
     .onChange(of: maxThumbnailCacheSize) {
-      // Trigger cache cleanup when max thumbnail cache size changes
+      // Only trigger cache cleanup after slider dragging ends
+      #if os(iOS) || os(macOS)
+        guard !isEditingThumbnailCacheSlider else { return }
+      #endif
       Task {
         await ThumbnailCache.cleanupDiskCacheIfNeeded()
         await loadCacheSize()
