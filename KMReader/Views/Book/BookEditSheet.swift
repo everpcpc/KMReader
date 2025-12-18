@@ -112,7 +112,7 @@ struct BookEditSheet: View {
                   Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .adaptiveButtonStyle(.plain)
               }
             }
             .lockToggle(isLocked: $releaseDateLock)
@@ -141,7 +141,7 @@ struct BookEditSheet: View {
                   Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .adaptiveButtonStyle(.plain)
               }
             }
             .lockToggle(isLocked: $releaseDateLock)

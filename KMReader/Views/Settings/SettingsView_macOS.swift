@@ -59,6 +59,7 @@ import SwiftUI
                   .foregroundColor(.secondary)
               }
             }
+            SettingsSectionRow(section: .apiKeys)
             SettingsSectionRow(section: .authenticationActivity)
           }
 
@@ -89,6 +90,8 @@ import SwiftUI
               SettingsTasksView()
             case .servers:
               SettingsServersView()
+            case .apiKeys:
+              SettingsApiKeyView()
             case .authenticationActivity:
               AuthenticationActivityView()
             }

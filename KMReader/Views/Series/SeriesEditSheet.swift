@@ -174,7 +174,7 @@ struct SeriesEditSheet: View {
               Image(systemName: alternateTitlesLock ? "lock.fill" : "lock.open.fill")
                 .foregroundColor(alternateTitlesLock ? .secondary : .gray)
             }
-            .buttonStyle(.plain)
+            .adaptiveButtonStyle(.plain)
             Text("Alternate Titles")
             Spacer()
           }

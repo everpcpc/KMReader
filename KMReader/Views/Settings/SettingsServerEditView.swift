@@ -25,7 +25,7 @@ struct SettingsServerEditView: View {
   @State private var validationMessage: String?
   @State private var isValidated = false
 
-  private enum ValidationStatus {
+  private enum ValidationStatus: Equatable {
     case success(String)
     case error(String)
     case none
@@ -171,6 +171,7 @@ struct SettingsServerEditView: View {
       .disabled(!canSave)
     }
     .animation(.default, value: authMethod)
+    .animation(.default, value: validationStatus)
   }
 
   private var trimmedName: String {

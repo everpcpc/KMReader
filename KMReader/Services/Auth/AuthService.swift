@@ -145,4 +145,33 @@ class AuthService {
       queryItems: queryItems
     )
   }
+
+  func getLatestAuthenticationActivity(apiKey: ApiKey) async throws -> AuthenticationActivity {
+    let queryItems = [URLQueryItem(name: "apikey_id", value: apiKey.id)]
+    return try await apiClient.request(
+      path: "/api/v2/users/\(apiKey.userId)/authentication-activity/latest",
+      queryItems: queryItems
+    )
+  }
+
+  func getApiKeys() async throws -> [ApiKey] {
+    return try await apiClient.request(path: "/api/v2/users/me/api-keys")
+  }
+
+  func createApiKey(comment: String) async throws -> ApiKey {
+    let request = ApiKeyRequest(comment: comment)
+    let body = try JSONEncoder().encode(request)
+    return try await apiClient.request(
+      path: "/api/v2/users/me/api-keys",
+      method: "POST",
+      body: body
+    )
+  }
+
+  func deleteApiKey(id: String) async throws {
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v2/users/me/api-keys/\(id)",
+      method: "DELETE"
+    )
+  }
 }

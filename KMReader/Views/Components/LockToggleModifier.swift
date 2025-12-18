@@ -18,7 +18,7 @@ struct LockToggleModifier: ViewModifier {
           .foregroundColor(isLocked ? .red : .secondary)
           .frame(width: size, height: size)
       }
-      .buttonStyle(.plain)
+      .adaptiveButtonStyle(.plain)
       .padding(.horizontal, 8)
 
       content

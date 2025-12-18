@@ -47,7 +47,7 @@ class AuthViewModel {
       user: result.user,
       displayName: displayName,
       shouldPersistInstance: true,
-      successMessage: "Logged in successfully"
+      successMessage: String(localized: "Logged in successfully")
     )
   }
 
@@ -72,7 +72,7 @@ class AuthViewModel {
       user: result.user,
       displayName: displayName,
       shouldPersistInstance: true,
-      successMessage: "Logged in successfully"
+      successMessage: String(localized: "Logged in successfully")
     )
   }
 
@@ -149,7 +149,7 @@ class AuthViewModel {
         user: validatedUser,
         displayName: instance.displayName,
         shouldPersistInstance: false,
-        successMessage: "Switched to \(instance.name)",
+        successMessage: String(localized: "Switched to \(instance.name)"),
         currentInstanceId: instance.id.uuidString,
         clearLibrariesIfDifferent: isDifferentInstance
       )

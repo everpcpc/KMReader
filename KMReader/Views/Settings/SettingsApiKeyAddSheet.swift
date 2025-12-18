@@ -1,0 +1,107 @@
+//
+//  SettingsApiKeyAddSheet.swift
+//  Komga
+//
+//  Created by Komga iOS Client
+//
+
+import SwiftUI
+
+struct SettingsApiKeyAddSheet: View {
+  let onSuccess: () -> Void
+  @State private var comment = ""
+  @State private var newKey: ApiKey?
+  @State private var isCreating = false
+
+  var sheetTitle: String {
+    if newKey != nil {
+      return String(localized: "New API Key")
+    } else {
+      return String(localized: "Add API Key")
+    }
+  }
+
+  var body: some View {
+    SheetView(title: sheetTitle, size: .medium, applyFormStyle: true) {
+      Group {
+        if let key = newKey {
+          VStack(spacing: 16) {
+            Image(systemName: "checkmark.circle.fill")
+              .font(.system(size: 60))
+              .foregroundColor(.green)
+
+            Text("API Key Created")
+              .font(.title2)
+              .bold()
+
+            Text("Please copy your API key now. It will not be shown again.")
+              .multilineTextAlignment(.center)
+              .foregroundColor(.secondary)
+
+            VStack {
+              Text(key.key)
+                .font(.system(.body, design: .monospaced))
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(8)
+                .textSelection(.enabled)
+
+              Button {
+                #if os(iOS) || os(macOS)
+                  PlatformHelper.generalPasteboard.string = key.key
+                  ErrorManager.shared.notify(message: String(localized: "API key copied to clipboard"))
+                #endif
+              } label: {
+                Label(String(localized: "Copy to Clipboard"), systemImage: "doc.on.doc")
+              }
+            }
+          }
+        } else {
+          Form {
+            Section {
+              VStack(alignment: .leading) {
+                TextField(String(localized: "Comment"), text: $comment)
+                Text(String(localized: "A comment helps you identify this API key later."))
+                  .font(.footnote)
+                  .foregroundColor(.secondary)
+              }
+            }
+
+            Section {
+              Button {
+                createApiKey()
+              } label: {
+                HStack {
+                  Spacer()
+                  Label(String(localized: "Create"), systemImage: "plus")
+                  Spacer()
+                }
+              }
+              .disabled(comment.isEmpty || isCreating)
+            }
+          }
+        }
+      }
+    }
+    .animation(.default, value: isCreating)
+    .animation(.default, value: newKey)
+    .onDisappear {
+      if newKey != nil {
+        onSuccess()
+      }
+    }
+  }
+
+  private func createApiKey() {
+    isCreating = true
+    Task {
+      do {
+        newKey = try await AuthService.shared.createApiKey(comment: comment)
+        comment = ""
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+      isCreating = false
+    }
+  }
+}

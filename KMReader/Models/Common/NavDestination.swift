@@ -22,5 +22,6 @@ enum NavDestination: Hashable {
   case settingsServerInfo
   case settingsMetrics
   case settingsAuthenticationActivity
+  case settingsApiKey
   case settingsServers
 }

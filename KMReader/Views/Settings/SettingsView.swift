@@ -92,8 +92,11 @@ import SwiftUI
                   .foregroundColor(.secondary)
               }
             }
+            NavigationLink(value: NavDestination.settingsApiKey) {
+              Label(String(localized: "API Keys"), systemImage: "key")
+            }
             NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
-              Label("Authentication Activity", systemImage: "clock")
+              Label(String(localized: "Authentication Activity"), systemImage: "clock")
             }
           }
 

@@ -52,6 +52,8 @@ extension View {
             SettingsServerInfoView()
           case .settingsMetrics:
             SettingsTasksView()
+          case .settingsApiKey:
+            SettingsApiKeyView()
           case .settingsAuthenticationActivity:
             AuthenticationActivityView()
           case .settingsServers:
@@ -65,6 +67,7 @@ extension View {
             .settingsSSE,
             .settingsServerInfo,
             .settingsMetrics,
+            .settingsApiKey,
             .settingsAuthenticationActivity,
             .settingsServers:
             VStack(spacing: 16) {

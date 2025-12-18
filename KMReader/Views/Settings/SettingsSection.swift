@@ -17,6 +17,7 @@ enum SettingsSection: String, CaseIterable {
   case serverInfo
   case metrics
   case servers
+  case apiKeys
   case authenticationActivity
 
   var icon: String {
@@ -39,6 +40,8 @@ enum SettingsSection: String, CaseIterable {
       return "list.bullet.clipboard"
     case .servers:
       return "list.bullet.rectangle"
+    case .apiKeys:
+      return "key"
     case .authenticationActivity:
       return "clock"
     }
@@ -64,6 +67,8 @@ enum SettingsSection: String, CaseIterable {
       return "Tasks"
     case .servers:
       return "Servers"
+    case .apiKeys:
+      return "API Keys"
     case .authenticationActivity:
       return "Authentication Activity"
     }
