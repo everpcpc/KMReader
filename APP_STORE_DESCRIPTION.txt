@@ -4,13 +4,13 @@ KMReader keeps every Komga library close on iPhone, iPad, Mac, and Apple TV. Sav
 
 HIGHLIGHTS
 
-• Multi-Server Vault: Sign in to unlimited Komga servers with custom names and role-aware access. Remove a profile to clear cached pages, downloads, and credentials stored on-device.
+• Multi-Server Vault: Sign in to unlimited Komga servers with custom names and role-aware access. Supports both password and API key authentication. Remove a profile to clear cached pages, downloads, and credentials stored on-device.
 
 • Browse and Dashboards: Series, books, collections, and read lists share search, filters, grid/list layouts, and an orientation-aware layout picker. Dashboard sections (Keep Reading, On Deck, Recently Added/Read/Released/Updated) can be reordered or hidden per library with infinite scroll.
 
 • Readers for Every Platform: DIVINA supports LTR/RTL/vertical/Webtoon on iOS/iPadOS/macOS/tvOS with spreads, zoom, configurable tap zones, quick jumps, exports, tvOS remote gestures, and a macOS reader window. EPUB on iOS/iPadOS/macOS adds offline downloads, custom fonts and themes, pagination, column layouts, TOC navigation, incognito mode, auto layout, and an optional image-first mode. tvOS currently supports DIVINA.
 
-• Admin and Live Updates: Edit metadata, manage collections and read lists, trigger scans or analyses per library or globally, cancel queued tasks, and inspect per-library metrics. Server-Sent Events keep dashboards, thumbnails, queues, and sessions in sync with optional notifications and auto-refresh toggles.
+• Admin and Live Updates: Edit metadata, manage API keys, collections and read lists, trigger scans or analyses per library or globally, cancel queued tasks, and inspect per-library metrics. Server-Sent Events keep dashboards, thumbnails, queues, and sessions in sync with optional notifications and auto-refresh toggles.
 
 • Caching and Polish: Three-tier caches for pages, book files, and thumbnails expose adjustable budgets, live size/file counters, one-tap clearing, and automatic cleanup so recent pages and EPUB downloads reopen offline. Accent colors, Webtoon width controls, tap-zone hints, keyboard shortcuts, tvOS focus navigation, and incognito reading keep everything feeling native.
 
