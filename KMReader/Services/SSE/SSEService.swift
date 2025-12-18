@@ -138,10 +138,6 @@ final class SSEService {
     var request = URLRequest(url: url)
     request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
 
-    if !AppConfig.authToken.isEmpty {
-      request.setValue("Basic \(AppConfig.authToken)", forHTTPHeaderField: "Authorization")
-    }
-
     let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"

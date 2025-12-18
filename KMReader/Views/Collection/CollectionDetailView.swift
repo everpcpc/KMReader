@@ -26,10 +26,6 @@ struct CollectionDetailView: View {
   // SwiftUI's default horizontal padding is 16 on each side (32 total)
   private let horizontalPadding: CGFloat = 16
 
-  private var thumbnailURL: URL? {
-    collection.flatMap { CollectionService.shared.getCollectionThumbnailURL(id: $0.id) }
-  }
-
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
@@ -40,7 +36,8 @@ struct CollectionDetailView: View {
 
           HStack(alignment: .top) {
             ThumbnailImage(
-              url: thumbnailURL, showPlaceholder: false, width: PlatformHelper.detailThumbnailWidth
+              id: collectionId, type: .collection, showPlaceholder: false,
+              width: PlatformHelper.detailThumbnailWidth
             )
             .thumbnailFocus()
 

@@ -20,10 +20,6 @@ struct BookRowView: View {
   @State private var showEditSheet = false
   @State private var showDownloadSheet = false
 
-  private var thumbnailURL: URL? {
-    BookService.shared.getBookThumbnailURL(id: book.id)
-  }
-
   var completed: Bool {
     guard let readProgress = book.readProgress else { return false }
     return readProgress.completed
@@ -47,7 +43,7 @@ struct BookRowView: View {
       onReadBook?(false)
     } label: {
       HStack(spacing: 12) {
-        ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 60, cornerRadius: 4)
+        ThumbnailImage(id: book.id, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4)
 
         VStack(alignment: .leading, spacing: 4) {
           if shouldShowSeriesTitle {

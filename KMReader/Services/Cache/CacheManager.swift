@@ -28,6 +28,7 @@ enum CacheManager {
 
   /// Clear thumbnail cache
   static func clearThumbnailCache() async {
+    await ThumbnailCache.clearAllDiskCache()
     await MainActor.run {
       SDImageCacheProvider.thumbnailCache.clearMemory()
       SDImageCacheProvider.thumbnailCache.clearDisk()
@@ -39,6 +40,7 @@ enum CacheManager {
     await Task.detached(priority: .utility) {
       CacheNamespace.removeNamespace(for: "KomgaImageCache", instanceId: instanceId)
       CacheNamespace.removeNamespace(for: "KomgaBookFileCache", instanceId: instanceId)
+      CacheNamespace.removeNamespace(for: "KomgaThumbnailCache", instanceId: instanceId)
     }.value
   }
 }

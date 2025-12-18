@@ -14,14 +14,10 @@ struct CollectionRowView: View {
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
-  private var thumbnailURL: URL? {
-    CollectionService.shared.getCollectionThumbnailURL(id: collection.id)
-  }
-
   var body: some View {
     NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
       HStack(spacing: 12) {
-        ThumbnailImage(url: thumbnailURL, width: 70, cornerRadius: 10)
+        ThumbnailImage(id: collection.id, type: .collection, width: 70, cornerRadius: 10)
 
         VStack(alignment: .leading, spacing: 6) {
           Text(collection.name)

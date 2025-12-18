@@ -1152,6 +1152,9 @@
         }
       }
     },
+    "Adjust the maximum size of the thumbnail cache. Cache will be cleaned automatically when exceeded." : {
+
+    },
     "Adjust the width of webtoon pages as a percentage of screen width" : {
       "localizations" : {
         "en" : {
@@ -3779,6 +3782,9 @@
           }
         }
       }
+    },
+    "Cached Thumbnails" : {
+
     },
     "Cancel" : {
       "localizations" : {

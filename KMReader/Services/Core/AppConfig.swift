@@ -62,14 +62,24 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "currentInstanceId") }
   }
 
-  static nonisolated var maxDiskCacheSize: Int {
+  static nonisolated var maxPageCacheSize: Int {
     get {
-      if UserDefaults.standard.object(forKey: "maxDiskCacheSize") != nil {
-        return UserDefaults.standard.integer(forKey: "maxDiskCacheSize")
+      if UserDefaults.standard.object(forKey: "maxPageCacheSize") != nil {
+        return UserDefaults.standard.integer(forKey: "maxPageCacheSize")
       }
       return 8  // Default 8 GB
     }
-    set { UserDefaults.standard.set(newValue, forKey: "maxDiskCacheSize") }
+    set { UserDefaults.standard.set(newValue, forKey: "maxPageCacheSize") }
+  }
+
+  static nonisolated var maxThumbnailCacheSize: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "maxThumbnailCacheSize") != nil {
+        return UserDefaults.standard.integer(forKey: "maxThumbnailCacheSize")
+      }
+      return 1  // Default 1 GB
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "maxThumbnailCacheSize") }
   }
 
   // MARK: - SSE (Server-Sent Events)

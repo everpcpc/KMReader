@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct SettingsCacheView: View {
-  @AppStorage("maxDiskCacheSize") private var maxDiskCacheSize: Int = 8
+  @AppStorage("maxPageCacheSize") private var maxPageCacheSize: Int = 8
+  @AppStorage("maxThumbnailCacheSize") private var maxThumbnailCacheSize: Int = 1
   @State private var showClearImageCacheConfirmation = false
   @State private var showClearBookFileCacheConfirmation = false
   @State private var showClearThumbnailCacheConfirmation = false
@@ -16,24 +17,49 @@ struct SettingsCacheView: View {
   @State private var imageCacheCount: Int = 0
   @State private var bookFileCacheSize: Int64 = 0
   @State private var bookFileCacheCount: Int = 0
+  @State private var thumbnailCacheSize: Int64 = 0
+  @State private var thumbnailCacheCount: Int = 0
   @State private var isLoadingCacheSize = false
+
   #if os(iOS) || os(macOS)
     private var maxCacheSizeBinding: Binding<Double> {
       Binding(
-        get: { Double(maxDiskCacheSize) },
-        set: { maxDiskCacheSize = Int($0) }
+        get: { Double(maxPageCacheSize) },
+        set: { maxPageCacheSize = Int($0) }
+      )
+    }
+
+    private var maxThumbnailCacheSizeBinding: Binding<Double> {
+      Binding(
+        get: { Double(maxThumbnailCacheSize) },
+        set: { maxThumbnailCacheSize = Int($0) }
       )
     }
   #else
     @State private var cacheSizeText: String = ""
+    @State private var thumbnailCacheSizeText: String = ""
 
     private var cacheSizeTextFieldBinding: Binding<String> {
       Binding(
-        get: { cacheSizeText.isEmpty ? "\(maxDiskCacheSize)" : cacheSizeText },
+        get: { cacheSizeText.isEmpty ? "\(maxPageCacheSize)" : cacheSizeText },
         set: { newValue in
           cacheSizeText = newValue
           if let value = Int(newValue), value >= 1, value <= 20 {
-            maxDiskCacheSize = value
+            maxPageCacheSize = value
+          }
+        }
+      )
+    }
+
+    private var thumbnailCacheSizeTextFieldBinding: Binding<String> {
+      Binding(
+        get: {
+          thumbnailCacheSizeText.isEmpty ? "\(maxThumbnailCacheSize)" : thumbnailCacheSizeText
+        },
+        set: { newValue in
+          thumbnailCacheSizeText = newValue
+          if let value = Int(newValue), value >= 1, value <= 20 {
+            maxThumbnailCacheSize = value
           }
         }
       )
@@ -48,7 +74,7 @@ struct SettingsCacheView: View {
             HStack {
               Text("Maximum Size")
               Spacer()
-              Text("\(maxDiskCacheSize) GB")
+              Text("\(maxPageCacheSize) GB")
                 .foregroundColor(.secondary)
             }
             Slider(
@@ -64,9 +90,9 @@ struct SettingsCacheView: View {
                 .frame(maxWidth: 240)
                 .multilineTextAlignment(.trailing)
                 .onAppear {
-                  cacheSizeText = "\(maxDiskCacheSize)"
+                  cacheSizeText = "\(maxPageCacheSize)"
                 }
-                .onChange(of: maxDiskCacheSize) { _, newValue in
+                .onChange(of: maxPageCacheSize) { _, newValue in
                   if cacheSizeText != "\(newValue)" {
                     cacheSizeText = "\(newValue)"
                   }
@@ -156,6 +182,69 @@ struct SettingsCacheView: View {
       }
 
       Section(header: Text("Thumbnail")) {
+        VStack(alignment: .leading, spacing: 8) {
+          #if os(iOS) || os(macOS)
+            HStack {
+              Text("Maximum Size")
+              Spacer()
+              Text("\(maxThumbnailCacheSize) GB")
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: maxThumbnailCacheSizeBinding,
+              in: 1...20,
+              step: 1
+            )
+          #else
+            HStack {
+              Text("Maximum Size (GB)")
+              Spacer()
+              TextField("GB", text: thumbnailCacheSizeTextFieldBinding)
+                .frame(maxWidth: 240)
+                .multilineTextAlignment(.trailing)
+                .onAppear {
+                  thumbnailCacheSizeText = "\(maxThumbnailCacheSize)"
+                }
+                .onChange(of: maxThumbnailCacheSize) { _, newValue in
+                  if thumbnailCacheSizeText != "\(newValue)" {
+                    thumbnailCacheSizeText = "\(newValue)"
+                  }
+                }
+            }
+          #endif
+          Text(
+            "Adjust the maximum size of the thumbnail cache. Cache will be cleaned automatically when exceeded."
+          )
+          .font(.caption)
+          .foregroundColor(.secondary)
+        }
+
+        HStack {
+          Text("Cached Size")
+          Spacer()
+          if isLoadingCacheSize {
+            ProgressView()
+              .scaleEffect(0.8)
+          } else {
+            Text(formatCacheSize(thumbnailCacheSize))
+              .foregroundColor(.secondary)
+          }
+        }
+        .tvFocusableHighlight()
+
+        HStack {
+          Text("Cached Thumbnails")
+          Spacer()
+          if isLoadingCacheSize {
+            ProgressView()
+              .scaleEffect(0.8)
+          } else {
+            Text(formatCacheCount(thumbnailCacheCount))
+              .foregroundColor(.secondary)
+          }
+        }
+        .tvFocusableHighlight()
+
         Button(role: .destructive) {
           showClearThumbnailCacheConfirmation = true
         } label: {
@@ -198,7 +287,8 @@ struct SettingsCacheView: View {
     .alert("Clear Thumbnail", isPresented: $showClearThumbnailCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {
-          await CacheManager.clearThumbnailCache()
+          await ThumbnailCache.clearAllDiskCache()
+          await loadCacheSize()
         }
       }
       Button("Cancel", role: .cancel) {}
@@ -210,10 +300,17 @@ struct SettingsCacheView: View {
     .task {
       await loadCacheSize()
     }
-    .onChange(of: maxDiskCacheSize) {
+    .onChange(of: maxPageCacheSize) {
       // Trigger cache cleanup when max cache size changes
       Task {
         await ImageCache.cleanupDiskCacheIfNeeded()
+        await loadCacheSize()
+      }
+    }
+    .onChange(of: maxThumbnailCacheSize) {
+      // Trigger cache cleanup when max thumbnail cache size changes
+      Task {
+        await ThumbnailCache.cleanupDiskCacheIfNeeded()
         await loadCacheSize()
       }
     }
@@ -225,10 +322,15 @@ struct SettingsCacheView: View {
     async let imageCount = ImageCache.getDiskCacheCount()
     async let bookFileSize = BookFileCache.getDiskCacheSize()
     async let bookFileCount = BookFileCache.getDiskCacheCount()
+    async let thumbnailSize = ThumbnailCache.getDiskCacheSize()
+    async let thumbnailCount = ThumbnailCache.getDiskCacheCount()
+
     imageCacheSize = await imageSize
     imageCacheCount = await imageCount
     bookFileCacheSize = await bookFileSize
     bookFileCacheCount = await bookFileCount
+    thumbnailCacheSize = await thumbnailSize
+    thumbnailCacheCount = await thumbnailCount
     isLoadingCacheSize = false
   }
 

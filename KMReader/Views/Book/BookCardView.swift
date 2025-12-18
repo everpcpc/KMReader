@@ -22,10 +22,6 @@ struct BookCardView: View {
   @State private var showEditSheet = false
   @State private var showDownloadSheet = false
 
-  private var thumbnailURL: URL? {
-    BookService.shared.getBookThumbnailURL(id: book.id)
-  }
-
   private var progress: Double {
     guard let readProgress = book.readProgress else { return 0 }
     guard book.media.pagesCount > 0 else { return 0 }
@@ -50,7 +46,7 @@ struct BookCardView: View {
       onReadBook?(false)
     } label: {
       VStack(alignment: .leading, spacing: 6) {
-        ThumbnailImage(url: thumbnailURL, width: cardWidth) {
+        ThumbnailImage(id: book.id, type: .book, width: cardWidth) {
           ZStack {
             if let readProgress = book.readProgress {
               if !readProgress.completed {
@@ -165,7 +161,8 @@ struct BookCardView: View {
           bookIds: [book.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.booksAddedToReadList"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.booksAddedToReadList"))
           onBookUpdated?()
         }
       } catch {

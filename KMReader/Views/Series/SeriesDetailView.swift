@@ -32,11 +32,6 @@ struct SeriesDetailView: View {
   // SwiftUI's default horizontal padding is 16 on each side (32 total)
   private let horizontalPadding: CGFloat = 16
 
-  private var thumbnailURL: URL? {
-    guard let series = series else { return nil }
-    return SeriesService.shared.getSeriesThumbnailURL(id: series.id)
-  }
-
   private var canMarkSeriesAsRead: Bool {
     guard let series else { return false }
     return series.booksUnreadCount > 0
@@ -85,7 +80,8 @@ struct SeriesDetailView: View {
 
           HStack(alignment: .top) {
             ThumbnailImage(
-              url: thumbnailURL,
+              id: seriesId,
+              type: .series,
               showPlaceholder: false,
               width: PlatformHelper.detailThumbnailWidth
             )

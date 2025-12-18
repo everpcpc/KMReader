@@ -268,7 +268,7 @@ struct SettingsServerEditView: View {
 
     Task {
       do {
-        let _ = try await authViewModel.validate(
+        let _ = try await authViewModel.testCredentials(
           serverURL: trimmedServerURL,
           authToken: authToken
         )

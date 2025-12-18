@@ -43,14 +43,16 @@ private struct PageTransform {
 private struct PagePreviewItem: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
+  let bookId: String
   let page: Int
   let pageValue: Int
-  let imageURL: URL?
   let availableHeight: CGFloat
   let containerWidth: CGFloat
   let containerCenterX: CGFloat
   let maxPage: Int
   let readingDirection: ReadingDirection
+
+  @State private var localURL: URL?
 
   // Calculate preview dimensions based on available height
   private var dimensions: PreviewDimensions {
@@ -117,12 +119,12 @@ private struct PagePreviewItem: View {
   }
 
   var body: some View {
-    if let imageURL = imageURL {
-      let isCenter = page == pageValue
+    let isCenter = page == pageValue
 
-      VStack {
+    VStack {
+      if let localURL = localURL {
         WebImage(
-          url: imageURL,
+          url: localURL,
           options: [.retryFailed, .scaleDownLargeImages],
           context: [.customManager: SDImageCacheProvider.thumbnailManager]
         )
@@ -148,30 +150,42 @@ private struct PagePreviewItem: View {
                 RoundedRectangle(cornerRadius: 4)
                   .fill(themeColor.color)
               }
-              .offset(y: 30)  // place below image instead of overlaying on it
+              .offset(y: 30)
           }
         }
-        .shadow(
-          color: Color.black.opacity(isCenter ? 0.4 : 0.2),
-          radius: isCenter ? 8 : 4, x: 0, y: 2)
+      } else {
+        RoundedRectangle(cornerRadius: 6)
+          .fill(Color.gray.opacity(0.3))
+          .aspectRatio(contentMode: .fit)
+          .frame(width: dimensions.imageWidth, height: dimensions.imageHeight)
+          .overlay {
+            ProgressView()
+          }
       }
-      .scaleEffect(transform.scale)
-      .opacity(transform.opacity)
-      .rotation3DEffect(
-        .degrees(transform.yRotation),
-        axis: (x: 0, y: 1, z: 0),
-        perspective: 0.6
-      )
-      .position(
-        x: transform.constrainedX(
-          dimensions.imageWidth,
-          containerWidth: containerWidth,
-          centerX: containerCenterX
-        ),
-        y: dimensions.centerY
-      )
-      .zIndex(Double(transform.zIndex))
-      .animation(.spring(response: 0.3, dampingFraction: 0.7), value: pageValue)
+    }
+    .shadow(
+      color: Color.black.opacity(isCenter ? 0.4 : 0.2),
+      radius: isCenter ? 8 : 4, x: 0, y: 2)
+    .scaleEffect(transform.scale)
+    .opacity(transform.opacity)
+    .rotation3DEffect(
+      .degrees(transform.yRotation),
+      axis: (x: 0, y: 1, z: 0),
+      perspective: 0.6
+    )
+    .position(
+      x: transform.constrainedX(
+        dimensions.imageWidth,
+        containerWidth: containerWidth,
+        centerX: containerCenterX
+      ),
+      y: dimensions.centerY
+    )
+    .zIndex(Double(transform.zIndex))
+    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: pageValue)
+    .task(id: page) {
+      localURL = try? await ThumbnailCache.shared.ensureThumbnail(
+        id: bookId, type: .page, page: page)
     }
   }
 }
@@ -228,9 +242,6 @@ struct PageJumpSheetView: View {
     return Array(startPage...endPage)
   }
 
-  private func getPreviewImageURL(page: Int) -> URL? {
-    BookService.shared.getBookPageThumbnailURL(bookId: bookId, page: page)
-  }
 
   private var sliderScaleX: CGFloat {
     readingDirection == .rtl ? -1 : 1
@@ -278,9 +289,9 @@ struct PageJumpSheetView: View {
                 ZStack {
                   ForEach(previewPages, id: \.self) { page in
                     PagePreviewItem(
+                      bookId: bookId,
                       page: page,
                       pageValue: pageValue,
-                      imageURL: getPreviewImageURL(page: page),
                       availableHeight: geometry.size.height,
                       containerWidth: fullWidth,
                       containerCenterX: centerX,

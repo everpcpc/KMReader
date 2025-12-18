@@ -14,14 +14,10 @@ struct ReadListRowView: View {
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
-  private var thumbnailURL: URL? {
-    ReadListService.shared.getReadListThumbnailURL(id: readList.id)
-  }
-
   var body: some View {
     NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
       HStack(spacing: 12) {
-        ThumbnailImage(url: thumbnailURL, width: 70, cornerRadius: 10)
+        ThumbnailImage(id: readList.id, type: .readlist, width: 70, cornerRadius: 10)
 
         VStack(alignment: .leading, spacing: 6) {
           Text(readList.name)

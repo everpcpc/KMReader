@@ -15,7 +15,7 @@ enum SDImageCacheProvider {
     cache.config.shouldCacheImagesInMemory = true
     cache.config.maxMemoryCost = 50 * 1024 * 1024  // 50 MB decoded thumbnails
     cache.config.maxMemoryCount = 150
-    cache.config.maxDiskSize = 200 * 1024 * 1024  // 200 MB disk space
+    cache.config.maxDiskSize = 10 * 1024 * 1024  // Minimal disk footprint; actual storage handled elsewhere
     cache.config.diskCacheExpireType = .accessDate
     return cache
   }()
@@ -39,19 +39,6 @@ enum SDImageCacheProvider {
   }()
 
   static func configureSDWebImage() {
-    // Set authentication header for SDWebImage
-    if !AppConfig.authToken.isEmpty {
-      SDWebImageDownloader.shared.setValue(
-        "Basic \(AppConfig.authToken)", forHTTPHeaderField: "Authorization")
-    } else {
-      SDWebImageDownloader.shared.setValue(nil, forHTTPHeaderField: "Authorization")
-    }
-
-    // Set request modifier for zrok.io domains
-    SDWebImageDownloader.shared.requestModifier = SDWebImageDownloaderRequestModifier { request in
-      RequestModifierHelper.modify(request)
-    }
-
     // Register WebP coder
     SDImageCodersManager.shared.addCoder(SDImageWebPCoder.shared)
   }

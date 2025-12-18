@@ -15,14 +15,11 @@ struct CollectionCardView: View {
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
-  private var thumbnailURL: URL? {
-    CollectionService.shared.getCollectionThumbnailURL(id: collection.id)
-  }
 
   var body: some View {
     NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
       VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(url: thumbnailURL, width: width, cornerRadius: 12)
+        ThumbnailImage(id: collection.id, type: .collection, width: width, cornerRadius: 12)
 
         VStack(alignment: .leading, spacing: 4) {
           Text(collection.name)

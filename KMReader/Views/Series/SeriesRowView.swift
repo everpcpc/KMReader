@@ -15,13 +15,10 @@ struct SeriesRowView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-  private var thumbnailURL: URL? {
-    SeriesService.shared.getSeriesThumbnailURL(id: series.id)
-  }
 
   var body: some View {
     HStack(spacing: 12) {
-      ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 80, cornerRadius: 6)
+      ThumbnailImage(id: series.id, type: .series, showPlaceholder: false, width: 80, cornerRadius: 6)
 
       VStack(alignment: .leading, spacing: 6) {
         Text(series.metadata.title)

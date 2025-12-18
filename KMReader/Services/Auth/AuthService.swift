@@ -8,6 +8,10 @@
 import Foundation
 import OSLog
 
+private struct ClientSetting: Decodable {
+  let value: String
+}
+
 class AuthService {
   static let shared = AuthService()
   private let apiClient = APIClient.shared
@@ -26,15 +30,36 @@ class AuthService {
     }
     let base64Credentials = credentialsData.base64EncodedString()
 
-    // Validate login using validate method (reuses validation logic)
-    let queryItems = [URLQueryItem(name: "remember-me", value: rememberMe ? "true" : "false")]
-    let user = try await validate(
-      serverURL: serverURL,
-      authToken: base64Credentials,
-      queryItems: queryItems
-    )
+    // 1. Validate server connection (unauthenticated)
+    _ = try await validate(serverURL: serverURL)
 
+    // 2. Perform stateful login to establish session cookies
+    logger.info("🔐 Establishing session for \(username) at \(serverURL)")
+    let user = try await establishSession(
+      serverURL: serverURL, authToken: base64Credentials, rememberMe: rememberMe)
+
+    logger.info("✅ Session established for \(username)")
     return (user: user, authToken: base64Credentials)
+  }
+
+  func establishSession(serverURL: String, authToken: String, rememberMe: Bool = true) async throws
+    -> User
+  {
+    let queryItems = [URLQueryItem(name: "remember-me", value: rememberMe ? "true" : "false")]
+
+    // Use X-Auth-Token to explicitly request a session ID in the response
+    let headers = ["X-Auth-Token": ""]
+
+    // Explicitly set the server URL in AppConfig so apiClient.request uses the correct base
+    AppConfig.serverURL = serverURL
+
+    return try await apiClient.request(
+      path: "/api/v2/users/me",
+      method: "GET",
+      authToken: authToken,
+      queryItems: queryItems,
+      headers: headers
+    )
   }
 
   func logout() async throws {
@@ -53,19 +78,31 @@ class AuthService {
     LibraryManager.shared.clearAllLibraries()
   }
 
-  func validate(serverURL: String, authToken: String, queryItems: [URLQueryItem]? = nil)
-    async throws -> User
-  {
-    // Validate existing auth token using temporary request
-    logger.info("📡 Validating server connection to \(serverURL)")
+  func validate(serverURL: String) async throws {
+    // Validate server connection using unauthenticated request
+    // /api/v1/client-settings/global/list allows unauthenticated access
+    logger.info("📡 Testing connection to \(serverURL)")
+
+    // Use ephemeral session to avoid any side effects
+    let _: [String: ClientSetting] = try await apiClient.requestTemporary(
+      serverURL: serverURL,
+      path: "/api/v1/client-settings/global/list",
+      method: "GET",
+      authToken: nil
+    )
+    logger.info("✅ Server connection successful")
+  }
+
+  func testCredentials(serverURL: String, authToken: String) async throws -> User {
+    // Stateless check using Basic Auth
+    logger.info("📡 Testing credentials for \(serverURL)")
     let user: User = try await apiClient.requestTemporary(
       serverURL: serverURL,
       path: "/api/v2/users/me",
       method: "GET",
-      authToken: authToken,
-      queryItems: queryItems
+      authToken: authToken
     )
-    logger.info("✅ Server validation successful")
+    logger.info("✅ Credentials validation successful")
     return user
   }
 

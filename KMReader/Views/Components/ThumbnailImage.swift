@@ -11,22 +11,26 @@ import SwiftUI
 
 /// A reusable thumbnail image component using SDWebImageSwiftUI
 struct ThumbnailImage<Overlay: View>: View {
-  let url: URL?
+  let id: String?
+  let type: ThumbnailType
   let showPlaceholder: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
   let overlay: (() -> Overlay)?
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
+  @State private var localURL: URL?
 
   init(
-    url: URL?,
+    id: String?,
+    type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {
-    self.url = url
+    self.id = id
+    self.type = type
     self.showPlaceholder = showPlaceholder
     self.width = width
     self.cornerRadius = cornerRadius
@@ -49,11 +53,9 @@ struct ThumbnailImage<Overlay: View>: View {
         .frame(width: width, height: width * 1.3)
 
       // Image content - this will be the target for overlay alignment
-      // When contentMode is .fit, the image may not fill the entire container,
-      // so we need to ensure overlay aligns to the actual image bounds
-      if let url = url {
+      if let localURL = localURL {
         WebImage(
-          url: url,
+          url: localURL,
           options: [.retryFailed, .scaleDownLargeImages],
           context: [.customManager: SDImageCacheProvider.thumbnailManager]
         )
@@ -103,18 +105,24 @@ struct ThumbnailImage<Overlay: View>: View {
       }
     }
     .shadow(color: Color.black.opacity(0.5), radius: 4)
+    .task(id: id) {
+      if let id = id {
+        localURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
+      }
+    }
   }
 }
 
 extension ThumbnailImage where Overlay == EmptyView {
   init(
-    url: URL?,
+    id: String?,
+    type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8
   ) {
     self.init(
-      url: url, showPlaceholder: showPlaceholder,
+      id: id, type: type, showPlaceholder: showPlaceholder,
       width: width, cornerRadius: cornerRadius
     ) {}
   }

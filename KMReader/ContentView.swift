@@ -38,7 +38,6 @@ struct ContentView: View {
       }
     }
     .onChange(of: isLoggedIn) { _, isLoggedIn in
-      SDImageCacheProvider.configureSDWebImage()
       if isLoggedIn {
         Task {
           await authViewModel.loadCurrentUser()
@@ -57,12 +56,6 @@ struct ContentView: View {
       if phase == .active && isLoggedIn {
         KomgaInstanceStore.shared.updateLastUsed(for: AppConfig.currentInstanceId)
       }
-    }
-    .onChange(of: authViewModel.credentialsVersion) {
-      SDImageCacheProvider.configureSDWebImage()
-    }
-    .onAppear {
-      SDImageCacheProvider.configureSDWebImage()
     }
   }
 }

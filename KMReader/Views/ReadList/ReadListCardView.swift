@@ -20,14 +20,11 @@ struct ReadListCardView: View {
     return count == 1 ? "1 book" : "\(count) books"
   }
 
-  private var thumbnailURL: URL? {
-    ReadListService.shared.getReadListThumbnailURL(id: readList.id)
-  }
 
   var body: some View {
     NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
       VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(url: thumbnailURL, width: width, cornerRadius: 12)
+        ThumbnailImage(id: readList.id, type: .readlist, width: width, cornerRadius: 12)
 
         VStack(alignment: .leading, spacing: 4) {
           Text(readList.name)

@@ -169,7 +169,8 @@ class APIClient {
     method: String,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    authToken: String? = nil
   ) throws -> URLRequest {
     guard var urlComponents = URLComponents(string: AppConfig.serverURL + path) else {
       throw APIError.invalidURL
@@ -187,7 +188,7 @@ class APIClient {
     request.httpMethod = method
     request.httpBody = body
 
-    configureDefaultHeaders(&request, body: body, authToken: nil, headers: headers)
+    configureDefaultHeaders(&request, body: body, authToken: authToken, headers: headers)
     return request
   }
 
@@ -210,9 +211,8 @@ class APIClient {
     authToken: String? = nil,
     headers: [String: String]?
   ) {
-    // Use provided authToken or fall back to global AppConfig.authToken
-    let token = authToken ?? AppConfig.authToken
-    if !token.isEmpty {
+    // Only add Authorization header if authToken is explicitly provided (e.g., in validate/login)
+    if let token = authToken, !token.isEmpty {
       request.addValue("Basic \(token)", forHTTPHeaderField: "Authorization")
     }
 
@@ -228,10 +228,36 @@ class APIClient {
     }
   }
 
+  /// Actor to synchronize concurrent re-login attempts
+  private actor ReLoginActor {
+    private var reLoginTask: Task<(Data, HTTPURLResponse), Error>?
+
+    func getReLoginTask(
+      perform: @Sendable @escaping () async throws -> (Data, HTTPURLResponse)
+    ) async throws -> (Data, HTTPURLResponse) {
+      // If there's already a re-login in progress, wait for it
+      if let task = reLoginTask {
+        return try await task.value
+      }
+
+      // Start a new re-login task
+      let task = Task {
+        defer { reLoginTask = nil }
+        return try await perform()
+      }
+
+      reLoginTask = task
+      return try await task.value
+    }
+  }
+
+  private let reLoginActor = ReLoginActor()
+
   private func executeRequest(
     _ request: URLRequest,
     session: URLSession? = nil,
-    isTemporary: Bool = false
+    isTemporary: Bool = false,
+    retryCount: Int = 0
   ) async throws -> (data: Data, response: HTTPURLResponse) {
     let method = request.httpMethod ?? "GET"
     let urlString = request.url?.absoluteString ?? ""
@@ -252,11 +278,57 @@ class APIClient {
 
       let statusEmoji = (200...299).contains(httpResponse.statusCode) ? "✅" : "❌"
       let durationMs = String(format: "%.2f", duration * 1000)
+
+      // Log session token if returned (for debugging bootstrap)
+      if let sessionToken = httpResponse.value(forHTTPHeaderField: "X-Auth-Token") {
+        logger.debug("🔑 Session token received: \(sessionToken)")
+      }
+
       logger.info(
         "\(statusEmoji) \(prefix)\(httpResponse.statusCode) \(method) \(urlString) (\(durationMs)ms)"
       )
 
       guard (200...299).contains(httpResponse.statusCode) else {
+        // Handle 401 Unauthorized with re-login
+        if httpResponse.statusCode == 401 && retryCount == 0 && !isTemporary {
+          let token = AppConfig.authToken
+          if !token.isEmpty {
+            logger.info("🔒 Unauthorized, attempting re-login to refresh session...")
+
+            do {
+              // Create a dedicated login request to establish new session cookies
+              let loginRequest = try buildRequest(
+                path: "/api/v2/users/me",
+                method: "GET",
+                queryItems: [URLQueryItem(name: "remember-me", value: "true")],
+                headers: ["X-Auth-Token": ""],
+                authToken: token
+              )
+
+              // Execute login request through the synchronization actor
+              _ = try await reLoginActor.getReLoginTask { [weak self] in
+                guard let self = self else {
+                  throw APIError.networkError(
+                    AppErrorType.missingRequiredData(message: "APIClient deallocated"),
+                    url: urlString
+                  )
+                }
+                // Use retryCount: 1 to prevent recursive 401 handling if login fails
+                return try await self.executeRequest(
+                  loginRequest, session: sessionToUse, isTemporary: false, retryCount: 1)
+              }
+
+              logger.info("✅ Re-login successful, retrying original request...")
+              // Retry the original request UNCHANGED (relying on new session cookies)
+              return try await executeRequest(
+                request, session: sessionToUse, isTemporary: false, retryCount: 1)
+            } catch {
+              logger.error("❌ Re-login failed: \(error.localizedDescription)")
+              // Fall through to throw the original 401 error or the login error
+            }
+          }
+        }
+
         let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
         let responseBody = String(data: data, encoding: .utf8)
 
@@ -310,12 +382,19 @@ class APIClient {
   func request<T: Decodable>(
     path: String,
     method: String = "GET",
+    authToken: String? = nil,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
   ) async throws -> T {
     let urlRequest = try buildRequest(
-      path: path, method: method, body: body, queryItems: queryItems, headers: headers)
+      path: path,
+      method: method,
+      body: body,
+      queryItems: queryItems,
+      headers: headers,
+      authToken: authToken
+    )
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
     return try decodeResponse(data: data, httpResponse: httpResponse, request: urlRequest)
@@ -324,12 +403,19 @@ class APIClient {
   func requestOptional<T: Decodable>(
     path: String,
     method: String = "GET",
+    authToken: String? = nil,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
   ) async throws -> T? {
     let urlRequest = try buildRequest(
-      path: path, method: method, body: body, queryItems: queryItems, headers: headers)
+      path: path,
+      method: method,
+      body: body,
+      queryItems: queryItems,
+      headers: headers,
+      authToken: authToken
+    )
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
     if httpResponse.statusCode == 204 || data.isEmpty {
@@ -350,9 +436,11 @@ class APIClient {
   func requestData(
     path: String,
     method: String = "GET",
+    authToken: String? = nil,
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
-    let urlRequest = try buildRequest(path: path, method: method, headers: headers)
+    let urlRequest = try buildRequest(
+      path: path, method: method, headers: headers, authToken: authToken)
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)

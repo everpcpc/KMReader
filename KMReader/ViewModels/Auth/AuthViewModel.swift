@@ -65,8 +65,12 @@ class AuthViewModel {
     AppConfig.clearSelectedLibraryIds()
   }
 
-  func validate(serverURL: String, authToken: String) async throws -> User {
-    return try await authService.validate(serverURL: serverURL, authToken: authToken)
+  func validate(serverURL: String) async throws {
+    try await authService.validate(serverURL: serverURL)
+  }
+
+  func testCredentials(serverURL: String, authToken: String) async throws -> User {
+    return try await authService.testCredentials(serverURL: serverURL, authToken: authToken)
   }
 
   func loadCurrentUser() async {
@@ -93,9 +97,9 @@ class AuthViewModel {
       switchingInstanceId = nil
     }
 
-    // Validate server connection before switching
+    // Establish stateful session before switching
     do {
-      let validatedUser = try await authService.validate(
+      let validatedUser = try await authService.establishSession(
         serverURL: instance.serverURL,
         authToken: instance.authToken
       )

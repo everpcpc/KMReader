@@ -27,9 +27,6 @@ struct ReadListDetailView: View {
   // SwiftUI's default horizontal padding is 16 on each side (32 total)
   private let horizontalPadding: CGFloat = 16
 
-  private var thumbnailURL: URL? {
-    readList.flatMap { ReadListService.shared.getReadListThumbnailURL(id: $0.id) }
-  }
 
   var body: some View {
     ScrollView {
@@ -41,7 +38,7 @@ struct ReadListDetailView: View {
 
           HStack(alignment: .top) {
             ThumbnailImage(
-              url: thumbnailURL, showPlaceholder: false, width: PlatformHelper.detailThumbnailWidth
+              id: readListId, type: .readlist, showPlaceholder: false, width: PlatformHelper.detailThumbnailWidth
             )
             .thumbnailFocus()
 

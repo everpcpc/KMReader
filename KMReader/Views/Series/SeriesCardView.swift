@@ -18,13 +18,10 @@ struct SeriesCardView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-  private var thumbnailURL: URL? {
-    SeriesService.shared.getSeriesThumbnailURL(id: series.id)
-  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      ThumbnailImage(url: thumbnailURL, width: cardWidth) {
+      ThumbnailImage(id: series.id, type: .series, width: cardWidth) {
         ZStack {
           if series.unreadCount > 0 {
             VStack(alignment: .trailing) {
@@ -114,7 +111,8 @@ struct SeriesCardView: View {
           seriesIds: [series.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.addedToCollection"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.addedToCollection"))
           onActionCompleted?()
         }
       } catch {

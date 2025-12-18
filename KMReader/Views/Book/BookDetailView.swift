@@ -23,9 +23,6 @@ struct BookDetailView: View {
   @State private var isLoadingRelations = false
   @State private var showDownloadSheet = false
 
-  private var thumbnailURL: URL? {
-    return BookService.shared.getBookThumbnailURL(id: bookId)
-  }
 
   private var progress: Double {
     guard let book = book, let readProgress = book.readProgress else { return 0 }
@@ -56,7 +53,7 @@ struct BookDetailView: View {
             .fixedSize(horizontal: false, vertical: true)
 
           HStack(alignment: .top) {
-            ThumbnailImage(url: thumbnailURL, width: PlatformHelper.detailThumbnailWidth)
+            ThumbnailImage(id: bookId, type: .book, width: PlatformHelper.detailThumbnailWidth)
               .thumbnailFocus()
 
             VStack(alignment: .leading) {

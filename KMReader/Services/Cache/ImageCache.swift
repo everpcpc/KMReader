@@ -19,18 +19,18 @@ actor ImageCache {
   // Disk cache
   private let diskCacheURL: URL
   private let fileManager = FileManager.default
-  private let maxDiskCacheSize: Int
+  private let maxPageCacheSize: Int
 
-  // Get max disk cache size from AppConfig (with fallback to default)
-  private static func getMaxDiskCacheSize() -> Int {
-    AppConfig.maxDiskCacheSize
+  // Get max page cache size from AppConfig (with fallback to default)
+  private static func getMaxPageCacheSize() -> Int {
+    AppConfig.maxPageCacheSize
   }
 
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
 
-  init(maxDiskCacheSize: Int = 8) {
-    self.maxDiskCacheSize = maxDiskCacheSize
+  init(maxPageCacheSize: Int = 8) {
+    self.maxPageCacheSize = maxPageCacheSize
 
     // Setup disk cache directory scoped to the active server namespace
     diskCacheURL = CacheNamespace.directory(for: "KomgaImageCache")
@@ -73,7 +73,7 @@ actor ImageCache {
 
     // Check cache size before storing and trigger cleanup if needed
     let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
-    let maxCacheSize = Self.getMaxDiskCacheSize()
+    let maxCacheSize = Self.getMaxPageCacheSize()
     let maxSize = Int64(maxCacheSize) * 1024 * 1024 * 1024
     let newFileSize = Int64(data.count)
 
@@ -184,7 +184,7 @@ actor ImageCache {
   static func cleanupDiskCacheIfNeeded() async {
     let fileManager = FileManager.default
     let diskCacheURL = await namespacedDiskCacheURL()
-    let maxCacheSize = getMaxDiskCacheSize()
+    let maxCacheSize = getMaxPageCacheSize()
 
     await Task.detached(priority: .utility) {
       await performDiskCacheCleanup(
@@ -350,7 +350,7 @@ actor ImageCache {
 
   private func cleanupDiskCache() async {
     // Calculate total disk cache size and clean up in background task
-    let maxCacheSize = Self.getMaxDiskCacheSize()
+    let maxCacheSize = Self.getMaxPageCacheSize()
     await Task.detached(priority: .utility) { [diskCacheURL, fileManager, maxCacheSize] in
       await Self.performDiskCacheCleanup(
         diskCacheURL: diskCacheURL,
