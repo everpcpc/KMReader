@@ -264,169 +264,113 @@ final class SSEService {
   private func handleSSEEvent(type: String, data: String) async {
     recordServerUpdate()
 
-    guard let jsonData = data.data(using: .utf8) else {
-      logger.warning("Invalid SSE data: \(data)")
-      return
-    }
-
-    let decoder = JSONDecoder()
-
     switch type {
     case "LibraryAdded":
-      if let dto = try? decoder.decode(LibrarySSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onLibraryAdded, value: dto)
-      }
+      dispatchToMain(handler: onLibraryAdded, data: data, as: LibrarySSEDto.self)
     case "LibraryChanged":
-      if let dto = try? decoder.decode(LibrarySSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onLibraryChanged, value: dto)
-      }
+      dispatchToMain(handler: onLibraryChanged, data: data, as: LibrarySSEDto.self)
     case "LibraryDeleted":
-      if let dto = try? decoder.decode(LibrarySSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onLibraryDeleted, value: dto)
-      }
+      dispatchToMain(handler: onLibraryDeleted, data: data, as: LibrarySSEDto.self)
 
     case "SeriesAdded":
-      if let dto = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onSeriesAdded, value: dto)
-      }
+      dispatchToMain(handler: onSeriesAdded, data: data, as: SeriesSSEDto.self)
     case "SeriesChanged":
-      if let dto = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onSeriesChanged, value: dto)
-      }
+      dispatchToMain(handler: onSeriesChanged, data: data, as: SeriesSSEDto.self)
     case "SeriesDeleted":
-      if let dto = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onSeriesDeleted, value: dto)
-      }
+      dispatchToMain(handler: onSeriesDeleted, data: data, as: SeriesSSEDto.self)
 
     case "BookAdded":
-      if let dto = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onBookAdded, value: dto)
-      }
+      dispatchToMain(handler: onBookAdded, data: data, as: BookSSEDto.self)
     case "BookChanged":
-      if let dto = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onBookChanged, value: dto)
-      }
+      dispatchToMain(handler: onBookChanged, data: data, as: BookSSEDto.self)
     case "BookDeleted":
-      if let dto = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onBookDeleted, value: dto)
-      }
+      dispatchToMain(handler: onBookDeleted, data: data, as: BookSSEDto.self)
     case "BookImported":
-      if let dto = try? decoder.decode(BookImportSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onBookImported, value: dto)
-      }
+      dispatchToMain(handler: onBookImported, data: data, as: BookImportSSEDto.self)
 
     case "CollectionAdded":
-      if let dto = try? decoder.decode(CollectionSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onCollectionAdded, value: dto)
-      }
+      dispatchToMain(handler: onCollectionAdded, data: data, as: CollectionSSEDto.self)
     case "CollectionChanged":
-      if let dto = try? decoder.decode(CollectionSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onCollectionChanged, value: dto)
-      }
+      dispatchToMain(handler: onCollectionChanged, data: data, as: CollectionSSEDto.self)
     case "CollectionDeleted":
-      if let dto = try? decoder.decode(CollectionSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onCollectionDeleted, value: dto)
-      }
+      dispatchToMain(handler: onCollectionDeleted, data: data, as: CollectionSSEDto.self)
 
     case "ReadListAdded":
-      if let dto = try? decoder.decode(ReadListSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onReadListAdded, value: dto)
-      }
+      dispatchToMain(handler: onReadListAdded, data: data, as: ReadListSSEDto.self)
     case "ReadListChanged":
-      if let dto = try? decoder.decode(ReadListSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onReadListChanged, value: dto)
-      }
+      dispatchToMain(handler: onReadListChanged, data: data, as: ReadListSSEDto.self)
     case "ReadListDeleted":
-      if let dto = try? decoder.decode(ReadListSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onReadListDeleted, value: dto)
-      }
+      dispatchToMain(handler: onReadListDeleted, data: data, as: ReadListSSEDto.self)
 
     case "ReadProgressChanged":
-      if let dto = try? decoder.decode(ReadProgressSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onReadProgressChanged, value: dto)
-      }
+      dispatchToMain(handler: onReadProgressChanged, data: data, as: ReadProgressSSEDto.self)
     case "ReadProgressDeleted":
-      if let dto = try? decoder.decode(ReadProgressSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onReadProgressDeleted, value: dto)
-      }
+      dispatchToMain(handler: onReadProgressDeleted, data: data, as: ReadProgressSSEDto.self)
     case "ReadProgressSeriesChanged":
-      if let dto = try? decoder.decode(ReadProgressSeriesSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onReadProgressSeriesChanged, value: dto)
-      }
+      dispatchToMain(handler: onReadProgressSeriesChanged, data: data, as: ReadProgressSeriesSSEDto.self)
     case "ReadProgressSeriesDeleted":
-      if let dto = try? decoder.decode(ReadProgressSeriesSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onReadProgressSeriesDeleted, value: dto)
-      }
+      dispatchToMain(handler: onReadProgressSeriesDeleted, data: data, as: ReadProgressSeriesSSEDto.self)
 
     case "ThumbnailBookAdded":
-      if let dto = try? decoder.decode(ThumbnailBookSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailBookAdded, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailBookAdded, data: data, as: ThumbnailBookSSEDto.self)
     case "ThumbnailBookDeleted":
-      if let dto = try? decoder.decode(ThumbnailBookSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailBookDeleted, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailBookDeleted, data: data, as: ThumbnailBookSSEDto.self)
     case "ThumbnailSeriesAdded":
-      if let dto = try? decoder.decode(ThumbnailSeriesSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailSeriesAdded, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailSeriesAdded, data: data, as: ThumbnailSeriesSSEDto.self)
     case "ThumbnailSeriesDeleted":
-      if let dto = try? decoder.decode(ThumbnailSeriesSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailSeriesDeleted, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailSeriesDeleted, data: data, as: ThumbnailSeriesSSEDto.self)
     case "ThumbnailReadListAdded":
-      if let dto = try? decoder.decode(ThumbnailReadListSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailReadListAdded, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailReadListAdded, data: data, as: ThumbnailReadListSSEDto.self)
     case "ThumbnailReadListDeleted":
-      if let dto = try? decoder.decode(ThumbnailReadListSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailReadListDeleted, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailReadListDeleted, data: data, as: ThumbnailReadListSSEDto.self)
     case "ThumbnailSeriesCollectionAdded":
-      if let dto = try? decoder.decode(ThumbnailCollectionSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailCollectionAdded, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailCollectionAdded, data: data, as: ThumbnailCollectionSSEDto.self)
     case "ThumbnailSeriesCollectionDeleted":
-      if let dto = try? decoder.decode(ThumbnailCollectionSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onThumbnailCollectionDeleted, value: dto)
-      }
+      dispatchToMain(handler: onThumbnailCollectionDeleted, data: data, as: ThumbnailCollectionSSEDto.self)
 
     case "TaskQueueStatus":
-      if let dto = try? decoder.decode(TaskQueueSSEDto.self, from: jsonData) {
-        // Check if status has changed
-        let previousStatus = AppConfig.taskQueueStatus
-
-        // Only update if status has changed
-        if previousStatus != dto {
-          // Store in AppConfig for AppStorage access
-          AppConfig.taskQueueStatus = dto
-
-          // Notify the listener
-          dispatchToMain(handler: onTaskQueueStatus, value: dto)
-
-          // Notify if tasks completed (went from > 0 to 0) and notifications enabled
-          if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotify {
-            await MainActor.run {
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.sse.tasksFinished"))
-            }
-          }
-        }
-      }
+      handleTaskQueueStatus(data: data)
     case "SessionExpired":
-      if let dto = try? decoder.decode(SessionExpiredSSEDto.self, from: jsonData) {
-        dispatchToMain(handler: onSessionExpired, value: dto)
-      }
+      dispatchToMain(handler: onSessionExpired, data: data, as: SessionExpiredSSEDto.self)
 
     default:
       logger.debug("Unknown SSE event type: \(type)")
     }
   }
 
-  private func dispatchToMain<T>(handler: ((T) -> Void)?, value: T) {
+  private func handleTaskQueueStatus(data: String) {
+    guard let jsonData = data.data(using: .utf8),
+      let dto = try? JSONDecoder().decode(TaskQueueSSEDto.self, from: jsonData)
+    else { return }
+
+    let previousStatus = AppConfig.taskQueueStatus
+    guard previousStatus != dto else { return }
+
+    AppConfig.taskQueueStatus = dto
+    dispatchToMain(handler: onTaskQueueStatus, dto: dto)
+
+    if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotify {
+      Task { @MainActor in
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.sse.tasksFinished"))
+      }
+    }
+  }
+
+  private func dispatchToMain<T: Decodable>(handler: ((T) -> Void)?, data: String, as type: T.Type) {
+    guard let handler else { return }
+    guard let jsonData = data.data(using: .utf8),
+      let dto = try? JSONDecoder().decode(type, from: jsonData)
+    else { return }
+    Task { @MainActor in
+      handler(dto)
+    }
+  }
+
+  private func dispatchToMain<T>(handler: ((T) -> Void)?, dto: T) {
     guard let handler else { return }
     Task { @MainActor in
-      handler(value)
+      handler(dto)
     }
   }
 
