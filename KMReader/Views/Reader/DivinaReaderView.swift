@@ -431,14 +431,14 @@ struct DivinaReaderView: View {
     // Load book info to get read progress page and series reading direction
     var initialPageNumber: Int? = nil
     do {
-      let book = try await BookService.shared.getBook(id: bookId)
+      let book = try await SyncService.shared.syncBook(bookId: bookId)
       currentBook = book
       seriesId = book.seriesId
       // In incognito mode, always start from the first page
       initialPageNumber = incognito ? nil : book.readProgress?.page
 
       // Get series reading direction or fall back to user default
-      let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
+      let series = try await SyncService.shared.syncSeriesDetail(seriesId: book.seriesId)
       let rawReadingDirection = series.metadata.readingDirection?
         .trimmingCharacters(in: .whitespacesAndNewlines)
       let preferredDirection: ReadingDirection

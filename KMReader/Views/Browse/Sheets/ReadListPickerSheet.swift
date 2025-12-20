@@ -150,6 +150,8 @@ struct CreateReadListSheet: View {
           summary: summary,
           bookIds: bookIds
         )
+        // Sync the readlist to update its bookIds in local SwiftData
+        _ = try? await SyncService.shared.syncReadList(id: readList.id)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.readList.created"))
           isCreating = false

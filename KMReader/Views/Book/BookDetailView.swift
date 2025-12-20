@@ -573,6 +573,8 @@ struct BookDetailView: View {
           readListId: readListId,
           bookIds: [bookId]
         )
+        // Sync the readlist to update its bookIds in local SwiftData
+        _ = try? await SyncService.shared.syncReadList(id: readListId)
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.book.booksAddedToReadList"))

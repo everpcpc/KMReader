@@ -123,14 +123,14 @@ struct DashboardSeriesSection: View {
 
       switch section {
       case .recentlyAddedSeries:
-        page = try await SeriesService.shared.getNewSeries(
+        page = try await SyncService.shared.syncNewSeries(
           libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyUpdatedSeries:
-        page = try await SeriesService.shared.getUpdatedSeries(
+        page = try await SyncService.shared.syncUpdatedSeries(
           libraryIds: libraryIds,
           page: currentPage,
           size: 20

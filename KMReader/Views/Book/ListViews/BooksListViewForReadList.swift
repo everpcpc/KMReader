@@ -298,6 +298,8 @@ extension BooksListViewForReadList {
         readListId: readListId,
         bookIds: Array(selectedBookIds)
       )
+      // Sync the readlist to update its bookIds in local SwiftData
+      _ = try? await SyncService.shared.syncReadList(id: readListId)
 
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.readList.booksRemoved"))

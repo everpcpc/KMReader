@@ -94,7 +94,7 @@
     private func loadBook() async {
       // Load book info
       do {
-        currentBook = try await BookService.shared.getBook(id: bookId)
+        currentBook = try await SyncService.shared.syncBook(bookId: bookId)
       } catch {
         // Silently fail
       }

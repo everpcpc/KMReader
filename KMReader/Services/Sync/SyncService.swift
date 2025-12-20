@@ -141,6 +141,24 @@ class SyncService {
     return series
   }
 
+  func syncNewSeries(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Series> {
+    let result = try await SeriesService.shared.getNewSeries(
+      libraryIds: libraryIds, page: page, size: size)
+    let instanceId = AppConfig.currentInstanceId
+    await db.upsertSeriesList(result.content, instanceId: instanceId)
+    try await db.commit()
+    return result
+  }
+
+  func syncUpdatedSeries(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Series> {
+    let result = try await SeriesService.shared.getUpdatedSeries(
+      libraryIds: libraryIds, page: page, size: size)
+    let instanceId = AppConfig.currentInstanceId
+    await db.upsertSeriesList(result.content, instanceId: instanceId)
+    try await db.commit()
+    return result
+  }
+
   func syncBooks(
     seriesId: String,
     page: Int,
@@ -162,28 +180,13 @@ class SyncService {
   }
 
   func syncBooksList(
-    search: String?,
-    libraryIds: [String]?,
-    browseOpts: BookBrowseOptions,
+    search: BookSearch,
     page: Int,
     size: Int,
     sort: String?
   ) async throws -> Page<Book> {
-    let filters = BookSearchFilters(
-      libraryIds: libraryIds,
-      includeReadStatuses: Array(browseOpts.includeReadStatuses),
-      excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
-      oneshot: browseOpts.oneshotFilter.effectiveBool,
-      deleted: browseOpts.deletedFilter.effectiveBool
-    )
-    let condition = BookSearch.buildCondition(filters: filters)
-    let bookSearch = BookSearch(
-      condition: condition,
-      fullTextSearch: search?.isEmpty == false ? search : nil
-    )
-
     let result = try await BookService.shared.getBooksList(
-      search: bookSearch,
+      search: search,
       page: page,
       size: size,
       sort: sort
@@ -193,6 +196,44 @@ class SyncService {
     await db.upsertBooks(result.content, instanceId: instanceId)
     try await db.commit()
 
+    return result
+  }
+
+  func syncBooksOnDeck(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
+    let result = try await BookService.shared.getBooksOnDeck(
+      libraryIds: libraryIds, page: page, size: size)
+    let instanceId = AppConfig.currentInstanceId
+    await db.upsertBooks(result.content, instanceId: instanceId)
+    try await db.commit()
+    return result
+  }
+
+  func syncRecentlyReadBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
+    let result = try await BookService.shared.getRecentlyReadBooks(
+      libraryIds: libraryIds, page: page, size: size)
+    let instanceId = AppConfig.currentInstanceId
+    await db.upsertBooks(result.content, instanceId: instanceId)
+    try await db.commit()
+    return result
+  }
+
+  func syncRecentlyAddedBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
+    let result = try await BookService.shared.getRecentlyAddedBooks(
+      libraryIds: libraryIds, page: page, size: size)
+    let instanceId = AppConfig.currentInstanceId
+    await db.upsertBooks(result.content, instanceId: instanceId)
+    try await db.commit()
+    return result
+  }
+
+  func syncRecentlyReleasedBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<
+    Book
+  > {
+    let result = try await BookService.shared.getRecentlyReleasedBooks(
+      libraryIds: libraryIds, page: page, size: size)
+    let instanceId = AppConfig.currentInstanceId
+    await db.upsertBooks(result.content, instanceId: instanceId)
+    try await db.commit()
     return result
   }
 

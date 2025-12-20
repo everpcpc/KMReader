@@ -233,7 +233,8 @@ class BookViewModel {
     isLoading = true
 
     do {
-      let page = try await bookService.getBooksOnDeck(libraryIds: libraryIds, size: 20)
+      let page = try await SyncService.shared.syncBooksOnDeck(
+        libraryIds: libraryIds, page: currentPage, size: 20)
       withAnimation {
         books = page.content
       }
@@ -258,7 +259,7 @@ class BookViewModel {
   func markAsRead(bookId: String) async {
     do {
       try await bookService.markAsRead(bookId: bookId)
-      let updatedBook = try await bookService.getBook(id: bookId)
+      let updatedBook = try await SyncService.shared.syncBook(bookId: bookId)
       if let index = books.firstIndex(where: { $0.id == bookId }) {
         books[index] = updatedBook
       }
@@ -276,7 +277,7 @@ class BookViewModel {
   func markAsUnread(bookId: String) async {
     do {
       try await bookService.markAsUnread(bookId: bookId)
-      let updatedBook = try await bookService.getBook(id: bookId)
+      let updatedBook = try await SyncService.shared.syncBook(bookId: bookId)
       if let index = books.firstIndex(where: { $0.id == bookId }) {
         books[index] = updatedBook
       }
@@ -304,7 +305,7 @@ class BookViewModel {
     isLoading = true
 
     do {
-      let page = try await bookService.getRecentlyReadBooks(
+      let page = try await SyncService.shared.syncRecentlyReadBooks(
         libraryIds: libraryIds,
         page: currentPage,
         size: 20
@@ -372,10 +373,21 @@ class BookViewModel {
 
     // 2. Sync
     do {
-      let page = try await SyncService.shared.syncBooksList(
-        search: currentBrowseSearch,
+      let filters = BookSearchFilters(
         libraryIds: libraryIds,
-        browseOpts: browseOpts,
+        includeReadStatuses: Array(browseOpts.includeReadStatuses),
+        excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
+        oneshot: browseOpts.oneshotFilter.effectiveBool,
+        deleted: browseOpts.deletedFilter.effectiveBool
+      )
+      let condition = BookSearch.buildCondition(filters: filters)
+      let bookSearch = BookSearch(
+        condition: condition,
+        fullTextSearch: currentBrowseSearch.isEmpty == false ? currentBrowseSearch : nil
+      )
+
+      let page = try await SyncService.shared.syncBooksList(
+        search: bookSearch,
         page: currentPage,
         size: 20,
         sort: sort

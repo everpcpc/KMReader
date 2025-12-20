@@ -143,7 +143,8 @@ class SeriesViewModel {
     isLoading = true
 
     do {
-      let page = try await seriesService.getNewSeries(libraryIds: libraryIds, size: 20)
+      let page = try await SyncService.shared.syncNewSeries(
+        libraryIds: libraryIds, page: currentPage, size: 20)
       withAnimation {
         series = page.content
       }
@@ -158,7 +159,8 @@ class SeriesViewModel {
     isLoading = true
 
     do {
-      let page = try await seriesService.getUpdatedSeries(libraryIds: libraryIds, size: 20)
+      let page = try await SyncService.shared.syncUpdatedSeries(
+        libraryIds: libraryIds, page: currentPage, size: 20)
       withAnimation {
         series = page.content
       }
@@ -172,6 +174,7 @@ class SeriesViewModel {
   func markAsRead(seriesId: String, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsRead(seriesId: seriesId)
+      _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
       }
@@ -184,6 +187,7 @@ class SeriesViewModel {
   func markAsUnread(seriesId: String, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
+      _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
       }

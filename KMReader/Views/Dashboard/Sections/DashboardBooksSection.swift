@@ -130,7 +130,7 @@ struct DashboardBooksSection: View {
           )
         )
         let search = BookSearch(condition: condition)
-        page = try await BookService.shared.getBooksList(
+        page = try await SyncService.shared.syncBooksList(
           search: search,
           page: currentPage,
           size: 20,
@@ -138,28 +138,28 @@ struct DashboardBooksSection: View {
         )
 
       case .onDeck:
-        page = try await BookService.shared.getBooksOnDeck(
+        page = try await SyncService.shared.syncBooksOnDeck(
           libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyReadBooks:
-        page = try await BookService.shared.getRecentlyReadBooks(
+        page = try await SyncService.shared.syncRecentlyReadBooks(
           libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyReleasedBooks:
-        page = try await BookService.shared.getRecentlyReleasedBooks(
+        page = try await SyncService.shared.syncRecentlyReleasedBooks(
           libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyAddedBooks:
-        page = try await BookService.shared.getRecentlyAddedBooks(
+        page = try await SyncService.shared.syncRecentlyAddedBooks(
           libraryIds: libraryIds,
           page: currentPage,
           size: 20
