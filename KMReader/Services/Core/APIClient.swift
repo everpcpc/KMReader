@@ -483,13 +483,28 @@ class APIClient {
     }
   }
 
+  // MARK: - Offline Mode Check
+
+  /// Throws APIError.offline if app is in offline mode
+  /// This check is bypassed for login/authentication requests
+  private func throwIfOffline() throws {
+    if AppConfig.isOffline {
+      throw APIError.offline
+    }
+  }
+
   func request<T: Decodable>(
     path: String,
     method: String = "GET",
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    bypassOfflineCheck: Bool = false
   ) async throws -> T {
+    if !bypassOfflineCheck {
+      try throwIfOffline()
+    }
+
     let urlRequest = try buildRequest(
       path: path,
       method: method,
@@ -509,6 +524,8 @@ class APIClient {
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
   ) async throws -> T? {
+    try throwIfOffline()
+
     let urlRequest = try buildRequest(
       path: path,
       method: method,
@@ -538,6 +555,8 @@ class APIClient {
     method: String = "GET",
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
+    try throwIfOffline()
+
     let urlRequest = try buildRequest(
       path: path, method: method, headers: headers)
     let (data, httpResponse) = try await executeRequest(urlRequest)
@@ -550,6 +569,8 @@ class APIClient {
     method: String = "GET",
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
+    try throwIfOffline()
+
     let urlRequest = buildRequest(url: url, method: method, headers: headers)
     let (data, httpResponse) = try await executeRequest(urlRequest)
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)

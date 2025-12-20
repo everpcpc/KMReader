@@ -36,119 +36,120 @@ struct BookContextMenu: View {
 
   var body: some View {
     Group {
-        if let onReadBook = onReadBook {
-          Button {
-            onReadBook(true)
-          } label: {
-            Label("Read Incognito", systemImage: "eye.slash")
-          }
-        }
-
-        Divider()
-
-        NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
-          Label("View Details", systemImage: "info.circle")
-        }
-        if showSeriesNavigation {
-          NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-            Label("Go to Series", systemImage: "book.fill")
-          }
-        }
-
-        Divider()
-
+      if let onReadBook = onReadBook {
         Button {
-          Task {
-            await OfflineManager.shared.toggleDownload(instanceId: currentInstanceId, info: book.downloadInfo)
-          }
+          onReadBook(true)
         } label: {
-          Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
+          Label("Read Incognito", systemImage: "eye.slash")
         }
+      }
 
-        Divider()
+      Divider()
 
-        Menu {
-          Button {
-            onEditRequested?()
-          } label: {
-            Label("Edit", systemImage: "pencil")
-          }
-          .disabled(!isAdmin)
+      NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
+        Label("View Details", systemImage: "info.circle")
+      }
+      if showSeriesNavigation {
+        NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
+          Label("Go to Series", systemImage: "book.fill")
+        }
+      }
 
-          Divider()
+      Divider()
 
-          Button {
-            analyzeBook(bookId: book.id)
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-          .disabled(!isAdmin)
+      Button {
+        Task {
+          await OfflineManager.shared.toggleDownload(
+            instanceId: currentInstanceId, info: book.downloadInfo)
+        }
+      } label: {
+        Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
+      }
 
-          Button {
-            refreshMetadata(bookId: book.id)
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
-          }
-          .disabled(!isAdmin)
+      Divider()
 
-          Divider()
-
-          Button {
-            onShowReadListPicker?()
-          } label: {
-            Label("Add to Read List", systemImage: "list.bullet")
-          }
-
-          Divider()
-
-          Button(role: .destructive) {
-            onDeleteRequested?()
-          } label: {
-            Label("Delete", systemImage: "trash")
-          }
-          .disabled(!isAdmin)
+      Menu {
+        Button {
+          onEditRequested?()
         } label: {
-          Label("Manage", systemImage: "gearshape")
+          Label("Edit", systemImage: "pencil")
         }
         .disabled(!isAdmin)
 
         Divider()
 
-        if !isCompleted {
-          Button {
-            Task {
-              await viewModel.markAsRead(bookId: book.id)
-              await MainActor.run {
-                onActionCompleted?()
-              }
-            }
-          } label: {
-            Label("Mark as Read", systemImage: "checkmark.circle")
-          }
+        Button {
+          analyzeBook(bookId: book.id)
+        } label: {
+          Label("Analyze", systemImage: "waveform.path.ecg")
         }
-        if book.readProgress != nil {
-          Button {
-            Task {
-              await viewModel.markAsUnread(bookId: book.id)
-              await MainActor.run {
-                onActionCompleted?()
-              }
-            }
-          } label: {
-            Label("Mark as Unread", systemImage: "circle")
-          }
+        .disabled(!isAdmin)
+
+        Button {
+          refreshMetadata(bookId: book.id)
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+        }
+        .disabled(!isAdmin)
+
+        Divider()
+
+        Button {
+          onShowReadListPicker?()
+        } label: {
+          Label("Add to Read List", systemImage: "list.bullet")
         }
 
         Divider()
 
         Button(role: .destructive) {
+          onDeleteRequested?()
+        } label: {
+          Label("Delete", systemImage: "trash")
+        }
+        .disabled(!isAdmin)
+      } label: {
+        Label("Manage", systemImage: "gearshape")
+      }
+      .disabled(!isAdmin)
+
+      Divider()
+
+      if !isCompleted {
+        Button {
           Task {
-            await CacheManager.clearCache(forBookId: book.id)
+            await viewModel.markAsRead(bookId: book.id)
+            await MainActor.run {
+              onActionCompleted?()
+            }
           }
         } label: {
-          Label("Clear Cache", systemImage: "xmark.circle")
+          Label("Mark as Read", systemImage: "checkmark.circle")
         }
       }
+      if book.readProgress != nil {
+        Button {
+          Task {
+            await viewModel.markAsUnread(bookId: book.id)
+            await MainActor.run {
+              onActionCompleted?()
+            }
+          }
+        } label: {
+          Label("Mark as Unread", systemImage: "circle")
+        }
+      }
+
+      Divider()
+
+      Button(role: .destructive) {
+        Task {
+          await CacheManager.clearCache(forBookId: book.id)
+        }
+      } label: {
+        Label("Clear Cache", systemImage: "xmark.circle")
+      }
+    }
   }
 
   private func analyzeBook(bookId: String) {

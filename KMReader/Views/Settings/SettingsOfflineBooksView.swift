@@ -191,13 +191,13 @@ struct SettingsOfflineBooksView: View {
       }
     }
     #if !os(tvOS)
-    .swipeActions(edge: .trailing) {
-      Button(role: .destructive) {
-        deleteBook(book)
-      } label: {
-        Label(String(localized: "Delete"), systemImage: "trash")
+      .swipeActions(edge: .trailing) {
+        Button(role: .destructive) {
+          deleteBook(book)
+        } label: {
+          Label(String(localized: "Delete"), systemImage: "trash")
+        }
       }
-    }
     #endif
   }
 

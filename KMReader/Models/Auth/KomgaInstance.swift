@@ -19,6 +19,8 @@ final class KomgaInstance {
   var authMethod: AuthenticationMethod? = AuthenticationMethod.basicAuth
   var createdAt: Date
   var lastUsedAt: Date
+  var seriesLastSyncedAt: Date = Date(timeIntervalSince1970: 0)
+  var booksLastSyncedAt: Date = Date(timeIntervalSince1970: 0)
 
   init(
     id: UUID = UUID(),
@@ -29,7 +31,9 @@ final class KomgaInstance {
     isAdmin: Bool,
     authMethod: AuthenticationMethod = .basicAuth,
     createdAt: Date = Date(),
-    lastUsedAt: Date = Date()
+    lastUsedAt: Date = Date(),
+    seriesLastSyncedAt: Date = Date(timeIntervalSince1970: 0),
+    booksLastSyncedAt: Date = Date(timeIntervalSince1970: 0)
   ) {
     self.id = id
     self.name = name
@@ -40,6 +44,8 @@ final class KomgaInstance {
     self.authMethod = authMethod
     self.createdAt = createdAt
     self.lastUsedAt = lastUsedAt
+    self.seriesLastSyncedAt = seriesLastSyncedAt
+    self.booksLastSyncedAt = booksLastSyncedAt
   }
 
   var displayName: String {

@@ -217,7 +217,9 @@ actor OfflineManager {
 
   // MARK: - Accessors for Reader
 
-  func getOfflinePageImageURL(instanceId: String, bookId: String, pageNumber: Int, fileExtension: String) async -> URL? {
+  func getOfflinePageImageURL(
+    instanceId: String, bookId: String, pageNumber: Int, fileExtension: String
+  ) async -> URL? {
     guard await isBookDownloaded(bookId: bookId) else { return nil }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
@@ -230,7 +232,8 @@ actor OfflineManager {
 
   func getOfflineEpubURL(instanceId: String, bookId: String) async -> URL? {
     guard await isBookDownloaded(bookId: bookId) else { return nil }
-    let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent("book.epub")
+    let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
+      "book.epub")
     return FileManager.default.fileExists(atPath: file.path) ? file : nil
   }
 

@@ -96,6 +96,11 @@ class ErrorManager {
 
     // Handle APIError
     if let apiError = error as? APIError {
+      // Silently fail offline errors - user is already aware of being offline
+      if case .offline = apiError {
+        return false
+      }
+
       if case .networkError(let underlyingError, url: _) = apiError {
         // Check if underlying error is cancelled
         if let appError = underlyingError as? AppErrorType,

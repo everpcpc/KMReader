@@ -19,6 +19,7 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
   case notFound(message: String, url: String?, response: String?)
   case tooManyRequests(message: String, url: String?, response: String?)
   case serverError(code: Int, message: String, url: String?, response: String?)
+  case offline
 
   private static func truncateResponse(_ response: String?) -> String? {
     guard let response = response, !response.isEmpty else {
@@ -131,6 +132,8 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
         url: url,
         response: response
       )
+    case .offline:
+      return "App is in offline mode"
     }
   }
 
