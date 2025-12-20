@@ -598,16 +598,12 @@ struct BookDetailView: View {
           }
         }
       } label: {
-        switch downloadStatus {
-        case .downloaded:
-          Image(systemName: "arrow.down.circle.fill")
-        case .downloading:
+        if case .downloading = downloadStatus {
           ProgressView()
             .controlSize(.small)
-        case .notDownloaded:
-          Image(systemName: "arrow.down.circle")
-        case .failed:
-          Image(systemName: "exclamationmark.circle")
+        } else {
+          Image(systemName: downloadStatus.menuIcon)
+            .foregroundStyle(downloadStatus.menuColor)
         }
       }
       .disabled(book == nil)

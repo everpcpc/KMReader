@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct BookCardView: View {
@@ -16,11 +17,35 @@ struct BookCardView: View {
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
 
+  // SwiftData query for reactive download status
+  @Query private var komgaBooks: [KomgaBook]
+
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
-  @State private var showDownloadSheet = false
+
+  init(
+    book: Book,
+    viewModel: BookViewModel,
+    cardWidth: CGFloat,
+    onReadBook: ((Bool) -> Void)? = nil,
+    onBookUpdated: (() -> Void)? = nil,
+    showSeriesTitle: Bool = false,
+    showSeriesNavigation: Bool = true
+  ) {
+    self.book = book
+    self.viewModel = viewModel
+    self.cardWidth = cardWidth
+    self.onReadBook = onReadBook
+    self.onBookUpdated = onBookUpdated
+    self.showSeriesTitle = showSeriesTitle
+    self.showSeriesNavigation = showSeriesNavigation
+
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(book.id)"
+    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+  }
 
   private var progress: Double {
     guard let readProgress = book.readProgress else { return 0 }
@@ -102,25 +127,24 @@ struct BookCardView: View {
     }
     .adaptiveButtonStyle(.plain)
     .contextMenu {
-      BookContextMenu(
-        book: book,
-        viewModel: viewModel,
-        onReadBook: onReadBook,
-        onActionCompleted: onBookUpdated,
-        onShowReadListPicker: {
-          showReadListPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        },
-        onDownloadRequested: {
-          showDownloadSheet = true
-        },
-        showSeriesNavigation: showSeriesNavigation
-      )
+      if let komgaBook = komgaBooks.first {
+        BookContextMenu(
+          viewModel: viewModel,
+          onReadBook: onReadBook,
+          onActionCompleted: onBookUpdated,
+          onShowReadListPicker: {
+            showReadListPicker = true
+          },
+          onDeleteRequested: {
+            showDeleteConfirmation = true
+          },
+          onEditRequested: {
+            showEditSheet = true
+          },
+          showSeriesNavigation: showSeriesNavigation
+        )
+        .environment(komgaBook)
+      }
     }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
@@ -148,9 +172,7 @@ struct BookCardView: View {
           onBookUpdated?()
         }
     }
-    .sheet(isPresented: $showDownloadSheet) {
-      BookDownloadSheet(book: book)
-    }
+
   }
 
   private func addToReadList(readListId: String) {
