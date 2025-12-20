@@ -46,50 +46,50 @@ class SeriesViewModel {
     guard hasMorePages && !isLoading else { return }
     isLoading = true
 
-      if AppConfig.isOffline {
-        // Offline: query SwiftData directly
-        let ids = KomgaSeriesStore.shared.fetchSeriesIds(
+    if AppConfig.isOffline {
+      // Offline: query SwiftData directly
+      let ids = KomgaSeriesStore.shared.fetchSeriesIds(
+        libraryIds: libraryIds,
+        searchText: searchText,
+        browseOpts: browseOpts,
+        offset: currentPage * pageSize,
+        limit: pageSize
+      )
+      let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
+      withAnimation {
+        browseSeriesIds.append(contentsOf: ids)
+        browseSeries.append(contentsOf: series)
+      }
+      hasMorePages = ids.count == pageSize
+      currentPage += 1
+    } else {
+      // Online: fetch from API and sync
+      do {
+        let page = try await SyncService.shared.syncSeriesPage(
           libraryIds: libraryIds,
-          searchText: searchText,
-          browseOpts: browseOpts,
-          offset: currentPage * pageSize,
-          limit: pageSize
+          page: currentPage,
+          size: pageSize,
+          sort: browseOpts.sortString,
+          searchTerm: searchText.isEmpty ? nil : searchText,
+          browseOpts: browseOpts
         )
+
+        let ids = page.content.map { $0.id }
         let series = KomgaSeriesStore.shared.fetchSeriesByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
           browseSeriesIds.append(contentsOf: ids)
           browseSeries.append(contentsOf: series)
         }
-        hasMorePages = ids.count == pageSize
+        hasMorePages = !page.last
         currentPage += 1
-      } else {
-        // Online: fetch from API and sync
-        do {
-          let page = try await SyncService.shared.syncSeriesPage(
-            libraryIds: libraryIds,
-            page: currentPage,
-            size: pageSize,
-            sort: browseOpts.sortString,
-            searchTerm: searchText.isEmpty ? nil : searchText,
-            browseOpts: browseOpts
-          )
-
-          let ids = page.content.map { $0.id }
-          let series = KomgaSeriesStore.shared.fetchSeriesByIds(
-            ids: ids, instanceId: AppConfig.currentInstanceId)
-          withAnimation {
-            browseSeriesIds.append(contentsOf: ids)
-            browseSeries.append(contentsOf: series)
-          }
-          hasMorePages = !page.last
-          currentPage += 1
-        } catch {
-          if shouldReset {
-            ErrorManager.shared.alert(error: error)
-          }
+      } catch {
+        if shouldReset {
+          ErrorManager.shared.alert(error: error)
         }
       }
+    }
 
     withAnimation {
       isLoading = false

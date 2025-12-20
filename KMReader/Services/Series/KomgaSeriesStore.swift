@@ -192,7 +192,8 @@ final class KomgaSeriesStore {
     do {
       let results = try context.fetch(descriptor)
       // Sort results back to match the input IDs order
-      let idToIndex = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+      let idToIndex = Dictionary(
+        uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
       return results.sorted {
         (idToIndex[$0.seriesId] ?? Int.max) < (idToIndex[$1.seriesId] ?? Int.max)
       }

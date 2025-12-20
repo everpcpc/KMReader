@@ -150,7 +150,8 @@ final class KomgaReadListStore {
 
     do {
       let results = try context.fetch(descriptor)
-      let idToIndex = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+      let idToIndex = Dictionary(
+        uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
       return results.sorted {
         (idToIndex[$0.readListId] ?? Int.max) < (idToIndex[$1.readListId] ?? Int.max)
       }
