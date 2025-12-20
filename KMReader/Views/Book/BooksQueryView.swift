@@ -23,7 +23,7 @@ struct BooksQueryView: View {
   var body: some View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
-      isEmpty: viewModel.browseBookIds.isEmpty,
+      isEmpty: viewModel.browseBooks.isEmpty,
       emptyIcon: "book",
       emptyTitle: LocalizedStringKey("No books found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -36,10 +36,8 @@ struct BooksQueryView: View {
       switch browseLayout {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+          ForEach(Array(viewModel.browseBooks.enumerated()), id: \.element.id) { index, book in
             BrowseBookItemView(
-              bookId: bookId,
-              instanceId: instanceId,
               viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
@@ -50,8 +48,9 @@ struct BooksQueryView: View {
                 }
               }
             )
+            .environment(book)
             .onAppear {
-              if index >= viewModel.browseBookIds.count - 3 {
+              if index >= viewModel.browseBooks.count - 3 {
                 Task {
                   await loadMore(false)
                 }
@@ -61,10 +60,8 @@ struct BooksQueryView: View {
         }
       case .list:
         LazyVStack(spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+          ForEach(Array(viewModel.browseBooks.enumerated()), id: \.element.id) { index, book in
             BrowseBookItemView(
-              bookId: bookId,
-              instanceId: instanceId,
               viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
@@ -75,8 +72,9 @@ struct BooksQueryView: View {
                 }
               }
             )
+            .environment(book)
             .onAppear {
-              if index >= viewModel.browseBookIds.count - 3 {
+              if index >= viewModel.browseBooks.count - 3 {
                 Task {
                   await loadMore(false)
                 }
@@ -90,63 +88,35 @@ struct BooksQueryView: View {
 }
 
 private struct BrowseBookItemView: View {
-  let bookId: String
-  let instanceId: String
+  @Environment(KomgaBook.self) private var book
   let viewModel: BookViewModel
   let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   let readerPresentation: ReaderPresentationManager
   let onBookUpdated: (() -> Void)?
 
-  @Query private var books: [KomgaBook]
-
-  init(
-    bookId: String,
-    instanceId: String,
-    viewModel: BookViewModel,
-    cardWidth: CGFloat,
-    layout: BrowseLayoutMode,
-    readerPresentation: ReaderPresentationManager,
-    onBookUpdated: (() -> Void)?
-  ) {
-    self.bookId = bookId
-    self.instanceId = instanceId
-    self.viewModel = viewModel
-    self.cardWidth = cardWidth
-    self.layout = layout
-    self.readerPresentation = readerPresentation
-    self.onBookUpdated = onBookUpdated
-
-    let compositeId = "\(instanceId)_\(bookId)"
-    _books = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
-  }
-
   var body: some View {
-    if let komgaBook = books.first {
-      switch layout {
-      case .grid:
-        BookCardView(
-          viewModel: viewModel,
-          cardWidth: cardWidth,
-          onReadBook: { incognito in
-            readerPresentation.present(book: komgaBook.toBook(), incognito: incognito)
-          },
-          onBookUpdated: onBookUpdated,
-          showSeriesTitle: true
-        )
-        .environment(komgaBook)
-        .focusPadding()
-      case .list:
-        BookRowView(
-          viewModel: viewModel,
-          onReadBook: { incognito in
-            readerPresentation.present(book: komgaBook.toBook(), incognito: incognito)
-          },
-          onBookUpdated: onBookUpdated,
-          showSeriesTitle: true
-        )
-        .environment(komgaBook)
-      }
+    switch layout {
+    case .grid:
+      BookCardView(
+        viewModel: viewModel,
+        cardWidth: cardWidth,
+        onReadBook: { incognito in
+          readerPresentation.present(book: book.toBook(), incognito: incognito)
+        },
+        onBookUpdated: onBookUpdated,
+        showSeriesTitle: true
+      )
+      .focusPadding()
+    case .list:
+      BookRowView(
+        viewModel: viewModel,
+        onReadBook: { incognito in
+          readerPresentation.present(book: book.toBook(), incognito: incognito)
+        },
+        onBookUpdated: onBookUpdated,
+        showSeriesTitle: true
+      )
     }
   }
 }

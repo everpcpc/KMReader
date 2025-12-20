@@ -179,6 +179,28 @@ final class KomgaSeriesStore {
     }
   }
 
+  func fetchSeriesByIds(ids: [String], instanceId: String) -> [KomgaSeries] {
+    guard let container, !ids.isEmpty else { return [] }
+    let context = ModelContext(container)
+
+    let descriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId && ids.contains(series.seriesId)
+      }
+    )
+
+    do {
+      let results = try context.fetch(descriptor)
+      // Sort results back to match the input IDs order
+      let idToIndex = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+      return results.sorted {
+        (idToIndex[$0.seriesId] ?? Int.max) < (idToIndex[$1.seriesId] ?? Int.max)
+      }
+    } catch {
+      return []
+    }
+  }
+
   func fetchRecentSeriesIds(
     libraryIds: [String],
     offset: Int,

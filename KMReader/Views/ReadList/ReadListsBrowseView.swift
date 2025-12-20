@@ -26,7 +26,7 @@ struct ReadListsBrowseView: View {
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
-        isEmpty: viewModel.readListIds.isEmpty,
+        isEmpty: viewModel.browseReadLists.isEmpty,
         emptyIcon: "list.bullet.rectangle",
         emptyTitle: LocalizedStringKey("No read lists found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -39,10 +39,9 @@ struct ReadListsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.readListIds.enumerated()), id: \.element) {
-              index, readListId in
+            ForEach(Array(viewModel.browseReadLists.enumerated()), id: \.element.id) {
+              index, readList in
               ReadListItemQueryView(
-                itemId: readListId,
                 width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
@@ -50,8 +49,9 @@ struct ReadListsBrowseView: View {
                   }
                 }
               )
+              .environment(readList)
               .onAppear {
-                if index >= viewModel.readListIds.count - 3 {
+                if index >= viewModel.browseReadLists.count - 3 {
                   Task {
                     await loadReadLists(refresh: false)
                   }
@@ -61,10 +61,9 @@ struct ReadListsBrowseView: View {
           }
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.readListIds.enumerated()), id: \.element) {
-              index, readListId in
+            ForEach(Array(viewModel.browseReadLists.enumerated()), id: \.element.id) {
+              index, readList in
               ReadListItemQueryView(
-                itemId: readListId,
                 layout: .list,
                 onActionCompleted: {
                   Task {
@@ -72,8 +71,9 @@ struct ReadListsBrowseView: View {
                   }
                 }
               )
+              .environment(readList)
               .onAppear {
-                if index >= viewModel.readListIds.count - 3 {
+                if index >= viewModel.browseReadLists.count - 3 {
                   Task {
                     await loadReadLists(refresh: false)
                   }

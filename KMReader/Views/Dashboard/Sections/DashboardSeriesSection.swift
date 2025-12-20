@@ -16,6 +16,7 @@ struct DashboardSeriesSection: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   @State private var seriesIds: [String] = []
+  @State private var browseSeries: [KomgaSeries] = []
   @State private var currentPage = 0
   @State private var hasMore = true
   @State private var isLoading = false
@@ -24,19 +25,32 @@ struct DashboardSeriesSection: View {
   private let pageSize = 20
 
   var body: some View {
-    DashboardSeriesListView(
-      seriesIds: seriesIds,
-      instanceId: AppConfig.currentInstanceId,
-      section: section,
-      seriesViewModel: seriesViewModel,
-      loadMore: {
-        Task {
-          await loadMore()
+    VStack(alignment: .leading, spacing: 4) {
+      Text(section.displayName)
+        .font(.title3)
+        .fontWeight(.bold)
+        .padding(.horizontal)
+
+      ScrollView(.horizontal, showsIndicators: false) {
+        LazyHStack(alignment: .top, spacing: 12) {
+          ForEach(Array(browseSeries.enumerated()), id: \.element.id) { index, series in
+            DashboardSeriesItemView()
+              .environment(series)
+              .onAppear {
+                if index >= browseSeries.count - 3 {
+                  Task {
+                    await loadMore()
+                  }
+                }
+              }
+          }
         }
+        .padding()
       }
-    )
-    .opacity(seriesIds.isEmpty ? 0 : 1)
-    .frame(height: seriesIds.isEmpty ? 0 : nil)
+      .scrollClipDisabled()
+    }
+    .opacity(browseSeries.isEmpty ? 0 : 1)
+    .frame(height: browseSeries.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
       Task {
         await refresh()
@@ -57,6 +71,7 @@ struct DashboardSeriesSection: View {
     hasMore = true
     withAnimation {
       seriesIds = []
+      browseSeries = []
     }
 
     await loadMore()
@@ -78,8 +93,11 @@ struct DashboardSeriesSection: View {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         seriesIds.append(contentsOf: ids)
+        browseSeries.append(contentsOf: series)
       }
       hasMore = ids.count == pageSize
       currentPage += 1
@@ -110,8 +128,12 @@ struct DashboardSeriesSection: View {
           return
         }
 
+        let ids = page.content.map { $0.id }
+        let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+          ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          seriesIds.append(contentsOf: page.content.map { $0.id })
+          seriesIds.append(contentsOf: ids)
+          browseSeries.append(contentsOf: series)
         }
         hasMore = !page.last
         currentPage += 1
@@ -123,5 +145,19 @@ struct DashboardSeriesSection: View {
     withAnimation {
       isLoading = false
     }
+  }
+}
+
+private struct DashboardSeriesItemView: View {
+  @Environment(KomgaSeries.self) private var series
+
+  var body: some View {
+    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
+      SeriesCardView(
+        cardWidth: PlatformHelper.dashboardCardWidth
+      )
+    }
+    .focusPadding()
+    .adaptiveButtonStyle(.plain)
   }
 }

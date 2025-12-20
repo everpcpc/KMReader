@@ -141,6 +141,27 @@ final class KomgaCollectionStore {
     }
   }
 
+  func fetchCollectionsByIds(ids: [String], instanceId: String) -> [KomgaCollection] {
+    guard let container, !ids.isEmpty else { return [] }
+    let context = ModelContext(container)
+
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate<KomgaCollection> { col in
+        col.instanceId == instanceId && ids.contains(col.collectionId)
+      }
+    )
+
+    do {
+      let results = try context.fetch(descriptor)
+      let idToIndex = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+      return results.sorted {
+        (idToIndex[$0.collectionId] ?? Int.max) < (idToIndex[$1.collectionId] ?? Int.max)
+      }
+    } catch {
+      return []
+    }
+  }
+
   func fetchCollection(id: String) -> SeriesCollection? {
     guard let container else { return nil }
     let context = ModelContext(container)

@@ -12,11 +12,11 @@ import SwiftUI
 @Observable
 class ReadListViewModel {
   var readListIds: [String] = []
+  var browseReadLists: [KomgaReadList] = []
   var isLoading = false
 
-  // Computed property for backward compatibility with pickers
   var readLists: [ReadList] {
-    readListIds.compactMap { KomgaReadListStore.shared.fetchReadList(id: $0) }
+    browseReadLists.map { $0.toReadList() }
   }
 
   private let readListService = ReadListService.shared
@@ -45,6 +45,7 @@ class ReadListViewModel {
       currentSearchText = searchText
       withAnimation {
         readListIds = []
+        browseReadLists = []
       }
     }
 
@@ -63,8 +64,11 @@ class ReadListViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      let readLists = KomgaReadListStore.shared.fetchReadListsByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         readListIds.append(contentsOf: ids)
+        browseReadLists.append(contentsOf: readLists)
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -79,8 +83,12 @@ class ReadListViewModel {
           search: searchText.isEmpty ? nil : searchText
         )
 
+        let ids = page.content.map { $0.id }
+        let readLists = KomgaReadListStore.shared.fetchReadListsByIds(
+          ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          readListIds.append(contentsOf: page.content.map { $0.id })
+          readListIds.append(contentsOf: ids)
+          browseReadLists.append(contentsOf: readLists)
         }
         hasMorePages = !page.last
         currentPage += 1

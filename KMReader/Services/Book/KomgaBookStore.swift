@@ -263,6 +263,27 @@ final class KomgaBookStore {
     }
   }
 
+  func fetchBooksByIds(ids: [String], instanceId: String) -> [KomgaBook] {
+    guard let container, !ids.isEmpty else { return [] }
+    let context = ModelContext(container)
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId && ids.contains(book.bookId)
+      }
+    )
+
+    do {
+      let results = try context.fetch(descriptor)
+      let idToIndex = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+      return results.sorted {
+        (idToIndex[$0.bookId] ?? Int.max) < (idToIndex[$1.bookId] ?? Int.max)
+      }
+    } catch {
+      return []
+    }
+  }
+
   func fetchKeepReadingBookIds(
     libraryIds: [String],
     offset: Int,

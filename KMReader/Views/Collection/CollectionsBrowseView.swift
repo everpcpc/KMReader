@@ -28,7 +28,7 @@ struct CollectionsBrowseView: View {
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
-        isEmpty: viewModel.collectionIds.isEmpty,
+        isEmpty: viewModel.browseCollections.isEmpty,
         emptyIcon: "square.grid.2x2",
         emptyTitle: LocalizedStringKey("No collections found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -41,10 +41,9 @@ struct CollectionsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: spacing) {
-            ForEach(Array(viewModel.collectionIds.enumerated()), id: \.element) {
-              index, collectionId in
+            ForEach(Array(viewModel.browseCollections.enumerated()), id: \.element.id) {
+              index, collection in
               CollectionItemQueryView(
-                itemId: collectionId,
                 width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
@@ -52,8 +51,9 @@ struct CollectionsBrowseView: View {
                   }
                 }
               )
+              .environment(collection)
               .onAppear {
-                if index >= viewModel.collectionIds.count - 3 {
+                if index >= viewModel.browseCollections.count - 3 {
                   Task {
                     await loadCollections(refresh: false)
                   }
@@ -63,10 +63,9 @@ struct CollectionsBrowseView: View {
           }
         case .list:
           LazyVStack(spacing: spacing) {
-            ForEach(Array(viewModel.collectionIds.enumerated()), id: \.element) {
-              index, collectionId in
+            ForEach(Array(viewModel.browseCollections.enumerated()), id: \.element.id) {
+              index, collection in
               CollectionItemQueryView(
-                itemId: collectionId,
                 layout: .list,
                 onActionCompleted: {
                   Task {
@@ -74,8 +73,9 @@ struct CollectionsBrowseView: View {
                   }
                 }
               )
+              .environment(collection)
               .onAppear {
-                if index >= viewModel.collectionIds.count - 3 {
+                if index >= viewModel.browseCollections.count - 3 {
                   Task {
                     await loadCollections(refresh: false)
                   }
