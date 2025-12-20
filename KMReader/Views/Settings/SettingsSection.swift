@@ -19,6 +19,8 @@ enum SettingsSection: String, CaseIterable {
   case servers
   case apiKeys
   case authenticationActivity
+  case offlineTasks
+  case offlineBooks
 
   var icon: String {
     switch self {
@@ -44,33 +46,41 @@ enum SettingsSection: String, CaseIterable {
       return "key"
     case .authenticationActivity:
       return "clock"
+    case .offlineTasks:
+      return "square.and.arrow.down.badge.clock"
+    case .offlineBooks:
+      return "square.and.arrow.down.badge.checkmark"
     }
   }
 
   var title: String {
     switch self {
     case .appearance:
-      return "Appearance"
+      return String(localized: "Appearance")
     case .dashboard:
-      return "Dashboard"
+      return String(localized: "Dashboard")
     case .cache:
-      return "Cache"
+      return String(localized: "Cache")
     case .reader:
-      return "Reader"
+      return String(localized: "Reader")
     case .sse:
-      return "Real-time Updates"
+      return String(localized: "Real-time Updates")
     case .libraries:
-      return "Libraries"
+      return String(localized: "Libraries")
     case .serverInfo:
-      return "Server Info"
+      return String(localized: "Server Info")
     case .metrics:
-      return "Tasks"
+      return String(localized: "Tasks")
     case .servers:
-      return "Servers"
+      return String(localized: "Servers")
     case .apiKeys:
-      return "API Keys"
+      return String(localized: "API Keys")
     case .authenticationActivity:
-      return "Authentication Activity"
+      return String(localized: "Authentication Activity")
+    case .offlineTasks:
+      return String(localized: "Offline Tasks")
+    case .offlineBooks:
+      return String(localized: "Offline Books")
     }
   }
 }

@@ -20,86 +20,77 @@ import SwiftUI
         Form {
           Section {
             NavigationLink(value: NavDestination.settingsAppearance) {
-              Label("Appearance", systemImage: "paintbrush")
+              SettingsSectionRow(section: .appearance)
             }
             NavigationLink(value: NavDestination.settingsDashboard) {
-              Label("Dashboard", systemImage: "house")
+              SettingsSectionRow(section: .dashboard)
             }
             NavigationLink(value: NavDestination.settingsCache) {
-              Label("Cache", systemImage: "externaldrive")
+              SettingsSectionRow(section: .cache)
             }
             NavigationLink(value: NavDestination.settingsReader) {
-              Label("Reader", systemImage: "book.pages")
+              SettingsSectionRow(section: .reader)
             }
             NavigationLink(value: NavDestination.settingsSSE) {
-              Label("Real-time Updates", systemImage: "antenna.radiowaves.left.and.right")
-            }
-            NavigationLink(value: NavDestination.settingsOfflineTasks) {
-              Label("Offline Tasks", systemImage: "square.and.arrow.down.on.square")
+              SettingsSectionRow(section: .sse)
             }
           }
 
-          Section(header: Text("Management")) {
+          Section(header: Text(String(localized: "Offline"))) {
+            NavigationLink(value: NavDestination.settingsOfflineTasks) {
+              SettingsSectionRow(section: .offlineTasks)
+            }
+            NavigationLink(value: NavDestination.settingsOfflineBooks) {
+              SettingsSectionRow(section: .offlineBooks)
+            }
+          }
+
+          Section(header: Text(String(localized: "Management"))) {
             NavigationLink(value: NavDestination.settingsLibraries) {
-              Label("Libraries", systemImage: "books.vertical")
+              SettingsSectionRow(section: .libraries)
             }
             NavigationLink(value: NavDestination.settingsServerInfo) {
-              Label("Server Info", systemImage: "server.rack")
+              SettingsSectionRow(section: .serverInfo)
             }
             .disabled(!isAdmin)
             NavigationLink(value: NavDestination.settingsMetrics) {
-              HStack {
-                Label("Tasks", systemImage: "list.bullet.clipboard")
-                Spacer()
-                if taskQueueStatus.count > 0 {
-                  HStack(spacing: 4) {
-                    Circle()
-                      .fill(themeColor.color)
-                      .frame(width: 8, height: 8)
-                    Text("\(taskQueueStatus.count)")
-                      .font(.caption)
-                      .foregroundColor(themeColor.color)
-                      .fontWeight(.semibold)
-                  }
-                }
-              }
+              SettingsSectionRow(
+                section: .metrics,
+                badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
+                badgeColor: themeColor.color
+              )
             }
             .disabled(!isAdmin)
           }
 
-          Section(header: Text("Account")) {
+          Section(header: Text(String(localized: "Account"))) {
             NavigationLink(value: NavDestination.settingsServers) {
-              HStack {
-                Label("Servers", systemImage: "list.bullet.rectangle")
-                if !serverDisplayName.isEmpty {
-                  Spacer()
-                  Text(serverDisplayName)
-                    .lineLimit(1)
-                    .foregroundColor(.secondary)
-                }
-              }
+              SettingsSectionRow(
+                section: .servers,
+                subtitle: serverDisplayName.isEmpty ? nil : serverDisplayName
+              )
             }
             if let user = authViewModel.user {
               HStack {
-                Label("User", systemImage: "person")
+                Label(String(localized: "User"), systemImage: "person")
                 Spacer()
                 Text(user.email)
                   .lineLimit(1)
                   .foregroundColor(.secondary)
               }
               HStack {
-                Label("Role", systemImage: "shield")
+                Label(String(localized: "Role"), systemImage: "shield")
                 Spacer()
-                Text(isAdmin ? "Admin" : "User")
+                Text(isAdmin ? String(localized: "Admin") : String(localized: "User"))
                   .lineLimit(1)
                   .foregroundColor(.secondary)
               }
             }
             NavigationLink(value: NavDestination.settingsApiKey) {
-              Label(String(localized: "API Keys"), systemImage: "key")
+              SettingsSectionRow(section: .apiKeys)
             }
             NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
-              Label(String(localized: "Authentication Activity"), systemImage: "clock")
+              SettingsSectionRow(section: .authenticationActivity)
             }
           }
 

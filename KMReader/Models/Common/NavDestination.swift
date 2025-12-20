@@ -25,4 +25,5 @@ enum NavDestination: Hashable {
   case settingsApiKey
   case settingsServers
   case settingsOfflineTasks
+  case settingsOfflineBooks
 }

@@ -228,7 +228,9 @@ final class KomgaBookStore {
   }
 
   /// Update the download status of a book.
-  func updateDownloadStatus(bookId: String, status: DownloadStatus, downloadAt: Date? = nil) {
+  func updateDownloadStatus(
+    bookId: String, status: DownloadStatus, downloadAt: Date? = nil, downloadedSize: Int64? = nil
+  ) {
     guard let container else { return }
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
@@ -242,6 +244,11 @@ final class KomgaBookStore {
     book.downloadStatus = status
     if let downloadAt = downloadAt {
       book.downloadAt = downloadAt
+    }
+    if let downloadedSize = downloadedSize {
+      book.downloadedSize = downloadedSize
+    } else if case .notDownloaded = status {
+      book.downloadedSize = nil
     }
     try? context.save()
   }

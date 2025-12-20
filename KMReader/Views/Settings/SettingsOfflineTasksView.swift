@@ -45,15 +45,9 @@ struct SettingsOfflineTasksView: View {
     List {
       Section {
         Toggle(isOn: Binding(
-          get: { isPaused },
+          get: { !isPaused },
           set: { newValue in
-            Task {
-              if newValue {
-                await OfflineManager.shared.pauseSync()
-              } else {
-                await OfflineManager.shared.resumeSync(instanceId: instanceId)
-              }
-            }
+            isPaused = !newValue
           }
         )) {
           Label(isPaused ? "Paused" : "Running", systemImage: isPaused ? "pause.circle.fill" : "play.circle.fill")
@@ -99,7 +93,16 @@ struct SettingsOfflineTasksView: View {
         }
       }
     }
-    .inlineNavigationBarTitle("Offline Tasks")
+    .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
+    .animation(.default, value: books)
+    .animation(.default, value: isPaused)
+    .onChange(of: isPaused) { _, newValue in
+      if !newValue {
+        Task {
+          await OfflineManager.shared.syncDownloadQueue(instanceId: instanceId)
+        }
+      }
+    }
   }
 }
 
@@ -136,17 +139,19 @@ struct OfflineTaskRow: View {
 
       Spacer()
 
-      Button(role: .destructive) {
-        Task {
-          await OfflineManager.shared.cancelDownload(bookId: book.bookId)
-          let instanceId = AppConfig.currentInstanceId
-          await OfflineManager.shared.syncDownloadQueue(instanceId: instanceId)
+      #if !os(tvOS)
+        Button(role: .destructive) {
+          Task {
+            await OfflineManager.shared.cancelDownload(bookId: book.bookId)
+            let instanceId = AppConfig.currentInstanceId
+            await OfflineManager.shared.syncDownloadQueue(instanceId: instanceId)
+          }
+        } label: {
+          Image(systemName: "xmark.circle")
+            .foregroundColor(.red)
         }
-      } label: {
-        Image(systemName: "xmark.circle")
-          .foregroundColor(.red)
-      }
-      .buttonStyle(.plain)
+        .buttonStyle(.plain)
+      #endif
     }
     .padding(.vertical, 4)
   }

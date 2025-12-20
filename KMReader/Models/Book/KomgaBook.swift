@@ -71,6 +71,7 @@ final class KomgaBook {
   var downloadProgress: Double = 0.0
   var downloadError: String?
   var downloadAt: Date?
+  var downloadedSize: Int64?
 
   /// Computed property for download status.
   var downloadStatus: DownloadStatus {
@@ -137,7 +138,7 @@ final class KomgaBook {
     metadata: BookMetadata,
     readProgress: ReadProgress?,
     deleted: Bool,
-    oneshot: Bool
+    oneshot: Bool,
   ) {
     self.id = id ?? "\(instanceId)_\(bookId)"
     self.bookId = bookId

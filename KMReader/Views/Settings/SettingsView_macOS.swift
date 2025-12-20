@@ -28,6 +28,11 @@ import SwiftUI
             SettingsSectionRow(section: .sse)
           }
 
+          Section("Offline") {
+            SettingsSectionRow(section: .offlineTasks)
+            SettingsSectionRow(section: .offlineBooks)
+          }
+
           Section("Management") {
             SettingsSectionRow(section: .libraries)
             SettingsSectionRow(section: .serverInfo)
@@ -94,6 +99,10 @@ import SwiftUI
               SettingsApiKeyView()
             case .authenticationActivity:
               AuthenticationActivityView()
+            case .offlineTasks:
+              SettingsOfflineTasksView()
+            case .offlineBooks:
+              SettingsOfflineBooksView()
             }
           }
           .frame(maxWidth: .infinity, maxHeight: .infinity)

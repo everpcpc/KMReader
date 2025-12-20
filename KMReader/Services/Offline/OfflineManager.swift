@@ -133,17 +133,6 @@ actor OfflineManager {
     activeTasks.removeAll()
   }
 
-  func pauseSync() {
-    AppConfig.offlinePaused = true
-    logger.info("Download sync paused")
-  }
-
-  func resumeSync(instanceId: String) async {
-    AppConfig.offlinePaused = false
-    logger.info("Download sync resumed")
-    await syncDownloadQueue(instanceId: instanceId)
-  }
-
   func syncDownloadQueue(instanceId: String) async {
     // Check if paused
     guard !AppConfig.offlinePaused else { return }
@@ -182,8 +171,10 @@ actor OfflineManager {
         }
 
         // Mark complete in SwiftData
+        let totalSize = try await self.calculateDirectorySize(bookDir)
         await MainActor.run {
-          KomgaBookStore.shared.updateDownloadStatus(bookId: info.bookId, status: .downloaded)
+          KomgaBookStore.shared.updateDownloadStatus(
+            bookId: info.bookId, status: .downloaded, downloadedSize: totalSize)
         }
         await removeActiveTask(info.bookId)
         logger.info("Download complete for book: \(info.bookId)")
@@ -239,6 +230,17 @@ actor OfflineManager {
     guard await isBookDownloaded(bookId: bookId) else { return nil }
     let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent("book.epub")
     return FileManager.default.fileExists(atPath: file.path) ? file : nil
+  }
+
+  private func calculateDirectorySize(_ url: URL) throws -> Int64 {
+    let contents = try FileManager.default.contentsOfDirectory(
+      at: url, includingPropertiesForKeys: [.fileSizeKey])
+    var total: Int64 = 0
+    for file in contents {
+      let attrs = try file.resourceValues(forKeys: [.fileSizeKey])
+      total += Int64(attrs.fileSize ?? 0)
+    }
+    return total
   }
 
   // MARK: - Private Helpers
