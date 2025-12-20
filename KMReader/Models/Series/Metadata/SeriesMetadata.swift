@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SeriesMetadata: Equatable, Hashable, Sendable {
+struct SeriesMetadata: Codable, Equatable, Hashable, Sendable {
   let status: String?
   let statusLock: Bool?
   let created: String?
@@ -39,5 +39,3 @@ struct SeriesMetadata: Equatable, Hashable, Sendable {
   let alternateTitles: [AlternateTitle]?
   let alternateTitlesLock: Bool?
 }
-
-extension SeriesMetadata: Codable {}

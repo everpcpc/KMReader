@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SeriesBooksMetadata: Equatable, Hashable, Sendable {
+struct SeriesBooksMetadata: Codable, Equatable, Hashable, Sendable {
   let created: String?
   let lastModified: String?
   let authors: [Author]?
@@ -16,5 +16,3 @@ struct SeriesBooksMetadata: Equatable, Hashable, Sendable {
   let summary: String?
   let summaryNumber: String?
 }
-
-extension SeriesBooksMetadata: Codable {}
