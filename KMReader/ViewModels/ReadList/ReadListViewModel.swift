@@ -11,10 +11,16 @@ import SwiftUI
 @MainActor
 @Observable
 class ReadListViewModel {
-  var readLists: [ReadList] = []
+  var readListIds: [String] = []
   var isLoading = false
 
+  // Computed property for backward compatibility with pickers
+  var readLists: [ReadList] {
+    readListIds.compactMap { KomgaReadListStore.shared.fetchReadList(id: $0) }
+  }
+
   private let readListService = ReadListService.shared
+  private let pageSize = 20
   private var currentPage = 0
   private var hasMorePages = true
   private var currentLibraryIds: [String] = []
@@ -37,63 +43,56 @@ class ReadListViewModel {
       currentLibraryIds = libraryIds ?? []
       currentSort = sort
       currentSearchText = searchText
+      withAnimation {
+        readListIds = []
+      }
     }
 
     guard hasMorePages && !isLoading else { return }
 
-    isLoading = true
-
-    // 1. Local Cache
-    let localReadLists = KomgaReadListStore.shared.fetchReadLists(
-      libraryIds: libraryIds,
-      page: currentPage,
-      size: 20,
-      sort: sort,
-      search: searchText.isEmpty ? nil : searchText
-    )
-    if !localReadLists.isEmpty {
-      if shouldReset {
-        readLists = localReadLists
-      } else {
-        readLists.append(contentsOf: localReadLists)
-      }
+    withAnimation {
+      isLoading = true
     }
 
-    // 2. Sync
-    do {
-      let page = try await SyncService.shared.syncReadLists(
+    if AppConfig.isOffline {
+      // Offline: query SwiftData directly
+      let ids = KomgaReadListStore.shared.fetchReadListIds(
         libraryIds: libraryIds,
-        page: currentPage,
-        size: 20,
+        searchText: searchText,
         sort: sort,
-        search: searchText.isEmpty ? nil : searchText)
-
+        offset: currentPage * pageSize,
+        limit: pageSize
+      )
       withAnimation {
+        readListIds.append(contentsOf: ids)
+      }
+      hasMorePages = ids.count == pageSize
+      currentPage += 1
+    } else {
+      // Online: fetch from API and sync
+      do {
+        let page = try await SyncService.shared.syncReadLists(
+          libraryIds: libraryIds,
+          page: currentPage,
+          size: pageSize,
+          sort: sort,
+          search: searchText.isEmpty ? nil : searchText
+        )
+
+        withAnimation {
+          readListIds.append(contentsOf: page.content.map { $0.id })
+        }
+        hasMorePages = !page.last
+        currentPage += 1
+      } catch {
         if shouldReset {
-          readLists = page.content
-        } else {
-          // Merge logic
-          if !localReadLists.isEmpty {
-            let startIndex = readLists.count - localReadLists.count
-            if startIndex >= 0 {
-              readLists.replaceSubrange(startIndex..<readLists.count, with: page.content)
-            } else {
-              readLists.append(contentsOf: page.content)
-            }
-          } else {
-            readLists.append(contentsOf: page.content)
-          }
+          ErrorManager.shared.alert(error: error)
         }
       }
-
-      hasMorePages = !page.last
-      currentPage += 1
-    } catch {
-      if readLists.isEmpty {
-        ErrorManager.shared.alert(error: error)
-      }
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 }

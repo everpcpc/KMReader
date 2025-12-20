@@ -8,27 +8,30 @@
 import SwiftUI
 
 struct CollectionRowView: View {
-  let collection: SeriesCollection
+  @Environment(KomgaCollection.self) private var komgaCollection
   var onActionCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
+    NavigationLink(
+      value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+    ) {
       HStack(spacing: 12) {
-        ThumbnailImage(id: collection.id, type: .collection, width: 70, cornerRadius: 10)
+        ThumbnailImage(
+          id: komgaCollection.collectionId, type: .collection, width: 70, cornerRadius: 10)
 
         VStack(alignment: .leading, spacing: 6) {
-          Text(collection.name)
+          Text(komgaCollection.name)
             .font(.callout)
-          Text("\(collection.seriesIds.count) series")
+          Text("\(komgaCollection.seriesIds.count) series")
             .font(.footnote)
             .foregroundColor(.secondary)
 
           HStack(spacing: 12) {
             Label {
-              Text(collection.createdDate.formatted(date: .abbreviated, time: .omitted))
+              Text(komgaCollection.createdDate.formatted(date: .abbreviated, time: .omitted))
             } icon: {
               Image(systemName: "calendar")
             }
@@ -36,7 +39,7 @@ struct CollectionRowView: View {
             .foregroundColor(.secondary)
 
             Label {
-              Text(collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+              Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
             } icon: {
               Image(systemName: "clock")
             }
@@ -54,7 +57,7 @@ struct CollectionRowView: View {
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       CollectionContextMenu(
-        collection: collection,
+        collection: komgaCollection.toCollection(),
         onActionCompleted: onActionCompleted,
         onDeleteRequested: {
           showDeleteConfirmation = true
@@ -73,7 +76,7 @@ struct CollectionRowView: View {
       Text("Are you sure you want to delete this collection? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      CollectionEditSheet(collection: collection)
+      CollectionEditSheet(collection: komgaCollection.toCollection())
         .onDisappear {
           onActionCompleted?()
         }
@@ -83,7 +86,8 @@ struct CollectionRowView: View {
   private func deleteCollection() {
     Task {
       do {
-        try await CollectionService.shared.deleteCollection(collectionId: collection.id)
+        try await CollectionService.shared.deleteCollection(
+          collectionId: komgaCollection.collectionId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
           onActionCompleted?()

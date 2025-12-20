@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 // Series list view for collection
@@ -23,6 +24,26 @@ struct CollectionSeriesListView: View {
   @State private var selectedSeriesIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
+
+  @Query private var collections: [KomgaCollection]
+
+  private var collection: KomgaCollection? {
+    collections.first
+  }
+
+  init(
+    collectionId: String, seriesViewModel: SeriesViewModel, layoutHelper: BrowseLayoutHelper,
+    showFilterSheet: Binding<Bool>
+  ) {
+    self.collectionId = collectionId
+    self.seriesViewModel = seriesViewModel
+    self.layoutHelper = layoutHelper
+    self._showFilterSheet = showFilterSheet
+
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(collectionId)"
+    _collections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
+  }
 
   private var supportsSelectionMode: Bool {
     #if os(tvOS)
@@ -65,13 +86,15 @@ struct CollectionSeriesListView: View {
       if supportsSelectionMode && isSelectionMode {
         SelectionToolbar(
           selectedCount: selectedSeriesIds.count,
-          totalCount: seriesViewModel.series.count,
+          totalCount: collection?.seriesIds.count ?? 0,
           isDeleting: isDeleting,
           onSelectAll: {
-            if selectedSeriesIds.count == seriesViewModel.series.count {
-              selectedSeriesIds.removeAll()
-            } else {
-              selectedSeriesIds = Set(seriesViewModel.series.map { $0.id })
+            if let seriesIds = collection?.seriesIds {
+              if selectedSeriesIds.count == seriesIds.count {
+                selectedSeriesIds.removeAll()
+              } else {
+                selectedSeriesIds = Set(seriesIds)
+              }
             }
           },
           onDelete: {
@@ -86,178 +109,31 @@ struct CollectionSeriesListView: View {
         )
       }
 
-      if seriesViewModel.isLoading && seriesViewModel.series.isEmpty {
+      if let seriesIds = collection?.seriesIds {
+        CollectionSeriesQueryView(
+          collectionId: collectionId,
+          seriesIds: seriesIds,
+          seriesViewModel: seriesViewModel,
+          layoutHelper: layoutHelper,
+          browseLayout: layoutMode,
+          isSelectionMode: isSelectionMode,
+          selectedSeriesIds: $selectedSeriesIds,
+          isAdmin: isAdmin,
+          onActionCompleted: {
+            Task {
+              await seriesViewModel.loadCollectionSeries(
+                collectionId: collectionId, browseOpts: browseOpts, refresh: true)
+            }
+          },
+          loadMore: { refresh in
+            await seriesViewModel.loadCollectionSeries(
+              collectionId: collectionId, browseOpts: browseOpts, refresh: refresh)
+          }
+        )
+      } else if seriesViewModel.isLoading {
         ProgressView()
           .frame(maxWidth: .infinity)
           .padding()
-      } else {
-        Group {
-          switch layoutMode {
-          case .grid:
-            LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-              ForEach(seriesViewModel.series) { series in
-                Group {
-                  if supportsSelectionMode && isSelectionMode {
-                    SeriesCardView(
-                      series: series,
-                      cardWidth: layoutHelper.cardWidth,
-                      onActionCompleted: {
-                        Task {
-                          await seriesViewModel.loadCollectionSeries(
-                            collectionId: collectionId, browseOpts: browseOpts, refresh: true)
-                        }
-                      }
-                    )
-                    .focusPadding()
-                    .allowsHitTesting(false)
-                    .overlay(alignment: .topTrailing) {
-                      Image(
-                        systemName: selectedSeriesIds.contains(series.id)
-                          ? "checkmark.circle.fill" : "circle"
-                      )
-                      .foregroundColor(
-                        selectedSeriesIds.contains(series.id) ? .accentColor : .secondary
-                      )
-                      .font(.title3)
-                      .padding(8)
-                      .background(
-                        Circle()
-                          .fill(.ultraThinMaterial)
-                      )
-                      .transition(.scale.combined(with: .opacity))
-                      .animation(
-                        .spring(response: 0.3, dampingFraction: 0.7),
-                        value: selectedSeriesIds.contains(series.id))
-                    }
-                    .contentShape(Rectangle())
-                    .highPriorityGesture(
-                      TapGesture()
-                        .onEnded {
-                          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            if selectedSeriesIds.contains(series.id) {
-                              selectedSeriesIds.remove(series.id)
-                            } else {
-                              selectedSeriesIds.insert(series.id)
-                            }
-                          }
-                        }
-                    )
-                  } else {
-                    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
-                      SeriesCardView(
-                        series: series,
-                        cardWidth: layoutHelper.cardWidth,
-                        onActionCompleted: {
-                          Task {
-                            await seriesViewModel.loadCollectionSeries(
-                              collectionId: collectionId, browseOpts: browseOpts, refresh: true)
-                          }
-                        }
-                      )
-                    }
-                    .focusPadding()
-                    .adaptiveButtonStyle(.plain)
-                  }
-                }
-                .onAppear {
-                  if series.id == seriesViewModel.series.last?.id {
-                    Task {
-                      await seriesViewModel.loadCollectionSeries(
-                        collectionId: collectionId, browseOpts: browseOpts, refresh: false)
-                    }
-                  }
-                }
-              }
-            }
-            .padding(layoutHelper.spacing)
-          case .list:
-            LazyVStack(spacing: layoutHelper.spacing) {
-              ForEach(seriesViewModel.series) { series in
-                Group {
-                  if supportsSelectionMode && isSelectionMode {
-                    HStack(spacing: 12) {
-                      Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                          if selectedSeriesIds.contains(series.id) {
-                            selectedSeriesIds.remove(series.id)
-                          } else {
-                            selectedSeriesIds.insert(series.id)
-                          }
-                        }
-                      } label: {
-                        Image(
-                          systemName: selectedSeriesIds.contains(series.id)
-                            ? "checkmark.circle.fill" : "circle"
-                        )
-                        .foregroundColor(
-                          selectedSeriesIds.contains(series.id) ? .accentColor : .secondary
-                        )
-                      }
-                      .adaptiveButtonStyle(.plain)
-                      .transition(.scale.combined(with: .opacity))
-                      .animation(
-                        .spring(response: 0.3, dampingFraction: 0.7),
-                        value: selectedSeriesIds.contains(series.id))
-
-                      SeriesRowView(
-                        series: series,
-                        onActionCompleted: {
-                          Task {
-                            await seriesViewModel.loadCollectionSeries(
-                              collectionId: collectionId, browseOpts: browseOpts, refresh: true)
-                          }
-                        }
-                      )
-                      .allowsHitTesting(false)
-                    }
-                    .contentShape(Rectangle())
-                    .highPriorityGesture(
-                      TapGesture()
-                        .onEnded {
-                          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            if selectedSeriesIds.contains(series.id) {
-                              selectedSeriesIds.remove(series.id)
-                            } else {
-                              selectedSeriesIds.insert(series.id)
-                            }
-                          }
-                        }
-                    )
-                  } else {
-                    HStack(spacing: 12) {
-                      NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
-                        SeriesRowView(
-                          series: series,
-                          onActionCompleted: {
-                            Task {
-                              await seriesViewModel.loadCollectionSeries(
-                                collectionId: collectionId, browseOpts: browseOpts, refresh: true)
-                            }
-                          }
-                        )
-                      }
-                      .adaptiveButtonStyle(.plain)
-                    }
-                  }
-                }
-                .onAppear {
-                  if series.id == seriesViewModel.series.last?.id {
-                    Task {
-                      await seriesViewModel.loadCollectionSeries(
-                        collectionId: collectionId, browseOpts: browseOpts, refresh: false)
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        if seriesViewModel.isLoading && !seriesViewModel.series.isEmpty {
-          ProgressView()
-            .frame(maxWidth: .infinity)
-            .padding()
-        }
       }
     }
     .task(id: collectionId) {

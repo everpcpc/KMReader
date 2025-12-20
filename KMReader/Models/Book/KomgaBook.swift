@@ -126,7 +126,7 @@ final class KomgaBook {
     metadata: BookMetadata,
     readProgress: ReadProgress?,
     deleted: Bool,
-    oneshot: Bool,
+    oneshot: Bool
   ) {
     self.id = id ?? "\(instanceId)_\(bookId)"
     self.bookId = bookId

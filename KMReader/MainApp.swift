@@ -32,6 +32,7 @@ struct MainApp: App {
         KomgaReadList.self,
         CustomFont.self,
       ])
+
       let configuration = ModelConfiguration(schema: schema)
       modelContainer = try ModelContainer(
         for: schema,

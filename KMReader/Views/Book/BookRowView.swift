@@ -9,52 +9,29 @@ import SwiftData
 import SwiftUI
 
 struct BookRowView: View {
-  let book: Book
+  @Environment(KomgaBook.self) private var komgaBook
   var viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?
   var onBookUpdated: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
 
-  // SwiftData query for reactive download status
-  @Query private var komgaBooks: [KomgaBook]
-
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-  init(
-    book: Book,
-    viewModel: BookViewModel,
-    onReadBook: ((Bool) -> Void)?,
-    onBookUpdated: (() -> Void)? = nil,
-    showSeriesTitle: Bool = false,
-    showSeriesNavigation: Bool = true
-  ) {
-    self.book = book
-    self.viewModel = viewModel
-    self.onReadBook = onReadBook
-    self.onBookUpdated = onBookUpdated
-    self.showSeriesTitle = showSeriesTitle
-    self.showSeriesNavigation = showSeriesNavigation
-
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(book.id)"
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
-  }
-
   var completed: Bool {
-    guard let readProgress = book.readProgress else { return false }
-    return readProgress.completed
+    guard let progressCompleted = komgaBook.progressCompleted else { return false }
+    return progressCompleted
   }
 
   private var isInProgress: Bool {
-    guard let readProgress = book.readProgress else { return false }
-    return !readProgress.completed
+    guard let progressCompleted = komgaBook.progressCompleted else { return false }
+    return !progressCompleted
   }
 
   var shouldShowSeriesTitle: Bool {
-    showSeriesTitle && !book.seriesTitle.isEmpty
+    showSeriesTitle && komgaBook.series != nil
   }
 
   var bookTitleLineLimit: Int {
@@ -66,35 +43,39 @@ struct BookRowView: View {
       onReadBook?(false)
     } label: {
       HStack(spacing: 12) {
-        ThumbnailImage(id: book.id, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4)
+        ThumbnailImage(
+          id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4)
 
         VStack(alignment: .leading, spacing: 4) {
-          if shouldShowSeriesTitle {
-            Text(book.seriesTitle)
+          if shouldShowSeriesTitle, let seriesName = komgaBook.series?.name {
+            Text(seriesName)
               .font(.footnote)
               .foregroundColor(.secondary)
               .lineLimit(1)
           }
 
-          Text("#\(book.metadata.number) - \(book.metadata.title)")
+          Text("#\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
             .font(.body)
             .foregroundColor(completed ? .secondary : .primary)
             .lineLimit(bookTitleLineLimit)
 
           HStack(spacing: 4) {
-            if let releaseDate = book.metadata.releaseDate, !releaseDate.isEmpty {
+            if let releaseDate = komgaBook.metaReleaseDate, !releaseDate.isEmpty {
               Label(releaseDate, systemImage: "calendar")
             } else {
               Label(
-                book.created.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
+                komgaBook.created.formatted(date: .abbreviated, time: .omitted),
+                systemImage: "clock")
             }
-            if let progress = book.readProgress {
+            if let progressPage = komgaBook.progressPage,
+              let progressCompleted = komgaBook.progressCompleted
+            {
               Text("•")
-              if progress.completed {
+              if progressCompleted {
                 Image(systemName: "checkmark.circle.fill")
                   .foregroundColor(.green)
               } else {
-                Text("Page \(progress.page + 1)")
+                Text("Page \(progressPage + 1)")
                   .foregroundColor(.blue)
               }
             }
@@ -103,15 +84,15 @@ struct BookRowView: View {
           .foregroundColor(.secondary)
 
           Group {
-            if book.deleted {
+            if komgaBook.deleted {
               Text("Unavailable")
                 .foregroundColor(.red)
             } else {
               HStack(spacing: 4) {
-                Label("\(book.media.pagesCount) pages", systemImage: "book.pages")
+                Label("\(komgaBook.mediaPagesCount) pages", systemImage: "book.pages")
                 Text("•")
-                Label(book.size, systemImage: "doc")
-                if book.oneshot {
+                Label(komgaBook.size, systemImage: "doc")
+                if komgaBook.oneshot {
                   Text("•")
                   Text("Oneshot")
                     .foregroundColor(.blue)
@@ -130,24 +111,22 @@ struct BookRowView: View {
     }
     .adaptiveButtonStyle(.plain)
     .contextMenu {
-      if let komgaBook = komgaBooks.first {
-        BookContextMenu(
-          viewModel: viewModel,
-          onReadBook: onReadBook,
-          onActionCompleted: onBookUpdated,
-          onShowReadListPicker: {
-            showReadListPicker = true
-          },
-          onDeleteRequested: {
-            showDeleteConfirmation = true
-          },
-          onEditRequested: {
-            showEditSheet = true
-          },
-          showSeriesNavigation: showSeriesNavigation
-        )
-        .environment(komgaBook)
-      }
+      BookContextMenu(
+        viewModel: viewModel,
+        onReadBook: onReadBook,
+        onActionCompleted: onBookUpdated,
+        onShowReadListPicker: {
+          showReadListPicker = true
+        },
+        onDeleteRequested: {
+          showDeleteConfirmation = true
+        },
+        onEditRequested: {
+          showEditSheet = true
+        },
+        showSeriesNavigation: showSeriesNavigation
+      )
+      .environment(komgaBook)
     }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
@@ -159,7 +138,7 @@ struct BookRowView: View {
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
-        bookIds: [book.id],
+        bookIds: [komgaBook.bookId],
         onSelect: { readListId in
           addToReadList(readListId: readListId)
         },
@@ -170,7 +149,7 @@ struct BookRowView: View {
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      BookEditSheet(book: book)
+      BookEditSheet(book: komgaBook.toBook())
         .onDisappear {
           onBookUpdated?()
         }
@@ -183,7 +162,7 @@ struct BookRowView: View {
       do {
         try await ReadListService.shared.addBooksToReadList(
           readListId: readListId,
-          bookIds: [book.id]
+          bookIds: [komgaBook.bookId]
         )
         await MainActor.run {
           ErrorManager.shared.notify(
@@ -201,8 +180,8 @@ struct BookRowView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.shared.deleteBook(bookId: book.id)
-        await CacheManager.clearCache(forBookId: book.id)
+        try await BookService.shared.deleteBook(bookId: komgaBook.bookId)
+        await CacheManager.clearCache(forBookId: komgaBook.bookId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
           onBookUpdated?()

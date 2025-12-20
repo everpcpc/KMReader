@@ -49,7 +49,7 @@ final class KomgaCollectionStore {
 
     if let search = search, !search.isEmpty {
       descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && col.name.contains(search)
+        col.instanceId == instanceId && col.name.localizedStandardContains(search)
       }
     } else {
       descriptor.predicate = #Predicate<KomgaCollection> { col in
@@ -83,6 +83,59 @@ final class KomgaCollectionStore {
     do {
       let results = try context.fetch(descriptor)
       return results.map { $0.toCollection() }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchCollectionIds(
+    libraryIds: [String]?,
+    searchText: String,
+    sort: String?,
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    var descriptor = FetchDescriptor<KomgaCollection>()
+
+    if !searchText.isEmpty {
+      descriptor.predicate = #Predicate<KomgaCollection> { col in
+        col.instanceId == instanceId && col.name.localizedStandardContains(searchText)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaCollection> { col in
+        col.instanceId == instanceId
+      }
+    }
+
+    // Sort
+    if let sort = sort {
+      if sort.contains("name") {
+        let isAsc = !sort.contains("desc")
+        descriptor.sortBy = [
+          SortDescriptor(\KomgaCollection.name, order: isAsc ? .forward : .reverse)
+        ]
+      } else if sort.contains("createdDate") {
+        let isAsc = !sort.contains("desc")
+        descriptor.sortBy = [
+          SortDescriptor(\KomgaCollection.createdDate, order: isAsc ? .forward : .reverse)
+        ]
+      } else {
+        descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
+      }
+    } else {
+      descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
+    }
+
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.collectionId }
     } catch {
       return []
     }

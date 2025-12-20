@@ -11,10 +11,16 @@ import SwiftUI
 @MainActor
 @Observable
 class CollectionViewModel {
-  var collections: [SeriesCollection] = []
+  var collectionIds: [String] = []
   var isLoading = false
 
+  // Computed property for backward compatibility with pickers
+  var collections: [SeriesCollection] {
+    collectionIds.compactMap { KomgaCollectionStore.shared.fetchCollection(id: $0) }
+  }
+
   private let collectionService = CollectionService.shared
+  private let pageSize = 20
   private var currentPage = 0
   private var hasMorePages = true
   private var currentLibraryIds: [String] = []
@@ -37,63 +43,56 @@ class CollectionViewModel {
       currentLibraryIds = libraryIds ?? []
       currentSort = sort
       currentSearchText = searchText
+      withAnimation {
+        collectionIds = []
+      }
     }
 
     guard hasMorePages && !isLoading else { return }
 
-    isLoading = true
-
-    // 1. Local Cache
-    let localCollections = KomgaCollectionStore.shared.fetchCollections(
-      libraryIds: libraryIds,
-      page: currentPage,
-      size: 20,
-      sort: sort,
-      search: searchText.isEmpty ? nil : searchText
-    )
-    if !localCollections.isEmpty {
-      if shouldReset {
-        collections = localCollections
-      } else {
-        collections.append(contentsOf: localCollections)
-      }
+    withAnimation {
+      isLoading = true
     }
 
-    // 2. Sync
-    do {
-      let page = try await SyncService.shared.syncCollections(
+    if AppConfig.isOffline {
+      // Offline: query SwiftData directly
+      let ids = KomgaCollectionStore.shared.fetchCollectionIds(
         libraryIds: libraryIds,
-        page: currentPage,
-        size: 20,
+        searchText: searchText,
         sort: sort,
-        search: searchText.isEmpty ? nil : searchText)
-
+        offset: currentPage * pageSize,
+        limit: pageSize
+      )
       withAnimation {
+        collectionIds.append(contentsOf: ids)
+      }
+      hasMorePages = ids.count == pageSize
+      currentPage += 1
+    } else {
+      // Online: fetch from API and sync
+      do {
+        let page = try await SyncService.shared.syncCollections(
+          libraryIds: libraryIds,
+          page: currentPage,
+          size: pageSize,
+          sort: sort,
+          search: searchText.isEmpty ? nil : searchText
+        )
+
+        withAnimation {
+          collectionIds.append(contentsOf: page.content.map { $0.id })
+        }
+        hasMorePages = !page.last
+        currentPage += 1
+      } catch {
         if shouldReset {
-          collections = page.content
-        } else {
-          // Merge logic
-          if !localCollections.isEmpty {
-            let startIndex = collections.count - localCollections.count
-            if startIndex >= 0 {
-              collections.replaceSubrange(startIndex..<collections.count, with: page.content)
-            } else {
-              collections.append(contentsOf: page.content)
-            }
-          } else {
-            collections.append(contentsOf: page.content)
-          }
+          ErrorManager.shared.alert(error: error)
         }
       }
-
-      hasMorePages = !page.last
-      currentPage += 1
-    } catch {
-      if collections.isEmpty {
-        ErrorManager.shared.alert(error: error)
-      }
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 }

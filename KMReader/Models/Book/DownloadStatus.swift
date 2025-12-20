@@ -34,7 +34,7 @@ enum DownloadStatus: Equatable, Sendable {
   var menuIcon: String {
     switch self {
     case .downloaded:
-      return "trash"
+      return "trash.circle"
     case .pending:
       return "xmark.circle"
     case .notDownloaded, .failed:

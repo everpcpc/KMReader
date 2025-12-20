@@ -16,186 +16,161 @@ struct DashboardBooksSection: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
-  @State private var books: [Book] = []
+  @State private var bookIds: [String] = []
   @State private var currentPage = 0
   @State private var hasMore = true
   @State private var isLoading = false
-  @State private var lastTriggeredIndex: Int = -1
   @State private var hasLoadedInitial = false
 
-  // Load data when view appears (if not already loaded or if empty due to cancelled request)
-  var shouldInitialLoad: Bool {
-    return !hasLoadedInitial || (books.isEmpty && !isLoading)
-  }
-
-  // Loading indicator at the end - only show when loading more and has content
-  var shouldShowLoadingIndicator: Bool {
-    return isLoading && hasLoadedInitial && !books.isEmpty
-  }
-
-  func shouldLoadMore(index: Int) -> Bool {
-    return index >= books.count - 3 && hasMore && !isLoading && lastTriggeredIndex != index
-  }
+  private let pageSize = 20
 
   var body: some View {
-    Group {
-      if !books.isEmpty {
-        VStack(alignment: .leading, spacing: 4) {
-          Text(section.displayName)
-            .font(.title3)
-            .fontWeight(.bold)
-            .padding(.horizontal)
-
-          ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: 12) {
-              ForEach(Array(books.enumerated()), id: \.element.id) { index, book in
-                BookCardView(
-                  book: book,
-                  viewModel: bookViewModel,
-                  cardWidth: PlatformHelper.dashboardCardWidth,
-                  onReadBook: { incognito in
-                    readerPresentation.present(book: book, incognito: incognito)
-                  },
-                  onBookUpdated: onBookUpdated,
-                  showSeriesTitle: true
-                )
-                .focusPadding()
-                .onAppear {
-                  // Trigger load when we're near the last item (within last 3 items)
-                  // Only trigger once per index to avoid repeated loads
-                  if shouldLoadMore(index: index) {
-                    lastTriggeredIndex = index
-                    Task {
-                      await loadMore()
-                    }
-                  }
-                }
-              }
-
-              if shouldShowLoadingIndicator {
-                ProgressView()
-                  .frame(width: PlatformHelper.dashboardCardWidth, height: 200)
-                  .padding(.trailing, 12)
-              }
-            }
-            .padding()
-          }
-          .scrollClipDisabled()
+    DashboardBooksListView(
+      bookIds: bookIds,
+      instanceId: AppConfig.currentInstanceId,
+      section: section,
+      bookViewModel: bookViewModel,
+      onBookUpdated: onBookUpdated,
+      loadMore: {
+        Task {
+          await loadMore()
         }
-        .padding(.bottom, 16)
-      } else {
-        Color.clear
-          .frame(height: 0)
       }
-    }
+    )
+    .opacity(bookIds.isEmpty ? 0 : 1)
+    .frame(height: bookIds.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
       Task {
-        await loadInitial()
+        await refresh()
       }
     }
-    .onAppear {
-      if shouldInitialLoad {
-        Task {
-          await loadInitial()
-        }
-      }
+    .task {
+      await loadInitial()
     }
   }
 
   private func loadInitial() async {
+    guard !hasLoadedInitial else { return }
+    await refresh()
+  }
+
+  private func refresh() async {
     currentPage = 0
     hasMore = true
-    lastTriggeredIndex = -1
-    hasLoadedInitial = false
+    withAnimation {
+      bookIds = []
+    }
 
-    // Load first page first, then replace
-    await loadMore(reset: true)
+    await loadMore()
     hasLoadedInitial = true
   }
 
-  private func loadMore(reset: Bool = false) async {
+  private func loadMore() async {
     guard hasMore, !isLoading else { return }
-    isLoading = true
-
-    do {
-      let libraryIds = dashboard.libraryIds
-      let page: Page<Book>
-
-      switch section {
-      case .keepReading:
-        let condition = BookSearch.buildCondition(
-          filters: BookSearchFilters(
-            libraryIds: libraryIds,
-            includeReadStatuses: [ReadStatus.inProgress]
-          )
-        )
-        let search = BookSearch(condition: condition)
-        page = try await SyncService.shared.syncBooksList(
-          search: search,
-          page: currentPage,
-          size: 20,
-          sort: "readProgress.readDate,desc"
-        )
-
-      case .onDeck:
-        page = try await SyncService.shared.syncBooksOnDeck(
-          libraryIds: libraryIds,
-          page: currentPage,
-          size: 20
-        )
-
-      case .recentlyReadBooks:
-        page = try await SyncService.shared.syncRecentlyReadBooks(
-          libraryIds: libraryIds,
-          page: currentPage,
-          size: 20
-        )
-
-      case .recentlyReleasedBooks:
-        page = try await SyncService.shared.syncRecentlyReleasedBooks(
-          libraryIds: libraryIds,
-          page: currentPage,
-          size: 20
-        )
-
-      case .recentlyAddedBooks:
-        page = try await SyncService.shared.syncRecentlyAddedBooks(
-          libraryIds: libraryIds,
-          page: currentPage,
-          size: 20
-        )
-
-      default:
-        isLoading = false
-        return
-      }
-
-      var newBooks = page.content
-
-      // Filter out books without release dates for recentlyReleasedBooks
-      if section == .recentlyReleasedBooks {
-        newBooks = newBooks.filter {
-          $0.metadata.releaseDate != nil && !$0.metadata.releaseDate!.isEmpty
-        }
-      }
-
-      withAnimation {
-        if reset {
-          books = newBooks
-        } else {
-          books.append(contentsOf: newBooks)
-        }
-      }
-
-      hasMore = !page.last
-      currentPage += 1
-
-      // Reset trigger index after loading to allow next trigger
-      lastTriggeredIndex = -1
-    } catch {
-      ErrorManager.shared.alert(error: error)
+    withAnimation {
+      isLoading = true
     }
 
-    isLoading = false
+    let libraryIds = dashboard.libraryIds
+
+    if AppConfig.isOffline {
+      // Offline: query SwiftData directly
+      let ids = fetchOfflineBookIds(libraryIds: libraryIds)
+      withAnimation {
+        bookIds.append(contentsOf: ids)
+      }
+      hasMore = ids.count == pageSize
+      currentPage += 1
+    } else {
+      // Online: fetch from API and sync
+      do {
+        let page: Page<Book>
+
+        switch section {
+        case .keepReading:
+          let condition = BookSearch.buildCondition(
+            filters: BookSearchFilters(
+              libraryIds: libraryIds,
+              includeReadStatuses: [ReadStatus.inProgress]
+            )
+          )
+          let search = BookSearch(condition: condition)
+          page = try await SyncService.shared.syncBooksList(
+            search: search,
+            page: currentPage,
+            size: pageSize,
+            sort: "readProgress.readDate,desc"
+          )
+
+        case .onDeck:
+          page = try await SyncService.shared.syncBooksOnDeck(
+            libraryIds: libraryIds,
+            page: currentPage,
+            size: pageSize
+          )
+
+        case .recentlyReadBooks:
+          page = try await SyncService.shared.syncRecentlyReadBooks(
+            libraryIds: libraryIds,
+            page: currentPage,
+            size: pageSize
+          )
+
+        case .recentlyReleasedBooks:
+          page = try await SyncService.shared.syncRecentlyReleasedBooks(
+            libraryIds: libraryIds,
+            page: currentPage,
+            size: pageSize
+          )
+
+        case .recentlyAddedBooks:
+          page = try await SyncService.shared.syncRecentlyAddedBooks(
+            libraryIds: libraryIds,
+            page: currentPage,
+            size: pageSize
+          )
+
+        default:
+          withAnimation {
+            isLoading = false
+          }
+          return
+        }
+
+        withAnimation {
+          bookIds.append(contentsOf: page.content.map { $0.id })
+        }
+        hasMore = !page.last
+        currentPage += 1
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+
+    withAnimation {
+      isLoading = false
+    }
+  }
+
+  private func fetchOfflineBookIds(libraryIds: [String]) -> [String] {
+    // Offline queries based on section type
+    switch section {
+    case .keepReading:
+      return KomgaBookStore.shared.fetchKeepReadingBookIds(
+        libraryIds: libraryIds,
+        offset: currentPage * pageSize,
+        limit: pageSize
+      )
+    case .onDeck, .recentlyReadBooks, .recentlyAddedBooks, .recentlyReleasedBooks:
+      // For these sections, we can only show cached data based on what's in SwiftData
+      // The offline experience is limited since we don't have specific ordering
+      return KomgaBookStore.shared.fetchRecentBookIds(
+        libraryIds: libraryIds,
+        offset: currentPage * pageSize,
+        limit: pageSize
+      )
+    default:
+      return []
+    }
   }
 }

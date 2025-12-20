@@ -62,7 +62,8 @@ final class KomgaSeriesStore {
       if let search = searchTerm, !search.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.libraryId == libraryId
-            && (series.name.contains(search) || series.metaTitle.contains(search))
+            && (series.name.localizedStandardContains(search)
+              || series.metaTitle.localizedStandardContains(search))
         }
       } else {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
@@ -73,7 +74,8 @@ final class KomgaSeriesStore {
       // All libraries
       if let search = searchTerm, !search.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
-          series.name.contains(search) || series.metaTitle.contains(search)
+          series.name.localizedStandardContains(search)
+            || series.metaTitle.localizedStandardContains(search)
         }
       }
     }
@@ -109,7 +111,110 @@ final class KomgaSeriesStore {
     }
   }
 
+  func fetchSeriesIds(
+    libraryIds: [String]?,
+    searchText: String,
+    browseOpts: SeriesBrowseOptions,
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    let libraryId = libraryIds?.first
+    var descriptor = FetchDescriptor<KomgaSeries>()
+
+    if !searchText.isEmpty {
+      if let libraryId = libraryId {
+        descriptor.predicate = #Predicate<KomgaSeries> { series in
+          series.instanceId == instanceId && series.libraryId == libraryId
+            && (series.name.localizedStandardContains(searchText)
+              || series.metaTitle.localizedStandardContains(searchText))
+        }
+      } else {
+        descriptor.predicate = #Predicate<KomgaSeries> { series in
+          series.instanceId == instanceId
+            && (series.name.localizedStandardContains(searchText)
+              || series.metaTitle.localizedStandardContains(searchText))
+        }
+      }
+    } else {
+      if let libraryId = libraryId {
+        descriptor.predicate = #Predicate<KomgaSeries> { series in
+          series.instanceId == instanceId && series.libraryId == libraryId
+        }
+      } else {
+        descriptor.predicate = #Predicate<KomgaSeries> { series in
+          series.instanceId == instanceId
+        }
+      }
+    }
+
+    // Sort
+    let sort = browseOpts.sortString
+    let isAsc = !sort.contains("desc")
+    if sort.contains("metadata.titleSort") {
+      descriptor.sortBy = [
+        SortDescriptor(\KomgaSeries.metaTitleSort, order: isAsc ? .forward : .reverse)
+      ]
+    } else if sort.contains("created") {
+      descriptor.sortBy = [SortDescriptor(\KomgaSeries.created, order: isAsc ? .forward : .reverse)]
+    } else if sort.contains("lastModified") {
+      descriptor.sortBy = [
+        SortDescriptor(\KomgaSeries.lastModified, order: isAsc ? .forward : .reverse)
+      ]
+    } else {
+      descriptor.sortBy = [SortDescriptor(\KomgaSeries.metaTitleSort, order: .forward)]
+    }
+
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.seriesId }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchRecentSeriesIds(
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    let libraryId = libraryIds.first
+    var descriptor = FetchDescriptor<KomgaSeries>()
+
+    if let libraryId = libraryId {
+      descriptor.predicate = #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId && series.libraryId == libraryId
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaSeries.lastModified, order: .reverse)]
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.seriesId }
+    } catch {
+      return []
+    }
+  }
+
   func fetchOne(seriesId: String) -> Series? {
+
     guard let container else { return nil }
     let context = ModelContext(container)
     // We assume current instance for now, or check all?
