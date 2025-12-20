@@ -47,7 +47,7 @@ struct MainApp: App {
     KomgaCollectionStore.shared.configure(with: modelContainer)
     KomgaReadListStore.shared.configure(with: modelContainer)
     CustomFontStore.shared.configure(with: modelContainer)
-    SyncService.shared.configure(with: modelContainer)
+    DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
     _authViewModel = State(initialValue: AuthViewModel())
     SDImageCacheProvider.configureSDWebImage()
   }

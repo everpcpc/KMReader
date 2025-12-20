@@ -68,7 +68,6 @@ final class KomgaBook {
 
   // Track offline download status (managed locally)
   var downloadStatusRaw: String = "notDownloaded"
-  var downloadProgress: Double = 0.0
   var downloadError: String?
   var downloadAt: Date?
   var downloadedSize: Int64?
@@ -79,8 +78,6 @@ final class KomgaBook {
       switch downloadStatusRaw {
       case "pending":
         return .pending
-      case "downloading":
-        return .downloading(progress: downloadProgress)
       case "downloaded":
         return .downloaded
       case "failed":
@@ -93,26 +90,17 @@ final class KomgaBook {
       switch newValue {
       case .notDownloaded:
         downloadStatusRaw = "notDownloaded"
-        downloadProgress = 0.0
         downloadError = nil
         downloadAt = nil
       case .pending:
         downloadStatusRaw = "pending"
-        downloadProgress = 0.0
-        downloadError = nil
-        // downloadAt should be set by the caller if needed
-      case .downloading(let progress):
-        downloadStatusRaw = "downloading"
-        downloadProgress = progress
         downloadError = nil
       case .downloaded:
         downloadStatusRaw = "downloaded"
-        downloadProgress = 1.0
         downloadError = nil
         downloadAt = nil
       case .failed(let error):
         downloadStatusRaw = "failed"
-        downloadProgress = 0.0
         downloadError = error
         downloadAt = nil
       }

@@ -8,11 +8,11 @@
 import Foundation
 import SwiftUI
 
-/// Status of an offline book download.
+/// Status of an offline book download (persisted in SwiftData).
+/// Note: Downloading progress is tracked separately in OfflineManager.
 enum DownloadStatus: Equatable, Sendable {
   case notDownloaded
   case pending
-  case downloading(progress: Double)
   case downloaded
   case failed(error: String)
 
@@ -23,7 +23,7 @@ enum DownloadStatus: Equatable, Sendable {
     switch self {
     case .downloaded:
       return String(localized: "Remove Offline")
-    case .downloading, .pending:
+    case .pending:
       return String(localized: "Cancel Download")
     case .notDownloaded, .failed:
       return String(localized: "Make Offline")
@@ -35,7 +35,7 @@ enum DownloadStatus: Equatable, Sendable {
     switch self {
     case .downloaded:
       return "trash"
-    case .downloading, .pending:
+    case .pending:
       return "xmark.circle"
     case .notDownloaded, .failed:
       return "square.and.arrow.down"
@@ -45,7 +45,7 @@ enum DownloadStatus: Equatable, Sendable {
   /// Color for the status icon.
   var menuColor: Color {
     switch self {
-    case .downloaded, .downloading, .pending:
+    case .downloaded, .pending:
       return .red
     case .notDownloaded, .failed:
       return .primary
