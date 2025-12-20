@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import Combine
 import Foundation
 import OSLog
 import UniformTypeIdentifiers
@@ -18,6 +19,7 @@ struct DownloadInfo: Sendable {
 
 /// Actor for managing offline book downloads with proper thread isolation.
 /// Download status is persisted in SwiftData via KomgaBook.downloadStatus.
+/// Progress is tracked via DownloadProgressTracker for UI display.
 actor OfflineManager {
   static let shared = OfflineManager()
 
@@ -86,7 +88,7 @@ actor OfflineManager {
     switch status {
     case .downloaded:
       await deleteBook(instanceId: instanceId, bookId: info.bookId)
-    case .downloading, .pending:
+    case .pending:
       await cancelDownload(bookId: info.bookId)
     case .notDownloaded, .failed:
       await MainActor.run {
@@ -152,9 +154,9 @@ actor OfflineManager {
   private func startDownload(instanceId: String, info: DownloadInfo) async {
     guard activeTasks[info.bookId] == nil else { return }
 
-    // Mark as downloading in SwiftData
+    // Initialize progress (status stays as pending during download)
     await MainActor.run {
-      KomgaBookStore.shared.updateDownloadStatus(bookId: info.bookId, status: .downloading(progress: 0.0))
+      DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 0.0)
     }
 
     let bookDir = bookDirectory(instanceId: instanceId, bookId: info.bookId)
@@ -247,6 +249,9 @@ actor OfflineManager {
 
   private func removeActiveTask(_ bookId: String) {
     activeTasks[bookId] = nil
+    Task { @MainActor in
+      DownloadProgressTracker.shared.clearProgress(bookId: bookId)
+    }
   }
 
   // MARK: - Download Logic
@@ -296,8 +301,10 @@ actor OfflineManager {
         completedCount += 1
 
         let progress = Double(completedCount) / total
+
+        // Update in-memory progress for UI
         await MainActor.run {
-          KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .downloading(progress: progress))
+          DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: progress)
         }
 
         submitNext()

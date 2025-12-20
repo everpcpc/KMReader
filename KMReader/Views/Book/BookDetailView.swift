@@ -598,13 +598,8 @@ struct BookDetailView: View {
           }
         }
       } label: {
-        if case .downloading = downloadStatus {
-          ProgressView()
-            .controlSize(.small)
-        } else {
-          Image(systemName: downloadStatus.menuIcon)
-            .foregroundStyle(downloadStatus.menuColor)
-        }
+        Image(systemName: downloadStatus.menuIcon)
+          .foregroundStyle(downloadStatus.menuColor)
       }
       .disabled(book == nil)
       .toolbarButtonStyle()

@@ -94,7 +94,6 @@ struct SettingsOfflineTasksView: View {
       }
     }
     .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
-    .animation(.default, value: books)
     .animation(.default, value: isPaused)
     .onChange(of: isPaused) { _, newValue in
       if !newValue {
@@ -109,6 +108,10 @@ struct SettingsOfflineTasksView: View {
 struct OfflineTaskRow: View {
   let book: KomgaBook
 
+  private var progress: Double? {
+    DownloadProgressTracker.shared.progress[book.bookId]
+  }
+
   var body: some View {
     HStack(alignment: .center, spacing: 12) {
       VStack(alignment: .leading, spacing: 4) {
@@ -117,16 +120,18 @@ struct OfflineTaskRow: View {
           .lineLimit(1)
 
         switch book.downloadStatus {
-        case .downloading(let progress):
-          ProgressView(value: progress) {
-            Text("Downloading \(Int(progress * 100))%")
+        case .pending:
+          if let progress = progress {
+            ProgressView(value: progress) {
+              Text("Downloading \(Int(progress * 100))%")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          } else {
+            Text("Pending in queue...")
               .font(.caption)
               .foregroundColor(.secondary)
           }
-        case .pending:
-          Text("Pending in queue...")
-            .font(.caption)
-            .foregroundColor(.secondary)
         case .failed(let error):
           Text(error)
             .font(.caption)

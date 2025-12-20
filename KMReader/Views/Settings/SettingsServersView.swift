@@ -460,16 +460,16 @@ struct SettingsServersView: View {
 
     let instanceId = instance.id.uuidString
 
-    // Clear SwiftData entities
-    LibraryManager.shared.removeLibraries(for: instanceId)
-    SyncService.shared.clearInstanceData(instanceId: instanceId)
-
-    // Clear offline downloads and caches (async)
+    // Clear SwiftData entities and offline data (async)
     Task {
+      await SyncService.shared.clearInstanceData(instanceId: instanceId)
       await OfflineManager.shared.cancelAllDownloads()
       OfflineManager.removeOfflineData(for: instanceId)
       CacheManager.clearCaches(instanceId: instanceId)
     }
+
+    // Clear libraries (sync)
+    LibraryManager.shared.removeLibraries(for: instanceId)
   }
 
   private func saveChanges() {

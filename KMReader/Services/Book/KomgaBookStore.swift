@@ -24,7 +24,9 @@ final class KomgaBookStore {
     guard let container else {
       throw AppErrorType.storageNotConfigured(message: "ModelContainer is not configured")
     }
-    return ModelContext(container)
+    let context = ModelContext(container)
+    context.autosaveEnabled = false
+    return context
   }
 
   func fetchBooks(seriesId: String, page: Int, size: Int, sort: String? = nil) -> [Book] {
@@ -228,11 +230,19 @@ final class KomgaBookStore {
   }
 
   /// Update the download status of a book.
+  /// - Parameters:
+  ///   - bookId: The book ID to update.
+  ///   - status: The new download status.
+  ///   - downloadAt: Optional download timestamp.
+  ///   - downloadedSize: Optional downloaded size.
+  ///   - commit: If true, saves the context immediately. Set to false for batching updates.
   func updateDownloadStatus(
-    bookId: String, status: DownloadStatus, downloadAt: Date? = nil, downloadedSize: Int64? = nil
+    bookId: String, status: DownloadStatus, downloadAt: Date? = nil, downloadedSize: Int64? = nil,
+    commit: Bool = true
   ) {
     guard let container else { return }
     let context = ModelContext(container)
+    context.autosaveEnabled = false
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(bookId)"
 
@@ -250,7 +260,9 @@ final class KomgaBookStore {
     } else if case .notDownloaded = status {
       book.downloadedSize = nil
     }
-    try? context.save()
+    if commit {
+      try? context.save()
+    }
   }
 
   /// Fetch all pending books for the current instance.
