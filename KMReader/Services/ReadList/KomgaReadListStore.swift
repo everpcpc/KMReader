@@ -96,7 +96,8 @@ final class KomgaReadListStore {
 
     if !searchText.isEmpty {
       descriptor.predicate = #Predicate<KomgaReadList> { rl in
-        rl.instanceId == instanceId && (rl.name.contains(searchText) || rl.summary.contains(searchText))
+        rl.instanceId == instanceId
+          && (rl.name.contains(searchText) || rl.summary.contains(searchText))
       }
     } else {
       descriptor.predicate = #Predicate<KomgaReadList> { rl in

@@ -339,7 +339,6 @@ final class KomgaBookStore {
 
   // MARK: - Offline Download Status
 
-
   /// Get the download status of a book.
   func getDownloadStatus(bookId: String) -> DownloadStatus {
     guard let container else { return .notDownloaded }
