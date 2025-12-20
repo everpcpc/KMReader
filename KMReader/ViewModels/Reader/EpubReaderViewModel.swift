@@ -72,9 +72,17 @@
       navigatorViewController = nil
 
       do {
-        // Check if EPUB file is already cached
+        // Check if EPUB file is already cached or downloaded
         let epubURL: URL
-        if let cachedURL = await BookFileCache.shared.cachedEpubFileURL(bookId: bookId) {
+
+        // 1. Check OfflineManager
+        if let offlineURL = await MainActor.run(body: {
+          OfflineManager.shared.getOfflineEpubURL(bookId: bookId)
+        }) {
+          epubURL = offlineURL
+        }
+        // 2. Check BookFileCache
+        else if let cachedURL = await BookFileCache.shared.cachedEpubFileURL(bookId: bookId) {
           epubURL = cachedURL
         } else {
           // Download the entire EPUB file

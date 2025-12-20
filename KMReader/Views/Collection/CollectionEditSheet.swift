@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct CollectionEditSheet: View {
-  let collection: KomgaCollection
+  let collection: SeriesCollection
   @Environment(\.dismiss) private var dismiss
   @State private var isSaving = false
 
   @State private var name: String
   @State private var ordered: Bool
 
-  init(collection: KomgaCollection) {
+  init(collection: SeriesCollection) {
     self.collection = collection
     _name = State(initialValue: collection.name)
     _ordered = State(initialValue: collection.ordered)

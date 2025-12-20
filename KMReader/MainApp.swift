@@ -26,6 +26,10 @@ struct MainApp: App {
       let schema = Schema([
         KomgaInstance.self,
         KomgaLibrary.self,
+        KomgaSeries.self,
+        KomgaBook.self,
+        KomgaCollection.self,
+        KomgaReadList.self,
         CustomFont.self,
       ])
       let configuration = ModelConfiguration(schema: schema)
@@ -38,7 +42,12 @@ struct MainApp: App {
     }
     KomgaInstanceStore.shared.configure(with: modelContainer)
     KomgaLibraryStore.shared.configure(with: modelContainer)
+    KomgaSeriesStore.shared.configure(with: modelContainer)
+    KomgaBookStore.shared.configure(with: modelContainer)
+    KomgaCollectionStore.shared.configure(with: modelContainer)
+    KomgaReadListStore.shared.configure(with: modelContainer)
     CustomFontStore.shared.configure(with: modelContainer)
+    SyncService.shared.configure(with: modelContainer)
     _authViewModel = State(initialValue: AuthViewModel())
     SDImageCacheProvider.configureSDWebImage()
   }

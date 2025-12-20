@@ -307,9 +307,11 @@ final class SSEService {
     case "ReadProgressDeleted":
       dispatchToMain(handler: onReadProgressDeleted, data: data, as: ReadProgressSSEDto.self)
     case "ReadProgressSeriesChanged":
-      dispatchToMain(handler: onReadProgressSeriesChanged, data: data, as: ReadProgressSeriesSSEDto.self)
+      dispatchToMain(
+        handler: onReadProgressSeriesChanged, data: data, as: ReadProgressSeriesSSEDto.self)
     case "ReadProgressSeriesDeleted":
-      dispatchToMain(handler: onReadProgressSeriesDeleted, data: data, as: ReadProgressSeriesSSEDto.self)
+      dispatchToMain(
+        handler: onReadProgressSeriesDeleted, data: data, as: ReadProgressSeriesSSEDto.self)
 
     case "ThumbnailBookAdded":
       dispatchToMain(handler: onThumbnailBookAdded, data: data, as: ThumbnailBookSSEDto.self)
@@ -320,13 +322,17 @@ final class SSEService {
     case "ThumbnailSeriesDeleted":
       dispatchToMain(handler: onThumbnailSeriesDeleted, data: data, as: ThumbnailSeriesSSEDto.self)
     case "ThumbnailReadListAdded":
-      dispatchToMain(handler: onThumbnailReadListAdded, data: data, as: ThumbnailReadListSSEDto.self)
+      dispatchToMain(
+        handler: onThumbnailReadListAdded, data: data, as: ThumbnailReadListSSEDto.self)
     case "ThumbnailReadListDeleted":
-      dispatchToMain(handler: onThumbnailReadListDeleted, data: data, as: ThumbnailReadListSSEDto.self)
+      dispatchToMain(
+        handler: onThumbnailReadListDeleted, data: data, as: ThumbnailReadListSSEDto.self)
     case "ThumbnailSeriesCollectionAdded":
-      dispatchToMain(handler: onThumbnailCollectionAdded, data: data, as: ThumbnailCollectionSSEDto.self)
+      dispatchToMain(
+        handler: onThumbnailCollectionAdded, data: data, as: ThumbnailCollectionSSEDto.self)
     case "ThumbnailSeriesCollectionDeleted":
-      dispatchToMain(handler: onThumbnailCollectionDeleted, data: data, as: ThumbnailCollectionSSEDto.self)
+      dispatchToMain(
+        handler: onThumbnailCollectionDeleted, data: data, as: ThumbnailCollectionSSEDto.self)
 
     case "TaskQueueStatus":
       handleTaskQueueStatus(data: data)
@@ -357,7 +363,8 @@ final class SSEService {
     }
   }
 
-  private func dispatchToMain<T: Decodable>(handler: ((T) -> Void)?, data: String, as type: T.Type) {
+  private func dispatchToMain<T: Decodable>(handler: ((T) -> Void)?, data: String, as type: T.Type)
+  {
     guard let handler else { return }
     guard let jsonData = data.data(using: .utf8),
       let dto = try? JSONDecoder().decode(type, from: jsonData)

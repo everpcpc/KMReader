@@ -130,6 +130,17 @@ class ReaderViewModel {
       logger.warning("⚠️ Book ID is empty, cannot load page image")
       return nil
     }
+
+    // 1. Check OfflineManager (Persistent Offline Content)
+    if let offlineURL = await MainActor.run(body: {
+      OfflineManager.shared.getOfflinePageImageURL(bookId: bookId, page: page)
+    }) {
+      logger.debug(
+        "✅ Using offline downloaded image for page \(page.number) for book \(self.bookId)")
+      return offlineURL
+    }
+
+    // 2. Check ImageCache (Transient Cache)
     if let cachedFileURL = await getCachedImageFileURL(page: page) {
       logger.debug("✅ Using cached image for page \(page.number) for book \(self.bookId)")
       return cachedFileURL

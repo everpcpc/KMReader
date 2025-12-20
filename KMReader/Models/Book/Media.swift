@@ -7,14 +7,14 @@
 
 import Foundation
 
-enum MediaProfile: String, Codable {
+enum MediaProfile: String, Codable, Hashable, Sendable {
   case divina = "DIVINA"
   case pdf = "PDF"
   case epub = "EPUB"
   case unknown = ""
 }
 
-enum MediaStatus: String, Codable {
+enum MediaStatus: String, Codable, Hashable, Sendable {
   case ready = "READY"
   case unknown = "UNKNOWN"
   case error = "ERROR"
@@ -52,12 +52,72 @@ enum MediaStatus: String, Codable {
   }
 }
 
-struct Media: Codable, Equatable {
-  let status: MediaStatus
-  let mediaType: String
-  let pagesCount: Int
-  let comment: String?
-  let mediaProfile: MediaProfile?
-  let epubDivinaCompatible: Bool?
-  let epubIsKepub: Bool?
+struct Media: Equatable, Hashable, Sendable {
+  var statusRaw: String
+  var mediaType: String
+  var pagesCount: Int
+  var comment: String?
+  var mediaProfileRaw: String?
+  var epubDivinaCompatible: Bool?
+  var epubIsKepub: Bool?
+
+  var status: MediaStatus {
+    MediaStatus(rawValue: statusRaw) ?? .unknown
+  }
+
+  var mediaProfile: MediaProfile? {
+    mediaProfileRaw.flatMap(MediaProfile.init)
+  }
+
+  init(
+    status: MediaStatus,
+    mediaType: String,
+    pagesCount: Int,
+    comment: String? = nil,
+    mediaProfile: MediaProfile? = nil,
+    epubDivinaCompatible: Bool? = nil,
+    epubIsKepub: Bool? = nil
+  ) {
+    self.statusRaw = status.rawValue
+    self.mediaType = mediaType
+    self.pagesCount = pagesCount
+    self.comment = comment
+    self.mediaProfileRaw = mediaProfile?.rawValue
+    self.epubDivinaCompatible = epubDivinaCompatible
+    self.epubIsKepub = epubIsKepub
+  }
+}
+
+extension Media: Codable {
+  enum CodingKeys: String, CodingKey {
+    case statusRaw = "status"
+    case mediaType
+    case pagesCount
+    case comment
+    case mediaProfileRaw = "mediaProfile"
+    case epubDivinaCompatible
+    case epubIsKepub
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    statusRaw = try container.decode(String.self, forKey: .statusRaw)
+    mediaType = try container.decode(String.self, forKey: .mediaType)
+    pagesCount = try container.decode(Int.self, forKey: .pagesCount)
+    comment = try container.decodeIfPresent(String.self, forKey: .comment)
+    mediaProfileRaw = try container.decodeIfPresent(String.self, forKey: .mediaProfileRaw)
+    epubDivinaCompatible = try container.decodeIfPresent(Bool.self, forKey: .epubDivinaCompatible)
+    epubIsKepub = try container.decodeIfPresent(Bool.self, forKey: .epubIsKepub)
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(statusRaw, forKey: .statusRaw)
+    try container.encode(mediaType, forKey: .mediaType)
+    try container.encode(pagesCount, forKey: .pagesCount)
+    try container.encodeIfPresent(comment, forKey: .comment)
+    try container.encodeIfPresent(mediaProfileRaw, forKey: .mediaProfileRaw)
+    try container.encodeIfPresent(epubDivinaCompatible, forKey: .epubDivinaCompatible)
+    try container.encodeIfPresent(epubIsKepub, forKey: .epubIsKepub)
+  }
 }

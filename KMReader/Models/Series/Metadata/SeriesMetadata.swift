@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SeriesMetadata: Codable, Equatable {
+struct SeriesMetadata: Codable, Equatable, Hashable, Sendable {
   let status: String?
   let statusLock: Bool?
   let created: String?

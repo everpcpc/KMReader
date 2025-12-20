@@ -167,10 +167,18 @@ struct ReadListDetailView: View {
 // Helper functions for ReadListDetailView
 extension ReadListDetailView {
   private func loadReadListDetails() async {
+    // 1. Local Cache
+    if let cached = KomgaReadListStore.shared.fetchReadList(id: readListId) {
+      readList = cached
+    }
+
+    // 2. Sync
     do {
-      readList = try await ReadListService.shared.getReadList(id: readListId)
+      readList = try await SyncService.shared.syncReadList(id: readListId)
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if readList == nil {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 

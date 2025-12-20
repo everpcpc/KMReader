@@ -23,7 +23,7 @@ struct BookPage: Codable, Identifiable, Sendable {
 
 extension BookPage {
   /// Best-effort UTType detection using file extension first, then MIME type.
-  var detectedUTType: UTType? {
+  nonisolated var detectedUTType: UTType? {
     let fileExtension = (fileName as NSString).pathExtension.lowercased()
     if !fileExtension.isEmpty, let type = UTType(filenameExtension: fileExtension) {
       return type
