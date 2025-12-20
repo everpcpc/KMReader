@@ -471,15 +471,57 @@ class APIClient {
       throw error
     } catch let appError as AppErrorType {
       logger.error("❌ Network error for \(urlString): \(appError.description)")
+      handleNetworkError(appError)
       throw APIError.networkError(appError, url: urlString)
     } catch let nsError as NSError where nsError.domain == NSURLErrorDomain {
       let appError = AppErrorType.from(nsError)
       logger.error("❌ Network error for \(urlString): \(appError.description)")
+      handleNetworkError(nsError)
       throw APIError.networkError(appError, url: urlString)
     } catch {
-      let errorDesc = error.localizedDescription
-      logger.error("❌ Network error for \(urlString): \(errorDesc)")
+      logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")
+      handleNetworkError(error)
       throw APIError.networkError(error, url: urlString)
+    }
+  }
+
+  private func handleNetworkError(_ error: Error) {
+    // Only switch to offline mode if not already offline and not a temporary/login request
+    guard !AppConfig.isOffline else { return }
+
+    // Identify if the error is a network connectivity issue
+    let isConnectivityIssue: Bool
+    if let nsError = error as NSError?, nsError.domain == NSURLErrorDomain {
+      switch nsError.code {
+      case NSURLErrorNotConnectedToInternet,
+        NSURLErrorTimedOut,
+        NSURLErrorCannotFindHost,
+        NSURLErrorCannotConnectToHost,
+        NSURLErrorNetworkConnectionLost,
+        NSURLErrorResourceUnavailable:
+        isConnectivityIssue = true
+      default:
+        isConnectivityIssue = false
+      }
+    } else if let appError = error as? AppErrorType {
+      switch appError {
+      case .networkUnavailable, .networkTimeout:
+        isConnectivityIssue = true
+      default:
+        isConnectivityIssue = false
+      }
+    } else {
+      isConnectivityIssue = false
+    }
+
+    if isConnectivityIssue {
+      logger.info("🔌 Network issue detected, automatically switching to offline mode")
+      Task { @MainActor in
+        AppConfig.isOffline = true
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.automaticOfflineMode")
+        )
+      }
     }
   }
 
