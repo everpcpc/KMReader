@@ -45,14 +45,9 @@ actor ThumbnailCache {
   private init() {}
 
   /// Get the local file URL for a thumbnail. The file may or may not exist.
-  func getThumbnailFileURL(id: String, type: ThumbnailType, page: Int? = nil) -> URL {
+  static nonisolated func getThumbnailFileURL(id: String, type: ThumbnailType, page: Int? = nil) -> URL {
     let directory = CacheNamespace.directory(for: "KomgaThumbnailCache")
     let typeDir = directory.appendingPathComponent(type.rawValue, isDirectory: true)
-
-    // Ensure type directory exists
-    if !fileManager.fileExists(atPath: typeDir.path) {
-      try? fileManager.createDirectory(at: typeDir, withIntermediateDirectories: true)
-    }
 
     let filename = page != nil ? "\(id)_\(page!).jpg" : "\(id).jpg"
     return typeDir.appendingPathComponent(filename)
@@ -61,7 +56,7 @@ actor ThumbnailCache {
   /// Ensures the thumbnail exists locally, downloading it if necessary.
   /// Returns the local file:// URL.
   func ensureThumbnail(id: String, type: ThumbnailType, page: Int? = nil) async throws -> URL {
-    let fileURL = getThumbnailFileURL(id: id, type: type, page: page)
+    let fileURL = Self.getThumbnailFileURL(id: id, type: type, page: page)
 
     if fileManager.fileExists(atPath: fileURL.path) {
       return fileURL
@@ -75,6 +70,12 @@ actor ThumbnailCache {
     let task = Task<URL, Error> {
       let logSuffix = page != nil ? "page \(page!) of book \(id)" : "\(type.rawValue) \(id)"
       logger.info("📡 Downloading thumbnail for \(logSuffix)")
+
+      // Ensure directory exists
+      let typeDir = fileURL.deletingLastPathComponent()
+      if !FileManager.default.fileExists(atPath: typeDir.path) {
+        try FileManager.default.createDirectory(at: typeDir, withIntermediateDirectories: true)
+      }
 
       let path: String
       if case .page = type, let pageNum = page {
