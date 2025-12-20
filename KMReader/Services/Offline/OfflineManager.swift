@@ -86,10 +86,17 @@ actor OfflineManager {
     switch status {
     case .downloaded:
       await deleteBook(instanceId: instanceId, bookId: info.bookId)
-    case .downloading:
+    case .downloading, .pending:
       await cancelDownload(bookId: info.bookId)
     case .notDownloaded, .failed:
-      await startDownload(instanceId: instanceId, info: info)
+      await MainActor.run {
+        KomgaBookStore.shared.updateDownloadStatus(
+          bookId: info.bookId,
+          status: .pending,
+          downloadAt: .now
+        )
+      }
+      await syncDownloadQueue(instanceId: instanceId)
     }
   }
 
@@ -126,7 +133,34 @@ actor OfflineManager {
     activeTasks.removeAll()
   }
 
-  func startDownload(instanceId: String, info: DownloadInfo) async {
+  func pauseSync() {
+    AppConfig.offlinePaused = true
+    logger.info("Download sync paused")
+  }
+
+  func resumeSync(instanceId: String) async {
+    AppConfig.offlinePaused = false
+    logger.info("Download sync resumed")
+    await syncDownloadQueue(instanceId: instanceId)
+  }
+
+  func syncDownloadQueue(instanceId: String) async {
+    // Check if paused
+    guard !AppConfig.offlinePaused else { return }
+
+    // Only allow one download at a time
+    guard activeTasks.isEmpty else { return }
+
+    let pending = await MainActor.run {
+      KomgaBookStore.shared.fetchPendingBooks(limit: 1)
+    }
+
+    guard let nextBook = pending.first else { return }
+
+    await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
+  }
+
+  private func startDownload(instanceId: String, info: DownloadInfo) async {
     guard activeTasks[info.bookId] == nil else { return }
 
     // Mark as downloading in SwiftData
@@ -154,6 +188,9 @@ actor OfflineManager {
         await removeActiveTask(info.bookId)
         logger.info("Download complete for book: \(info.bookId)")
 
+        // Trigger next download
+        await syncDownloadQueue(instanceId: instanceId)
+
       } catch {
         // Cleanup on failure
         try? FileManager.default.removeItem(at: bookDir)
@@ -170,6 +207,9 @@ actor OfflineManager {
           }
         }
         await removeActiveTask(info.bookId)
+
+        // Trigger next download even on failure or cancellation
+        await syncDownloadQueue(instanceId: instanceId)
       }
     }
   }

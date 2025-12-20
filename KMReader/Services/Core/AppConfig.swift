@@ -140,6 +140,11 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var offlinePaused: Bool {
+    get { UserDefaults.standard.bool(forKey: "offlinePaused") }
+    set { UserDefaults.standard.set(newValue, forKey: "offlinePaused") }
+  }
+
   // MARK: - Dashboard
 
   static var dashboardConfiguration: DashboardConfiguration {

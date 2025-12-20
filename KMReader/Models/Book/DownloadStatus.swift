@@ -11,6 +11,7 @@ import SwiftUI
 /// Status of an offline book download.
 enum DownloadStatus: Equatable, Sendable {
   case notDownloaded
+  case pending
   case downloading(progress: Double)
   case downloaded
   case failed(error: String)
@@ -22,7 +23,7 @@ enum DownloadStatus: Equatable, Sendable {
     switch self {
     case .downloaded:
       return String(localized: "Remove Offline")
-    case .downloading:
+    case .downloading, .pending:
       return String(localized: "Cancel Download")
     case .notDownloaded, .failed:
       return String(localized: "Make Offline")
@@ -33,27 +34,21 @@ enum DownloadStatus: Equatable, Sendable {
   var menuIcon: String {
     switch self {
     case .downloaded:
-      return "square.and.arrow.down.badge.xmark"
-    case .downloading:
-      return "square.and.arrow.down.badge.clock"
-    case .notDownloaded:
+      return "trash"
+    case .downloading, .pending:
+      return "xmark.circle"
+    case .notDownloaded, .failed:
       return "square.and.arrow.down"
-    case .failed:
-      return "exclamationmark.triangle"
     }
   }
 
   /// Color for the status icon.
   var menuColor: Color {
     switch self {
-    case .downloaded:
+    case .downloaded, .downloading, .pending:
       return .red
-    case .downloading:
-      return .blue
-    case .notDownloaded:
+    case .notDownloaded, .failed:
       return .primary
-    case .failed:
-      return .orange
     }
   }
 }

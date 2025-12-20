@@ -70,11 +70,14 @@ final class KomgaBook {
   var downloadStatusRaw: String = "notDownloaded"
   var downloadProgress: Double = 0.0
   var downloadError: String?
+  var downloadAt: Date?
 
   /// Computed property for download status.
   var downloadStatus: DownloadStatus {
     get {
       switch downloadStatusRaw {
+      case "pending":
+        return .pending
       case "downloading":
         return .downloading(progress: downloadProgress)
       case "downloaded":
@@ -91,6 +94,12 @@ final class KomgaBook {
         downloadStatusRaw = "notDownloaded"
         downloadProgress = 0.0
         downloadError = nil
+        downloadAt = nil
+      case .pending:
+        downloadStatusRaw = "pending"
+        downloadProgress = 0.0
+        downloadError = nil
+        // downloadAt should be set by the caller if needed
       case .downloading(let progress):
         downloadStatusRaw = "downloading"
         downloadProgress = progress
@@ -99,10 +108,12 @@ final class KomgaBook {
         downloadStatusRaw = "downloaded"
         downloadProgress = 1.0
         downloadError = nil
+        downloadAt = nil
       case .failed(let error):
         downloadStatusRaw = "failed"
         downloadProgress = 0.0
         downloadError = error
+        downloadAt = nil
       }
     }
   }

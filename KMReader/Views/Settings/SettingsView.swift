@@ -34,6 +34,9 @@ import SwiftUI
             NavigationLink(value: NavDestination.settingsSSE) {
               Label("Real-time Updates", systemImage: "antenna.radiowaves.left.and.right")
             }
+            NavigationLink(value: NavDestination.settingsOfflineTasks) {
+              Label("Offline Tasks", systemImage: "square.and.arrow.down.on.square")
+            }
           }
 
           Section(header: Text("Management")) {

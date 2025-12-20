@@ -58,6 +58,8 @@ extension View {
             AuthenticationActivityView()
           case .settingsServers:
             SettingsServersView()
+          case .settingsOfflineTasks:
+            SettingsOfflineTasksView()
         #else
           case .settingsLibraries,
             .settingsAppearance,
@@ -69,7 +71,8 @@ extension View {
             .settingsMetrics,
             .settingsApiKey,
             .settingsAuthenticationActivity,
-            .settingsServers:
+            .settingsServers,
+            .settingsOfflineTasks:
             VStack(spacing: 16) {
               Image(systemName: "gearshape")
                 .font(.system(size: 48))

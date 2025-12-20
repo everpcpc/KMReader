@@ -228,7 +228,7 @@ final class KomgaBookStore {
   }
 
   /// Update the download status of a book.
-  func updateDownloadStatus(bookId: String, status: DownloadStatus) {
+  func updateDownloadStatus(bookId: String, status: DownloadStatus, downloadAt: Date? = nil) {
     guard let container else { return }
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
@@ -240,7 +240,33 @@ final class KomgaBookStore {
 
     guard let book = try? context.fetch(descriptor).first else { return }
     book.downloadStatus = status
+    if let downloadAt = downloadAt {
+      book.downloadAt = downloadAt
+    }
     try? context.save()
+  }
+
+  /// Fetch all pending books for the current instance.
+  func fetchPendingBooks(limit: Int? = nil) -> [Book] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    var descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "pending" },
+      sortBy: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
+    )
+
+    if let limit = limit {
+      descriptor.fetchLimit = limit
+    }
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.toBook() }
+    } catch {
+      return []
+    }
   }
 
   /// Fetch all downloaded books for the current instance.
