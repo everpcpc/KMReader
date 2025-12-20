@@ -49,7 +49,7 @@ final class KomgaCollectionStore {
 
     if let search = search, !search.isEmpty {
       descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && col.name.contains(search)
+        col.instanceId == instanceId && col.name.localizedStandardContains(search)
       }
     } else {
       descriptor.predicate = #Predicate<KomgaCollection> { col in
@@ -103,7 +103,7 @@ final class KomgaCollectionStore {
 
     if !searchText.isEmpty {
       descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && col.name.contains(searchText)
+        col.instanceId == instanceId && col.name.localizedStandardContains(searchText)
       }
     } else {
       descriptor.predicate = #Predicate<KomgaCollection> { col in

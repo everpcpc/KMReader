@@ -43,7 +43,8 @@ final class KomgaReadListStore {
 
     if let search = search, !search.isEmpty {
       descriptor.predicate = #Predicate<KomgaReadList> { rl in
-        rl.instanceId == instanceId && (rl.name.contains(search) || rl.summary.contains(search))
+        rl.instanceId == instanceId
+          && (rl.name.localizedStandardContains(search) || rl.summary.localizedStandardContains(search))
       }
     } else {
       descriptor.predicate = #Predicate<KomgaReadList> { rl in
@@ -97,7 +98,7 @@ final class KomgaReadListStore {
     if !searchText.isEmpty {
       descriptor.predicate = #Predicate<KomgaReadList> { rl in
         rl.instanceId == instanceId
-          && (rl.name.contains(searchText) || rl.summary.contains(searchText))
+          && (rl.name.localizedStandardContains(searchText) || rl.summary.localizedStandardContains(searchText))
       }
     } else {
       descriptor.predicate = #Predicate<KomgaReadList> { rl in

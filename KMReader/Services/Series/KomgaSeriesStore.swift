@@ -62,7 +62,7 @@ final class KomgaSeriesStore {
       if let search = searchTerm, !search.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.libraryId == libraryId
-            && (series.name.contains(search) || series.metaTitle.contains(search))
+            && (series.name.localizedStandardContains(search) || series.metaTitle.localizedStandardContains(search))
         }
       } else {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
@@ -73,7 +73,7 @@ final class KomgaSeriesStore {
       // All libraries
       if let search = searchTerm, !search.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
-          series.name.contains(search) || series.metaTitle.contains(search)
+          series.name.localizedStandardContains(search) || series.metaTitle.localizedStandardContains(search)
         }
       }
     }
@@ -127,12 +127,12 @@ final class KomgaSeriesStore {
       if let libraryId = libraryId {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.instanceId == instanceId && series.libraryId == libraryId
-            && (series.name.contains(searchText) || series.metaTitle.contains(searchText))
+            && (series.name.localizedStandardContains(searchText) || series.metaTitle.localizedStandardContains(searchText))
         }
       } else {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.instanceId == instanceId
-            && (series.name.contains(searchText) || series.metaTitle.contains(searchText))
+            && (series.name.localizedStandardContains(searchText) || series.metaTitle.localizedStandardContains(searchText))
         }
       }
     } else {
