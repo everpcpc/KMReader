@@ -36,11 +36,9 @@ enum CacheManager {
   }
 
   /// Remove all cached data for a specific Komga instance.
-  static func clearCaches(instanceId: String) async {
-    await Task.detached(priority: .utility) {
-      CacheNamespace.removeNamespace(for: "KomgaImageCache", instanceId: instanceId)
-      CacheNamespace.removeNamespace(for: "KomgaBookFileCache", instanceId: instanceId)
-      CacheNamespace.removeNamespace(for: "KomgaThumbnailCache", instanceId: instanceId)
-    }.value
+  static func clearCaches(instanceId: String) {
+    CacheNamespace.removeNamespace(for: "KomgaImageCache", instanceId: instanceId)
+    CacheNamespace.removeNamespace(for: "KomgaBookFileCache", instanceId: instanceId)
+    CacheNamespace.removeNamespace(for: "KomgaThumbnailCache", instanceId: instanceId)
   }
 }

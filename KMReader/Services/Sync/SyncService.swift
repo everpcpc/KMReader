@@ -368,6 +368,27 @@ class SyncService {
     // And persist the associated books/series
   }
 
+  // MARK: - Cleanup
+
+  /// Remove all SwiftData entities associated with a specific Komga instance.
+  func clearInstanceData(instanceId: String) {
+    guard let context = makeContext() else { return }
+
+    do {
+      try context.delete(model: KomgaBook.self, where: #Predicate { $0.instanceId == instanceId })
+      try context.delete(model: KomgaSeries.self, where: #Predicate { $0.instanceId == instanceId })
+      try context.delete(
+        model: KomgaCollection.self, where: #Predicate { $0.instanceId == instanceId })
+      try context.delete(
+        model: KomgaReadList.self, where: #Predicate { $0.instanceId == instanceId })
+
+      try context.save()
+      logger.info("Cleared all SwiftData entities for instance: \(instanceId)")
+    } catch {
+      logger.error("Failed to clear instance data: \(error)")
+    }
+  }
+
   // MARK: - Upsert Helpers
 
   private func upsertBook(dto: Book, instanceId: String, context: ModelContext) async {

@@ -457,10 +457,19 @@ struct SettingsServersView: View {
     modelContext.delete(instance)
     saveChanges()
     instancePendingDeletion = nil
+
+    let instanceId = instance.id.uuidString
+
+    // Clear SwiftData entities
+    LibraryManager.shared.removeLibraries(for: instanceId)
+    SyncService.shared.clearInstanceData(instanceId: instanceId)
+
+    // Clear offline downloads and caches (async)
     Task {
-      await CacheManager.clearCaches(instanceId: instance.id.uuidString)
+      await OfflineManager.shared.cancelAllDownloads()
+      OfflineManager.removeOfflineData(for: instanceId)
+      CacheManager.clearCaches(instanceId: instanceId)
     }
-    LibraryManager.shared.removeLibraries(for: instance.id.uuidString)
   }
 
   private func saveChanges() {

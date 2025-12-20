@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct CollectionDetailView: View {
@@ -15,13 +16,32 @@ struct CollectionDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
 
+  // SwiftData query for reactive updates
+  @Query private var komgaCollections: [KomgaCollection]
+
   @State private var seriesViewModel = SeriesViewModel()
-  @State private var collection: SeriesCollection?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
   @State private var containerWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
+
+  init(collectionId: String) {
+    self.collectionId = collectionId
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(collectionId)"
+    _komgaCollections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
+  }
+
+  /// The KomgaCollection from SwiftData (reactive).
+  private var komgaCollection: KomgaCollection? {
+    komgaCollections.first
+  }
+
+  /// Convert to API SeriesCollection type for compatibility with existing components.
+  private var collection: SeriesCollection? {
+    komgaCollection?.toCollection()
+  }
 
   // SwiftUI's default horizontal padding is 16 on each side (32 total)
   private let horizontalPadding: CGFloat = 16
@@ -156,16 +176,11 @@ struct CollectionDetailView: View {
 // Helper functions for CollectionDetailView
 extension CollectionDetailView {
   private func loadCollectionDetails() async {
-    // 1. Local Cache
-    if let cached = KomgaCollectionStore.shared.fetchCollection(id: collectionId) {
-      collection = cached
-    }
-
-    // 2. Sync
     do {
-      collection = try await SyncService.shared.syncCollection(id: collectionId)
+      // Sync from network to SwiftData (collection property will update reactively)
+      _ = try await SyncService.shared.syncCollection(id: collectionId)
     } catch {
-      if collection == nil {
+      if komgaCollection == nil {
         ErrorManager.shared.alert(error: error)
       }
     }

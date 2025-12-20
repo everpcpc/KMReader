@@ -201,4 +201,63 @@ final class KomgaBookStore {
       return []
     }
   }
+
+  // MARK: - Offline Download Status
+
+  /// Get the download status of a book.
+  func getDownloadStatus(bookId: String) -> DownloadStatus {
+    guard let container else { return .notDownloaded }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(bookId)"
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+
+    guard let book = try? context.fetch(descriptor).first else { return .notDownloaded }
+    return book.downloadStatus
+  }
+
+  /// Check if a book is downloaded.
+  func isBookDownloaded(bookId: String) -> Bool {
+    if case .downloaded = getDownloadStatus(bookId: bookId) {
+      return true
+    }
+    return false
+  }
+
+  /// Update the download status of a book.
+  func updateDownloadStatus(bookId: String, status: DownloadStatus) {
+    guard let container else { return }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(bookId)"
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+
+    guard let book = try? context.fetch(descriptor).first else { return }
+    book.downloadStatus = status
+    try? context.save()
+  }
+
+  /// Fetch all downloaded books for the current instance.
+  func fetchDownloadedBooks() -> [Book] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded" }
+    )
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.toBook() }
+    } catch {
+      return []
+    }
+  }
 }

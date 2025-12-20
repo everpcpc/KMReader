@@ -6,6 +6,7 @@
 //
 
 import Flow
+import SwiftData
 import SwiftUI
 
 struct BookDetailView: View {
@@ -14,7 +15,11 @@ struct BookDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @State private var book: Book?
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+
+  // SwiftData query for reactive download status
+  @Query private var komgaBooks: [KomgaBook]
+
   @State private var isLoading = true
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
@@ -23,13 +28,26 @@ struct BookDetailView: View {
   @State private var isLoadingRelations = false
   @State private var showDownloadSheet = false
 
-  // Offline State
-  private var isDownloaded: Bool {
-    OfflineManager.shared.isBookDownloaded(bookId: bookId)
+  init(bookId: String) {
+    self.bookId = bookId
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(bookId)"
+    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
   }
 
+  /// The KomgaBook from SwiftData (reactive).
+  private var komgaBook: KomgaBook? {
+    komgaBooks.first
+  }
+
+  /// Download status from SwiftData (reactive, no manual refresh needed).
   private var downloadStatus: DownloadStatus {
-    OfflineManager.shared.getDownloadStatus(for: bookId)
+    komgaBook?.downloadStatus ?? .notDownloaded
+  }
+
+  /// Convert to API Book type for compatibility with existing components.
+  private var book: Book? {
+    komgaBook?.toBook()
   }
 
   private var progress: Double {
@@ -496,17 +514,12 @@ struct BookDetailView: View {
 
   @MainActor
   private func loadBook() async {
-    isLoading = true
-
-    // 1. Local
-    if let cached = KomgaBookStore.shared.fetchBook(id: bookId) {
-      book = cached
-      isLoading = false
-    }
+    // Only show loading if we don't have cached data
+    isLoading = komgaBook == nil
 
     do {
+      // Sync from network to SwiftData (book property will update reactively)
       let fetchedBook = try await SyncService.shared.syncBook(bookId: bookId)
-      book = fetchedBook
       isLoading = false
       isLoadingRelations = true
       bookReadLists = []
@@ -515,7 +528,7 @@ struct BookDetailView: View {
       }
     } catch {
       isLoading = false
-      if book == nil {
+      if komgaBook == nil {
         ErrorManager.shared.alert(error: error)
       }
     }
@@ -553,6 +566,7 @@ struct BookDetailView: View {
     return formatter.string(from: date)
   }
 
+
   private func addToReadList(readListId: String) {
     Task {
       do {
@@ -579,7 +593,9 @@ struct BookDetailView: View {
       // Download Button
       Button {
         if let book = book {
-          OfflineManager.shared.toggleDownload(book: book)
+          Task {
+            await OfflineManager.shared.toggleDownload(instanceId: currentInstanceId, info: book.downloadInfo)
+          }
         }
       } label: {
         switch downloadStatus {

@@ -76,9 +76,9 @@
         let epubURL: URL
 
         // 1. Check OfflineManager
-        if let offlineURL = await MainActor.run(body: {
-          OfflineManager.shared.getOfflineEpubURL(bookId: bookId)
-        }) {
+        if let offlineURL = await OfflineManager.shared.getOfflineEpubURL(
+          instanceId: AppConfig.currentInstanceId, bookId: bookId
+        ) {
           epubURL = offlineURL
         }
         // 2. Check BookFileCache

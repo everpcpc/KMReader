@@ -6,6 +6,7 @@
 //
 
 import Flow
+import SwiftData
 import SwiftUI
 
 struct SeriesDetailView: View {
@@ -17,9 +18,11 @@ struct SeriesDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
+  // SwiftData query for reactive updates
+  @Query private var komgaSeriesList: [KomgaSeries]
+
   @State private var seriesViewModel = SeriesViewModel()
   @State private var bookViewModel = BookViewModel()
-  @State private var series: Series?
   @State private var showDeleteConfirmation = false
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
@@ -28,6 +31,23 @@ struct SeriesDetailView: View {
   @State private var isLoadingCollections = false
   @State private var containerWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
+
+  init(seriesId: String) {
+    self.seriesId = seriesId
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(seriesId)"
+    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+  }
+
+  /// The KomgaSeries from SwiftData (reactive).
+  private var komgaSeries: KomgaSeries? {
+    komgaSeriesList.first
+  }
+
+  /// Convert to API Series type for compatibility with existing components.
+  private var series: Series? {
+    komgaSeries?.toSeries()
+  }
 
   // SwiftUI's default horizontal padding is 16 on each side (32 total)
   private let horizontalPadding: CGFloat = 16
@@ -452,22 +472,12 @@ extension SeriesDetailView {
 
   @MainActor
   private func loadSeriesDetails() async {
-    // 1. Load from Local DB
-    if let cachedSeries = KomgaSeriesStore.shared.fetchOne(seriesId: seriesId) {
-      withAnimation {
-        series = cachedSeries
-      }
-    }
-
-    // 2. Sync
     do {
+      // Sync from network to SwiftData (series property will update reactively)
       let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
-      withAnimation {
-        series = fetchedSeries
-      }
       await loadSeriesCollections(seriesId: fetchedSeries.id)
     } catch {
-      if series == nil {
+      if komgaSeries == nil {
         ErrorManager.shared.alert(error: error)
       }
     }

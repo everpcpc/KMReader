@@ -66,9 +66,46 @@ final class KomgaBook {
   var deleted: Bool
   var oneshot: Bool
 
-  // Track offline status (managed locally)
-  var isDownloaded: Bool = false
+  // Track offline download status (managed locally)
+  var downloadStatusRaw: String = "notDownloaded"
   var downloadProgress: Double = 0.0
+  var downloadError: String?
+
+  /// Computed property for download status.
+  var downloadStatus: DownloadStatus {
+    get {
+      switch downloadStatusRaw {
+      case "downloading":
+        return .downloading(progress: downloadProgress)
+      case "downloaded":
+        return .downloaded
+      case "failed":
+        return .failed(error: downloadError ?? "Unknown error")
+      default:
+        return .notDownloaded
+      }
+    }
+    set {
+      switch newValue {
+      case .notDownloaded:
+        downloadStatusRaw = "notDownloaded"
+        downloadProgress = 0.0
+        downloadError = nil
+      case .downloading(let progress):
+        downloadStatusRaw = "downloading"
+        downloadProgress = progress
+        downloadError = nil
+      case .downloaded:
+        downloadStatusRaw = "downloaded"
+        downloadProgress = 1.0
+        downloadError = nil
+      case .failed(let error):
+        downloadStatusRaw = "failed"
+        downloadProgress = 0.0
+        downloadError = error
+      }
+    }
+  }
 
   @Relationship var series: KomgaSeries?
 
@@ -89,8 +126,7 @@ final class KomgaBook {
     metadata: BookMetadata,
     readProgress: ReadProgress?,
     deleted: Bool,
-    oneshot: Bool,
-    isDownloaded: Bool = false
+    oneshot: Bool
   ) {
     self.id = id ?? "\(instanceId)_\(bookId)"
     self.bookId = bookId
@@ -145,7 +181,6 @@ final class KomgaBook {
 
     self.deleted = deleted
     self.oneshot = oneshot
-    self.isDownloaded = isDownloaded
   }
 
   var media: Media {

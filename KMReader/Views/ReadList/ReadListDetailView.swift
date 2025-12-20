@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct ReadListDetailView: View {
@@ -16,13 +17,32 @@ struct ReadListDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
+  // SwiftData query for reactive updates
+  @Query private var komgaReadLists: [KomgaReadList]
+
   @State private var bookViewModel = BookViewModel()
-  @State private var readList: ReadList?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
   @State private var containerWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
+
+  init(readListId: String) {
+    self.readListId = readListId
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(readListId)"
+    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
+  }
+
+  /// The KomgaReadList from SwiftData (reactive).
+  private var komgaReadList: KomgaReadList? {
+    komgaReadLists.first
+  }
+
+  /// Convert to API ReadList type for compatibility with existing components.
+  private var readList: ReadList? {
+    komgaReadList?.toReadList()
+  }
 
   // SwiftUI's default horizontal padding is 16 on each side (32 total)
   private let horizontalPadding: CGFloat = 16
@@ -167,16 +187,11 @@ struct ReadListDetailView: View {
 // Helper functions for ReadListDetailView
 extension ReadListDetailView {
   private func loadReadListDetails() async {
-    // 1. Local Cache
-    if let cached = KomgaReadListStore.shared.fetchReadList(id: readListId) {
-      readList = cached
-    }
-
-    // 2. Sync
     do {
-      readList = try await SyncService.shared.syncReadList(id: readListId)
+      // Sync from network to SwiftData (readList property will update reactively)
+      _ = try await SyncService.shared.syncReadList(id: readListId)
     } catch {
-      if readList == nil {
+      if komgaReadList == nil {
         ErrorManager.shared.alert(error: error)
       }
     }

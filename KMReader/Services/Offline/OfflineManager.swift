@@ -7,199 +7,217 @@
 
 import Foundation
 import OSLog
-import Observation
-import SwiftData
 import UniformTypeIdentifiers
 
-enum DownloadStatus: Equatable {
-  case notDownloaded
-  case downloading(progress: Double)
-  case downloaded
-  case failed(error: String)
+/// Simple Sendable struct for download info.
+struct DownloadInfo: Sendable {
+  let bookId: String
+  let bookName: String
+  let isEpub: Bool
 }
 
-@MainActor
-@Observable
-class OfflineManager {
+/// Actor for managing offline book downloads with proper thread isolation.
+/// Download status is persisted in SwiftData via KomgaBook.downloadStatus.
+actor OfflineManager {
   static let shared = OfflineManager()
 
-  var downloadStatuses: [String: DownloadStatus] = [:]
-
-  private let fileManager = FileManager.default
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "OfflineManager")
   private var activeTasks: [String: Task<Void, Never>] = [:]
 
-  private init() {
-    // We don't need to load metadata from disk anymore, we use SwiftData.
-    // But we might want to check file consistency on startup?
-    // For now, lazy load status.
-  }
+  private let logger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "OfflineManager")
+
+  private init() {}
+
+  private static let directoryName = "OfflineBooks"
 
   // MARK: - Paths
 
-  private func offlineDirectory() -> URL {
-    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-      .appendingPathComponent("OfflineBooks", isDirectory: true)
-    if !fileManager.fileExists(atPath: url.path) {
-      try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+  /// Base directory for all offline books.
+  private static func baseDirectory() -> URL {
+    let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    return documentsDir.appendingPathComponent(directoryName, isDirectory: true)
+  }
+
+  /// Namespaced directory for a specific instance's offline books.
+  private static func offlineDirectory(for instanceId: String) -> URL {
+    let sanitized = instanceId.isEmpty ? "default" : instanceId
+    let url = baseDirectory().appendingPathComponent(sanitized, isDirectory: true)
+    var isDir: ObjCBool = false
+    if !FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) || !isDir.boolValue {
+      try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
     return url
   }
 
-  private func bookDirectory(id: String) -> URL {
-    let url = offlineDirectory().appendingPathComponent(id, isDirectory: true)
-    if !fileManager.fileExists(atPath: url.path) {
-      try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+  /// Remove all offline downloads for a specific instance.
+  nonisolated static func removeOfflineData(for instanceId: String) {
+    let url = offlineDirectory(for: instanceId)
+    try? FileManager.default.removeItem(at: url)
+  }
+
+  private func bookDirectory(instanceId: String, bookId: String) -> URL {
+    let url = Self.offlineDirectory(for: instanceId)
+      .appendingPathComponent(bookId, isDirectory: true)
+    if !FileManager.default.fileExists(atPath: url.path) {
+      try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
     return url
   }
 
   // MARK: - Public API
 
-  func isBookDownloaded(bookId: String) -> Bool {
-    if KomgaBookStore.shared.fetchBook(id: bookId) != nil {
-      let dir = bookDirectory(id: bookId)
-      // Simple check: does directory exist and have content?
-      // This might be slow if called often.
-      // Better: rely on memory state initialized from DB/Files.
-      // But for now, let's check DB flag via Store if we expose it?
-      // KomgaBookStore currently returns Book struct which doesn't have isDownloaded.
-      // Let's add isDownloaded to Book struct? No, it's a local property.
+  /// Get the download status of a book from SwiftData.
+  func getDownloadStatus(bookId: String) async -> DownloadStatus {
+    await MainActor.run {
+      KomgaBookStore.shared.getDownloadStatus(bookId: bookId)
+    }
+  }
 
-      // Let's check file existence for now, it's robust.
-      // Or check internal status map if populated.
-
-      // Actually, let's use the file system as source of truth for "isDownloaded"
-      // to avoid sync issues.
-      let isEpub = fileManager.fileExists(atPath: dir.appendingPathComponent("book.epub").path)
-      if isEpub { return true }
-
-      // For images, check if directory has files?
-      // Ideally we check for a "completed" marker file.
-      return fileManager.fileExists(atPath: dir.appendingPathComponent("completed").path)
+  /// Check if a book is downloaded.
+  func isBookDownloaded(bookId: String) async -> Bool {
+    if case .downloaded = await getDownloadStatus(bookId: bookId) {
+      return true
     }
     return false
   }
 
-  func getDownloadStatus(for bookId: String) -> DownloadStatus {
-    if let status = downloadStatuses[bookId] {
-      return status
-    }
-    return isBookDownloaded(bookId: bookId) ? .downloaded : .notDownloaded
-  }
-
-  func toggleDownload(book: Book) {
-    if isBookDownloaded(bookId: book.id) {
-      deleteBook(bookId: book.id)
-    } else {
-      if case .downloading = getDownloadStatus(for: book.id) {
-        cancelDownload(bookId: book.id)
-      } else {
-        startDownload(book: book)
-      }
+  func toggleDownload(instanceId: String, info: DownloadInfo) async {
+    let status = await getDownloadStatus(bookId: info.bookId)
+    switch status {
+    case .downloaded:
+      await deleteBook(instanceId: instanceId, bookId: info.bookId)
+    case .downloading:
+      await cancelDownload(bookId: info.bookId)
+    case .notDownloaded, .failed:
+      await startDownload(instanceId: instanceId, info: info)
     }
   }
 
-  func deleteBook(bookId: String) {
-    cancelDownload(bookId: bookId)
-    let dir = bookDirectory(id: bookId)
-    do {
-      if fileManager.fileExists(atPath: dir.path) {
-        try fileManager.removeItem(at: dir)
-      }
-      downloadStatuses[bookId] = .notDownloaded
-      updateKomgaBookStatus(bookId: bookId, isDownloaded: false)
-      logger.info("Deleted offline book: \(bookId)")
-    } catch {
-      logger.error("Failed to delete book \(bookId): \(error)")
+  func deleteBook(instanceId: String, bookId: String) async {
+    await cancelDownload(bookId: bookId)
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
+
+    // Update SwiftData first
+    await MainActor.run {
+      KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .notDownloaded)
     }
-  }
 
-  func startDownload(book: Book) {
-    guard activeTasks[book.id] == nil else { return }
-
-    downloadStatuses[book.id] = .downloading(progress: 0.0)
-
-    activeTasks[book.id] = Task {
+    // Then delete files
+    Task.detached { [logger] in
       do {
-        logger.info("Starting download for book: \(book.name) (\(book.id))")
+        if FileManager.default.fileExists(atPath: dir.path) {
+          try FileManager.default.removeItem(at: dir)
+        }
+        logger.info("Deleted offline book: \(bookId)")
+      } catch {
+        logger.error("Failed to delete book \(bookId): \(error)")
+      }
+    }
+  }
 
-        // 1. Handle based on media type
-        if book.media.mediaProfile == .epub {
-          try await downloadEpub(book: book)
+  /// Cancel all active downloads (used during cleanup).
+  func cancelAllDownloads() async {
+    for (bookId, task) in activeTasks {
+      task.cancel()
+      await MainActor.run {
+        KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .notDownloaded)
+      }
+    }
+    activeTasks.removeAll()
+  }
+
+  func startDownload(instanceId: String, info: DownloadInfo) async {
+    guard activeTasks[info.bookId] == nil else { return }
+
+    // Mark as downloading in SwiftData
+    await MainActor.run {
+      KomgaBookStore.shared.updateDownloadStatus(bookId: info.bookId, status: .downloading(progress: 0.0))
+    }
+
+    let bookDir = bookDirectory(instanceId: instanceId, bookId: info.bookId)
+
+    activeTasks[info.bookId] = Task { [weak self, logger] in
+      guard let self else { return }
+      do {
+        logger.info("Starting download for book: \(info.bookName) (\(info.bookId))")
+
+        if info.isEpub {
+          try await downloadEpub(bookId: info.bookId, to: bookDir)
         } else {
-          try await downloadPages(book: book)
+          try await downloadPages(bookId: info.bookId, to: bookDir)
         }
 
-        // 2. Mark Complete
-        let dir = bookDirectory(id: book.id)
-        fileManager.createFile(atPath: dir.appendingPathComponent("completed").path, contents: nil)
-
-        downloadStatuses[book.id] = .downloaded
-        updateKomgaBookStatus(bookId: book.id, isDownloaded: true)
-        logger.info("Download complete for book: \(book.id)")
+        // Mark complete in SwiftData
+        await MainActor.run {
+          KomgaBookStore.shared.updateDownloadStatus(bookId: info.bookId, status: .downloaded)
+        }
+        await removeActiveTask(info.bookId)
+        logger.info("Download complete for book: \(info.bookId)")
 
       } catch {
-        if Task.isCancelled {
-          logger.info("Download cancelled for book: \(book.id)")
-          downloadStatuses[book.id] = .notDownloaded
-        } else {
-          logger.error("Download failed for book \(book.id): \(error)")
-          downloadStatuses[book.id] = .failed(error: error.localizedDescription)
-        }
         // Cleanup on failure
-        try? fileManager.removeItem(at: bookDirectory(id: book.id))
-        updateKomgaBookStatus(bookId: book.id, isDownloaded: false)
+        try? FileManager.default.removeItem(at: bookDir)
+
+        if Task.isCancelled {
+          logger.info("Download cancelled for book: \(info.bookId)")
+        } else {
+          logger.error("Download failed for book \(info.bookId): \(error)")
+          await MainActor.run {
+            KomgaBookStore.shared.updateDownloadStatus(
+              bookId: info.bookId,
+              status: .failed(error: error.localizedDescription)
+            )
+          }
+        }
+        await removeActiveTask(info.bookId)
       }
-      activeTasks[book.id] = nil
     }
   }
 
-  func cancelDownload(bookId: String) {
+  func cancelDownload(bookId: String) async {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
-    downloadStatuses[bookId] = .notDownloaded
+    await MainActor.run {
+      KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .notDownloaded)
+    }
   }
 
   // MARK: - Accessors for Reader
 
-  func getOfflinePageImageURL(bookId: String, page: BookPage) -> URL? {
-    guard isBookDownloaded(bookId: bookId) else { return nil }
-    let dir = bookDirectory(id: bookId)
+  func getOfflinePageImageURL(instanceId: String, bookId: String, pageNumber: Int, fileExtension: String) async -> URL? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
-    // Check for "page-{number}.ext"
-    // We try to match known extensions or find the file
-    let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-    let file = dir.appendingPathComponent("page-\(page.number).\(ext)")
-    if fileManager.fileExists(atPath: file.path) {
+    let file = dir.appendingPathComponent("page-\(pageNumber).\(fileExtension)")
+    if FileManager.default.fileExists(atPath: file.path) {
       return file
     }
-    // Fallback: iterate (slower but safer if extension mismatch)
-    // Optimization: We should enforce extension when saving.
     return nil
   }
 
-  func getOfflineEpubURL(bookId: String) -> URL? {
-    guard isBookDownloaded(bookId: bookId) else { return nil }
-    let file = bookDirectory(id: bookId).appendingPathComponent("book.epub")
-    return fileManager.fileExists(atPath: file.path) ? file : nil
+  func getOfflineEpubURL(instanceId: String, bookId: String) async -> URL? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent("book.epub")
+    return FileManager.default.fileExists(atPath: file.path) ? file : nil
   }
 
-  // MARK: - Internal Logic
+  // MARK: - Private Helpers
 
-  private func downloadEpub(book: Book) async throws {
-    let data = try await BookService.shared.downloadEpubFile(bookId: book.id)
-    let dest = bookDirectory(id: book.id).appendingPathComponent("book.epub")
+  private func removeActiveTask(_ bookId: String) {
+    activeTasks[bookId] = nil
+  }
+
+  // MARK: - Download Logic
+
+  private func downloadEpub(bookId: String, to bookDir: URL) async throws {
+    let data = try await BookService.shared.downloadEpubFile(bookId: bookId)
+    let dest = bookDir.appendingPathComponent("book.epub")
     try data.write(to: dest)
   }
 
-  private func downloadPages(book: Book) async throws {
-    let pages = try await BookService.shared.getBookPages(id: book.id)
+  private func downloadPages(bookId: String, to bookDir: URL) async throws {
+    let pages = try await BookService.shared.getBookPages(id: bookId)
     let total = Double(pages.count)
-    let bookId = book.id
-    let bookDir = bookDirectory(id: bookId)
-    let fm = FileManager.default
 
     try await withThrowingTaskGroup(of: Void.self) { group in
       var completedCount = 0
@@ -215,7 +233,7 @@ class OfflineManager {
             let fileName = "page-\(page.number).\(ext)"
             let dest = bookDir.appendingPathComponent(fileName)
 
-            if !fm.fileExists(atPath: dest.path) {
+            if !FileManager.default.fileExists(atPath: dest.path) {
               let (data, _) = try await BookService.shared.getBookPage(
                 bookId: bookId, page: page.number)
               try data.write(to: dest)
@@ -237,18 +255,23 @@ class OfflineManager {
 
         let progress = Double(completedCount) / total
         await MainActor.run {
-          self.downloadStatuses[book.id] = .downloading(progress: progress)
+          KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .downloading(progress: progress))
         }
 
         submitNext()
       }
     }
   }
+}
 
-  private func updateKomgaBookStatus(bookId: String, isDownloaded: Bool) {
-    // We can use a private context to update the KomgaBook entity
-    // Or notify SyncService?
-    // For now, let's just log.
-    // Ideally KomgaBookStore should expose a method to update local state.
+// MARK: - Helper Extension
+
+extension Book {
+  var downloadInfo: DownloadInfo {
+    DownloadInfo(
+      bookId: id,
+      bookName: name,
+      isEpub: media.mediaProfile == .epub
+    )
   }
 }

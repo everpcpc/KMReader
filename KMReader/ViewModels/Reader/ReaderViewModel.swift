@@ -132,9 +132,10 @@ class ReaderViewModel {
     }
 
     // 1. Check OfflineManager (Persistent Offline Content)
-    if let offlineURL = await MainActor.run(body: {
-      OfflineManager.shared.getOfflinePageImageURL(bookId: bookId, page: page)
-    }) {
+    let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
+    if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
+      instanceId: AppConfig.currentInstanceId, bookId: bookId, pageNumber: page.number, fileExtension: ext
+    ) {
       logger.debug(
         "✅ Using offline downloaded image for page \(page.number) for book \(self.bookId)")
       return offlineURL
