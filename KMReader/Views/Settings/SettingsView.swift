@@ -44,7 +44,6 @@ import SwiftUI
       return formatter.localizedString(for: latestSync, relativeTo: Date())
     }
 
-
     var body: some View {
       NavigationStack {
         Form {
@@ -78,7 +77,9 @@ import SwiftUI
               }
             } label: {
               HStack {
-                Label(String(localized: "settings.sync_data"), systemImage: "arrow.triangle.2.circlepath")
+                Label(
+                  String(localized: "settings.sync_data"),
+                  systemImage: "arrow.triangle.2.circlepath")
                 Spacer()
                 if instanceInitializer.isSyncing {
                   ProgressView()
