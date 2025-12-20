@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum AuthorRole: Equatable, Hashable {
+enum AuthorRole: Equatable, Hashable, Sendable {
   case writer
   case penciller
   case inker

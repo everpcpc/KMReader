@@ -24,7 +24,7 @@ struct SeriesDetailView: View {
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
-  @State private var containingCollections: [KomgaCollection] = []
+  @State private var containingCollections: [SeriesCollection] = []
   @State private var isLoadingCollections = false
   @State private var containerWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
@@ -452,14 +452,24 @@ extension SeriesDetailView {
 
   @MainActor
   private func loadSeriesDetails() async {
+    // 1. Load from Local DB
+    if let cachedSeries = KomgaSeriesStore.shared.fetchOne(seriesId: seriesId) {
+      withAnimation {
+        series = cachedSeries
+      }
+    }
+
+    // 2. Sync
     do {
-      let fetchedSeries = try await SeriesService.shared.getOneSeries(id: seriesId)
+      let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       withAnimation {
         series = fetchedSeries
       }
       await loadSeriesCollections(seriesId: fetchedSeries.id)
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if series == nil {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 

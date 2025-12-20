@@ -16,7 +16,7 @@ struct CollectionDetailView: View {
   @Environment(\.dismiss) private var dismiss
 
   @State private var seriesViewModel = SeriesViewModel()
-  @State private var collection: KomgaCollection?
+  @State private var collection: SeriesCollection?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
@@ -156,10 +156,18 @@ struct CollectionDetailView: View {
 // Helper functions for CollectionDetailView
 extension CollectionDetailView {
   private func loadCollectionDetails() async {
+    // 1. Local Cache
+    if let cached = KomgaCollectionStore.shared.fetchCollection(id: collectionId) {
+      collection = cached
+    }
+
+    // 2. Sync
     do {
-      collection = try await CollectionService.shared.getCollection(id: collectionId)
+      collection = try await SyncService.shared.syncCollection(id: collectionId)
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if collection == nil {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 

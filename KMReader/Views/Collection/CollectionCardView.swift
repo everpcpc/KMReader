@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CollectionCardView: View {
-  let collection: KomgaCollection
+  let collection: SeriesCollection
   let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 

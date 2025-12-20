@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct BookMetadata: Codable, Equatable {
+struct BookMetadata: Equatable, Hashable, Sendable {
   let created: String?
   let lastModified: String?
   let title: String
@@ -29,3 +29,5 @@ struct BookMetadata: Codable, Equatable {
   let links: [WebLink]?
   let linksLock: Bool?
 }
+
+extension BookMetadata: Codable {}

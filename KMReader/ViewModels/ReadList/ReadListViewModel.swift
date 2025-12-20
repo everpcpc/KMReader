@@ -43,8 +43,25 @@ class ReadListViewModel {
 
     isLoading = true
 
+    // 1. Local Cache
+    let localReadLists = KomgaReadListStore.shared.fetchReadLists(
+      libraryIds: libraryIds,
+      page: currentPage,
+      size: 20,
+      sort: sort,
+      search: searchText.isEmpty ? nil : searchText
+    )
+    if !localReadLists.isEmpty {
+      if shouldReset {
+        readLists = localReadLists
+      } else {
+        readLists.append(contentsOf: localReadLists)
+      }
+    }
+
+    // 2. Sync
     do {
-      let page = try await readListService.getReadLists(
+      let page = try await SyncService.shared.syncReadLists(
         libraryIds: libraryIds,
         page: currentPage,
         size: 20,
@@ -55,14 +72,26 @@ class ReadListViewModel {
         if shouldReset {
           readLists = page.content
         } else {
-          readLists.append(contentsOf: page.content)
+          // Merge logic
+          if !localReadLists.isEmpty {
+            let startIndex = readLists.count - localReadLists.count
+            if startIndex >= 0 {
+              readLists.replaceSubrange(startIndex..<readLists.count, with: page.content)
+            } else {
+              readLists.append(contentsOf: page.content)
+            }
+          } else {
+            readLists.append(contentsOf: page.content)
+          }
         }
       }
 
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if readLists.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false

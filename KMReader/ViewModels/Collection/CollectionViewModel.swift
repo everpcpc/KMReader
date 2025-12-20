@@ -11,7 +11,7 @@ import SwiftUI
 @MainActor
 @Observable
 class CollectionViewModel {
-  var collections: [KomgaCollection] = []
+  var collections: [SeriesCollection] = []
   var isLoading = false
 
   private let collectionService = CollectionService.shared
@@ -43,8 +43,25 @@ class CollectionViewModel {
 
     isLoading = true
 
+    // 1. Local Cache
+    let localCollections = KomgaCollectionStore.shared.fetchCollections(
+      libraryIds: libraryIds,
+      page: currentPage,
+      size: 20,
+      sort: sort,
+      search: searchText.isEmpty ? nil : searchText
+    )
+    if !localCollections.isEmpty {
+      if shouldReset {
+        collections = localCollections
+      } else {
+        collections.append(contentsOf: localCollections)
+      }
+    }
+
+    // 2. Sync
     do {
-      let page = try await collectionService.getCollections(
+      let page = try await SyncService.shared.syncCollections(
         libraryIds: libraryIds,
         page: currentPage,
         size: 20,
@@ -55,14 +72,26 @@ class CollectionViewModel {
         if shouldReset {
           collections = page.content
         } else {
-          collections.append(contentsOf: page.content)
+          // Merge logic
+          if !localCollections.isEmpty {
+            let startIndex = collections.count - localCollections.count
+            if startIndex >= 0 {
+              collections.replaceSubrange(startIndex..<collections.count, with: page.content)
+            } else {
+              collections.append(contentsOf: page.content)
+            }
+          } else {
+            collections.append(contentsOf: page.content)
+          }
         }
       }
 
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if collections.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false

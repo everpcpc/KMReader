@@ -80,35 +80,60 @@ class SeriesViewModel {
 
     isLoading = true
 
+    // 1. Load from Local DB
+    let localSeries = KomgaSeriesStore.shared.fetchSeries(
+      libraryIds: libraryIds,
+      page: currentPage,
+      size: 20,
+      sort: browseOpts.sortString,
+      searchTerm: searchText.isEmpty ? nil : searchText
+    )
+
+    if !localSeries.isEmpty {
+      if shouldReset {
+        series = localSeries
+      } else {
+        series.append(contentsOf: localSeries)
+      }
+    }
+
+    // 2. Sync with Server
     do {
-      let page = try await seriesService.getSeries(
+      let page = try await SyncService.shared.syncSeriesPage(
         libraryIds: libraryIds,
         page: currentPage,
         size: 20,
         sort: browseOpts.sortString,
-        includeReadStatuses: browseOpts.includeReadStatuses,
-        excludeReadStatuses: browseOpts.excludeReadStatuses,
-        includeSeriesStatuses: browseOpts.includeSeriesStatuses,
-        excludeSeriesStatuses: browseOpts.excludeSeriesStatuses,
-        seriesStatusLogic: browseOpts.seriesStatusLogic,
-        completeFilter: browseOpts.completeFilter,
-        oneshotFilter: browseOpts.oneshotFilter,
-        deletedFilter: browseOpts.deletedFilter,
-        searchTerm: searchText.isEmpty ? nil : searchText
+        searchTerm: searchText.isEmpty ? nil : searchText,
+        browseOpts: browseOpts
       )
 
       withAnimation {
         if shouldReset {
           series = page.content
         } else {
-          series.append(contentsOf: page.content)
+          if !localSeries.isEmpty {
+            // We already appended local data, replace it with fresh data
+            let startIndex = series.count - localSeries.count
+            if startIndex >= 0 {
+              series.replaceSubrange(startIndex..<series.count, with: page.content)
+            } else {
+              series.append(contentsOf: page.content)
+            }
+          } else {
+            series.append(contentsOf: page.content)
+          }
         }
       }
 
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      ErrorManager.shared.alert(error: error)
+      // If we have local data, we treat this as a silent failure (offline mode)
+      // Only alert if we have no data to show
+      if shouldReset && series.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false
@@ -174,17 +199,27 @@ class SeriesViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
-    if refresh {
-      currentPage = 0
-      hasMorePages = true
-    } else {
-      guard hasMorePages && !isLoading else { return }
-    }
+    guard hasMorePages && !isLoading else { return }
 
     isLoading = true
 
+    // 1. Local Cache
+    let localSeries = KomgaSeriesStore.shared.fetchCollectionSeries(
+      collectionId: collectionId,
+      page: currentPage,
+      size: 20
+    )
+    if !localSeries.isEmpty {
+      if refresh {
+        series = localSeries
+      } else {
+        series.append(contentsOf: localSeries)
+      }
+    }
+
+    // 2. Sync
     do {
-      let page = try await CollectionService.shared.getCollectionSeries(
+      let page = try await SyncService.shared.syncCollectionSeries(
         collectionId: collectionId,
         page: currentPage,
         size: 20,
@@ -196,14 +231,26 @@ class SeriesViewModel {
         if refresh {
           series = page.content
         } else {
-          series.append(contentsOf: page.content)
+          // Merge logic
+          if !localSeries.isEmpty {
+            let startIndex = series.count - localSeries.count
+            if startIndex >= 0 {
+              series.replaceSubrange(startIndex..<series.count, with: page.content)
+            } else {
+              series.append(contentsOf: page.content)
+            }
+          } else {
+            series.append(contentsOf: page.content)
+          }
         }
       }
 
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if series.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false

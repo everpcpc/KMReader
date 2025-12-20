@@ -23,6 +23,15 @@ struct BookDetailView: View {
   @State private var isLoadingRelations = false
   @State private var showDownloadSheet = false
 
+  // Offline State
+  private var isDownloaded: Bool {
+    OfflineManager.shared.isBookDownloaded(bookId: bookId)
+  }
+
+  private var downloadStatus: DownloadStatus {
+    OfflineManager.shared.getDownloadStatus(for: bookId)
+  }
+
   private var progress: Double {
     guard let book = book, let readProgress = book.readProgress else { return 0 }
     guard book.media.pagesCount > 0 else { return 0 }
@@ -488,8 +497,15 @@ struct BookDetailView: View {
   @MainActor
   private func loadBook() async {
     isLoading = true
+
+    // 1. Local
+    if let cached = KomgaBookStore.shared.fetchBook(id: bookId) {
+      book = cached
+      isLoading = false
+    }
+
     do {
-      let fetchedBook = try await BookService.shared.getBook(id: bookId)
+      let fetchedBook = try await SyncService.shared.syncBook(bookId: bookId)
       book = fetchedBook
       isLoading = false
       isLoadingRelations = true
@@ -499,7 +515,9 @@ struct BookDetailView: View {
       }
     } catch {
       isLoading = false
-      ErrorManager.shared.alert(error: error)
+      if book == nil {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 
@@ -557,84 +575,100 @@ struct BookDetailView: View {
 
   @ViewBuilder
   private var bookToolbarContent: some View {
-    Menu {
+    HStack(spacing: PlatformHelper.buttonSpacing) {
+      // Download Button
       Button {
-        showEditSheet = true
+        if let book = book {
+          OfflineManager.shared.toggleDownload(book: book)
+        }
       } label: {
-        Label("Edit", systemImage: "pencil")
+        switch downloadStatus {
+        case .downloaded:
+          Image(systemName: "arrow.down.circle.fill")
+        case .downloading:
+          ProgressView()
+            .controlSize(.small)
+        case .notDownloaded:
+          Image(systemName: "arrow.down.circle")
+        case .failed:
+          Image(systemName: "exclamationmark.circle")
+        }
       }
-      .disabled(!isAdmin)
+      .disabled(book == nil)
+      .toolbarButtonStyle()
 
-      Divider()
+      Menu {
+        Button {
+          showEditSheet = true
+        } label: {
+          Label("Edit", systemImage: "pencil")
+        }
+        .disabled(!isAdmin)
 
-      Button {
-        analyzeBook()
-      } label: {
-        Label("Analyze", systemImage: "waveform.path.ecg")
-      }
-      .disabled(!isAdmin)
+        Divider()
 
-      Button {
-        refreshMetadata()
-      } label: {
-        Label("Refresh Metadata", systemImage: "arrow.clockwise")
-      }
-      .disabled(!isAdmin)
+        Button {
+          analyzeBook()
+        } label: {
+          Label("Analyze", systemImage: "waveform.path.ecg")
+        }
+        .disabled(!isAdmin)
 
-      Divider()
+        Button {
+          refreshMetadata()
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+        }
+        .disabled(!isAdmin)
 
-      Button {
-        showDownloadSheet = true
-      } label: {
-        Label("Download", systemImage: "arrow.down.circle")
-      }
+        Divider()
 
-      Divider()
+        // Note: Removed "Show Download Sheet" as we have a direct button now.
 
-      Button {
-        showReadListPicker = true
-      } label: {
-        Label("Add to Read List", systemImage: "list.bullet")
-      }
+        Button {
+          showReadListPicker = true
+        } label: {
+          Label("Add to Read List", systemImage: "list.bullet")
+        }
 
-      Divider()
+        Divider()
 
-      if let book = book {
-        if !(book.readProgress?.completed ?? false) {
-          Button {
-            markBookAsRead()
-          } label: {
-            Label("Mark as Read", systemImage: "checkmark.circle")
+        if let book = book {
+          if !(book.readProgress?.completed ?? false) {
+            Button {
+              markBookAsRead()
+            } label: {
+              Label("Mark as Read", systemImage: "checkmark.circle")
+            }
+          }
+
+          if book.readProgress != nil {
+            Button {
+              markBookAsUnread()
+            } label: {
+              Label("Mark as Unread", systemImage: "circle")
+            }
           }
         }
 
-        if book.readProgress != nil {
-          Button {
-            markBookAsUnread()
-          } label: {
-            Label("Mark as Unread", systemImage: "circle")
-          }
+        Divider()
+
+        Button(role: .destructive) {
+          showDeleteConfirmation = true
+        } label: {
+          Label("Delete Book", systemImage: "trash")
         }
-      }
+        .disabled(!isAdmin)
 
-      Divider()
-
-      Button(role: .destructive) {
-        showDeleteConfirmation = true
+        Button(role: .destructive) {
+          clearCache()
+        } label: {
+          Label("Clear Cache", systemImage: "xmark.circle")
+        }
       } label: {
-        Label("Delete Book", systemImage: "trash")
+        Image(systemName: "ellipsis.circle")
       }
-      .disabled(!isAdmin)
-
-      Button(role: .destructive) {
-        clearCache()
-      } label: {
-        Label("Clear Cache", systemImage: "xmark.circle")
-      }
-    } label: {
-      Image(systemName: "ellipsis.circle")
+      .toolbarButtonStyle()
     }
-    .toolbarButtonStyle()
   }
-
 }

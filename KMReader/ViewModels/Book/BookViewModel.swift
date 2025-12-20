@@ -95,18 +95,56 @@ class BookViewModel {
     }
     isLoading = true
 
+    // 1. Local Cache
+    let localBooks = KomgaBookStore.shared.fetchBooks(
+      seriesId: seriesId,
+      page: currentPage,
+      size: 50
+    )
+    if !localBooks.isEmpty {
+      if shouldClear {
+        books = localBooks
+      } else {
+        // Append only if we are paging? Local paging strategy:
+        // If page=0, we replace.
+        // But here we are fetching page 0 from DB.
+        books.append(contentsOf: localBooks)
+      }
+    }
+
+    // 2. Sync
     do {
-      let page = try await bookService.getBooks(
-        seriesId: seriesId, page: 0, size: 50, browseOpts: browseOpts, libraryIds: libraryIds)
+      let page = try await SyncService.shared.syncBooks(
+        seriesId: seriesId,
+        page: currentPage,  // Note: We start at 0
+        size: 50,
+        browseOpts: browseOpts,
+        libraryIds: libraryIds
+      )
+
       withAnimation {
-        books = page.content
+        if shouldClear {
+          books = page.content
+        } else {
+          // Merge logic: replace existing from local if overlap, else append
+          if !localBooks.isEmpty {
+            let startIndex = books.count - localBooks.count
+            if startIndex >= 0 {
+              books.replaceSubrange(startIndex..<books.count, with: page.content)
+            } else {
+              books.append(contentsOf: page.content)
+            }
+          } else {
+            books.append(contentsOf: page.content)
+          }
+        }
       }
       hasMorePages = !page.last
-      currentPage = 1
+      currentPage = 1  // Next page
     } catch {
-      ErrorManager.shared.alert(error: error)
-      // If error occurred and we preserved old data, keep it
-      // If we cleared data and error occurred, books will remain empty
+      if books.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false
@@ -119,17 +157,44 @@ class BookViewModel {
 
     isLoading = true
 
+    // Local Load for next page?
+    // Doing strict pagination with DB + Network is complex if they mismatch.
+    // For "Load More", we usually trust the network or assume DB has it all.
+    // Let's rely on network primarily for pagination consistency for now,
+    // or try fetching from DB first.
+
+    let localBooks = KomgaBookStore.shared.fetchBooks(
+      seriesId: seriesId,
+      page: currentPage,
+      size: 50
+    )
+    if !localBooks.isEmpty {
+      withAnimation {
+        books.append(contentsOf: localBooks)
+      }
+    }
+
     do {
-      let page = try await bookService.getBooks(
+      let page = try await SyncService.shared.syncBooks(
         seriesId: seriesId, page: currentPage, size: 50, browseOpts: browseOpts,
         libraryIds: libraryIds)
+
       withAnimation {
-        books.append(contentsOf: page.content)
+        // If we added local books, replace them with fresh ones
+        if !localBooks.isEmpty {
+          let startIndex = books.count - localBooks.count
+          books.replaceSubrange(startIndex..<books.count, with: page.content)
+        } else {
+          books.append(contentsOf: page.content)
+        }
       }
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      ErrorManager.shared.alert(error: error)
+      // If we failed but loaded local, silent.
+      if localBooks.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false
@@ -140,16 +205,25 @@ class BookViewModel {
     guard let seriesId = currentSeriesId,
       let browseOpts = currentSeriesBrowseOpts
     else { return }
+    // Force network refresh logic?
+    // loadBooks handles logic.
     await loadBooks(seriesId: seriesId, browseOpts: browseOpts, refresh: false)
   }
 
   func loadBook(id: String) async {
     isLoading = true
 
+    // Local
+    if let cached = KomgaBookStore.shared.fetchBook(id: id) {
+      currentBook = cached
+    }
+
     do {
-      currentBook = try await bookService.getBook(id: id)
+      currentBook = try await SyncService.shared.syncBook(bookId: id)
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if currentBook == nil {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false
@@ -279,22 +353,29 @@ class BookViewModel {
 
     isLoading = true
 
-    do {
-      let filters = BookSearchFilters(
-        libraryIds: libraryIds,
-        includeReadStatuses: Array(browseOpts.includeReadStatuses),
-        excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
-        oneshot: browseOpts.oneshotFilter.effectiveBool,
-        deleted: browseOpts.deletedFilter.effectiveBool
-      )
-      let condition = BookSearch.buildCondition(filters: filters)
+    // 1. Local Cache
+    let localBooks = KomgaBookStore.shared.fetchBooksList(
+      search: currentBrowseSearch,
+      libraryIds: libraryIds,
+      browseOpts: browseOpts,
+      page: currentPage,
+      size: 20,
+      sort: sort
+    )
+    if !localBooks.isEmpty {
+      if shouldReset {
+        books = localBooks
+      } else {
+        books.append(contentsOf: localBooks)
+      }
+    }
 
-      let search = BookSearch(
-        condition: condition,
-        fullTextSearch: searchText.isEmpty ? nil : searchText
-      )
-      let page = try await bookService.getBooksList(
-        search: search,
+    // 2. Sync
+    do {
+      let page = try await SyncService.shared.syncBooksList(
+        search: currentBrowseSearch,
+        libraryIds: libraryIds,
+        browseOpts: browseOpts,
         page: currentPage,
         size: 20,
         sort: sort
@@ -304,14 +385,26 @@ class BookViewModel {
         if shouldReset {
           books = page.content
         } else {
-          books.append(contentsOf: page.content)
+          // Merge
+          if !localBooks.isEmpty {
+            let startIndex = books.count - localBooks.count
+            if startIndex >= 0 {
+              books.replaceSubrange(startIndex..<books.count, with: page.content)
+            } else {
+              books.append(contentsOf: page.content)
+            }
+          } else {
+            books.append(contentsOf: page.content)
+          }
         }
       }
 
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if books.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false
@@ -323,17 +416,27 @@ class BookViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
-    if refresh {
-      currentPage = 0
-      hasMorePages = true
-    } else {
-      guard hasMorePages && !isLoading else { return }
-    }
+    guard hasMorePages && !isLoading else { return }
 
     isLoading = true
 
+    // 1. Local Cache
+    let localBooks = KomgaBookStore.shared.fetchReadListBooks(
+      readListId: readListId,
+      page: currentPage,
+      size: 50
+    )
+    if !localBooks.isEmpty {
+      if refresh {
+        books = localBooks
+      } else {
+        books.append(contentsOf: localBooks)
+      }
+    }
+
+    // 2. Sync
     do {
-      let page = try await ReadListService.shared.getReadListBooks(
+      let page = try await SyncService.shared.syncReadListBooks(
         readListId: readListId,
         page: currentPage,
         size: 50,
@@ -345,14 +448,26 @@ class BookViewModel {
         if refresh {
           books = page.content
         } else {
-          books.append(contentsOf: page.content)
+          // Merge
+          if !localBooks.isEmpty {
+            let startIndex = books.count - localBooks.count
+            if startIndex >= 0 {
+              books.replaceSubrange(startIndex..<books.count, with: page.content)
+            } else {
+              books.append(contentsOf: page.content)
+            }
+          } else {
+            books.append(contentsOf: page.content)
+          }
         }
       }
 
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      ErrorManager.shared.alert(error: error)
+      if books.isEmpty {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     isLoading = false
