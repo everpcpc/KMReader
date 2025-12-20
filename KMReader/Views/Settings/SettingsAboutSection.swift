@@ -32,7 +32,9 @@ struct SettingsAboutSection: View {
       }
       Link(destination: URL(string: "https://github.com/everpcpc/KMReader")!) {
         HStack {
-          Label(String(localized: "Source Code"), systemImage: "chevron.left.forwardslash.chevron.right")
+          Label(
+            String(localized: "Source Code"), systemImage: "chevron.left.forwardslash.chevron.right"
+          )
           Spacer()
           Image(systemName: "arrow.up.right.square")
             .font(.caption)

@@ -14,25 +14,34 @@ struct ContentView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @AppStorage("enableSSE") private var enableSSE: Bool = true
+  @AppStorage("isOffline") private var isOffline: Bool = false
+
+  private var instanceInitializer: InstanceInitializer {
+    InstanceInitializer.shared
+  }
+
+  private var isReady: Bool {
+    (authViewModel.user != nil || isOffline) && !instanceInitializer.isSyncing
+  }
 
   var body: some View {
     Group {
       if isLoggedIn {
         Group {
-          if authViewModel.user == nil {
-            SplashView()
-          } else {
+          if isReady {
             if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
               MainTabView()
             } else {
               OldTabView()
             }
+          } else {
+            SplashView(initializer: instanceInitializer)
           }
         }
         .task {
-          await authViewModel.loadCurrentUser()
-          await LibraryManager.shared.loadLibraries()
-          if enableSSE {
+          let serverReachable = await authViewModel.loadCurrentUser()
+          isOffline = !serverReachable
+          if enableSSE && serverReachable {
             SSEService.shared.connect()
           }
         }

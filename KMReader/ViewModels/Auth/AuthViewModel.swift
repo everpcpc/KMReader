@@ -102,7 +102,11 @@ class AuthViewModel {
       serverURL: serverURL, authToken: authToken, authMethod: authMethod)
   }
 
-  func loadCurrentUser() async {
+  /// Load current user from server.
+  /// Returns true if server is reachable, false if offline/unreachable.
+  /// 401 errors trigger logout.
+  @discardableResult
+  func loadCurrentUser() async -> Bool {
     isLoading = true
     defer { isLoading = false }
     do {
@@ -110,13 +114,25 @@ class AuthViewModel {
       if let user = user {
         AppConfig.isAdmin = user.roles.contains("ADMIN")
       }
+      return true
     } catch {
-      if let apiError = error as? APIError, case .unauthorized = apiError {
-        // Silently logout and return to landing if unauthorized during initial refresh
-        logout()
-        return
+      if let apiError = error as? APIError {
+        switch apiError {
+        case .unauthorized:
+          // 401: logout
+          logout()
+          return true  // Server is reachable, just not authorized
+        case .networkError:
+          // Server unreachable
+          return false
+        default:
+          // Other API errors - server is reachable
+          ErrorManager.shared.alert(error: error)
+          return true
+        }
       }
-      ErrorManager.shared.alert(error: error)
+      // Non-API errors (likely network issues)
+      return false
     }
   }
 

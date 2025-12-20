@@ -125,4 +125,37 @@ final class KomgaInstanceStore {
       }
     }
   }
+
+  func getLastSyncedAt(instanceId: String) -> (series: Date, books: Date) {
+    guard let instance = fetchInstance(idString: instanceId) else {
+      return (Date(timeIntervalSince1970: 0), Date(timeIntervalSince1970: 0))
+    }
+    return (instance.seriesLastSyncedAt, instance.booksLastSyncedAt)
+  }
+
+  func updateSeriesLastSyncedAt(instanceId: String, date: Date) throws {
+    let context = try makeContext()
+    guard let uuid = UUID(uuidString: instanceId) else { return }
+    let descriptor = FetchDescriptor<KomgaInstance>(
+      predicate: #Predicate { instance in
+        instance.id == uuid
+      })
+    if let instance = try context.fetch(descriptor).first {
+      instance.seriesLastSyncedAt = date
+      try context.save()
+    }
+  }
+
+  func updateBooksLastSyncedAt(instanceId: String, date: Date) throws {
+    let context = try makeContext()
+    guard let uuid = UUID(uuidString: instanceId) else { return }
+    let descriptor = FetchDescriptor<KomgaInstance>(
+      predicate: #Predicate { instance in
+        instance.id == uuid
+      })
+    if let instance = try context.fetch(descriptor).first {
+      instance.booksLastSyncedAt = date
+      try context.save()
+    }
+  }
 }

@@ -19,11 +19,9 @@ struct SettingsOfflineTasksView: View {
     let instanceId = AppConfig.currentInstanceId
     _books = Query(
       filter: #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId && (
-          book.downloadStatusRaw == "pending" ||
-          book.downloadStatusRaw == "downloading" ||
-          book.downloadStatusRaw == "failed"
-        )
+        book.instanceId == instanceId
+          && (book.downloadStatusRaw == "pending" || book.downloadStatusRaw == "downloading"
+            || book.downloadStatusRaw == "failed")
       },
       sort: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
     )
@@ -44,14 +42,19 @@ struct SettingsOfflineTasksView: View {
   var body: some View {
     List {
       Section {
-        Toggle(isOn: Binding(
-          get: { !isPaused },
-          set: { newValue in
-            isPaused = !newValue
-          }
-        )) {
-          Label(isPaused ? "Paused" : "Running", systemImage: isPaused ? "pause.circle.fill" : "play.circle.fill")
-            .foregroundColor(isPaused ? .orange : .green)
+        Toggle(
+          isOn: Binding(
+            get: { !isPaused },
+            set: { newValue in
+              isPaused = !newValue
+            }
+          )
+        ) {
+          Label(
+            isPaused ? "Paused" : "Running",
+            systemImage: isPaused ? "pause.circle.fill" : "play.circle.fill"
+          )
+          .foregroundColor(isPaused ? .orange : .green)
         }
       } header: {
         Text("Sync Status")

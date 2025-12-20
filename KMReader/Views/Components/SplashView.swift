@@ -13,12 +13,26 @@ struct SplashView: View {
   @State private var loadingMessageIndex = 0
   @State private var pulseProgress = 1.0
 
+  var initializer: InstanceInitializer?
+
   private let loadingMessages = [
-    "Connecting to server...",
-    "Syncing your library...",
-    "Updating your profile...",
-    "Preparing your collection...",
+    String(localized: "splash.loading.connecting"),
+    String(localized: "splash.loading.syncing"),
+    String(localized: "splash.loading.updating"),
+    String(localized: "splash.loading.preparing"),
   ]
+
+  private var isSyncing: Bool {
+    initializer?.isSyncing ?? false
+  }
+
+  private var initializationProgress: Double {
+    initializer?.progress ?? 0.0
+  }
+
+  private var currentPhaseName: String {
+    initializer?.currentPhaseName ?? ""
+  }
 
   var body: some View {
     VStack(spacing: 32) {
@@ -53,22 +67,44 @@ struct SplashView: View {
       Spacer()
 
       VStack(spacing: 16) {
-        ProgressView()
-          .controlSize(.large)
-          .tint(themeColor.color)
-          .scaleEffect(pulseProgress)
-          .opacity(isVisible ? 1.0 : 0.0)
+        if isSyncing {
+          // Determinate progress bar during initialization
+          VStack(spacing: 8) {
+            ProgressView(value: initializationProgress)
+              .progressViewStyle(.linear)
+              .tint(themeColor.color)
+              .frame(maxWidth: 280)
+              .opacity(isVisible ? 1.0 : 0.0)
 
-        Text(loadingMessages[loadingMessageIndex])
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .monospacedDigit()
-          .transition(
-            .asymmetric(
-              insertion: .move(edge: .bottom).combined(with: .opacity),
-              removal: .move(edge: .top).combined(with: .opacity))
-          )
-          .id(loadingMessageIndex)
+            Text(currentPhaseName)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .monospacedDigit()
+
+            Text("\(Int(initializationProgress * 100))%")
+              .font(.caption2)
+              .foregroundStyle(.tertiary)
+              .monospacedDigit()
+          }
+        } else {
+          // Indeterminate spinner when not initializing
+          ProgressView()
+            .controlSize(.large)
+            .tint(themeColor.color)
+            .scaleEffect(pulseProgress)
+            .opacity(isVisible ? 1.0 : 0.0)
+
+          Text(loadingMessages[loadingMessageIndex])
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+            .transition(
+              .asymmetric(
+                insertion: .move(edge: .bottom).combined(with: .opacity),
+                removal: .move(edge: .top).combined(with: .opacity))
+            )
+            .id(loadingMessageIndex)
+        }
       }
 
       Spacer()
@@ -96,4 +132,8 @@ struct SplashView: View {
 
 #Preview {
   SplashView()
+}
+
+#Preview("Initializing") {
+  SplashView(initializer: InstanceInitializer.shared)
 }

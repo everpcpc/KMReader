@@ -566,7 +566,6 @@ struct BookDetailView: View {
     return formatter.string(from: date)
   }
 
-
   private func addToReadList(readListId: String) {
     Task {
       do {
@@ -594,7 +593,8 @@ struct BookDetailView: View {
       Button {
         if let book = book {
           Task {
-            await OfflineManager.shared.toggleDownload(instanceId: currentInstanceId, info: book.downloadInfo)
+            await OfflineManager.shared.toggleDownload(
+              instanceId: currentInstanceId, info: book.downloadInfo)
           }
         }
       } label: {
