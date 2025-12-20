@@ -9,12 +9,18 @@ import SwiftUI
 
 @MainActor
 struct SeriesContextMenu: View {
-  let series: Series
+  @Environment(KomgaSeries.self) private var komgaSeries
+
   var onActionCompleted: (() -> Void)?
   var onShowCollectionPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+
   @AppStorage("isAdmin") private var isAdmin: Bool = false
+
+  private var series: Series {
+    komgaSeries.toSeries()
+  }
 
   private var canMarkAsRead: Bool {
     series.booksUnreadCount > 0

@@ -5,15 +5,28 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct SeriesRowView: View {
   let series: Series
   var onActionCompleted: (() -> Void)? = nil
 
+  // SwiftData query for reactive series data
+  @Query private var komgaSeriesList: [KomgaSeries]
+
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
+
+  init(series: Series, onActionCompleted: (() -> Void)? = nil) {
+    self.series = series
+    self.onActionCompleted = onActionCompleted
+
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(series.id)"
+    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+  }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -73,19 +86,21 @@ struct SeriesRowView: View {
     }
     .contentShape(Rectangle())
     .contextMenu {
-      SeriesContextMenu(
-        series: series,
-        onActionCompleted: onActionCompleted,
-        onShowCollectionPicker: {
-          showCollectionPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
+      if let komgaSeries = komgaSeriesList.first {
+        SeriesContextMenu(
+          onActionCompleted: onActionCompleted,
+          onShowCollectionPicker: {
+            showCollectionPicker = true
+          },
+          onDeleteRequested: {
+            showDeleteConfirmation = true
+          },
+          onEditRequested: {
+            showEditSheet = true
+          }
+        )
+        .environment(komgaSeries)
+      }
     }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
