@@ -74,6 +74,7 @@ actor DatabaseOperator {
 
   // MARK: - Series Operations
 
+
   func upsertSeries(dto: Series, instanceId: String) {
     let compositeId = "\(instanceId)_\(dto.id)"
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })

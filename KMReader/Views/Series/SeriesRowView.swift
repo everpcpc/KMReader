@@ -9,57 +9,49 @@ import SwiftData
 import SwiftUI
 
 struct SeriesRowView: View {
-  let series: Series
+  @Environment(KomgaSeries.self) private var komgaSeries
   var onActionCompleted: (() -> Void)? = nil
-
-  // SwiftData query for reactive series data
-  @Query private var komgaSeriesList: [KomgaSeries]
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-  init(series: Series, onActionCompleted: (() -> Void)? = nil) {
-    self.series = series
-    self.onActionCompleted = onActionCompleted
-
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(series.id)"
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+  var seriesDto: Series {
+    komgaSeries.toSeries()
   }
 
   var body: some View {
     HStack(spacing: 12) {
       ThumbnailImage(
-        id: series.id, type: .series, showPlaceholder: false, width: 80, cornerRadius: 6)
+        id: komgaSeries.seriesId, type: .series, showPlaceholder: false, width: 80, cornerRadius: 6)
 
       VStack(alignment: .leading, spacing: 6) {
-        Text(series.metadata.title)
+        Text(komgaSeries.metaTitle)
           .font(.callout)
           .lineLimit(2)
 
-        Label(series.statusDisplayName, systemImage: series.statusIcon)
+        Label(seriesDto.statusDisplayName, systemImage: seriesDto.statusIcon)
           .font(.footnote)
-          .foregroundColor(series.statusColor)
+          .foregroundColor(seriesDto.statusColor)
 
         Group {
-          if series.deleted {
+          if komgaSeries.deleted {
             Text("Unavailable")
               .foregroundColor(.red)
           } else {
             HStack {
-              if series.booksUnreadCount > 0 {
-                Label("\(series.booksUnreadCount) unread", systemImage: "circlebadge")
-                  .foregroundColor(series.readStatusColor)
+              if komgaSeries.booksUnreadCount > 0 {
+                Label("\(komgaSeries.booksUnreadCount) unread", systemImage: "circlebadge")
+                  .foregroundColor(seriesDto.readStatusColor)
               } else {
                 Label("All read", systemImage: "checkmark.circle.fill")
-                  .foregroundColor(series.readStatusColor)
+                  .foregroundColor(seriesDto.readStatusColor)
               }
               Text("•")
                 .foregroundColor(.secondary)
-              Label("\(series.booksCount) books", systemImage: "book")
+              Label("\(komgaSeries.booksCount) books", systemImage: "book")
                 .foregroundColor(.secondary)
-              if series.oneshot {
+              if komgaSeries.oneshot {
                 Text("•")
                 Text("Oneshot")
                   .foregroundColor(.blue)
@@ -68,12 +60,12 @@ struct SeriesRowView: View {
           }
         }.font(.caption)
 
-        if let releaseDate = series.booksMetadata.releaseDate {
+        if let releaseDate = komgaSeries.booksMetaReleaseDate {
           Label("Release: \(releaseDate)", systemImage: "calendar")
             .font(.caption)
             .foregroundColor(.secondary)
         } else {
-          Label("Last Updated: \(series.lastUpdatedDisplay)", systemImage: "clock")
+          Label("Last Updated: \(seriesDto.lastUpdatedDisplay)", systemImage: "clock")
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -86,21 +78,19 @@ struct SeriesRowView: View {
     }
     .contentShape(Rectangle())
     .contextMenu {
-      if let komgaSeries = komgaSeriesList.first {
-        SeriesContextMenu(
-          onActionCompleted: onActionCompleted,
-          onShowCollectionPicker: {
-            showCollectionPicker = true
-          },
-          onDeleteRequested: {
-            showDeleteConfirmation = true
-          },
-          onEditRequested: {
-            showEditSheet = true
-          }
-        )
-        .environment(komgaSeries)
-      }
+      SeriesContextMenu(
+        onActionCompleted: onActionCompleted,
+        onShowCollectionPicker: {
+          showCollectionPicker = true
+        },
+        onDeleteRequested: {
+          showDeleteConfirmation = true
+        },
+        onEditRequested: {
+          showEditSheet = true
+        }
+      )
+      .environment(komgaSeries)
     }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
@@ -112,7 +102,7 @@ struct SeriesRowView: View {
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
-        seriesIds: [series.id],
+        seriesIds: [komgaSeries.seriesId],
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
         },
@@ -123,7 +113,7 @@ struct SeriesRowView: View {
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      SeriesEditSheet(series: series)
+      SeriesEditSheet(series: seriesDto)
         .onDisappear {
           onActionCompleted?()
         }
@@ -135,7 +125,7 @@ struct SeriesRowView: View {
       do {
         try await CollectionService.shared.addSeriesToCollection(
           collectionId: collectionId,
-          seriesIds: [series.id]
+          seriesIds: [komgaSeries.seriesId]
         )
         await MainActor.run {
           ErrorManager.shared.notify(
@@ -153,7 +143,7 @@ struct SeriesRowView: View {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.shared.deleteSeries(seriesId: series.id)
+        try await SeriesService.shared.deleteSeries(seriesId: komgaSeries.seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
           onActionCompleted?()

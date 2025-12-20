@@ -9,12 +9,9 @@ import SwiftData
 import SwiftUI
 
 struct SeriesCardView: View {
-  let series: Series
+  @Environment(KomgaSeries.self) private var komgaSeries
   let cardWidth: CGFloat
   var onActionCompleted: (() -> Void)? = nil
-
-  // SwiftData query for reactive series data
-  @Query private var komgaSeriesList: [KomgaSeries]
 
   @AppStorage("showSeriesCardTitle") private var showTitle: Bool = true
 
@@ -22,23 +19,13 @@ struct SeriesCardView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-  init(series: Series, cardWidth: CGFloat, onActionCompleted: (() -> Void)? = nil) {
-    self.series = series
-    self.cardWidth = cardWidth
-    self.onActionCompleted = onActionCompleted
-
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(series.id)"
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
-  }
-
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      ThumbnailImage(id: series.id, type: .series, width: cardWidth) {
+      ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth) {
         ZStack {
-          if series.unreadCount > 0 {
+          if komgaSeries.booksUnreadCount > 0 {
             VStack(alignment: .trailing) {
-              UnreadCountBadge(count: series.unreadCount)
+              UnreadCountBadge(count: komgaSeries.booksUnreadCount)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
@@ -47,19 +34,19 @@ struct SeriesCardView: View {
 
       VStack(alignment: .leading, spacing: 2) {
         if showTitle {
-          Text(series.metadata.title)
+          Text(komgaSeries.metaTitle)
             .font(.caption)
             .foregroundColor(.primary)
             .lineLimit(1)
         }
         Group {
-          if series.deleted {
+          if komgaSeries.deleted {
             Text("Unavailable")
               .foregroundColor(.red)
           } else {
             HStack(spacing: 4) {
-              Text("\(series.booksCount) books")
-              if series.oneshot {
+              Text("\(komgaSeries.booksCount) books")
+              if komgaSeries.oneshot {
                 Text("•")
                 Text("Oneshot")
                   .foregroundColor(.blue)
@@ -74,21 +61,19 @@ struct SeriesCardView: View {
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())
     .contextMenu {
-      if let komgaSeries = komgaSeriesList.first {
-        SeriesContextMenu(
-          onActionCompleted: onActionCompleted,
-          onShowCollectionPicker: {
-            showCollectionPicker = true
-          },
-          onDeleteRequested: {
-            showDeleteConfirmation = true
-          },
-          onEditRequested: {
-            showEditSheet = true
-          }
-        )
-        .environment(komgaSeries)
-      }
+      SeriesContextMenu(
+        onActionCompleted: onActionCompleted,
+        onShowCollectionPicker: {
+          showCollectionPicker = true
+        },
+        onDeleteRequested: {
+          showDeleteConfirmation = true
+        },
+        onEditRequested: {
+          showEditSheet = true
+        }
+      )
+      .environment(komgaSeries)
     }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
@@ -100,7 +85,7 @@ struct SeriesCardView: View {
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
-        seriesIds: [series.id],
+        seriesIds: [komgaSeries.seriesId],
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
         },
@@ -111,7 +96,7 @@ struct SeriesCardView: View {
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      SeriesEditSheet(series: series)
+      SeriesEditSheet(series: komgaSeries.toSeries())
         .onDisappear {
           onActionCompleted?()
         }
@@ -123,7 +108,7 @@ struct SeriesCardView: View {
       do {
         try await CollectionService.shared.addSeriesToCollection(
           collectionId: collectionId,
-          seriesIds: [series.id]
+          seriesIds: [komgaSeries.seriesId]
         )
         await MainActor.run {
           ErrorManager.shared.notify(
@@ -141,7 +126,7 @@ struct SeriesCardView: View {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.shared.deleteSeries(seriesId: series.id)
+        try await SeriesService.shared.deleteSeries(seriesId: komgaSeries.seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
           onActionCompleted?()

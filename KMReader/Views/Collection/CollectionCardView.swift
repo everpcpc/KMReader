@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CollectionCardView: View {
-  let collection: SeriesCollection
+  @Environment(KomgaCollection.self) private var komgaCollection
   let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
@@ -16,20 +16,23 @@ struct CollectionCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
+    NavigationLink(
+      value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+    ) {
       VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(id: collection.id, type: .collection, width: width, cornerRadius: 12)
+        ThumbnailImage(
+          id: komgaCollection.collectionId, type: .collection, width: width, cornerRadius: 12)
 
         VStack(alignment: .leading, spacing: 4) {
-          Text(collection.name)
+          Text(komgaCollection.name)
             .font(.headline)
             .lineLimit(1)
 
-          Text("\(collection.seriesIds.count) series")
+          Text("\(komgaCollection.seriesIds.count) series")
             .font(.caption)
             .foregroundColor(.secondary)
 
-          Text(collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+          Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -40,7 +43,7 @@ struct CollectionCardView: View {
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       CollectionContextMenu(
-        collection: collection,
+        collection: komgaCollection.toCollection(),
         onActionCompleted: onActionCompleted,
         onDeleteRequested: {
           showDeleteConfirmation = true
@@ -59,7 +62,7 @@ struct CollectionCardView: View {
       Text("Are you sure you want to delete this collection? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      CollectionEditSheet(collection: collection)
+      CollectionEditSheet(collection: komgaCollection.toCollection())
         .onDisappear {
           onActionCompleted?()
         }
@@ -69,7 +72,8 @@ struct CollectionCardView: View {
   private func deleteCollection() {
     Task {
       do {
-        try await CollectionService.shared.deleteCollection(collectionId: collection.id)
+        try await CollectionService.shared.deleteCollection(
+          collectionId: komgaCollection.collectionId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
           onActionCompleted?()

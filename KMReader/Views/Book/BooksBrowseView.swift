@@ -30,99 +30,32 @@ struct BooksBrowseView: View {
       )
       .padding(layoutHelper.spacing)
 
-      BrowseStateView(
-        isLoading: viewModel.isLoading,
-        isEmpty: viewModel.books.isEmpty,
-        emptyIcon: "book",
-        emptyTitle: LocalizedStringKey("No books found"),
-        emptyMessage: LocalizedStringKey("Try selecting a different library."),
-        onRetry: {
-          Task {
-            await loadBooks(refresh: true)
-          }
-        }
-      ) {
-        switch browseLayout {
-        case .grid:
-          gridView
-        case .list:
-          listView
-        }
-      }
-    }
-    .task {
-      if viewModel.books.isEmpty {
+      BooksQueryView(
+        browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
+        searchText: searchText,
+        libraryIds: dashboard.libraryIds,
+        instanceId: AppConfig.currentInstanceId,
+        layoutHelper: layoutHelper,
+        browseLayout: browseLayout,
+        viewModel: viewModel,
+        loadMore: loadBooks
+      )
+      .task {
         await loadBooks(refresh: true)
       }
-    }
-    .onChange(of: refreshTrigger) { _, _ in
-      Task {
-        await loadBooks(refresh: true)
-      }
-    }
-    .onChange(of: browseOpts) { _, newValue in
-      Task {
-        await loadBooks(refresh: true)
-      }
-    }
-    .onChange(of: searchText) { _, newValue in
-      Task {
-        await loadBooks(refresh: true)
-      }
-    }
-  }
-
-  private var gridView: some View {
-    LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-      ForEach(Array(viewModel.books.enumerated()), id: \.element.id) { index, book in
-        BookCardView(
-          book: book,
-          viewModel: viewModel,
-          cardWidth: layoutHelper.cardWidth,
-          onReadBook: { incognito in
-            readerPresentation.present(book: book, incognito: incognito)
-          },
-          onBookUpdated: {
-            Task {
-              await loadBooks(refresh: true)
-            }
-          },
-          showSeriesTitle: true,
-        )
-        .focusPadding()
-        .onAppear {
-          if index >= viewModel.books.count - 3 {
-            Task {
-              await loadBooks(refresh: false)
-            }
-          }
+      .onChange(of: refreshTrigger) { _, _ in
+        Task {
+          await loadBooks(refresh: true)
         }
       }
-    }
-  }
-
-  private var listView: some View {
-    LazyVStack(spacing: layoutHelper.spacing) {
-      ForEach(Array(viewModel.books.enumerated()), id: \.element.id) { index, book in
-        BookRowView(
-          book: book,
-          viewModel: viewModel,
-          onReadBook: { incognito in
-            readerPresentation.present(book: book, incognito: incognito)
-          },
-          onBookUpdated: {
-            Task {
-              await loadBooks(refresh: true)
-            }
-          },
-          showSeriesTitle: true
-        )
-        .onAppear {
-          if index >= viewModel.books.count - 3 {
-            Task {
-              await loadBooks(refresh: false)
-            }
-          }
+      .onChange(of: browseOpts) { _, newValue in
+        Task {
+          await loadBooks(refresh: true)
+        }
+      }
+      .onChange(of: searchText) { _, newValue in
+        Task {
+          await loadBooks(refresh: true)
         }
       }
     }

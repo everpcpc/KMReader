@@ -26,7 +26,7 @@ struct ReadListsBrowseView: View {
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
-        isEmpty: viewModel.readLists.isEmpty,
+        isEmpty: viewModel.readListIds.isEmpty,
         emptyIcon: "list.bullet.rectangle",
         emptyTitle: LocalizedStringKey("No read lists found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -39,9 +39,10 @@ struct ReadListsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.readLists.enumerated()), id: \.element.id) { index, readList in
-              ReadListCardView(
-                readList: readList,
+            ForEach(Array(viewModel.readListIds.enumerated()), id: \.element) {
+              index, readListId in
+              ReadListItemQueryView(
+                itemId: readListId,
                 width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
@@ -49,9 +50,8 @@ struct ReadListsBrowseView: View {
                   }
                 }
               )
-              .focusPadding()
               .onAppear {
-                if index >= viewModel.readLists.count - 3 {
+                if index >= viewModel.readListIds.count - 3 {
                   Task {
                     await loadReadLists(refresh: false)
                   }
@@ -61,9 +61,11 @@ struct ReadListsBrowseView: View {
           }
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.readLists.enumerated()), id: \.element.id) { index, readList in
-              ReadListRowView(
-                readList: readList,
+            ForEach(Array(viewModel.readListIds.enumerated()), id: \.element) {
+              index, readListId in
+              ReadListItemQueryView(
+                itemId: readListId,
+                layout: .list,
                 onActionCompleted: {
                   Task {
                     await loadReadLists(refresh: true)
@@ -71,7 +73,7 @@ struct ReadListsBrowseView: View {
                 }
               )
               .onAppear {
-                if index >= viewModel.readLists.count - 3 {
+                if index >= viewModel.readListIds.count - 3 {
                   Task {
                     await loadReadLists(refresh: false)
                   }
@@ -83,7 +85,7 @@ struct ReadListsBrowseView: View {
       }
     }
     .task {
-      if viewModel.readLists.isEmpty {
+      if viewModel.readListIds.isEmpty {
         await loadReadLists(refresh: true)
       }
     }

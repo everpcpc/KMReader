@@ -11,52 +11,16 @@ import SwiftUI
 @MainActor
 @Observable
 class SeriesViewModel {
-  var series: [Series] = []
   var isLoading = false
+  var browseSeriesIds: [String] = []
 
   private let seriesService = SeriesService.shared
-  private let sseService = SSEService.shared
-  private var currentPage = 0
+  private(set) var currentPage = 0
   private var hasMorePages = true
   private var currentState: SeriesBrowseOptions?
   private var currentSearchText: String = ""
 
-  init() {
-    setupSSEListeners()
-  }
-
-  private func setupSSEListeners() {
-    // Series events
-    sseService.onSeriesChanged = { [weak self] event in
-      Task { @MainActor in
-        // Update series in list if it exists
-        if let index = self?.series.firstIndex(where: { $0.id == event.seriesId }) {
-          if let updatedSeries = try? await self?.seriesService.getOneSeries(id: event.seriesId) {
-            self?.series[index] = updatedSeries
-          }
-        }
-      }
-    }
-
-    sseService.onSeriesDeleted = { [weak self] event in
-      Task { @MainActor in
-        // Remove series from list
-        self?.series.removeAll { $0.id == event.seriesId }
-      }
-    }
-
-    // Read progress series events
-    sseService.onReadProgressSeriesChanged = { [weak self] event in
-      Task { @MainActor in
-        // Update series in list if it exists
-        if let index = self?.series.firstIndex(where: { $0.id == event.seriesId }) {
-          if let updatedSeries = try? await self?.seriesService.getOneSeries(id: event.seriesId) {
-            self?.series[index] = updatedSeries
-          }
-        }
-      }
-    }
-  }
+  private let pageSize = 20
 
   func loadSeries(
     browseOpts: SeriesBrowseOptions, searchText: String = "", libraryIds: [String]? = nil,
@@ -64,9 +28,7 @@ class SeriesViewModel {
   )
     async
   {
-    // Check if parameters changed - if so, reset pagination
     let paramsChanged = currentState != browseOpts || currentSearchText != searchText
-
     let shouldReset = refresh || paramsChanged
 
     if shouldReset {
@@ -74,101 +36,91 @@ class SeriesViewModel {
       hasMorePages = true
       currentState = browseOpts
       currentSearchText = searchText
+      withAnimation {
+        browseSeriesIds = []
+      }
     }
 
     guard hasMorePages && !isLoading else { return }
-
-    isLoading = true
-
-    // 1. Load from Local DB
-    let localSeries = KomgaSeriesStore.shared.fetchSeries(
-      libraryIds: libraryIds,
-      page: currentPage,
-      size: 20,
-      sort: browseOpts.sortString,
-      searchTerm: searchText.isEmpty ? nil : searchText
-    )
-
-    if !localSeries.isEmpty {
-      if shouldReset {
-        series = localSeries
-      } else {
-        series.append(contentsOf: localSeries)
-      }
+    withAnimation {
+      isLoading = true
     }
 
-    // 2. Sync with Server
-    do {
-      let page = try await SyncService.shared.syncSeriesPage(
+    if AppConfig.isOffline {
+      // Offline: query SwiftData directly
+      let ids = KomgaSeriesStore.shared.fetchSeriesIds(
         libraryIds: libraryIds,
-        page: currentPage,
-        size: 20,
-        sort: browseOpts.sortString,
-        searchTerm: searchText.isEmpty ? nil : searchText,
-        browseOpts: browseOpts
+        searchText: searchText,
+        browseOpts: browseOpts,
+        offset: currentPage * pageSize,
+        limit: pageSize
       )
-
       withAnimation {
+        browseSeriesIds.append(contentsOf: ids)
+      }
+      hasMorePages = ids.count == pageSize
+      currentPage += 1
+    } else {
+      // Online: fetch from API and sync
+      do {
+        let page = try await SyncService.shared.syncSeriesPage(
+          libraryIds: libraryIds,
+          page: currentPage,
+          size: pageSize,
+          sort: browseOpts.sortString,
+          searchTerm: searchText.isEmpty ? nil : searchText,
+          browseOpts: browseOpts
+        )
+
+        withAnimation {
+          browseSeriesIds.append(contentsOf: page.content.map { $0.id })
+        }
+        hasMorePages = !page.last
+        currentPage += 1
+      } catch {
         if shouldReset {
-          series = page.content
-        } else {
-          if !localSeries.isEmpty {
-            // We already appended local data, replace it with fresh data
-            let startIndex = series.count - localSeries.count
-            if startIndex >= 0 {
-              series.replaceSubrange(startIndex..<series.count, with: page.content)
-            } else {
-              series.append(contentsOf: page.content)
-            }
-          } else {
-            series.append(contentsOf: page.content)
-          }
+          ErrorManager.shared.alert(error: error)
         }
       }
-
-      hasMorePages = !page.last
-      currentPage += 1
-    } catch {
-      // If we have local data, we treat this as a silent failure (offline mode)
-      // Only alert if we have no data to show
-      if shouldReset && series.isEmpty {
-        ErrorManager.shared.alert(error: error)
-      }
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   func loadNewSeries(libraryIds: [String]? = nil) async {
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
 
     do {
-      let page = try await SyncService.shared.syncNewSeries(
+      _ = try await SyncService.shared.syncNewSeries(
         libraryIds: libraryIds, page: currentPage, size: 20)
-      withAnimation {
-        series = page.content
-      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   func loadUpdatedSeries(libraryIds: [String]? = nil) async {
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
 
     do {
-      let page = try await SyncService.shared.syncUpdatedSeries(
+      _ = try await SyncService.shared.syncUpdatedSeries(
         libraryIds: libraryIds, page: currentPage, size: 20)
-      withAnimation {
-        series = page.content
-      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   func markAsRead(seriesId: String, browseOpts: SeriesBrowseOptions) async {
@@ -203,25 +155,17 @@ class SeriesViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
-    guard hasMorePages && !isLoading else { return }
-
-    isLoading = true
-
-    // 1. Local Cache
-    let localSeries = KomgaSeriesStore.shared.fetchCollectionSeries(
-      collectionId: collectionId,
-      page: currentPage,
-      size: 20
-    )
-    if !localSeries.isEmpty {
-      if refresh {
-        series = localSeries
-      } else {
-        series.append(contentsOf: localSeries)
-      }
+    if refresh {
+      currentPage = 0
+      hasMorePages = true
     }
 
-    // 2. Sync
+    guard hasMorePages && !isLoading else { return }
+
+    withAnimation {
+      isLoading = true
+    }
+
     do {
       let page = try await SyncService.shared.syncCollectionSeries(
         collectionId: collectionId,
@@ -231,32 +175,14 @@ class SeriesViewModel {
         libraryIds: libraryIds
       )
 
-      withAnimation {
-        if refresh {
-          series = page.content
-        } else {
-          // Merge logic
-          if !localSeries.isEmpty {
-            let startIndex = series.count - localSeries.count
-            if startIndex >= 0 {
-              series.replaceSubrange(startIndex..<series.count, with: page.content)
-            } else {
-              series.append(contentsOf: page.content)
-            }
-          } else {
-            series.append(contentsOf: page.content)
-          }
-        }
-      }
-
       hasMorePages = !page.last
       currentPage += 1
     } catch {
-      if series.isEmpty {
-        ErrorManager.shared.alert(error: error)
-      }
+      ErrorManager.shared.alert(error: error)
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 }

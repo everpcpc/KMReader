@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ReadListCardView: View {
-  let readList: ReadList
+  @Environment(KomgaReadList.self) private var komgaReadList
   let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
@@ -16,17 +16,18 @@ struct ReadListCardView: View {
   @State private var showDeleteConfirmation = false
 
   private var bookCountText: String {
-    let count = readList.bookIds.count
+    let count = komgaReadList.bookIds.count
     return count == 1 ? "1 book" : "\(count) books"
   }
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
+    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
       VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(id: readList.id, type: .readlist, width: width, cornerRadius: 12)
+        ThumbnailImage(
+          id: komgaReadList.readListId, type: .readlist, width: width, cornerRadius: 12)
 
         VStack(alignment: .leading, spacing: 4) {
-          Text(readList.name)
+          Text(komgaReadList.name)
             .font(.headline)
             .lineLimit(1)
 
@@ -34,8 +35,8 @@ struct ReadListCardView: View {
             .font(.caption)
             .foregroundColor(.secondary)
 
-          if !readList.summary.isEmpty {
-            Text(readList.summary)
+          if !komgaReadList.summary.isEmpty {
+            Text(komgaReadList.summary)
               .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(2)
@@ -48,7 +49,7 @@ struct ReadListCardView: View {
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       ReadListContextMenu(
-        readList: readList,
+        readList: komgaReadList.toReadList(),
         onActionCompleted: onActionCompleted,
         onDeleteRequested: {
           showDeleteConfirmation = true
@@ -67,7 +68,7 @@ struct ReadListCardView: View {
       Text("Are you sure you want to delete this read list? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      ReadListEditSheet(readList: readList)
+      ReadListEditSheet(readList: komgaReadList.toReadList())
         .onDisappear {
           onActionCompleted?()
         }
@@ -77,7 +78,7 @@ struct ReadListCardView: View {
   private func deleteReadList() {
     Task {
       do {
-        try await ReadListService.shared.deleteReadList(readListId: readList.id)
+        try await ReadListService.shared.deleteReadList(readListId: komgaReadList.readListId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
           onActionCompleted?()

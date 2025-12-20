@@ -204,7 +204,141 @@ final class KomgaBookStore {
     }
   }
 
+  func fetchBookIds(
+    libraryIds: [String]?,
+    searchText: String,
+    browseOpts: BookBrowseOptions,
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    let libraryId = libraryIds?.first
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if !searchText.isEmpty {
+      if let libraryId = libraryId {
+        descriptor.predicate = #Predicate<KomgaBook> { book in
+          book.instanceId == instanceId && book.libraryId == libraryId
+            && (book.name.contains(searchText) || book.metaTitle.contains(searchText))
+        }
+      } else {
+        descriptor.predicate = #Predicate<KomgaBook> { book in
+          book.instanceId == instanceId
+            && (book.name.contains(searchText) || book.metaTitle.contains(searchText))
+        }
+      }
+    } else {
+      if let libraryId = libraryId {
+        descriptor.predicate = #Predicate<KomgaBook> { book in
+          book.instanceId == instanceId && book.libraryId == libraryId
+        }
+      } else {
+        descriptor.predicate = #Predicate<KomgaBook> { book in
+          book.instanceId == instanceId
+        }
+      }
+    }
+
+    // Sort
+    let sort = browseOpts.sortString
+    if sort.contains("created") {
+      let isAsc = !sort.contains("desc")
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.created, order: isAsc ? .forward : .reverse)]
+    } else if sort.contains("metadata.releaseDate") {
+      let isAsc = !sort.contains("desc")
+      descriptor.sortBy = [
+        SortDescriptor(\KomgaBook.metaReleaseDate, order: isAsc ? .forward : .reverse)
+      ]
+    } else {
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.name, order: .forward)]
+    }
+
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.bookId }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchKeepReadingBookIds(
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    let libraryId = libraryIds.first
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if let libraryId = libraryId {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId && book.libraryId == libraryId
+          && book.progressReadDate != nil && book.progressCompleted == false
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+          && book.progressReadDate != nil && book.progressCompleted == false
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaBook.progressReadDate, order: .reverse)]
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.bookId }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchRecentBookIds(
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    let libraryId = libraryIds.first
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if let libraryId = libraryId {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId && book.libraryId == libraryId
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaBook.created, order: .reverse)]
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.bookId }
+    } catch {
+      return []
+    }
+  }
+
   // MARK: - Offline Download Status
+
 
   /// Get the download status of a book.
   func getDownloadStatus(bookId: String) -> DownloadStatus {

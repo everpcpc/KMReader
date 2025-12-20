@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 // Books list view for series detail
@@ -35,75 +36,21 @@ struct BooksListViewForSeries: View {
         )
       }
 
-      if bookViewModel.isLoading && bookViewModel.books.isEmpty {
-        ProgressView()
-          .frame(maxWidth: .infinity)
-          .padding()
-      } else {
-        Group {
-          switch layoutMode {
-          case .grid:
-            LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-              ForEach(bookViewModel.books) { book in
-                BookCardView(
-                  book: book,
-                  viewModel: bookViewModel,
-                  cardWidth: layoutHelper.cardWidth,
-                  onReadBook: { incognito in
-                    onReadBook(book, incognito)
-                  },
-                  onBookUpdated: {
-                    refreshBooks()
-                  },
-                  showSeriesTitle: false,
-                  showSeriesNavigation: false
-                )
-                .focusPadding()
-                .onAppear {
-                  if book.id == bookViewModel.books.last?.id {
-                    Task {
-                      await bookViewModel.loadMoreBooks(
-                        seriesId: seriesId, libraryIds: dashboard.libraryIds)
-                    }
-                  }
-                }
-              }
-            }
-            .padding(layoutHelper.spacing)
-          case .list:
-            LazyVStack(spacing: layoutHelper.spacing) {
-              ForEach(bookViewModel.books) { book in
-                BookRowView(
-                  book: book,
-                  viewModel: bookViewModel,
-                  onReadBook: { incognito in
-                    onReadBook(book, incognito)
-                  },
-                  onBookUpdated: {
-                    refreshBooks()
-                  },
-                  showSeriesTitle: false,
-                  showSeriesNavigation: false
-                )
-                .onAppear {
-                  if book.id == bookViewModel.books.last?.id {
-                    Task {
-                      await bookViewModel.loadMoreBooks(
-                        seriesId: seriesId, libraryIds: dashboard.libraryIds)
-                    }
-                  }
-                }
-              }
-            }
-          }
+      SeriesBooksQueryView(
+        seriesId: seriesId,
+        bookViewModel: bookViewModel,
+        onReadBook: onReadBook,
+        layoutHelper: layoutHelper,
+        browseLayout: layoutMode,
+        refreshBooks: {
+          refreshBooks()
+        },
+        loadMore: { refresh in
+          await bookViewModel.loadBooks(
+            seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
+            refresh: refresh)
         }
-
-        if bookViewModel.isLoading && !bookViewModel.books.isEmpty {
-          ProgressView()
-            .frame(maxWidth: .infinity)
-            .padding()
-        }
-      }
+      )
     }
     .task(id: seriesId) {
       await bookViewModel.loadBooks(

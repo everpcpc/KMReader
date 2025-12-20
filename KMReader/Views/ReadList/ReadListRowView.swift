@@ -8,23 +8,23 @@
 import SwiftUI
 
 struct ReadListRowView: View {
-  let readList: ReadList
+  @Environment(KomgaReadList.self) private var komgaReadList
   var onActionCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
+    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
       HStack(spacing: 12) {
-        ThumbnailImage(id: readList.id, type: .readlist, width: 70, cornerRadius: 10)
+        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 70, cornerRadius: 10)
 
         VStack(alignment: .leading, spacing: 6) {
-          Text(readList.name)
+          Text(komgaReadList.name)
             .font(.callout)
 
           Label {
-            Text("\(readList.bookIds.count) book")
+            Text("\(komgaReadList.bookIds.count) book")
           } icon: {
             Image(systemName: "book")
           }
@@ -32,15 +32,15 @@ struct ReadListRowView: View {
           .foregroundColor(.secondary)
 
           Label {
-            Text(readList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+            Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
           } icon: {
             Image(systemName: "clock")
           }
           .font(.caption)
           .foregroundColor(.secondary)
 
-          if !readList.summary.isEmpty {
-            Text(readList.summary)
+          if !komgaReadList.summary.isEmpty {
+            Text(komgaReadList.summary)
               .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(2)
@@ -57,7 +57,7 @@ struct ReadListRowView: View {
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       ReadListContextMenu(
-        readList: readList,
+        readList: komgaReadList.toReadList(),
         onActionCompleted: onActionCompleted,
         onDeleteRequested: {
           showDeleteConfirmation = true
@@ -76,7 +76,7 @@ struct ReadListRowView: View {
       Text("Are you sure you want to delete this read list? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      ReadListEditSheet(readList: readList)
+      ReadListEditSheet(readList: komgaReadList.toReadList())
         .onDisappear {
           onActionCompleted?()
         }
@@ -86,7 +86,7 @@ struct ReadListRowView: View {
   private func deleteReadList() {
     Task {
       do {
-        try await ReadListService.shared.deleteReadList(readListId: readList.id)
+        try await ReadListService.shared.deleteReadList(readListId: komgaReadList.readListId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
           onActionCompleted?()

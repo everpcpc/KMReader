@@ -208,7 +208,8 @@ class SyncService {
     return result
   }
 
-  func syncRecentlyReadBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
+  func syncRecentlyReadBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book>
+  {
     let result = try await BookService.shared.getRecentlyReadBooks(
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
@@ -217,7 +218,9 @@ class SyncService {
     return result
   }
 
-  func syncRecentlyAddedBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
+  func syncRecentlyAddedBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<
+    Book
+  > {
     let result = try await BookService.shared.getRecentlyAddedBooks(
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
@@ -342,8 +345,13 @@ class SyncService {
   }
 
   func syncDashboard(instanceId: String) async {
-    // Fetch On Deck, Recently Added, Recently Read
-    // And persist the associated books/series
+    let libraryIds = KomgaLibraryStore.shared.fetchLibraries(instanceId: instanceId).map { $0.id }
+    _ = try? await syncBooksOnDeck(libraryIds: libraryIds, page: 0, size: 20)
+    _ = try? await syncRecentlyAddedBooks(libraryIds: libraryIds, page: 0, size: 20)
+    _ = try? await syncRecentlyReadBooks(libraryIds: libraryIds, page: 0, size: 20)
+    _ = try? await syncRecentlyReleasedBooks(libraryIds: libraryIds, page: 0, size: 20)
+    _ = try? await syncNewSeries(libraryIds: libraryIds, page: 0, size: 20)
+    _ = try? await syncUpdatedSeries(libraryIds: libraryIds, page: 0, size: 20)
   }
 
   // MARK: - Cleanup

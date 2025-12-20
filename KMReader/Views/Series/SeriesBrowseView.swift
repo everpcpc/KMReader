@@ -30,74 +30,20 @@ struct SeriesBrowseView: View {
       )
       .padding(layoutHelper.spacing)
 
-      BrowseStateView(
-        isLoading: viewModel.isLoading,
-        isEmpty: viewModel.series.isEmpty,
-        emptyIcon: "books.vertical",
-        emptyTitle: LocalizedStringKey("No series found"),
-        emptyMessage: LocalizedStringKey("Try selecting a different library."),
-        onRetry: {
-          Task {
-            await loadSeries(refresh: true)
-          }
-        }
-      ) {
-        switch browseLayout {
-        case .grid:
-          LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.series.enumerated()), id: \.element.id) { index, series in
-              NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
-                SeriesCardView(
-                  series: series,
-                  cardWidth: layoutHelper.cardWidth,
-                  onActionCompleted: {
-                    Task {
-                      await loadSeries(refresh: true)
-                    }
-                  }
-                )
-              }
-              .focusPadding()
-              .adaptiveButtonStyle(.plain)
-              .onAppear {
-                if index >= viewModel.series.count - 3 {
-                  Task {
-                    await loadSeries(refresh: false)
-                  }
-                }
-              }
-            }
-          }
-        case .list:
-          LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.series.enumerated()), id: \.element.id) { index, series in
-              NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
-                SeriesRowView(
-                  series: series,
-                  onActionCompleted: {
-                    Task {
-                      await loadSeries(refresh: true)
-                    }
-                  }
-                )
-              }
-              .adaptiveButtonStyle(.plain)
-              .onAppear {
-                if index >= viewModel.series.count - 3 {
-                  Task {
-                    await loadSeries(refresh: false)
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+      SeriesQueryView(
+        browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
+          ? SeriesBrowseOptions() : browseOpts,
+        searchText: searchText,
+        libraryIds: dashboard.libraryIds,
+        instanceId: AppConfig.currentInstanceId,
+        layoutHelper: layoutHelper,
+        browseLayout: browseLayout,
+        viewModel: viewModel,
+        loadMore: loadSeries
+      )
     }
     .task {
-      if viewModel.series.isEmpty {
-        await loadSeries(refresh: true)
-      }
+      await loadSeries(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in
       Task {

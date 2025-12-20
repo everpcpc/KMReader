@@ -88,6 +88,59 @@ final class KomgaCollectionStore {
     }
   }
 
+  func fetchCollectionIds(
+    libraryIds: [String]?,
+    searchText: String,
+    sort: String?,
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    var descriptor = FetchDescriptor<KomgaCollection>()
+
+    if !searchText.isEmpty {
+      descriptor.predicate = #Predicate<KomgaCollection> { col in
+        col.instanceId == instanceId && col.name.contains(searchText)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaCollection> { col in
+        col.instanceId == instanceId
+      }
+    }
+
+    // Sort
+    if let sort = sort {
+      if sort.contains("name") {
+        let isAsc = !sort.contains("desc")
+        descriptor.sortBy = [
+          SortDescriptor(\KomgaCollection.name, order: isAsc ? .forward : .reverse)
+        ]
+      } else if sort.contains("createdDate") {
+        let isAsc = !sort.contains("desc")
+        descriptor.sortBy = [
+          SortDescriptor(\KomgaCollection.createdDate, order: isAsc ? .forward : .reverse)
+        ]
+      } else {
+        descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
+      }
+    } else {
+      descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
+    }
+
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.collectionId }
+    } catch {
+      return []
+    }
+  }
+
   func fetchCollection(id: String) -> SeriesCollection? {
     guard let container else { return nil }
     let context = ModelContext(container)
