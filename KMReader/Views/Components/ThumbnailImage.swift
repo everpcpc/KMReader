@@ -106,7 +106,12 @@ struct ThumbnailImage<Overlay: View>: View {
     }
     .shadow(color: Color.black.opacity(0.5), radius: 4)
     .task(id: id) {
-      if let id = id {
+      guard let id = id else { return }
+      let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
+
+      if FileManager.default.fileExists(atPath: fileURL.path) {
+        localURL = fileURL
+      } else {
         localURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
       }
     }
