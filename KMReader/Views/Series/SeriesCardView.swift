@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct SeriesCardView: View {
@@ -12,11 +13,24 @@ struct SeriesCardView: View {
   let cardWidth: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
+  // SwiftData query for reactive series data
+  @Query private var komgaSeriesList: [KomgaSeries]
+
   @AppStorage("showSeriesCardTitle") private var showTitle: Bool = true
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
+
+  init(series: Series, cardWidth: CGFloat, onActionCompleted: (() -> Void)? = nil) {
+    self.series = series
+    self.cardWidth = cardWidth
+    self.onActionCompleted = onActionCompleted
+
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(series.id)"
+    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -60,19 +74,21 @@ struct SeriesCardView: View {
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())
     .contextMenu {
-      SeriesContextMenu(
-        series: series,
-        onActionCompleted: onActionCompleted,
-        onShowCollectionPicker: {
-          showCollectionPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
+      if let komgaSeries = komgaSeriesList.first {
+        SeriesContextMenu(
+          onActionCompleted: onActionCompleted,
+          onShowCollectionPicker: {
+            showCollectionPicker = true
+          },
+          onDeleteRequested: {
+            showDeleteConfirmation = true
+          },
+          onEditRequested: {
+            showEditSheet = true
+          }
+        )
+        .environment(komgaSeries)
+      }
     }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
