@@ -133,22 +133,14 @@ final class KomgaBookStore {
     // If we can't perfectly filter, we might show slightly different data offline than online.
     // But better than showing nothing.
 
-    let libraryId = libraryIds?.first
+    let ids = libraryIds ?? []
 
     var descriptor = FetchDescriptor<KomgaBook>()
 
-    // We need to construct predicate based on filters.
-    // Swift 5.9 macros make this hard to compose dynamically.
-    // We will do a broad fetch and filter in memory? Not efficient for pagination.
-
-    // Strategy: Only filter by Instance ID and Text Search for now.
-    // Users can see "more" than expected offline if they have complex filters set?
-    // Or we just support basic offline browsing.
-
     if let search = search, !search.isEmpty {
-      if let libraryId = libraryId {
+      if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaBook> { book in
-          book.instanceId == instanceId && book.libraryId == libraryId
+          book.instanceId == instanceId && ids.contains(book.libraryId)
             && (book.name.localizedStandardContains(search)
               || book.metaTitle.localizedStandardContains(search))
         }
@@ -160,9 +152,9 @@ final class KomgaBookStore {
         }
       }
     } else {
-      if let libraryId = libraryId {
+      if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaBook> { book in
-          book.instanceId == instanceId && book.libraryId == libraryId
+          book.instanceId == instanceId && ids.contains(book.libraryId)
         }
       } else {
         descriptor.predicate = #Predicate<KomgaBook> { book in
@@ -217,13 +209,13 @@ final class KomgaBookStore {
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
-    let libraryId = libraryIds?.first
+    let ids = libraryIds ?? []
     var descriptor = FetchDescriptor<KomgaBook>()
 
     if !searchText.isEmpty {
-      if let libraryId = libraryId {
+      if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaBook> { book in
-          book.instanceId == instanceId && book.libraryId == libraryId
+          book.instanceId == instanceId && ids.contains(book.libraryId)
             && (book.name.localizedStandardContains(searchText)
               || book.metaTitle.localizedStandardContains(searchText))
         }
@@ -235,9 +227,9 @@ final class KomgaBookStore {
         }
       }
     } else {
-      if let libraryId = libraryId {
+      if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaBook> { book in
-          book.instanceId == instanceId && book.libraryId == libraryId
+          book.instanceId == instanceId && ids.contains(book.libraryId)
         }
       } else {
         descriptor.predicate = #Predicate<KomgaBook> { book in
@@ -280,12 +272,12 @@ final class KomgaBookStore {
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
-    let libraryId = libraryIds.first
+    let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaBook>()
 
-    if let libraryId = libraryId {
+    if !ids.isEmpty {
       descriptor.predicate = #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId && book.libraryId == libraryId
+        book.instanceId == instanceId && ids.contains(book.libraryId)
           && book.progressReadDate != nil && book.progressCompleted == false
       }
     } else {
@@ -316,12 +308,12 @@ final class KomgaBookStore {
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
-    let libraryId = libraryIds.first
+    let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaBook>()
 
-    if let libraryId = libraryId {
+    if !ids.isEmpty {
       descriptor.predicate = #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId && book.libraryId == libraryId
+        book.instanceId == instanceId && ids.contains(book.libraryId)
       }
     } else {
       descriptor.predicate = #Predicate<KomgaBook> { book in

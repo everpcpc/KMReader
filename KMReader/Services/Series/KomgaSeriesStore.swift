@@ -54,20 +54,20 @@ final class KomgaSeriesStore {
     // If libraryIds is nil/empty, we fetch all?
     // Swift 5.9 Macros make this static.
 
-    let libraryId = libraryIds?.first  // Simplifying to single library for now or we need a loop
+    let ids = libraryIds ?? []
 
     var descriptor = FetchDescriptor<KomgaSeries>()
 
-    if let libraryId = libraryId, !libraryId.isEmpty {
+    if !ids.isEmpty {
       if let search = searchTerm, !search.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
-          series.libraryId == libraryId
+          ids.contains(series.libraryId)
             && (series.name.localizedStandardContains(search)
               || series.metaTitle.localizedStandardContains(search))
         }
       } else {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
-          series.libraryId == libraryId
+          ids.contains(series.libraryId)
         }
       }
     } else {
@@ -122,13 +122,13 @@ final class KomgaSeriesStore {
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
-    let libraryId = libraryIds?.first
+    let ids = libraryIds ?? []
     var descriptor = FetchDescriptor<KomgaSeries>()
 
     if !searchText.isEmpty {
-      if let libraryId = libraryId {
+      if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
-          series.instanceId == instanceId && series.libraryId == libraryId
+          series.instanceId == instanceId && ids.contains(series.libraryId)
             && (series.name.localizedStandardContains(searchText)
               || series.metaTitle.localizedStandardContains(searchText))
         }
@@ -140,9 +140,9 @@ final class KomgaSeriesStore {
         }
       }
     } else {
-      if let libraryId = libraryId {
+      if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
-          series.instanceId == instanceId && series.libraryId == libraryId
+          series.instanceId == instanceId && ids.contains(series.libraryId)
         }
       } else {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
@@ -188,12 +188,12 @@ final class KomgaSeriesStore {
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
-    let libraryId = libraryIds.first
+    let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaSeries>()
 
-    if let libraryId = libraryId {
+    if !ids.isEmpty {
       descriptor.predicate = #Predicate<KomgaSeries> { series in
-        series.instanceId == instanceId && series.libraryId == libraryId
+        series.instanceId == instanceId && ids.contains(series.libraryId)
       }
     } else {
       descriptor.predicate = #Predicate<KomgaSeries> { series in
