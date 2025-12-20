@@ -149,12 +149,14 @@ final class KomgaBookStore {
       if let libraryId = libraryId {
         descriptor.predicate = #Predicate<KomgaBook> { book in
           book.instanceId == instanceId && book.libraryId == libraryId
-            && (book.name.localizedStandardContains(search) || book.metaTitle.localizedStandardContains(search))
+            && (book.name.localizedStandardContains(search)
+              || book.metaTitle.localizedStandardContains(search))
         }
       } else {
         descriptor.predicate = #Predicate<KomgaBook> { book in
           book.instanceId == instanceId
-            && (book.name.localizedStandardContains(search) || book.metaTitle.localizedStandardContains(search))
+            && (book.name.localizedStandardContains(search)
+              || book.metaTitle.localizedStandardContains(search))
         }
       }
     } else {
@@ -222,12 +224,14 @@ final class KomgaBookStore {
       if let libraryId = libraryId {
         descriptor.predicate = #Predicate<KomgaBook> { book in
           book.instanceId == instanceId && book.libraryId == libraryId
-            && (book.name.localizedStandardContains(searchText) || book.metaTitle.localizedStandardContains(searchText))
+            && (book.name.localizedStandardContains(searchText)
+              || book.metaTitle.localizedStandardContains(searchText))
         }
       } else {
         descriptor.predicate = #Predicate<KomgaBook> { book in
           book.instanceId == instanceId
-            && (book.name.localizedStandardContains(searchText) || book.metaTitle.localizedStandardContains(searchText))
+            && (book.name.localizedStandardContains(searchText)
+              || book.metaTitle.localizedStandardContains(searchText))
         }
       }
     } else {
