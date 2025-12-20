@@ -10,6 +10,7 @@ import SwiftUI
 struct ServerUpdateStatusView: View {
   @AppStorage("serverLastUpdate") private var serverLastUpdateInterval: TimeInterval = 0
   @AppStorage("taskQueueStatus") private var taskQueueStatusRaw: String = ""
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   private var taskStatus: TaskQueueSSEDto {
     TaskQueueSSEDto(rawValue: taskQueueStatusRaw) ?? TaskQueueSSEDto()
@@ -17,17 +18,25 @@ struct ServerUpdateStatusView: View {
 
   var body: some View {
     HStack {
-      Image(systemName: "antenna.radiowaves.left.and.right")
-        .foregroundColor(.secondary)
-      lastServerEventText
-        .font(.caption)
-        .foregroundColor(.secondary)
-      if taskStatus.count > 0 {
-        Text("•")
+      if isOffline {
+        Image(systemName: "wifi.slash")
+          .foregroundColor(.orange)
+        Text(String(localized: "settings.offline"))
+          .font(.caption)
+          .foregroundColor(.orange)
+      } else {
+        Image(systemName: "antenna.radiowaves.left.and.right")
           .foregroundColor(.secondary)
-        Text("Running Tasks: \(taskStatus.count)")
+        lastServerEventText
           .font(.caption)
           .foregroundColor(.secondary)
+        if taskStatus.count > 0 {
+          Text("•")
+            .foregroundColor(.secondary)
+          Text("Running Tasks: \(taskStatus.count)")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
       }
     }
     .monospacedDigit()
