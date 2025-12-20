@@ -51,9 +51,7 @@ class ReadListViewModel {
 
     guard hasMorePages && !isLoading else { return }
 
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly

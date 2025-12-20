@@ -85,9 +85,7 @@ struct DashboardBooksSection: View {
 
   private func loadMore() async {
     guard hasMore, !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     let libraryIds = dashboard.libraryIds
 

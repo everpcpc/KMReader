@@ -44,9 +44,7 @@ class SeriesViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
       if AppConfig.isOffline {
         // Offline: query SwiftData directly
@@ -99,9 +97,7 @@ class SeriesViewModel {
   }
 
   func loadNewSeries(libraryIds: [String]? = nil) async {
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       _ = try await SyncService.shared.syncNewSeries(
@@ -116,9 +112,7 @@ class SeriesViewModel {
   }
 
   func loadUpdatedSeries(libraryIds: [String]? = nil) async {
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       _ = try await SyncService.shared.syncUpdatedSeries(
@@ -171,9 +165,7 @@ class SeriesViewModel {
 
     guard hasMorePages && !isLoading else { return }
 
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncCollectionSeries(

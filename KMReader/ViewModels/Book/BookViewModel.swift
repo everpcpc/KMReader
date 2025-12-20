@@ -41,9 +41,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncBooks(
@@ -77,9 +75,7 @@ class BookViewModel {
       let browseOpts = currentSeriesBrowseOpts
     else { return }
 
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncBooks(
@@ -112,9 +108,7 @@ class BookViewModel {
   }
 
   func loadBook(id: String) async {
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     // Local
     if let cached = KomgaBookStore.shared.fetchBook(id: id) {
@@ -183,9 +177,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncBooksOnDeck(
@@ -212,9 +204,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncRecentlyAddedBooks(
@@ -241,9 +231,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncRecentlyReadBooks(
@@ -279,9 +267,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
@@ -354,9 +340,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncReadListBooks(
