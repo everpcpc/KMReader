@@ -12,11 +12,11 @@ import SwiftUI
 @Observable
 class CollectionViewModel {
   var collectionIds: [String] = []
+  var browseCollections: [KomgaCollection] = []
   var isLoading = false
 
-  // Computed property for backward compatibility with pickers
   var collections: [SeriesCollection] {
-    collectionIds.compactMap { KomgaCollectionStore.shared.fetchCollection(id: $0) }
+    browseCollections.map { $0.toCollection() }
   }
 
   private let collectionService = CollectionService.shared
@@ -45,14 +45,13 @@ class CollectionViewModel {
       currentSearchText = searchText
       withAnimation {
         collectionIds = []
+        browseCollections = []
       }
     }
 
     guard hasMorePages && !isLoading else { return }
 
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
@@ -63,8 +62,11 @@ class CollectionViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      let collections = KomgaCollectionStore.shared.fetchCollectionsByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         collectionIds.append(contentsOf: ids)
+        browseCollections.append(contentsOf: collections)
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -79,8 +81,12 @@ class CollectionViewModel {
           search: searchText.isEmpty ? nil : searchText
         )
 
+        let ids = page.content.map { $0.id }
+        let collections = KomgaCollectionStore.shared.fetchCollectionsByIds(
+          ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          collectionIds.append(contentsOf: page.content.map { $0.id })
+          collectionIds.append(contentsOf: ids)
+          browseCollections.append(contentsOf: collections)
         }
         hasMorePages = !page.last
         currentPage += 1

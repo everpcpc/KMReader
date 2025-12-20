@@ -17,37 +17,9 @@ struct SeriesBooksQueryView: View {
   let refreshBooks: () -> Void
   let loadMore: (Bool) async -> Void
 
-  @Query private var books: [KomgaBook]
-
-  init(
-    seriesId: String,
-    bookViewModel: BookViewModel,
-    onReadBook: @escaping (Book, Bool) -> Void,
-    layoutHelper: BrowseLayoutHelper,
-    browseLayout: BrowseLayoutMode,
-    refreshBooks: @escaping () -> Void,
-    loadMore: @escaping (Bool) async -> Void
-  ) {
-    self.seriesId = seriesId
-    self.bookViewModel = bookViewModel
-    self.onReadBook = onReadBook
-    self.layoutHelper = layoutHelper
-    self.browseLayout = browseLayout
-    self.refreshBooks = refreshBooks
-    self.loadMore = loadMore
-
-    let instanceId = AppConfig.currentInstanceId
-    let predicate = #Predicate<KomgaBook> { book in
-      book.instanceId == instanceId && book.seriesId == seriesId
-    }
-
-    // Sorting series books is usually by number or name
-    _books = Query(filter: predicate, sort: [SortDescriptor(\.number, order: .forward)])
-  }
-
   var body: some View {
     Group {
-      if bookViewModel.isLoading && books.isEmpty {
+      if bookViewModel.isLoading && bookViewModel.browseBooks.isEmpty {
         ProgressView()
           .frame(maxWidth: .infinity)
           .padding()
@@ -55,10 +27,10 @@ struct SeriesBooksQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(books) { b in
+            ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
               bookItem(b)
                 .onAppear {
-                  if b.id == books.last?.id {
+                  if index >= bookViewModel.browseBooks.count - 3 {
                     Task { await loadMore(false) }
                   }
                 }
@@ -67,10 +39,10 @@ struct SeriesBooksQueryView: View {
           .padding(layoutHelper.spacing)
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(books) { b in
+            ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
               bookItem(b)
                 .onAppear {
-                  if b.id == books.last?.id {
+                  if index >= bookViewModel.browseBooks.count - 3 {
                     Task { await loadMore(false) }
                   }
                 }

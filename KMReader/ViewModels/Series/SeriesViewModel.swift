@@ -13,6 +13,7 @@ import SwiftUI
 class SeriesViewModel {
   var isLoading = false
   var browseSeriesIds: [String] = []
+  var browseSeries: [KomgaSeries] = []
 
   private let seriesService = SeriesService.shared
   private(set) var currentPage = 0
@@ -38,13 +39,12 @@ class SeriesViewModel {
       currentSearchText = searchText
       withAnimation {
         browseSeriesIds = []
+        browseSeries = []
       }
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
@@ -55,8 +55,11 @@ class SeriesViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         browseSeriesIds.append(contentsOf: ids)
+        browseSeries.append(contentsOf: series)
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -72,8 +75,12 @@ class SeriesViewModel {
           browseOpts: browseOpts
         )
 
+        let ids = page.content.map { $0.id }
+        let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+          ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          browseSeriesIds.append(contentsOf: page.content.map { $0.id })
+          browseSeriesIds.append(contentsOf: ids)
+          browseSeries.append(contentsOf: series)
         }
         hasMorePages = !page.last
         currentPage += 1
@@ -90,9 +97,7 @@ class SeriesViewModel {
   }
 
   func loadNewSeries(libraryIds: [String]? = nil) async {
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       _ = try await SyncService.shared.syncNewSeries(
@@ -107,9 +112,7 @@ class SeriesViewModel {
   }
 
   func loadUpdatedSeries(libraryIds: [String]? = nil) async {
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       _ = try await SyncService.shared.syncUpdatedSeries(
@@ -162,9 +165,7 @@ class SeriesViewModel {
 
     guard hasMorePages && !isLoading else { return }
 
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncCollectionSeries(

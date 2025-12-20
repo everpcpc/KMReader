@@ -138,6 +138,28 @@ final class KomgaReadListStore {
     }
   }
 
+  func fetchReadListsByIds(ids: [String], instanceId: String) -> [KomgaReadList] {
+    guard let container, !ids.isEmpty else { return [] }
+    let context = ModelContext(container)
+
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate<KomgaReadList> { rl in
+        rl.instanceId == instanceId && ids.contains(rl.readListId)
+      }
+    )
+
+    do {
+      let results = try context.fetch(descriptor)
+      let idToIndex = Dictionary(
+        uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+      return results.sorted {
+        (idToIndex[$0.readListId] ?? Int.max) < (idToIndex[$1.readListId] ?? Int.max)
+      }
+    } catch {
+      return []
+    }
+  }
+
   func fetchReadList(id: String) -> ReadList? {
     guard let container else { return nil }
     let context = ModelContext(container)

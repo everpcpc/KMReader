@@ -21,7 +21,7 @@ struct SeriesQueryView: View {
   var body: some View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
-      isEmpty: viewModel.browseSeriesIds.isEmpty,
+      isEmpty: viewModel.browseSeries.isEmpty,
       emptyIcon: "books.vertical",
       emptyTitle: LocalizedStringKey("No series found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -34,10 +34,8 @@ struct SeriesQueryView: View {
       switch browseLayout {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+          ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
             BrowseSeriesItemView(
-              seriesId: seriesId,
-              instanceId: instanceId,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onActionCompleted: {
@@ -46,8 +44,9 @@ struct SeriesQueryView: View {
                 }
               }
             )
+            .environment(series)
             .onAppear {
-              if index >= viewModel.browseSeriesIds.count - 3 {
+              if index >= viewModel.browseSeries.count - 3 {
                 Task {
                   await loadMore(false)
                 }
@@ -57,10 +56,8 @@ struct SeriesQueryView: View {
         }
       case .list:
         LazyVStack(spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+          ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
             BrowseSeriesItemView(
-              seriesId: seriesId,
-              instanceId: instanceId,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onActionCompleted: {
@@ -69,8 +66,9 @@ struct SeriesQueryView: View {
                 }
               }
             )
+            .environment(series)
             .onAppear {
-              if index >= viewModel.browseSeriesIds.count - 3 {
+              if index >= viewModel.browseSeries.count - 3 {
                 Task {
                   await loadMore(false)
                 }
@@ -84,50 +82,26 @@ struct SeriesQueryView: View {
 }
 
 private struct BrowseSeriesItemView: View {
-  let seriesId: String
-  let instanceId: String
+  @Environment(KomgaSeries.self) private var series
   let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   let onActionCompleted: (() -> Void)?
 
-  @Query private var seriesList: [KomgaSeries]
-
-  init(
-    seriesId: String,
-    instanceId: String,
-    cardWidth: CGFloat,
-    layout: BrowseLayoutMode,
-    onActionCompleted: (() -> Void)?
-  ) {
-    self.seriesId = seriesId
-    self.instanceId = instanceId
-    self.cardWidth = cardWidth
-    self.layout = layout
-    self.onActionCompleted = onActionCompleted
-
-    let compositeId = "\(instanceId)_\(seriesId)"
-    _seriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
-  }
-
   var body: some View {
-    if let komgaSeries = seriesList.first {
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)) {
-        switch layout {
-        case .grid:
-          SeriesCardView(
-            cardWidth: cardWidth,
-            onActionCompleted: onActionCompleted
-          )
-          .environment(komgaSeries)
-        case .list:
-          SeriesRowView(
-            onActionCompleted: onActionCompleted
-          )
-          .environment(komgaSeries)
-        }
+    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
+      switch layout {
+      case .grid:
+        SeriesCardView(
+          cardWidth: cardWidth,
+          onActionCompleted: onActionCompleted
+        )
+      case .list:
+        SeriesRowView(
+          onActionCompleted: onActionCompleted
+        )
       }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
     }
+    .focusPadding()
+    .adaptiveButtonStyle(.plain)
   }
 }

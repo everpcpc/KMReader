@@ -14,6 +14,7 @@ class BookViewModel {
   var currentBook: Book?
   var isLoading = false
   var browseBookIds: [String] = []
+  var browseBooks: [KomgaBook] = []
 
   private let bookService = BookService.shared
   private let sseService = SSEService.shared
@@ -33,12 +34,14 @@ class BookViewModel {
       hasMorePages = true
       currentSeriesId = seriesId
       currentSeriesBrowseOpts = browseOpts
+      withAnimation {
+        browseBookIds = []
+        browseBooks = []
+      }
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncBooks(
@@ -49,6 +52,13 @@ class BookViewModel {
         libraryIds: libraryIds
       )
 
+      let ids = page.content.map { $0.id }
+      let books = KomgaBookStore.shared.fetchBooksByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
+      withAnimation {
+        browseBookIds.append(contentsOf: ids)
+        browseBooks.append(contentsOf: books)
+      }
       hasMorePages = !page.last
       currentPage += 1
     } catch {
@@ -65,15 +75,20 @@ class BookViewModel {
       let browseOpts = currentSeriesBrowseOpts
     else { return }
 
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncBooks(
         seriesId: seriesId, page: currentPage, size: 50, browseOpts: browseOpts,
         libraryIds: libraryIds)
 
+      let ids = page.content.map { $0.id }
+      let books = KomgaBookStore.shared.fetchBooksByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
+      withAnimation {
+        browseBookIds.append(contentsOf: ids)
+        browseBooks.append(contentsOf: books)
+      }
       hasMorePages = !page.last
       currentPage += 1
     } catch {
@@ -93,9 +108,7 @@ class BookViewModel {
   }
 
   func loadBook(id: String) async {
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     // Local
     if let cached = KomgaBookStore.shared.fetchBook(id: id) {
@@ -164,9 +177,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncBooksOnDeck(
@@ -193,9 +204,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncRecentlyAddedBooks(
@@ -222,9 +231,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncRecentlyReadBooks(
@@ -255,13 +262,12 @@ class BookViewModel {
       hasMorePages = true
       withAnimation {
         browseBookIds = []
+        browseBooks = []
       }
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
@@ -272,8 +278,11 @@ class BookViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      let books = KomgaBookStore.shared.fetchBooksByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         browseBookIds.append(contentsOf: ids)
+        browseBooks.append(contentsOf: books)
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -300,8 +309,12 @@ class BookViewModel {
           sort: browseOpts.sortString
         )
 
+        let ids = page.content.map { $0.id }
+        let books = KomgaBookStore.shared.fetchBooksByIds(
+          ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          browseBookIds.append(contentsOf: page.content.map { $0.id })
+          browseBookIds.append(contentsOf: ids)
+          browseBooks.append(contentsOf: books)
         }
         hasMorePages = !page.last
         currentPage += 1
@@ -327,9 +340,7 @@ class BookViewModel {
     }
 
     guard hasMorePages && !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     do {
       let page = try await SyncService.shared.syncReadListBooks(
@@ -340,6 +351,13 @@ class BookViewModel {
         libraryIds: libraryIds
       )
 
+      let ids = page.content.map { $0.id }
+      let books = KomgaBookStore.shared.fetchBooksByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
+      withAnimation {
+        browseBookIds.append(contentsOf: ids)
+        browseBooks.append(contentsOf: books)
+      }
       hasMorePages = !page.last
       currentPage += 1
     } catch {

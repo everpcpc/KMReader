@@ -45,7 +45,9 @@ actor ThumbnailCache {
   private init() {}
 
   /// Get the local file URL for a thumbnail. The file may or may not exist.
-  static nonisolated func getThumbnailFileURL(id: String, type: ThumbnailType, page: Int? = nil) -> URL {
+  static nonisolated func getThumbnailFileURL(id: String, type: ThumbnailType, page: Int? = nil)
+    -> URL
+  {
     let directory = CacheNamespace.directory(for: "KomgaThumbnailCache")
     let typeDir = directory.appendingPathComponent(type.rawValue, isDirectory: true)
 

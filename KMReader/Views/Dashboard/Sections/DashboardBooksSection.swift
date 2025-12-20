@@ -17,6 +17,7 @@ struct DashboardBooksSection: View {
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var bookIds: [String] = []
+  @State private var browseBooks: [KomgaBook] = []
   @State private var currentPage = 0
   @State private var hasMore = true
   @State private var isLoading = false
@@ -25,20 +26,36 @@ struct DashboardBooksSection: View {
   private let pageSize = 20
 
   var body: some View {
-    DashboardBooksListView(
-      bookIds: bookIds,
-      instanceId: AppConfig.currentInstanceId,
-      section: section,
-      bookViewModel: bookViewModel,
-      onBookUpdated: onBookUpdated,
-      loadMore: {
-        Task {
-          await loadMore()
+    VStack(alignment: .leading, spacing: 4) {
+      Text(section.displayName)
+        .font(.title3)
+        .fontWeight(.bold)
+        .padding(.horizontal)
+
+      ScrollView(.horizontal, showsIndicators: false) {
+        LazyHStack(alignment: .top, spacing: 12) {
+          ForEach(Array(browseBooks.enumerated()), id: \.element.id) { index, book in
+            DashboardBookItemView(
+              bookViewModel: bookViewModel,
+              onBookUpdated: onBookUpdated,
+              readerPresentation: readerPresentation
+            )
+            .environment(book)
+            .onAppear {
+              if index >= browseBooks.count - 3 {
+                Task {
+                  await loadMore()
+                }
+              }
+            }
+          }
         }
+        .padding()
       }
-    )
-    .opacity(bookIds.isEmpty ? 0 : 1)
-    .frame(height: bookIds.isEmpty ? 0 : nil)
+      .scrollClipDisabled()
+    }
+    .opacity(browseBooks.isEmpty ? 0 : 1)
+    .frame(height: browseBooks.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
       Task {
         await refresh()
@@ -59,6 +76,7 @@ struct DashboardBooksSection: View {
     hasMore = true
     withAnimation {
       bookIds = []
+      browseBooks = []
     }
 
     await loadMore()
@@ -67,17 +85,18 @@ struct DashboardBooksSection: View {
 
   private func loadMore() async {
     guard hasMore, !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
+    isLoading = true
 
     let libraryIds = dashboard.libraryIds
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
       let ids = fetchOfflineBookIds(libraryIds: libraryIds)
+      let books = KomgaBookStore.shared.fetchBooksByIds(
+        ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         bookIds.append(contentsOf: ids)
+        browseBooks.append(contentsOf: books)
       }
       hasMore = ids.count == pageSize
       currentPage += 1
@@ -137,8 +156,12 @@ struct DashboardBooksSection: View {
           return
         }
 
+        let ids = page.content.map { $0.id }
+        let books = KomgaBookStore.shared.fetchBooksByIds(
+          ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          bookIds.append(contentsOf: page.content.map { $0.id })
+          bookIds.append(contentsOf: ids)
+          browseBooks.append(contentsOf: books)
         }
         hasMore = !page.last
         currentPage += 1
@@ -172,5 +195,25 @@ struct DashboardBooksSection: View {
     default:
       return []
     }
+  }
+}
+
+private struct DashboardBookItemView: View {
+  @Environment(KomgaBook.self) private var book
+  let bookViewModel: BookViewModel
+  let onBookUpdated: (() -> Void)?
+  let readerPresentation: ReaderPresentationManager
+
+  var body: some View {
+    BookCardView(
+      viewModel: bookViewModel,
+      cardWidth: PlatformHelper.dashboardCardWidth,
+      onReadBook: { incognito in
+        readerPresentation.present(book: book.toBook(), incognito: incognito)
+      },
+      onBookUpdated: onBookUpdated,
+      showSeriesTitle: true
+    )
+    .focusPadding()
   }
 }
