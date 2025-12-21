@@ -11,14 +11,14 @@ import SwiftData
 @Model
 final class PendingProgress {
   @Attribute(.unique) var id: String  // Composite: "instanceId_bookId"
-  
+
   var instanceId: String
   var bookId: String
   var page: Int
   var completed: Bool
   var createdAt: Date
   var progressionData: Data?  // For EPUB R2Progression
-  
+
   init(
     instanceId: String,
     bookId: String,

@@ -50,7 +50,8 @@ actor ProgressSyncService {
         try? await DatabaseOperator.shared.commit()
         successCount += 1
       } catch {
-        logger.error("❌ Failed to sync progress for book \(item.bookId): \(error.localizedDescription)")
+        logger.error(
+          "❌ Failed to sync progress for book \(item.bookId): \(error.localizedDescription)")
         failureCount += 1
       }
     }

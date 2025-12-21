@@ -798,7 +798,6 @@ actor DatabaseOperator {
     )
     let books = (try? modelContext.fetch(descriptor)) ?? []
 
-
     let unreadCount = books.filter { book in
       if book.progressCompleted == true { return false }
       if (book.progressPage ?? 0) > 0 { return false }
