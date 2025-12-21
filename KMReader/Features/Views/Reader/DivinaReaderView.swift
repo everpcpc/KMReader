@@ -482,7 +482,8 @@ struct DivinaReaderView: View {
 
       self.previousBook = await DatabaseOperator.shared.getPreviousBook(
         instanceId: AppConfig.currentInstanceId,
-        bookId: bookId
+        bookId: bookId,
+        readListId: readList?.id
       )
       if self.previousBook == nil && !AppConfig.isOffline {
         self.previousBook = await SyncService.shared.syncPreviousBook(bookId: bookId)

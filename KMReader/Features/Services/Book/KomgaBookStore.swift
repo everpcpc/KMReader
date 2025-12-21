@@ -12,25 +12,78 @@ import SwiftData
 /// All View-facing fetch methods require a ModelContext from the caller.
 enum KomgaBookStore {
 
-  static func fetchBooks(
+  static func fetchSeriesBooks(
     context: ModelContext,
     seriesId: String,
     page: Int,
     size: Int,
-    sort: String? = nil
+    browseOpts: BookBrowseOptions
   ) -> [Book] {
     let instanceId = AppConfig.currentInstanceId
 
     var descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
     )
-    descriptor.sortBy = [SortDescriptor(\KomgaBook.number, order: .forward)]
-    descriptor.fetchLimit = size
-    descriptor.fetchOffset = page * size
+
+    let sort = browseOpts.sortString
+    if sort.contains("created") {
+      let isAsc = !sort.contains("desc")
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.created, order: isAsc ? .forward : .reverse)]
+    } else if sort.contains("metadata.releaseDate") {
+      let isAsc = !sort.contains("desc")
+      descriptor.sortBy = [
+        SortDescriptor(\KomgaBook.metaReleaseDate, order: isAsc ? .forward : .reverse)
+      ]
+    } else if sort.contains("readProgress.readDate") {
+      let isAsc = !sort.contains("desc")
+      descriptor.sortBy = [
+        SortDescriptor(\KomgaBook.progressReadDate, order: isAsc ? .forward : .reverse)
+      ]
+    } else {
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.number, order: .forward)]
+    }
 
     do {
-      let results = try context.fetch(descriptor)
-      return results.map { $0.toBook() }
+      let allBooks = try context.fetch(descriptor)
+
+      let filtered = allBooks.filter { book in
+        // Filter by deleted
+        if let deletedState = browseOpts.deletedFilter.effectiveBool {
+          if book.deleted != deletedState { return false }
+        }
+
+        // Filter by oneshot
+        if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
+            if book.oneshot != oneshotState { return false }
+        }
+
+        // Filter by Read Status
+        let status: ReadStatus
+        if let completed = book.progressCompleted, completed {
+          status = .read
+        } else if book.progressReadDate != nil {
+          status = .inProgress
+        } else {
+          status = .unread
+        }
+
+        if !browseOpts.includeReadStatuses.isEmpty {
+          if !browseOpts.includeReadStatuses.contains(status) { return false }
+        }
+
+        if !browseOpts.excludeReadStatuses.isEmpty {
+          if browseOpts.excludeReadStatuses.contains(status) { return false }
+        }
+
+        return true
+      }
+
+      let start = page * size
+      if start >= filtered.count { return [] }
+      let end = min(start + size, filtered.count)
+      let pageSlice = filtered[start..<end]
+
+      return pageSlice.map { $0.toBook() }
     } catch {
       return []
     }
@@ -51,7 +104,8 @@ enum KomgaBookStore {
     context: ModelContext,
     readListId: String,
     page: Int,
-    size: Int
+    size: Int,
+    browseOpts: ReadListBookBrowseOptions
   ) -> [Book] {
     let instanceId = AppConfig.currentInstanceId
     let rlCompositeId = "\(instanceId)_\(readListId)"
@@ -61,21 +115,46 @@ enum KomgaBookStore {
     guard let readList = try? context.fetch(descriptor).first else { return [] }
 
     let bookIds = readList.bookIds
-    let start = page * size
-    let end = min(start + size, bookIds.count)
+    let allBooks = fetchBooksByIds(context: context, ids: bookIds, instanceId: instanceId)
 
-    guard start < bookIds.count else { return [] }
-
-    let pageIds = Array(bookIds[start..<end])
-
-    var booksList: [Book] = []
-    for bId in pageIds {
-      if let b = fetchBook(context: context, id: bId) {
-        booksList.append(b)
+    let filtered = allBooks.filter { book in
+      // Filter by deleted
+      if let deletedState = browseOpts.deletedFilter.effectiveBool {
+        if book.deleted != deletedState { return false }
       }
+
+      // Filter by oneshot
+      if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
+        if book.oneshot != oneshotState { return false }
+      }
+
+      // Filter by Read Status
+      let status: ReadStatus
+      if let completed = book.progressCompleted, completed {
+        status = .read
+      } else if book.progressReadDate != nil {
+        status = .inProgress
+      } else {
+        status = .unread
+      }
+
+      if !browseOpts.includeReadStatuses.isEmpty {
+        if !browseOpts.includeReadStatuses.contains(status) { return false }
+      }
+
+      if !browseOpts.excludeReadStatuses.isEmpty {
+        if browseOpts.excludeReadStatuses.contains(status) { return false }
+      }
+
+      return true
     }
 
-    return booksList
+    let start = page * size
+    guard start < filtered.count else { return [] }
+    let end = min(start + size, filtered.count)
+    let pageSlice = filtered[start..<end]
+
+    return pageSlice.map { $0.toBook() }
   }
 
   static func fetchBooksList(

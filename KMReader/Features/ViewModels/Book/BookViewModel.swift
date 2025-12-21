@@ -26,7 +26,7 @@ class BookViewModel {
 
   private let pageSize = 20
 
-  func loadBooks(
+  func loadSeriesBooks(
     context: ModelContext,
     seriesId: String,
     browseOpts: BookBrowseOptions,
@@ -43,42 +43,31 @@ class BookViewModel {
     guard hasMorePages && !isLoading else { return }
     isLoading = true
 
-    do {
-      let page = try await SyncService.shared.syncBooks(
+    if AppConfig.isOffline {
+      let books = KomgaBookStore.fetchSeriesBooks(
+        context: context,
         seriesId: seriesId,
         page: currentPage,
         size: 50,
-        browseOpts: browseOpts,
-        libraryIds: libraryIds
+        browseOpts: browseOpts
       )
+      let ids = books.map { $0.id }
+      updateState(context: context, ids: ids, moreAvailable: ids.count == 50)
+    } else {
+      do {
+        let page = try await SyncService.shared.syncBooks(
+          seriesId: seriesId,
+          page: currentPage,
+          size: 50,
+          browseOpts: browseOpts,
+          libraryIds: libraryIds
+        )
 
-      let ids = page.content.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: !page.last)
-    } catch {
-      ErrorManager.shared.alert(error: error)
-    }
-
-    withAnimation {
-      isLoading = false
-    }
-  }
-
-  func loadMoreBooks(context: ModelContext, seriesId: String, libraryIds: [String]? = nil) async {
-    guard hasMorePages && !isLoading && seriesId == currentSeriesId,
-      let browseOpts = currentSeriesBrowseOpts
-    else { return }
-
-    isLoading = true
-
-    do {
-      let page = try await SyncService.shared.syncBooks(
-        seriesId: seriesId, page: currentPage, size: 50, browseOpts: browseOpts,
-        libraryIds: libraryIds)
-
-      let ids = page.content.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: !page.last)
-    } catch {
-      ErrorManager.shared.alert(error: error)
+        let ids = page.content.map { $0.id }
+        updateState(context: context, ids: ids, moreAvailable: !page.last)
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     withAnimation {
@@ -161,87 +150,6 @@ class BookViewModel {
     }
   }
 
-  func loadBooksOnDeck(context: ModelContext, libraryIds: [String]? = nil, refresh: Bool = false) async {
-    if refresh {
-      currentPage = 0
-      hasMorePages = true
-    }
-
-    guard hasMorePages && !isLoading else { return }
-    isLoading = true
-
-    do {
-      let page = try await SyncService.shared.syncBooksOnDeck(
-        libraryIds: libraryIds,
-        page: currentPage,
-        size: 20
-      )
-
-      let ids = page.content.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: !page.last)
-    } catch {
-      ErrorManager.shared.alert(error: error)
-    }
-
-    withAnimation {
-      isLoading = false
-    }
-  }
-
-  func loadRecentlyAddedBooks(context: ModelContext, libraryIds: [String]? = nil, refresh: Bool = false) async {
-    if refresh {
-      currentPage = 0
-      hasMorePages = true
-    }
-
-    guard hasMorePages && !isLoading else { return }
-    isLoading = true
-
-    do {
-      let page = try await SyncService.shared.syncRecentlyAddedBooks(
-        libraryIds: libraryIds,
-        page: currentPage,
-        size: 20
-      )
-
-      let ids = page.content.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: !page.last)
-    } catch {
-      ErrorManager.shared.alert(error: error)
-    }
-
-    withAnimation {
-      isLoading = false
-    }
-  }
-
-  func loadRecentlyReadBooks(context: ModelContext, libraryIds: [String]? = nil, refresh: Bool = false) async {
-    if refresh {
-      currentPage = 0
-      hasMorePages = true
-    }
-
-    guard hasMorePages && !isLoading else { return }
-    isLoading = true
-
-    do {
-      let page = try await SyncService.shared.syncRecentlyReadBooks(
-        libraryIds: libraryIds,
-        page: currentPage,
-        size: 20
-      )
-
-      let ids = page.content.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: !page.last)
-    } catch {
-      ErrorManager.shared.alert(error: error)
-    }
-
-    withAnimation {
-      isLoading = false
-    }
-  }
-
   func loadBrowseBooks(
     context: ModelContext,
     browseOpts: BookBrowseOptions,
@@ -316,19 +224,31 @@ class BookViewModel {
     guard hasMorePages && !isLoading else { return }
     isLoading = true
 
-    do {
-      let page = try await SyncService.shared.syncReadListBooks(
+    if AppConfig.isOffline {
+      let books = KomgaBookStore.fetchReadListBooks(
+        context: context,
         readListId: readListId,
         page: currentPage,
         size: 50,
-        browseOpts: browseOpts,
-        libraryIds: libraryIds
+        browseOpts: browseOpts
       )
+      let ids = books.map { $0.id }
+      updateState(context: context, ids: ids, moreAvailable: ids.count == 50)
+    } else {
+      do {
+        let page = try await SyncService.shared.syncReadListBooks(
+          readListId: readListId,
+          page: currentPage,
+          size: 50,
+          browseOpts: browseOpts,
+          libraryIds: libraryIds
+        )
 
-      let ids = page.content.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: !page.last)
-    } catch {
-      ErrorManager.shared.alert(error: error)
+        let ids = page.content.map { $0.id }
+        updateState(context: context, ids: ids, moreAvailable: !page.last)
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     withAnimation {

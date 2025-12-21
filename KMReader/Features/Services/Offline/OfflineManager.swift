@@ -342,9 +342,10 @@ actor OfflineManager {
       instanceId: instanceId, bookId: bookId, readListId: readListId)
   }
 
-  func getPreviousBook(bookId: String) async -> Book? {
+  func getPreviousBook(bookId: String, readListId: String? = nil) async -> Book? {
     let instanceId = AppConfig.currentInstanceId
-    return await DatabaseOperator.shared.getPreviousBook(instanceId: instanceId, bookId: bookId)
+    return await DatabaseOperator.shared.getPreviousBook(
+      instanceId: instanceId, bookId: bookId, readListId: readListId)
   }
 
   func updateLocalProgress(bookId: String, page: Int, completed: Bool) async {

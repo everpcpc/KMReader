@@ -47,7 +47,7 @@ struct BooksListViewForSeries: View {
           refreshBooks()
         },
         loadMore: { refresh in
-          await bookViewModel.loadBooks(
+          await bookViewModel.loadSeriesBooks(
             context: modelContext,
             seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
             refresh: refresh)
@@ -55,13 +55,13 @@ struct BooksListViewForSeries: View {
       )
     }
     .task(id: seriesId) {
-      await bookViewModel.loadBooks(
+      await bookViewModel.loadSeriesBooks(
         context: modelContext,
         seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds)
     }
     .onChange(of: browseOpts) {
       Task {
-        await bookViewModel.loadBooks(
+        await bookViewModel.loadSeriesBooks(
           context: modelContext,
           seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds)
       }
@@ -72,7 +72,7 @@ struct BooksListViewForSeries: View {
 extension BooksListViewForSeries {
   fileprivate func refreshBooks() {
     Task {
-      await bookViewModel.loadBooks(
+      await bookViewModel.loadSeriesBooks(
         context: modelContext,
         seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds, refresh: false
       )

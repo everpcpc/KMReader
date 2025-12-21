@@ -74,15 +74,17 @@ actor DatabaseOperator {
   func getNextBook(instanceId: String, bookId: String, readListId: String?) async -> Book? {
     if let readListId = readListId {
       let books = await KomgaBookStore.fetchReadListBooks(
-        context: modelContext, readListId: readListId, page: 0, size: 1000)
+        context: modelContext, readListId: readListId, page: 0, size: 1000,
+        browseOpts: ReadListBookBrowseOptions())
       if let currentIndex = books.firstIndex(where: { $0.id == bookId }),
         currentIndex + 1 < books.count
       {
         return books[currentIndex + 1]
       }
     } else if let currentBook = await fetchBook(id: bookId) {
-      let seriesBooks = await KomgaBookStore.fetchBooks(
-        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000)
+      let seriesBooks = await KomgaBookStore.fetchSeriesBooks(
+        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000,
+        browseOpts: BookBrowseOptions())
       if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
         currentIndex + 1 < seriesBooks.count
       {
@@ -92,10 +94,20 @@ actor DatabaseOperator {
     return nil
   }
 
-  func getPreviousBook(instanceId: String, bookId: String) async -> Book? {
-    if let currentBook = await fetchBook(id: bookId) {
-      let seriesBooks = await KomgaBookStore.fetchBooks(
-        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000)
+  func getPreviousBook(instanceId: String, bookId: String, readListId: String? = nil) async -> Book? {
+    if let readListId = readListId {
+      let books = await KomgaBookStore.fetchReadListBooks(
+        context: modelContext, readListId: readListId, page: 0, size: 1000,
+        browseOpts: ReadListBookBrowseOptions())
+      if let currentIndex = books.firstIndex(where: { $0.id == bookId }),
+        currentIndex > 0
+      {
+        return books[currentIndex - 1]
+      }
+    } else if let currentBook = await fetchBook(id: bookId) {
+      let seriesBooks = await KomgaBookStore.fetchSeriesBooks(
+        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000,
+        browseOpts: BookBrowseOptions())
       if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
         currentIndex > 0
       {
@@ -251,15 +263,6 @@ actor DatabaseOperator {
     for rl in readLists {
       upsertReadList(dto: rl, instanceId: instanceId)
     }
-  }
-
-  func fetchReadListBooks(readListId: String) async -> [Book] {
-    await KomgaBookStore.fetchReadListBooks(
-      context: modelContext, readListId: readListId, page: 0, size: 1000)
-  }
-
-  func fetchSeriesBooks(seriesId: String) async -> [Book] {
-    await KomgaBookStore.fetchBooks(context: modelContext, seriesId: seriesId, page: 0, size: 1000)
   }
 
   // MARK: - Cleanup
