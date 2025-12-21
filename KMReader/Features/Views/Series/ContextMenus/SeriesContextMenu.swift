@@ -35,51 +35,35 @@ struct SeriesContextMenu: View {
 
   var body: some View {
     Group {
-      Menu {
-        Button {
-          onEditRequested?()
-        } label: {
-          Label("Edit", systemImage: "pencil")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Divider()
-
-        Button {
-          analyzeSeries()
-        } label: {
-          Label("Analyze", systemImage: "waveform.path.ecg")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Button {
-          refreshMetadata()
-        } label: {
-          Label("Refresh Metadata", systemImage: "arrow.clockwise")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Divider()
-
-        Button {
-          onShowCollectionPicker?()
-        } label: {
-          Label("Add to Collection", systemImage: "square.grid.2x2")
-        }
-        .disabled(isOffline)
-
-        Divider()
-
-        Button(role: .destructive) {
-          onDeleteRequested?()
-        } label: {
-          Label("Delete", systemImage: "trash")
-        }
-        .disabled(!isAdmin || isOffline)
+      Button {
+        onEditRequested?()
       } label: {
-        Label("Manage", systemImage: "gearshape")
+        Label("Edit", systemImage: "pencil")
       }
       .disabled(!isAdmin || isOffline)
+
+      Button {
+        analyzeSeries()
+      } label: {
+        Label("Analyze", systemImage: "waveform.path.ecg")
+      }
+      .disabled(!isAdmin || isOffline)
+
+      Button {
+        refreshMetadata()
+      } label: {
+        Label("Refresh Metadata", systemImage: "arrow.clockwise")
+      }
+      .disabled(!isAdmin || isOffline)
+
+      Divider()
+
+      Button {
+        onShowCollectionPicker?()
+      } label: {
+        Label("Add to Collection", systemImage: "square.grid.2x2")
+      }
+      .disabled(isOffline)
 
       Divider()
 

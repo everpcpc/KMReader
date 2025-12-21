@@ -58,51 +58,35 @@ struct BookContextMenu: View {
 
       Divider()
 
-      Menu {
-        Button {
-          onEditRequested?()
-        } label: {
-          Label("Edit", systemImage: "pencil")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Divider()
-
-        Button {
-          analyzeBook(bookId: book.id)
-        } label: {
-          Label("Analyze", systemImage: "waveform.path.ecg")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Button {
-          refreshMetadata(bookId: book.id)
-        } label: {
-          Label("Refresh Metadata", systemImage: "arrow.clockwise")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Divider()
-
-        Button {
-          onShowReadListPicker?()
-        } label: {
-          Label("Add to Read List", systemImage: "list.bullet")
-        }
-        .disabled(isOffline)
-
-        Divider()
-
-        Button(role: .destructive) {
-          onDeleteRequested?()
-        } label: {
-          Label("Delete", systemImage: "trash")
-        }
-        .disabled(!isAdmin || isOffline)
+      Button {
+        onEditRequested?()
       } label: {
-        Label("Manage", systemImage: "gearshape")
+        Label("Edit", systemImage: "pencil")
       }
       .disabled(!isAdmin || isOffline)
+
+      Button {
+        analyzeBook(bookId: book.id)
+      } label: {
+        Label("Analyze", systemImage: "waveform.path.ecg")
+      }
+      .disabled(!isAdmin || isOffline)
+
+      Button {
+        refreshMetadata(bookId: book.id)
+      } label: {
+        Label("Refresh Metadata", systemImage: "arrow.clockwise")
+      }
+      .disabled(!isAdmin || isOffline)
+
+      Divider()
+
+      Button {
+        onShowReadListPicker?()
+      } label: {
+        Label("Add to Read List", systemImage: "list.bullet")
+      }
+      .disabled(isOffline)
 
       Divider()
 
