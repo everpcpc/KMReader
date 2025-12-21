@@ -257,7 +257,7 @@ struct SettingsServerEditView: View {
 
     instance.name =
       trimmedName.isEmpty
-      ? DatabaseOperator.defaultInstanceName(serverURL: trimmedServerURL, username: trimmedUsername)
+      ? defaultInstanceName(serverURL: trimmedServerURL)
       : trimmedName
     instance.serverURL = trimmedServerURL
     instance.authMethod = authMethod
@@ -371,5 +371,12 @@ struct SettingsServerEditView: View {
         }
       }
     }
+  }
+
+  private func defaultInstanceName(serverURL: String) -> String {
+    if let host = URL(string: serverURL)?.host, !host.isEmpty {
+      return host
+    }
+    return serverURL
   }
 }

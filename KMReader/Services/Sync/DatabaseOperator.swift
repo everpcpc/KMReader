@@ -15,13 +15,6 @@ actor DatabaseOperator {
 
   private let logger = AppLogger(.database)
 
-  static func defaultInstanceName(serverURL: String, username: String) -> String {
-    if let host = URL(string: serverURL)?.host, !host.isEmpty {
-      return host
-    }
-    return serverURL
-  }
-
   func commit() throws {
     try modelContext.save()
   }
