@@ -9,13 +9,13 @@ import SwiftUI
   struct ReaderOverlay: View {
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
-    var body: some View {
-      ZStack {
-        if let state = readerPresentation.readerState {
-          Color.black.opacity(0.35)
-            .readerIgnoresSafeArea()
-            .transition(.opacity)
+    private var isPresented: Bool {
+      readerPresentation.readerState != nil
+    }
 
+    var body: some View {
+      Group {
+        if let state = readerPresentation.readerState {
           if let book = state.book {
             BookReaderView(
               book: book,
@@ -30,12 +30,11 @@ import SwiftUI
           }
         }
       }
-      .allowsHitTesting(readerPresentation.readerState != nil)
-      .transition(.opacity)
-      .animation(
-        .spring(response: 0.4, dampingFraction: 0.9, blendDuration: 0.1),
-        value: readerPresentation.readerState != nil
-      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .opacity(isPresented ? 1 : 0)
+      .scaleEffect(isPresented ? 1 : 0.5, anchor: .center)
+      .allowsHitTesting(isPresented)
+      .animation(isPresented ? nil : .easeInOut(duration: 0.3), value: isPresented)
     }
   }
 

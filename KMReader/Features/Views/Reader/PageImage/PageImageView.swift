@@ -161,9 +161,6 @@ struct PageImageView: View {
         loadError = "Failed to load page image. Please check your network connection"
       }
     }
-    .onDisappear {
-      imageURL = nil
-    }
   }
 
   private func saveImageToPhotos(page: BookPage) async {
