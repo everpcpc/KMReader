@@ -190,10 +190,23 @@ struct DashboardBooksSection: View {
         offset: currentPage * pageSize,
         limit: pageSize
       )
-    case .onDeck, .recentlyReadBooks, .recentlyAddedBooks, .recentlyReleasedBooks:
-      // For these sections, we can only show cached data based on what's in SwiftData
-      // The offline experience is limited since we don't have specific ordering
-      return KomgaBookStore.shared.fetchRecentBookIds(
+    case .onDeck:
+      // TODO: implement
+      return []
+    case .recentlyReadBooks:
+      return KomgaBookStore.shared.fetchRecentlyReadBookIds(
+        libraryIds: libraryIds,
+        offset: currentPage * pageSize,
+        limit: pageSize
+      )
+    case .recentlyReleasedBooks:
+      return KomgaBookStore.shared.fetchRecentlyReleasedBookIds(
+        libraryIds: libraryIds,
+        offset: currentPage * pageSize,
+        limit: pageSize
+      )
+    case .recentlyAddedBooks:
+      return KomgaBookStore.shared.fetchRecentlyAddedBookIds(
         libraryIds: libraryIds,
         offset: currentPage * pageSize,
         limit: pageSize

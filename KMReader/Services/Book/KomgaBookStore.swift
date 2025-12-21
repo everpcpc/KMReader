@@ -321,11 +321,81 @@ final class KomgaBookStore {
     }
   }
 
-  func fetchRecentBookIds(
+  // MARK: - Offline Download Status
+
+  func fetchRecentlyReleasedBookIds(
     libraryIds: [String],
     offset: Int,
     limit: Int
   ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+    let ids = libraryIds
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if !ids.isEmpty {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId && ids.contains(book.libraryId)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaBook.metaReleaseDate, order: .reverse)]
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.bookId }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchRecentlyReadBookIds(
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+    let ids = libraryIds
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if !ids.isEmpty {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId && ids.contains(book.libraryId)
+          && book.progressReadDate != nil
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+          && book.progressReadDate != nil
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaBook.progressReadDate, order: .reverse)]
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.bookId }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchRecentlyAddedBookIds(
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+ ) -> [String] {
     guard let container else { return [] }
     let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
@@ -354,8 +424,6 @@ final class KomgaBookStore {
       return []
     }
   }
-
-  // MARK: - Offline Download Status
 
   /// Get the download status of a book.
   func getDownloadStatus(bookId: String) -> DownloadStatus {

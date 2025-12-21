@@ -82,11 +82,23 @@ struct DashboardSeriesSection: View {
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
-      let ids = KomgaSeriesStore.shared.fetchRecentSeriesIds(
-        libraryIds: libraryIds,
-        offset: currentPage * pageSize,
-        limit: pageSize
-      )
+      let ids: [String]
+      switch section {
+      case .recentlyAddedSeries:
+        ids = KomgaSeriesStore.shared.fetchNewlyAddedSeriesIds(
+          libraryIds: libraryIds,
+          offset: currentPage * pageSize,
+          limit: pageSize
+        )
+      case .recentlyUpdatedSeries:
+        ids = KomgaSeriesStore.shared.fetchRecentlyUpdatedSeriesIds(
+          libraryIds: libraryIds,
+          offset: currentPage * pageSize,
+          limit: pageSize
+        )
+      default:
+        ids = []
+      }
       let series = KomgaSeriesStore.shared.fetchSeriesByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
