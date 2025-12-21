@@ -103,13 +103,17 @@ actor OfflineManager {
     }
   }
 
-  func deleteBook(instanceId: String, bookId: String, commit: Bool = true, syncSeriesStatus: Bool = true) async {
-    await cancelDownload(bookId: bookId, instanceId: instanceId, commit: false, syncSeriesStatus: syncSeriesStatus)
+  func deleteBook(
+    instanceId: String, bookId: String, commit: Bool = true, syncSeriesStatus: Bool = true
+  ) async {
+    await cancelDownload(
+      bookId: bookId, instanceId: instanceId, commit: false, syncSeriesStatus: syncSeriesStatus)
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
     // Update SwiftData
     await DatabaseOperator.shared.updateBookDownloadStatus(
-      bookId: bookId, instanceId: instanceId, status: .notDownloaded, syncSeriesStatus: syncSeriesStatus
+      bookId: bookId, instanceId: instanceId, status: .notDownloaded,
+      syncSeriesStatus: syncSeriesStatus
     )
     if commit {
       try? await DatabaseOperator.shared.commit()
@@ -148,18 +152,23 @@ actor OfflineManager {
       syncSeriesStatus: false
     )
     for bookId in bookIds {
-      await deleteBook(instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+      await deleteBook(
+        instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
     }
-    await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+    await DatabaseOperator.shared.syncSeriesDownloadStatus(
+      seriesId: seriesId, instanceId: instanceId)
     try? await DatabaseOperator.shared.commit()
   }
 
-  func cancelDownload(bookId: String, instanceId: String? = nil, commit: Bool = true, syncSeriesStatus: Bool = true) async {
+  func cancelDownload(
+    bookId: String, instanceId: String? = nil, commit: Bool = true, syncSeriesStatus: Bool = true
+  ) async {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
     let resolvedInstanceId = instanceId ?? AppConfig.currentInstanceId
     await DatabaseOperator.shared.updateBookDownloadStatus(
-      bookId: bookId, instanceId: resolvedInstanceId, status: .notDownloaded, syncSeriesStatus: syncSeriesStatus
+      bookId: bookId, instanceId: resolvedInstanceId, status: .notDownloaded,
+      syncSeriesStatus: syncSeriesStatus
     )
     if commit {
       try? await DatabaseOperator.shared.commit()
@@ -197,14 +206,14 @@ actor OfflineManager {
       if !restart {
         try? await Task.sleep(for: .seconds(2))
       }
-      
+
       guard !Task.isCancelled else { return }
-      
+
       // If we are still the current task (didn't get replaced during sleep),
       // we clear the reference so future triggers don't cancel us while we run.
       if syncTaskID == currentID {
-          syncTask = nil
-          syncTaskID = nil
+        syncTask = nil
+        syncTaskID = nil
       }
 
       await syncDownloadQueue(instanceId: instanceId)
@@ -256,7 +265,8 @@ actor OfflineManager {
         // Mark complete in SwiftData
         let totalSize = try await self.calculateDirectorySize(bookDir)
         await DatabaseOperator.shared.updateBookDownloadStatus(
-          bookId: info.bookId, instanceId: instanceId, status: .downloaded, downloadedSize: totalSize
+          bookId: info.bookId, instanceId: instanceId, status: .downloaded,
+          downloadedSize: totalSize
         )
         try? await DatabaseOperator.shared.commit()
         await removeActiveTask(info.bookId)

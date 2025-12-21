@@ -298,7 +298,7 @@ enum KomgaSeriesStore {
           if !browseOpts.includeSeriesStatuses.isEmpty {
             if !browseOpts.includeSeriesStatuses.contains(seriesStatus) { return false }
           }
-          
+
           if !browseOpts.excludeSeriesStatuses.isEmpty {
             if browseOpts.excludeSeriesStatuses.contains(seriesStatus) { return false }
           }

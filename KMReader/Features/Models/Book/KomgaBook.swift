@@ -112,7 +112,6 @@ final class KomgaBook {
     }
   }
 
-
   init(
     id: String? = nil,
     bookId: String,

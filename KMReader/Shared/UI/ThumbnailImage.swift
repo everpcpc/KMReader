@@ -111,7 +111,7 @@ struct ThumbnailImage<Overlay: View>: View {
         isLoading = false
         return
       }
-      
+
       isLoading = true
       let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
 
@@ -120,7 +120,7 @@ struct ThumbnailImage<Overlay: View>: View {
       } else {
         localURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
       }
-      
+
       isLoading = false
     }
   }

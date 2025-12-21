@@ -46,7 +46,8 @@ struct ReadListBooksQueryView: View {
                   .allowsHitTesting(false)
                   .overlay(alignment: .topTrailing) {
                     Image(
-                      systemName: selectedBookIds.contains(b.bookId) ? "checkmark.circle.fill" : "circle"
+                      systemName: selectedBookIds.contains(b.bookId)
+                        ? "checkmark.circle.fill" : "circle"
                     )
                     .foregroundColor(selectedBookIds.contains(b.bookId) ? .accentColor : .secondary)
                     .font(.title3)
@@ -102,7 +103,8 @@ struct ReadListBooksQueryView: View {
                   .allowsHitTesting(false)
                   .overlay(alignment: .trailing) {
                     Image(
-                      systemName: selectedBookIds.contains(b.bookId) ? "checkmark.circle.fill" : "circle"
+                      systemName: selectedBookIds.contains(b.bookId)
+                        ? "checkmark.circle.fill" : "circle"
                     )
                     .foregroundColor(selectedBookIds.contains(b.bookId) ? .accentColor : .secondary)
                     .font(.title3)

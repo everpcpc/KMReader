@@ -223,7 +223,7 @@ struct BookDetailView: View {
           }
 
           if let komgaBook = komgaBook {
-          Divider()
+            Divider()
             BookDownloadActionsSection()
               .environment(komgaBook)
           }

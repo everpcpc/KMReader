@@ -82,10 +82,12 @@ struct SeriesContextMenu: View {
       Divider()
 
       Menu {
-        Picker(selection: Binding(
-          get: { komgaSeries.offlinePolicy },
-          set: { updatePolicy($0) }
-        )) {
+        Picker(
+          selection: Binding(
+            get: { komgaSeries.offlinePolicy },
+            set: { updatePolicy($0) }
+          )
+        ) {
           ForEach(SeriesOfflinePolicy.allCases, id: \.self) { policy in
             Label(policy.label, systemImage: policy.icon)
               .tag(policy)
@@ -100,7 +102,9 @@ struct SeriesContextMenu: View {
         Button(role: .destructive) {
           updatePolicy(.manual)
         } label: {
-          Label(komgaSeries.downloadStatus.toggleLabel, systemImage: komgaSeries.downloadStatus.toggleIcon)
+          Label(
+            komgaSeries.downloadStatus.toggleLabel,
+            systemImage: komgaSeries.downloadStatus.toggleIcon)
         }
       } label: {
         Label(komgaSeries.offlinePolicy.label, systemImage: komgaSeries.offlinePolicy.icon)

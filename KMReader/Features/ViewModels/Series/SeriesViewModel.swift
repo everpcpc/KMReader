@@ -86,20 +86,23 @@ class SeriesViewModel {
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
       }
-      await loadSeries(context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
+      await loadSeries(
+        context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
   }
 
-  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
+  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async
+  {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
       _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
       }
-      await loadSeries(context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
+      await loadSeries(
+        context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)
     }

@@ -77,9 +77,12 @@ struct CollectionSeriesQueryView: View {
                   .allowsHitTesting(false)
                   .overlay(alignment: .topTrailing) {
                     Image(
-                      systemName: selectedSeriesIds.contains(s.seriesId) ? "checkmark.circle.fill" : "circle"
+                      systemName: selectedSeriesIds.contains(s.seriesId)
+                        ? "checkmark.circle.fill" : "circle"
                     )
-                    .foregroundColor(selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary)
+                    .foregroundColor(
+                      selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary
+                    )
                     .font(.title3)
                     .padding(8)
                     .background(Circle().fill(.ultraThinMaterial))
@@ -128,9 +131,12 @@ struct CollectionSeriesQueryView: View {
                   .allowsHitTesting(false)
                   .overlay(alignment: .trailing) {
                     Image(
-                      systemName: selectedSeriesIds.contains(s.seriesId) ? "checkmark.circle.fill" : "circle"
+                      systemName: selectedSeriesIds.contains(s.seriesId)
+                        ? "checkmark.circle.fill" : "circle"
                     )
-                    .foregroundColor(selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary)
+                    .foregroundColor(
+                      selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary
+                    )
                     .font(.title3)
                     .padding(.trailing, 16)
                   }

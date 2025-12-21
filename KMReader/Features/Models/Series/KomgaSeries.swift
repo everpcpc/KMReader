@@ -111,7 +111,6 @@ final class KomgaSeries {
     }
   }
 
-
   init(
     id: String? = nil,
     seriesId: String,

@@ -23,7 +23,6 @@ final class KomgaCollection {
 
   var seriesIds: [String] = []
 
-
   init(
     id: String? = nil,
     collectionId: String,

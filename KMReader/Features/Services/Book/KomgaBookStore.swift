@@ -54,7 +54,7 @@ enum KomgaBookStore {
 
         // Filter by oneshot
         if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
-            if book.oneshot != oneshotState { return false }
+          if book.oneshot != oneshotState { return false }
         }
 
         // Filter by Read Status

@@ -94,7 +94,8 @@ actor DatabaseOperator {
     return nil
   }
 
-  func getPreviousBook(instanceId: String, bookId: String, readListId: String? = nil) async -> Book? {
+  func getPreviousBook(instanceId: String, bookId: String, readListId: String? = nil) async -> Book?
+  {
     if let readListId = readListId {
       let books = await KomgaBookStore.fetchReadListBooks(
         context: modelContext, readListId: readListId, page: 0, size: 1000,
@@ -431,7 +432,8 @@ actor DatabaseOperator {
           await OfflineManager.shared.deleteBook(
             instanceId: instanceId, bookId: book.bookId, commit: false, syncSeriesStatus: false)
         }
-        await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+        await DatabaseOperator.shared.syncSeriesDownloadStatus(
+          seriesId: seriesId, instanceId: instanceId)
         try? await DatabaseOperator.shared.commit()
       }
     }
@@ -487,7 +489,8 @@ actor DatabaseOperator {
         await OfflineManager.shared.deleteBook(
           instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+        seriesId: seriesId, instanceId: instanceId)
       try? await DatabaseOperator.shared.commit()
     }
   }

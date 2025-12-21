@@ -250,7 +250,8 @@ class SyncService {
 
   func syncNextBook(bookId: String, readListId: String? = nil) async -> Book? {
     do {
-      if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId) {
+      if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId)
+      {
         let instanceId = AppConfig.currentInstanceId
         await db.upsertBook(dto: book, instanceId: instanceId)
         try await db.commit()

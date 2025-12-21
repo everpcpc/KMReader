@@ -24,7 +24,6 @@ final class KomgaReadList {
 
   var bookIds: [String] = []
 
-
   init(
     id: String? = nil,
     readListId: String,
