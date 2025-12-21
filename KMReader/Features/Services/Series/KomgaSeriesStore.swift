@@ -245,7 +245,8 @@ enum KomgaSeriesStore {
     context: ModelContext,
     collectionId: String,
     page: Int,
-    size: Int
+    size: Int,
+    browseOpts: CollectionSeriesBrowseOptions
   ) -> [Series] {
     let instanceId = AppConfig.currentInstanceId
     let collectionCompositeId = "\(instanceId)_\(collectionId)"
@@ -255,20 +256,63 @@ enum KomgaSeriesStore {
     guard let collection = try? context.fetch(descriptor).first else { return [] }
 
     let seriesIds = collection.seriesIds
-    let start = page * size
-    let end = min(start + size, seriesIds.count)
+    let allSeries = fetchSeriesByIds(context: context, ids: seriesIds, instanceId: instanceId)
 
-    guard start < seriesIds.count else { return [] }
-
-    let pageIds = Array(seriesIds[start..<end])
-
-    var seriesList: [Series] = []
-    for sId in pageIds {
-      if let s = fetchOne(context: context, seriesId: sId) {
-        seriesList.append(s)
+    let filtered = allSeries.filter { series in
+      // Filter by deleted
+      if let deletedState = browseOpts.deletedFilter.effectiveBool {
+        if series.deleted != deletedState { return false }
       }
+
+      // Filter by oneshot
+      if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
+        if series.oneshot != oneshotState { return false }
+      }
+
+      // Filter by complete
+      if let completeState = browseOpts.completeFilter.effectiveBool {
+        if (series.metadata.totalBookCount == series.booksCount) != completeState { return false }
+      }
+
+      // Filter by Read Status
+      let status: ReadStatus
+      if series.booksReadCount == series.booksCount && series.booksCount > 0 {
+        status = .read
+      } else if series.booksReadCount > 0 {
+        status = .inProgress
+      } else {
+        status = .unread
+      }
+
+      if !browseOpts.includeReadStatuses.isEmpty {
+        if !browseOpts.includeReadStatuses.contains(status) { return false }
+      }
+
+      if !browseOpts.excludeReadStatuses.isEmpty {
+        if browseOpts.excludeReadStatuses.contains(status) { return false }
+      }
+
+      // Filter by Series Status
+      if !browseOpts.includeSeriesStatuses.isEmpty || !browseOpts.excludeSeriesStatuses.isEmpty {
+        if let seriesStatus = SeriesStatus.fromAPIValue(series.metadata.status) {
+          if !browseOpts.includeSeriesStatuses.isEmpty {
+            if !browseOpts.includeSeriesStatuses.contains(seriesStatus) { return false }
+          }
+          
+          if !browseOpts.excludeSeriesStatuses.isEmpty {
+            if browseOpts.excludeSeriesStatuses.contains(seriesStatus) { return false }
+          }
+        }
+      }
+
+      return true
     }
 
-    return seriesList
+    let start = page * size
+    guard start < filtered.count else { return [] }
+    let end = min(start + size, filtered.count)
+    let pageSlice = filtered[start..<end]
+
+    return pageSlice.map { $0.toSeries() }
   }
 }
