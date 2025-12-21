@@ -39,7 +39,11 @@
             "value" : ""
           }
         }
-      }
+      },
+      "shouldTranslate" : false
+    },
+    " : " : {
+      "shouldTranslate" : false
     },
     " • %@" : {
       "localizations" : {
@@ -119,7 +123,8 @@
             "value" : ":"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "#%@ - %@" : {
       "localizations" : {
@@ -13187,46 +13192,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "離線保存"
-          }
-        }
-      }
-    },
-    "Manage" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manage"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gérer"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "관리"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理"
           }
         }
       }
