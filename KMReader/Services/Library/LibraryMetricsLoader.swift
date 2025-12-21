@@ -12,7 +12,6 @@ struct LibraryMetricsLoader {
   static let shared = LibraryMetricsLoader()
 
   private let managementService = ManagementService.shared
-  private let libraryStore = KomgaLibraryStore.shared
 
   func refreshMetrics(
     instanceId: String,
@@ -121,17 +120,15 @@ struct LibraryMetricsLoader {
     ensureEntry: Bool
   ) async {
     if !ensureEntry {
-      try? await MainActor.run {
-        try libraryStore.upsertAllLibrariesEntry(
-          instanceId: instanceId,
-          fileSize: nil,
-          booksCount: nil,
-          seriesCount: nil,
-          sidecarsCount: nil,
-          collectionsCount: nil,
-          readlistsCount: nil
-        )
-      }
+      try? await DatabaseOperator.shared.upsertAllLibrariesEntry(
+        instanceId: instanceId,
+        fileSize: nil,
+        booksCount: nil,
+        seriesCount: nil,
+        sidecarsCount: nil,
+        collectionsCount: nil,
+        readlistsCount: nil
+      )
     }
 
     var metrics = AllLibrariesMetricsData()
@@ -206,17 +203,15 @@ struct LibraryMetricsLoader {
       }
     }
 
-    try? await MainActor.run {
-      try libraryStore.upsertAllLibrariesEntry(
-        instanceId: instanceId,
-        fileSize: metrics.fileSize,
-        booksCount: metrics.booksCount,
-        seriesCount: metrics.seriesCount,
-        sidecarsCount: metrics.sidecarsCount,
-        collectionsCount: metrics.collectionsCount,
-        readlistsCount: metrics.readlistsCount
-      )
-    }
+    try? await DatabaseOperator.shared.upsertAllLibrariesEntry(
+      instanceId: instanceId,
+      fileSize: metrics.fileSize,
+      booksCount: metrics.booksCount,
+      seriesCount: metrics.seriesCount,
+      sidecarsCount: metrics.sidecarsCount,
+      collectionsCount: metrics.collectionsCount,
+      readlistsCount: metrics.readlistsCount
+    )
   }
 }
 

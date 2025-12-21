@@ -24,6 +24,7 @@ struct CollectionSeriesListView: View {
   @State private var selectedSeriesIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
+  @Environment(\.modelContext) private var modelContext
 
   @Query private var collections: [KomgaCollection]
 
@@ -122,11 +123,13 @@ struct CollectionSeriesListView: View {
           onActionCompleted: {
             Task {
               await seriesViewModel.loadCollectionSeries(
+                context: modelContext,
                 collectionId: collectionId, browseOpts: browseOpts, refresh: true)
             }
           },
           loadMore: { refresh in
             await seriesViewModel.loadCollectionSeries(
+              context: modelContext,
               collectionId: collectionId, browseOpts: browseOpts, refresh: refresh)
           }
         )
@@ -138,11 +141,13 @@ struct CollectionSeriesListView: View {
     }
     .task(id: collectionId) {
       await seriesViewModel.loadCollectionSeries(
+        context: modelContext,
         collectionId: collectionId, browseOpts: browseOpts, refresh: true)
     }
     .onChange(of: browseOpts) {
       Task {
         await seriesViewModel.loadCollectionSeries(
+          context: modelContext,
           collectionId: collectionId, browseOpts: browseOpts, refresh: true)
       }
     }
@@ -179,6 +184,7 @@ extension CollectionSeriesListView {
 
       // Refresh the series list
       await seriesViewModel.loadCollectionSeries(
+        context: modelContext,
         collectionId: collectionId, browseOpts: browseOpts, refresh: true)
     } catch {
       await MainActor.run {

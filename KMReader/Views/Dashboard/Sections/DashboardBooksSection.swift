@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct DashboardBooksSection: View {
@@ -15,6 +16,7 @@ struct DashboardBooksSection: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.modelContext) private var modelContext
 
   @State private var bookIds: [String] = []
   @State private var browseBooks: [KomgaBook] = []
@@ -158,7 +160,8 @@ struct DashboardBooksSection: View {
   }
 
   private func updateState(ids: [String], moreAvailable: Bool, isFirstPage: Bool) {
-    let books = KomgaBookStore.shared.fetchBooksByIds(
+    let books = KomgaBookStore.fetchBooksByIds(
+      context: modelContext,
       ids: ids, instanceId: AppConfig.currentInstanceId)
     withAnimation {
       if isFirstPage {
@@ -174,31 +177,33 @@ struct DashboardBooksSection: View {
   }
 
   private func fetchOfflineBookIds(libraryIds: [String]) -> [String] {
-    // Offline queries based on section type
     switch section {
     case .keepReading:
-      return KomgaBookStore.shared.fetchKeepReadingBookIds(
+      return KomgaBookStore.fetchKeepReadingBookIds(
+        context: modelContext,
         libraryIds: libraryIds,
         offset: currentPage * pageSize,
         limit: pageSize
       )
     case .onDeck:
-      // TODO: implement
       return []
     case .recentlyReadBooks:
-      return KomgaBookStore.shared.fetchRecentlyReadBookIds(
+      return KomgaBookStore.fetchRecentlyReadBookIds(
+        context: modelContext,
         libraryIds: libraryIds,
         offset: currentPage * pageSize,
         limit: pageSize
       )
     case .recentlyReleasedBooks:
-      return KomgaBookStore.shared.fetchRecentlyReleasedBookIds(
+      return KomgaBookStore.fetchRecentlyReleasedBookIds(
+        context: modelContext,
         libraryIds: libraryIds,
         offset: currentPage * pageSize,
         limit: pageSize
       )
     case .recentlyAddedBooks:
-      return KomgaBookStore.shared.fetchRecentlyAddedBookIds(
+      return KomgaBookStore.fetchRecentlyAddedBookIds(
+        context: modelContext,
         libraryIds: libraryIds,
         offset: currentPage * pageSize,
         limit: pageSize

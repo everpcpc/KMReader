@@ -8,7 +8,8 @@ import SwiftUI
 
 struct SeriesDownloadActionsSection: View {
   @Environment(KomgaSeries.self) private var komgaSeries
-  @Environment(\.modelContext) private var context: ModelContext
+
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   private var series: Series {
     komgaSeries.toSeries()
@@ -67,7 +68,11 @@ struct SeriesDownloadActionsSection: View {
         .foregroundColor(.secondary)
 
         Button {
-          KomgaBookStore.shared.toggleSeriesDownload(series: komgaSeries, context: context)
+          Task {
+            await DatabaseOperator.shared.toggleSeriesDownload(
+              seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
+            )
+          }
         } label: {
           Label {
             Text(status.toggleLabel)
@@ -90,9 +95,10 @@ struct SeriesDownloadActionsSection: View {
   }
 
   private func updatePolicy(_ newPolicy: SeriesOfflinePolicy) {
-    komgaSeries.offlinePolicy = newPolicy
-    try? context.save()
-    KomgaBookStore.shared.syncSeriesDownloadStatus(series: komgaSeries, context: context)
-    try? context.save()
+    Task {
+      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: newPolicy
+      )
+    }
   }
 }

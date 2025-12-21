@@ -47,7 +47,9 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
           if phase == .active {
-            KomgaInstanceStore.shared.updateLastUsed(for: AppConfig.currentInstanceId)
+            Task {
+              await DatabaseOperator.shared.updateInstanceLastUsed(instanceId: AppConfig.currentInstanceId)
+            }
           }
         }
       } else {

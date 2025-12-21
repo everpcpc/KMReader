@@ -257,7 +257,7 @@ struct SettingsServerEditView: View {
 
     instance.name =
       trimmedName.isEmpty
-      ? KomgaInstanceStore.defaultName(serverURL: trimmedServerURL, username: trimmedUsername)
+      ? DatabaseOperator.defaultInstanceName(serverURL: trimmedServerURL, username: trimmedUsername)
       : trimmedName
     instance.serverURL = trimmedServerURL
     instance.authMethod = authMethod

@@ -8,52 +8,20 @@
 import Foundation
 import SwiftData
 
-@MainActor
-final class KomgaSeriesStore {
-  static let shared = KomgaSeriesStore()
+/// Provides read-only fetch operations for KomgaSeries data.
+/// All View-facing fetch methods require a ModelContext from the caller.
+enum KomgaSeriesStore {
 
-  private var container: ModelContainer?
-
-  private init() {}
-
-  func configure(with container: ModelContainer) {
-    self.container = container
-  }
-
-  private func makeContext() throws -> ModelContext {
-    guard let container else {
-      throw AppErrorType.storageNotConfigured(message: "ModelContainer is not configured")
-    }
-    return ModelContext(container)
-  }
-
-  func fetchSeries(
+  static func fetchSeries(
+    context: ModelContext,
     libraryIds: [String]?,
     page: Int,
     size: Int,
     sort: String,
     searchTerm: String?
   ) -> [Series] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
-
-    // Parse Sort
-    // Format: "field,direction" (e.g., "metadata.titleSort,asc")
-    // SwiftData SortDescriptor requires KeyPath.
-    // Handling dynamic sort keypaths is tricky.
-    // For now, let's default to titleSort if complex.
-
     let parts = sort.split(separator: ",")
     let isAsc = parts.count > 1 ? parts[1] == "asc" : true
-
-    // Predicate
-    // We can't easily do dynamic predicates for all options yet.
-    // Let's handle LibraryID and SearchTerm.
-
-    // SwiftData predicates must be build carefully.
-    // If libraryIds is nil/empty, we fetch all?
-    // Swift 5.9 Macros make this static.
-
     let ids = libraryIds ?? []
 
     var descriptor = FetchDescriptor<KomgaSeries>()
@@ -71,7 +39,6 @@ final class KomgaSeriesStore {
         }
       }
     } else {
-      // All libraries
       if let search = searchTerm, !search.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.name.localizedStandardContains(search)
@@ -80,8 +47,6 @@ final class KomgaSeriesStore {
       }
     }
 
-    // Sort
-    // Basic support for titleSort and dateAdded (created)
     if sort.contains("metadata.titleSort") {
       descriptor.sortBy = [
         SortDescriptor(\KomgaSeries.metaTitleSort, order: isAsc ? .forward : .reverse)
@@ -111,17 +76,15 @@ final class KomgaSeriesStore {
     }
   }
 
-  func fetchSeriesIds(
+  static func fetchSeriesIds(
+    context: ModelContext,
     libraryIds: [String]?,
     searchText: String,
     browseOpts: SeriesBrowseOptions,
     offset: Int,
     limit: Int
   ) -> [String] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
-
     let ids = libraryIds ?? []
     var descriptor = FetchDescriptor<KomgaSeries>()
 
@@ -151,7 +114,6 @@ final class KomgaSeriesStore {
       }
     }
 
-    // Sort
     let sort = browseOpts.sortString
     let isAsc = !sort.contains("desc")
     if sort.contains("metadata.titleSort") {
@@ -179,9 +141,12 @@ final class KomgaSeriesStore {
     }
   }
 
-  func fetchSeriesByIds(ids: [String], instanceId: String) -> [KomgaSeries] {
-    guard let container, !ids.isEmpty else { return [] }
-    let context = ModelContext(container)
+  static func fetchSeriesByIds(
+    context: ModelContext,
+    ids: [String],
+    instanceId: String
+  ) -> [KomgaSeries] {
+    guard !ids.isEmpty else { return [] }
 
     let descriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate<KomgaSeries> { series in
@@ -191,7 +156,6 @@ final class KomgaSeriesStore {
 
     do {
       let results = try context.fetch(descriptor)
-      // Sort results back to match the input IDs order
       let idToIndex = Dictionary(
         uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
       return results.sorted {
@@ -202,15 +166,13 @@ final class KomgaSeriesStore {
     }
   }
 
-  func fetchNewlyAddedSeriesIds(
+  static func fetchNewlyAddedSeriesIds(
+    context: ModelContext,
     libraryIds: [String],
     offset: Int,
     limit: Int
   ) -> [String] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
-
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaSeries>()
 
@@ -236,15 +198,13 @@ final class KomgaSeriesStore {
     }
   }
 
-  func fetchRecentlyUpdatedSeriesIds(
+  static func fetchRecentlyUpdatedSeriesIds(
+    context: ModelContext,
     libraryIds: [String],
     offset: Int,
     limit: Int
   ) -> [String] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
-
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaSeries>()
 
@@ -270,12 +230,7 @@ final class KomgaSeriesStore {
     }
   }
 
-  func fetchOne(seriesId: String) -> Series? {
-
-    guard let container else { return nil }
-    let context = ModelContext(container)
-    // We assume current instance for now, or check all?
-    // Composite ID is instanceId_seriesId.
+  static func fetchOne(context: ModelContext, seriesId: String) -> Series? {
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(seriesId)"
 
@@ -286,28 +241,20 @@ final class KomgaSeriesStore {
     return try? context.fetch(descriptor).first?.toSeries()
   }
 
-  func fetchCollectionSeries(collectionId: String, page: Int, size: Int) -> [Series] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
+  static func fetchCollectionSeries(
+    context: ModelContext,
+    collectionId: String,
+    page: Int,
+    size: Int
+  ) -> [Series] {
     let instanceId = AppConfig.currentInstanceId
     let collectionCompositeId = "\(instanceId)_\(collectionId)"
 
-    // Find the collection first
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == collectionCompositeId })
     guard let collection = try? context.fetch(descriptor).first else { return [] }
 
-    // Get series IDs from collection
     let seriesIds = collection.seriesIds
-
-    // Pagination logic manually since we have IDs?
-    // Or we can fetch all series matching these IDs.
-    // If collection is large, this is inefficient.
-    // But SwiftData doesn't support "in array" predicate easily for large arrays.
-    // And pagination *within* the array is tricky.
-
-    // Let's assume for now we fetch what we can.
-    // Efficient way:
     let start = page * size
     let end = min(start + size, seriesIds.count)
 
@@ -317,7 +264,7 @@ final class KomgaSeriesStore {
 
     var seriesList: [Series] = []
     for sId in pageIds {
-      if let s = fetchOne(seriesId: sId) {
+      if let s = fetchOne(context: context, seriesId: sId) {
         seriesList.append(s)
       }
     }
