@@ -65,8 +65,11 @@ final class KomgaBook {
 
   var deleted: Bool
   var oneshot: Bool
-
   var seriesTitle: String = ""
+
+  // Metadata storage
+  var pagesRaw: Data?
+  var tocRaw: Data?
 
   // Track offline download status (managed locally)
   var downloadStatusRaw: String = "notDownloaded"
@@ -304,5 +307,23 @@ final class KomgaBook {
       deleted: deleted,
       oneshot: oneshot
     )
+  }
+
+  var pages: [BookPage]? {
+    get {
+      pagesRaw.flatMap { try? JSONDecoder().decode([BookPage].self, from: $0) }
+    }
+    set {
+      pagesRaw = try? JSONEncoder().encode(newValue)
+    }
+  }
+
+  var tableOfContents: [ReaderTOCEntry]? {
+    get {
+      tocRaw.flatMap { try? JSONDecoder().decode([ReaderTOCEntry].self, from: $0) }
+    }
+    set {
+      tocRaw = try? JSONEncoder().encode(newValue)
+    }
   }
 }

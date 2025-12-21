@@ -430,45 +430,63 @@ struct DivinaReaderView: View {
 
     // Load book info to get read progress page and series reading direction
     var initialPageNumber: Int? = nil
-    do {
-      let book = try await SyncService.shared.syncBook(bookId: bookId)
+
+    // 1. Try to get book from DB
+    if let book = await DatabaseOperator.shared.fetchBook(id: bookId) {
       currentBook = book
       seriesId = book.seriesId
-      // In incognito mode, always start from the first page
       initialPageNumber = incognito ? nil : book.readProgress?.page
-
-      // Get series reading direction or fall back to user default
-      let series = try await SyncService.shared.syncSeriesDetail(seriesId: book.seriesId)
-      let rawReadingDirection = series.metadata.readingDirection?
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-      let preferredDirection: ReadingDirection
-      if let rawReadingDirection, !rawReadingDirection.isEmpty {
-        preferredDirection = ReadingDirection.fromString(rawReadingDirection)
-      } else {
-        preferredDirection = AppConfig.defaultReadingDirection
+    } else if !AppConfig.isOffline {
+      // 2. Fetch from network if not in DB and online
+      do {
+        let book = try await SyncService.shared.syncBook(bookId: bookId)
+        currentBook = book
+        seriesId = book.seriesId
+        initialPageNumber = incognito ? nil : book.readProgress?.page
+      } catch {
+        // Fail silently
       }
-      // Fallback to vertical if the preferred direction is unsupported
-      if !preserveReaderOptions {
-        readingDirection = preferredDirection.isSupported ? preferredDirection : .vertical
-      }
+    }
 
-      // Load next book
-      if let nextBook = try await BookService.shared.getNextBook(
-        bookId: bookId, readListId: readList?.id)
-      {
-        self.nextBook = nextBook
-      } else {
-        nextBook = nil
+    if let activeBook = currentBook {
+      // 3. Try to get series from DB
+      var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
+      if series == nil && !AppConfig.isOffline {
+        series = try? await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
       }
 
-      // Load previous book
-      if let previousBook = try await BookService.shared.getPreviousBook(bookId: bookId) {
-        self.previousBook = previousBook
-      } else {
-        previousBook = nil
+      if let series = series {
+        let rawReadingDirection = series.metadata.readingDirection?
+          .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        let preferredDirection: ReadingDirection
+        if let rawReadingDirection, !rawReadingDirection.isEmpty {
+          preferredDirection = ReadingDirection.fromString(rawReadingDirection)
+        } else {
+          preferredDirection = AppConfig.defaultReadingDirection
+        }
+        if !preserveReaderOptions {
+          readingDirection = preferredDirection.isSupported ? preferredDirection : .vertical
+        }
       }
-    } catch {
-      // Silently fail, will start from first page
+
+      // 4. Try to get next/previous books from DB
+      self.nextBook = await DatabaseOperator.shared.getNextBook(
+        instanceId: AppConfig.currentInstanceId,
+        bookId: bookId,
+        readListId: readList?.id
+      )
+      if self.nextBook == nil && !AppConfig.isOffline {
+        self.nextBook = await SyncService.shared.syncNextBook(
+          bookId: bookId, readListId: readList?.id)
+      }
+
+      self.previousBook = await DatabaseOperator.shared.getPreviousBook(
+        instanceId: AppConfig.currentInstanceId,
+        bookId: bookId
+      )
+      if self.previousBook == nil && !AppConfig.isOffline {
+        self.previousBook = await SyncService.shared.syncPreviousBook(bookId: bookId)
+      }
     }
 
     let resumePageNumber = viewModel.currentPage?.number ?? initialPageNumber

@@ -56,14 +56,18 @@ struct SettingsOfflineBooksView: View {
       for (seriesId, sBooks) in seriesGroupsMap {
         let instanceId = AppConfig.currentInstanceId
         let compositeId = "\(instanceId)_\(seriesId)"
-        let seriesDescriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
+        let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+          predicate: #Predicate { $0.id == compositeId })
         let series = try? modelContext.fetch(seriesDescriptor).first
-        
+
         sGroups.append(
           SeriesGroup(id: seriesId, series: series, books: sBooks.sorted { $0.number < $1.number }))
       }
 
-      sGroups.sort { ($0.series?.name ?? $0.books.first?.seriesTitle ?? "") < ($1.series?.name ?? $1.books.first?.seriesTitle ?? "") }
+      sGroups.sort {
+        ($0.series?.name ?? $0.books.first?.seriesTitle ?? "")
+          < ($1.series?.name ?? $1.books.first?.seriesTitle ?? "")
+      }
       result.append(
         LibraryGroup(
           id: libraryId,
@@ -118,15 +122,6 @@ struct SettingsOfflineBooksView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
-                    #if !os(tvOS)
-                      .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                          deleteBook(book)
-                        } label: {
-                          Label(String(localized: "Delete"), systemImage: "trash")
-                        }
-                      }
-                    #endif
                   }
                 }
               #else
@@ -139,15 +134,13 @@ struct SettingsOfflineBooksView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
-                    #if !os(tvOS)
-                      .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                          deleteBook(book)
-                        } label: {
-                          Label(String(localized: "Delete"), systemImage: "trash")
-                        }
+                    .swipeActions(edge: .trailing) {
+                      Button(role: .destructive) {
+                        deleteBook(book)
+                      } label: {
+                        Label(String(localized: "Delete"), systemImage: "trash")
                       }
-                    #endif
+                    }
                   }
                 } label: {
                   HStack {
@@ -187,15 +180,6 @@ struct SettingsOfflineBooksView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
-                    #if !os(tvOS)
-                      .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                          deleteBook(book)
-                        } label: {
-                          Label(String(localized: "Delete"), systemImage: "trash")
-                        }
-                      }
-                    #endif
                   }
                 }
               #else
@@ -208,15 +192,13 @@ struct SettingsOfflineBooksView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
-                    #if !os(tvOS)
-                      .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                          deleteBook(book)
-                        } label: {
-                          Label(String(localized: "Delete"), systemImage: "trash")
-                        }
+                    .swipeActions(edge: .trailing) {
+                      Button(role: .destructive) {
+                        deleteBook(book)
+                      } label: {
+                        Label(String(localized: "Delete"), systemImage: "trash")
                       }
-                    #endif
+                    }
                   }
                 } label: {
                   HStack {

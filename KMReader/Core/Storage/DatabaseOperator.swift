@@ -67,6 +67,76 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchBook(id: String) async -> Book? {
+    await KomgaBookStore.fetchBook(context: modelContext, id: id)
+  }
+
+  func getNextBook(instanceId: String, bookId: String, readListId: String?) async -> Book? {
+    if let readListId = readListId {
+      let books = await KomgaBookStore.fetchReadListBooks(
+        context: modelContext, readListId: readListId, page: 0, size: 1000)
+      if let currentIndex = books.firstIndex(where: { $0.id == bookId }),
+        currentIndex + 1 < books.count
+      {
+        return books[currentIndex + 1]
+      }
+    } else if let currentBook = await fetchBook(id: bookId) {
+      let seriesBooks = await KomgaBookStore.fetchBooks(
+        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000)
+      if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
+        currentIndex + 1 < seriesBooks.count
+      {
+        return seriesBooks[currentIndex + 1]
+      }
+    }
+    return nil
+  }
+
+  func getPreviousBook(instanceId: String, bookId: String) async -> Book? {
+    if let currentBook = await fetchBook(id: bookId) {
+      let seriesBooks = await KomgaBookStore.fetchBooks(
+        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000)
+      if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
+        currentIndex > 0
+      {
+        return seriesBooks[currentIndex - 1]
+      }
+    }
+    return nil
+  }
+
+  func fetchPages(id: String) -> [BookPage]? {
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(id)"
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    return try? modelContext.fetch(descriptor).first?.pages
+  }
+
+  func fetchTOC(id: String) -> [ReaderTOCEntry]? {
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(id)"
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    return try? modelContext.fetch(descriptor).first?.tableOfContents
+  }
+
+  func updateBookPages(bookId: String, pages: [BookPage]) {
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(bookId)"
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      book.pages = pages
+    }
+  }
+
+  func updateBookTOC(bookId: String, toc: [ReaderTOCEntry]) {
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(bookId)"
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      book.tableOfContents = toc
+    }
+  }
+
   // MARK: - Series Operations
 
   func upsertSeries(dto: Series, instanceId: String) {
@@ -110,6 +180,10 @@ actor DatabaseOperator {
     for series in seriesList {
       upsertSeries(dto: series, instanceId: instanceId)
     }
+  }
+
+  func fetchSeries(id: String) async -> Series? {
+    await KomgaSeriesStore.fetchOne(context: modelContext, seriesId: id)
   }
 
   // MARK: - Collection Operations
@@ -179,6 +253,15 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchReadListBooks(readListId: String) async -> [Book] {
+    await KomgaBookStore.fetchReadListBooks(
+      context: modelContext, readListId: readListId, page: 0, size: 1000)
+  }
+
+  func fetchSeriesBooks(seriesId: String) async -> [Book] {
+    await KomgaBookStore.fetchBooks(context: modelContext, seriesId: seriesId, page: 0, size: 1000)
+  }
+
   // MARK: - Cleanup
 
   func clearInstanceData(instanceId: String) {
@@ -192,7 +275,6 @@ actor DatabaseOperator {
       try modelContext.delete(
         model: KomgaReadList.self, where: #Predicate { $0.instanceId == instanceId })
 
-      try modelContext.save()
       logger.info("🗑️ Cleared all SwiftData entities for instance: \(instanceId)")
     } catch {
       logger.error("❌ Failed to clear instance data: \(error)")
@@ -224,7 +306,11 @@ actor DatabaseOperator {
       book.downloadedSize = 0
     }
 
-    try? modelContext.save()
+    // Clear metadata if deleting offline
+    if case .notDownloaded = status {
+      book.pagesRaw = nil
+      book.tocRaw = nil
+    }
 
     // Sync series status
     let seriesId = book.seriesId
@@ -234,7 +320,22 @@ actor DatabaseOperator {
     )
     if let series = try? modelContext.fetch(seriesDescriptor).first {
       syncSeriesDownloadStatus(series: series)
-      try? modelContext.save()
+    }
+  }
+
+  func updateReadingProgress(bookId: String, page: Int, completed: Bool) {
+    let instanceId = AppConfig.currentInstanceId
+    let compositeId = "\(instanceId)_\(bookId)"
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+
+    if let book = try? modelContext.fetch(descriptor).first {
+      book.progressPage = page
+      book.progressCompleted = completed
+      book.progressReadDate = Date()
+      book.progressLastModified = Date()
+      syncSeriesReadingStatus(seriesId: book.seriesId, instanceId: instanceId)
     }
   }
 
@@ -274,7 +375,6 @@ actor DatabaseOperator {
     )
     guard let series = try? modelContext.fetch(descriptor).first else { return }
     syncSeriesDownloadStatus(series: series)
-    try? modelContext.save()
   }
 
   private func handlePolicyActions(series: KomgaSeries, books: [KomgaBook]) {
@@ -335,7 +435,6 @@ actor DatabaseOperator {
     guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
 
     series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
-    try? modelContext.save()
 
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
@@ -350,7 +449,6 @@ actor DatabaseOperator {
 
     OfflineManager.shared.triggerSync(instanceId: instanceId)
     syncSeriesDownloadStatus(series: series)
-    try? modelContext.save()
   }
 
   func removeAllBooks(seriesId: String, instanceId: String) {
@@ -361,7 +459,6 @@ actor DatabaseOperator {
     guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
 
     series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
-    try? modelContext.save()
 
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
@@ -373,7 +470,6 @@ actor DatabaseOperator {
       book.downloadAt = nil
       book.downloadedSize = 0
     }
-    try? modelContext.save()
 
     Task {
       for book in books {
@@ -382,7 +478,6 @@ actor DatabaseOperator {
     }
 
     syncSeriesDownloadStatus(series: series)
-    try? modelContext.save()
   }
 
   func toggleSeriesDownload(seriesId: String, instanceId: String) {
@@ -409,10 +504,8 @@ actor DatabaseOperator {
     guard let series = try? modelContext.fetch(descriptor).first else { return }
 
     series.offlinePolicy = policy
-    try? modelContext.save()
 
     syncSeriesDownloadStatus(series: series)
-    try? modelContext.save()
   }
 
   // MARK: - Library Operations
@@ -455,7 +548,6 @@ actor DatabaseOperator {
     }
 
     if didChange {
-      try modelContext.save()
     }
   }
 
@@ -470,7 +562,6 @@ actor DatabaseOperator {
     }
     let items = try modelContext.fetch(descriptor)
     items.forEach { modelContext.delete($0) }
-    try modelContext.save()
   }
 
   func upsertAllLibrariesEntry(
@@ -510,8 +601,6 @@ actor DatabaseOperator {
       )
       modelContext.insert(allLibrariesEntry)
     }
-
-    try modelContext.save()
   }
 
   // MARK: - Instance Operations
@@ -541,7 +630,6 @@ actor DatabaseOperator {
       } else if existing.name.isEmpty {
         existing.name = Self.defaultName(serverURL: serverURL, username: username)
       }
-      try modelContext.save()
       return existing
     } else {
       let resolvedName = Self.resolvedName(
@@ -555,7 +643,6 @@ actor DatabaseOperator {
         authMethod: authMethod
       )
       modelContext.insert(instance)
-      try modelContext.save()
       return instance
     }
   }
@@ -584,7 +671,6 @@ actor DatabaseOperator {
       })
     if let instance = try? modelContext.fetch(descriptor).first {
       instance.lastUsedAt = Date()
-      try? modelContext.save()
     }
   }
 
@@ -596,7 +682,6 @@ actor DatabaseOperator {
       })
     if let instance = try modelContext.fetch(descriptor).first {
       instance.seriesLastSyncedAt = date
-      try modelContext.save()
     }
   }
 
@@ -608,7 +693,6 @@ actor DatabaseOperator {
       })
     if let instance = try modelContext.fetch(descriptor).first {
       instance.booksLastSyncedAt = date
-      try modelContext.save()
     }
   }
 
@@ -678,5 +762,36 @@ actor DatabaseOperator {
     } catch {
       return []
     }
+  }
+
+  func syncSeriesReadingStatus(seriesId: String, instanceId: String) {
+    let compositeSeriesId = "\(instanceId)_\(seriesId)"
+    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { $0.id == compositeSeriesId }
+    )
+    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
+    )
+    let books = (try? modelContext.fetch(descriptor)) ?? []
+
+    let unreadCount = books.filter { book in
+      if book.progressCompleted == true { return false }
+      if (book.progressPage ?? 0) > 0 { return false }
+      return true
+    }.count
+
+    let inProgressCount = books.filter { book in
+      if book.progressCompleted == true { return false }
+      if (book.progressPage ?? 0) > 0 { return true }
+      return false
+    }.count
+
+    let readCount = books.filter { $0.progressCompleted == true }.count
+
+    series.booksUnreadCount = unreadCount
+    series.booksInProgressCount = inProgressCount
+    series.booksReadCount = readCount
   }
 }

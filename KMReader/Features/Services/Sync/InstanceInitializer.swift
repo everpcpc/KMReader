@@ -110,6 +110,7 @@ final class InstanceInitializer {
     do {
       try await db.updateSeriesLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
+      try await db.commit()
     } catch {
       logger.error("❌ Failed to update series lastSyncedAt: \(error)")
     }
@@ -124,6 +125,7 @@ final class InstanceInitializer {
     do {
       try await db.updateBooksLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
+      try await db.commit()
     } catch {
       logger.error("❌ Failed to update books lastSyncedAt: \(error)")
     }
@@ -142,6 +144,7 @@ final class InstanceInitializer {
       let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await db.replaceLibraries(libraryInfos, for: instanceId)
+      try await db.commit()
       logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
       logger.error("❌ Failed to sync libraries: \(error)")

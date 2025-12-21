@@ -36,6 +36,7 @@ class SyncService {
       let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await db.replaceLibraries(libraryInfos, for: instanceId)
+      try await db.commit()
       logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
       logger.error("❌ Failed to sync libraries: \(error)")
@@ -245,6 +246,34 @@ class SyncService {
     await db.upsertBook(dto: book, instanceId: instanceId)
     try await db.commit()
     return book
+  }
+
+  func syncNextBook(bookId: String, readListId: String? = nil) async -> Book? {
+    do {
+      if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId) {
+        let instanceId = AppConfig.currentInstanceId
+        await db.upsertBook(dto: book, instanceId: instanceId)
+        try await db.commit()
+        return book
+      }
+    } catch {
+      logger.error("❌ Failed to sync next book: \(error)")
+    }
+    return nil
+  }
+
+  func syncPreviousBook(bookId: String) async -> Book? {
+    do {
+      if let book = try await BookService.shared.getPreviousBook(bookId: bookId) {
+        let instanceId = AppConfig.currentInstanceId
+        await db.upsertBook(dto: book, instanceId: instanceId)
+        try await db.commit()
+        return book
+      }
+    } catch {
+      logger.error("❌ Failed to sync previous book: \(error)")
+    }
+    return nil
   }
 
   func syncCollections(

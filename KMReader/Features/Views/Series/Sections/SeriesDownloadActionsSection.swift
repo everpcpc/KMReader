@@ -72,6 +72,7 @@ struct SeriesDownloadActionsSection: View {
             await DatabaseOperator.shared.toggleSeriesDownload(
               seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
             )
+            try? await DatabaseOperator.shared.commit()
           }
         } label: {
           Label {
@@ -99,6 +100,7 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: newPolicy
       )
+      try? await DatabaseOperator.shared.commit()
     }
   }
 }

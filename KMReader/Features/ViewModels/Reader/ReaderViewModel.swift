@@ -87,7 +87,15 @@ class ReaderViewModel {
     downloadingTasks.removeAll()
 
     do {
-      let fetchedPages = try await BookService.shared.getBookPages(id: book.id)
+      let fetchedPages: [BookPage]
+      if let localPages = await DatabaseOperator.shared.fetchPages(id: book.id) {
+        fetchedPages = localPages
+      } else if !AppConfig.isOffline {
+        fetchedPages = try await BookService.shared.getBookPages(id: book.id)
+        await DatabaseOperator.shared.updateBookPages(bookId: book.id, pages: fetchedPages)
+      } else {
+        throw APIError.offline
+      }
 
       // Set initial page index BEFORE assigning pages to ensure proper scroll synchronization
       // This prevents race condition where pages.count changes but currentPageIndex is still 0
@@ -105,10 +113,18 @@ class ReaderViewModel {
 
       // For EPUB, fetch manifest and parse TOC
       if book.media.mediaProfile == .epub {
-        let manifest = try await BookService.shared.getBookManifest(id: book.id)
-        tableOfContents = await ReaderManifestService(
-          bookId: book.id
-        ).parseTOC(manifest: manifest)
+        if let localTOC = await DatabaseOperator.shared.fetchTOC(id: book.id) {
+          tableOfContents = localTOC
+        } else if !AppConfig.isOffline {
+          let manifest = try await BookService.shared.getBookManifest(id: book.id)
+          let toc = await ReaderManifestService(
+            bookId: book.id
+          ).parseTOC(manifest: manifest)
+          tableOfContents = toc
+          await DatabaseOperator.shared.updateBookTOC(bookId: book.id, toc: toc)
+        } else {
+          tableOfContents = []
+        }
       } else {
         tableOfContents = []
       }
@@ -260,11 +276,19 @@ class ReaderViewModel {
 
     Task.detached(priority: .utility) {
       do {
-        try await BookService.shared.updatePageReadProgress(
-          bookId: activeBookId,
-          page: currentPageNumber,
-          completed: completed
-        )
+        if AppConfig.isOffline {
+          await OfflineManager.shared.updateLocalProgress(
+            bookId: activeBookId,
+            page: currentPageNumber,
+            completed: completed
+          )
+        } else {
+          try await BookService.shared.updatePageReadProgress(
+            bookId: activeBookId,
+            page: currentPageNumber,
+            completed: completed
+          )
+        }
       } catch {
         // Progress updates are non-critical, fail silently
         AppLogger(.reader).error(

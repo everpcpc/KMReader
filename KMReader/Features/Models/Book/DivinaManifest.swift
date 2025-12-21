@@ -7,19 +7,19 @@
 
 import Foundation
 
-struct DivinaManifest: Decodable {
+struct DivinaManifest: Codable, Sendable {
   let readingOrder: [DivinaManifestResource]
   let toc: [DivinaManifestLink]?
 }
 
-struct DivinaManifestResource: Decodable {
+struct DivinaManifestResource: Codable, Sendable {
   let href: String
   let type: String?
   let width: Int?
   let height: Int?
 }
 
-struct DivinaManifestLink: Decodable {
+struct DivinaManifestLink: Codable, Sendable {
   let title: String?
   let href: String
 }

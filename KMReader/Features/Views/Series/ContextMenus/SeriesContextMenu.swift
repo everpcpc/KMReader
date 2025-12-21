@@ -217,6 +217,7 @@ struct SeriesContextMenu: View {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: policy
       )
+      try? await DatabaseOperator.shared.commit()
       await MainActor.run {
         onActionCompleted?()
       }

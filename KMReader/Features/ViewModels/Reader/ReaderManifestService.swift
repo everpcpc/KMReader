@@ -9,8 +9,8 @@ import Foundation
 import OSLog
 import UniformTypeIdentifiers
 
-struct ReaderTOCEntry: Identifiable, Hashable {
-  let id = UUID()
+struct ReaderTOCEntry: Codable, Identifiable, Hashable, Sendable {
+  var id: Int { pageIndex }
   let title: String
   let pageIndex: Int
   var pageNumber: Int { pageIndex + 1 }

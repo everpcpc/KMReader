@@ -98,6 +98,7 @@ actor OfflineManager {
         status: .pending,
         downloadAt: .now
       )
+      try? await DatabaseOperator.shared.commit()
       await syncDownloadQueue(instanceId: instanceId)
     }
   }
@@ -110,6 +111,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId, instanceId: instanceId, status: .notDownloaded
     )
+    try? await DatabaseOperator.shared.commit()
 
     // Then delete files
     Task.detached { [logger] in
@@ -132,6 +134,7 @@ actor OfflineManager {
       await DatabaseOperator.shared.updateBookDownloadStatus(
         bookId: bookId, instanceId: instanceId, status: .notDownloaded
       )
+      try? await DatabaseOperator.shared.commit()
     }
     activeTasks.removeAll()
   }
@@ -215,6 +218,7 @@ actor OfflineManager {
         await DatabaseOperator.shared.updateBookDownloadStatus(
           bookId: info.bookId, instanceId: instanceId, status: .downloaded, downloadedSize: totalSize
         )
+        try? await DatabaseOperator.shared.commit()
         await removeActiveTask(info.bookId)
         logger.info("✅ Download complete for book: \(info.bookId)")
 
@@ -234,6 +238,7 @@ actor OfflineManager {
             instanceId: instanceId,
             status: .failed(error: error.localizedDescription)
           )
+          try? await DatabaseOperator.shared.commit()
         }
         await removeActiveTask(info.bookId)
 
@@ -250,6 +255,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId, instanceId: instanceId, status: .notDownloaded
     )
+    try? await DatabaseOperator.shared.commit()
   }
 
   // MARK: - Accessors for Reader
@@ -272,6 +278,39 @@ actor OfflineManager {
     let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
       "book.epub")
     return FileManager.default.fileExists(atPath: file.path) ? file : nil
+  }
+
+  // MARK: - Resource Fetchers (Offline-Aware)
+
+  func getBookPages(bookId: String) async throws -> [BookPage] {
+    if let pages = await DatabaseOperator.shared.fetchPages(id: bookId) {
+      return pages
+    }
+    throw APIError.offline
+  }
+
+  func getBookTOC(bookId: String) async throws -> [ReaderTOCEntry] {
+    if let toc = await DatabaseOperator.shared.fetchTOC(id: bookId) {
+      return toc
+    }
+    throw APIError.offline
+  }
+
+  func getNextBook(bookId: String, readListId: String? = nil) async -> Book? {
+    let instanceId = AppConfig.currentInstanceId
+    return await DatabaseOperator.shared.getNextBook(
+      instanceId: instanceId, bookId: bookId, readListId: readListId)
+  }
+
+  func getPreviousBook(bookId: String) async -> Book? {
+    let instanceId = AppConfig.currentInstanceId
+    return await DatabaseOperator.shared.getPreviousBook(instanceId: instanceId, bookId: bookId)
+  }
+
+  func updateLocalProgress(bookId: String, page: Int, completed: Bool) async {
+    await DatabaseOperator.shared.updateReadingProgress(
+      bookId: bookId, page: page, completed: completed)
+    try? await DatabaseOperator.shared.commit()
   }
 
   private func calculateDirectorySize(_ url: URL) throws -> Int64 {
@@ -297,6 +336,18 @@ actor OfflineManager {
   // MARK: - Download Logic
 
   private func downloadEpub(bookId: String, to bookDir: URL) async throws {
+    // Save pages metadata to DB
+    let pages = try await BookService.shared.getBookPages(id: bookId)
+    await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: pages)
+    try? await DatabaseOperator.shared.commit()
+
+    // Save TOC if it exists to DB
+    if let manifest = try? await BookService.shared.getBookManifest(id: bookId) {
+      let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
+      await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: toc)
+      try? await DatabaseOperator.shared.commit()
+    }
+
     let data = try await BookService.shared.downloadEpubFile(bookId: bookId)
     let dest = bookDir.appendingPathComponent("book.epub")
     try data.write(to: dest)
@@ -304,6 +355,18 @@ actor OfflineManager {
 
   private func downloadPages(bookId: String, to bookDir: URL) async throws {
     let pages = try await BookService.shared.getBookPages(id: bookId)
+
+    // Save pages metadata to DB
+    await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: pages)
+    try? await DatabaseOperator.shared.commit()
+
+    // Save TOC to DB
+    if let manifest = try? await BookService.shared.getBookManifest(id: bookId) {
+      let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
+      await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: toc)
+      try? await DatabaseOperator.shared.commit()
+    }
+
     let total = Double(pages.count)
 
     try await withThrowingTaskGroup(of: Void.self) { group in
