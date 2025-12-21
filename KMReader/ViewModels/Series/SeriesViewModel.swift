@@ -51,19 +51,7 @@ class SeriesViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
-      let series = KomgaSeriesStore.shared.fetchSeriesByIds(
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if currentPage == 0 {
-          browseSeriesIds = ids
-          browseSeries = series
-        } else {
-          browseSeriesIds.append(contentsOf: ids)
-          browseSeries.append(contentsOf: series)
-        }
-      }
-      hasMorePages = ids.count == pageSize
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       // Online: fetch from API and sync
       do {
@@ -77,19 +65,7 @@ class SeriesViewModel {
         )
 
         let ids = page.content.map { $0.id }
-        let series = KomgaSeriesStore.shared.fetchSeriesByIds(
-          ids: ids, instanceId: AppConfig.currentInstanceId)
-        withAnimation {
-          if currentPage == 0 {
-            browseSeriesIds = ids
-            browseSeries = series
-          } else {
-            browseSeriesIds.append(contentsOf: ids)
-            browseSeries.append(contentsOf: series)
-          }
-        }
-        hasMorePages = !page.last
-        currentPage += 1
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         if shouldReset {
           ErrorManager.shared.alert(error: error)
@@ -182,8 +158,8 @@ class SeriesViewModel {
         libraryIds: libraryIds
       )
 
-      hasMorePages = !page.last
-      currentPage += 1
+      let ids = page.content.map { $0.id }
+      updateState(ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -191,5 +167,21 @@ class SeriesViewModel {
     withAnimation {
       isLoading = false
     }
+  }
+
+  private func updateState(ids: [String], moreAvailable: Bool) {
+    let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+      ids: ids, instanceId: AppConfig.currentInstanceId)
+    withAnimation {
+      if currentPage == 0 {
+        browseSeriesIds = ids
+        browseSeries = series
+      } else {
+        browseSeriesIds.append(contentsOf: ids)
+        browseSeries.append(contentsOf: series)
+      }
+    }
+    hasMorePages = moreAvailable
+    currentPage += 1
   }
 }

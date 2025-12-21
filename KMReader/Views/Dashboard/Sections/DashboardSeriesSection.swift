@@ -99,19 +99,7 @@ struct DashboardSeriesSection: View {
       default:
         ids = []
       }
-      let series = KomgaSeriesStore.shared.fetchSeriesByIds(
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if isFirstPage {
-          seriesIds = ids
-          browseSeries = series
-        } else {
-          seriesIds.append(contentsOf: ids)
-          browseSeries.append(contentsOf: series)
-        }
-      }
-      hasMore = ids.count == pageSize
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: ids.count == pageSize, isFirstPage: isFirstPage)
     } else {
       // Online: fetch from API and sync
       do {
@@ -140,19 +128,7 @@ struct DashboardSeriesSection: View {
         }
 
         let ids = page.content.map { $0.id }
-        let series = KomgaSeriesStore.shared.fetchSeriesByIds(
-          ids: ids, instanceId: AppConfig.currentInstanceId)
-        withAnimation {
-          if isFirstPage {
-            seriesIds = ids
-            browseSeries = series
-          } else {
-            seriesIds.append(contentsOf: ids)
-            browseSeries.append(contentsOf: series)
-          }
-        }
-        hasMore = !page.last
-        currentPage += 1
+        updateState(ids: ids, moreAvailable: !page.last, isFirstPage: isFirstPage)
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -161,6 +137,22 @@ struct DashboardSeriesSection: View {
     withAnimation {
       isLoading = false
     }
+  }
+
+  private func updateState(ids: [String], moreAvailable: Bool, isFirstPage: Bool) {
+    let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+      ids: ids, instanceId: AppConfig.currentInstanceId)
+    withAnimation {
+      if isFirstPage {
+        seriesIds = ids
+        browseSeries = series
+      } else {
+        seriesIds.append(contentsOf: ids)
+        browseSeries.append(contentsOf: series)
+      }
+    }
+    hasMore = moreAvailable
+    currentPage += 1
   }
 }
 

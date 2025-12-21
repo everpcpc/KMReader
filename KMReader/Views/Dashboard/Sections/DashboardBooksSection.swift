@@ -88,19 +88,7 @@ struct DashboardBooksSection: View {
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
       let ids = fetchOfflineBookIds(libraryIds: libraryIds)
-      let books = KomgaBookStore.shared.fetchBooksByIds(
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if isFirstPage {
-          bookIds = ids
-          browseBooks = books
-        } else {
-          bookIds.append(contentsOf: ids)
-          browseBooks.append(contentsOf: books)
-        }
-      }
-      hasMore = ids.count == pageSize
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: ids.count == pageSize, isFirstPage: isFirstPage)
     } else {
       // Online: fetch from API and sync
       do {
@@ -158,19 +146,7 @@ struct DashboardBooksSection: View {
         }
 
         let ids = page.content.map { $0.id }
-        let books = KomgaBookStore.shared.fetchBooksByIds(
-          ids: ids, instanceId: AppConfig.currentInstanceId)
-        withAnimation {
-          if isFirstPage {
-            bookIds = ids
-            browseBooks = books
-          } else {
-            bookIds.append(contentsOf: ids)
-            browseBooks.append(contentsOf: books)
-          }
-        }
-        hasMore = !page.last
-        currentPage += 1
+        updateState(ids: ids, moreAvailable: !page.last, isFirstPage: isFirstPage)
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -179,6 +155,22 @@ struct DashboardBooksSection: View {
     withAnimation {
       isLoading = false
     }
+  }
+
+  private func updateState(ids: [String], moreAvailable: Bool, isFirstPage: Bool) {
+    let books = KomgaBookStore.shared.fetchBooksByIds(
+      ids: ids, instanceId: AppConfig.currentInstanceId)
+    withAnimation {
+      if isFirstPage {
+        bookIds = ids
+        browseBooks = books
+      } else {
+        bookIds.append(contentsOf: ids)
+        browseBooks.append(contentsOf: books)
+      }
+    }
+    hasMore = moreAvailable
+    currentPage += 1
   }
 
   private func fetchOfflineBookIds(libraryIds: [String]) -> [String] {

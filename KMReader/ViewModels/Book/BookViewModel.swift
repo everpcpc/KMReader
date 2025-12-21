@@ -49,19 +49,7 @@ class BookViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      let books = KomgaBookStore.shared.fetchBooksByIds(
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if currentPage == 0 {
-          browseBookIds = ids
-          browseBooks = books
-        } else {
-          browseBookIds.append(contentsOf: ids)
-          browseBooks.append(contentsOf: books)
-        }
-      }
-      hasMorePages = !page.last
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -84,14 +72,7 @@ class BookViewModel {
         libraryIds: libraryIds)
 
       let ids = page.content.map { $0.id }
-      let books = KomgaBookStore.shared.fetchBooksByIds(
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        browseBookIds.append(contentsOf: ids)
-        browseBooks.append(contentsOf: books)
-      }
-      hasMorePages = !page.last
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -106,6 +87,22 @@ class BookViewModel {
       let browseOpts = currentSeriesBrowseOpts
     else { return }
     await loadBooks(seriesId: seriesId, browseOpts: browseOpts, refresh: true)
+  }
+
+  private func updateState(ids: [String], moreAvailable: Bool) {
+    let books = KomgaBookStore.shared.fetchBooksByIds(
+      ids: ids, instanceId: AppConfig.currentInstanceId)
+    withAnimation {
+      if currentPage == 0 {
+        browseBookIds = ids
+        browseBooks = books
+      } else {
+        browseBookIds.append(contentsOf: ids)
+        browseBooks.append(contentsOf: books)
+      }
+    }
+    hasMorePages = moreAvailable
+    currentPage += 1
   }
 
   func loadBook(id: String) async {
@@ -187,8 +184,8 @@ class BookViewModel {
         size: 20
       )
 
-      hasMorePages = !page.last
-      currentPage += 1
+      let ids = page.content.map { $0.id }
+      updateState(ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -214,8 +211,8 @@ class BookViewModel {
         size: 20
       )
 
-      hasMorePages = !page.last
-      currentPage += 1
+      let ids = page.content.map { $0.id }
+      updateState(ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -241,8 +238,8 @@ class BookViewModel {
         size: 20
       )
 
-      hasMorePages = !page.last
-      currentPage += 1
+      let ids = page.content.map { $0.id }
+      updateState(ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -275,19 +272,7 @@ class BookViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
-      let books = KomgaBookStore.shared.fetchBooksByIds(
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if currentPage == 0 {
-          browseBookIds = ids
-          browseBooks = books
-        } else {
-          browseBookIds.append(contentsOf: ids)
-          browseBooks.append(contentsOf: books)
-        }
-      }
-      hasMorePages = ids.count == pageSize
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       // Online: fetch from API and sync
       do {
@@ -312,19 +297,7 @@ class BookViewModel {
         )
 
         let ids = page.content.map { $0.id }
-        let books = KomgaBookStore.shared.fetchBooksByIds(
-          ids: ids, instanceId: AppConfig.currentInstanceId)
-        withAnimation {
-          if currentPage == 0 {
-            browseBookIds = ids
-            browseBooks = books
-          } else {
-            browseBookIds.append(contentsOf: ids)
-            browseBooks.append(contentsOf: books)
-          }
-        }
-        hasMorePages = !page.last
-        currentPage += 1
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -359,19 +332,7 @@ class BookViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      let books = KomgaBookStore.shared.fetchBooksByIds(
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if currentPage == 0 {
-          browseBookIds = ids
-          browseBooks = books
-        } else {
-          browseBookIds.append(contentsOf: ids)
-          browseBooks.append(contentsOf: books)
-        }
-      }
-      hasMorePages = !page.last
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
