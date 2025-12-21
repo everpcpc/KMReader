@@ -36,11 +36,12 @@ struct CollectionCardView: View {
             .font(.caption)
             .foregroundColor(.secondary)
         }
-        .frame(width: width, alignment: .leading)
       }
-      .frame(maxHeight: .infinity, alignment: .top)
+      .frame(width: width, alignment: .leading)
     }
     .adaptiveButtonStyle(.plain)
+    .frame(maxHeight: .infinity, alignment: .top)
+    .contentShape(Rectangle())
     .contextMenu {
       CollectionContextMenu(
         collection: komgaCollection.toCollection(),

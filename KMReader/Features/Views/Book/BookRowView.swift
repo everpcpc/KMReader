@@ -113,8 +113,8 @@ struct BookRowView: View {
         Image(systemName: "chevron.right")
           .foregroundColor(.secondary)
       }
-      .contentShape(Rectangle())
     }
+    .contentShape(Rectangle())
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       BookContextMenu(

@@ -99,12 +99,12 @@ struct BookCardView: View {
             }
           }.font(.caption2)
         }
-        .frame(width: cardWidth, alignment: .leading)
       }
-      .frame(maxHeight: .infinity, alignment: .top)
-      .contentShape(Rectangle())
+      .frame(width: cardWidth, alignment: .leading)
     }
     .adaptiveButtonStyle(.plain)
+    .frame(maxHeight: .infinity, alignment: .top)
+    .contentShape(Rectangle())
     .contextMenu {
       BookContextMenu(
         viewModel: viewModel,

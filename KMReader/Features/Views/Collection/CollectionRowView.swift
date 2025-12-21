@@ -55,6 +55,7 @@ struct CollectionRowView: View {
       }
     }
     .adaptiveButtonStyle(.plain)
+    .contentShape(Rectangle())
     .contextMenu {
       CollectionContextMenu(
         collection: komgaCollection.toCollection(),
