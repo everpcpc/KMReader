@@ -232,7 +232,7 @@ final class SSEService {
       }
 
       // Attempt to reconnect if still logged in
-      if AppConfig.isLoggedIn && AppConfig.enableSSE && !Task.isCancelled {
+      if AppConfig.isLoggedIn && AppConfig.enableSSE && !AppConfig.isOffline && !Task.isCancelled {
         Task {
           try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
           if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE && !AppConfig.isOffline {
@@ -251,7 +251,7 @@ final class SSEService {
         }
 
         // Attempt to reconnect after a delay
-        if AppConfig.isLoggedIn && AppConfig.enableSSE {
+        if AppConfig.isLoggedIn && AppConfig.enableSSE && !AppConfig.isOffline {
           Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
             if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE && !AppConfig.isOffline {
