@@ -8,37 +8,20 @@
 import Foundation
 import SwiftData
 
-@MainActor
-final class KomgaReadListStore {
-  static let shared = KomgaReadListStore()
+/// Provides read-only fetch operations for KomgaReadList data.
+/// All View-facing fetch methods require a ModelContext from the caller.
+enum KomgaReadListStore {
 
-  private var container: ModelContainer?
-
-  private init() {}
-
-  func configure(with container: ModelContainer) {
-    self.container = container
-  }
-
-  private func makeContext() throws -> ModelContext {
-    guard let container else {
-      throw AppErrorType.storageNotConfigured(message: "ModelContainer is not configured")
-    }
-    return ModelContext(container)
-  }
-
-  func fetchReadLists(
+  static func fetchReadLists(
+    context: ModelContext,
     libraryIds: [String]?,
     page: Int,
     size: Int,
     sort: String?,
     search: String?
   ) -> [ReadList] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
-    // Predicate: Instance ID + Search
     var descriptor = FetchDescriptor<KomgaReadList>()
 
     if let search = search, !search.isEmpty {
@@ -53,7 +36,6 @@ final class KomgaReadListStore {
       }
     }
 
-    // Sort
     if let sort = sort {
       if sort.contains("name") {
         let isAsc = !sort.contains("desc")
@@ -83,15 +65,14 @@ final class KomgaReadListStore {
     }
   }
 
-  func fetchReadListIds(
+  static func fetchReadListIds(
+    context: ModelContext,
     libraryIds: [String]?,
     searchText: String,
     sort: String?,
     offset: Int,
     limit: Int
   ) -> [String] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
     var descriptor = FetchDescriptor<KomgaReadList>()
@@ -108,7 +89,6 @@ final class KomgaReadListStore {
       }
     }
 
-    // Sort
     if let sort = sort {
       if sort.contains("name") {
         let isAsc = !sort.contains("desc")
@@ -138,9 +118,12 @@ final class KomgaReadListStore {
     }
   }
 
-  func fetchReadListsByIds(ids: [String], instanceId: String) -> [KomgaReadList] {
-    guard let container, !ids.isEmpty else { return [] }
-    let context = ModelContext(container)
+  static func fetchReadListsByIds(
+    context: ModelContext,
+    ids: [String],
+    instanceId: String
+  ) -> [KomgaReadList] {
+    guard !ids.isEmpty else { return [] }
 
     let descriptor = FetchDescriptor<KomgaReadList>(
       predicate: #Predicate<KomgaReadList> { rl in
@@ -160,9 +143,7 @@ final class KomgaReadListStore {
     }
   }
 
-  func fetchReadList(id: String) -> ReadList? {
-    guard let container else { return nil }
-    let context = ModelContext(container)
+  static func fetchReadList(context: ModelContext, id: String) -> ReadList? {
     let compositeId = "\(AppConfig.currentInstanceId)_\(id)"
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     return try? context.fetch(descriptor).first?.toReadList()

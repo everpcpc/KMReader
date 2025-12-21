@@ -16,7 +16,6 @@ class LibraryManager {
   private(set) var isLoading = false
 
   private let libraryService = LibraryService.shared
-  private let libraryStore = KomgaLibraryStore.shared
   private var hasLoaded = false
   private var loadedInstanceId: String?
 
@@ -39,9 +38,8 @@ class LibraryManager {
 
     do {
       let fullLibraries = try await libraryService.getLibraries()
-      // Extract only id and name
       let infos = fullLibraries.map { LibraryInfo(id: $0.id, name: $0.name) }
-      try libraryStore.replaceLibraries(infos, for: instanceId)
+      try await DatabaseOperator.shared.replaceLibraries(infos, for: instanceId)
       hasLoaded = true
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -50,12 +48,12 @@ class LibraryManager {
     isLoading = false
   }
 
-  func getLibrary(id: String) -> LibraryInfo? {
+  func getLibrary(id: String) async -> LibraryInfo? {
     let instanceId = AppConfig.currentInstanceId
     guard !instanceId.isEmpty else {
       return nil
     }
-    let libraries = libraryStore.fetchLibraries(instanceId: instanceId)
+    let libraries = await DatabaseOperator.shared.fetchLibraries(instanceId: instanceId)
     return libraries.first { $0.id == id }
   }
 
@@ -67,22 +65,26 @@ class LibraryManager {
   func clearAllLibraries() {
     hasLoaded = false
     loadedInstanceId = nil
-    do {
-      try libraryStore.deleteLibraries(instanceId: nil)
-    } catch {
-      ErrorManager.shared.alert(error: error)
+    Task {
+      do {
+        try await DatabaseOperator.shared.deleteLibraries(instanceId: nil)
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 
   func removeLibraries(for instanceId: String) {
-    do {
-      try libraryStore.deleteLibraries(instanceId: instanceId)
-      if loadedInstanceId == instanceId {
-        hasLoaded = false
-        loadedInstanceId = nil
+    Task {
+      do {
+        try await DatabaseOperator.shared.deleteLibraries(instanceId: instanceId)
+        if loadedInstanceId == instanceId {
+          hasLoaded = false
+          loadedInstanceId = nil
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
       }
-    } catch {
-      ErrorManager.shared.alert(error: error)
     }
   }
 }

@@ -18,6 +18,7 @@ struct SeriesContextMenu: View {
   var onEditRequested: (() -> Void)? = nil
 
   @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   private var series: Series {
     komgaSeries.toSeries()
@@ -212,12 +213,13 @@ struct SeriesContextMenu: View {
   }
 
   private func updatePolicy(_ policy: SeriesOfflinePolicy) {
-    komgaSeries.offlinePolicy = policy
-    if let context = komgaSeries.modelContext {
-      try? context.save()
-      KomgaBookStore.shared.syncSeriesDownloadStatus(series: komgaSeries, context: context)
-      try? context.save()
-      onActionCompleted?()
+    Task {
+      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: policy
+      )
+      await MainActor.run {
+        onActionCompleted?()
+      }
     }
   }
 }

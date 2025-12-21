@@ -25,6 +25,7 @@ struct BooksListViewForReadList: View {
   @State private var selectedBookIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
+  @Environment(\.modelContext) private var modelContext
 
   @Query private var readLists: [KomgaReadList]
 
@@ -127,6 +128,7 @@ struct BooksListViewForReadList: View {
           },
           loadMore: { refresh in
             await bookViewModel.loadReadListBooks(
+              context: modelContext,
               readListId: readListId, browseOpts: browseOpts,
               libraryIds: dashboard.libraryIds, refresh: refresh)
           }
@@ -139,12 +141,14 @@ struct BooksListViewForReadList: View {
     }
     .task(id: readListId) {
       await bookViewModel.loadReadListBooks(
+        context: modelContext,
         readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
         refresh: true)
     }
     .onChange(of: browseOpts) {
       Task {
         await bookViewModel.loadReadListBooks(
+          context: modelContext,
           readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
           refresh: true)
       }
@@ -156,6 +160,7 @@ extension BooksListViewForReadList {
   fileprivate func refreshBooks() {
     Task {
       await bookViewModel.loadReadListBooks(
+        context: modelContext,
         readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
         refresh: true)
     }
@@ -189,6 +194,7 @@ extension BooksListViewForReadList {
 
       // Refresh the books list
       await bookViewModel.loadReadListBooks(
+        context: modelContext,
         readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
         refresh: true)
     } catch {

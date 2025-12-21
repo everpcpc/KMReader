@@ -5,10 +5,12 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct CollectionPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.modelContext) private var modelContext
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
@@ -91,6 +93,7 @@ struct CollectionPickerSheet: View {
     isLoading = true
 
     await collectionViewModel.loadCollections(
+      context: modelContext,
       libraryIds: dashboard.libraryIds,
       sort: "name,asc",
       searchText: searchText,

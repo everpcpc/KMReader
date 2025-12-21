@@ -73,9 +73,7 @@ actor OfflineManager {
 
   /// Get the download status of a book from SwiftData.
   func getDownloadStatus(bookId: String) async -> DownloadStatus {
-    await MainActor.run {
-      KomgaBookStore.shared.getDownloadStatus(bookId: bookId)
-    }
+    await DatabaseOperator.shared.getDownloadStatus(bookId: bookId)
   }
 
   /// Check if a book is downloaded.
@@ -94,13 +92,12 @@ actor OfflineManager {
     case .pending:
       await cancelDownload(bookId: info.bookId)
     case .notDownloaded, .failed:
-      await MainActor.run {
-        KomgaBookStore.shared.updateDownloadStatus(
-          bookId: info.bookId,
-          status: .pending,
-          downloadAt: .now
-        )
-      }
+      await DatabaseOperator.shared.updateBookDownloadStatus(
+        bookId: info.bookId,
+        instanceId: instanceId,
+        status: .pending,
+        downloadAt: .now
+      )
       await syncDownloadQueue(instanceId: instanceId)
     }
   }
@@ -110,9 +107,9 @@ actor OfflineManager {
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
     // Update SwiftData first
-    await MainActor.run {
-      KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .notDownloaded)
-    }
+    await DatabaseOperator.shared.updateBookDownloadStatus(
+      bookId: bookId, instanceId: instanceId, status: .notDownloaded
+    )
 
     // Then delete files
     Task.detached { [logger] in
@@ -129,11 +126,12 @@ actor OfflineManager {
 
   /// Cancel all active downloads (used during cleanup).
   func cancelAllDownloads() async {
+    let instanceId = AppConfig.currentInstanceId
     for (bookId, task) in activeTasks {
       task.cancel()
-      await MainActor.run {
-        KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .notDownloaded)
-      }
+      await DatabaseOperator.shared.updateBookDownloadStatus(
+        bookId: bookId, instanceId: instanceId, status: .notDownloaded
+      )
     }
     activeTasks.removeAll()
   }
@@ -184,9 +182,7 @@ actor OfflineManager {
     isProcessingQueue = true
     defer { isProcessingQueue = false }
 
-    let pending = await MainActor.run {
-      KomgaBookStore.shared.fetchPendingBooks(limit: 1)
-    }
+    let pending = await DatabaseOperator.shared.fetchPendingBooks(limit: 1)
 
     guard let nextBook = pending.first else { return }
 
@@ -216,10 +212,9 @@ actor OfflineManager {
 
         // Mark complete in SwiftData
         let totalSize = try await self.calculateDirectorySize(bookDir)
-        await MainActor.run {
-          KomgaBookStore.shared.updateDownloadStatus(
-            bookId: info.bookId, status: .downloaded, downloadedSize: totalSize)
-        }
+        await DatabaseOperator.shared.updateBookDownloadStatus(
+          bookId: info.bookId, instanceId: instanceId, status: .downloaded, downloadedSize: totalSize
+        )
         await removeActiveTask(info.bookId)
         logger.info("✅ Download complete for book: \(info.bookId)")
 
@@ -234,12 +229,11 @@ actor OfflineManager {
           logger.info("⛔ Download cancelled for book: \(info.bookId)")
         } else {
           logger.error("❌ Download failed for book \(info.bookId): \(error)")
-          await MainActor.run {
-            KomgaBookStore.shared.updateDownloadStatus(
-              bookId: info.bookId,
-              status: .failed(error: error.localizedDescription)
-            )
-          }
+          await DatabaseOperator.shared.updateBookDownloadStatus(
+            bookId: info.bookId,
+            instanceId: instanceId,
+            status: .failed(error: error.localizedDescription)
+          )
         }
         await removeActiveTask(info.bookId)
 
@@ -252,9 +246,10 @@ actor OfflineManager {
   func cancelDownload(bookId: String) async {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
-    await MainActor.run {
-      KomgaBookStore.shared.updateDownloadStatus(bookId: bookId, status: .notDownloaded)
-    }
+    let instanceId = AppConfig.currentInstanceId
+    await DatabaseOperator.shared.updateBookDownloadStatus(
+      bookId: bookId, instanceId: instanceId, status: .notDownloaded
+    )
   }
 
   // MARK: - Accessors for Reader

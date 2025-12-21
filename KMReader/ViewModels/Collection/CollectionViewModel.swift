@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 import SwiftUI
 
 @MainActor
@@ -28,6 +29,7 @@ class CollectionViewModel {
   private var currentSearchText: String = ""
 
   func loadCollections(
+    context: ModelContext,
     libraryIds: [String]?,
     sort: String?,
     searchText: String,
@@ -50,15 +52,16 @@ class CollectionViewModel {
     isLoading = true
 
     if AppConfig.isOffline {
-      // Offline: query SwiftData directly
-      let ids = KomgaCollectionStore.shared.fetchCollectionIds(
+      let ids = KomgaCollectionStore.fetchCollectionIds(
+        context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         sort: sort,
         offset: currentPage * pageSize,
         limit: pageSize
       )
-      let collections = KomgaCollectionStore.shared.fetchCollectionsByIds(
+      let collections = KomgaCollectionStore.fetchCollectionsByIds(
+        context: context,
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         if currentPage == 0 {
@@ -72,7 +75,6 @@ class CollectionViewModel {
       hasMorePages = ids.count == pageSize
       currentPage += 1
     } else {
-      // Online: fetch from API and sync
       do {
         let page = try await SyncService.shared.syncCollections(
           libraryIds: libraryIds,
@@ -83,7 +85,8 @@ class CollectionViewModel {
         )
 
         let ids = page.content.map { $0.id }
-        let collections = KomgaCollectionStore.shared.fetchCollectionsByIds(
+        let collections = KomgaCollectionStore.fetchCollectionsByIds(
+          context: context,
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
           if currentPage == 0 {

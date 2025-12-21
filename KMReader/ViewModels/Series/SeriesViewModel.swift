@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 import SwiftUI
 
 @MainActor
@@ -24,11 +25,12 @@ class SeriesViewModel {
   private let pageSize = 20
 
   func loadSeries(
-    browseOpts: SeriesBrowseOptions, searchText: String = "", libraryIds: [String]? = nil,
+    context: ModelContext,
+    browseOpts: SeriesBrowseOptions,
+    searchText: String = "",
+    libraryIds: [String]? = nil,
     refresh: Bool = false
-  )
-    async
-  {
+  ) async {
     let paramsChanged = currentState != browseOpts || currentSearchText != searchText
     let shouldReset = refresh || paramsChanged
 
@@ -43,17 +45,16 @@ class SeriesViewModel {
     isLoading = true
 
     if AppConfig.isOffline {
-      // Offline: query SwiftData directly
-      let ids = KomgaSeriesStore.shared.fetchSeriesIds(
+      let ids = KomgaSeriesStore.fetchSeriesIds(
+        context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
         offset: currentPage * pageSize,
         limit: pageSize
       )
-      updateState(ids: ids, moreAvailable: ids.count == pageSize)
+      updateState(context: context, ids: ids, moreAvailable: ids.count == pageSize)
     } else {
-      // Online: fetch from API and sync
       do {
         let page = try await SyncService.shared.syncSeriesPage(
           libraryIds: libraryIds,
@@ -65,7 +66,7 @@ class SeriesViewModel {
         )
 
         let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last)
+        updateState(context: context, ids: ids, moreAvailable: !page.last)
       } catch {
         if shouldReset {
           ErrorManager.shared.alert(error: error)
@@ -108,33 +109,34 @@ class SeriesViewModel {
     }
   }
 
-  func markAsRead(seriesId: String, browseOpts: SeriesBrowseOptions) async {
+  func markAsRead(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsRead(seriesId: seriesId)
       _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
       }
-      await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
+      await loadSeries(context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
   }
 
-  func markAsUnread(seriesId: String, browseOpts: SeriesBrowseOptions) async {
+  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
       _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
       }
-      await loadSeries(browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
+      await loadSeries(context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
   }
 
   func loadCollectionSeries(
+    context: ModelContext,
     collectionId: String,
     browseOpts: CollectionSeriesBrowseOptions,
     libraryIds: [String]? = nil,
@@ -159,7 +161,7 @@ class SeriesViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      updateState(ids: ids, moreAvailable: !page.last)
+      updateState(context: context, ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -169,8 +171,9 @@ class SeriesViewModel {
     }
   }
 
-  private func updateState(ids: [String], moreAvailable: Bool) {
-    let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+  private func updateState(context: ModelContext, ids: [String], moreAvailable: Bool) {
+    let series = KomgaSeriesStore.fetchSeriesByIds(
+      context: context,
       ids: ids, instanceId: AppConfig.currentInstanceId)
     withAnimation {
       if currentPage == 0 {

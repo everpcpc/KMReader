@@ -89,7 +89,7 @@ final class InstanceInitializer {
     isSyncing = true
     progress = 0.0
 
-    let lastSyncedAt = KomgaInstanceStore.shared.getLastSyncedAt(instanceId: instanceId)
+    let lastSyncedAt = await db.getLastSyncedAt(instanceId: instanceId)
     let syncStartTime = Date()
 
     logger.info(
@@ -108,7 +108,7 @@ final class InstanceInitializer {
     currentPhase = .series
     await syncSeriesIncremental(instanceId: instanceId, since: lastSyncedAt.series)
     do {
-      try KomgaInstanceStore.shared.updateSeriesLastSyncedAt(
+      try await db.updateSeriesLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
     } catch {
       logger.error("❌ Failed to update series lastSyncedAt: \(error)")
@@ -122,7 +122,7 @@ final class InstanceInitializer {
     currentPhase = .books
     await syncBooksIncremental(instanceId: instanceId, since: lastSyncedAt.books)
     do {
-      try KomgaInstanceStore.shared.updateBooksLastSyncedAt(
+      try await db.updateBooksLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
     } catch {
       logger.error("❌ Failed to update books lastSyncedAt: \(error)")
@@ -141,7 +141,7 @@ final class InstanceInitializer {
     do {
       let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
-      try KomgaLibraryStore.shared.replaceLibraries(libraryInfos, for: instanceId)
+      try await db.replaceLibraries(libraryInfos, for: instanceId)
       logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
       logger.error("❌ Failed to sync libraries: \(error)")

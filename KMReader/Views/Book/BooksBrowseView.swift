@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct BooksBrowseView: View {
@@ -19,6 +20,7 @@ struct BooksBrowseView: View {
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
   @State private var viewModel = BookViewModel()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.modelContext) private var modelContext
   @State private var hasInitialized = false
 
   var body: some View {
@@ -65,6 +67,7 @@ struct BooksBrowseView: View {
     let effectiveBrowseOpts =
       (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts
     await viewModel.loadBrowseBooks(
+      context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: dashboard.libraryIds,

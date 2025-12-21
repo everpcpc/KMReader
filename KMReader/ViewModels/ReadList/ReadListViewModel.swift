@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 import SwiftUI
 
 @MainActor
@@ -28,6 +29,7 @@ class ReadListViewModel {
   private var currentSearchText: String = ""
 
   func loadReadLists(
+    context: ModelContext,
     libraryIds: [String]?,
     sort: String?,
     searchText: String,
@@ -50,15 +52,16 @@ class ReadListViewModel {
     isLoading = true
 
     if AppConfig.isOffline {
-      // Offline: query SwiftData directly
-      let ids = KomgaReadListStore.shared.fetchReadListIds(
+      let ids = KomgaReadListStore.fetchReadListIds(
+        context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         sort: sort,
         offset: currentPage * pageSize,
         limit: pageSize
       )
-      let readLists = KomgaReadListStore.shared.fetchReadListsByIds(
+      let readLists = KomgaReadListStore.fetchReadListsByIds(
+        context: context,
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
         if currentPage == 0 {
@@ -72,7 +75,6 @@ class ReadListViewModel {
       hasMorePages = ids.count == pageSize
       currentPage += 1
     } else {
-      // Online: fetch from API and sync
       do {
         let page = try await SyncService.shared.syncReadLists(
           libraryIds: libraryIds,
@@ -83,7 +85,8 @@ class ReadListViewModel {
         )
 
         let ids = page.content.map { $0.id }
-        let readLists = KomgaReadListStore.shared.fetchReadListsByIds(
+        let readLists = KomgaReadListStore.fetchReadListsByIds(
+          context: context,
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
           if currentPage == 0 {

@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct DashboardSeriesSection: View {
@@ -14,6 +15,7 @@ struct DashboardSeriesSection: View {
   var onSeriesUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @Environment(\.modelContext) private var modelContext
 
   @State private var seriesIds: [String] = []
   @State private var browseSeries: [KomgaSeries] = []
@@ -81,17 +83,18 @@ struct DashboardSeriesSection: View {
     let isFirstPage = currentPage == 0
 
     if AppConfig.isOffline {
-      // Offline: query SwiftData directly
       let ids: [String]
       switch section {
       case .recentlyAddedSeries:
-        ids = KomgaSeriesStore.shared.fetchNewlyAddedSeriesIds(
+        ids = KomgaSeriesStore.fetchNewlyAddedSeriesIds(
+          context: modelContext,
           libraryIds: libraryIds,
           offset: currentPage * pageSize,
           limit: pageSize
         )
       case .recentlyUpdatedSeries:
-        ids = KomgaSeriesStore.shared.fetchRecentlyUpdatedSeriesIds(
+        ids = KomgaSeriesStore.fetchRecentlyUpdatedSeriesIds(
+          context: modelContext,
           libraryIds: libraryIds,
           offset: currentPage * pageSize,
           limit: pageSize
@@ -140,7 +143,8 @@ struct DashboardSeriesSection: View {
   }
 
   private func updateState(ids: [String], moreAvailable: Bool, isFirstPage: Bool) {
-    let series = KomgaSeriesStore.shared.fetchSeriesByIds(
+    let series = KomgaSeriesStore.fetchSeriesByIds(
+      context: modelContext,
       ids: ids, instanceId: AppConfig.currentInstanceId)
     withAnimation {
       if isFirstPage {

@@ -35,7 +35,7 @@ class SyncService {
     do {
       let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
-      try KomgaLibraryStore.shared.replaceLibraries(libraryInfos, for: instanceId)
+      try await db.replaceLibraries(libraryInfos, for: instanceId)
       logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
       logger.error("❌ Failed to sync libraries: \(error)")
@@ -344,7 +344,7 @@ class SyncService {
   }
 
   func syncDashboard(instanceId: String) async {
-    let libraryIds = KomgaLibraryStore.shared.fetchLibraries(instanceId: instanceId).map { $0.id }
+    let libraryIds = await db.fetchLibraries(instanceId: instanceId).map { $0.id }
     _ = try? await syncBooksOnDeck(libraryIds: libraryIds, page: 0, size: 20)
     _ = try? await syncRecentlyAddedBooks(libraryIds: libraryIds, page: 0, size: 20)
     _ = try? await syncRecentlyReadBooks(libraryIds: libraryIds, page: 0, size: 20)

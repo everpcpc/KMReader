@@ -41,12 +41,6 @@ struct MainApp: App {
     } catch {
       fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
     }
-    KomgaInstanceStore.shared.configure(with: modelContainer)
-    KomgaLibraryStore.shared.configure(with: modelContainer)
-    KomgaSeriesStore.shared.configure(with: modelContainer)
-    KomgaBookStore.shared.configure(with: modelContainer)
-    KomgaCollectionStore.shared.configure(with: modelContainer)
-    KomgaReadListStore.shared.configure(with: modelContainer)
     CustomFontStore.shared.configure(with: modelContainer)
     DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
     _authViewModel = State(initialValue: AuthViewModel())

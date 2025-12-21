@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 import SwiftUI
 
 @MainActor
@@ -26,7 +27,10 @@ class BookViewModel {
   private let pageSize = 20
 
   func loadBooks(
-    seriesId: String, browseOpts: BookBrowseOptions, libraryIds: [String]? = nil,
+    context: ModelContext,
+    seriesId: String,
+    browseOpts: BookBrowseOptions,
+    libraryIds: [String]? = nil,
     refresh: Bool = true
   ) async {
     if refresh || currentSeriesId != seriesId {
@@ -49,7 +53,7 @@ class BookViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      updateState(ids: ids, moreAvailable: !page.last)
+      updateState(context: context, ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -59,7 +63,7 @@ class BookViewModel {
     }
   }
 
-  func loadMoreBooks(seriesId: String, libraryIds: [String]? = nil) async {
+  func loadMoreBooks(context: ModelContext, seriesId: String, libraryIds: [String]? = nil) async {
     guard hasMorePages && !isLoading && seriesId == currentSeriesId,
       let browseOpts = currentSeriesBrowseOpts
     else { return }
@@ -72,7 +76,7 @@ class BookViewModel {
         libraryIds: libraryIds)
 
       let ids = page.content.map { $0.id }
-      updateState(ids: ids, moreAvailable: !page.last)
+      updateState(context: context, ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -82,15 +86,9 @@ class BookViewModel {
     }
   }
 
-  func refreshCurrentBooks() async {
-    guard let seriesId = currentSeriesId,
-      let browseOpts = currentSeriesBrowseOpts
-    else { return }
-    await loadBooks(seriesId: seriesId, browseOpts: browseOpts, refresh: true)
-  }
-
-  private func updateState(ids: [String], moreAvailable: Bool) {
-    let books = KomgaBookStore.shared.fetchBooksByIds(
+  private func updateState(context: ModelContext, ids: [String], moreAvailable: Bool) {
+    let books = KomgaBookStore.fetchBooksByIds(
+      context: context,
       ids: ids, instanceId: AppConfig.currentInstanceId)
     withAnimation {
       if currentPage == 0 {
@@ -105,18 +103,16 @@ class BookViewModel {
     currentPage += 1
   }
 
-  func loadBook(id: String) async {
+  func loadBook(context: ModelContext, id: String) async {
     isLoading = true
 
-    // Local
-    if let cached = KomgaBookStore.shared.fetchBook(id: id) {
+    if let cached = KomgaBookStore.fetchBook(context: context, id: id) {
       currentBook = cached
     }
 
     do {
       currentBook = try await SyncService.shared.syncBook(bookId: id)
     } catch {
-      // Keep cached book if available
       if currentBook == nil {
         ErrorManager.shared.alert(error: error)
       }
@@ -130,9 +126,6 @@ class BookViewModel {
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async {
     do {
       try await bookService.updatePageReadProgress(bookId: bookId, page: page, completed: completed)
-      if currentBook?.id == bookId {
-        await loadBook(id: bookId)
-      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -168,7 +161,7 @@ class BookViewModel {
     }
   }
 
-  func loadBooksOnDeck(libraryIds: [String]? = nil, refresh: Bool = false) async {
+  func loadBooksOnDeck(context: ModelContext, libraryIds: [String]? = nil, refresh: Bool = false) async {
     if refresh {
       currentPage = 0
       hasMorePages = true
@@ -185,7 +178,7 @@ class BookViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      updateState(ids: ids, moreAvailable: !page.last)
+      updateState(context: context, ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -195,7 +188,7 @@ class BookViewModel {
     }
   }
 
-  func loadRecentlyAddedBooks(libraryIds: [String]? = nil, refresh: Bool = false) async {
+  func loadRecentlyAddedBooks(context: ModelContext, libraryIds: [String]? = nil, refresh: Bool = false) async {
     if refresh {
       currentPage = 0
       hasMorePages = true
@@ -212,7 +205,7 @@ class BookViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      updateState(ids: ids, moreAvailable: !page.last)
+      updateState(context: context, ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -222,7 +215,7 @@ class BookViewModel {
     }
   }
 
-  func loadRecentlyReadBooks(libraryIds: [String]? = nil, refresh: Bool = false) async {
+  func loadRecentlyReadBooks(context: ModelContext, libraryIds: [String]? = nil, refresh: Bool = false) async {
     if refresh {
       currentPage = 0
       hasMorePages = true
@@ -239,7 +232,7 @@ class BookViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      updateState(ids: ids, moreAvailable: !page.last)
+      updateState(context: context, ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -250,11 +243,12 @@ class BookViewModel {
   }
 
   func loadBrowseBooks(
-    browseOpts: BookBrowseOptions, searchText: String = "", libraryIds: [String]? = nil,
+    context: ModelContext,
+    browseOpts: BookBrowseOptions,
+    searchText: String = "",
+    libraryIds: [String]? = nil,
     refresh: Bool = false
-  )
-    async
-  {
+  ) async {
     if refresh {
       currentPage = 0
       hasMorePages = true
@@ -264,17 +258,16 @@ class BookViewModel {
     isLoading = true
 
     if AppConfig.isOffline {
-      // Offline: query SwiftData directly
-      let ids = KomgaBookStore.shared.fetchBookIds(
+      let ids = KomgaBookStore.fetchBookIds(
+        context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
         offset: currentPage * pageSize,
         limit: pageSize
       )
-      updateState(ids: ids, moreAvailable: ids.count == pageSize)
+      updateState(context: context, ids: ids, moreAvailable: ids.count == pageSize)
     } else {
-      // Online: fetch from API and sync
       do {
         let filters = BookSearchFilters(
           libraryIds: libraryIds,
@@ -297,7 +290,7 @@ class BookViewModel {
         )
 
         let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last)
+        updateState(context: context, ids: ids, moreAvailable: !page.last)
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -309,6 +302,7 @@ class BookViewModel {
   }
 
   func loadReadListBooks(
+    context: ModelContext,
     readListId: String,
     browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil,
@@ -332,7 +326,7 @@ class BookViewModel {
       )
 
       let ids = page.content.map { $0.id }
-      updateState(ids: ids, moreAvailable: !page.last)
+      updateState(context: context, ids: ids, moreAvailable: !page.last)
     } catch {
       ErrorManager.shared.alert(error: error)
     }

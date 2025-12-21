@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct CollectionsBrowseView: View {
@@ -20,6 +21,7 @@ struct CollectionsBrowseView: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = CollectionViewModel()
+  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     VStack(spacing: 0) {
@@ -110,6 +112,7 @@ struct CollectionsBrowseView: View {
 
   private func loadCollections(refresh: Bool) async {
     await viewModel.loadCollections(
+      context: modelContext,
       libraryIds: dashboard.libraryIds,
       sort: sortOpts.sortString,
       searchText: searchText,

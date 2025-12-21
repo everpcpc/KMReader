@@ -8,44 +8,21 @@
 import Foundation
 import SwiftData
 
-@MainActor
-final class KomgaCollectionStore {
-  static let shared = KomgaCollectionStore()
+/// Provides read-only fetch operations for KomgaCollection data.
+/// All View-facing fetch methods require a ModelContext from the caller.
+enum KomgaCollectionStore {
 
-  private var container: ModelContainer?
-
-  private init() {}
-
-  func configure(with container: ModelContainer) {
-    self.container = container
-  }
-
-  private func makeContext() throws -> ModelContext {
-    guard let container else {
-      throw AppErrorType.storageNotConfigured(message: "ModelContainer is not configured")
-    }
-    return ModelContext(container)
-  }
-
-  func fetchCollections(
+  static func fetchCollections(
+    context: ModelContext,
     libraryIds: [String]?,
     page: Int,
     size: Int,
     sort: String?,
     search: String?
   ) -> [SeriesCollection] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
-    // Predicate: Instance ID
     var descriptor = FetchDescriptor<KomgaCollection>()
-
-    // NOTE: Collections are global to instance, but "LibraryIds" filter in API
-    // usually filters collections that contain series from those libraries.
-    // Locally, this is hard without complex joins.
-    // For now, if libraryIds are provided, we might ignore locally or try to filter?
-    // Let's assume global fetch for now or simple name search.
 
     if let search = search, !search.isEmpty {
       descriptor.predicate = #Predicate<KomgaCollection> { col in
@@ -57,8 +34,6 @@ final class KomgaCollectionStore {
       }
     }
 
-    // Sort
-    // Default name asc
     if let sort = sort {
       if sort.contains("name") {
         let isAsc = !sort.contains("desc")
@@ -88,15 +63,14 @@ final class KomgaCollectionStore {
     }
   }
 
-  func fetchCollectionIds(
+  static func fetchCollectionIds(
+    context: ModelContext,
     libraryIds: [String]?,
     searchText: String,
     sort: String?,
     offset: Int,
     limit: Int
   ) -> [String] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
     let instanceId = AppConfig.currentInstanceId
 
     var descriptor = FetchDescriptor<KomgaCollection>()
@@ -111,7 +85,6 @@ final class KomgaCollectionStore {
       }
     }
 
-    // Sort
     if let sort = sort {
       if sort.contains("name") {
         let isAsc = !sort.contains("desc")
@@ -141,9 +114,12 @@ final class KomgaCollectionStore {
     }
   }
 
-  func fetchCollectionsByIds(ids: [String], instanceId: String) -> [KomgaCollection] {
-    guard let container, !ids.isEmpty else { return [] }
-    let context = ModelContext(container)
+  static func fetchCollectionsByIds(
+    context: ModelContext,
+    ids: [String],
+    instanceId: String
+  ) -> [KomgaCollection] {
+    guard !ids.isEmpty else { return [] }
 
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate<KomgaCollection> { col in
@@ -163,9 +139,7 @@ final class KomgaCollectionStore {
     }
   }
 
-  func fetchCollection(id: String) -> SeriesCollection? {
-    guard let container else { return nil }
-    let context = ModelContext(container)
+  static func fetchCollection(context: ModelContext, id: String) -> SeriesCollection? {
     let compositeId = "\(AppConfig.currentInstanceId)_\(id)"
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == compositeId })

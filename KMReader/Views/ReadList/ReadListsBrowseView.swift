@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct ReadListsBrowseView: View {
@@ -18,6 +19,7 @@ struct ReadListsBrowseView: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = ReadListViewModel()
+  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     VStack(spacing: 0) {
@@ -108,6 +110,7 @@ struct ReadListsBrowseView: View {
 
   private func loadReadLists(refresh: Bool) async {
     await viewModel.loadReadLists(
+      context: modelContext,
       libraryIds: dashboard.libraryIds,
       sort: sortOpts.sortString,
       searchText: searchText,

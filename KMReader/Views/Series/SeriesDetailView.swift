@@ -466,7 +466,7 @@ extension SeriesDetailView {
   private func refreshAfterReading() {
     Task {
       await refreshSeriesData()
-      await bookViewModel.refreshCurrentBooks()
+      // Books list refreshes via SwiftData Query reactivity
     }
   }
 

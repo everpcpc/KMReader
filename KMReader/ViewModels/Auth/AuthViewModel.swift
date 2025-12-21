@@ -19,7 +19,6 @@ class AuthViewModel {
   var credentialsVersion = UUID()
 
   private let authService = AuthService.shared
-  private let instanceStore = KomgaInstanceStore.shared
   private let sseService = SSEService.shared
 
   init() {
@@ -206,7 +205,7 @@ class AuthViewModel {
 
     // Persist instance if this is a new login
     if shouldPersistInstance {
-      let instance = try instanceStore.upsertInstance(
+      let instance = try await DatabaseOperator.shared.upsertInstance(
         serverURL: serverURL,
         username: username,
         authToken: authToken,

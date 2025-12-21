@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct SeriesBrowseView: View {
@@ -20,6 +21,7 @@ struct SeriesBrowseView: View {
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   @State private var viewModel = SeriesViewModel()
+  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     VStack(spacing: 0) {
@@ -66,6 +68,7 @@ struct SeriesBrowseView: View {
     let effectiveBrowseOpts =
       (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
     await viewModel.loadSeries(
+      context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: dashboard.libraryIds,
