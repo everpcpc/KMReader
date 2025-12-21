@@ -202,7 +202,41 @@ final class KomgaSeriesStore {
     }
   }
 
-  func fetchRecentSeriesIds(
+  func fetchNewlyAddedSeriesIds(
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    guard let container else { return [] }
+    let context = ModelContext(container)
+    let instanceId = AppConfig.currentInstanceId
+
+    let ids = libraryIds
+    var descriptor = FetchDescriptor<KomgaSeries>()
+
+    if !ids.isEmpty {
+      descriptor.predicate = #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId && ids.contains(series.libraryId)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaSeries.created, order: .reverse)]
+    descriptor.fetchLimit = limit
+    descriptor.fetchOffset = offset
+
+    do {
+      let results = try context.fetch(descriptor)
+      return results.map { $0.seriesId }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchRecentlyUpdatedSeriesIds(
     libraryIds: [String],
     offset: Int,
     limit: Int

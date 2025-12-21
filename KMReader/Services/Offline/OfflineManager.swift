@@ -170,6 +170,9 @@ actor OfflineManager {
   }
 
   private func syncDownloadQueue(instanceId: String) async {
+    // Check if offline
+    guard !AppConfig.isOffline else { return }
+
     // Check if paused
     guard !AppConfig.offlinePaused else { return }
     guard !isProcessingQueue else { return }
