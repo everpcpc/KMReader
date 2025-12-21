@@ -23,9 +23,22 @@ struct SeriesDownloadActionsSection: View {
     komgaSeries.offlinePolicy
   }
 
+  private var policyLabel: Text {
+    Text("Offline Policy") + Text(" : ") + Text(policy.label)
+  }
+
   var body: some View {
     VStack(spacing: 12) {
       HStack(spacing: 12) {
+        InfoChip(
+          label: status.label,
+          systemImage: status.icon,
+          backgroundColor: status.color.opacity(0.2),
+          foregroundColor: status.color
+        )
+
+        Spacer()
+
         Menu {
           Picker(
             "",
@@ -42,30 +55,14 @@ struct SeriesDownloadActionsSection: View {
           .pickerStyle(.inline)
         } label: {
           Label {
-            HStack(spacing: 2) {
-              Text("Offline Policy")
-              Text(":")
-              Text(policy.label)
-            }
+            policyLabel.lineLimit(1)
           } icon: {
             Image(systemName: policy.icon)
               .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
           }
-          .fixedSize()
         }
         .font(.caption)
         .adaptiveButtonStyle(.bordered)
-
-        Spacer()
-
-        Label {
-          Text(status.label)
-        } icon: {
-          Image(systemName: status.icon)
-            .foregroundColor(status.color)
-        }
-        .font(.subheadline)
-        .foregroundColor(.secondary)
 
         Button {
           toggleSeriesDownload()

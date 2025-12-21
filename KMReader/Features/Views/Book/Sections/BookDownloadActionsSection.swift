@@ -20,15 +20,12 @@ struct BookDownloadActionsSection: View {
 
   var body: some View {
     HStack {
-      Label {
-        Text(status.displayLabel)
-      } icon: {
-        Image(systemName: status.displayIcon)
-          .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-          .foregroundColor(status.displayColor)
-      }
-      .font(.subheadline)
-      .foregroundColor(.secondary)
+      InfoChip(
+        label: status.displayLabel,
+        systemImage: status.displayIcon,
+        backgroundColor: status.displayColor.opacity(0.2),
+        foregroundColor: status.displayColor
+      )
 
       Spacer()
 
