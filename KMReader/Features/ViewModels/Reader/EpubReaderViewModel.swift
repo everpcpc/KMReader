@@ -316,13 +316,35 @@
       let activeBookId = bookId
       let logger = self.logger
 
+      // Encode progression on MainActor before passing to detached task
+      let progressionData: Data?
+      if AppConfig.isOffline {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        progressionData = try? encoder.encode(progression)
+      } else {
+        progressionData = nil
+      }
+
       // Update progression off the main actor to keep navigation responsive
       Task.detached(priority: .utility) {
         do {
-          try await BookService.shared.updateWebPubProgression(
-            bookId: activeBookId,
-            progression: progression
-          )
+          if AppConfig.isOffline {
+            // Queue for later sync
+            await DatabaseOperator.shared.queuePendingProgress(
+              instanceId: AppConfig.currentInstanceId,
+              bookId: activeBookId,
+              page: 0,  // EPUB doesn't use page numbers
+              completed: false,
+              progressionData: progressionData
+            )
+            try? await DatabaseOperator.shared.commit()
+          } else {
+            try await BookService.shared.updateWebPubProgression(
+              bookId: activeBookId,
+              progression: progression
+            )
+          }
         } catch {
           // Silently fail - progression update is not critical
           logger.error("Failed to update progression: \(error.localizedDescription)")

@@ -277,11 +277,21 @@ class ReaderViewModel {
     Task.detached(priority: .utility) {
       do {
         if AppConfig.isOffline {
-          await OfflineManager.shared.updateLocalProgress(
+          // Queue for later sync
+          await DatabaseOperator.shared.queuePendingProgress(
+            instanceId: AppConfig.currentInstanceId,
+            bookId: activeBookId,
+            page: currentPageNumber,
+            completed: completed,
+            progressionData: nil
+          )
+          // Also update local progress
+          await DatabaseOperator.shared.updateReadingProgress(
             bookId: activeBookId,
             page: currentPageNumber,
             completed: completed
           )
+          try? await DatabaseOperator.shared.commit()
         } else {
           try await BookService.shared.updatePageReadProgress(
             bookId: activeBookId,

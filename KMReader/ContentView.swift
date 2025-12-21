@@ -45,6 +45,16 @@ struct ContentView: View {
             SSEService.shared.connect()
           }
         }
+        .onChange(of: isOffline) { oldValue, newValue in
+          if oldValue && !newValue {
+            // Just came back online - sync pending progress
+            Task {
+              await ProgressSyncService.shared.syncPendingProgress(
+                instanceId: AppConfig.currentInstanceId
+              )
+            }
+          }
+        }
         .onChange(of: scenePhase) { _, phase in
           if phase == .active {
             Task {
