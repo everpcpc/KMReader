@@ -517,7 +517,9 @@ class APIClient {
     if isConnectivityIssue {
       logger.info("🔌 Network issue detected, automatically switching to offline mode")
       Task { @MainActor in
+        guard !AppConfig.isOffline else { return }
         AppConfig.isOffline = true
+        SSEService.shared.disconnect()
         ErrorManager.shared.notify(
           message: String(localized: "notification.automaticOfflineMode")
         )

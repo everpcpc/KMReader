@@ -186,6 +186,7 @@ import SwiftUI
       isCheckingConnection = false
 
       if serverReachable {
+        SSEService.shared.connect()
         ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
       }
     }
