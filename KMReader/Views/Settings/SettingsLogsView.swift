@@ -40,13 +40,16 @@ struct SettingsLogsView: View {
         } else {
           ForEach(logEntries) { entry in
             LogEntryRow(entry: entry)
-              .contextMenu {
-                Button {
-                  copyToClipboard(formatEntry(entry))
-                } label: {
-                  Label(String(localized: "Copy"), systemImage: "doc.on.doc")
+              .tvFocusableHighlight()
+              #if !os(tvOS)
+                .contextMenu {
+                  Button {
+                    copyToClipboard(formatEntry(entry))
+                  } label: {
+                    Label(String(localized: "Copy"), systemImage: "doc.on.doc")
+                  }
                 }
-              }
+              #endif
           }
         }
       } header: {
@@ -107,9 +110,7 @@ struct SettingsLogsView: View {
       Task { await loadLogs() }
     }
     .onChange(of: selectedTimeRange) {
-      Task {
-        await loadLogs()
-      }
+      Task { await loadLogs() }
     }
     .onChange(of: selectedLevel) {
       Task { await loadLogs() }
@@ -120,13 +121,15 @@ struct SettingsLogsView: View {
     .refreshable {
       await loadLogs()
     }
-    .toolbar {
-      ToolbarItem(placement: .primaryAction) {
-        ShareLink(item: exportLogs()) {
-          Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .primaryAction) {
+          ShareLink(item: exportLogs()) {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+          }
         }
       }
-    }
+    #endif
     .task {
       await loadLogs()
     }
