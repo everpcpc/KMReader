@@ -82,6 +82,7 @@ struct SeriesRowView: View {
       Image(systemName: "chevron.right")
         .foregroundColor(.secondary)
     }
+    .adaptiveButtonStyle(.plain)
     .contentShape(Rectangle())
     .contextMenu {
       SeriesContextMenu(

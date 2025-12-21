@@ -55,6 +55,7 @@ struct ReadListRowView: View {
       }
     }
     .adaptiveButtonStyle(.plain)
+    .contentShape(Rectangle())
     .contextMenu {
       ReadListContextMenu(
         readList: komgaReadList.toReadList(),

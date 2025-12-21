@@ -64,6 +64,7 @@ struct SeriesCardView: View {
       }
       .frame(width: cardWidth, alignment: .leading)
     }
+    .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())
     .contextMenu {

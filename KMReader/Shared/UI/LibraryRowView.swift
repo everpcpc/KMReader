@@ -7,6 +7,7 @@ import SwiftData
 import SwiftUI
 
 struct LibraryRowView: View {
+  @AppStorage("isOffline") private var isOffline: Bool = false
   @Environment(KomgaLibrary.self) private var library
   let isPerforming: Bool
   let isSelected: Bool

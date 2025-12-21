@@ -42,11 +42,12 @@ struct ReadListCardView: View {
               .lineLimit(2)
           }
         }
-        .frame(width: width, alignment: .leading)
       }
-      .frame(maxHeight: .infinity, alignment: .top)
+      .frame(width: width, alignment: .leading)
     }
     .adaptiveButtonStyle(.plain)
+    .frame(maxHeight: .infinity, alignment: .top)
+    .contentShape(Rectangle())
     .contextMenu {
       ReadListContextMenu(
         readList: komgaReadList.toReadList(),

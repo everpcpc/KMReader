@@ -31,6 +31,7 @@ struct SettingsServersView: View {
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   @State private var instancePendingDeletion: KomgaInstance?
   @State private var editingInstance: KomgaInstance?
@@ -79,15 +80,21 @@ struct SettingsServersView: View {
               isSwitching: isSwitching(instance),
               isActive: isActive(instance),
               onSelect: {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
-                  switchTo(instance)
+                if !isOffline {
+                  withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                    switchTo(instance)
+                  }
                 }
               },
               onEdit: {
-                editingInstance = instance
+                if !isOffline {
+                  editingInstance = instance
+                }
               },
               onDelete: {
-                instancePendingDeletion = instance
+                if !isOffline {
+                  instancePendingDeletion = instance
+                }
               }
             )
             .environment(instance)
@@ -106,6 +113,7 @@ struct SettingsServersView: View {
             Spacer()
           }
         }
+        .disabled(isOffline)
       }
 
       if mode == .management, isLoggedIn {
