@@ -798,6 +798,7 @@ actor DatabaseOperator {
     )
     let books = (try? modelContext.fetch(descriptor)) ?? []
 
+
     let unreadCount = books.filter { book in
       if book.progressCompleted == true { return false }
       if (book.progressPage ?? 0) > 0 { return false }
@@ -815,5 +816,71 @@ actor DatabaseOperator {
     series.booksUnreadCount = unreadCount
     series.booksInProgressCount = inProgressCount
     series.booksReadCount = readCount
+  }
+
+  // MARK: - Pending Progress Operations
+
+  func queuePendingProgress(
+    instanceId: String,
+    bookId: String,
+    page: Int,
+    completed: Bool,
+    progressionData: Data? = nil
+  ) {
+    let compositeId = "\(instanceId)_\(bookId)"
+    let descriptor = FetchDescriptor<PendingProgress>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+
+    if let existing = try? modelContext.fetch(descriptor).first {
+      existing.page = page
+      existing.completed = completed
+      existing.createdAt = Date()
+      existing.progressionData = progressionData
+    } else {
+      let pending = PendingProgress(
+        instanceId: instanceId,
+        bookId: bookId,
+        page: page,
+        completed: completed,
+        progressionData: progressionData
+      )
+      modelContext.insert(pending)
+    }
+  }
+
+  func fetchPendingProgress(instanceId: String, limit: Int? = nil) -> [PendingProgress] {
+    var descriptor = FetchDescriptor<PendingProgress>(
+      predicate: #Predicate { $0.instanceId == instanceId },
+      sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+    )
+
+    if let limit = limit {
+      descriptor.fetchLimit = limit
+    }
+
+    return (try? modelContext.fetch(descriptor)) ?? []
+  }
+
+  func deletePendingProgress(id: String) {
+    let descriptor = FetchDescriptor<PendingProgress>(
+      predicate: #Predicate { $0.id == id }
+    )
+
+    if let pending = try? modelContext.fetch(descriptor).first {
+      modelContext.delete(pending)
+    }
+  }
+
+  func clearPendingProgress(instanceId: String) {
+    do {
+      try modelContext.delete(
+        model: PendingProgress.self,
+        where: #Predicate { $0.instanceId == instanceId }
+      )
+      logger.info("🗑️ Cleared all pending progress for instance: \(instanceId)")
+    } catch {
+      logger.error("❌ Failed to clear pending progress: \(error)")
+    }
   }
 }

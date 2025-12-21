@@ -31,6 +31,7 @@ struct MainApp: App {
         KomgaCollection.self,
         KomgaReadList.self,
         CustomFont.self,
+        PendingProgress.self,
       ])
 
       let configuration = ModelConfiguration(schema: schema)
