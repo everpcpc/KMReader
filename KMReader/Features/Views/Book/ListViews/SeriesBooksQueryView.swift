@@ -28,57 +28,48 @@ struct SeriesBooksQueryView: View {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
             ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
-              bookItem(b)
-                .onAppear {
-                  if index >= bookViewModel.browseBooks.count - 3 {
-                    Task { await loadMore(false) }
-                  }
+              BookCardView(
+                viewModel: bookViewModel,
+                cardWidth: layoutHelper.cardWidth,
+                onReadBook: { incognito in
+                  onReadBook(b.toBook(), incognito)
+                },
+                onBookUpdated: refreshBooks,
+                showSeriesTitle: false,
+                showSeriesNavigation: false
+              )
+              .environment(b)
+              .focusPadding()
+              .onAppear {
+                if index >= bookViewModel.browseBooks.count - 3 {
+                  Task { await loadMore(false) }
                 }
+              }
             }
           }
           .padding(layoutHelper.spacing)
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
             ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
-              bookItem(b)
-                .onAppear {
-                  if index >= bookViewModel.browseBooks.count - 3 {
-                    Task { await loadMore(false) }
-                  }
+              BookRowView(
+                viewModel: bookViewModel,
+                onReadBook: { incognito in
+                  onReadBook(b.toBook(), incognito)
+                },
+                onBookUpdated: refreshBooks,
+                showSeriesTitle: false,
+                showSeriesNavigation: false
+              )
+              .environment(b)
+              .onAppear {
+                if index >= bookViewModel.browseBooks.count - 3 {
+                  Task { await loadMore(false) }
                 }
+              }
             }
           }
         }
       }
-    }
-  }
-
-  @ViewBuilder
-  private func bookItem(_ b: KomgaBook) -> some View {
-    if browseLayout == .grid {
-      BookCardView(
-        viewModel: bookViewModel,
-        cardWidth: layoutHelper.cardWidth,
-        onReadBook: { incognito in
-          onReadBook(b.toBook(), incognito)
-        },
-        onBookUpdated: refreshBooks,
-        showSeriesTitle: false,
-        showSeriesNavigation: false
-      )
-      .environment(b)
-      .focusPadding()
-    } else {
-      BookRowView(
-        viewModel: bookViewModel,
-        onReadBook: { incognito in
-          onReadBook(b.toBook(), incognito)
-        },
-        onBookUpdated: refreshBooks,
-        showSeriesTitle: false,
-        showSeriesNavigation: false
-      )
-      .environment(b)
     }
   }
 }

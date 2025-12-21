@@ -111,13 +111,43 @@ struct SettingsOfflineBooksView: View {
                   }
                 ) {
                   ForEach(sGroup.books) { book in
-                    bookRow(book)
+                    HStack {
+                      Text("#\(book.metaNumber) - \(book.metaTitle)")
+                      Spacer()
+                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                    #if !os(tvOS)
+                      .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                          deleteBook(book)
+                        } label: {
+                          Label(String(localized: "Delete"), systemImage: "trash")
+                        }
+                      }
+                    #endif
                   }
                 }
               #else
                 DisclosureGroup {
                   ForEach(sGroup.books) { book in
-                    bookRow(book)
+                    HStack {
+                      Text("#\(book.metaNumber) - \(book.metaTitle)")
+                      Spacer()
+                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                    #if !os(tvOS)
+                      .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                          deleteBook(book)
+                        } label: {
+                          Label(String(localized: "Delete"), systemImage: "trash")
+                        }
+                      }
+                    #endif
                   }
                 } label: {
                   HStack {
@@ -150,13 +180,43 @@ struct SettingsOfflineBooksView: View {
                   }
                 ) {
                   ForEach(lGroup.oneshotBooks) { book in
-                    bookRow(book)
+                    HStack {
+                      Text("#\(book.metaNumber) - \(book.metaTitle)")
+                      Spacer()
+                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                    #if !os(tvOS)
+                      .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                          deleteBook(book)
+                        } label: {
+                          Label(String(localized: "Delete"), systemImage: "trash")
+                        }
+                      }
+                    #endif
                   }
                 }
               #else
                 DisclosureGroup {
                   ForEach(lGroup.oneshotBooks) { book in
-                    bookRow(book)
+                    HStack {
+                      Text("#\(book.metaNumber) - \(book.metaTitle)")
+                      Spacer()
+                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                    #if !os(tvOS)
+                      .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                          deleteBook(book)
+                        } label: {
+                          Label(String(localized: "Delete"), systemImage: "trash")
+                        }
+                      }
+                    #endif
                   }
                 } label: {
                   HStack {
@@ -181,26 +241,6 @@ struct SettingsOfflineBooksView: View {
       }
     }
     .inlineNavigationBarTitle(String(localized: "settings.offline_books.title"))
-  }
-
-  @ViewBuilder
-  private func bookRow(_ book: KomgaBook) -> some View {
-    HStack {
-      Text("#\(book.metadata.number) - \(book.metadata.title)")
-      Spacer()
-      Text(formatter.string(fromByteCount: book.downloadedSize))
-        .font(.caption)
-        .foregroundColor(.secondary)
-    }
-    #if !os(tvOS)
-      .swipeActions(edge: .trailing) {
-        Button(role: .destructive) {
-          deleteBook(book)
-        } label: {
-          Label(String(localized: "Delete"), systemImage: "trash")
-        }
-      }
-    #endif
   }
 
   private func seriesSize(for books: [KomgaBook]) -> Int64 {

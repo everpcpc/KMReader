@@ -32,86 +32,114 @@ struct ReadListBooksQueryView: View {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
             ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
-              bookItem(b)
-                .onAppear {
-                  if index >= bookViewModel.browseBooks.count - 3 {
-                    Task { await loadMore(false) }
+              Group {
+                if isSelectionMode && isAdmin {
+                  BookCardView(
+                    viewModel: bookViewModel,
+                    cardWidth: layoutHelper.cardWidth,
+                    onReadBook: { _ in },
+                    onBookUpdated: refreshBooks,
+                    showSeriesTitle: true
+                  )
+                  .environment(b)
+                  .focusPadding()
+                  .allowsHitTesting(false)
+                  .overlay(alignment: .topTrailing) {
+                    Image(
+                      systemName: selectedBookIds.contains(b.bookId) ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundColor(selectedBookIds.contains(b.bookId) ? .accentColor : .secondary)
+                    .font(.title3)
+                    .padding(8)
+                    .background(Circle().fill(.ultraThinMaterial))
                   }
+                  .contentShape(Rectangle())
+                  .highPriorityGesture(
+                    TapGesture().onEnded {
+                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if selectedBookIds.contains(b.bookId) {
+                          selectedBookIds.remove(b.bookId)
+                        } else {
+                          selectedBookIds.insert(b.bookId)
+                        }
+                      }
+                    }
+                  )
+                } else {
+                  BookCardView(
+                    viewModel: bookViewModel,
+                    cardWidth: layoutHelper.cardWidth,
+                    onReadBook: { incognito in
+                      onReadBook(b.toBook(), incognito)
+                    },
+                    onBookUpdated: refreshBooks,
+                    showSeriesTitle: true
+                  )
+                  .environment(b)
+                  .focusPadding()
                 }
+              }
+              .onAppear {
+                if index >= bookViewModel.browseBooks.count - 3 {
+                  Task { await loadMore(false) }
+                }
+              }
             }
           }
           .padding(layoutHelper.spacing)
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
             ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
-              bookItem(b)
-                .onAppear {
-                  if index >= bookViewModel.browseBooks.count - 3 {
-                    Task { await loadMore(false) }
+              Group {
+                if isSelectionMode && isAdmin {
+                  BookRowView(
+                    viewModel: bookViewModel,
+                    onReadBook: { _ in },
+                    onBookUpdated: refreshBooks,
+                    showSeriesTitle: true
+                  )
+                  .environment(b)
+                  .allowsHitTesting(false)
+                  .overlay(alignment: .trailing) {
+                    Image(
+                      systemName: selectedBookIds.contains(b.bookId) ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundColor(selectedBookIds.contains(b.bookId) ? .accentColor : .secondary)
+                    .font(.title3)
+                    .padding(.trailing, 16)
                   }
+                  .contentShape(Rectangle())
+                  .highPriorityGesture(
+                    TapGesture().onEnded {
+                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if selectedBookIds.contains(b.bookId) {
+                          selectedBookIds.remove(b.bookId)
+                        } else {
+                          selectedBookIds.insert(b.bookId)
+                        }
+                      }
+                    }
+                  )
+                } else {
+                  BookRowView(
+                    viewModel: bookViewModel,
+                    onReadBook: { incognito in
+                      onReadBook(b.toBook(), incognito)
+                    },
+                    onBookUpdated: refreshBooks,
+                    showSeriesTitle: true
+                  )
+                  .environment(b)
                 }
+              }
+              .onAppear {
+                if index >= bookViewModel.browseBooks.count - 3 {
+                  Task { await loadMore(false) }
+                }
+              }
             }
           }
         }
-      }
-    }
-  }
-
-  @ViewBuilder
-  private func bookItem(_ b: KomgaBook) -> some View {
-    if isSelectionMode && isAdmin {
-      BookCardView(
-        viewModel: bookViewModel,
-        cardWidth: layoutHelper.cardWidth,
-        onReadBook: { _ in },
-        onBookUpdated: refreshBooks,
-        showSeriesTitle: true
-      )
-      .environment(b)
-      .focusPadding()
-      .allowsHitTesting(false)
-      .overlay(alignment: .topTrailing) {
-        Image(systemName: selectedBookIds.contains(b.bookId) ? "checkmark.circle.fill" : "circle")
-          .foregroundColor(selectedBookIds.contains(b.bookId) ? .accentColor : .secondary)
-          .font(.title3)
-          .padding(8)
-          .background(Circle().fill(.ultraThinMaterial))
-      }
-      .contentShape(Rectangle())
-      .highPriorityGesture(
-        TapGesture().onEnded {
-          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            if selectedBookIds.contains(b.bookId) {
-              selectedBookIds.remove(b.bookId)
-            } else {
-              selectedBookIds.insert(b.bookId)
-            }
-          }
-        }
-      )
-    } else {
-      if browseLayout == .grid {
-        BookCardView(
-          viewModel: bookViewModel,
-          cardWidth: layoutHelper.cardWidth,
-          onReadBook: { incognito in
-            onReadBook(b.toBook(), incognito)
-          },
-          onBookUpdated: refreshBooks,
-          showSeriesTitle: true
-        )
-        .environment(b)
-        .focusPadding()
-      } else {
-        BookRowView(
-          viewModel: bookViewModel,
-          onReadBook: { incognito in
-            onReadBook(b.toBook(), incognito)
-          },
-          onBookUpdated: refreshBooks,
-          showSeriesTitle: true
-        )
-        .environment(b)
       }
     }
   }

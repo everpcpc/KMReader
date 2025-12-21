@@ -66,79 +66,105 @@ struct CollectionSeriesQueryView: View {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
             ForEach(series) { s in
-              seriesItem(s)
-                .onAppear {
-                  if s.id == series.last?.id {
-                    Task { await loadMore(false) }
+              Group {
+                if isSelectionMode && isAdmin {
+                  SeriesCardView(
+                    cardWidth: layoutHelper.cardWidth,
+                    onActionCompleted: onActionCompleted
+                  )
+                  .environment(s)
+                  .focusPadding()
+                  .allowsHitTesting(false)
+                  .overlay(alignment: .topTrailing) {
+                    Image(
+                      systemName: selectedSeriesIds.contains(s.seriesId) ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundColor(selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary)
+                    .font(.title3)
+                    .padding(8)
+                    .background(Circle().fill(.ultraThinMaterial))
                   }
+                  .contentShape(Rectangle())
+                  .highPriorityGesture(
+                    TapGesture().onEnded {
+                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if selectedSeriesIds.contains(s.seriesId) {
+                          selectedSeriesIds.remove(s.seriesId)
+                        } else {
+                          selectedSeriesIds.insert(s.seriesId)
+                        }
+                      }
+                    }
+                  )
+                } else {
+                  NavigationLink(value: NavDestination.seriesDetail(seriesId: s.seriesId)) {
+                    SeriesCardView(
+                      cardWidth: layoutHelper.cardWidth,
+                      onActionCompleted: onActionCompleted
+                    )
+                    .environment(s)
+                  }
+                  .focusPadding()
+                  .adaptiveButtonStyle(.plain)
                 }
+              }
+              .onAppear {
+                if s.id == series.last?.id {
+                  Task { await loadMore(false) }
+                }
+              }
             }
           }
           .padding(layoutHelper.spacing)
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
             ForEach(series) { s in
-              seriesItem(s)
-                .onAppear {
-                  if s.id == series.last?.id {
-                    Task { await loadMore(false) }
+              Group {
+                if isSelectionMode && isAdmin {
+                  SeriesRowView(
+                    onActionCompleted: onActionCompleted
+                  )
+                  .environment(s)
+                  .allowsHitTesting(false)
+                  .overlay(alignment: .trailing) {
+                    Image(
+                      systemName: selectedSeriesIds.contains(s.seriesId) ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundColor(selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary)
+                    .font(.title3)
+                    .padding(.trailing, 16)
                   }
+                  .contentShape(Rectangle())
+                  .highPriorityGesture(
+                    TapGesture().onEnded {
+                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        if selectedSeriesIds.contains(s.seriesId) {
+                          selectedSeriesIds.remove(s.seriesId)
+                        } else {
+                          selectedSeriesIds.insert(s.seriesId)
+                        }
+                      }
+                    }
+                  )
+                } else {
+                  NavigationLink(value: NavDestination.seriesDetail(seriesId: s.seriesId)) {
+                    SeriesRowView(
+                      onActionCompleted: onActionCompleted
+                    )
+                    .environment(s)
+                  }
+                  .adaptiveButtonStyle(.plain)
                 }
+              }
+              .onAppear {
+                if s.id == series.last?.id {
+                  Task { await loadMore(false) }
+                }
+              }
             }
           }
         }
       }
-    }
-  }
-
-  @ViewBuilder
-  private func seriesItem(_ s: KomgaSeries) -> some View {
-    if isSelectionMode && isAdmin {
-      SeriesCardView(
-        cardWidth: layoutHelper.cardWidth,
-        onActionCompleted: onActionCompleted
-      )
-      .environment(s)
-      .focusPadding()
-      .allowsHitTesting(false)
-      .overlay(alignment: .topTrailing) {
-        Image(
-          systemName: selectedSeriesIds.contains(s.seriesId) ? "checkmark.circle.fill" : "circle"
-        )
-        .foregroundColor(selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary)
-        .font(.title3)
-        .padding(8)
-        .background(Circle().fill(.ultraThinMaterial))
-      }
-      .contentShape(Rectangle())
-      .highPriorityGesture(
-        TapGesture().onEnded {
-          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            if selectedSeriesIds.contains(s.seriesId) {
-              selectedSeriesIds.remove(s.seriesId)
-            } else {
-              selectedSeriesIds.insert(s.seriesId)
-            }
-          }
-        }
-      )
-    } else {
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: s.seriesId)) {
-        if browseLayout == .grid {
-          SeriesCardView(
-            cardWidth: layoutHelper.cardWidth,
-            onActionCompleted: onActionCompleted
-          )
-          .environment(s)
-        } else {
-          SeriesRowView(
-            onActionCompleted: onActionCompleted
-          )
-          .environment(s)
-        }
-      }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
     }
   }
 }

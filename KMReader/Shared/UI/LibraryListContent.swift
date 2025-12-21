@@ -117,7 +117,41 @@ struct LibraryListContent: View {
         Section {
           allLibrariesRowView()
           ForEach(libraries, id: \.libraryId) { library in
-            libraryRowView(library)
+            LibraryRowView(
+              isPerforming: performingLibraryIds.contains(library.libraryId),
+              isSelected: selectedLibraryIds.contains(library.libraryId),
+              isAdmin: isAdmin,
+              showDeleteAction: showDeleteAction,
+              onSelect: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                  var currentIds = selectedLibraryIds
+                  let isSelected = currentIds.contains(library.libraryId)
+                  if isSelected {
+                    currentIds.removeAll { $0 == library.libraryId }
+                  } else {
+                    if !currentIds.contains(library.libraryId) {
+                      currentIds.append(library.libraryId)
+                    }
+                  }
+                  var seen = Set<String>()
+                  selectedLibraryIds = currentIds.filter { seen.insert($0).inserted }
+                  onLibrarySelected?(isSelected ? nil : library.libraryId)
+                }
+              },
+              onAction: { action in
+                switch action {
+                case .scan: scanLibrary(library)
+                case .scanDeep: scanLibraryDeep(library)
+                case .analyze: analyzeLibrary(library)
+                case .refreshMetadata: refreshMetadata(library)
+                case .emptyTrash: emptyTrash(library)
+                }
+              },
+              onDelete: {
+                onDeleteLibrary?(library)
+              }
+            )
+            .environment(library)
           }
         }
         .listRowBackground(Color.clear)
@@ -278,92 +312,6 @@ struct LibraryListContent: View {
   }
 
   @ViewBuilder
-  private func libraryRowView(_ library: KomgaLibrary) -> some View {
-    let isPerforming = performingLibraryIds.contains(library.libraryId)
-    let isSelected = selectedLibraryIds.contains(library.libraryId)
-
-    Button {
-      withAnimation(.easeInOut(duration: 0.2)) {
-        var currentIds = selectedLibraryIds
-        if isSelected {
-          currentIds.removeAll { $0 == library.libraryId }
-        } else {
-          if !currentIds.contains(library.libraryId) {
-            currentIds.append(library.libraryId)
-          }
-        }
-        var seen = Set<String>()
-        selectedLibraryIds = currentIds.filter { seen.insert($0).inserted }
-        onLibrarySelected?(isSelected ? nil : library.libraryId)
-      }
-    } label: {
-      librarySummary(library, isPerforming: isPerforming, isSelected: isSelected)
-        .contentShape(Rectangle())
-    }
-    .adaptiveButtonStyle(.plain)
-    #if os(iOS) || os(macOS)
-      .listRowSeparator(.hidden)
-    #endif
-    .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
-    .contextMenu {
-      libraryContextMenu(library, isPerforming: isPerforming)
-    }
-  }
-
-  @ViewBuilder
-  private func librarySummary(_ library: KomgaLibrary, isPerforming: Bool, isSelected: Bool)
-    -> some View
-  {
-    let metricsText = metricsView(for: library)
-    let fileSizeText = library.fileSize.map { formatFileSize($0) } ?? ""
-
-    HStack(spacing: 8) {
-      VStack(alignment: .leading, spacing: 2) {
-        HStack(spacing: 6) {
-          Text(library.name)
-            .font(.headline)
-          if !fileSizeText.isEmpty {
-            Text(fileSizeText)
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-        if let metricsText {
-          metricsText
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-      }
-
-      Spacer()
-
-      if isPerforming {
-        ProgressView()
-          .progressViewStyle(.circular)
-      } else if isSelected {
-        Image(systemName: "checkmark.circle.fill")
-          .font(.title3)
-          .foregroundColor(.accentColor)
-          .transition(.scale.combined(with: .opacity))
-      }
-    }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 14)
-    .background(
-      RoundedRectangle(cornerRadius: 12)
-        .fill(isSelected ? Color.accentColor.opacity(0.08) : Color.secondary.opacity(0.06))
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 12)
-        .strokeBorder(
-          isSelected ? Color.accentColor.opacity(0.3) : Color.clear,
-          lineWidth: 1.5
-        )
-    )
-    .animation(.easeInOut(duration: 0.2), value: isSelected)
-  }
-
-  @ViewBuilder
   private func allLibrariesContextMenu() -> some View {
     Button {
       performGlobalAction {
@@ -396,96 +344,11 @@ struct LibraryListContent: View {
     .disabled(isPerformingGlobalAction)
   }
 
-  @ViewBuilder
-  private func libraryContextMenu(_ library: KomgaLibrary, isPerforming: Bool) -> some View {
-    if isAdmin {
-      Button {
-        scanLibrary(library)
-      } label: {
-        Label(String(localized: "Scan Library Files"), systemImage: "arrow.clockwise")
-      }
-      .disabled(isPerforming)
-
-      Button {
-        scanLibraryDeep(library)
-      } label: {
-        Label(
-          String(localized: "Scan Library Files (Deep)"),
-          systemImage: "arrow.triangle.2.circlepath"
-        )
-      }
-      .disabled(isPerforming)
-
-      Button {
-        analyzeLibrary(library)
-      } label: {
-        Label(String(localized: "Analyze"), systemImage: "waveform.path.ecg")
-      }
-      .disabled(isPerforming)
-
-      Button {
-        refreshMetadata(library)
-      } label: {
-        Label(String(localized: "Refresh Metadata"), systemImage: "arrow.triangle.branch")
-      }
-      .disabled(isPerforming)
-
-      Button {
-        emptyTrash(library)
-      } label: {
-        Label(String(localized: "Empty Trash"), systemImage: "trash.slash")
-      }
-      .disabled(isPerforming)
-
-      if showDeleteAction {
-        Divider()
-
-        Button(role: .destructive) {
-          onDeleteLibrary?(library)
-        } label: {
-          Label(String(localized: "Delete Library"), systemImage: "trash")
-        }
-        .disabled(isPerforming)
-      }
-    }
-  }
-
   // MARK: - Helper Functions
 
   private func hasMetrics(_ library: KomgaLibrary) -> Bool {
     library.seriesCount != nil || library.booksCount != nil || library.fileSize != nil
       || library.sidecarsCount != nil
-  }
-
-  private func metricsView(for library: KomgaLibrary) -> Text? {
-    var parts: [Text] = []
-
-    if let seriesCount = library.seriesCount {
-      parts.append(
-        formatMetricCount(
-          key: "library.list.metrics.series",
-          defaultValue: "%@ series",
-          value: seriesCount
-        ))
-    }
-    if let booksCount = library.booksCount {
-      parts.append(
-        formatMetricCount(
-          key: "library.list.metrics.books",
-          defaultValue: "%@ books",
-          value: booksCount
-        ))
-    }
-    if let sidecarsCount = library.sidecarsCount {
-      parts.append(
-        formatMetricCount(
-          key: "library.list.metrics.sidecars",
-          defaultValue: "%@ sidecars",
-          value: sidecarsCount
-        ))
-    }
-
-    return joinText(parts, separator: " · ")
   }
 
   private func formatNumber(_ value: Double) -> String {
