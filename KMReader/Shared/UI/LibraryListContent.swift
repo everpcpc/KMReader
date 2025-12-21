@@ -12,6 +12,7 @@ struct LibraryListContent: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("isOffline") private var isOffline: Bool = false
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
     [KomgaLibrary]
   @State private var performingLibraryIds: Set<String> = []
@@ -253,7 +254,7 @@ struct LibraryListContent: View {
     #endif
     .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
     .contextMenu {
-      if isAdmin {
+      if isAdmin && !isOffline {
         allLibrariesContextMenu()
       }
     }

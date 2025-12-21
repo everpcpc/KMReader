@@ -21,6 +21,7 @@ struct BookContextMenu: View {
 
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   private var book: Book {
     komgaBook.toBook()
@@ -57,25 +58,13 @@ struct BookContextMenu: View {
 
       Divider()
 
-      Button {
-        Task {
-          await OfflineManager.shared.toggleDownload(
-            instanceId: currentInstanceId, info: book.downloadInfo)
-        }
-      } label: {
-        Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
-      }
-      .tint(downloadStatus.menuColor)
-
-      Divider()
-
       Menu {
         Button {
           onEditRequested?()
         } label: {
           Label("Edit", systemImage: "pencil")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
 
         Divider()
 
@@ -84,14 +73,14 @@ struct BookContextMenu: View {
         } label: {
           Label("Analyze", systemImage: "waveform.path.ecg")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
 
         Button {
           refreshMetadata(bookId: book.id)
         } label: {
           Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
 
         Divider()
 
@@ -100,6 +89,7 @@ struct BookContextMenu: View {
         } label: {
           Label("Add to Read List", systemImage: "list.bullet")
         }
+        .disabled(isOffline)
 
         Divider()
 
@@ -108,11 +98,11 @@ struct BookContextMenu: View {
         } label: {
           Label("Delete", systemImage: "trash")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
       } label: {
         Label("Manage", systemImage: "gearshape")
       }
-      .disabled(!isAdmin)
+      .disabled(!isAdmin || isOffline)
 
       Divider()
 
@@ -127,6 +117,7 @@ struct BookContextMenu: View {
         } label: {
           Label("Mark as Read", systemImage: "checkmark.circle")
         }
+        .disabled(isOffline)
       }
       if book.readProgress != nil {
         Button {
@@ -139,6 +130,18 @@ struct BookContextMenu: View {
         } label: {
           Label("Mark as Unread", systemImage: "circle")
         }
+        .disabled(isOffline)
+      }
+
+      Divider()
+
+      Button {
+        Task {
+          await OfflineManager.shared.toggleDownload(
+            instanceId: currentInstanceId, info: book.downloadInfo)
+        }
+      } label: {
+        Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
       }
 
       Divider()

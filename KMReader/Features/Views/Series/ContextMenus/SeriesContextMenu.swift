@@ -19,6 +19,7 @@ struct SeriesContextMenu: View {
 
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   private var series: Series {
     komgaSeries.toSeries()
@@ -40,7 +41,7 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Edit", systemImage: "pencil")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
 
         Divider()
 
@@ -49,14 +50,14 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Analyze", systemImage: "waveform.path.ecg")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
 
         Button {
           refreshMetadata()
         } label: {
           Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
 
         Divider()
 
@@ -65,6 +66,7 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Add to Collection", systemImage: "square.grid.2x2")
         }
+        .disabled(isOffline)
 
         Divider()
 
@@ -73,42 +75,11 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Delete", systemImage: "trash")
         }
-        .disabled(!isAdmin)
+        .disabled(!isAdmin || isOffline)
       } label: {
         Label("Manage", systemImage: "gearshape")
       }
-      .disabled(!isAdmin)
-
-      Divider()
-
-      Menu {
-        Picker(
-          selection: Binding(
-            get: { komgaSeries.offlinePolicy },
-            set: { updatePolicy($0) }
-          )
-        ) {
-          ForEach(SeriesOfflinePolicy.allCases, id: \.self) { policy in
-            Label(policy.label, systemImage: policy.icon)
-              .tag(policy)
-          }
-        } label: {
-          Text("Offline Policy")
-        }
-        .pickerStyle(.inline)
-
-        Divider()
-
-        Button(role: .destructive) {
-          updatePolicy(.manual)
-        } label: {
-          Label(
-            komgaSeries.downloadStatus.toggleLabel,
-            systemImage: komgaSeries.downloadStatus.toggleIcon)
-        }
-      } label: {
-        Label(komgaSeries.offlinePolicy.label, systemImage: komgaSeries.offlinePolicy.icon)
-      }
+      .disabled(!isAdmin || isOffline)
 
       Divider()
 
@@ -118,6 +89,7 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Mark as Read", systemImage: "checkmark.circle")
         }
+        .disabled(isOffline)
       }
 
       if canMarkAsUnread {
@@ -126,6 +98,7 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Mark as Unread", systemImage: "circle")
         }
+        .disabled(isOffline)
       }
     }
   }
