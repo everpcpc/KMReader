@@ -34,7 +34,7 @@ struct BookCardView: View {
   }
 
   var shouldShowSeriesTitle: Bool {
-    showSeriesTitle && showBookCardSeriesTitle && komgaBook.series != nil
+    showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
   }
 
   var bookTitleLineLimit: Int {
@@ -62,8 +62,8 @@ struct BookCardView: View {
         }
 
         VStack(alignment: .leading, spacing: 2) {
-          if shouldShowSeriesTitle, let seriesName = komgaBook.series?.name {
-            Text(seriesName)
+          if shouldShowSeriesTitle {
+            Text(komgaBook.seriesTitle)
               .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(1)
@@ -86,6 +86,12 @@ struct BookCardView: View {
                   Text("•")
                   Text("Oneshot")
                     .foregroundColor(.blue)
+                }
+                if komgaBook.downloadStatus != .notDownloaded {
+                  Text("•")
+                  Image(systemName: komgaBook.downloadStatus.displayIcon)
+                    .foregroundColor(komgaBook.downloadStatus.displayColor)
+                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
                 }
               }
               .foregroundColor(.secondary)

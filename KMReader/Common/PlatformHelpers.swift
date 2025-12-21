@@ -110,6 +110,16 @@ struct PlatformHelper {
     #endif
   }
 
+  static var iconSize: CGFloat {
+    #if os(tvOS)
+      return 24
+    #elseif os(macOS)
+      return 14
+    #else
+      return 12
+    #endif
+  }
+
   static var detailThumbnailWidth: CGFloat {
     #if os(tvOS)
       return 240

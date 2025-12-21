@@ -222,6 +222,11 @@ struct BookDetailView: View {
             )
           }
 
+          if let komgaBook = komgaBook {
+          Divider()
+            BookDownloadActionsSection()
+              .environment(komgaBook)
+          }
           Divider()
           BookActionsSection(
             book: book,
@@ -591,20 +596,6 @@ struct BookDetailView: View {
   @ViewBuilder
   private var bookToolbarContent: some View {
     HStack(spacing: PlatformHelper.buttonSpacing) {
-      // Download Button
-      Button {
-        if let book = book {
-          Task {
-            await OfflineManager.shared.toggleDownload(
-              instanceId: currentInstanceId, info: book.downloadInfo)
-          }
-        }
-      } label: {
-        Image(systemName: downloadStatus.menuIcon)
-          .foregroundStyle(downloadStatus.menuColor)
-      }
-      .disabled(book == nil)
-      .toolbarButtonStyle()
 
       Menu {
         Button {

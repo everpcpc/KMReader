@@ -54,12 +54,16 @@ struct SettingsOfflineBooksView: View {
       var sGroups: [SeriesGroup] = []
 
       for (seriesId, sBooks) in seriesGroupsMap {
-        let series = sBooks.first?.series
+        let instanceId = AppConfig.currentInstanceId
+        let compositeId = "\(instanceId)_\(seriesId)"
+        let seriesDescriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
+        let series = try? modelContext.fetch(seriesDescriptor).first
+        
         sGroups.append(
           SeriesGroup(id: seriesId, series: series, books: sBooks.sorted { $0.number < $1.number }))
       }
 
-      sGroups.sort { ($0.series?.name ?? "") < ($1.series?.name ?? "") }
+      sGroups.sort { ($0.series?.name ?? $0.books.first?.seriesTitle ?? "") < ($1.series?.name ?? $1.books.first?.seriesTitle ?? "") }
       result.append(
         LibraryGroup(
           id: libraryId,
@@ -184,11 +188,9 @@ struct SettingsOfflineBooksView: View {
     HStack {
       Text("#\(book.metadata.number) - \(book.metadata.title)")
       Spacer()
-      if let size = book.downloadedSize {
-        Text(formatter.string(fromByteCount: size))
-          .font(.caption)
-          .foregroundColor(.secondary)
-      }
+      Text(formatter.string(fromByteCount: book.downloadedSize))
+        .font(.caption)
+        .foregroundColor(.secondary)
     }
     #if !os(tvOS)
       .swipeActions(edge: .trailing) {
@@ -202,12 +204,12 @@ struct SettingsOfflineBooksView: View {
   }
 
   private func seriesSize(for books: [KomgaBook]) -> Int64 {
-    books.reduce(0) { $0 + ($1.downloadedSize ?? 0) }
+    books.reduce(0) { $0 + $1.downloadedSize }
   }
 
   private func totalSize(for lGroup: LibraryGroup) -> Int64 {
     let sSize = lGroup.seriesGroups.reduce(0) { $0 + seriesSize(for: $1.books) }
-    let oSize = lGroup.oneshotBooks.reduce(0) { $0 + ($1.downloadedSize ?? 0) }
+    let oSize = lGroup.oneshotBooks.reduce(0) { $0 + $1.downloadedSize }
     return sSize + oSize
   }
 

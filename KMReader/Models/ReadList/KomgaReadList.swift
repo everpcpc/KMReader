@@ -24,7 +24,6 @@ final class KomgaReadList {
 
   var bookIds: [String] = []
 
-  @Relationship var books: [KomgaBook]? = []
 
   init(
     id: String? = nil,

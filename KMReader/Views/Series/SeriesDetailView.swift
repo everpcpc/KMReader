@@ -368,6 +368,11 @@ struct SeriesDetailView: View {
           #endif
 
           Divider()
+          if let komgaSeries = komgaSeries {
+            SeriesDownloadActionsSection()
+              .environment(komgaSeries)
+          }
+          Divider()
           if containerWidth > 0 {
             BooksListViewForSeries(
               seriesId: seriesId,

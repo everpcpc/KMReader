@@ -100,9 +100,7 @@ struct SettingsOfflineTasksView: View {
     .animation(.default, value: isPaused)
     .onChange(of: isPaused) { _, newValue in
       if !newValue {
-        Task {
-          await OfflineManager.shared.syncDownloadQueue(instanceId: instanceId)
-        }
+        OfflineManager.shared.triggerSync(instanceId: instanceId, restart: true)
       }
     }
   }
@@ -152,7 +150,7 @@ struct OfflineTaskRow: View {
           Task {
             await OfflineManager.shared.cancelDownload(bookId: book.bookId)
             let instanceId = AppConfig.currentInstanceId
-            await OfflineManager.shared.syncDownloadQueue(instanceId: instanceId)
+            OfflineManager.shared.triggerSync(instanceId: instanceId)
           }
         } label: {
           Image(systemName: "xmark.circle")

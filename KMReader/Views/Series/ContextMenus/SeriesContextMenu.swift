@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 @MainActor
@@ -76,6 +77,33 @@ struct SeriesContextMenu: View {
         Label("Manage", systemImage: "gearshape")
       }
       .disabled(!isAdmin)
+
+      Divider()
+
+      Menu {
+        Picker(selection: Binding(
+          get: { komgaSeries.offlinePolicy },
+          set: { updatePolicy($0) }
+        )) {
+          ForEach(SeriesOfflinePolicy.allCases, id: \.self) { policy in
+            Label(policy.label, systemImage: policy.icon)
+              .tag(policy)
+          }
+        } label: {
+          Text("Offline Policy")
+        }
+        .pickerStyle(.inline)
+
+        Divider()
+
+        Button(role: .destructive) {
+          updatePolicy(.manual)
+        } label: {
+          Label(komgaSeries.downloadStatus.toggleLabel, systemImage: komgaSeries.downloadStatus.toggleIcon)
+        }
+      } label: {
+        Label(komgaSeries.offlinePolicy.label, systemImage: komgaSeries.offlinePolicy.icon)
+      }
 
       Divider()
 
@@ -180,6 +208,16 @@ struct SeriesContextMenu: View {
           ErrorManager.shared.alert(error: error)
         }
       }
+    }
+  }
+
+  private func updatePolicy(_ policy: SeriesOfflinePolicy) {
+    komgaSeries.offlinePolicy = policy
+    if let context = komgaSeries.modelContext {
+      try? context.save()
+      KomgaBookStore.shared.syncSeriesDownloadStatus(series: komgaSeries, context: context)
+      try? context.save()
+      onActionCompleted?()
     }
   }
 }

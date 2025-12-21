@@ -65,6 +65,7 @@ struct BookContextMenu: View {
       } label: {
         Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
       }
+      .tint(downloadStatus.menuColor)
 
       Divider()
 

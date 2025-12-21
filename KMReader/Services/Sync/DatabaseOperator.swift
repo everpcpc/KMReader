@@ -24,10 +24,6 @@ actor DatabaseOperator {
   func upsertBook(dto: Book, instanceId: String) {
     let compositeId = "\(instanceId)_\(dto.id)"
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    let seriesCompositeId = "\(instanceId)_\(dto.seriesId)"
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == seriesCompositeId })
-    let parentSeries = try? modelContext.fetch(seriesDescriptor).first
     if let existing = try? modelContext.fetch(descriptor).first {
       existing.name = dto.name
       existing.url = dto.url
@@ -40,7 +36,7 @@ actor DatabaseOperator {
       existing.readProgress = dto.readProgress
       existing.deleted = dto.deleted
       existing.oneshot = dto.oneshot
-      existing.series = parentSeries
+      existing.seriesTitle = dto.seriesTitle
     } else {
       let newBook = KomgaBook(
         bookId: dto.id,
@@ -58,9 +54,9 @@ actor DatabaseOperator {
         metadata: dto.metadata,
         readProgress: dto.readProgress,
         deleted: dto.deleted,
-        oneshot: dto.oneshot
+        oneshot: dto.oneshot,
+        seriesTitle: dto.seriesTitle
       )
-      newBook.series = parentSeries
       modelContext.insert(newBook)
     }
   }

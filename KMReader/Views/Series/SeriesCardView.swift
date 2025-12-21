@@ -51,6 +51,12 @@ struct SeriesCardView: View {
                 Text("Oneshot")
                   .foregroundColor(.blue)
               }
+              if komgaSeries.downloadStatus != .notDownloaded {
+                Text("•")
+                Image(systemName: komgaSeries.downloadStatus.icon)
+                  .foregroundColor(komgaSeries.downloadStatus.color)
+                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+              }
             }
             .foregroundColor(.secondary)
           }

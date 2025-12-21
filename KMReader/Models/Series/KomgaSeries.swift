@@ -70,8 +70,47 @@ final class KomgaSeries {
   var deleted: Bool
   var oneshot: Bool
 
-  @Relationship(deleteRule: .cascade, inverse: \KomgaBook.series)
-  var books: [KomgaBook]? = []
+  // Track offline download status (managed locally)
+  var downloadStatusRaw: String = "notDownloaded"
+  var downloadError: String?
+  var downloadAt: Date?
+  var downloadedSize: Int64 = 0
+  var downloadedBooks: Int = 0
+  var pendingBooks: Int = 0
+  var offlinePolicyRaw: String = "manual"
+
+  /// Computed property for download status.
+  var downloadStatus: SeriesDownloadStatus {
+    let raw = downloadStatusRaw
+    let downloaded = downloadedBooks
+    let pending = pendingBooks
+    let total = booksCount
+
+    if raw == "downloaded" || downloaded == total {
+      return .downloaded
+    }
+
+    if pending > 0 {
+      return .pending(downloaded: downloaded, pending: pending, total: total)
+    }
+
+    if downloaded > 0 {
+      return .partiallyDownloaded(downloaded: downloaded, total: total)
+    }
+
+    return .notDownloaded
+  }
+
+  /// Computed property for offline policy.
+  var offlinePolicy: SeriesOfflinePolicy {
+    get {
+      SeriesOfflinePolicy(rawValue: offlinePolicyRaw) ?? .manual
+    }
+    set {
+      offlinePolicyRaw = newValue.rawValue
+    }
+  }
+
 
   init(
     id: String? = nil,
@@ -89,7 +128,11 @@ final class KomgaSeries {
     metadata: SeriesMetadata,
     booksMetadata: SeriesBooksMetadata,
     deleted: Bool,
-    oneshot: Bool
+    oneshot: Bool,
+    downloadedBooks: Int = 0,
+    pendingBooks: Int = 0,
+    downloadedSize: Int64 = 0,
+    offlinePolicy: SeriesOfflinePolicy = .manual
   ) {
     self.id = id ?? "\(instanceId)_\(seriesId)"
     self.seriesId = seriesId
@@ -147,6 +190,10 @@ final class KomgaSeries {
 
     self.deleted = deleted
     self.oneshot = oneshot
+    self.downloadedBooks = downloadedBooks
+    self.pendingBooks = pendingBooks
+    self.downloadedSize = downloadedSize
+    self.offlinePolicyRaw = offlinePolicy.rawValue
   }
 
   var metadata: SeriesMetadata {

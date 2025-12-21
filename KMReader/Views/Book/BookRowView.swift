@@ -31,7 +31,7 @@ struct BookRowView: View {
   }
 
   var shouldShowSeriesTitle: Bool {
-    showSeriesTitle && komgaBook.series != nil
+    showSeriesTitle && !komgaBook.seriesTitle.isEmpty
   }
 
   var bookTitleLineLimit: Int {
@@ -47,8 +47,8 @@ struct BookRowView: View {
           id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4)
 
         VStack(alignment: .leading, spacing: 4) {
-          if shouldShowSeriesTitle, let seriesName = komgaBook.series?.name {
-            Text(seriesName)
+          if shouldShowSeriesTitle {
+            Text(komgaBook.seriesTitle)
               .font(.footnote)
               .foregroundColor(.secondary)
               .lineLimit(1)
@@ -96,6 +96,12 @@ struct BookRowView: View {
                   Text("•")
                   Text("Oneshot")
                     .foregroundColor(.blue)
+                }
+                if komgaBook.downloadStatus != .notDownloaded {
+                  Text("•")
+                  Image(systemName: komgaBook.downloadStatus.displayIcon)
+                    .foregroundColor(komgaBook.downloadStatus.displayColor)
+                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
                 }
               }.foregroundColor(.secondary)
             }

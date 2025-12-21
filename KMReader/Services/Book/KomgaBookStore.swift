@@ -409,10 +409,103 @@ final class KomgaBookStore {
     if let downloadedSize = downloadedSize {
       book.downloadedSize = downloadedSize
     } else if case .notDownloaded = status {
-      book.downloadedSize = nil
+      book.downloadedSize = 0
     }
     if commit {
       try? context.save()
+      // Sync series status
+      let seriesId = book.seriesId
+      let compositeSeriesId = "\(instanceId)_\(seriesId)"
+      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { $0.id == compositeSeriesId }
+      )
+      if let series = try? context.fetch(seriesDescriptor).first {
+        syncSeriesDownloadStatus(series: series, context: context)
+        try? context.save()
+      }
+    }
+  }
+
+  /// Sync the download status and downloaded books count for a series.
+  func syncSeriesDownloadStatus(series: KomgaSeries, context: ModelContext) {
+    let seriesId = series.seriesId
+    let instanceId = series.instanceId
+
+    // Explicitly fetch books for this series to ensure relationship is populated in current context
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
+    )
+    let books = (try? context.fetch(descriptor)) ?? []
+
+    let totalCount = series.booksCount
+    let downloadedCount = books.filter { $0.downloadStatusRaw == "downloaded" }.count
+    let pendingCount = books.filter { $0.downloadStatusRaw == "pending" }.count
+
+    series.downloadedBooks = downloadedCount
+    series.pendingBooks = pendingCount
+    series.downloadedSize = books.reduce(0) { $0 + $1.downloadedSize }
+    series.downloadAt = books.compactMap { $0.downloadAt }.max()
+
+    if downloadedCount == totalCount {
+      series.downloadStatusRaw = "downloaded"
+    } else if pendingCount > 0 {
+      series.downloadStatusRaw = "pending"
+    } else {
+      series.downloadStatusRaw = "notDownloaded"
+    }
+
+    // Handle policy-based actions
+    handlePolicyActions(series: series, books: books, context: context)
+  }
+
+  /// Handle automatic download/delete actions based on series policy.
+  func handlePolicyActions(series: KomgaSeries, books: [KomgaBook], context: ModelContext) {
+    let policy = series.offlinePolicy
+    guard policy != .manual else { return }
+
+    var needsSyncQueue = false
+    var booksToDelete: [KomgaBook] = []
+
+    for book in books {
+      let isRead = book.progressCompleted ?? false
+      let isDownloaded = book.downloadStatusRaw == "downloaded"
+      let isPending = book.downloadStatusRaw == "pending"
+      let isFailed = book.downloadStatusRaw == "failed"
+
+      let shouldBeOffline: Bool
+      switch policy {
+      case .manual:
+        shouldBeOffline = (isDownloaded || isPending)
+      case .unreadOnly, .unreadOnlyAndCleanupRead:
+        shouldBeOffline = !isRead
+      case .all:
+        shouldBeOffline = true
+      }
+
+      if shouldBeOffline {
+        if !isDownloaded && !isPending && !isFailed {
+          book.downloadStatusRaw = "pending"
+          book.downloadAt = .now
+          needsSyncQueue = true
+        }
+      } else {
+        if (isDownloaded || isPending) && policy == .unreadOnlyAndCleanupRead {
+          booksToDelete.append(book)
+        }
+      }
+    }
+
+    if needsSyncQueue {
+      OfflineManager.shared.triggerSync(instanceId: series.instanceId)
+    }
+
+    if !booksToDelete.isEmpty {
+      let instanceId = series.instanceId
+      Task {
+        for book in booksToDelete {
+          await OfflineManager.shared.deleteBook(instanceId: instanceId, bookId: book.bookId)
+        }
+      }
     }
   }
 
@@ -454,6 +547,72 @@ final class KomgaBookStore {
       return results.map { $0.toBook() }
     } catch {
       return []
+    }
+  }
+
+  /// Download all books in a series.
+  func downloadAllBooks(series: KomgaSeries, context: ModelContext) {
+    // Reset policy to manual
+    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+    try? context.save()
+
+    let seriesId = series.seriesId
+    let instanceId = series.instanceId
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
+    )
+    let books = (try? context.fetch(descriptor)) ?? []
+    for book in books {
+      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
+        book.downloadStatusRaw = "pending"
+        book.downloadAt = Date.now
+      }
+    }
+
+    OfflineManager.shared.triggerSync(instanceId: instanceId)
+    syncSeriesDownloadStatus(series: series, context: context)
+    try? context.save()
+  }
+
+  /// Remove all downloaded books in a series.
+  func removeAllBooks(series: KomgaSeries, context: ModelContext) {
+    // Reset policy to manual
+    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+    try? context.save()
+
+    let seriesId = series.seriesId
+    let instanceId = series.instanceId
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
+    )
+
+    let books = (try? context.fetch(descriptor)) ?? []
+    for book in books {
+      book.downloadStatusRaw = "notDownloaded"
+      book.downloadError = nil
+      book.downloadAt = nil
+      book.downloadedSize = 0
+    }
+    try? context.save()
+
+    Task {
+      for book in books {
+        await OfflineManager.shared.deleteBook(instanceId: instanceId, bookId: book.bookId)
+      }
+    }
+
+    syncSeriesDownloadStatus(series: series, context: context)
+    try? context.save()
+  }
+
+  /// Toggle download for all books in a series.
+  func toggleSeriesDownload(series: KomgaSeries, context: ModelContext) {
+    let status = series.downloadStatus
+    switch status {
+    case .downloaded, .partiallyDownloaded, .pending:
+      removeAllBooks(series: series, context: context)
+    case .notDownloaded:
+      downloadAllBooks(series: series, context: context)
     }
   }
 }

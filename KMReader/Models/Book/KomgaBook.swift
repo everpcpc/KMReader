@@ -66,11 +66,13 @@ final class KomgaBook {
   var deleted: Bool
   var oneshot: Bool
 
+  var seriesTitle: String = ""
+
   // Track offline download status (managed locally)
   var downloadStatusRaw: String = "notDownloaded"
   var downloadError: String?
   var downloadAt: Date?
-  var downloadedSize: Int64?
+  var downloadedSize: Int64 = 0
 
   /// Computed property for download status.
   var downloadStatus: DownloadStatus {
@@ -107,7 +109,6 @@ final class KomgaBook {
     }
   }
 
-  @Relationship var series: KomgaSeries?
 
   init(
     id: String? = nil,
@@ -126,7 +127,9 @@ final class KomgaBook {
     metadata: BookMetadata,
     readProgress: ReadProgress?,
     deleted: Bool,
-    oneshot: Bool
+    oneshot: Bool,
+    seriesTitle: String = "",
+    downloadedSize: Int64 = 0
   ) {
     self.id = id ?? "\(instanceId)_\(bookId)"
     self.bookId = bookId
@@ -140,6 +143,7 @@ final class KomgaBook {
     self.lastModified = lastModified
     self.sizeBytes = sizeBytes
     self.size = size
+    self.seriesTitle = seriesTitle
 
     // Media
     self.mediaStatus = media.statusRaw
@@ -181,6 +185,7 @@ final class KomgaBook {
 
     self.deleted = deleted
     self.oneshot = oneshot
+    self.downloadedSize = downloadedSize
   }
 
   var media: Media {
@@ -284,7 +289,7 @@ final class KomgaBook {
     Book(
       id: bookId,
       seriesId: seriesId,
-      seriesTitle: series?.name ?? "",
+      seriesTitle: seriesTitle,
       libraryId: libraryId,
       name: name,
       url: url,

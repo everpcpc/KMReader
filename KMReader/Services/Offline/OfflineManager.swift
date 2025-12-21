@@ -24,6 +24,9 @@ actor OfflineManager {
   static let shared = OfflineManager()
 
   private var activeTasks: [String: Task<Void, Never>] = [:]
+  private var syncTask: Task<Void, Never>?
+  private var syncTaskID: UUID?
+  private var isProcessingQueue = false
 
   private let logger = AppLogger(.offline)
 
@@ -134,12 +137,48 @@ actor OfflineManager {
     activeTasks.removeAll()
   }
 
-  func syncDownloadQueue(instanceId: String) async {
+  /// Trigger the download queue processing in the background.
+  /// - Parameter restart: If true, cancels any pending debounce and runs immediately.
+  nonisolated func triggerSync(instanceId: String, restart: Bool = false) {
+    Task {
+      await performDebouncedSync(instanceId: instanceId, restart: restart)
+    }
+  }
+
+  private func performDebouncedSync(instanceId: String, restart: Bool) async {
+    syncTask?.cancel()
+
+    let currentID = UUID()
+    syncTaskID = currentID
+
+    syncTask = Task {
+      if !restart {
+        try? await Task.sleep(for: .seconds(2))
+      }
+      
+      guard !Task.isCancelled else { return }
+      
+      // If we are still the current task (didn't get replaced during sleep),
+      // we clear the reference so future triggers don't cancel us while we run.
+      if syncTaskID == currentID {
+          syncTask = nil
+          syncTaskID = nil
+      }
+
+      await syncDownloadQueue(instanceId: instanceId)
+    }
+  }
+
+  private func syncDownloadQueue(instanceId: String) async {
     // Check if paused
     guard !AppConfig.offlinePaused else { return }
+    guard !isProcessingQueue else { return }
 
     // Only allow one download at a time
     guard activeTasks.isEmpty else { return }
+
+    isProcessingQueue = true
+    defer { isProcessingQueue = false }
 
     let pending = await MainActor.run {
       KomgaBookStore.shared.fetchPendingBooks(limit: 1)

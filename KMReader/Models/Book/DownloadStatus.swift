@@ -16,6 +16,47 @@ enum DownloadStatus: Equatable, Sendable {
   case downloaded
   case failed(error: String)
 
+  // MARK: - Display
+
+  var displayLabel: String {
+    switch self {
+    case .notDownloaded:
+      return String(localized: "status.not_downloaded")
+    case .pending:
+      return String(localized: "status.pending")
+    case .downloaded:
+      return String(localized: "status.downloaded")
+    case .failed(let error):
+      return error
+    }
+  }
+
+  var displayIcon: String {
+    switch self {
+    case .notDownloaded:
+      return "icloud.and.arrow.down"
+    case .pending:
+      return "arrow.clockwise.icloud.fill"
+    case .downloaded:
+      return "checkmark.icloud.fill"
+    case .failed:
+      return "exclamationmark.icloud.fill"
+    }
+  }
+
+  var displayColor: Color {
+    switch self {
+    case .notDownloaded:
+      return .secondary
+    case .pending:
+      return .orange
+    case .downloaded:
+      return .green
+    case .failed:
+      return .red
+    }
+  }
+
   // MARK: - Menu Display
 
   /// Label for context menu actions.
@@ -34,11 +75,11 @@ enum DownloadStatus: Equatable, Sendable {
   var menuIcon: String {
     switch self {
     case .downloaded:
-      return "trash.circle"
+      return "trash"
     case .pending:
       return "xmark.circle"
     case .notDownloaded, .failed:
-      return "square.and.arrow.down"
+      return "icloud.and.arrow.down"
     }
   }
 
@@ -48,7 +89,15 @@ enum DownloadStatus: Equatable, Sendable {
     case .downloaded, .pending:
       return .red
     case .notDownloaded, .failed:
-      return .primary
+      return .accentColor
     }
+  }
+
+  var isDownloaded: Bool {
+    self == .downloaded
+  }
+
+  var isPending: Bool {
+    self == .pending
   }
 }

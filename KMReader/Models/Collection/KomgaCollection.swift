@@ -23,7 +23,6 @@ final class KomgaCollection {
 
   var seriesIds: [String] = []
 
-  @Relationship var series: [KomgaSeries]? = []
 
   init(
     id: String? = nil,
