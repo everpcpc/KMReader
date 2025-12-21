@@ -20,6 +20,7 @@ struct ThumbnailImage<Overlay: View>: View {
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @State private var localURL: URL?
+  @State private var isLoading = true
 
   init(
     id: String?,
@@ -88,7 +89,7 @@ struct ThumbnailImage<Overlay: View>: View {
           .frame(width: width, height: width * 1.3, alignment: .center)
           .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
           .overlay {
-            if showPlaceholder {
+            if showPlaceholder && isLoading {
               ProgressView()
             }
           }
@@ -106,7 +107,12 @@ struct ThumbnailImage<Overlay: View>: View {
     }
     .shadow(color: Color.black.opacity(0.5), radius: 4)
     .task(id: id) {
-      guard let id = id else { return }
+      guard let id = id else {
+        isLoading = false
+        return
+      }
+      
+      isLoading = true
       let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
 
       if FileManager.default.fileExists(atPath: fileURL.path) {
@@ -114,6 +120,8 @@ struct ThumbnailImage<Overlay: View>: View {
       } else {
         localURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
       }
+      
+      isLoading = false
     }
   }
 }
