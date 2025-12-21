@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsAboutSection: View {
   var body: some View {
     Section(header: Text(String(localized: "About"))) {
-      Link(destination: URL(string: "https://everpcpc.github.io/KMReader/privacy/")!) {
+      Link(destination: URL(string: "https://kmreader.everpcpc.com/privacy/")!) {
         HStack {
           Label(String(localized: "Privacy Policy"), systemImage: "hand.raised")
           Spacer()
