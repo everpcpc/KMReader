@@ -43,10 +43,6 @@ class ReadListViewModel {
       currentLibraryIds = libraryIds ?? []
       currentSort = sort
       currentSearchText = searchText
-      withAnimation {
-        readListIds = []
-        browseReadLists = []
-      }
     }
 
     guard hasMorePages && !isLoading else { return }
@@ -65,8 +61,13 @@ class ReadListViewModel {
       let readLists = KomgaReadListStore.shared.fetchReadListsByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
-        readListIds.append(contentsOf: ids)
-        browseReadLists.append(contentsOf: readLists)
+        if currentPage == 0 {
+          readListIds = ids
+          browseReadLists = readLists
+        } else {
+          readListIds.append(contentsOf: ids)
+          browseReadLists.append(contentsOf: readLists)
+        }
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -85,8 +86,13 @@ class ReadListViewModel {
         let readLists = KomgaReadListStore.shared.fetchReadListsByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          readListIds.append(contentsOf: ids)
-          browseReadLists.append(contentsOf: readLists)
+          if currentPage == 0 {
+            readListIds = ids
+            browseReadLists = readLists
+          } else {
+            readListIds.append(contentsOf: ids)
+            browseReadLists.append(contentsOf: readLists)
+          }
         }
         hasMorePages = !page.last
         currentPage += 1

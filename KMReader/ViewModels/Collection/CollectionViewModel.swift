@@ -43,10 +43,6 @@ class CollectionViewModel {
       currentLibraryIds = libraryIds ?? []
       currentSort = sort
       currentSearchText = searchText
-      withAnimation {
-        collectionIds = []
-        browseCollections = []
-      }
     }
 
     guard hasMorePages && !isLoading else { return }
@@ -65,8 +61,13 @@ class CollectionViewModel {
       let collections = KomgaCollectionStore.shared.fetchCollectionsByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
-        collectionIds.append(contentsOf: ids)
-        browseCollections.append(contentsOf: collections)
+        if currentPage == 0 {
+          collectionIds = ids
+          browseCollections = collections
+        } else {
+          collectionIds.append(contentsOf: ids)
+          browseCollections.append(contentsOf: collections)
+        }
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -85,8 +86,13 @@ class CollectionViewModel {
         let collections = KomgaCollectionStore.shared.fetchCollectionsByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          collectionIds.append(contentsOf: ids)
-          browseCollections.append(contentsOf: collections)
+          if currentPage == 0 {
+            collectionIds = ids
+            browseCollections = collections
+          } else {
+            collectionIds.append(contentsOf: ids)
+            browseCollections.append(contentsOf: collections)
+          }
         }
         hasMorePages = !page.last
         currentPage += 1
