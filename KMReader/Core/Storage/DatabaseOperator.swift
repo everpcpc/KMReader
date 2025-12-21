@@ -288,7 +288,8 @@ actor DatabaseOperator {
     instanceId: String,
     status: DownloadStatus,
     downloadAt: Date? = nil,
-    downloadedSize: Int64? = nil
+    downloadedSize: Int64? = nil,
+    syncSeriesStatus: Bool = true
   ) {
     let compositeId = "\(instanceId)_\(bookId)"
     let descriptor = FetchDescriptor<KomgaBook>(
@@ -313,13 +314,15 @@ actor DatabaseOperator {
     }
 
     // Sync series status
-    let seriesId = book.seriesId
-    let compositeSeriesId = "\(instanceId)_\(seriesId)"
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeSeriesId }
-    )
-    if let series = try? modelContext.fetch(seriesDescriptor).first {
-      syncSeriesDownloadStatus(series: series)
+    if syncSeriesStatus {
+      let seriesId = book.seriesId
+      let compositeSeriesId = "\(instanceId)_\(seriesId)"
+      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { $0.id == compositeSeriesId }
+      )
+      if let series = try? modelContext.fetch(seriesDescriptor).first {
+        syncSeriesDownloadStatus(series: series)
+      }
     }
   }
 
@@ -419,10 +422,14 @@ actor DatabaseOperator {
 
     if !booksToDelete.isEmpty {
       let instanceId = series.instanceId
+      let seriesId = series.seriesId
       Task {
         for book in booksToDelete {
-          await OfflineManager.shared.deleteBook(instanceId: instanceId, bookId: book.bookId)
+          await OfflineManager.shared.deleteBook(
+            instanceId: instanceId, bookId: book.bookId, commit: false, syncSeriesStatus: false)
         }
+        await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+        try? await DatabaseOperator.shared.commit()
       }
     }
   }
@@ -471,13 +478,15 @@ actor DatabaseOperator {
       book.downloadedSize = 0
     }
 
+    let bookIds = books.map { $0.bookId }
     Task {
-      for book in books {
-        await OfflineManager.shared.deleteBook(instanceId: instanceId, bookId: book.bookId)
+      for bookId in bookIds {
+        await OfflineManager.shared.deleteBook(
+          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
       }
+      await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+      try? await DatabaseOperator.shared.commit()
     }
-
-    syncSeriesDownloadStatus(series: series)
   }
 
   func toggleSeriesDownload(seriesId: String, instanceId: String) {
@@ -496,7 +505,12 @@ actor DatabaseOperator {
     }
   }
 
-  func updateSeriesOfflinePolicy(seriesId: String, instanceId: String, policy: SeriesOfflinePolicy) {
+  func updateSeriesOfflinePolicy(
+    seriesId: String,
+    instanceId: String,
+    policy: SeriesOfflinePolicy,
+    syncSeriesStatus: Bool = true
+  ) {
     let compositeId = "\(instanceId)_\(seriesId)"
     let descriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
@@ -505,7 +519,9 @@ actor DatabaseOperator {
 
     series.offlinePolicy = policy
 
-    syncSeriesDownloadStatus(series: series)
+    if syncSeriesStatus {
+      self.syncSeriesDownloadStatus(series: series)
+    }
   }
 
   // MARK: - Library Operations

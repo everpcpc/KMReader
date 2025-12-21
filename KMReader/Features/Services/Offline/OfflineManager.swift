@@ -90,7 +90,7 @@ actor OfflineManager {
     case .downloaded:
       await deleteBook(instanceId: instanceId, bookId: info.bookId)
     case .pending:
-      await cancelDownload(bookId: info.bookId)
+      await cancelDownload(bookId: info.bookId, instanceId: instanceId)
     case .notDownloaded, .failed:
       await DatabaseOperator.shared.updateBookDownloadStatus(
         bookId: info.bookId,
@@ -103,15 +103,17 @@ actor OfflineManager {
     }
   }
 
-  func deleteBook(instanceId: String, bookId: String) async {
-    await cancelDownload(bookId: bookId)
+  func deleteBook(instanceId: String, bookId: String, commit: Bool = true, syncSeriesStatus: Bool = true) async {
+    await cancelDownload(bookId: bookId, instanceId: instanceId, commit: false, syncSeriesStatus: syncSeriesStatus)
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
-    // Update SwiftData first
+    // Update SwiftData
     await DatabaseOperator.shared.updateBookDownloadStatus(
-      bookId: bookId, instanceId: instanceId, status: .notDownloaded
+      bookId: bookId, instanceId: instanceId, status: .notDownloaded, syncSeriesStatus: syncSeriesStatus
     )
-    try? await DatabaseOperator.shared.commit()
+    if commit {
+      try? await DatabaseOperator.shared.commit()
+    }
 
     // Then delete files
     Task.detached { [logger] in
@@ -123,6 +125,44 @@ actor OfflineManager {
       } catch {
         logger.error("❌ Failed to delete book \(bookId): \(error)")
       }
+    }
+  }
+
+  /// Delete a book manually, setting series policy to manual first to prevent automatic re-download.
+  func deleteBookManually(seriesId: String, instanceId: String, bookId: String) async {
+    await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+      seriesId: seriesId,
+      instanceId: instanceId,
+      policy: .manual,
+      syncSeriesStatus: false
+    )
+    await deleteBook(instanceId: instanceId, bookId: bookId)
+  }
+
+  /// Delete multiple books manually, setting series policy to manual first to prevent automatic re-download.
+  func deleteBooksManually(seriesId: String, instanceId: String, bookIds: [String]) async {
+    await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+      seriesId: seriesId,
+      instanceId: instanceId,
+      policy: .manual,
+      syncSeriesStatus: false
+    )
+    for bookId in bookIds {
+      await deleteBook(instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+    }
+    await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+    try? await DatabaseOperator.shared.commit()
+  }
+
+  func cancelDownload(bookId: String, instanceId: String? = nil, commit: Bool = true, syncSeriesStatus: Bool = true) async {
+    activeTasks[bookId]?.cancel()
+    activeTasks[bookId] = nil
+    let resolvedInstanceId = instanceId ?? AppConfig.currentInstanceId
+    await DatabaseOperator.shared.updateBookDownloadStatus(
+      bookId: bookId, instanceId: resolvedInstanceId, status: .notDownloaded, syncSeriesStatus: syncSeriesStatus
+    )
+    if commit {
+      try? await DatabaseOperator.shared.commit()
     }
   }
 

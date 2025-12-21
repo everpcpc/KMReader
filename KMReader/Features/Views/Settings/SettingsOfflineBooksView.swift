@@ -237,15 +237,19 @@ struct SettingsOfflineBooksView: View {
 
   private func deleteBook(_ book: KomgaBook) {
     Task {
-      await OfflineManager.shared.deleteBook(instanceId: book.instanceId, bookId: book.bookId)
+      await OfflineManager.shared.deleteBookManually(
+        seriesId: book.seriesId, instanceId: book.instanceId, bookId: book.bookId)
     }
   }
 
   private func deleteSeries(_ books: [KomgaBook]) {
+    guard let firstBook = books.first else { return }
     Task {
-      for book in books {
-        await OfflineManager.shared.deleteBook(instanceId: book.instanceId, bookId: book.bookId)
-      }
+      await OfflineManager.shared.deleteBooksManually(
+        seriesId: firstBook.seriesId,
+        instanceId: firstBook.instanceId,
+        bookIds: books.map { $0.bookId }
+      )
     }
   }
 }
