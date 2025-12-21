@@ -64,8 +64,7 @@ final class InstanceInitializer {
   private(set) var progress: Double = 0.0
   private(set) var currentPhase: SyncPhase = .libraries
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "InstanceInitializer")
+  private let logger = AppLogger(.sync)
   private let api = APIClient.shared
 
   private init() {}
@@ -94,7 +93,7 @@ final class InstanceInitializer {
     let syncStartTime = Date()
 
     logger.info(
-      "Starting sync for instance: \(instanceId), seriesLastSynced: \(lastSyncedAt.series), booksLastSynced: \(lastSyncedAt.books)"
+      "🔄 Starting sync for instance: \(instanceId), seriesLastSynced: \(lastSyncedAt.series), booksLastSynced: \(lastSyncedAt.books)"
     )
 
     // Phase 1: Libraries (always full sync)
@@ -112,7 +111,7 @@ final class InstanceInitializer {
       try KomgaInstanceStore.shared.updateSeriesLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
     } catch {
-      logger.error("Failed to update series lastSyncedAt: \(error)")
+      logger.error("❌ Failed to update series lastSyncedAt: \(error)")
     }
 
     // Phase 4: ReadLists (always full sync)
@@ -126,11 +125,11 @@ final class InstanceInitializer {
       try KomgaInstanceStore.shared.updateBooksLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
     } catch {
-      logger.error("Failed to update books lastSyncedAt: \(error)")
+      logger.error("❌ Failed to update books lastSyncedAt: \(error)")
     }
 
     progress = 1.0
-    logger.info("Sync completed for instance: \(instanceId)")
+    logger.info("✅ Sync completed for instance: \(instanceId)")
 
     isSyncing = false
   }
@@ -143,9 +142,9 @@ final class InstanceInitializer {
       let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try KomgaLibraryStore.shared.replaceLibraries(libraryInfos, for: instanceId)
-      logger.info("Synced \(libraries.count) libraries")
+      logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
-      logger.error("Failed to sync libraries: \(error)")
+      logger.error("❌ Failed to sync libraries: \(error)")
     }
     updateProgress(phase: .libraries, phaseProgress: 1.0)
   }
@@ -169,9 +168,9 @@ final class InstanceInitializer {
 
         updateProgress(phase: .collections, phaseProgress: Double(page) / Double(totalPages))
       }
-      logger.info("Synced collections")
+      logger.info("📂 Synced collections")
     } catch {
-      logger.error("Failed to sync collections: \(error)")
+      logger.error("❌ Failed to sync collections: \(error)")
     }
   }
 
@@ -213,9 +212,9 @@ final class InstanceInitializer {
         page += 1
         updateProgress(phase: .series, phaseProgress: Double(page) / Double(totalPages))
       }
-      logger.info("Synced series incrementally")
+      logger.info("📚 Synced series incrementally")
     } catch {
-      logger.error("Failed to sync series: \(error)")
+      logger.error("❌ Failed to sync series: \(error)")
     }
   }
 
@@ -238,9 +237,9 @@ final class InstanceInitializer {
 
         updateProgress(phase: .readLists, phaseProgress: Double(page) / Double(totalPages))
       }
-      logger.info("Synced read lists")
+      logger.info("📖 Synced read lists")
     } catch {
-      logger.error("Failed to sync read lists: \(error)")
+      logger.error("❌ Failed to sync read lists: \(error)")
     }
   }
 
@@ -282,9 +281,9 @@ final class InstanceInitializer {
         page += 1
         updateProgress(phase: .books, phaseProgress: Double(page) / Double(totalPages))
       }
-      logger.info("Synced books incrementally")
+      logger.info("📖 Synced books incrementally")
     } catch {
-      logger.error("Failed to sync books: \(error)")
+      logger.error("❌ Failed to sync books: \(error)")
     }
   }
 

@@ -14,8 +14,7 @@ class SyncService {
   static let shared = SyncService()
 
   private let api = APIClient.shared
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "SyncService")
+  private let logger = AppLogger(.sync)
 
   private init() {}
 
@@ -24,12 +23,12 @@ class SyncService {
   }
 
   func syncAll(instanceId: String) async {
-    logger.info("Starting full sync for instance: \(instanceId)")
+    logger.info("🔄 Starting full sync for instance: \(instanceId)")
     await syncLibraries(instanceId: instanceId)
     await syncCollections(instanceId: instanceId)
     await syncReadLists(instanceId: instanceId)
     await syncDashboard(instanceId: instanceId)
-    logger.info("Full sync completed for instance: \(instanceId)")
+    logger.info("✅ Full sync completed for instance: \(instanceId)")
   }
 
   func syncLibraries(instanceId: String) async {
@@ -37,9 +36,9 @@ class SyncService {
       let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try KomgaLibraryStore.shared.replaceLibraries(libraryInfos, for: instanceId)
-      logger.info("Synced \(libraries.count) libraries")
+      logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
-      logger.error("Failed to sync libraries: \(error)")
+      logger.error("❌ Failed to sync libraries: \(error)")
     }
   }
 
@@ -55,9 +54,9 @@ class SyncService {
         page += 1
       }
       try await db.commit()
-      logger.info("Synced collections")
+      logger.info("📂 Synced collections")
     } catch {
-      logger.error("Failed to sync collections: \(error)")
+      logger.error("❌ Failed to sync collections: \(error)")
     }
   }
 
@@ -66,9 +65,9 @@ class SyncService {
       let readLists: [ReadList] = try await api.request(path: "/api/v1/readlists")
       await db.upsertReadLists(readLists, instanceId: instanceId)
       try await db.commit()
-      logger.info("Synced readlists")
+      logger.info("📖 Synced readlists")
     } catch {
-      logger.error("Failed to sync readlists: \(error)")
+      logger.error("❌ Failed to sync readlists: \(error)")
     }
   }
 
@@ -87,9 +86,9 @@ class SyncService {
         page += 1
         try await db.commit()
       }
-      logger.info("Synced series for library \(libraryId)")
+      logger.info("📚 Synced series for library \(libraryId)")
     } catch {
-      logger.error("Failed to sync series for library \(libraryId): \(error)")
+      logger.error("❌ Failed to sync series for library \(libraryId): \(error)")
     }
   }
 

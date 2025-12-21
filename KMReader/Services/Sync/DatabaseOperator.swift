@@ -13,8 +13,7 @@ import SwiftData
 actor DatabaseOperator {
   static var shared: DatabaseOperator!
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "DatabaseOperator")
+  private let logger = AppLogger(.database)
 
   func commit() throws {
     try modelContext.save()
@@ -198,9 +197,9 @@ actor DatabaseOperator {
         model: KomgaReadList.self, where: #Predicate { $0.instanceId == instanceId })
 
       try commit()
-      logger.info("Cleared all SwiftData entities for instance: \(instanceId)")
+      logger.info("🗑️ Cleared all SwiftData entities for instance: \(instanceId)")
     } catch {
-      logger.error("Failed to clear instance data: \(error)")
+      logger.error("❌ Failed to clear instance data: \(error)")
     }
   }
 }

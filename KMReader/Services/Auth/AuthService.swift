@@ -15,8 +15,7 @@ private struct ClientSetting: Decodable {
 class AuthService {
   static let shared = AuthService()
   private let apiClient = APIClient.shared
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "Auth")
+  private let logger = AppLogger(.auth)
 
   private init() {}
 

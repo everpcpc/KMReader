@@ -26,6 +26,7 @@ struct FilterChip: View {
           .fontWeight(.medium)
       }
     }
+    .fixedSize()
     .adaptiveButtonStyle(.bordered)
     .controlSize(.mini)
     .tint(variant == .negative ? .red : .accentColor)

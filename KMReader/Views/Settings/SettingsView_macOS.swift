@@ -26,6 +26,7 @@ import SwiftUI
             SettingsSectionRow(section: .cache)
             SettingsSectionRow(section: .reader)
             SettingsSectionRow(section: .sse)
+            SettingsSectionRow(section: .logs)
           }
 
           Section("Offline") {
@@ -103,6 +104,8 @@ import SwiftUI
               SettingsOfflineTasksView()
             case .offlineBooks:
               SettingsOfflineBooksView()
+            case .logs:
+              SettingsLogsView()
             }
           }
           .frame(maxWidth: .infinity, maxHeight: .infinity)

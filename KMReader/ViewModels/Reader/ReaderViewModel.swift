@@ -48,8 +48,7 @@ class ReaderViewModel {
   private var dualPageNoCoverEnabled: Bool
   private var forceDualPagePairs: Bool
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "Komga", category: "ReaderViewModel")
+  private let logger = AppLogger(.reader)
   /// Current book ID for API calls and cache access
   var bookId: String = ""
 
@@ -108,8 +107,7 @@ class ReaderViewModel {
       if book.media.mediaProfile == .epub {
         let manifest = try await BookService.shared.getBookManifest(id: book.id)
         tableOfContents = await ReaderManifestService(
-          bookId: book.id,
-          logger: logger
+          bookId: book.id
         ).parseTOC(manifest: manifest)
       } else {
         tableOfContents = []
@@ -260,7 +258,6 @@ class ReaderViewModel {
     let currentPageNumber = currentPage.number
     let completed = currentPageIndex >= pages.count - 1
 
-    let progressLogger = logger
     Task.detached(priority: .utility) {
       do {
         try await BookService.shared.updatePageReadProgress(
@@ -270,7 +267,7 @@ class ReaderViewModel {
         )
       } catch {
         // Progress updates are non-critical, fail silently
-        progressLogger.error(
+        AppLogger(.reader).error(
           "Failed to update page progress for book \(activeBookId) page \(currentPageNumber): \(error.localizedDescription)"
         )
       }

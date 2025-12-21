@@ -25,8 +25,7 @@ actor OfflineManager {
 
   private var activeTasks: [String: Task<Void, Never>] = [:]
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "OfflineManager")
+  private let logger = AppLogger(.offline)
 
   private init() {}
 
@@ -117,9 +116,9 @@ actor OfflineManager {
         if FileManager.default.fileExists(atPath: dir.path) {
           try FileManager.default.removeItem(at: dir)
         }
-        logger.info("Deleted offline book: \(bookId)")
+        logger.info("🗑️ Deleted offline book: \(bookId)")
       } catch {
-        logger.error("Failed to delete book \(bookId): \(error)")
+        logger.error("❌ Failed to delete book \(bookId): \(error)")
       }
     }
   }
@@ -164,7 +163,7 @@ actor OfflineManager {
     activeTasks[info.bookId] = Task { [weak self, logger] in
       guard let self else { return }
       do {
-        logger.info("Starting download for book: \(info.bookName) (\(info.bookId))")
+        logger.info("⬇️ Starting download for book: \(info.bookName) (\(info.bookId))")
 
         if info.isEpub {
           try await downloadEpub(bookId: info.bookId, to: bookDir)
@@ -179,7 +178,7 @@ actor OfflineManager {
             bookId: info.bookId, status: .downloaded, downloadedSize: totalSize)
         }
         await removeActiveTask(info.bookId)
-        logger.info("Download complete for book: \(info.bookId)")
+        logger.info("✅ Download complete for book: \(info.bookId)")
 
         // Trigger next download
         await syncDownloadQueue(instanceId: instanceId)
@@ -189,9 +188,9 @@ actor OfflineManager {
         try? FileManager.default.removeItem(at: bookDir)
 
         if Task.isCancelled {
-          logger.info("Download cancelled for book: \(info.bookId)")
+          logger.info("⛔ Download cancelled for book: \(info.bookId)")
         } else {
-          logger.error("Download failed for book \(info.bookId): \(error)")
+          logger.error("❌ Download failed for book \(info.bookId): \(error)")
           await MainActor.run {
             KomgaBookStore.shared.updateDownloadStatus(
               bookId: info.bookId,

@@ -62,6 +62,8 @@ extension View {
             SettingsOfflineTasksView()
           case .settingsOfflineBooks:
             SettingsOfflineBooksView()
+          case .settingsLogs:
+            SettingsLogsView()
         #else
           case .settingsLibraries,
             .settingsAppearance,
@@ -75,7 +77,8 @@ extension View {
             .settingsAuthenticationActivity,
             .settingsServers,
             .settingsOfflineTasks,
-            .settingsOfflineBooks:
+            .settingsOfflineBooks,
+            .settingsLogs:
             VStack(spacing: 16) {
               Image(systemName: "gearshape")
                 .font(.system(size: 48))

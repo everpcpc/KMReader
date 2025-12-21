@@ -19,8 +19,7 @@ class ErrorManager {
   var currentError: AppError?
   var notifications: [String] = []
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "ErrorManager")
+  private let logger = AppLogger(.notification)
 
   private init() {}
 
@@ -35,7 +34,7 @@ class ErrorManager {
       return
     }
 
-    logger.error("Alert: \(message)")
+    logger.error("⚠️ Alert: \(message)")
 
     let appError = AppError(message: message, underlyingError: error)
     currentError = appError
@@ -44,7 +43,7 @@ class ErrorManager {
 
   /// Show an alert with a message
   func alert(message: String) {
-    logger.error("Alert: \(message)")
+    logger.error("⚠️ Alert: \(message)")
     let appError = AppError(message: message, underlyingError: nil)
     currentError = appError
     hasAlert = true
@@ -58,7 +57,7 @@ class ErrorManager {
 
   /// Show a notification message (non-blocking)
   func notify(message: String, duration: TimeInterval = 2) {
-    logger.info("Notify: \(message)")
+    logger.info("📢 Notify: \(message)")
     notifications.append(message)
     DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
       guard let self = self, !self.notifications.isEmpty else { return }

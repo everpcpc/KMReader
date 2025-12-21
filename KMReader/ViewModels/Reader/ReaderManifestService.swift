@@ -18,7 +18,6 @@ struct ReaderTOCEntry: Identifiable, Hashable {
 
 struct ReaderManifestService {
   let bookId: String
-  let logger: Logger
 
   /// Parse Table of Contents from manifest
   func parseTOC(manifest: DivinaManifest) async -> [ReaderTOCEntry] {

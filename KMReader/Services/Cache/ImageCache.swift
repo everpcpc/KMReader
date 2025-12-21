@@ -13,8 +13,7 @@ import SwiftUI
 /// Used to avoid re-downloading images. Decoding is handled by SDWebImage or on-demand.
 actor ImageCache {
   // Logger for cache operations
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "Komga", category: "ImageCache")
+  private let logger = AppLogger(.cache)
 
   // Disk cache
   private let diskCacheURL: URL

@@ -27,10 +27,10 @@ struct DashboardView: View {
 
   private let sseService = SSEService.shared
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
-  private let logger = Logger(subsystem: "KMReader", category: "Dashboard")
+  private let logger = AppLogger(.dashboard)
 
   private func performRefresh(reason: String) {
-    logger.debug("Dashboard refresh start: \(reason, privacy: .public)")
+    logger.debug("Dashboard refresh start: \(reason)")
 
     // Update refresh trigger to cause all sections to reload
     refreshTrigger = UUID()
@@ -42,7 +42,7 @@ struct DashboardView: View {
   }
 
   private func refreshDashboard(reason: String) {
-    logger.debug("Dashboard refresh requested: \(reason, privacy: .public)")
+    logger.debug("Dashboard refresh requested: \(reason)")
 
     // Cancel any pending debounced refresh
     pendingRefreshTask?.cancel()
@@ -62,7 +62,7 @@ struct DashboardView: View {
   }
 
   private func scheduleRefresh(reason: String) {
-    logger.debug("Dashboard auto-refresh scheduled: \(reason, privacy: .public)")
+    logger.debug("Dashboard auto-refresh scheduled: \(reason)")
 
     // Skip if auto-refresh is disabled
     guard enableSSEAutoRefresh else { return }

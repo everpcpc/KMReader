@@ -36,8 +36,7 @@
     private let httpServer: HTTPServer
     private var lastUpdateTime: Date = Date()
     private let updateThrottleInterval: TimeInterval = 2.0  // Update at most once every 2 seconds
-    private let logger = Logger(
-      subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "EpubReaderViewModel")
+    private let logger = AppLogger(.reader)
 
     let incognito: Bool
 

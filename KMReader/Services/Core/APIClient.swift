@@ -11,8 +11,7 @@ import OSLog
 class APIClient {
   static let shared = APIClient()
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "API")
+  private let logger = AppLogger(.api)
 
   private let userAgent: String
 

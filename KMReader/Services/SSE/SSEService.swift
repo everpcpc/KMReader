@@ -32,8 +32,7 @@ private actor SSEStreamActor {
 final class SSEService {
   static let shared = SSEService()
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "SSE")
+  private let logger = AppLogger(.sse)
 
   private var isConnected = false
   private let streamActor = SSEStreamActor()

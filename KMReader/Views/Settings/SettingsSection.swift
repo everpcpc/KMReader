@@ -13,6 +13,7 @@ enum SettingsSection: String, CaseIterable {
   case cache
   case reader
   case sse
+  case logs
   case libraries
   case serverInfo
   case metrics
@@ -34,6 +35,8 @@ enum SettingsSection: String, CaseIterable {
       return "book.pages"
     case .sse:
       return "antenna.radiowaves.left.and.right"
+    case .logs:
+      return "doc.text.magnifyingglass"
     case .libraries:
       return "books.vertical"
     case .serverInfo:
@@ -65,6 +68,8 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Reader")
     case .sse:
       return String(localized: "Real-time Updates")
+    case .logs:
+      return String(localized: "Logs")
     case .libraries:
       return String(localized: "Libraries")
     case .serverInfo:

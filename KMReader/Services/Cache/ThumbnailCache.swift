@@ -29,8 +29,7 @@ enum ThumbnailType: String, CaseIterable {
 actor ThumbnailCache {
   static let shared = ThumbnailCache()
 
-  private let logger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "ThumbnailCache")
+  private let logger = AppLogger(.cache)
   private let diskCacheURL: URL = CacheNamespace.directory(for: "KomgaThumbnailCache")
   private let fileManager = FileManager.default
   private var downloadTasks: [String: Task<URL, Error>] = [:]
