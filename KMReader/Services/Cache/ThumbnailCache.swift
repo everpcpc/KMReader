@@ -26,6 +26,7 @@ enum ThumbnailType: String, CaseIterable {
   }
 }
 
+@globalActor
 actor ThumbnailCache {
   static let shared = ThumbnailCache()
 
