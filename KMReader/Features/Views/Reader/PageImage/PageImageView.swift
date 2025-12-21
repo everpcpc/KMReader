@@ -60,9 +60,12 @@ struct PageImageView: View {
               .queryCacheType: SDImageCacheType.memory.rawValue,
             ]
           )
+          .placeholder {
+            ProgressView()
+          }
           .resizable()
           .aspectRatio(contentMode: .fit)
-          .transition(.fade)
+          .transition(.opacity)
 
           if showPageNumber {
             pageNumberOverlay
@@ -139,8 +142,8 @@ struct PageImageView: View {
           .padding()
       }
     }
+    .animation(.easeInOut(duration: 0.25), value: imageURL)
     .task(id: pageIndex) {
-      // Clear previous URL and error
       imageURL = nil
       loadError = nil
 
@@ -159,7 +162,6 @@ struct PageImageView: View {
       }
     }
     .onDisappear {
-      // Clear URL when view disappears
       imageURL = nil
     }
   }

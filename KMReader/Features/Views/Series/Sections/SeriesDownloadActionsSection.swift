@@ -68,12 +68,7 @@ struct SeriesDownloadActionsSection: View {
         .foregroundColor(.secondary)
 
         Button {
-          Task {
-            await DatabaseOperator.shared.toggleSeriesDownload(
-              seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
-            )
-            try? await DatabaseOperator.shared.commit()
-          }
+          toggleSeriesDownload()
         } label: {
           Label {
             Text(status.toggleLabel)
@@ -90,8 +85,8 @@ struct SeriesDownloadActionsSection: View {
       }
 
     }
-    .animation(.default, value: status)
-    .animation(.default, value: policy)
+    .animation(.easeInOut(duration: 0.2), value: status)
+    .animation(.easeInOut(duration: 0.2), value: policy)
     .padding(.vertical, 4)
   }
 
@@ -99,6 +94,15 @@ struct SeriesDownloadActionsSection: View {
     Task {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: newPolicy
+      )
+      try? await DatabaseOperator.shared.commit()
+    }
+  }
+
+  private func toggleSeriesDownload() {
+    Task {
+      await DatabaseOperator.shared.toggleSeriesDownload(
+        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
       )
       try? await DatabaseOperator.shared.commit()
     }
