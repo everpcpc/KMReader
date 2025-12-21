@@ -192,7 +192,7 @@ actor DatabaseOperator {
       try modelContext.delete(
         model: KomgaReadList.self, where: #Predicate { $0.instanceId == instanceId })
 
-      try commit()
+      try modelContext.save()
       logger.info("🗑️ Cleared all SwiftData entities for instance: \(instanceId)")
     } catch {
       logger.error("❌ Failed to clear instance data: \(error)")
