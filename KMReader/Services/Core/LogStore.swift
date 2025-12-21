@@ -16,8 +16,10 @@ actor LogStore {
   private let dbPath: URL
 
   private init() {
-    let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-      .first!
+    let appSupport = FileManager.default.urls(
+      for: .applicationSupportDirectory, in: .userDomainMask
+    )
+    .first!
     let logsDir = appSupport.appendingPathComponent("Logs", isDirectory: true)
     try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
     dbPath = logsDir.appendingPathComponent("logs.sqlite")
@@ -34,7 +36,8 @@ actor LogStore {
     if sqlite3_prepare_v2(db, checkSql, -1, &checkStmt, nil) == SQLITE_OK {
       while sqlite3_step(checkStmt) == SQLITE_ROW {
         if let name = sqlite3_column_text(checkStmt, 1),
-           let type = sqlite3_column_text(checkStmt, 2) {
+          let type = sqlite3_column_text(checkStmt, 2)
+        {
           columns[String(cString: name)] = String(cString: type).uppercased()
         }
       }
@@ -46,7 +49,7 @@ actor LogStore {
       "date": "REAL",
       "level": "INTEGER",
       "category": "TEXT",
-      "message": "TEXT"
+      "message": "TEXT",
     ]
     if !columns.isEmpty && columns != expectedSchema {
       sqlite3_exec(db, "DROP TABLE IF EXISTS logs", nil, nil, nil)
@@ -119,7 +122,8 @@ actor LogStore {
     }
 
     let whereClause = conditions.isEmpty ? "" : "WHERE " + conditions.joined(separator: " AND ")
-    let sql = "SELECT id, date, level, category, message FROM logs \(whereClause) ORDER BY date DESC LIMIT \(limit)"
+    let sql =
+      "SELECT id, date, level, category, message FROM logs \(whereClause) ORDER BY date DESC LIMIT \(limit)"
 
     var stmt: OpaquePointer?
     var entries: [LogEntry] = []
@@ -128,7 +132,8 @@ actor LogStore {
       var paramIndex: Int32 = 1
       for param in params {
         if let str = param as? String {
-          sqlite3_bind_text(stmt, paramIndex, str, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+          sqlite3_bind_text(
+            stmt, paramIndex, str, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
         } else if let double = param as? Double {
           sqlite3_bind_double(stmt, paramIndex, double)
         } else if let int = param as? Int {
@@ -143,7 +148,8 @@ actor LogStore {
         let level = Int(sqlite3_column_int(stmt, 2))
         let category = String(cString: sqlite3_column_text(stmt, 3))
         let message = String(cString: sqlite3_column_text(stmt, 4))
-        entries.append(LogEntry(id: id, date: date, level: level, category: category, message: message))
+        entries.append(
+          LogEntry(id: id, date: date, level: level, category: category, message: message))
       }
     }
     sqlite3_finalize(stmt)
@@ -187,7 +193,8 @@ actor LogStore {
       var paramIndex: Int32 = 1
       for param in params {
         if let str = param as? String {
-          sqlite3_bind_text(stmt, paramIndex, str, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+          sqlite3_bind_text(
+            stmt, paramIndex, str, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
         } else if let double = param as? Double {
           sqlite3_bind_double(stmt, paramIndex, double)
         } else if let int = param as? Int {

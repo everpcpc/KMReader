@@ -314,15 +314,15 @@ class BookViewModel {
         let ids = page.content.map { $0.id }
         let books = KomgaBookStore.shared.fetchBooksByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if currentPage == 0 {
-          browseBookIds = ids
-          browseBooks = books
-        } else {
-          browseBookIds.append(contentsOf: ids)
-          browseBooks.append(contentsOf: books)
+        withAnimation {
+          if currentPage == 0 {
+            browseBookIds = ids
+            browseBooks = books
+          } else {
+            browseBookIds.append(contentsOf: ids)
+            browseBooks.append(contentsOf: books)
+          }
         }
-      }
         hasMorePages = !page.last
         currentPage += 1
       } catch {
