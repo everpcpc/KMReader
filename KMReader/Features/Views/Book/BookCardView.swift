@@ -88,10 +88,10 @@ struct BookCardView: View {
                     .foregroundColor(.blue)
                 }
                 if komgaBook.downloadStatus != .notDownloaded {
-                  Text("•")
                   Image(systemName: komgaBook.downloadStatus.displayIcon)
                     .foregroundColor(komgaBook.downloadStatus.displayColor)
                     .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                    .padding(.leading, 8)
                 }
               }
               .foregroundColor(.secondary)

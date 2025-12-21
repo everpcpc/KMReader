@@ -52,10 +52,10 @@ struct SeriesCardView: View {
                   .foregroundColor(.blue)
               }
               if komgaSeries.downloadStatus != .notDownloaded {
-                Text("•")
                 Image(systemName: komgaSeries.downloadStatus.icon)
                   .foregroundColor(komgaSeries.downloadStatus.color)
                   .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                  .padding(.leading, 8)
               }
             }
             .foregroundColor(.secondary)
