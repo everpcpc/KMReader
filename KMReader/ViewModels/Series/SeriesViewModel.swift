@@ -37,10 +37,6 @@ class SeriesViewModel {
       hasMorePages = true
       currentState = browseOpts
       currentSearchText = searchText
-      withAnimation {
-        browseSeriesIds = []
-        browseSeries = []
-      }
     }
 
     guard hasMorePages && !isLoading else { return }
@@ -58,8 +54,13 @@ class SeriesViewModel {
       let series = KomgaSeriesStore.shared.fetchSeriesByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
-        browseSeriesIds.append(contentsOf: ids)
-        browseSeries.append(contentsOf: series)
+        if currentPage == 0 {
+          browseSeriesIds = ids
+          browseSeries = series
+        } else {
+          browseSeriesIds.append(contentsOf: ids)
+          browseSeries.append(contentsOf: series)
+        }
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -79,8 +80,13 @@ class SeriesViewModel {
         let series = KomgaSeriesStore.shared.fetchSeriesByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          browseSeriesIds.append(contentsOf: ids)
-          browseSeries.append(contentsOf: series)
+          if currentPage == 0 {
+            browseSeriesIds = ids
+            browseSeries = series
+          } else {
+            browseSeriesIds.append(contentsOf: ids)
+            browseSeries.append(contentsOf: series)
+          }
         }
         hasMorePages = !page.last
         currentPage += 1

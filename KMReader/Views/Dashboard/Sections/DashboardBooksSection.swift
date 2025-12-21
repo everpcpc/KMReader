@@ -74,11 +74,6 @@ struct DashboardBooksSection: View {
   private func refresh() async {
     currentPage = 0
     hasMore = true
-    withAnimation {
-      bookIds = []
-      browseBooks = []
-    }
-
     await loadMore()
     hasLoadedInitial = true
   }
@@ -88,6 +83,7 @@ struct DashboardBooksSection: View {
     isLoading = true
 
     let libraryIds = dashboard.libraryIds
+    let isFirstPage = currentPage == 0
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
@@ -95,8 +91,13 @@ struct DashboardBooksSection: View {
       let books = KomgaBookStore.shared.fetchBooksByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
-        bookIds.append(contentsOf: ids)
-        browseBooks.append(contentsOf: books)
+        if isFirstPage {
+          bookIds = ids
+          browseBooks = books
+        } else {
+          bookIds.append(contentsOf: ids)
+          browseBooks.append(contentsOf: books)
+        }
       }
       hasMore = ids.count == pageSize
       currentPage += 1
@@ -160,8 +161,13 @@ struct DashboardBooksSection: View {
         let books = KomgaBookStore.shared.fetchBooksByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          bookIds.append(contentsOf: ids)
-          browseBooks.append(contentsOf: books)
+          if isFirstPage {
+            bookIds = ids
+            browseBooks = books
+          } else {
+            bookIds.append(contentsOf: ids)
+            browseBooks.append(contentsOf: books)
+          }
         }
         hasMore = !page.last
         currentPage += 1

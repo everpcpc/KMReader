@@ -69,11 +69,6 @@ struct DashboardSeriesSection: View {
   private func refresh() async {
     currentPage = 0
     hasMore = true
-    withAnimation {
-      seriesIds = []
-      browseSeries = []
-    }
-
     await loadMore()
     hasLoadedInitial = true
   }
@@ -83,6 +78,7 @@ struct DashboardSeriesSection: View {
     isLoading = true
 
     let libraryIds = dashboard.libraryIds
+    let isFirstPage = currentPage == 0
 
     if AppConfig.isOffline {
       // Offline: query SwiftData directly
@@ -94,8 +90,13 @@ struct DashboardSeriesSection: View {
       let series = KomgaSeriesStore.shared.fetchSeriesByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
-        seriesIds.append(contentsOf: ids)
-        browseSeries.append(contentsOf: series)
+        if isFirstPage {
+          seriesIds = ids
+          browseSeries = series
+        } else {
+          seriesIds.append(contentsOf: ids)
+          browseSeries.append(contentsOf: series)
+        }
       }
       hasMore = ids.count == pageSize
       currentPage += 1
@@ -130,8 +131,13 @@ struct DashboardSeriesSection: View {
         let series = KomgaSeriesStore.shared.fetchSeriesByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
         withAnimation {
-          seriesIds.append(contentsOf: ids)
-          browseSeries.append(contentsOf: series)
+          if isFirstPage {
+            seriesIds = ids
+            browseSeries = series
+          } else {
+            seriesIds.append(contentsOf: ids)
+            browseSeries.append(contentsOf: series)
+          }
         }
         hasMore = !page.last
         currentPage += 1

@@ -34,10 +34,6 @@ class BookViewModel {
       hasMorePages = true
       currentSeriesId = seriesId
       currentSeriesBrowseOpts = browseOpts
-      withAnimation {
-        browseBookIds = []
-        browseBooks = []
-      }
     }
 
     guard hasMorePages && !isLoading else { return }
@@ -56,8 +52,13 @@ class BookViewModel {
       let books = KomgaBookStore.shared.fetchBooksByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
-        browseBookIds.append(contentsOf: ids)
-        browseBooks.append(contentsOf: books)
+        if currentPage == 0 {
+          browseBookIds = ids
+          browseBooks = books
+        } else {
+          browseBookIds.append(contentsOf: ids)
+          browseBooks.append(contentsOf: books)
+        }
       }
       hasMorePages = !page.last
       currentPage += 1
@@ -260,10 +261,6 @@ class BookViewModel {
     if refresh {
       currentPage = 0
       hasMorePages = true
-      withAnimation {
-        browseBookIds = []
-        browseBooks = []
-      }
     }
 
     guard hasMorePages && !isLoading else { return }
@@ -281,8 +278,13 @@ class BookViewModel {
       let books = KomgaBookStore.shared.fetchBooksByIds(
         ids: ids, instanceId: AppConfig.currentInstanceId)
       withAnimation {
-        browseBookIds.append(contentsOf: ids)
-        browseBooks.append(contentsOf: books)
+        if currentPage == 0 {
+          browseBookIds = ids
+          browseBooks = books
+        } else {
+          browseBookIds.append(contentsOf: ids)
+          browseBooks.append(contentsOf: books)
+        }
       }
       hasMorePages = ids.count == pageSize
       currentPage += 1
@@ -312,10 +314,15 @@ class BookViewModel {
         let ids = page.content.map { $0.id }
         let books = KomgaBookStore.shared.fetchBooksByIds(
           ids: ids, instanceId: AppConfig.currentInstanceId)
-        withAnimation {
+      withAnimation {
+        if currentPage == 0 {
+          browseBookIds = ids
+          browseBooks = books
+        } else {
           browseBookIds.append(contentsOf: ids)
           browseBooks.append(contentsOf: books)
         }
+      }
         hasMorePages = !page.last
         currentPage += 1
       } catch {
