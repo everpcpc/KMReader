@@ -44,9 +44,7 @@ struct SettingsApiKeyAddSheet: View {
                 .padding()
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(8)
-                #if os(macOS) || os(iOS)
-                  .textSelection(.enabled)
-                #endif
+                .textSelectionIfAvailable()
 
               Button {
                 #if os(iOS) || os(macOS)

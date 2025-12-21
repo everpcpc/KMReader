@@ -85,7 +85,7 @@
               ForEach(customFonts) { font in
                 Text(font.name)
                   .font(.system(size: 14, design: .monospaced))
-                  .textSelection(.enabled)
+                  .textSelectionIfAvailable()
                   .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                       removeCustomFont(font)

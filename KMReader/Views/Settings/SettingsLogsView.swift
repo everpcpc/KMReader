@@ -281,7 +281,7 @@ struct LogEntryRow: View {
       Text(entry.message)
         .font(.footnote.monospaced())
         .lineLimit(5)
-        .textSelection(.enabled)
+        .textSelectionIfAvailable()
     }
     .padding(.vertical, 2)
   }
