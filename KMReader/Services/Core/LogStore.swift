@@ -9,6 +9,7 @@ import Foundation
 import OSLog
 import SQLite3
 
+@globalActor
 actor LogStore {
   static let shared = LogStore()
 

@@ -20,6 +20,7 @@ struct DownloadInfo: Sendable {
 /// Actor for managing offline book downloads with proper thread isolation.
 /// Download status is persisted in SwiftData via KomgaBook.downloadStatus.
 /// Progress is tracked via DownloadProgressTracker for UI display.
+@globalActor
 actor OfflineManager {
   static let shared = OfflineManager()
 

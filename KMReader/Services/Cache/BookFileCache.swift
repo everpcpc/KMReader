@@ -7,6 +7,7 @@
 
 import Foundation
 
+@globalActor
 actor BookFileCache {
   static let shared = BookFileCache()
 
