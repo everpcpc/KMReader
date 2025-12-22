@@ -5,19 +5,19 @@
 
 import SwiftUI
 
+// Environment key for sharing zoom transition namespace
+private struct ReaderZoomNamespaceKey: EnvironmentKey {
+  static let defaultValue: Namespace.ID? = nil
+}
+
+extension EnvironmentValues {
+  var readerZoomNamespace: Namespace.ID? {
+    get { self[ReaderZoomNamespaceKey.self] }
+    set { self[ReaderZoomNamespaceKey.self] = newValue }
+  }
+}
+
 #if os(iOS) || os(tvOS)
-  // Environment key for sharing zoom transition namespace
-  private struct ReaderZoomNamespaceKey: EnvironmentKey {
-    static let defaultValue: Namespace.ID? = nil
-  }
-
-  extension EnvironmentValues {
-    var readerZoomNamespace: Namespace.ID? {
-      get { self[ReaderZoomNamespaceKey.self] }
-      set { self[ReaderZoomNamespaceKey.self] = newValue }
-    }
-  }
-
   /// Reader overlay that handles presentation with zoom transition on iOS 18+
   struct ReaderOverlay: View {
     let namespace: Namespace.ID
