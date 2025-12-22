@@ -104,6 +104,17 @@ actor OfflineManager {
     }
   }
 
+  func retryDownload(instanceId: String, bookId: String) async {
+    await DatabaseOperator.shared.updateBookDownloadStatus(
+      bookId: bookId,
+      instanceId: instanceId,
+      status: .pending,
+      downloadAt: .now
+    )
+    try? await DatabaseOperator.shared.commit()
+    await syncDownloadQueue(instanceId: instanceId)
+  }
+
   func deleteBook(
     instanceId: String, bookId: String, commit: Bool = true, syncSeriesStatus: Bool = true
   ) async {
@@ -187,6 +198,17 @@ actor OfflineManager {
       try? await DatabaseOperator.shared.commit()
     }
     activeTasks.removeAll()
+  }
+
+  func retryFailedDownloads(instanceId: String) async {
+    await DatabaseOperator.shared.retryFailedBooks(instanceId: instanceId)
+    try? await DatabaseOperator.shared.commit()
+    await syncDownloadQueue(instanceId: instanceId)
+  }
+
+  func cancelFailedDownloads(instanceId: String) async {
+    await DatabaseOperator.shared.cancelFailedBooks(instanceId: instanceId)
+    try? await DatabaseOperator.shared.commit()
   }
 
   /// Trigger the download queue processing in the background.
