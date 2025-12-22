@@ -315,11 +315,12 @@ struct BookDetailView: View {
 
               if let comment = book.media.comment, !comment.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                  Label("Comment", systemImage: "exclamationmark.triangle")
+                  Image("exclamationmark.triangle")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.orange)
                   Text(comment)
                     .font(.caption)
+                    .foregroundColor(.red)
                 }
               }
             }
