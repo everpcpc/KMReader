@@ -15,9 +15,11 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
   func label(for status: SeriesDownloadStatus) -> String {
     switch self {
     case .download:
-      return status == .notDownloaded ? String(localized: "Make Offline") : String(localized: "Download All")
+      return status == .notDownloaded
+        ? String(localized: "Make Offline") : String(localized: "Download All")
     case .remove:
-      return status == .downloaded ? String(localized: "Remove Offline") : String(localized: "Remove All")
+      return status == .downloaded
+        ? String(localized: "Remove Offline") : String(localized: "Remove All")
     case .cancel:
       return String(localized: "Cancel Download")
     }

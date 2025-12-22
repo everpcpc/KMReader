@@ -62,6 +62,17 @@ struct BooksListViewForReadList: View {
         Text("Books")
           .font(.headline)
 
+        Button {
+          Task {
+            await refreshBooks(refresh: true)
+          }
+        } label: {
+          Image(systemName: "arrow.clockwise")
+        }
+        .disabled(bookViewModel.isLoading)
+        .adaptiveButtonStyle(.bordered)
+        .controlSize(.mini)
+
         Spacer()
 
         HStack(spacing: 8) {
@@ -124,13 +135,12 @@ struct BooksListViewForReadList: View {
           selectedBookIds: $selectedBookIds,
           isAdmin: isAdmin,
           refreshBooks: {
-            refreshBooks()
+            Task {
+              await refreshBooks(refresh: true)
+            }
           },
           loadMore: { refresh in
-            await bookViewModel.loadReadListBooks(
-              context: modelContext,
-              readListId: readListId, browseOpts: browseOpts,
-              libraryIds: dashboard.libraryIds, refresh: refresh)
+            await refreshBooks(refresh: refresh)
           }
         )
       } else if bookViewModel.isLoading {
@@ -140,30 +150,22 @@ struct BooksListViewForReadList: View {
       }
     }
     .task(id: readListId) {
-      await bookViewModel.loadReadListBooks(
-        context: modelContext,
-        readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
-        refresh: true)
+      await refreshBooks(refresh: true)
     }
     .onChange(of: browseOpts) {
       Task {
-        await bookViewModel.loadReadListBooks(
-          context: modelContext,
-          readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
-          refresh: true)
+        await refreshBooks(refresh: true)
       }
     }
   }
 }
 
 extension BooksListViewForReadList {
-  fileprivate func refreshBooks() {
-    Task {
-      await bookViewModel.loadReadListBooks(
-        context: modelContext,
-        readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
-        refresh: true)
-    }
+  fileprivate func refreshBooks(refresh: Bool) async {
+    await bookViewModel.loadReadListBooks(
+      context: modelContext,
+      readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
+      refresh: refresh)
   }
 
   @MainActor
@@ -193,10 +195,7 @@ extension BooksListViewForReadList {
       }
 
       // Refresh the books list
-      await bookViewModel.loadReadListBooks(
-        context: modelContext,
-        readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
-        refresh: true)
+      await refreshBooks(refresh: true)
     } catch {
       await MainActor.run {
         ErrorManager.shared.alert(error: error)
