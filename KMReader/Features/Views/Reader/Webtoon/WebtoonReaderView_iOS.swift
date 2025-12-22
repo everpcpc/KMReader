@@ -850,14 +850,14 @@
 
       private func scrollUp(collectionView: UICollectionView, screenHeight: CGFloat) {
         let currentOffset = collectionView.contentOffset.y
-        let scrollAmount = screenHeight * WebtoonConstants.scrollAmountMultiplier
+        let scrollAmount = screenHeight * CGFloat(AppConfig.webtoonTapScrollPercentage / 100.0)
         let targetOffset = max(currentOffset - scrollAmount, 0)
         collectionView.setContentOffset(CGPoint(x: 0, y: targetOffset), animated: true)
       }
 
       private func scrollDown(collectionView: UICollectionView, screenHeight: CGFloat) {
         let currentOffset = collectionView.contentOffset.y
-        let scrollAmount = screenHeight * WebtoonConstants.scrollAmountMultiplier
+        let scrollAmount = screenHeight * CGFloat(AppConfig.webtoonTapScrollPercentage / 100.0)
         let targetOffset = min(
           currentOffset + scrollAmount,
           collectionView.contentSize.height - screenHeight

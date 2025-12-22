@@ -465,6 +465,18 @@ enum AppConfig {
     }
   }
 
+  static var webtoonTapScrollPercentage: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "webtoonTapScrollPercentage") != nil {
+        return UserDefaults.standard.double(forKey: "webtoonTapScrollPercentage")
+      }
+      return 80.0
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "webtoonTapScrollPercentage")
+    }
+  }
+
   static var showPageNumber: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showPageNumber") != nil {

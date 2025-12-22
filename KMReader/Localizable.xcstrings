@@ -19958,6 +19958,46 @@
         }
       }
     },
+    "Scroll distance when tapping to navigate in webtoon mode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll distance when tapping to navigate in webtoon mode"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distance de défilement lors du tap pour naviguer en mode Webtoon"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webtoon モードでタップした時のスクロール量"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹툰 모드에서 탭하여 이동할 때 스크롤 거리"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webtoon 模式下点击翻页的滚动距离"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webtoon 模式下點擊翻頁的捲動距離"
+          }
+        }
+      }
+    },
     "Scroll Page Transition" : {
       "localizations" : {
         "en" : {
@@ -27386,6 +27426,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Webtoon 頁寬"
+          }
+        }
+      }
+    },
+    "Webtoon Tap Scroll Height" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webtoon Tap Scroll Height"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hauteur de défilement par tap Webtoon"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webtoon タップスクロール量"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹툰 탭 스크롤 높이"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webtoon 点击滚动高度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webtoon 點擊捲動高度"
           }
         }
       }

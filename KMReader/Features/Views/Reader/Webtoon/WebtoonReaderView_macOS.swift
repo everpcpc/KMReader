@@ -526,7 +526,7 @@
         guard let sv = scrollView else { return }
         let clipView = sv.contentView
         let currentOrigin = clipView.bounds.origin
-        let scrollAmount = screenHeight * WebtoonConstants.scrollAmountMultiplier
+        let scrollAmount = screenHeight * CGFloat(AppConfig.webtoonTapScrollPercentage / 100.0)
         let targetY = max(currentOrigin.y - scrollAmount, 0)
 
         NSAnimationContext.runAnimationGroup { context in
@@ -542,7 +542,7 @@
         let clipView = sv.contentView
         let currentOrigin = clipView.bounds.origin
         let contentH = cv.collectionViewLayout?.collectionViewContentSize.height ?? 0
-        let scrollAmount = screenHeight * WebtoonConstants.scrollAmountMultiplier
+        let scrollAmount = screenHeight * CGFloat(AppConfig.webtoonTapScrollPercentage / 100.0)
         let maxY = max(contentH - screenHeight, 0)
         let targetY = min(currentOrigin.y + scrollAmount, maxY)
 
