@@ -150,6 +150,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "offlinePaused") }
   }
 
+  static nonisolated var notifyDownloadFailure: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "notifyDownloadFailure") != nil {
+        return UserDefaults.standard.bool(forKey: "notifyDownloadFailure")
+      }
+      return true  // Default to enabled
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "notifyDownloadFailure") }
+  }
+
   // MARK: - Dashboard
 
   static var dashboardConfiguration: DashboardConfiguration {

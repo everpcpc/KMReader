@@ -290,6 +290,13 @@ actor OfflineManager {
             status: .failed(error: error.localizedDescription)
           )
           try? await DatabaseOperator.shared.commit()
+
+          if AppConfig.notifyDownloadFailure {
+            let message = String(localized: "Download failed: \(info.bookName)")
+            await MainActor.run {
+              ErrorManager.shared.notify(message: message)
+            }
+          }
         }
         await removeActiveTask(info.bookId)
 

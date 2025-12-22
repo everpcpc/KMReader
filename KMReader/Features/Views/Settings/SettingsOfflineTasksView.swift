@@ -12,6 +12,7 @@ struct SettingsOfflineTasksView: View {
   @Environment(\.modelContext) private var modelContext
   @AppStorage("currentInstanceId") private var instanceId: String = ""
   @AppStorage("offlinePaused") private var isPaused: Bool = false
+  @AppStorage("notifyDownloadFailure") private var notifyDownloadFailure: Bool = true
 
   @Query private var books: [KomgaBook]
 
@@ -39,6 +40,19 @@ struct SettingsOfflineTasksView: View {
     books.filter { $0.downloadStatusRaw == "failed" }
   }
 
+  private var currentStatus: SyncStatus {
+    if isPaused {
+      return .paused
+    }
+    if !downloadingBooks.isEmpty {
+      return .downloading
+    }
+    if !pendingBooks.isEmpty {
+      return .syncing
+    }
+    return .idle
+  }
+
   var body: some View {
     List {
       Section {
@@ -50,12 +64,11 @@ struct SettingsOfflineTasksView: View {
             }
           )
         ) {
-          Label(
-            isPaused ? "Paused" : "Running",
-            systemImage: isPaused ? "pause.circle.fill" : "play.circle.fill"
-          )
-          .foregroundColor(isPaused ? .orange : .green)
+          Label(currentStatus.label, systemImage: currentStatus.icon)
+            .foregroundColor(currentStatus.color)
         }
+
+        Toggle("Notify Download Failure", isOn: $notifyDownloadFailure)
       } header: {
         Text("Sync Status")
       } footer: {
