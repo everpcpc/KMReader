@@ -12,11 +12,11 @@ struct DivinaReaderView: View {
   let readList: ReadList?
   let onClose: (() -> Void)?
 
-  @State private var readerBackground: ReaderBackground
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+  @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
   @State private var dualPageNoCover: Bool
-  @State private var webtoonPageWidthPercentage: Double
 
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -56,11 +56,9 @@ struct DivinaReaderView: View {
     self.readList = readList
     self.onClose = onClose
     self._currentBookId = State(initialValue: bookId)
-    self._readerBackground = State(initialValue: AppConfig.readerBackground)
     self._readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
     self._dualPageNoCover = State(initialValue: AppConfig.dualPageNoCover)
-    self._webtoonPageWidthPercentage = State(initialValue: AppConfig.webtoonPageWidthPercentage)
   }
 
   var shouldShowControls: Bool {
@@ -95,11 +93,9 @@ struct DivinaReaderView: View {
   }
 
   private func resetReaderPreferencesForCurrentBook() {
-    readerBackground = AppConfig.readerBackground
     pageLayout = AppConfig.pageLayout
     viewModel.updatePageLayout(pageLayout)
     dualPageNoCover = AppConfig.dualPageNoCover
-    webtoonPageWidthPercentage = AppConfig.webtoonPageWidthPercentage
     readingDirection = AppConfig.defaultReadingDirection
   }
 
@@ -243,10 +239,8 @@ struct DivinaReaderView: View {
           showingControls: $showingControls,
           showingKeyboardHelp: $showKeyboardHelp,
           readingDirection: $readingDirection,
-          readerBackground: $readerBackground,
           pageLayout: $pageLayout,
           dualPageNoCover: $dualPageNoCover,
-          webtoonPageWidthPercentage: $webtoonPageWidthPercentage,
           viewModel: viewModel,
           currentBook: currentBook,
           bookId: currentBookId,

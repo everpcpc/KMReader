@@ -55,6 +55,34 @@ struct SettingsReaderView: View {
               .foregroundColor(.secondary)
           }
         #endif
+
+        Toggle(isOn: $showPageNumber) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Always Show Page Number")
+            Text("Display page number overlay on images while reading")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        #if os(iOS) || os(macOS)
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Text("Webtoon Page Width")
+              Spacer()
+              Text("\(Int(webtoonPageWidthPercentage))%")
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: $webtoonPageWidthPercentage,
+              in: 50...100,
+              step: 5
+            )
+            Text("Adjust the width of webtoon pages as a percentage of screen width")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        #endif
       }
 
       Section(header: Text("Page Turn")) {
@@ -161,34 +189,6 @@ struct SettingsReaderView: View {
             }
           }
         }
-
-        Toggle(isOn: $showPageNumber) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Always Show Page Number")
-            Text("Display page number overlay on images while reading")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-
-        #if os(iOS) || os(macOS)
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              Text("Webtoon Page Width")
-              Spacer()
-              Text("\(Int(webtoonPageWidthPercentage))%")
-                .foregroundColor(.secondary)
-            }
-            Slider(
-              value: $webtoonPageWidthPercentage,
-              in: 50...100,
-              step: 5
-            )
-            Text("Adjust the width of webtoon pages as a percentage of screen width")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        #endif
       }
     }
     .animation(.default, value: disableTapToTurnPage)

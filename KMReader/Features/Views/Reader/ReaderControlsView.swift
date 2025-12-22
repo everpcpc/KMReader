@@ -12,10 +12,8 @@ struct ReaderControlsView: View {
   @Binding var showingControls: Bool
   @Binding var showingKeyboardHelp: Bool
   @Binding var readingDirection: ReadingDirection
-  @Binding var readerBackground: ReaderBackground
   @Binding var pageLayout: PageLayout
   @Binding var dualPageNoCover: Bool
-  @Binding var webtoonPageWidthPercentage: Double
   let viewModel: ReaderViewModel
   let currentBook: Book?
   let bookId: String
@@ -359,10 +357,8 @@ struct ReaderControlsView: View {
     .sheet(isPresented: $showingReaderSettingsSheet) {
       ReaderSettingsSheet(
         readingDirection: $readingDirection,
-        readerBackground: $readerBackground,
         pageLayout: $pageLayout,
-        dualPageNoCover: $dualPageNoCover,
-        webtoonPageWidthPercentage: $webtoonPageWidthPercentage
+        dualPageNoCover: $dualPageNoCover
       )
     }
     .onChange(of: dualPageNoCover) { _, newValue in

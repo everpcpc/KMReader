@@ -8,17 +8,74 @@
 import SwiftUI
 
 struct ReaderSettingsSheet: View {
+  // Session-specific bindings (not persisted until reader closes)
   @Binding var readingDirection: ReadingDirection
-  @Binding var readerBackground: ReaderBackground
   @Binding var pageLayout: PageLayout
   @Binding var dualPageNoCover: Bool
-  @Binding var webtoonPageWidthPercentage: Double
+
+  // Persisted settings (via @AppStorage)
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+  @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
+  @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
+  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
+    ScrollPageTransitionStyle = .default
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+  @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
 
   var body: some View {
     SheetView(
-      title: String(localized: "Current Reading Options"), size: .medium, applyFormStyle: true
+      title: String(localized: "Reader Settings"), size: .both, applyFormStyle: true
     ) {
       Form {
+
+        // MARK: - Session Reading Options Section (not persisted)
+
+        Section(header: Text("Current Reading Options")) {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Reading Direction", selection: $readingDirection) {
+              ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+                Label(direction.displayName, systemImage: direction.icon)
+                  .tag(direction)
+              }
+            }
+            .pickerStyle(.menu)
+            Text("Only applies to current reading session")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+
+          if readingDirection != .webtoon && readingDirection != .vertical {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Page Layout", selection: $pageLayout) {
+                ForEach(PageLayout.allCases, id: \.self) { layout in
+                  Label(layout.displayName, systemImage: layout.icon)
+                    .tag(layout)
+                }
+              }
+              .pickerStyle(.menu)
+              Text("Only applies to current reading session")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+
+            if pageLayout.supportsDualPageOptions {
+              Toggle(isOn: $dualPageNoCover) {
+                VStack(alignment: .leading, spacing: 4) {
+                  Text("Show Cover in Dual Spread")
+                  Text("Only applies to current reading session")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+              }
+            }
+          }
+        }
+
+        // MARK: - Appearance Section
+
         Section(header: Text("Appearance")) {
           Picker("Reader Background", selection: $readerBackground) {
             ForEach(ReaderBackground.allCases, id: \.self) { background in
@@ -26,97 +83,102 @@ struct ReaderSettingsSheet: View {
             }
           }
           .pickerStyle(.menu)
-        }
 
-        Section(header: Text("Options")) {
-          Picker("Reading Direction", selection: $readingDirection) {
-            ForEach(ReadingDirection.availableCases, id: \.self) { direction in
-              Label(direction.displayName, systemImage: direction.icon)
-                .tag(direction)
+          #if os(iOS)
+            if readingDirection != .webtoon {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Double Tap Zoom Scale")
+                  Spacer()
+                  Text(String(format: "%.1fx", doubleTapZoomScale))
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $doubleTapZoomScale,
+                  in: 1.0...8.0,
+                  step: 0.5
+                )
+              }
             }
+          #endif
+
+          Toggle(isOn: $showPageNumber) {
+            Text("Always Show Page Number")
           }
-          .pickerStyle(.menu)
 
-          switch readingDirection {
-          case .webtoon:
-            webtoonSection
-          case .vertical:
-            pageNumberSection
-          default:
-            layoutSection
-            pageNumberSection
-          }
+          #if os(iOS) || os(macOS)
+            if readingDirection == .webtoon {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Webtoon Page Width")
+                  Spacer()
+                  Text("\(Int(webtoonPageWidthPercentage))%")
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $webtoonPageWidthPercentage,
+                  in: 50...100,
+                  step: 5
+                )
+              }
+            }
+          #endif
         }
-      }
-    }
-    .presentationDragIndicator(.visible)
-  }
 
-  private var layoutSection: some View {
-    Group {
-      Picker("Layout Mode", selection: $pageLayout) {
-        ForEach(PageLayout.allCases, id: \.self) { layout in
-          Label(layout.displayName, systemImage: layout.icon)
-            .tag(layout)
-        }
-      }.pickerStyle(.menu)
+        // MARK: - Page Turn Section
 
-      if pageLayout.supportsDualPageOptions {
-        Toggle(isOn: $dualPageNoCover) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Show Cover in Dual Spread")
-              .lineLimit(nil)
-              .multilineTextAlignment(.leading)
-            Text("Display the cover alongside the next page instead of on its own")
+        Section(header: Text("Page Turn")) {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
+              ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+              }
+            }
+            .pickerStyle(.menu)
+            Text(scrollPageTransitionStyle.description)
               .font(.caption)
               .foregroundColor(.secondary)
-              .lineLimit(nil)
-              .multilineTextAlignment(.leading)
           }
+
+          #if os(macOS)
+            Toggle(isOn: $showKeyboardHelpOverlay) {
+              Text("Show Keyboard Help Overlay")
+            }
+          #endif
+
+          #if os(iOS) || os(macOS)
+            Toggle(isOn: $disableTapToTurnPage) {
+              Text("Disable Tap to Turn Page")
+            }
+
+            if !disableTapToTurnPage {
+              Toggle(isOn: $showTapZoneHints) {
+                Text("Show Tap Zone Hints")
+              }
+
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Tap Page Scroll Duration")
+                  Spacer()
+                  Text(
+                    tapPageTransitionDuration == 0
+                      ? String(localized: "None")
+                      : String(format: "%.1fs", tapPageTransitionDuration)
+                  )
+                  .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $tapPageTransitionDuration,
+                  in: 0...1,
+                  step: 0.1
+                )
+              }
+            }
+          #endif
         }
       }
     }
-  }
-
-  private var webtoonSection: some View {
-    #if os(iOS)
-      VStack(alignment: .leading, spacing: 8) {
-        HStack {
-          Text("Webtoon Page Width")
-          Spacer()
-          Text("\(Int(webtoonPageWidthPercentage))%")
-            .foregroundColor(.secondary)
-        }
-        Slider(
-          value: $webtoonPageWidthPercentage,
-          in: 50...100,
-          step: 5
-        )
-        Text("Adjust the width of webtoon pages as a percentage of screen width")
-          .font(.caption)
-          .foregroundColor(.secondary)
-          .lineLimit(nil)
-          .multilineTextAlignment(.leading)
-      }
-    #else
-      EmptyView()
-    #endif
-  }
-
-  @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-
-  private var pageNumberSection: some View {
-    Toggle(isOn: $showPageNumber) {
-      VStack(alignment: .leading, spacing: 4) {
-        Text("Always Show Page Number")
-          .lineLimit(nil)
-          .multilineTextAlignment(.leading)
-        Text("Display page number overlay on images while reading")
-          .font(.caption)
-          .foregroundColor(.secondary)
-          .lineLimit(nil)
-          .multilineTextAlignment(.leading)
-      }
-    }
+    .animation(.default, value: disableTapToTurnPage)
+    .presentationDragIndicator(.visible)
   }
 }
