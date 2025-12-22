@@ -15,6 +15,7 @@ struct DownloadInfo: Sendable {
   let bookId: String
   let bookName: String
   let isEpub: Bool
+  let epubDivinaCompatible: Bool
 }
 
 /// Actor for managing offline book downloads with proper thread isolation.
@@ -256,7 +257,7 @@ actor OfflineManager {
       do {
         logger.info("⬇️ Starting download for book: \(info.bookName) (\(info.bookId))")
 
-        if info.isEpub {
+        if info.isEpub && !info.epubDivinaCompatible {
           try await downloadEpub(bookId: info.bookId, to: bookDir)
         } else {
           try await downloadPages(bookId: info.bookId, to: bookDir)
@@ -474,7 +475,8 @@ extension Book {
     DownloadInfo(
       bookId: id,
       bookName: name,
-      isEpub: media.mediaProfile == .epub
+      isEpub: media.mediaProfile == .epub,
+      epubDivinaCompatible: media.epubDivinaCompatible ?? false
     )
   }
 }
