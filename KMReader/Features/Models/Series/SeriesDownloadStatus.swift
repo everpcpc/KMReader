@@ -54,39 +54,6 @@ enum SeriesDownloadStatus: Equatable, Sendable {
     }
   }
 
-  var toggleLabel: String {
-    switch self {
-    case .downloaded, .partiallyDownloaded:
-      return String(localized: "Remove Offline")
-    case .pending:
-      return String(localized: "Cancel Download")
-    case .notDownloaded:
-      return String(localized: "Make Offline")
-    }
-  }
-
-  var toggleIcon: String {
-    switch self {
-    case .downloaded, .partiallyDownloaded:
-      return "trash"
-    case .pending:
-      return "xmark.circle"
-    case .notDownloaded:
-      return "icloud.and.arrow.down"
-    }
-  }
-
-  var toggleColor: Color {
-    switch self {
-    case .downloaded, .partiallyDownloaded:
-      return .red
-    case .pending:
-      return .secondary
-    case .notDownloaded:
-      return .blue
-    }
-  }
-
   var isDownloaded: Bool {
     if case .downloaded = self { return true }
     return false
@@ -95,5 +62,51 @@ enum SeriesDownloadStatus: Equatable, Sendable {
   var isPending: Bool {
     if case .pending = self { return true }
     return false
+  }
+
+  var menuLabel: String {
+    switch self {
+    case .notDownloaded:
+      return String(localized: "Make Offline")
+    case .partiallyDownloaded:
+      return String(localized: "Actions")
+    case .downloaded:
+      return String(localized: "Remove Offline")
+    case .pending:
+      return String(localized: "Cancel Download")
+    }
+  }
+
+  var menuIcon: String {
+    switch self {
+    case .notDownloaded, .partiallyDownloaded:
+      return "icloud.and.arrow.down"
+    case .downloaded:
+      return "trash"
+    case .pending:
+      return "xmark.circle"
+    }
+  }
+
+  var menuColor: Color {
+    switch self {
+    case .notDownloaded:
+      return .blue
+    case .partiallyDownloaded:
+      return .orange
+    case .downloaded:
+      return .red
+    case .pending:
+      return .secondary
+    }
+  }
+
+  var isProminent: Bool {
+    switch self {
+    case .notDownloaded:
+      return true
+    default:
+      return false
+    }
   }
 }

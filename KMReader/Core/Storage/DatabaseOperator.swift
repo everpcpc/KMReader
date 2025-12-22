@@ -472,7 +472,7 @@ actor DatabaseOperator {
     }
   }
 
-  func downloadAllBooks(seriesId: String, instanceId: String) {
+  func downloadSeriesOffline(seriesId: String, instanceId: String) {
     let compositeId = "\(instanceId)_\(seriesId)"
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
@@ -496,7 +496,7 @@ actor DatabaseOperator {
     syncSeriesDownloadStatus(series: series)
   }
 
-  func removeAllBooks(seriesId: String, instanceId: String) {
+  func removeSeriesOffline(seriesId: String, instanceId: String) {
     let compositeId = "\(instanceId)_\(seriesId)"
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
@@ -538,9 +538,9 @@ actor DatabaseOperator {
     let status = series.downloadStatus
     switch status {
     case .downloaded, .partiallyDownloaded, .pending:
-      removeAllBooks(seriesId: seriesId, instanceId: instanceId)
+      removeSeriesOffline(seriesId: seriesId, instanceId: instanceId)
     case .notDownloaded:
-      downloadAllBooks(seriesId: seriesId, instanceId: instanceId)
+      downloadSeriesOffline(seriesId: seriesId, instanceId: instanceId)
     }
   }
 

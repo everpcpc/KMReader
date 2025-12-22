@@ -27,6 +27,8 @@ struct SeriesDownloadActionsSection: View {
     Text("Offline Policy") + Text(" : ") + Text(policy.label)
   }
 
+  @State private var pendingAction: SeriesDownloadAction?
+
   var body: some View {
     VStack(spacing: 12) {
       HStack(spacing: 12) {
@@ -64,27 +66,78 @@ struct SeriesDownloadActionsSection: View {
         .font(.caption)
         .adaptiveButtonStyle(.bordered)
 
-        Button {
-          toggleSeriesDownload()
-        } label: {
-          Label {
-            Text(status.toggleLabel)
-          } icon: {
-            Image(systemName: status.toggleIcon)
-              .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+        let actions = SeriesDownloadAction.availableActions(for: status)
+        if actions.count > 1 {
+          Menu {
+            actionsView(actions: actions)
+          } label: {
+            statusButtonLabel
           }
+          .font(.caption)
+          .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+          .tint(status.menuColor)
+        } else if let action = actions.first {
+          Button(role: action.isDestructive ? .destructive : .none) {
+            handleActionTap(action)
+          } label: {
+            statusButtonLabel
+          }
+          .font(.caption)
+          .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+          .tint(status.menuColor)
         }
-        .font(.caption)
-        .adaptiveButtonStyle(
-          status.isDownloaded || status.isPending ? .bordered : .borderedProminent
-        )
-        .tint(status.toggleColor)
       }
-
     }
     .animation(.easeInOut(duration: 0.2), value: status)
     .animation(.easeInOut(duration: 0.2), value: policy)
     .padding(.vertical, 4)
+    .alert(
+      pendingAction?.label(for: status) ?? "",
+      isPresented: Binding(
+        get: { pendingAction != nil },
+        set: { if !$0 { pendingAction = nil } }
+      ),
+      presenting: pendingAction
+    ) { action in
+      Button(action.label(for: status), role: action.isDestructive ? .destructive : .none) {
+        performAction(action)
+      }
+      Button(String(localized: "Cancel"), role: .cancel) {}
+    } message: { action in
+      let message = action.confirmationMessage(for: status)
+      if !message.isEmpty {
+        Text(message)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var statusButtonLabel: some View {
+    Label {
+      Text(status.menuLabel)
+    } icon: {
+      Image(systemName: status.menuIcon)
+        .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+    }
+  }
+
+  @ViewBuilder
+  private func actionsView(actions: [SeriesDownloadAction]) -> some View {
+    ForEach(actions) { action in
+      Button(role: action.isDestructive ? .destructive : .none) {
+        handleActionTap(action)
+      } label: {
+        Label(action.label(for: status), systemImage: action.icon(for: status))
+      }
+    }
+  }
+
+  private func handleActionTap(_ action: SeriesDownloadAction) {
+    if action.requiresConfirmation {
+      pendingAction = action
+    } else {
+      performAction(action)
+    }
   }
 
   private func updatePolicy(_ newPolicy: SeriesOfflinePolicy) {
@@ -96,9 +149,27 @@ struct SeriesDownloadActionsSection: View {
     }
   }
 
-  private func toggleSeriesDownload() {
+  private func performAction(_ action: SeriesDownloadAction) {
+    switch action {
+    case .download:
+      downloadAll()
+    case .remove, .cancel:
+      removeAll()
+    }
+  }
+
+  private func downloadAll() {
     Task {
-      await DatabaseOperator.shared.toggleSeriesDownload(
+      await DatabaseOperator.shared.downloadSeriesOffline(
+        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
+      )
+      try? await DatabaseOperator.shared.commit()
+    }
+  }
+
+  private func removeAll() {
+    Task {
+      await DatabaseOperator.shared.removeSeriesOffline(
         seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
       )
       try? await DatabaseOperator.shared.commit()
