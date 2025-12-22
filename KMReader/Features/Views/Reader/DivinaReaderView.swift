@@ -37,6 +37,7 @@ struct DivinaReaderView: View {
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
+  @State private var cachedScreenKey: String = ""
   #if os(tvOS)
     @State private var isEndPageButtonFocused = false
     private enum ReaderFocusAnchor: Hashable {
@@ -118,6 +119,8 @@ struct DivinaReaderView: View {
   var body: some View {
     GeometryReader { geometry in
       let screenKey = "\(Int(geometry.size.width))x\(Int(geometry.size.height))"
+      // Use cached screenKey during dismissal to prevent view recreation from scale animation
+      let stableScreenKey = readerPresentation.isDismissing ? cachedScreenKey : screenKey
       let useDualPage = shouldUseDualPage(screenSize: geometry.size)
 
       ZStack {
@@ -186,7 +189,7 @@ struct DivinaReaderView: View {
               .readerIgnoresSafeArea()
             }
           }
-          .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
+          .id("\(currentBookId)-\(stableScreenKey)-\(readingDirection)")
           .onChange(of: viewModel.currentPageIndex) {
             // Update progress and preload pages in background without blocking UI
             Task(priority: .userInitiated) {
@@ -220,8 +223,18 @@ struct DivinaReaderView: View {
           }
           .readerIgnoresSafeArea()
           .onChange(of: screenKey) {
+            // Don't trigger overlay during dismissal
+            guard !readerPresentation.isDismissing else { return }
+            // Cache the screen key for use during dismissal
+            cachedScreenKey = screenKey
             // Show helper overlay when screen orientation changes
             triggerTapZoneOverlay(timeout: 1)
+          }
+          .onAppear {
+            if cachedScreenKey != screenKey {
+              // Initialize cached screen key
+              cachedScreenKey = screenKey
+            }
           }
         #endif
 
@@ -368,6 +381,8 @@ struct DivinaReaderView: View {
       viewModel.updatePageLayout(newValue)
     }
     .task(id: currentBookId) {
+      // Don't reload book during dismissal
+      guard !readerPresentation.isDismissing else { return }
       if !preserveReaderOptions {
         resetReaderPreferencesForCurrentBook()
       }
@@ -385,11 +400,10 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
-      withAnimation {
-        readerPresentation.hideStatusBar = false
-      }
     }
     .onChange(of: shouldShowControls) { _, newValue in
+      // Don't change status bar during dismissal to avoid geometry changes
+      guard !readerPresentation.isDismissing else { return }
       withAnimation {
         readerPresentation.hideStatusBar = !newValue
       }

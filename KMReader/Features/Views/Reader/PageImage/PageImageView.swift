@@ -142,11 +142,10 @@ struct PageImageView: View {
           .padding()
       }
     }
-    .animation(.easeInOut(duration: 0.25), value: imageURL)
+    .animation(.default, value: imageURL)
+    .animation(.default, value: loadError)
     .task(id: pageIndex) {
-      imageURL = nil
       loadError = nil
-
       // Download to cache if needed, then get file URL
       // SDWebImage will handle decoding and display
       if let page = currentPage {

@@ -38,6 +38,7 @@ class ReaderViewModel {
   var currentPageIndex = 0
   var targetPageIndex: Int? = nil
   var isLoading = true
+  var isDismissing = false
   var pageImageCache: ImageCache
   var incognitoMode: Bool = false
 

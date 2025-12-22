@@ -9,8 +9,9 @@ import SwiftUI
   struct ReaderOverlay: View {
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
+    // Use isDismissing to control opacity/scale animation
     private var isPresented: Bool {
-      readerPresentation.readerState != nil
+      readerPresentation.readerState != nil && !readerPresentation.isDismissing
     }
 
     var body: some View {
@@ -31,10 +32,11 @@ import SwiftUI
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .readerIgnoresSafeArea()
       .opacity(isPresented ? 1 : 0)
       .scaleEffect(isPresented ? 1 : 0.5, anchor: .center)
       .allowsHitTesting(isPresented)
-      .animation(isPresented ? nil : .easeInOut(duration: 0.3), value: isPresented)
+      .animation(isPresented ? .easeInOut(duration: 0.1) : .easeInOut(duration: 0.2), value: isPresented)
     }
   }
 

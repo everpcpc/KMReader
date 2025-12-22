@@ -81,7 +81,7 @@ struct BookReaderView: View {
             )
           }
         }
-      }
+      }.readerIgnoresSafeArea()
     }
     .readerIgnoresSafeArea()
   }

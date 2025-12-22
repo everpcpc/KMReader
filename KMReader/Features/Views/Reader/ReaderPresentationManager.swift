@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import Foundation
 import Observation
 
 @MainActor
@@ -14,6 +15,7 @@ final class ReaderPresentationManager {
   private var onDismiss: (() -> Void)?
 
   var hideStatusBar: Bool = false
+  var isDismissing: Bool = false
 
   #if os(macOS)
     private var openWindowHandler: (() -> Void)?
@@ -30,6 +32,7 @@ final class ReaderPresentationManager {
       }
     #endif
 
+    isDismissing = false
     let state = BookReaderState(book: book, incognito: incognito, readList: readList)
     readerState = state
     self.onDismiss = onDismiss
@@ -58,13 +61,15 @@ final class ReaderPresentationManager {
       return
     }
 
+    isDismissing = true
+
     #if os(macOS)
       if !isWindowDrivenClose {
         ReaderWindowManager.shared.closeReader()
       }
+      // macOS uses window dismissal, clear immediately
+      readerState = nil
     #endif
-
-    readerState = nil
 
     if callHandler {
       let handler = onDismiss
@@ -73,6 +78,19 @@ final class ReaderPresentationManager {
     } else {
       onDismiss = nil
     }
+
+    // iOS/tvOS: delay clearing readerState until animation completes
+    // This preserves view identity and prevents scroll reset
+    #if os(iOS) || os(tvOS)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        self?.readerState = nil
+        self?.isDismissing = false
+      }
+    #else
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        self?.isDismissing = false
+      }
+    #endif
   }
 
   #if os(macOS)
