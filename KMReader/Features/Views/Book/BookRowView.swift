@@ -16,6 +16,7 @@ struct BookRowView: View {
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
 
+  @Environment(\.readerZoomNamespace) private var zoomNamespace
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -45,6 +46,9 @@ struct BookRowView: View {
       HStack(spacing: 12) {
         ThumbnailImage(
           id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4)
+          .ifLet(zoomNamespace) { view, namespace in
+            view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
+          }
 
         VStack(alignment: .leading, spacing: 4) {
           if shouldShowSeriesTitle {

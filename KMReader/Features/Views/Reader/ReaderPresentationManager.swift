@@ -17,6 +17,9 @@ final class ReaderPresentationManager {
   var hideStatusBar: Bool = false
   var isDismissing: Bool = false
 
+  /// Book ID used as source for zoom transition (iOS 18+)
+  private(set) var sourceBookId: String?
+
   #if os(macOS)
     private var openWindowHandler: (() -> Void)?
     private var isWindowDrivenClose = false
@@ -33,6 +36,7 @@ final class ReaderPresentationManager {
     #endif
 
     isDismissing = false
+    sourceBookId = book.id
     let state = BookReaderState(book: book, incognito: incognito, readList: readList)
     readerState = state
     self.onDismiss = onDismiss
@@ -79,12 +83,19 @@ final class ReaderPresentationManager {
       onDismiss = nil
     }
 
-    // iOS/tvOS: delay clearing readerState until animation completes
-    // This preserves view identity and prevents scroll reset
+    // iOS/tvOS: handle state cleanup
     #if os(iOS) || os(tvOS)
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-        self?.readerState = nil
-        self?.isDismissing = false
+      if #available(iOS 18.0, tvOS 18.0, *) {
+        // iOS 18+: fullScreenCover handles animation automatically, clear immediately
+        readerState = nil
+        isDismissing = false
+      } else {
+        // iOS 17 and earlier: delay clearing readerState until custom animation completes
+        // This preserves view identity and prevents scroll reset
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+          self?.readerState = nil
+          self?.isDismissing = false
+        }
       }
     #else
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in

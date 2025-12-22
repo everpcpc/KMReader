@@ -14,6 +14,7 @@ struct BookDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.readerZoomNamespace) private var zoomNamespace
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
@@ -85,6 +86,9 @@ struct BookDetailView: View {
               refreshTrigger: thumbnailRefreshTrigger
             )
             .thumbnailFocus()
+            .ifLet(zoomNamespace) { view, namespace in
+              view.matchedTransitionSourceIfAvailable(id: bookId, in: namespace)
+            }
 
             VStack(alignment: .leading) {
               HStack(spacing: 6) {

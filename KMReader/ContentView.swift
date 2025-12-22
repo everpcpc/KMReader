@@ -16,6 +16,11 @@ struct ContentView: View {
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
 
+  #if os(iOS) || os(tvOS)
+    @Namespace private var readerZoomNamespace
+    @Environment(ReaderPresentationManager.self) private var readerPresentation
+  #endif
+
   private var instanceInitializer: InstanceInitializer {
     InstanceInitializer.shared
   }
@@ -70,6 +75,13 @@ struct ContentView: View {
           }
       }
     }
+    #if os(iOS) || os(tvOS)
+      .environment(\.readerZoomNamespace, readerZoomNamespace)
+      .overlay {
+        ReaderOverlay(namespace: readerZoomNamespace)
+      }
+      .setupNotificationWindow()
+    #endif
   }
 }
 

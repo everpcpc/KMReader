@@ -51,12 +51,7 @@ struct MainApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
-        #if os(iOS) || os(tvOS)
-          .overlay {
-            ReaderOverlay()
-          }
-          .setupNotificationWindow()
-        #elseif os(macOS)
+        #if os(macOS)
           .background(
             MacReaderWindowConfigurator(openWindow: {
               openWindow(id: "reader")

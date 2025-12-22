@@ -18,6 +18,7 @@ struct BookCardView: View {
   var showSeriesNavigation: Bool = true
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
+  @Environment(\.readerZoomNamespace) private var zoomNamespace
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -59,6 +60,9 @@ struct BookCardView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
+        }
+        .ifLet(zoomNamespace) { view, namespace in
+          view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
 
         VStack(alignment: .leading, spacing: 2) {
