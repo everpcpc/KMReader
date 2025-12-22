@@ -15,6 +15,7 @@ struct SettingsReaderView: View {
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
   @AppStorage("dualPageNoCover") private var dualPageNoCover: Bool = false
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
+  @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
@@ -146,6 +147,23 @@ struct SettingsReaderView: View {
                 step: 0.1
               )
               Text("Animation duration when tap to turn pages")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text("Webtoon Tap Scroll Height")
+                Spacer()
+                Text("\(Int(webtoonTapScrollPercentage))%")
+                  .foregroundColor(.secondary)
+              }
+              Slider(
+                value: $webtoonTapScrollPercentage,
+                in: 25...100,
+                step: 5
+              )
+              Text("Scroll distance when tapping to navigate in webtoon mode")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
