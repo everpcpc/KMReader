@@ -26,6 +26,7 @@ struct ReadListDetailView: View {
   @State private var showFilterSheet = false
   @State private var containerWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
+  @State private var thumbnailRefreshTrigger = 0
 
   init(readListId: String) {
     self.readListId = readListId
@@ -58,7 +59,8 @@ struct ReadListDetailView: View {
           HStack(alignment: .top) {
             ThumbnailImage(
               id: readListId, type: .readlist, showPlaceholder: false,
-              width: PlatformHelper.detailThumbnailWidth
+              width: PlatformHelper.detailThumbnailWidth,
+              refreshTrigger: thumbnailRefreshTrigger
             )
             .thumbnailFocus()
 
@@ -190,6 +192,7 @@ extension ReadListDetailView {
     do {
       // Sync from network to SwiftData (readList property will update reactively)
       _ = try await SyncService.shared.syncReadList(id: readListId)
+      reloadThumbnail()
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -218,6 +221,11 @@ extension ReadListDetailView {
     } catch {
       ErrorManager.shared.alert(error: error)
     }
+  }
+
+  private func reloadThumbnail() {
+    guard !AppConfig.isOffline else { return }
+    thumbnailRefreshTrigger += 1
   }
 
   private func formatDate(_ date: Date) -> String {

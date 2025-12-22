@@ -14681,37 +14681,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Metadata refreshed"
+            "value" : "Book metadata refreshed"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Métadonnées mises à jour"
+            "value" : "Métadonnées du livre actualisées"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メタデータを更新しました"
+            "value" : "書籍のメタデータを更新しました"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "메타데이터 새로고침됨"
+            "value" : "책 메타데이터 새로 고쳐짐"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已刷新元数据"
+            "value" : "已刷新书籍元数据"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已刷新後設資料"
+            "value" : "已重新整理書籍中繼資料"
           }
         }
       }
@@ -15407,7 +15407,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Métadonnées de la série mises à jour"
+            "value" : "Métadonnées de la série actualisées"
           }
         },
         "ja" : {
@@ -15419,19 +15419,19 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "시리즈 메타데이터 새로고침됨"
+            "value" : "시리즈 메타데이터 새로 고쳐짐"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系列元数据已刷新"
+            "value" : "已刷新系列元数据"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系列後設資料已刷新"
+            "value" : "已重新整理系列中繼資料"
           }
         }
       }

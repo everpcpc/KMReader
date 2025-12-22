@@ -7,6 +7,7 @@
 
 import Foundation
 import OSLog
+import SDWebImage
 
 enum ThumbnailType: String, CaseIterable {
   case book
@@ -57,21 +58,29 @@ actor ThumbnailCache {
 
   /// Ensures the thumbnail exists locally, downloading it if necessary.
   /// Returns the local file:// URL.
-  func ensureThumbnail(id: String, type: ThumbnailType, page: Int? = nil) async throws -> URL {
+  func ensureThumbnail(id: String, type: ThumbnailType, page: Int? = nil, force: Bool = false)
+    async throws -> URL
+  {
     let fileURL = Self.getThumbnailFileURL(id: id, type: type, page: page)
 
-    if fileManager.fileExists(atPath: fileURL.path) {
+    if !force && fileManager.fileExists(atPath: fileURL.path) {
       return fileURL
     }
 
-    let cacheKey = page != nil ? "\(type.rawValue)#\(id)#\(page!)" : "\(type.rawValue)#\(id)"
+    let cacheKey =
+      page != nil
+      ? "\(type.rawValue)#\(id)#\(page!)#\(force)" : "\(type.rawValue)#\(id)#\(force)"
     if let existingTask = downloadTasks[cacheKey] {
       return try await existingTask.value
     }
 
     let task = Task<URL, Error> {
       let logSuffix = page != nil ? "page \(page!) of book \(id)" : "\(type.rawValue) \(id)"
-      logger.info("📡 Downloading thumbnail for \(logSuffix)")
+      if force {
+        logger.info("📡 Force refreshing thumbnail for \(logSuffix)")
+      } else {
+        logger.info("📡 Downloading thumbnail for \(logSuffix)")
+      }
 
       // Ensure directory exists
       let typeDir = fileURL.deletingLastPathComponent()
@@ -87,13 +96,25 @@ actor ThumbnailCache {
       }
       let (data, _, _) = try await APIClient.shared.requestData(path: path)
 
+      let isNewFile = !FileManager.default.fileExists(atPath: fileURL.path)
       try data.write(to: fileURL, options: [.atomic])
+
+      // Clear memory cache if it was overwritten
+      if !isNewFile {
+        await MainActor.run {
+          SDImageCacheProvider.thumbnailCache.removeImage(
+            forKey: fileURL.absoluteString, fromDisk: false)
+        }
+      }
+
       logger.info("✅ Saved thumbnail for \(type.rawValue) \(id)")
 
-      // Update cached size and count
-      let fileSize = Int64(data.count)
-      await Self.cacheSizeActor.updateSize(delta: fileSize)
-      await Self.cacheSizeActor.updateCount(delta: 1)
+      // Update cached size and count if new
+      if isNewFile {
+        let fileSize = Int64(data.count)
+        await Self.cacheSizeActor.updateSize(delta: fileSize)
+        await Self.cacheSizeActor.updateCount(delta: 1)
+      }
 
       // Proactively cleanup in background
       Task.detached(priority: .utility) {

@@ -31,6 +31,7 @@ struct SeriesDetailView: View {
   @State private var isLoadingCollections = false
   @State private var containerWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
+  @State private var thumbnailRefreshTrigger = 0
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -103,7 +104,8 @@ struct SeriesDetailView: View {
               id: seriesId,
               type: .series,
               showPlaceholder: false,
-              width: PlatformHelper.detailThumbnailWidth
+              width: PlatformHelper.detailThumbnailWidth,
+              refreshTrigger: thumbnailRefreshTrigger
             )
             .thumbnailFocus()
 
@@ -481,6 +483,7 @@ extension SeriesDetailView {
       // Sync from network to SwiftData (series property will update reactively)
       let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await loadSeriesCollections(seriesId: fetchedSeries.id)
+      reloadThumbnail()
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -586,6 +589,11 @@ extension SeriesDetailView {
         }
       }
     }
+  }
+
+  private func reloadThumbnail() {
+    guard !AppConfig.isOffline else { return }
+    thumbnailRefreshTrigger += 1
   }
 
   private func addToCollection(collectionId: String) {

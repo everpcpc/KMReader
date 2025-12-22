@@ -16,6 +16,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let showPlaceholder: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
+  let refreshTrigger: Int
   let overlay: (() -> Overlay)?
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
@@ -28,6 +29,7 @@ struct ThumbnailImage<Overlay: View>: View {
     showPlaceholder: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
+    refreshTrigger: Int = 0,
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {
     self.id = id
@@ -35,6 +37,7 @@ struct ThumbnailImage<Overlay: View>: View {
     self.showPlaceholder = showPlaceholder
     self.width = width
     self.cornerRadius = cornerRadius
+    self.refreshTrigger = refreshTrigger
     self.overlay = overlay
   }
 
@@ -106,19 +109,22 @@ struct ThumbnailImage<Overlay: View>: View {
       }
     }
     .shadow(color: Color.black.opacity(0.5), radius: 4)
-    .task(id: id) {
+    .task(id: "\(id ?? "")_\(refreshTrigger)") {
       guard let id = id else {
         isLoading = false
         return
       }
 
-      isLoading = true
+      if localURL == nil {
+        isLoading = true
+      }
       let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
 
-      if FileManager.default.fileExists(atPath: fileURL.path) {
+      if FileManager.default.fileExists(atPath: fileURL.path) && refreshTrigger == 0 {
         localURL = fileURL
       } else {
-        localURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
+        localURL = try? await ThumbnailCache.shared.ensureThumbnail(
+          id: id, type: type, force: refreshTrigger > 0)
       }
 
       isLoading = false
@@ -132,11 +138,12 @@ extension ThumbnailImage where Overlay == EmptyView {
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
     width: CGFloat,
-    cornerRadius: CGFloat = 8
+    cornerRadius: CGFloat = 8,
+    refreshTrigger: Int = 0
   ) {
     self.init(
       id: id, type: type, showPlaceholder: showPlaceholder,
-      width: width, cornerRadius: cornerRadius
+      width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger
     ) {}
   }
 }

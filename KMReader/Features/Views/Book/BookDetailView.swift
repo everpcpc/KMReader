@@ -27,6 +27,7 @@ struct BookDetailView: View {
   @State private var bookReadLists: [ReadList] = []
   @State private var isLoadingRelations = false
   @State private var showDownloadSheet = false
+  @State private var thumbnailRefreshTrigger = 0
 
   init(bookId: String) {
     self.bookId = bookId
@@ -79,8 +80,11 @@ struct BookDetailView: View {
             .fixedSize(horizontal: false, vertical: true)
 
           HStack(alignment: .top) {
-            ThumbnailImage(id: bookId, type: .book, width: PlatformHelper.detailThumbnailWidth)
-              .thumbnailFocus()
+            ThumbnailImage(
+              id: bookId, type: .book, width: PlatformHelper.detailThumbnailWidth,
+              refreshTrigger: thumbnailRefreshTrigger
+            )
+            .thumbnailFocus()
 
             VStack(alignment: .leading) {
               HStack(spacing: 6) {
@@ -518,6 +522,11 @@ struct BookDetailView: View {
     }
   }
 
+  private func reloadThumbnail() {
+    guard !AppConfig.isOffline else { return }
+    thumbnailRefreshTrigger += 1
+  }
+
   @MainActor
   private func loadBook() async {
     // Only show loading if we don't have cached data
@@ -532,6 +541,7 @@ struct BookDetailView: View {
       Task {
         await loadBookRelations(for: fetchedBook)
       }
+      reloadThumbnail()
     } catch {
       if case APIError.notFound = error {
         dismiss()

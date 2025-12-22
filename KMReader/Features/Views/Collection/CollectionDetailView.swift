@@ -25,6 +25,7 @@ struct CollectionDetailView: View {
   @State private var showFilterSheet = false
   @State private var containerWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
+  @State private var thumbnailRefreshTrigger = 0
 
   init(collectionId: String) {
     self.collectionId = collectionId
@@ -57,7 +58,8 @@ struct CollectionDetailView: View {
           HStack(alignment: .top) {
             ThumbnailImage(
               id: collectionId, type: .collection, showPlaceholder: false,
-              width: PlatformHelper.detailThumbnailWidth
+              width: PlatformHelper.detailThumbnailWidth,
+              refreshTrigger: thumbnailRefreshTrigger
             )
             .thumbnailFocus()
 
@@ -179,6 +181,7 @@ extension CollectionDetailView {
     do {
       // Sync from network to SwiftData (collection property will update reactively)
       _ = try await SyncService.shared.syncCollection(id: collectionId)
+      reloadThumbnail()
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -199,6 +202,11 @@ extension CollectionDetailView {
     } catch {
       ErrorManager.shared.alert(error: error)
     }
+  }
+
+  private func reloadThumbnail() {
+    guard !AppConfig.isOffline else { return }
+    thumbnailRefreshTrigger += 1
   }
 
   private func formatDate(_ date: Date) -> String {
