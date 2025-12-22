@@ -56,9 +56,6 @@ struct PageView: View {
   @Environment(\.readerBackgroundPreference) private var readerBackground
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
-  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
-    ScrollPageTransitionStyle = .default
-  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
 
   var body: some View {
     ScrollViewReader { proxy in
@@ -120,7 +117,7 @@ struct PageView: View {
           onToggleControls: toggleControls
         )
         .id(pageIndex)
-        .readerPageScrollTransition(style: scrollPageTransitionStyle, axis: .vertical)
+        .readerPageScrollTransition(axis: .vertical)
     }
 
     // End page
@@ -166,7 +163,7 @@ struct PageView: View {
       // End page at beginning for RTL
       endPageView(proxy: proxy)
         .id(viewModel.pages.count)
-        .readerPageScrollTransition(style: scrollPageTransitionStyle)
+        .readerPageScrollTransition()
 
       // Pages in reverse order
       ForEach((0..<viewModel.pages.count).reversed(), id: \.self) { pageIndex in
@@ -180,7 +177,7 @@ struct PageView: View {
             onToggleControls: toggleControls
           )
           .id(pageIndex)
-          .readerPageScrollTransition(style: scrollPageTransitionStyle)
+          .readerPageScrollTransition()
       }
     } else {
       // Pages in normal order
@@ -195,13 +192,13 @@ struct PageView: View {
             onToggleControls: toggleControls
           )
           .id(pageIndex)
-          .readerPageScrollTransition(style: scrollPageTransitionStyle)
+          .readerPageScrollTransition()
       }
 
       // End page at end for LTR
       endPageView(proxy: proxy)
         .id(viewModel.pages.count)
-        .readerPageScrollTransition(style: scrollPageTransitionStyle)
+        .readerPageScrollTransition()
     }
   }
 
@@ -255,7 +252,7 @@ struct PageView: View {
         onToggleControls: toggleControls
       )
       .id(pagePair.first)
-      .readerPageScrollTransition(style: scrollPageTransitionStyle)
+      .readerPageScrollTransition()
     }
   }
 

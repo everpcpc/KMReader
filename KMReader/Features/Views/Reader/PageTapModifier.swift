@@ -14,6 +14,8 @@ struct PageTapModifier: ViewModifier {
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
 
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+
   func body(content: Content) -> some View {
     #if os(iOS) || os(macOS)
       content
@@ -43,17 +45,21 @@ struct PageTapModifier: ViewModifier {
 
     if normalizedX < 0.3 {
       // Left tap
-      if readingDirection == .rtl {
-        onNextPage()
-      } else {
-        onPreviousPage()
+      if !disableTapToTurnPage {
+        if readingDirection == .rtl {
+          onNextPage()
+        } else {
+          onPreviousPage()
+        }
       }
     } else if normalizedX > 0.7 {
       // Right tap
-      if readingDirection == .rtl {
-        onPreviousPage()
-      } else {
-        onNextPage()
+      if !disableTapToTurnPage {
+        if readingDirection == .rtl {
+          onPreviousPage()
+        } else {
+          onNextPage()
+        }
       }
     } else {
       onToggleControls()
@@ -66,10 +72,14 @@ struct PageTapModifier: ViewModifier {
 
     if normalizedY < 0.3 {
       // Top tap
-      onPreviousPage()
+      if !disableTapToTurnPage {
+        onPreviousPage()
+      }
     } else if normalizedY > 0.7 {
       // Bottom tap
-      onNextPage()
+      if !disableTapToTurnPage {
+        onNextPage()
+      }
     } else {
       onToggleControls()
     }
