@@ -68,12 +68,8 @@ struct SettingsOfflineTasksView: View {
             .foregroundColor(currentStatus.color)
         }
 
-        Toggle("Notify Download Failure", isOn: $notifyDownloadFailure)
-      } header: {
-        Text("Sync Status")
-      } footer: {
-        if isPaused {
-          Text("Downloads are currently paused.")
+        Toggle(isOn: $notifyDownloadFailure) {
+          Label("Notify Download Failure", systemImage: "bell.badge")
         }
       }
 
