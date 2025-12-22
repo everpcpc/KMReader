@@ -84,6 +84,10 @@ struct SettingsOfflineBooksView: View {
     return result
   }
 
+  private var totalDownloadedSize: Int64 {
+    downloadedBooks.reduce(0) { $0 + $1.downloadedSize }
+  }
+
   var body: some View {
     List {
       if downloadedBooks.isEmpty {
@@ -93,6 +97,16 @@ struct SettingsOfflineBooksView: View {
           description: Text(String(localized: "settings.offline.no_books.description"))
         )
       } else {
+        Section {
+          HStack {
+            Text(String(localized: "settings.offline_books.total_size"))
+              .fontWeight(.semibold)
+            Spacer()
+            Text(formatter.string(fromByteCount: totalDownloadedSize))
+              .foregroundColor(.accentColor)
+          }
+        }
+
         ForEach(groupedBooks) { lGroup in
           Section(
             header: HStack {
@@ -141,7 +155,7 @@ struct SettingsOfflineBooksView: View {
                         deleteBook(book)
                       } label: {
                         Label(String(localized: "Delete"), systemImage: "trash")
-                      }
+                      }.controlSize(.small)
                     }
                   }
                 } label: {
@@ -158,7 +172,7 @@ struct SettingsOfflineBooksView: View {
                     deleteSeries(sGroup.books)
                   } label: {
                     Label(String(localized: "Delete All"), systemImage: "trash")
-                  }
+                  }.controlSize(.small)
                 }
               #endif
             }
@@ -201,7 +215,7 @@ struct SettingsOfflineBooksView: View {
                         deleteBook(book)
                       } label: {
                         Label(String(localized: "Delete"), systemImage: "trash")
-                      }
+                      }.controlSize(.small)
                     }
                   }
                 } label: {
@@ -218,7 +232,7 @@ struct SettingsOfflineBooksView: View {
                     deleteSeries(lGroup.oneshotBooks)
                   } label: {
                     Label(String(localized: "Delete All"), systemImage: "trash")
-                  }
+                  }.controlSize(.small)
                 }
               #endif
             }
