@@ -17,7 +17,9 @@ struct SettingsReaderView: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
+    ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
 
   var body: some View {
@@ -35,19 +37,39 @@ struct SettingsReaderView: View {
             .foregroundColor(.secondary)
         }
 
-        #if os(iOS)
+        #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
-            Picker("Page Transition", selection: $pageTransitionStyle) {
-              ForEach(PageTransitionStyle.allCases, id: \.self) { style in
-                Text(style.displayName).tag(style)
-              }
+            HStack {
+              Text("Tap Page Transition")
+              Spacer()
+              Text(
+                tapPageTransitionDuration == 0
+                  ? String(localized: "None") : String(format: "%.1fs", tapPageTransitionDuration)
+              )
+              .foregroundColor(.secondary)
             }
-            .pickerStyle(.menu)
-            Text(pageTransitionStyle.description)
+            Slider(
+              value: $tapPageTransitionDuration,
+              in: 0...1,
+              step: 0.1
+            )
+            Text("Animation duration when tapping to turn pages")
               .font(.caption)
               .foregroundColor(.secondary)
           }
         #endif
+
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
+            ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
+              Text(style.displayName).tag(style)
+            }
+          }
+          .pickerStyle(.menu)
+          Text(scrollPageTransitionStyle.description)
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
       }
 
       Section(header: Text("Controls")) {
@@ -148,7 +170,7 @@ struct SettingsReaderView: View {
           }
         }
 
-        #if os(iOS)
+        #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
             HStack {
               Text("Webtoon Page Width")

@@ -142,14 +142,6 @@ struct PlatformHelper {
     #endif
   }
 
-  static var readerAnimation: Animation? {
-    #if os(tvOS)
-      return .easeInOut(duration: 0.2)
-    #else
-      return .easeInOut(duration: 0.2)
-    #endif
-  }
-
   /// Get device orientation
   /// - iOS: use `UIDevice.current.orientation`
   /// - tvOS / macOS: always return `.landscape`

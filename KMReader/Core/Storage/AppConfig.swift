@@ -477,17 +477,29 @@ enum AppConfig {
     }
   }
 
-  static var pageTransitionStyle: PageTransitionStyle {
+  static var tapPageTransitionDuration: Double {
     get {
-      if let stored = UserDefaults.standard.string(forKey: "pageTransitionStyle"),
-        let style = PageTransitionStyle(rawValue: stored)
+      if UserDefaults.standard.object(forKey: "tapPageTransitionDuration") != nil {
+        return UserDefaults.standard.double(forKey: "tapPageTransitionDuration")
+      }
+      return 0.2
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "tapPageTransitionDuration")
+    }
+  }
+
+  static var scrollPageTransitionStyle: ScrollPageTransitionStyle {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "scrollPageTransitionStyle"),
+        let style = ScrollPageTransitionStyle(rawValue: stored)
       {
         return style
       }
-      return .simple
+      return .default
     }
     set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "pageTransitionStyle")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "scrollPageTransitionStyle")
     }
   }
 

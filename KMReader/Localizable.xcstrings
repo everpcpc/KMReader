@@ -16638,46 +16638,6 @@
         }
       }
     },
-    "Page Transition" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Page Transition"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transition de page"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ページ遷移"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "페이지 전환"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻页效果"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻頁效果"
-          }
-        }
-      }
-    },
     "Paged" : {
       "localizations" : {
         "en" : {
@@ -18198,7 +18158,7 @@
         }
       }
     },
-    "reader.transition.default" : {
+    "reader.scroll_transition.default" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18238,47 +18198,47 @@
         }
       }
     },
-    "reader.transition.default.description" : {
+    "reader.scroll_transition.default.description" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Standard swipe without any transition effect"
+            "value" : "Standard scrolling without any visual effect"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Balayage standard sans effet de transition"
+            "value" : "Défilement standard sans effet visuel"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "トランジション効果なしの標準スワイプ"
+            "value" : "視覚効果なしの標準スクロール"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "전환 효과 없는 표준 스와이프"
+            "value" : "시각 효과 없는 표준 스크롤"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "标准滑动，无过渡效果"
+            "value" : "标准滚动，无视觉效果"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "標準滑動，無過渡效果"
+            "value" : "標準滾動，無視覺效果"
           }
         }
       }
     },
-    "reader.transition.fancy" : {
+    "reader.scroll_transition.fancy" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18318,47 +18278,47 @@
         }
       }
     },
-    "reader.transition.fancy.description" : {
+    "reader.scroll_transition.fancy.description" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scale and blur effect when turning pages"
+            "value" : "Scale and blur effect when scrolling pages"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Effet de zoom et de flou lors du changement de page"
+            "value" : "Effet de zoom et de flou lors du défilement"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ページめくり時にスケールとぼかし効果"
+            "value" : "スクロール時にスケールとぼかし効果"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "페이지 넘길 때 크기 조정 및 흐림 효과"
+            "value" : "스크롤 시 크기 조정 및 흐림 효과"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "翻页时带有缩放和模糊效果"
+            "value" : "滚动时带有缩放和模糊效果"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "翻頁時帶有縮放和模糊效果"
+            "value" : "滾動時帶有縮放和模糊效果"
           }
         }
       }
     },
-    "reader.transition.none" : {
+    "reader.tap_transition.none" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18369,7 +18329,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun"
+            "value" : "Aucune"
           }
         },
         "ja" : {
@@ -18398,122 +18358,122 @@
         }
       }
     },
-    "reader.transition.none.description" : {
+    "reader.tap_transition.none.description" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Instant page switch without any animation"
+            "value" : "Instant page switch when tapping"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Changement de page instantané sans animation"
+            "value" : "Changement de page instantané au toucher"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アニメーションなしで瞬時にページ切り替え"
+            "value" : "タップで瞬時にページ切り替え"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "애니메이션 없는 즉시 페이지 전환"
+            "value" : "탭 시 즉시 페이지 전환"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无任何动画，瞬间切换页面"
+            "value" : "点击时瞬间切换页面"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無任何動畫，瞬間切換頁面"
+            "value" : "點擊時瞬間切換頁面"
           }
         }
       }
     },
-    "reader.transition.simple" : {
+    "reader.tap_transition.scroll" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Simple"
+            "value" : "Scroll"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Simple"
+            "value" : "Défilement"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "シンプル"
+            "value" : "スクロール"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "간단"
+            "value" : "스크롤"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "简单"
+            "value" : "滚动"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "簡單"
+            "value" : "滾動"
           }
         }
       }
     },
-    "reader.transition.simple.description" : {
+    "reader.tap_transition.scroll.description" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Light fade effect when turning pages"
+            "value" : "Smooth scroll animation when tapping"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Léger effet de fondu lors du changement de page"
+            "value" : "Animation de défilement fluide au toucher"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ページめくり時に軽いフェード効果"
+            "value" : "タップ時にスムーズなスクロールアニメーション"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "페이지 넘길 때 가벼운 페이드 효과"
+            "value" : "탭 시 부드러운 스크롤 애니메이션"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "翻页时轻微淡入淡出效果"
+            "value" : "点击时平滑滚动动画"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "翻頁時輕微淡入淡出效果"
+            "value" : "點擊時平滑滾動動畫"
           }
         }
       }
@@ -20077,6 +20037,9 @@
           }
         }
       }
+    },
+    "Scroll Page Transition" : {
+
     },
     "Select a setting" : {
       "localizations" : {
@@ -25109,6 +25072,9 @@
           }
         }
       }
+    },
+    "Tap Page Transition" : {
+
     },
     "Tap will only show/hide controls, not turn pages" : {
       "localizations" : {

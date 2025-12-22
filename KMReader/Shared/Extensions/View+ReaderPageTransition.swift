@@ -2,19 +2,13 @@ import SwiftUI
 
 extension View {
   @ViewBuilder
-  func readerPageScrollTransition(style: PageTransitionStyle, axis: Axis = .horizontal) -> some View
+  func readerPageScrollTransition(style: ScrollPageTransitionStyle, axis: Axis = .horizontal)
+    -> some View
   {
     #if os(iOS)
       switch style {
-      case .none, .default:
+      case .default:
         self
-      case .simple:
-        scrollTransition(.interactive, axis: axis) {
-          content,
-          phase in
-          content
-            .opacity(phase.isIdentity ? 1 : 0.5)
-        }
       case .fancy:
         scrollTransition(.interactive, axis: axis) {
           content,

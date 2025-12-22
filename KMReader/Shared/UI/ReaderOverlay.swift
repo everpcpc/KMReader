@@ -36,7 +36,8 @@ import SwiftUI
       .opacity(isPresented ? 1 : 0)
       .scaleEffect(isPresented ? 1 : 0.5, anchor: .center)
       .allowsHitTesting(isPresented)
-      .animation(isPresented ? .easeInOut(duration: 0.1) : .easeInOut(duration: 0.2), value: isPresented)
+      .animation(
+        isPresented ? .easeInOut(duration: 0.1) : .easeInOut(duration: 0.2), value: isPresented)
     }
   }
 

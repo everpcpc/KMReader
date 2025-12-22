@@ -55,7 +55,9 @@ struct PageView: View {
   @State private var isZoomed = false
   @Environment(\.readerBackgroundPreference) private var readerBackground
   @Environment(ReaderPresentationManager.self) private var readerPresentation
-  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
+    ScrollPageTransitionStyle = .default
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
 
   var body: some View {
@@ -118,7 +120,7 @@ struct PageView: View {
           onToggleControls: toggleControls
         )
         .id(pageIndex)
-        .readerPageScrollTransition(style: pageTransitionStyle, axis: .vertical)
+        .readerPageScrollTransition(style: scrollPageTransitionStyle, axis: .vertical)
     }
 
     // End page
@@ -164,7 +166,7 @@ struct PageView: View {
       // End page at beginning for RTL
       endPageView(proxy: proxy)
         .id(viewModel.pages.count)
-        .readerPageScrollTransition(style: pageTransitionStyle)
+        .readerPageScrollTransition(style: scrollPageTransitionStyle)
 
       // Pages in reverse order
       ForEach((0..<viewModel.pages.count).reversed(), id: \.self) { pageIndex in
@@ -178,7 +180,7 @@ struct PageView: View {
             onToggleControls: toggleControls
           )
           .id(pageIndex)
-          .readerPageScrollTransition(style: pageTransitionStyle)
+          .readerPageScrollTransition(style: scrollPageTransitionStyle)
       }
     } else {
       // Pages in normal order
@@ -193,13 +195,13 @@ struct PageView: View {
             onToggleControls: toggleControls
           )
           .id(pageIndex)
-          .readerPageScrollTransition(style: pageTransitionStyle)
+          .readerPageScrollTransition(style: scrollPageTransitionStyle)
       }
 
       // End page at end for LTR
       endPageView(proxy: proxy)
         .id(viewModel.pages.count)
-        .readerPageScrollTransition(style: pageTransitionStyle)
+        .readerPageScrollTransition(style: scrollPageTransitionStyle)
     }
   }
 
@@ -253,7 +255,7 @@ struct PageView: View {
         onToggleControls: toggleControls
       )
       .id(pagePair.first)
-      .readerPageScrollTransition(style: pageTransitionStyle)
+      .readerPageScrollTransition(style: scrollPageTransitionStyle)
     }
   }
 
@@ -338,7 +340,9 @@ struct PageView: View {
     }
 
     if scrollPosition != targetScrollPosition {
-      withAnimation(pageTransitionStyle.scrollAnimation) {
+      let animation: Animation? =
+        tapPageTransitionDuration > 0 ? .easeInOut(duration: tapPageTransitionDuration) : nil
+      withAnimation(animation) {
         scrollPosition = targetScrollPosition
         proxy.scrollTo(targetScrollPosition, anchor: .center)
       }
