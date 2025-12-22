@@ -2052,42 +2052,42 @@
         }
       }
     },
-    "Animation duration when tapping to turn pages" : {
+    "Animation duration when tap to turn pages" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Animation duration when tapping to turn pages"
+            "value" : "Animation duration when tap to turn pages"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Durée de l'animation lors du toucher pour tourner les pages"
+            "value" : "Durée de l'animation quand on appuie pour tourner les pages"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "タップでページをめくる時のアニメーション時間"
+            "value" : "タップでページをめくるアニメーション時間"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "탭하여 페이지 넘길 때 애니메이션 지속 시간"
+            "value" : "탭하여 페이지를 넘길 때의 애니메이션 시간"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "点击翻页时的动画时长"
+            "value" : "点击翻页的动画时长"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "點擊翻頁時的動畫時長"
+            "value" : "點擊翻頁的動畫時長"
           }
         }
       }
@@ -5652,46 +5652,6 @@
         }
       }
     },
-    "Controls" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controls"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contrôles"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "操作"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "조작"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "控制"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "控制"
-          }
-        }
-      }
-    },
     "Copy" : {
       "localizations" : {
         "en" : {
@@ -7688,46 +7648,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打開閱讀器時顯示點擊區域提示"
-          }
-        }
-      }
-    },
-    "Display the cover alongside the next page instead of on its own" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display the cover alongside the next page instead of on its own"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher la couverture à côté de la page suivante plutôt que seule"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "表紙を単独ページではなく次ページと並べて表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "표지를 단독으로 표시하지 않고 다음 페이지와 함께 표시"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "封面与下一页并排显示，不单独占页"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "封面與下一頁並排顯示，不單獨佔頁"
           }
         }
       }
@@ -16196,6 +16116,46 @@
         }
       }
     },
+    "Only applies to current reading session" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only applies to current reading session"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S'applique uniquement à la session de lecture en cours"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の読書セッションにのみ適用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 독서 세션에만 적용"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅适用于当前阅读会话"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅適用於當前閱讀工作階段"
+          }
+        }
+      }
+    },
     "Operating System" : {
       "localizations" : {
         "en" : {
@@ -16352,46 +16312,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇單頁、自動跨頁或強制雙頁（僅橫向）"
-          }
-        }
-      }
-    },
-    "Options" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Options"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Options"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オプション"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "옵션"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选项"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選項"
           }
         }
       }
@@ -16714,6 +16634,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "頁邊距: %@"
+          }
+        }
+      }
+    },
+    "Page Turn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page Turn"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tourner la page"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページめくり"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 넘기기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻頁"
           }
         }
       }
@@ -17794,6 +17754,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閱讀器背景"
+          }
+        }
+      }
+    },
+    "Reader Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reader Settings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paramètres du lecteur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リーダー設定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "리더 설정"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读器设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀器設定"
           }
         }
       }
@@ -25030,42 +25030,42 @@
         }
       }
     },
-    "Tap Page Transition" : {
+    "Tap Page Scroll Duration" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap Page Transition"
+            "value" : "Tap Page Scroll Duration"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Transition au toucher"
+            "value" : "Durée du défilement lors de l'appui"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "タップ遷移効果"
+            "value" : "タップページスクロール時間"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "탭 페이지 전환"
+            "value" : "탭 페이지 스크롤 시간"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "点击翻页效果"
+            "value" : "点击翻页滚动时长"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "點擊翻頁效果"
+            "value" : "點擊翻頁捲動時長"
           }
         }
       }
