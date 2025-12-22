@@ -326,7 +326,7 @@
             }
 
             if let totalProgression {
-              ReadingProgressBar(progress: totalProgression, backgroundColor: .gray)
+              ReadingProgressBar(progress: totalProgression)
                 .opacity(shouldShowControls ? 1.0 : 0.0)
             }
           }
