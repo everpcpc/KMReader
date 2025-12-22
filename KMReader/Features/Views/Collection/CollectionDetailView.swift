@@ -180,7 +180,9 @@ extension CollectionDetailView {
       // Sync from network to SwiftData (collection property will update reactively)
       _ = try await SyncService.shared.syncCollection(id: collectionId)
     } catch {
-      if komgaCollection == nil {
+      if case APIError.notFound = error {
+        dismiss()
+      } else if komgaCollection == nil {
         ErrorManager.shared.alert(error: error)
       }
     }

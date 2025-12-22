@@ -482,7 +482,9 @@ extension SeriesDetailView {
       let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await loadSeriesCollections(seriesId: fetchedSeries.id)
     } catch {
-      if komgaSeries == nil {
+      if case APIError.notFound = error {
+        dismiss()
+      } else if komgaSeries == nil {
         ErrorManager.shared.alert(error: error)
       }
     }

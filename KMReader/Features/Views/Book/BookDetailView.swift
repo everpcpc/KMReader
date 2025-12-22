@@ -533,9 +533,13 @@ struct BookDetailView: View {
         await loadBookRelations(for: fetchedBook)
       }
     } catch {
-      isLoading = false
-      if komgaBook == nil {
-        ErrorManager.shared.alert(error: error)
+      if case APIError.notFound = error {
+        dismiss()
+      } else {
+        isLoading = false
+        if komgaBook == nil {
+          ErrorManager.shared.alert(error: error)
+        }
       }
     }
   }

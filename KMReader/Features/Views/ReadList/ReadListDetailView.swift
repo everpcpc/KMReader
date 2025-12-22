@@ -191,7 +191,9 @@ extension ReadListDetailView {
       // Sync from network to SwiftData (readList property will update reactively)
       _ = try await SyncService.shared.syncReadList(id: readListId)
     } catch {
-      if komgaReadList == nil {
+      if case APIError.notFound = error {
+        dismiss()
+      } else if komgaReadList == nil {
         ErrorManager.shared.alert(error: error)
       }
     }

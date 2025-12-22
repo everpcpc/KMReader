@@ -61,6 +61,14 @@ actor DatabaseOperator {
     }
   }
 
+  func deleteBook(id: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(id)"
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let existing = try? modelContext.fetch(descriptor).first {
+      modelContext.delete(existing)
+    }
+  }
+
   func upsertBooks(_ books: [Book], instanceId: String) {
     for book in books {
       upsertBook(dto: book, instanceId: instanceId)
@@ -189,6 +197,14 @@ actor DatabaseOperator {
     }
   }
 
+  func deleteSeries(id: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(id)"
+    let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
+    if let existing = try? modelContext.fetch(descriptor).first {
+      modelContext.delete(existing)
+    }
+  }
+
   func upsertSeriesList(_ seriesList: [Series], instanceId: String) {
     for series in seriesList {
       upsertSeries(dto: series, instanceId: instanceId)
@@ -226,6 +242,15 @@ actor DatabaseOperator {
     }
   }
 
+  func deleteCollection(id: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(id)"
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { $0.id == compositeId })
+    if let existing = try? modelContext.fetch(descriptor).first {
+      modelContext.delete(existing)
+    }
+  }
+
   func upsertCollections(_ collections: [SeriesCollection], instanceId: String) {
     for col in collections {
       upsertCollection(dto: col, instanceId: instanceId)
@@ -257,6 +282,14 @@ actor DatabaseOperator {
         bookIds: dto.bookIds
       )
       modelContext.insert(newReadList)
+    }
+  }
+
+  func deleteReadList(id: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(id)"
+    let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
+    if let existing = try? modelContext.fetch(descriptor).first {
+      modelContext.delete(existing)
     }
   }
 
