@@ -22,6 +22,7 @@ struct PageImageView: View {
   @State private var isSaving = false
   @State private var showDocumentPicker = false
   @State private var fileToSave: URL?
+  @State private var imageLoaded = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
   private var currentPage: BookPage? {
@@ -60,6 +61,9 @@ struct PageImageView: View {
               .queryCacheType: SDImageCacheType.memory.rawValue,
             ]
           )
+          .onSuccess { _, _, _ in
+            imageLoaded = true
+          }
           .placeholder {
             ProgressView()
           }
@@ -67,7 +71,7 @@ struct PageImageView: View {
           .aspectRatio(contentMode: .fit)
           .transition(.opacity)
 
-          if showPageNumber {
+          if showPageNumber && imageLoaded {
             pageNumberOverlay
           }
         }
@@ -144,7 +148,13 @@ struct PageImageView: View {
     }
     .animation(.default, value: imageURL)
     .animation(.default, value: loadError)
+    .onChange(of: imageURL) { _, _ in
+      imageLoaded = false
+    }
     .task(id: pageIndex) {
+      // Skip if image URL is already loaded
+      guard imageURL == nil else { return }
+
       loadError = nil
       // Download to cache if needed, then get file URL
       // SDWebImage will handle decoding and display
