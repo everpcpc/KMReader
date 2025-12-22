@@ -13,6 +13,12 @@ struct SettingsOfflineTasksView: View {
   @AppStorage("currentInstanceId") private var instanceId: String = ""
   @AppStorage("offlinePaused") private var isPaused: Bool = false
   @AppStorage("notifyDownloadFailure") private var notifyDownloadFailure: Bool = true
+  @State private var showingBulkAlert = false
+  @State private var pendingBulkAction: BulkAction?
+
+  enum BulkAction {
+    case retryAll, cancelAll
+  }
 
   @Query private var books: [KomgaBook]
 
@@ -92,10 +98,40 @@ struct SettingsOfflineTasksView: View {
       }
 
       if !failedBooks.isEmpty {
-        Section("Failed") {
+        Section {
           ForEach(failedBooks) { book in
             OfflineTaskRow()
               .environment(book)
+          }
+        } header: {
+          HStack {
+            Text("Failed")
+            Spacer()
+            HStack(spacing: 8) {
+              Button {
+                pendingBulkAction = .retryAll
+                showingBulkAlert = true
+              } label: {
+                Text("Retry All")
+                  .font(.caption)
+              }
+              .adaptiveButtonStyle(.bordered)
+              .tint(.blue)
+              .buttonBorderShape(.capsule)
+              .controlSize(.mini)
+
+              Button {
+                pendingBulkAction = .cancelAll
+                showingBulkAlert = true
+              } label: {
+                Text("Cancel All")
+                  .font(.caption)
+              }
+              .adaptiveButtonStyle(.bordered)
+              .tint(.red)
+              .buttonBorderShape(.capsule)
+              .controlSize(.mini)
+            }
           }
         }
       }
@@ -110,6 +146,30 @@ struct SettingsOfflineTasksView: View {
     }
     .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
     .animation(.default, value: isPaused)
+    .alert(
+      "Confirm Action", isPresented: $showingBulkAlert,
+      presenting: pendingBulkAction
+    ) { action in
+      Button(role: .destructive) {
+        Task {
+          switch action {
+          case .retryAll:
+            await OfflineManager.shared.retryFailedDownloads(instanceId: instanceId)
+          case .cancelAll:
+            await OfflineManager.shared.cancelFailedDownloads(instanceId: instanceId)
+          }
+        }
+      } label: {
+        Text(action == .retryAll ? "Retry All" : "Cancel All")
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: { action in
+      Text(
+        action == .retryAll
+          ? "Are you sure you want to retry all failed downloads?"
+          : "Are you sure you want to cancel all failed downloads?"
+      )
+    }
     .onChange(of: isPaused) { _, newValue in
       if !newValue {
         OfflineManager.shared.triggerSync(instanceId: instanceId, restart: true)
@@ -119,6 +179,7 @@ struct SettingsOfflineTasksView: View {
 }
 
 struct OfflineTaskRow: View {
+  @AppStorage("currentInstanceId") private var instanceId: String = ""
   @Environment(KomgaBook.self) private var book
 
   private var progress: Double? {
@@ -161,17 +222,31 @@ struct OfflineTaskRow: View {
       Spacer()
 
       #if !os(tvOS)
-        Button(role: .destructive) {
-          Task {
-            await OfflineManager.shared.cancelDownload(bookId: book.bookId)
-            let instanceId = AppConfig.currentInstanceId
-            OfflineManager.shared.triggerSync(instanceId: instanceId)
+        HStack(spacing: 16) {
+          if case .failed = book.downloadStatus {
+            Button {
+              Task {
+                await OfflineManager.shared.retryDownload(
+                  instanceId: instanceId, bookId: book.bookId)
+              }
+            } label: {
+              Image(systemName: "arrow.clockwise.circle")
+                .foregroundColor(.blue)
+            }
+            .adaptiveButtonStyle(.plain)
           }
-        } label: {
-          Image(systemName: "xmark.circle")
-            .foregroundColor(.red)
+
+          Button(role: .destructive) {
+            Task {
+              await OfflineManager.shared.cancelDownload(bookId: book.bookId)
+              OfflineManager.shared.triggerSync(instanceId: instanceId)
+            }
+          } label: {
+            Image(systemName: book.downloadStatusRaw == "failed" ? "trash" : "xmark.circle")
+              .foregroundColor(.red)
+          }
+          .adaptiveButtonStyle(.plain)
         }
-        .buttonStyle(.plain)
       #endif
     }
     .padding(.vertical, 4)

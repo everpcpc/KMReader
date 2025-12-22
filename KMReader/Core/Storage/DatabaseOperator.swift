@@ -658,6 +658,32 @@ actor DatabaseOperator {
     }
   }
 
+  func retryFailedBooks(instanceId: String) {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
+    )
+    if let results = try? modelContext.fetch(descriptor) {
+      for book in results {
+        book.downloadStatusRaw = "pending"
+        book.downloadError = nil
+        book.downloadAt = Date.now
+      }
+    }
+  }
+
+  func cancelFailedBooks(instanceId: String) {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
+    )
+    if let results = try? modelContext.fetch(descriptor) {
+      for book in results {
+        book.downloadStatusRaw = "notDownloaded"
+        book.downloadError = nil
+        book.downloadAt = nil
+      }
+    }
+  }
+
   // MARK: - Instance Operations
 
   @discardableResult
