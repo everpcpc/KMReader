@@ -103,8 +103,10 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          Toggle(isOn: $showPageNumber) {
-            Text("Always Show Page Number")
+          if readingDirection != .webtoon {
+            Toggle(isOn: $showPageNumber) {
+              Text("Always Show Page Number")
+            }
           }
 
           #if os(iOS) || os(macOS)
@@ -129,16 +131,18 @@ struct ReaderSettingsSheet: View {
         // MARK: - Page Turn Section
 
         Section(header: Text("Page Turn")) {
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
-              ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
-                Text(style.displayName).tag(style)
+          if readingDirection != .webtoon {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
+                ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
+                  Text(style.displayName).tag(style)
+                }
               }
+              .pickerStyle(.menu)
+              Text(scrollPageTransitionStyle.description)
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
-            .pickerStyle(.menu)
-            Text(scrollPageTransitionStyle.description)
-              .font(.caption)
-              .foregroundColor(.secondary)
           }
 
           #if os(macOS)
