@@ -44,6 +44,7 @@ struct ReadListsBrowseView: View {
             ForEach(Array(viewModel.browseReadLists.enumerated()), id: \.element.id) {
               index, readList in
               ReadListItemQueryView(
+                readList: readList,
                 width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
@@ -51,7 +52,6 @@ struct ReadListsBrowseView: View {
                   }
                 }
               )
-              .environment(readList)
               .onAppear {
                 if index >= viewModel.browseReadLists.count - 3 {
                   Task {
@@ -66,6 +66,7 @@ struct ReadListsBrowseView: View {
             ForEach(Array(viewModel.browseReadLists.enumerated()), id: \.element.id) {
               index, readList in
               ReadListItemQueryView(
+                readList: readList,
                 layout: .list,
                 onActionCompleted: {
                   Task {
@@ -73,7 +74,6 @@ struct ReadListsBrowseView: View {
                   }
                 }
               )
-              .environment(readList)
               .onAppear {
                 if index >= viewModel.browseReadLists.count - 3 {
                   Task {

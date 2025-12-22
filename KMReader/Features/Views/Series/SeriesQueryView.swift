@@ -36,6 +36,7 @@ struct SeriesQueryView: View {
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
             BrowseSeriesItemView(
+              series: series,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onActionCompleted: {
@@ -44,7 +45,6 @@ struct SeriesQueryView: View {
                 }
               }
             )
-            .environment(series)
             .onAppear {
               if index >= viewModel.browseSeries.count - 3 {
                 Task {
@@ -58,6 +58,7 @@ struct SeriesQueryView: View {
         LazyVStack(spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
             BrowseSeriesItemView(
+              series: series,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onActionCompleted: {
@@ -66,7 +67,6 @@ struct SeriesQueryView: View {
                 }
               }
             )
-            .environment(series)
             .onAppear {
               if index >= viewModel.browseSeries.count - 3 {
                 Task {
@@ -82,7 +82,7 @@ struct SeriesQueryView: View {
 }
 
 private struct BrowseSeriesItemView: View {
-  @Environment(KomgaSeries.self) private var series
+  @Bindable var series: KomgaSeries
   let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   let onActionCompleted: (() -> Void)?
@@ -92,11 +92,13 @@ private struct BrowseSeriesItemView: View {
       switch layout {
       case .grid:
         SeriesCardView(
+          komgaSeries: series,
           cardWidth: cardWidth,
           onActionCompleted: onActionCompleted
         )
       case .list:
         SeriesRowView(
+          komgaSeries: series,
           onActionCompleted: onActionCompleted
         )
       }

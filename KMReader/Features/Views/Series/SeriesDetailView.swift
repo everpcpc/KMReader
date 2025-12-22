@@ -371,8 +371,7 @@ struct SeriesDetailView: View {
 
           Divider()
           if let komgaSeries = komgaSeries {
-            SeriesDownloadActionsSection()
-              .environment(komgaSeries)
+            SeriesDownloadActionsSection(komgaSeries: komgaSeries)
           }
           Divider()
           if containerWidth > 0 {

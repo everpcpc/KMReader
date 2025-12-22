@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ReadListRowView: View {
-  @Environment(KomgaReadList.self) private var komgaReadList
+  @Bindable var komgaReadList: KomgaReadList
   var onActionCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false

@@ -38,6 +38,7 @@ struct BooksQueryView: View {
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseBooks.enumerated()), id: \.element.id) { index, book in
             BrowseBookItemView(
+              book: book,
               viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
@@ -48,7 +49,6 @@ struct BooksQueryView: View {
                 }
               }
             )
-            .environment(book)
             .onAppear {
               if index >= viewModel.browseBooks.count - 3 {
                 Task {
@@ -62,6 +62,7 @@ struct BooksQueryView: View {
         LazyVStack(spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseBooks.enumerated()), id: \.element.id) { index, book in
             BrowseBookItemView(
+              book: book,
               viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
@@ -72,7 +73,6 @@ struct BooksQueryView: View {
                 }
               }
             )
-            .environment(book)
             .onAppear {
               if index >= viewModel.browseBooks.count - 3 {
                 Task {
@@ -88,7 +88,7 @@ struct BooksQueryView: View {
 }
 
 private struct BrowseBookItemView: View {
-  @Environment(KomgaBook.self) private var book
+  @Bindable var book: KomgaBook
   let viewModel: BookViewModel
   let cardWidth: CGFloat
   let layout: BrowseLayoutMode
@@ -99,6 +99,7 @@ private struct BrowseBookItemView: View {
     switch layout {
     case .grid:
       BookCardView(
+        komgaBook: book,
         viewModel: viewModel,
         cardWidth: cardWidth,
         onReadBook: { incognito in
@@ -110,6 +111,7 @@ private struct BrowseBookItemView: View {
       .focusPadding()
     case .list:
       BookRowView(
+        komgaBook: book,
         viewModel: viewModel,
         onReadBook: { incognito in
           readerPresentation.present(book: book.toBook(), incognito: incognito)

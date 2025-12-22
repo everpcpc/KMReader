@@ -86,8 +86,7 @@ struct SettingsOfflineTasksView: View {
       if !downloadingBooks.isEmpty {
         Section("Downloading") {
           ForEach(downloadingBooks) { book in
-            OfflineTaskRow()
-              .environment(book)
+            OfflineTaskRow(book: book)
           }
         }
       }
@@ -95,8 +94,7 @@ struct SettingsOfflineTasksView: View {
       if !pendingBooks.isEmpty {
         Section("Pending") {
           ForEach(pendingBooks) { book in
-            OfflineTaskRow()
-              .environment(book)
+            OfflineTaskRow(book: book)
           }
         }
       }
@@ -104,8 +102,7 @@ struct SettingsOfflineTasksView: View {
       if !failedBooks.isEmpty {
         Section {
           ForEach(failedBooks) { book in
-            OfflineTaskRow()
-              .environment(book)
+            OfflineTaskRow(book: book)
           }
         } header: {
           HStack {
@@ -186,7 +183,7 @@ struct SettingsOfflineTasksView: View {
 
 struct OfflineTaskRow: View {
   @AppStorage("currentInstanceId") private var instanceId: String = ""
-  @Environment(KomgaBook.self) private var book
+  @Bindable var book: KomgaBook
 
   private var progress: Double? {
     DownloadProgressTracker.shared.progress[book.bookId]

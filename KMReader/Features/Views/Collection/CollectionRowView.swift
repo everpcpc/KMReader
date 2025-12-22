@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CollectionRowView: View {
-  @Environment(KomgaCollection.self) private var komgaCollection
+  @Bindable var komgaCollection: KomgaCollection
   var onActionCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false

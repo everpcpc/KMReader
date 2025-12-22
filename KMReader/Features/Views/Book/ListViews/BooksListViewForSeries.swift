@@ -28,6 +28,17 @@ struct BooksListViewForSeries: View {
         Text("Books")
           .font(.headline)
 
+        Button {
+          Task {
+            await refreshBooks(refresh: true)
+          }
+        } label: {
+          Image(systemName: "arrow.clockwise")
+        }
+        .disabled(bookViewModel.isLoading)
+        .adaptiveButtonStyle(.bordered)
+        .controlSize(.mini)
+
         Spacer()
 
         BookFilterView(
@@ -44,38 +55,31 @@ struct BooksListViewForSeries: View {
         layoutHelper: layoutHelper,
         browseLayout: layoutMode,
         refreshBooks: {
-          refreshBooks()
+          Task {
+            await refreshBooks(refresh: false)
+          }
         },
         loadMore: { refresh in
-          await bookViewModel.loadSeriesBooks(
-            context: modelContext,
-            seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
-            refresh: refresh)
+          await refreshBooks(refresh: refresh)
         }
       )
     }
     .task(id: seriesId) {
-      await bookViewModel.loadSeriesBooks(
-        context: modelContext,
-        seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds)
+      await refreshBooks(refresh: true)
     }
     .onChange(of: browseOpts) {
       Task {
-        await bookViewModel.loadSeriesBooks(
-          context: modelContext,
-          seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds)
+        await refreshBooks(refresh: true)
       }
     }
   }
 }
 
 extension BooksListViewForSeries {
-  fileprivate func refreshBooks() {
-    Task {
-      await bookViewModel.loadSeriesBooks(
-        context: modelContext,
-        seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds, refresh: false
-      )
-    }
+  fileprivate func refreshBooks(refresh: Bool) async {
+    await bookViewModel.loadSeriesBooks(
+      context: modelContext,
+      seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds, refresh: refresh
+    )
   }
 }

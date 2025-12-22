@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct CollectionItemQueryView: View {
-  @Environment(KomgaCollection.self) private var collection
+  @Bindable var collection: KomgaCollection
   var width: CGFloat = PlatformHelper.dashboardCardWidth
   var layout: BrowseLayoutMode = .grid
   var onActionCompleted: (() -> Void)?
@@ -18,12 +18,14 @@ struct CollectionItemQueryView: View {
     switch layout {
     case .grid:
       CollectionCardView(
+        komgaCollection: collection,
         width: width,
         onActionCompleted: onActionCompleted
       )
       .focusPadding()
     case .list:
       CollectionRowView(
+        komgaCollection: collection,
         onActionCompleted: onActionCompleted
       )
     }

@@ -119,6 +119,7 @@ struct LibraryListContent: View {
           allLibrariesRowView()
           ForEach(libraries, id: \.libraryId) { library in
             LibraryRowView(
+              library: library,
               isPerforming: performingLibraryIds.contains(library.libraryId),
               isSelected: selectedLibraryIds.contains(library.libraryId),
               isAdmin: isAdmin,
@@ -152,7 +153,6 @@ struct LibraryListContent: View {
                 onDeleteLibrary?(library)
               }
             )
-            .environment(library)
           }
         }
         .listRowBackground(Color.clear)

@@ -8,7 +8,7 @@ import SwiftUI
 
 struct LibraryRowView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @Environment(KomgaLibrary.self) private var library
+  @Bindable var library: KomgaLibrary
   let isPerforming: Bool
   let isSelected: Bool
   let isAdmin: Bool

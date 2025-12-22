@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ReadListCardView: View {
-  @Environment(KomgaReadList.self) private var komgaReadList
+  @Bindable var komgaReadList: KomgaReadList
   let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 

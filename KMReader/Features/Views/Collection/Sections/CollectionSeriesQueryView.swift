@@ -69,10 +69,10 @@ struct CollectionSeriesQueryView: View {
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesCardView(
+                    komgaSeries: s,
                     cardWidth: layoutHelper.cardWidth,
                     onActionCompleted: onActionCompleted
                   )
-                  .environment(s)
                   .focusPadding()
                   .allowsHitTesting(false)
                   .overlay(alignment: .topTrailing) {
@@ -102,10 +102,10 @@ struct CollectionSeriesQueryView: View {
                 } else {
                   NavigationLink(value: NavDestination.seriesDetail(seriesId: s.seriesId)) {
                     SeriesCardView(
+                      komgaSeries: s,
                       cardWidth: layoutHelper.cardWidth,
                       onActionCompleted: onActionCompleted
                     )
-                    .environment(s)
                   }
                   .focusPadding()
                   .adaptiveButtonStyle(.plain)
@@ -125,9 +125,9 @@ struct CollectionSeriesQueryView: View {
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesRowView(
+                    komgaSeries: s,
                     onActionCompleted: onActionCompleted
                   )
-                  .environment(s)
                   .allowsHitTesting(false)
                   .overlay(alignment: .trailing) {
                     Image(
@@ -155,9 +155,9 @@ struct CollectionSeriesQueryView: View {
                 } else {
                   NavigationLink(value: NavDestination.seriesDetail(seriesId: s.seriesId)) {
                     SeriesRowView(
+                      komgaSeries: s,
                       onActionCompleted: onActionCompleted
                     )
-                    .environment(s)
                   }
                   .adaptiveButtonStyle(.plain)
                 }

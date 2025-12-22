@@ -9,7 +9,7 @@ import SwiftUI
 
 @MainActor
 struct BookContextMenu: View {
-  @Environment(KomgaBook.self) private var komgaBook
+  @Bindable var komgaBook: KomgaBook
 
   let viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?

@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct BookDownloadActionsSection: View {
-  @Environment(KomgaBook.self) private var komgaBook
+  @Bindable var komgaBook: KomgaBook
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 

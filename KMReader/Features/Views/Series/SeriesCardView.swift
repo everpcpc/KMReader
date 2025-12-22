@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct SeriesCardView: View {
-  @Environment(KomgaSeries.self) private var komgaSeries
+  @Bindable var komgaSeries: KomgaSeries
   let cardWidth: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
@@ -69,6 +69,7 @@ struct SeriesCardView: View {
     .contentShape(Rectangle())
     .contextMenu {
       SeriesContextMenu(
+        komgaSeries: komgaSeries,
         onActionCompleted: onActionCompleted,
         onShowCollectionPicker: {
           showCollectionPicker = true
@@ -80,7 +81,6 @@ struct SeriesCardView: View {
           showEditSheet = true
         }
       )
-      .environment(komgaSeries)
     }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}

@@ -35,13 +35,13 @@ struct ReadListBooksQueryView: View {
               Group {
                 if isSelectionMode && isAdmin {
                   BookCardView(
+                    komgaBook: b,
                     viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     onReadBook: { _ in },
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
                   )
-                  .environment(b)
                   .focusPadding()
                   .allowsHitTesting(false)
                   .overlay(alignment: .topTrailing) {
@@ -68,6 +68,7 @@ struct ReadListBooksQueryView: View {
                   )
                 } else {
                   BookCardView(
+                    komgaBook: b,
                     viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     onReadBook: { incognito in
@@ -76,7 +77,6 @@ struct ReadListBooksQueryView: View {
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
                   )
-                  .environment(b)
                   .focusPadding()
                 }
               }
@@ -94,12 +94,12 @@ struct ReadListBooksQueryView: View {
               Group {
                 if isSelectionMode && isAdmin {
                   BookRowView(
+                    komgaBook: b,
                     viewModel: bookViewModel,
                     onReadBook: { _ in },
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
                   )
-                  .environment(b)
                   .allowsHitTesting(false)
                   .overlay(alignment: .trailing) {
                     Image(
@@ -124,6 +124,7 @@ struct ReadListBooksQueryView: View {
                   )
                 } else {
                   BookRowView(
+                    komgaBook: b,
                     viewModel: bookViewModel,
                     onReadBook: { incognito in
                       onReadBook(b.toBook(), incognito)
@@ -131,7 +132,6 @@ struct ReadListBooksQueryView: View {
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
                   )
-                  .environment(b)
                 }
               }
               .onAppear {

@@ -7,7 +7,7 @@ import SwiftData
 import SwiftUI
 
 struct SeriesDownloadActionsSection: View {
-  @Environment(KomgaSeries.self) private var komgaSeries
+  @Bindable var komgaSeries: KomgaSeries
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
