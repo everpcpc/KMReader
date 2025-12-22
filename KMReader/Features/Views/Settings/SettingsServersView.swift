@@ -77,6 +77,7 @@ struct SettingsServersView: View {
         } else {
           ForEach(instances) { instance in
             ServerRowView(
+              instance: instance,
               isSwitching: isSwitching(instance),
               isActive: isActive(instance),
               onSelect: {
@@ -97,7 +98,6 @@ struct SettingsServersView: View {
                 }
               }
             )
-            .environment(instance)
           }
         }
       }

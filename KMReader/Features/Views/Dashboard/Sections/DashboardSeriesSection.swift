@@ -36,8 +36,7 @@ struct DashboardSeriesSection: View {
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(alignment: .top, spacing: 12) {
           ForEach(Array(browseSeries.enumerated()), id: \.element.id) { index, series in
-            DashboardSeriesItemView()
-              .environment(series)
+            DashboardSeriesItemView(series: series)
               .onAppear {
                 if index >= browseSeries.count - 3 {
                   Task {
@@ -161,11 +160,12 @@ struct DashboardSeriesSection: View {
 }
 
 private struct DashboardSeriesItemView: View {
-  @Environment(KomgaSeries.self) private var series
+  @Bindable var series: KomgaSeries
 
   var body: some View {
     NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
       SeriesCardView(
+        komgaSeries: series,
         cardWidth: PlatformHelper.dashboardCardWidth
       )
     }

@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct BookRowView: View {
-  @Environment(KomgaBook.self) private var komgaBook
+  @Bindable var komgaBook: KomgaBook
   var viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?
   var onBookUpdated: (() -> Void)? = nil
@@ -118,6 +118,7 @@ struct BookRowView: View {
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       BookContextMenu(
+        komgaBook: komgaBook,
         viewModel: viewModel,
         onReadBook: onReadBook,
         onActionCompleted: onBookUpdated,
@@ -132,7 +133,6 @@ struct BookRowView: View {
         },
         showSeriesNavigation: showSeriesNavigation
       )
-      .environment(komgaBook)
     }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}

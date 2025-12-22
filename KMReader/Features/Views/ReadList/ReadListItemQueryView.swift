@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct ReadListItemQueryView: View {
-  @Environment(KomgaReadList.self) private var readList
+  @Bindable var readList: KomgaReadList
   var width: CGFloat = PlatformHelper.dashboardCardWidth
   var layout: BrowseLayoutMode = .grid
   var onActionCompleted: (() -> Void)?
@@ -18,12 +18,14 @@ struct ReadListItemQueryView: View {
     switch layout {
     case .grid:
       ReadListCardView(
+        komgaReadList: readList,
         width: width,
         onActionCompleted: onActionCompleted
       )
       .focusPadding()
     case .list:
       ReadListRowView(
+        komgaReadList: readList,
         onActionCompleted: onActionCompleted
       )
     }

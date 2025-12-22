@@ -10,7 +10,7 @@ import SwiftUI
 
 @MainActor
 struct SeriesContextMenu: View {
-  @Environment(KomgaSeries.self) private var komgaSeries
+  @Bindable var komgaSeries: KomgaSeries
 
   var onActionCompleted: (() -> Void)?
   var onShowCollectionPicker: (() -> Void)? = nil

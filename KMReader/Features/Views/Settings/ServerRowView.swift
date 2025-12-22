@@ -7,7 +7,7 @@ import SwiftData
 import SwiftUI
 
 struct ServerRowView: View {
-  @Environment(KomgaInstance.self) private var instance
+  @Bindable var instance: KomgaInstance
   @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.colorScheme) private var colorScheme
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange

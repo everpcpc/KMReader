@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct SeriesRowView: View {
-  @Environment(KomgaSeries.self) private var komgaSeries
+  @Bindable var komgaSeries: KomgaSeries
   var onActionCompleted: (() -> Void)? = nil
 
   @State private var showCollectionPicker = false
@@ -86,6 +86,7 @@ struct SeriesRowView: View {
     .contentShape(Rectangle())
     .contextMenu {
       SeriesContextMenu(
+        komgaSeries: komgaSeries,
         onActionCompleted: onActionCompleted,
         onShowCollectionPicker: {
           showCollectionPicker = true
@@ -97,7 +98,6 @@ struct SeriesRowView: View {
           showEditSheet = true
         }
       )
-      .environment(komgaSeries)
     }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}

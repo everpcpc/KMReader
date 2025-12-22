@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct BookCardView: View {
-  @Environment(KomgaBook.self) private var komgaBook
+  @Bindable var komgaBook: KomgaBook
   var viewModel: BookViewModel
   let cardWidth: CGFloat
   var onReadBook: ((Bool) -> Void)? = nil
@@ -107,6 +107,7 @@ struct BookCardView: View {
     .contentShape(Rectangle())
     .contextMenu {
       BookContextMenu(
+        komgaBook: komgaBook,
         viewModel: viewModel,
         onReadBook: onReadBook,
         onActionCompleted: onBookUpdated,
@@ -121,7 +122,6 @@ struct BookCardView: View {
         },
         showSeriesNavigation: showSeriesNavigation
       )
-      .environment(komgaBook)
     }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}

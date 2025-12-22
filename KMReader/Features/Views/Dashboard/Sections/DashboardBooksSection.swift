@@ -38,11 +38,11 @@ struct DashboardBooksSection: View {
         LazyHStack(alignment: .top, spacing: 12) {
           ForEach(Array(browseBooks.enumerated()), id: \.element.id) { index, book in
             DashboardBookItemView(
+              book: book,
               bookViewModel: bookViewModel,
               onBookUpdated: onBookUpdated,
               readerPresentation: readerPresentation
             )
-            .environment(book)
             .onAppear {
               if index >= browseBooks.count - 3 {
                 Task {
@@ -215,13 +215,14 @@ struct DashboardBooksSection: View {
 }
 
 private struct DashboardBookItemView: View {
-  @Environment(KomgaBook.self) private var book
+  @Bindable var book: KomgaBook
   let bookViewModel: BookViewModel
   let onBookUpdated: (() -> Void)?
   let readerPresentation: ReaderPresentationManager
 
   var body: some View {
     BookCardView(
+      komgaBook: book,
       viewModel: bookViewModel,
       cardWidth: PlatformHelper.dashboardCardWidth,
       onReadBook: { incognito in

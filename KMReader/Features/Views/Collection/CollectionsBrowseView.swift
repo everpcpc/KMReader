@@ -46,6 +46,7 @@ struct CollectionsBrowseView: View {
             ForEach(Array(viewModel.browseCollections.enumerated()), id: \.element.id) {
               index, collection in
               CollectionItemQueryView(
+                collection: collection,
                 width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
@@ -53,7 +54,6 @@ struct CollectionsBrowseView: View {
                   }
                 }
               )
-              .environment(collection)
               .onAppear {
                 if index >= viewModel.browseCollections.count - 3 {
                   Task {
@@ -68,6 +68,7 @@ struct CollectionsBrowseView: View {
             ForEach(Array(viewModel.browseCollections.enumerated()), id: \.element.id) {
               index, collection in
               CollectionItemQueryView(
+                collection: collection,
                 layout: .list,
                 onActionCompleted: {
                   Task {
@@ -75,7 +76,6 @@ struct CollectionsBrowseView: View {
                   }
                 }
               )
-              .environment(collection)
               .onAppear {
                 if index >= viewModel.browseCollections.count - 3 {
                   Task {
