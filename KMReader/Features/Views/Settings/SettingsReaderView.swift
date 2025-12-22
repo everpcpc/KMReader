@@ -37,73 +37,6 @@ struct SettingsReaderView: View {
             .foregroundColor(.secondary)
         }
 
-        #if os(iOS) || os(macOS)
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              Text("Tap Page Transition")
-              Spacer()
-              Text(
-                tapPageTransitionDuration == 0
-                  ? String(localized: "None") : String(format: "%.1fs", tapPageTransitionDuration)
-              )
-              .foregroundColor(.secondary)
-            }
-            Slider(
-              value: $tapPageTransitionDuration,
-              in: 0...1,
-              step: 0.1
-            )
-            Text("Animation duration when tapping to turn pages")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        #endif
-
-        VStack(alignment: .leading, spacing: 8) {
-          Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
-            ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
-              Text(style.displayName).tag(style)
-            }
-          }
-          .pickerStyle(.menu)
-          Text(scrollPageTransitionStyle.description)
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-      }
-
-      Section(header: Text("Controls")) {
-        Toggle(isOn: $disableTapToTurnPage) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Disable Tap to Turn Page")
-            Text("Tap will only show/hide controls, not turn pages")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-
-        if !disableTapToTurnPage {
-          Toggle(isOn: $showTapZoneHints) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Show Tap Zone Hints")
-              Text("Display tap zone hints when opening the reader")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-        }
-
-        #if os(macOS)
-          Toggle(isOn: $showKeyboardHelpOverlay) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Show Keyboard Help Overlay")
-              Text("Briefly show keyboard shortcuts when opening the reader")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-        #endif
-
         #if os(iOS)
           VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -120,6 +53,74 @@ struct SettingsReaderView: View {
             Text("Zoom level when double-tapping on a page")
               .font(.caption)
               .foregroundColor(.secondary)
+          }
+        #endif
+      }
+
+      Section(header: Text("Page Turn")) {
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
+            ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
+              Text(style.displayName).tag(style)
+            }
+          }
+          .pickerStyle(.menu)
+          Text(scrollPageTransitionStyle.description)
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+
+        #if os(macOS)
+          Toggle(isOn: $showKeyboardHelpOverlay) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Show Keyboard Help Overlay")
+              Text("Briefly show keyboard shortcuts when opening the reader")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        #endif
+
+        #if os(iOS) || os(macOS)
+          Toggle(isOn: $disableTapToTurnPage) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Disable Tap to Turn Page")
+              Text("Tap will only show/hide controls, not turn pages")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+
+          if !disableTapToTurnPage {
+            Toggle(isOn: $showTapZoneHints) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Show Tap Zone Hints")
+                Text("Display tap zone hints when opening the reader")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text("Tap Page Scroll Duration")
+                Spacer()
+                Text(
+                  tapPageTransitionDuration == 0
+                    ? String(localized: "None")
+                    : String(format: "%.1fs", tapPageTransitionDuration)
+                )
+                .foregroundColor(.secondary)
+              }
+              Slider(
+                value: $tapPageTransitionDuration,
+                in: 0...1,
+                step: 0.1
+              )
+              Text("Animation duration when tap to turn pages")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
         #endif
       }
