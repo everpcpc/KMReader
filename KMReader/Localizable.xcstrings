@@ -23527,6 +23527,7 @@
       }
     },
     "settings.offline.tap_to_reconnect" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

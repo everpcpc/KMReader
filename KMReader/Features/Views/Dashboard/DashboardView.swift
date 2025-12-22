@@ -17,13 +17,16 @@ struct DashboardView: View {
   @State private var pendingRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
   @State private var shouldRefreshAfterReading = false
+  @State private var isCheckingConnection = false
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(AuthViewModel.self) private var authViewModel
 
   private let sseService = SSEService.shared
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
@@ -118,12 +121,28 @@ struct DashboardView: View {
           HStack {
             if enableSSE {
               #if os(tvOS)
-                Button {
-                  refreshDashboard(reason: "Manual tvOS button")
-                } label: {
-                  Label("Refresh", systemImage: "arrow.clockwise.circle")
+                if isOffline {
+                  Button {
+                    Task {
+                      await tryReconnect()
+                    }
+                  } label: {
+                    if isCheckingConnection {
+                      ProgressView()
+                    } else {
+                      Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
+                        .foregroundStyle(.orange)
+                    }
+                  }
+                  .disabled(isCheckingConnection)
+                } else {
+                  Button {
+                    refreshDashboard(reason: "Manual tvOS button")
+                  } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise.circle")
+                  }
+                  .disabled(isRefreshDisabled)
                 }
-                .disabled(isRefreshDisabled)
               #endif
               ServerUpdateStatusView()
             }
@@ -210,12 +229,28 @@ struct DashboardView: View {
             }
           }
           ToolbarItem(placement: .confirmationAction) {
-            Button {
-              refreshDashboard(reason: "Manual toolbar button")
-            } label: {
-              Image(systemName: "arrow.clockwise.circle")
+            if isOffline {
+              Button {
+                Task {
+                  await tryReconnect()
+                }
+              } label: {
+                if isCheckingConnection {
+                  ProgressView()
+                } else {
+                  Image(systemName: "wifi.slash")
+                  .foregroundStyle(.orange)
+                }
+              }
+              .disabled(isCheckingConnection)
+            } else {
+              Button {
+                refreshDashboard(reason: "Manual toolbar button")
+              } label: {
+                Image(systemName: "arrow.clockwise.circle")
+              }
+              .disabled(isRefreshDisabled)
             }
-            .disabled(isRefreshDisabled)
           }
         }
         .refreshable {
@@ -290,5 +325,18 @@ struct DashboardView: View {
     sseService.onReadProgressDeleted = nil
     sseService.onReadProgressSeriesChanged = nil
     sseService.onReadProgressSeriesDeleted = nil
+  }
+
+  private func tryReconnect() async {
+    isCheckingConnection = true
+    let serverReachable = await authViewModel.loadCurrentUser()
+    isOffline = !serverReachable
+    isCheckingConnection = false
+
+    if serverReachable {
+      sseService.connect()
+      ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
+      refreshDashboard(reason: "Reconnected")
+    }
   }
 }

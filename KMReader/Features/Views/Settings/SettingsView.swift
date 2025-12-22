@@ -18,7 +18,7 @@ import SwiftUI
     var body: some View {
       NavigationStack {
         Form {
-          SettingsConnectionSection()
+          SettingsSyncSection()
 
           Section {
             NavigationLink(value: NavDestination.settingsAppearance) {

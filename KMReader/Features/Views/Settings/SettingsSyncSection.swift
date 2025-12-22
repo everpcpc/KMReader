@@ -1,5 +1,5 @@
 //
-//  SettingsConnectionSection.swift
+//  SettingsSyncSection.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -9,14 +9,11 @@ import SwiftData
 import SwiftUI
 
 #if !os(macOS)
-  struct SettingsConnectionSection: View {
-    @Environment(AuthViewModel.self) private var authViewModel
+  struct SettingsSyncSection: View {
     @AppStorage("isOffline") private var isOffline: Bool = false
     @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
     @Query private var instances: [KomgaInstance]
-
-    @State private var isCheckingConnection = false
 
     private var instanceInitializer: InstanceInitializer {
       InstanceInitializer.shared
@@ -42,27 +39,6 @@ import SwiftUI
 
     var body: some View {
       Section {
-        if isOffline {
-          Button {
-            Task {
-              await tryReconnect()
-            }
-          } label: {
-            HStack {
-              Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
-                .foregroundColor(.orange)
-              Spacer()
-              if isCheckingConnection {
-                ProgressView()
-              } else {
-                Text(String(localized: "settings.offline.tap_to_reconnect"))
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-          }
-          .disabled(isCheckingConnection)
-        }
 
         Button {
           Task {
@@ -86,18 +62,6 @@ import SwiftUI
         .disabled(instanceInitializer.isSyncing || isOffline)
       } footer: {
         Text(String(localized: "settings.sync_data.description"))
-      }
-    }
-
-    private func tryReconnect() async {
-      isCheckingConnection = true
-      let serverReachable = await authViewModel.loadCurrentUser()
-      isOffline = !serverReachable
-      isCheckingConnection = false
-
-      if serverReachable {
-        SSEService.shared.connect()
-        ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
       }
     }
   }
