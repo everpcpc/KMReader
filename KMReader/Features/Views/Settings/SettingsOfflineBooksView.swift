@@ -176,7 +176,7 @@ struct SettingsOfflineBooksView: View {
                 ) {
                   ForEach(lGroup.oneshotBooks) { book in
                     HStack {
-                      Text(book.metaTtitle)
+                      Text(book.metaTitle)
                         .font(.footnote)
                       Spacer()
                       Text(formatter.string(fromByteCount: book.downloadedSize))
@@ -189,7 +189,7 @@ struct SettingsOfflineBooksView: View {
                 DisclosureGroup {
                   ForEach(lGroup.oneshotBooks) { book in
                     HStack {
-                      Text(book.metaTtitle)
+                      Text(book.metaTitle)
                         .font(.footnote)
                       Spacer()
                       Text(formatter.string(fromByteCount: book.downloadedSize))
