@@ -76,13 +76,12 @@ struct SettingsOfflineTasksView: View {
 
         Toggle(isOn: $notifyDownloadFailure) {
           Label(
-            "Notify Download Failure", systemImage: notifyDownloadFailure ? "bell.fill" : "bell"
+            "Notify Download Failure",
+            systemImage: notifyDownloadFailure ? "bell.fill" : "bell"
           )
           .foregroundColor(notifyDownloadFailure ? .primary : .secondary)
         }
       }
-      .animation(.default, value: currentStatus)
-      .animation(.default, value: notifyDownloadFailure)
 
       if !downloadingBooks.isEmpty {
         Section("Downloading") {
@@ -151,6 +150,8 @@ struct SettingsOfflineTasksView: View {
     }
     .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
     .animation(.default, value: isPaused)
+    .animation(.default, value: currentStatus)
+    .animation(.default, value: notifyDownloadFailure)
     .alert(
       "Confirm Action", isPresented: $showingBulkAlert,
       presenting: pendingBulkAction
