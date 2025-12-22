@@ -75,9 +75,14 @@ struct SettingsOfflineTasksView: View {
         }
 
         Toggle(isOn: $notifyDownloadFailure) {
-          Label("Notify Download Failure", systemImage: "bell.badge")
+          Label(
+            "Notify Download Failure", systemImage: notifyDownloadFailure ? "bell.fill" : "bell"
+          )
+          .foregroundColor(notifyDownloadFailure ? .primary : .secondary)
         }
       }
+      .animation(.default, value: currentStatus)
+      .animation(.default, value: notifyDownloadFailure)
 
       if !downloadingBooks.isEmpty {
         Section("Downloading") {
