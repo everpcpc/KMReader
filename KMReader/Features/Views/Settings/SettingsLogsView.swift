@@ -141,7 +141,7 @@ struct SettingsLogsView: View {
     await loadCategoryCounts()
     let since = Date().addingTimeInterval(selectedTimeRange.interval)
     let results = await LogStore.shared.query(
-      minPriority: selectedLevel == .all ? nil : selectedLevel.priority,
+      minPriority: selectedLevel.priority,
       category: selectedCategory == "All" ? nil : selectedCategory,
       search: searchText.isEmpty ? nil : searchText,
       since: since,
@@ -156,7 +156,7 @@ struct SettingsLogsView: View {
   private func loadCategoryCounts() async {
     let since = Date().addingTimeInterval(selectedTimeRange.interval)
     categoryCounts = await LogStore.shared.categoryCounts(
-      minPriority: selectedLevel == .all ? nil : selectedLevel.priority,
+      minPriority: selectedLevel.priority,
       since: since
     )
   }
