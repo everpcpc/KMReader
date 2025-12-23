@@ -17,7 +17,7 @@
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
     var body: some View {
-      SheetView(title: String(localized: "Chapters"), size: .large, applyFormStyle: true) {
+      SheetView(title: String(localized: "title.chapters"), size: .large, applyFormStyle: true) {
         ScrollViewReader { proxy in
           List(chapters, id: \.href) { link in
             Button(action: {
