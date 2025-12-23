@@ -21,7 +21,8 @@ struct SettingsOfflineTasksRow: View {
         book.instanceId == instanceId
           && (book.downloadStatusRaw == "pending" || book.downloadStatusRaw == "downloading"
             || book.downloadStatusRaw == "failed")
-      }
+      },
+      sort: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
     )
   }
 

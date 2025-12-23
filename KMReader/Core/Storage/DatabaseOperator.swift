@@ -424,7 +424,11 @@ actor DatabaseOperator {
     var needsSyncQueue = false
     var booksToDelete: [KomgaBook] = []
 
-    for book in books {
+    // Sort books to ensure they are processed in order
+    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    let now = Date.now
+
+    for (index, book) in sortedBooks.enumerated() {
       let isRead = book.progressCompleted ?? false
       let isDownloaded = book.downloadStatusRaw == "downloaded"
       let isPending = book.downloadStatusRaw == "pending"
@@ -443,7 +447,8 @@ actor DatabaseOperator {
       if shouldBeOffline {
         if !isDownloaded && !isPending && !isFailed {
           book.downloadStatusRaw = "pending"
-          book.downloadAt = .now
+          // Add a small increment to ensure stable sorting by downloadAt
+          book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
           needsSyncQueue = true
         }
       } else {
@@ -485,10 +490,16 @@ actor DatabaseOperator {
       predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
     )
     let books = (try? modelContext.fetch(descriptor)) ?? []
-    for book in books {
+
+    // Sort books by metaNumberSort before bulk assigning downloadAt
+    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    let now = Date.now
+
+    for (index, book) in sortedBooks.enumerated() {
       if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
         book.downloadStatusRaw = "pending"
-        book.downloadAt = Date.now
+        // Add a small increment to ensure stable sorting by downloadAt
+        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
       }
     }
 
