@@ -211,6 +211,6 @@ struct SettingsReaderView: View {
     }
     .animation(.default, value: disableTapToTurnPage)
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(String(localized: "title.reader"))
+    .inlineNavigationBarTitle(SettingsSection.reader.title)
   }
 }

@@ -59,9 +59,9 @@ import SwiftUI
               SettingsSectionRow(section: .serverInfo)
             }
             .disabled(!isAdmin)
-            NavigationLink(value: NavDestination.settingsMetrics) {
+            NavigationLink(value: NavDestination.settingsTasks) {
               SettingsSectionRow(
-                section: .metrics,
+                section: .tasks,
                 badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
                 badgeColor: themeColor.color
               )

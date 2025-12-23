@@ -225,7 +225,7 @@ struct DashboardView: View {
             Button {
               showLibraryPicker = true
             } label: {
-              Image(systemName: "books.vertical")
+              Image(systemName: "books.vertical.circle")
             }
           }
           ToolbarItem(placement: .confirmationAction) {
@@ -239,7 +239,7 @@ struct DashboardView: View {
                   ProgressView()
                 } else {
                   Image(systemName: "wifi.slash")
-                  .foregroundStyle(.orange)
+                  .foregroundStyle(.red)
                 }
               }
               .disabled(isCheckingConnection)

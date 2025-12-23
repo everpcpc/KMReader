@@ -137,7 +137,7 @@ struct SettingsOfflineTasksView: View {
         }
       }
     }
-    .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
+    .inlineNavigationBarTitle(SettingsSection.offlineTasks.title)
     .animation(.default, value: isPaused)
     .animation(.default, value: currentStatus)
     .animation(.default, value: books)

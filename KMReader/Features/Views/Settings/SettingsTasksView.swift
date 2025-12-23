@@ -173,7 +173,7 @@ struct SettingsTasksView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(String(localized: "Tasks"))
+    .inlineNavigationBarTitle(SettingsSection.tasks.title)
     #if os(iOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {

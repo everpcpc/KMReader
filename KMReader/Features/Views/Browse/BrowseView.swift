@@ -66,7 +66,7 @@ struct BrowseView: View {
             Button {
               showLibraryPicker = true
             } label: {
-              Image(systemName: "books.vertical")
+              Image(systemName: "books.vertical.circle")
             }
           }
           ToolbarItem(placement: .confirmationAction) {

@@ -248,7 +248,7 @@ struct SettingsOfflineBooksView: View {
         }
       }
     }
-    .inlineNavigationBarTitle(String(localized: "settings.offline_books.title"))
+    .inlineNavigationBarTitle(SettingsSection.offlineBooks.title)
   }
 
   private func seriesSize(for books: [KomgaBook]) -> Int64 {

@@ -13,18 +13,21 @@ enum NavDestination: Hashable {
   case collectionDetail(collectionId: String)
   case readListDetail(readListId: String)
 
-  case settingsLibraries
   case settingsAppearance
+  case settingsDashboard
   case settingsCache
   case settingsReader
-  case settingsDashboard
   case settingsSSE
-  case settingsServerInfo
-  case settingsMetrics
-  case settingsAuthenticationActivity
-  case settingsApiKey
-  case settingsServers
+  case settingsLogs
+
   case settingsOfflineTasks
   case settingsOfflineBooks
-  case settingsLogs
+
+  case settingsLibraries
+  case settingsServerInfo
+  case settingsTasks
+
+  case settingsServers
+  case settingsApiKey
+  case settingsAuthenticationActivity
 }

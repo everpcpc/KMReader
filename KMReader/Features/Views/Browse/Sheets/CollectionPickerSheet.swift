@@ -54,18 +54,18 @@ struct CollectionPickerSheet: View {
         }
       }
     } controls: {
+      Button {
+        showCreateSheet = true
+      } label: {
+        Label("Create New", systemImage: "plus.circle.fill")
+      }
+      .disabled(!isAdmin)
+
       HStack(spacing: 12) {
         Button(action: confirmSelection) {
           Label("Done", systemImage: "checkmark")
         }
         .disabled(selectedCollectionId == nil)
-
-        Button {
-          showCreateSheet = true
-        } label: {
-          Label("Create New", systemImage: "plus.circle.fill")
-        }
-        .disabled(!isAdmin)
       }
     }
     .searchable(text: $searchText)

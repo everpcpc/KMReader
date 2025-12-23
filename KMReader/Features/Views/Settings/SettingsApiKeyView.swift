@@ -85,7 +85,7 @@ struct SettingsApiKeyView: View {
         }
       }
     }
-    .inlineNavigationBarTitle("API Keys")
+    .inlineNavigationBarTitle(SettingsSection.apiKeys.title)
     .animation(.default, value: apiKeys)
     .animation(.default, value: lastActivities)
     #if os(iOS)

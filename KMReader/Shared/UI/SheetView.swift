@@ -127,7 +127,7 @@ struct SheetView<Content: View, Controls: View>: View {
               }
             }
             if let controls {
-              ToolbarItem(placement: .automatic) {
+              ToolbarItemGroup(placement: .automatic) {
                 controls
               }
             }

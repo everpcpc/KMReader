@@ -223,6 +223,6 @@ struct SettingsAppearanceView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(String(localized: "settings.appearance.title"))
+    .inlineNavigationBarTitle(SettingsSection.appearance.title)
   }
 }

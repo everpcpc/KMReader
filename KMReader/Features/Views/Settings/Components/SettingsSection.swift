@@ -14,14 +14,17 @@ enum SettingsSection: String, CaseIterable {
   case reader
   case sse
   case logs
+
+  case offlineTasks
+  case offlineBooks
+
   case libraries
   case serverInfo
-  case metrics
+  case tasks
+
   case servers
   case apiKeys
   case authenticationActivity
-  case offlineTasks
-  case offlineBooks
 
   var icon: String {
     switch self {
@@ -37,22 +40,26 @@ enum SettingsSection: String, CaseIterable {
       return "antenna.radiowaves.left.and.right"
     case .logs:
       return "doc.text.magnifyingglass"
+
+    case .offlineTasks:
+      return "tray.and.arrow.down"
+    case .offlineBooks:
+      return "tray.full"
+
     case .libraries:
       return "books.vertical"
     case .serverInfo:
       return "server.rack"
-    case .metrics:
+    case .tasks:
       return "list.bullet.clipboard"
+
     case .servers:
       return "list.bullet.rectangle"
     case .apiKeys:
       return "key"
     case .authenticationActivity:
       return "clock"
-    case .offlineTasks:
-      return "tray.and.arrow.down"
-    case .offlineBooks:
-      return "tray.full"
+
     }
   }
 
@@ -70,22 +77,26 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Real-time Updates")
     case .logs:
       return String(localized: "Logs")
+
+    case .offlineTasks:
+      return String(localized: "Offline Tasks")
+    case .offlineBooks:
+      return String(localized: "Offline Books")
+
     case .libraries:
       return String(localized: "Libraries")
     case .serverInfo:
       return String(localized: "Server Info")
-    case .metrics:
+    case .tasks:
       return String(localized: "Tasks")
+
     case .servers:
       return String(localized: "Servers")
     case .apiKeys:
       return String(localized: "API Keys")
     case .authenticationActivity:
       return String(localized: "Authentication Activity")
-    case .offlineTasks:
-      return String(localized: "Offline Tasks")
-    case .offlineBooks:
-      return String(localized: "Offline Books")
+
     }
   }
 }

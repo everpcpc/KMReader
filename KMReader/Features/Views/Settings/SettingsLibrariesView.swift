@@ -34,7 +34,7 @@ struct SettingsLibrariesView: View {
         deleteConfirmationText = ""
       }
     )
-    .inlineNavigationBarTitle(String(localized: "settings.libraries.title"))
+    .inlineNavigationBarTitle(SettingsSection.libraries.title)
     .alert(String(localized: "settings.libraries.alert.title"), isPresented: isDeleteAlertPresented)
     {
       if let libraryPendingDelete {

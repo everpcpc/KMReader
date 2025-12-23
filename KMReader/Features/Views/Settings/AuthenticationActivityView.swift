@@ -60,7 +60,7 @@ struct AuthenticationActivityView: View {
       }
     }
     .optimizedListStyle()
-    .inlineNavigationBarTitle(String(localized: "title.authenticationActivity"))
+    .inlineNavigationBarTitle(SettingsSection.authenticationActivity.title)
     .task {
       if isAdmin {
         await loadActivities(refresh: true)

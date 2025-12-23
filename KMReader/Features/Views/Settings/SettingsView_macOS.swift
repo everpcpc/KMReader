@@ -39,7 +39,7 @@ import SwiftUI
             SettingsSectionRow(section: .serverInfo)
               .disabled(!isAdmin)
             SettingsSectionRow(
-              section: .metrics,
+              section: .tasks,
               badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
               badgeColor: themeColor.color
             )
@@ -88,24 +88,27 @@ import SwiftUI
               SettingsReaderView()
             case .sse:
               SettingsSSEView()
+            case .logs:
+              SettingsLogsView()
+
+            case .offlineTasks:
+              SettingsOfflineTasksView()
+            case .offlineBooks:
+              SettingsOfflineBooksView()
+
             case .libraries:
               SettingsLibrariesView()
             case .serverInfo:
               SettingsServerInfoView()
-            case .metrics:
+            case .tasks:
               SettingsTasksView()
+
             case .servers:
               SettingsServersView()
             case .apiKeys:
               SettingsApiKeyView()
             case .authenticationActivity:
               AuthenticationActivityView()
-            case .offlineTasks:
-              SettingsOfflineTasksView()
-            case .offlineBooks:
-              SettingsOfflineBooksView()
-            case .logs:
-              SettingsLogsView()
             }
           }
           .frame(maxWidth: .infinity, maxHeight: .infinity)

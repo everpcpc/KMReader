@@ -99,6 +99,6 @@ struct SettingsSSEView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(String(localized: "Real-time Updates"))
+    .inlineNavigationBarTitle(SettingsSection.sse.title)
   }
 }

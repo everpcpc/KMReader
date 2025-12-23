@@ -133,7 +133,7 @@ struct SettingsLogsView: View {
     .task {
       await loadLogs()
     }
-    .inlineNavigationBarTitle(String(localized: "Logs"))
+    .inlineNavigationBarTitle(SettingsSection.logs.title)
   }
 
   private func loadLogs() async {

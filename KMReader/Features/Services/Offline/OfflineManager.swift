@@ -766,7 +766,7 @@ actor OfflineManager {
         if failedCount > 0 {
           // Keep showing if there are failures, update info to show summary
           await LiveActivityManager.shared.updateActivity(
-            seriesTitle: String(localized: "Offline Download"),
+            seriesTitle: String(localized: "Offline"),
             bookInfo: String(localized: "Download finished with failures"),
             progress: 1.0,
             pendingCount: 0,
@@ -821,7 +821,7 @@ actor OfflineManager {
         if failedCount > 0 {
           // Keep showing if there are failures, update info to show summary
           await LiveActivityManager.shared.updateActivity(
-            seriesTitle: info.seriesTitle,
+            seriesTitle: String(localized: "Offline"),
             bookInfo: String(localized: "Download finished with failures"),
             progress: 1.0,
             pendingCount: 0,
@@ -927,7 +927,7 @@ extension Book {
   var downloadInfo: DownloadInfo {
     DownloadInfo(
       bookId: id,
-      seriesTitle: oneshot ? String(localized: "OneShot") : seriesTitle,
+      seriesTitle: oneshot ? String(localized: "Oneshot") : seriesTitle,
       bookInfo: oneshot ? "\(metadata.title)" : "#\(metadata.number) - \(metadata.title)",
       isEpub: media.mediaProfile == .epub,
       epubDivinaCompatible: media.epubDivinaCompatible ?? false

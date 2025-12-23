@@ -70,7 +70,7 @@ struct SettingsDashboardView: View {
         }
       }
       .listStyle(.insetGrouped)
-      .inlineNavigationBarTitle(String(localized: "dashboard.title"))
+      .inlineNavigationBarTitle(SettingsSection.dashboard.title)
       .animation(.default, value: dashboard)
     }
   }
@@ -126,7 +126,7 @@ struct SettingsDashboardView: View {
         }
       }
       .formStyle(.grouped)
-      .inlineNavigationBarTitle(String(localized: "dashboard.title"))
+      .inlineNavigationBarTitle(SettingsSection.dashboard.title)
       .animation(.default, value: dashboard)
     }
   }
@@ -258,7 +258,7 @@ struct SettingsDashboardView: View {
         }
       }
       .formStyle(.grouped)
-      .inlineNavigationBarTitle(String(localized: "dashboard.title"))
+      .inlineNavigationBarTitle(SettingsSection.dashboard.title)
       .animation(.default, value: dashboard)
       .onAppear {
         movingSection = nil

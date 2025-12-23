@@ -22,6 +22,17 @@ extension View {
     #endif
   }
 
+  func inlineNavigationBarTitle(_ title: String, systemImage: String) -> some View {
+    #if os(iOS)
+      return self.navigationTitle(Text("\(Image(systemName: systemImage)) ") + Text(title))
+        .navigationBarTitleDisplayMode(.inline)
+    #elseif os(macOS)
+      return self.navigationTitle(Text("\(Image(systemName: systemImage)) ") + Text(title))
+    #else
+      return self
+    #endif
+  }
+
   func handleNavigation() -> some View {
     self
       .navigationDestination(for: NavDestination.self) { destination in
@@ -36,49 +47,57 @@ extension View {
           ReadListDetailView(readListId: readListId)
 
         #if !os(macOS)
-          case .settingsLibraries:
-            SettingsLibrariesView()
           case .settingsAppearance:
             SettingsAppearanceView()
+          case .settingsDashboard:
+            SettingsDashboardView()
           case .settingsCache:
             SettingsCacheView()
           case .settingsReader:
             SettingsReaderView()
-          case .settingsDashboard:
-            SettingsDashboardView()
           case .settingsSSE:
             SettingsSSEView()
-          case .settingsServerInfo:
-            SettingsServerInfoView()
-          case .settingsMetrics:
-            SettingsTasksView()
-          case .settingsApiKey:
-            SettingsApiKeyView()
-          case .settingsAuthenticationActivity:
-            AuthenticationActivityView()
-          case .settingsServers:
-            SettingsServersView()
+          case .settingsLogs:
+            SettingsLogsView()
+
           case .settingsOfflineTasks:
             SettingsOfflineTasksView()
           case .settingsOfflineBooks:
             SettingsOfflineBooksView()
-          case .settingsLogs:
-            SettingsLogsView()
+
+          case .settingsLibraries:
+            SettingsLibrariesView()
+          case .settingsServerInfo:
+            SettingsServerInfoView()
+          case .settingsTasks:
+            SettingsTasksView()
+
+          case .settingsServers:
+            SettingsServersView()
+          case .settingsApiKey:
+            SettingsApiKeyView()
+          case .settingsAuthenticationActivity:
+            AuthenticationActivityView()
+
         #else
-          case .settingsLibraries,
-            .settingsAppearance,
+          case .settingsAppearance,
+            .settingsDashboard,
             .settingsCache,
             .settingsReader,
-            .settingsDashboard,
             .settingsSSE,
-            .settingsServerInfo,
-            .settingsMetrics,
-            .settingsApiKey,
-            .settingsAuthenticationActivity,
-            .settingsServers,
+            .settingsLogs,
+
             .settingsOfflineTasks,
             .settingsOfflineBooks,
-            .settingsLogs:
+
+            .settingsLibraries,
+            .settingsServerInfo,
+            .settingsTasks,
+
+            .settingsServers,
+            .settingsApiKey,
+            .settingsAuthenticationActivity:
+
             VStack(spacing: 16) {
               Image(systemName: "gearshape")
                 .font(.system(size: 48))
