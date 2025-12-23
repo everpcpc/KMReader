@@ -4883,9 +4883,6 @@
         }
       }
     },
-    "Chapters" : {
-
-    },
     "Character & Word" : {
       "localizations" : {
         "en" : {
@@ -26219,7 +26216,6 @@
       }
     },
     "title.chapters" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
