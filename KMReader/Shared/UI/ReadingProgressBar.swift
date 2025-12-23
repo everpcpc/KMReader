@@ -24,7 +24,7 @@ struct ReadingProgressBar: View {
     GeometryReader { geometry in
       ZStack(alignment: .leading) {
         Capsule()
-          .fill(themeColor.color.opacity(0.4))
+          .fill(.white.opacity(0.6))
           .frame(height: progressBarHeight)
 
         Capsule()
@@ -33,8 +33,8 @@ struct ReadingProgressBar: View {
             width: max(geometry.size.width * progress, progress > 0 ? 4 : 0),
             height: progressBarHeight
           )
-          .shadow(color: themeColor.color.opacity(0.6), radius: 2, x: 0, y: 0)
       }
+      .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
     .frame(height: progressBarHeight)
     .padding(progressBarHeight)
