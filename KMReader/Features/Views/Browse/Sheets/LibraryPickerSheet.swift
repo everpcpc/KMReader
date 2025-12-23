@@ -36,7 +36,7 @@ struct LibraryPickerSheet: View {
   }
 
   var body: some View {
-    SheetView(title: String(localized: "Libraries"), size: .large) {
+    SheetView(title: String(localized: "Libraries"), size: .large, applyFormStyle: true) {
       LibraryListContent(
         showDeleteAction: false,
         forceMetricsOnAppear: false,

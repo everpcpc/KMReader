@@ -59,6 +59,7 @@ struct AuthenticationActivityView: View {
         }
       }
     }
+    // Cannot use Form for this, it would cause endless fetch on macOS.
     .optimizedListStyle()
     .inlineNavigationBarTitle(SettingsSection.authenticationActivity.title)
     .task {

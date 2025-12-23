@@ -16,7 +16,7 @@ struct SettingsApiKeyView: View {
   @State private var lastActivities: [String: Date] = [:]
 
   var body: some View {
-    List {
+    Form {
       Section {
         if isLoading && apiKeys.isEmpty {
           ProgressView()
@@ -85,6 +85,7 @@ struct SettingsApiKeyView: View {
         }
       }
     }
+    .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.apiKeys.title)
     .animation(.default, value: apiKeys)
     .animation(.default, value: lastActivities)

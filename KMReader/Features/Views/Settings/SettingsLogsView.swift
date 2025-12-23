@@ -26,7 +26,7 @@ struct SettingsLogsView: View {
   }
 
   var body: some View {
-    List {
+    Form {
       Section {
         if isLoading {
           HStack {

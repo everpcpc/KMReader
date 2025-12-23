@@ -26,17 +26,39 @@ struct LibraryRowView: View {
   }
 
   var body: some View {
-    Button {
-      onSelect()
-    } label: {
-      librarySummary
-        .contentShape(Rectangle())
+    HStack(spacing: 12) {
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 6) {
+          Text(library.name)
+            .font(.headline)
+          if let fileSize = library.fileSize {
+            let fileSizeText = formatFileSize(fileSize)
+            Text(fileSizeText)
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+        if let metricsText = metricsView {
+          metricsText
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
+
+      Spacer()
+
+      if isPerforming {
+        ProgressView()
+          .progressViewStyle(.circular)
+      } else {
+        Toggle("", isOn: Binding(
+          get: { isSelected },
+          set: { _ in onSelect() }
+        ))
+        .labelsHidden()
+      }
     }
-    .adaptiveButtonStyle(.plain)
-    #if os(iOS) || os(macOS)
-      .listRowSeparator(.hidden)
-    #endif
-    .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+    .contentShape(Rectangle())
     .contextMenu {
       if isAdmin {
         Button {
@@ -89,57 +111,6 @@ struct LibraryRowView: View {
         }
       }
     }
-  }
-
-  @ViewBuilder
-  private var librarySummary: some View {
-    let fileSizeText = library.fileSize.map { formatFileSize($0) } ?? ""
-    let metricsText = metricsView
-
-    HStack(spacing: 8) {
-      VStack(alignment: .leading, spacing: 2) {
-        HStack(spacing: 6) {
-          Text(library.name)
-            .font(.headline)
-          if !fileSizeText.isEmpty {
-            Text(fileSizeText)
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-        if let metricsText {
-          metricsText
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-      }
-
-      Spacer()
-
-      if isPerforming {
-        ProgressView()
-          .progressViewStyle(.circular)
-      } else if isSelected {
-        Image(systemName: "checkmark.circle.fill")
-          .font(.title3)
-          .foregroundColor(.accentColor)
-          .transition(.scale.combined(with: .opacity))
-      }
-    }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 14)
-    .background(
-      RoundedRectangle(cornerRadius: 12)
-        .fill(isSelected ? Color.accentColor.opacity(0.08) : Color.secondary.opacity(0.06))
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 12)
-        .strokeBorder(
-          isSelected ? Color.accentColor.opacity(0.3) : Color.clear,
-          lineWidth: 1.5
-        )
-    )
-    .animation(.easeInOut(duration: 0.2), value: isSelected)
   }
 
   private var metricsView: Text? {

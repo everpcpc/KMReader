@@ -88,6 +88,6 @@ struct SettingsOfflineTasksRow: View {
           }
         }
       }
-    }
+    }.tag(SettingsSection.offlineTasks)
   }
 }

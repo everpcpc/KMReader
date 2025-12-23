@@ -59,7 +59,7 @@ struct SettingsOfflineTasksView: View {
   }
 
   var body: some View {
-    List {
+    Form {
       Section {
         Toggle(
           isOn: Binding(
@@ -137,6 +137,7 @@ struct SettingsOfflineTasksView: View {
         }
       }
     }
+    .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.offlineTasks.title)
     .animation(.default, value: isPaused)
     .animation(.default, value: currentStatus)

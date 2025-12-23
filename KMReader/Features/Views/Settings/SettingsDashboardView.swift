@@ -69,7 +69,7 @@ struct SettingsDashboardView: View {
           }
         }
       }
-      .listStyle(.insetGrouped)
+      .optimizedListStyle()
       .inlineNavigationBarTitle(SettingsSection.dashboard.title)
       .animation(.default, value: dashboard)
     }

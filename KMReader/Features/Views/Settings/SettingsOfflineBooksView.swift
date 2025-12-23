@@ -97,13 +97,13 @@ struct SettingsOfflineBooksView: View {
   }
 
   var body: some View {
-    List {
+    Form {
       if downloadedBooks.isEmpty {
-        ContentUnavailableView(
-          String(localized: "settings.offline.no_books"),
-          systemImage: "books.vertical",
-          description: Text(String(localized: "settings.offline.no_books.description"))
-        )
+        ContentUnavailableView {
+          Label(String(localized: "settings.offline.no_books"), systemImage: "books.vertical")
+        } description: {
+          Text(String(localized: "settings.offline.no_books.description"))
+        }
       } else {
         Section {
           HStack {
@@ -248,6 +248,7 @@ struct SettingsOfflineBooksView: View {
         }
       }
     }
+    .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.offlineBooks.title)
   }
 

@@ -72,16 +72,16 @@ struct LibraryListContent: View {
 
   var body: some View {
     if enablePullToRefresh {
-      formContent
+      listContent
         .refreshable {
           await refreshLibraries(forceMetrics: true)
         }
     } else {
-      formContent
+      listContent
     }
   }
 
-  private var formContent: some View {
+  private var listContent: some View {
     Form {
       if isLoading && libraries.isEmpty {
         Section {
@@ -91,7 +91,6 @@ struct LibraryListContent: View {
             Spacer()
           }
         }
-        .listRowBackground(Color.clear)
       } else if libraries.isEmpty {
         Section {
           VStack(spacing: 12) {
@@ -113,7 +112,6 @@ struct LibraryListContent: View {
           .frame(maxWidth: .infinity)
           .padding(.vertical, 16)
         }
-        .listRowBackground(Color.clear)
       } else {
         Section {
           allLibrariesRowView()
@@ -155,13 +153,9 @@ struct LibraryListContent: View {
             )
           }
         }
-        .listRowBackground(Color.clear)
       }
     }
     .formStyle(.grouped)
-    #if os(iOS) || os(macOS)
-      .scrollContentBackground(.hidden)
-    #endif
     .task {
       await refreshLibraries(forceMetrics: forceMetricsOnAppear)
     }
@@ -239,34 +233,11 @@ struct LibraryListContent: View {
   @ViewBuilder
   private func allLibrariesRowView() -> some View {
     let isSelected = selectedLibraryIds.isEmpty
-
-    Button {
-      withAnimation(.easeInOut(duration: 0.2)) {
-        selectedLibraryIds = []
-        onLibrarySelected?("")
-      }
-    } label: {
-      allLibrariesRowContent(isSelected: isSelected)
-    }
-    .adaptiveButtonStyle(.plain)
-    #if os(iOS) || os(macOS)
-      .listRowSeparator(.hidden)
-    #endif
-    .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
-    .contextMenu {
-      if isAdmin && !isOffline {
-        allLibrariesContextMenu()
-      }
-    }
-  }
-
-  @ViewBuilder
-  private func allLibrariesRowContent(isSelected: Bool) -> some View {
     let entry = allLibrariesEntry
     let metricsView = allLibrariesMetricsView(entry)
     let fileSizeText = entry?.fileSize.map { formatFileSize($0) } ?? ""
 
-    HStack(spacing: 8) {
+    HStack(spacing: 12) {
       VStack(alignment: .leading, spacing: 2) {
         HStack(spacing: 6) {
           Text(String(localized: "All Libraries"))
@@ -275,8 +246,6 @@ struct LibraryListContent: View {
             Text(fileSizeText)
               .font(.caption)
               .foregroundColor(.secondary)
-              .opacity(fileSizeText.isEmpty ? 0 : 1)
-              .animation(.easeInOut(duration: 0.2), value: fileSizeText.isEmpty)
           }
         }
         if isAdmin, let metricsView {
@@ -288,28 +257,25 @@ struct LibraryListContent: View {
 
       Spacer()
 
-      if isSelected {
-        Image(systemName: "checkmark.circle.fill")
-          .font(.title3)
-          .foregroundColor(.accentColor)
-          .transition(.scale.combined(with: .opacity))
+      Toggle("", isOn: Binding(
+        get: { isSelected },
+        set: { newValue in
+          if newValue {
+            withAnimation(.easeInOut(duration: 0.2)) {
+              selectedLibraryIds = []
+              onLibrarySelected?("")
+            }
+          }
+        }
+      ))
+      .labelsHidden()
+    }
+    .contentShape(Rectangle())
+    .contextMenu {
+      if isAdmin && !isOffline {
+        allLibrariesContextMenu()
       }
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 14)
-    .background(
-      RoundedRectangle(cornerRadius: 16)
-        .fill(isSelected ? Color.accentColor.opacity(0.08) : Color.secondary.opacity(0.06))
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 16)
-        .strokeBorder(
-          isSelected ? Color.accentColor.opacity(0.3) : Color.clear,
-          lineWidth: 1.5
-        )
-    )
-    .animation(.easeInOut(duration: 0.2), value: isSelected)
-    .contentShape(Rectangle())
   }
 
   @ViewBuilder
