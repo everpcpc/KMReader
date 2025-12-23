@@ -30,7 +30,7 @@ import SwiftUI
           }
 
           Section("Offline") {
-            SettingsSectionRow(section: .offlineTasks)
+            SettingsOfflineTasksRow()
             SettingsSectionRow(section: .offlineBooks)
           }
 

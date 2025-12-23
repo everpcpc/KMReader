@@ -50,9 +50,9 @@ enum SettingsSection: String, CaseIterable {
     case .authenticationActivity:
       return "clock"
     case .offlineTasks:
-      return "square.and.arrow.down.badge.clock"
+      return "tray.and.arrow.down"
     case .offlineBooks:
-      return "square.and.arrow.down.badge.checkmark"
+      return "tray.full"
     }
   }
 
