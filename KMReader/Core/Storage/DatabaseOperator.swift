@@ -845,6 +845,13 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchFailedBooksCount(instanceId: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
+    )
+    return (try? modelContext.fetchCount(descriptor)) ?? 0
+  }
+
   func syncSeriesReadingStatus(seriesId: String, instanceId: String) {
     let compositeSeriesId = "\(instanceId)_\(seriesId)"
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(

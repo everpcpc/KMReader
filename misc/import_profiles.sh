@@ -54,6 +54,8 @@ import_profile "iOS" "${IOS_PROVISIONING_PROFILE_BASE64:-}" ".mobileprovision"
 import_profile "macOS" "${MACOS_PROVISIONING_PROFILE_BASE64:-}" ".provisionprofile"
 import_profile "tvOS" "${TVOS_PROVISIONING_PROFILE_BASE64:-}" ".mobileprovision"
 
+import_profile "widgets" "${WIDGETS_PROVISIONING_PROFILE_BASE64:-}" ".mobileprovision"
+
 echo ""
 echo "Imported provisioning profiles:"
 ls -lh "$PROFILES_DIR" 2>/dev/null | tail -n +2 || echo "No profiles found"

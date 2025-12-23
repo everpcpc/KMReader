@@ -52,11 +52,16 @@ struct ContentView: View {
         }
         .onChange(of: isOffline) { oldValue, newValue in
           if oldValue && !newValue {
-            // Just came back online - sync pending progress
+            // Just came back online - sync pending progress and resume downloads
             Task {
               await ProgressSyncService.shared.syncPendingProgress(
                 instanceId: AppConfig.currentInstanceId
               )
+              // Resume offline downloads
+              if !AppConfig.offlinePaused {
+                OfflineManager.shared.triggerSync(
+                  instanceId: AppConfig.currentInstanceId, restart: true)
+              }
             }
           }
         }
@@ -65,6 +70,11 @@ struct ContentView: View {
             Task {
               await DatabaseOperator.shared.updateInstanceLastUsed(
                 instanceId: AppConfig.currentInstanceId)
+              // Resume offline downloads if not paused and online
+              if !AppConfig.isOffline && !AppConfig.offlinePaused {
+                OfflineManager.shared.triggerSync(
+                  instanceId: AppConfig.currentInstanceId, restart: true)
+              }
             }
           }
         }
