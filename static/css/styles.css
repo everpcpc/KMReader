@@ -116,32 +116,6 @@ h1 {
   font-size: 1.05rem;
 }
 
-.multi-server-callout {
-  max-width: 640px;
-  margin: 0 auto 2rem;
-  padding: 1.2rem 1.5rem;
-  border-radius: 22px;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 94, 209, 0.12),
-    rgba(0, 94, 209, 0.04)
-  );
-  border: 1px solid rgba(0, 94, 209, 0.18);
-  box-shadow: var(--shadow);
-  text-align: left;
-}
-
-.multi-server-callout strong {
-  display: block;
-  font-size: 0.95rem;
-  color: var(--heading);
-}
-
-.multi-server-callout p {
-  margin: 0.2rem 0 0;
-  color: var(--text);
-}
-
 .cta {
   display: flex;
   justify-content: center;
