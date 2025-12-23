@@ -77,6 +77,7 @@ import WidgetKit
                 .foregroundStyle(.red)
             }
           }
+          .padding(.horizontal)
         }
         .padding(12)
         .activityBackgroundTint(Color(.systemBackground).opacity(0.95))

@@ -140,6 +140,7 @@ struct SettingsOfflineTasksView: View {
     .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
     .animation(.default, value: isPaused)
     .animation(.default, value: currentStatus)
+    .animation(.default, value: books)
     .alert(
       "Confirm Action", isPresented: $showingBulkAlert,
       presenting: pendingBulkAction

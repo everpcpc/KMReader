@@ -10,12 +10,7 @@ import SwiftUI
 
 struct SettingsOfflineBooksView: View {
   @Environment(\.modelContext) private var modelContext
-  @Query(
-    filter: #Predicate<KomgaBook> { $0.downloadStatusRaw == "downloaded" },
-    sort: [SortDescriptor(\KomgaBook.libraryId)]
-  )
-  var downloadedBooks: [KomgaBook]
-
+  @Query var downloadedBooks: [KomgaBook]
   @Query var libraries: [KomgaLibrary]
 
   struct SeriesGroup: Identifiable {
@@ -38,7 +33,20 @@ struct SettingsOfflineBooksView: View {
     return f
   }()
 
-  init() {}
+  init() {
+    let instanceId = AppConfig.currentInstanceId
+    _downloadedBooks = Query(
+      filter: #Predicate<KomgaBook> {
+        $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded"
+      },
+      sort: [SortDescriptor(\KomgaBook.libraryId)]
+    )
+    _libraries = Query(
+      filter: #Predicate<KomgaLibrary> {
+        $0.instanceId == instanceId
+      }
+    )
+  }
 
   private var groupedBooks: [LibraryGroup] {
     let libraryGroups = Dictionary(grouping: downloadedBooks) { $0.libraryId }
