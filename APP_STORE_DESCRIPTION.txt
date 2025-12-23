@@ -6,7 +6,7 @@ HIGHLIGHTS
 
 • Multi-Server Vault: Sign in to unlimited Komga servers with custom names and role-aware access. Supports both password and API key authentication. Remove a profile to clear cached pages, downloads, and credentials stored on-device.
 
-• Cloud-Drive-Like Offline: Series and books support offline policies (manual, latest, all) with automatic downloads and smart sync—just like a cloud drive. Automatic offline mode switching detects network errors and notifies you. Read progress made offline queues locally and syncs when connection restores. Browse dashboards, libraries, series, and collections seamlessly with cached data. Switch between online and offline reading without interruption.
+• Cloud-Drive-Like Offline: Series and books support offline policies (manual, latest, all) with automatic downloads and smart sync—just like a cloud drive. Live Activity shows download progress on the lock screen and Dynamic Island for iOS. Automatic offline mode switching detects network errors and notifies you. Read progress made offline queues locally and syncs when connection restores. Browse dashboards, libraries, series, and collections seamlessly with cached data. Switch between online and offline reading without interruption.
 
 • Browse and Dashboards: Series, books, collections, and read lists share search, filters, grid/list layouts, and an orientation-aware layout picker. Dashboard sections (Keep Reading, On Deck, Recently Added/Read/Released/Updated) can be reordered or hidden per library with infinite scroll.
 
