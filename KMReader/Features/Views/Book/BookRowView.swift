@@ -45,10 +45,11 @@ struct BookRowView: View {
     } label: {
       HStack(spacing: 12) {
         ThumbnailImage(
-          id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4)
-          .ifLet(zoomNamespace) { view, namespace in
-            view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
-          }
+          id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4
+        )
+        .ifLet(zoomNamespace) { view, namespace in
+          view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
+        }
 
         VStack(alignment: .leading, spacing: 4) {
           if shouldShowSeriesTitle {

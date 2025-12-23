@@ -150,11 +150,6 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "offlinePaused") }
   }
 
-  static nonisolated var downloadNotification: Bool {
-    get { UserDefaults.standard.bool(forKey: "downloadNotification") }
-    set { UserDefaults.standard.set(newValue, forKey: "downloadNotification") }
-  }
-
   // MARK: - Dashboard
 
   static var dashboardConfiguration: DashboardConfiguration {

@@ -12,7 +12,6 @@ struct SettingsOfflineTasksView: View {
   @Environment(\.modelContext) private var modelContext
   @AppStorage("currentInstanceId") private var instanceId: String = ""
   @AppStorage("offlinePaused") private var isPaused: Bool = false
-  @AppStorage("downloadNotification") private var downloadNotification: Bool = false
   @State private var showingBulkAlert = false
   @State private var pendingBulkAction: BulkAction?
 
@@ -74,22 +73,6 @@ struct SettingsOfflineTasksView: View {
             .foregroundColor(currentStatus.color)
         }
 
-        #if !os(tvOS)
-          Toggle(isOn: $downloadNotification) {
-            Label(
-              "Download Notification",
-              systemImage: downloadNotification ? "bell.fill" : "bell"
-            )
-            .foregroundColor(downloadNotification ? .accentColor : .secondary)
-          }
-          .onChange(of: downloadNotification) { _, enabled in
-            if enabled {
-              Task {
-                _ = await LocalNotificationService.shared.requestPermission()
-              }
-            }
-          }
-        #endif
       }
 
       if !downloadingBooks.isEmpty {
@@ -157,7 +140,6 @@ struct SettingsOfflineTasksView: View {
     .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
     .animation(.default, value: isPaused)
     .animation(.default, value: currentStatus)
-    .animation(.default, value: downloadNotification)
     .alert(
       "Confirm Action", isPresented: $showingBulkAlert,
       presenting: pendingBulkAction

@@ -354,9 +354,8 @@ actor OfflineManager {
           totalPages: pages.count
         )
 
-        // Get pending/failed counts for notification
+        // Get pending count for Live Activity
         let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
-        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(instanceId: instanceId)
 
         // Start Live Activity for download progress
         await LiveActivityManager.shared.startActivity(
@@ -366,23 +365,13 @@ actor OfflineManager {
           pendingCount: pendingBooks.count
         )
 
-        // Send system notification for download progress
-        if AppConfig.downloadNotification {
-          // Request permission on first download (will be ignored if already granted/denied)
-          _ = await LocalNotificationService.shared.requestPermission()
-          await LocalNotificationService.shared.showDownloadProgress(
-            currentBook: info.bookInfo,
-            pendingCount: pendingBooks.count,
-            failedCount: failedCount
-          )
-        }
-
         let serverURL = await MainActor.run { AppConfig.serverURL }
 
         if isEpub {
           // EPUB: single file download
-          guard let downloadURL = URL(
-            string: serverURL + "/api/v1/books/\(info.bookId)/file")
+          guard
+            let downloadURL = URL(
+              string: serverURL + "/api/v1/books/\(info.bookId)/file")
           else {
             throw APIError.invalidURL
           }
@@ -430,8 +419,9 @@ actor OfflineManager {
           pendingBackgroundPages[info.bookId] = Set(pagesToDownload.map { $0.number })
 
           for page in pagesToDownload {
-            guard let downloadURL = URL(
-              string: serverURL + "/api/v1/books/\(info.bookId)/pages/\(page.number)")
+            guard
+              let downloadURL = URL(
+                string: serverURL + "/api/v1/books/\(info.bookId)/pages/\(page.number)")
             else { continue }
 
             let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
@@ -509,13 +499,6 @@ actor OfflineManager {
               status: .failed(error: error.localizedDescription)
             )
             try? await DatabaseOperator.shared.commit()
-
-            if AppConfig.downloadNotification {
-              let message = String(localized: "Download failed: \(info.bookInfo)")
-              await MainActor.run {
-                ErrorManager.shared.notify(message: message)
-              }
-            }
           }
         }
         await removeActiveTask(info.bookId)
@@ -639,7 +622,9 @@ actor OfflineManager {
     /// Track pending background downloads per book
     private var pendingBackgroundPages: [String: Set<Int>] = [:]  // bookId -> pending page numbers
     private var backgroundDownloadInfo:
-      [String: (instanceId: String, seriesTitle: String, bookInfo: String, isEpub: Bool, totalPages: Int)] = [:]
+      [String: (
+        instanceId: String, seriesTitle: String, bookInfo: String, isEpub: Bool, totalPages: Int
+      )] = [:]
     private func handleBackgroundDownloadComplete(
       bookId: String, pageNumber: Int?, fileURL: URL
     ) async {
@@ -656,7 +641,8 @@ actor OfflineManager {
         let completed = info.totalPages - (pendingBackgroundPages[bookId]?.count ?? 0)
         let progress = Double(completed) / Double(info.totalPages)
         let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
-        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(instanceId: info.instanceId)
+        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+          instanceId: info.instanceId)
 
         await MainActor.run {
           DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: progress)
@@ -699,11 +685,6 @@ actor OfflineManager {
       await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
       pendingBackgroundPages.removeValue(forKey: bookId)
       backgroundDownloadInfo.removeValue(forKey: bookId)
-
-      if AppConfig.downloadNotification {
-        await LocalNotificationService.shared.showDownloadFailed(
-          bookName: info.bookInfo, error: error.localizedDescription)
-      }
     }
 
     private func handleAllBackgroundDownloadsComplete(bookId: String) async {
@@ -732,7 +713,6 @@ actor OfflineManager {
       // Clear progress notification if no more pending downloads
       let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
       if pendingBooks.isEmpty {
-        await LocalNotificationService.shared.clearDownloadNotifications()
         // End Live Activity when all downloads complete
         await LiveActivityManager.shared.endActivity()
       }
