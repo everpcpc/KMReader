@@ -759,11 +759,23 @@ actor OfflineManager {
 
       // Update Live Activity or end if no more pending
       let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
+      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+        instanceId: info.instanceId)
+
       if pendingBooks.isEmpty {
-        await LiveActivityManager.shared.endActivity()
+        if failedCount > 0 {
+          // Keep showing if there are failures, update info to show summary
+          await LiveActivityManager.shared.updateActivity(
+            seriesTitle: String(localized: "Offline Download"),
+            bookInfo: String(localized: "Download finished with failures"),
+            progress: 1.0,
+            pendingCount: 0,
+            failedCount: failedCount
+          )
+        } else {
+          await LiveActivityManager.shared.endActivity()
+        }
       } else {
-        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-          instanceId: info.instanceId)
         await LiveActivityManager.shared.updateActivity(
           seriesTitle: info.seriesTitle,
           bookInfo: info.bookInfo,
@@ -804,8 +816,21 @@ actor OfflineManager {
       // Clear progress notification if no more pending downloads
       let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
       if pendingBooks.isEmpty {
-        // End Live Activity when all downloads complete
-        await LiveActivityManager.shared.endActivity()
+        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+          instanceId: info.instanceId)
+        if failedCount > 0 {
+          // Keep showing if there are failures, update info to show summary
+          await LiveActivityManager.shared.updateActivity(
+            seriesTitle: info.seriesTitle,
+            bookInfo: String(localized: "Download finished with failures"),
+            progress: 1.0,
+            pendingCount: 0,
+            failedCount: failedCount
+          )
+        } else {
+          // End Live Activity when all downloads complete successfully
+          await LiveActivityManager.shared.endActivity()
+        }
       }
 
       // Trigger next download

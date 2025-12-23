@@ -5,8 +5,8 @@
 //  Created by Komga iOS Client
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 #if !os(macOS)
   struct SettingsView: View {

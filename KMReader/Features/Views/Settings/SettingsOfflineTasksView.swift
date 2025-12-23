@@ -69,7 +69,7 @@ struct SettingsOfflineTasksView: View {
             }
           )
         ) {
-            Label(currentStatus.label, systemImage: currentStatus.icon)
+          Label(currentStatus.label, systemImage: currentStatus.icon)
             .foregroundColor(currentStatus.color)
         }
 

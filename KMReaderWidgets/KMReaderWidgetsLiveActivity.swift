@@ -42,8 +42,9 @@ import WidgetKit
                 .foregroundStyle(.blue)
                 .monospacedDigit()
             } else {
-              ProgressView()
-                .tint(.blue)
+              Image(systemName: "ellipsis")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.blue)
             }
           }
 
@@ -103,8 +104,9 @@ import WidgetKit
                 .foregroundStyle(.blue)
                 .monospacedDigit()
             } else {
-              ProgressView()
-                .tint(.blue)
+              Image(systemName: "ellipsis")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.blue)
             }
           }
           DynamicIslandExpandedRegion(.center) {
