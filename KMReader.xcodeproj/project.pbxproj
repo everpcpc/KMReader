@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		193F57782EFA1C1D003362E1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57772EFA1C1D003362E1 /* WidgetKit.framework */; };
 		193F577A2EFA1C1D003362E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57792EFA1C1D003362E1 /* SwiftUI.framework */; };
-		193F578B2EFA1C1F003362E1 /* KMReaderWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		193F578B2EFA1C1F003362E1 /* KMReaderWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B382ED616010066E8A4 /* ReadiumShared */; };
 		19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3A2ED616080066E8A4 /* ReadiumStreamer */; };
 		19600B3D2ED6160E0066E8A4 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */; };
@@ -298,6 +298,7 @@
 /* Begin PBXTargetDependency section */
 		193F578A2EFA1C1F003362E1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = 193F57742EFA1C1D003362E1 /* KMReaderWidgetsExtension */;
 			targetProxy = 193F57892EFA1C1F003362E1 /* PBXContainerItemProxy */;
 		};

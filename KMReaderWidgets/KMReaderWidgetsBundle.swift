@@ -8,9 +8,11 @@
 import SwiftUI
 import WidgetKit
 
-@main
-struct KMReaderWidgetsBundle: WidgetBundle {
-  var body: some Widget {
-    KMReaderWidgetsLiveActivity()
+#if os(iOS)
+  @main
+  struct KMReaderWidgetsBundle: WidgetBundle {
+    var body: some Widget {
+      KMReaderWidgetsLiveActivity()
+    }
   }
-}
+#endif

@@ -14,6 +14,12 @@ import UniformTypeIdentifiers
   import UIKit
 #endif
 
+#if os(iOS)
+  private typealias BackgroundTaskID = UIBackgroundTaskIdentifier
+#else
+  private typealias BackgroundTaskID = Int
+#endif
+
 /// Simple Sendable struct for download info.
 struct DownloadInfo: Sendable {
   let bookId: String
@@ -286,7 +292,7 @@ actor OfflineManager {
     }
   }
 
-  private func startBackgroundTask() async -> UIBackgroundTaskIdentifier {
+  private func startBackgroundTask() async -> BackgroundTaskID {
     #if os(iOS)
       return await MainActor.run {
         UIApplication.shared.beginBackgroundTask(withName: "OfflineMetadataFetch") {
@@ -294,11 +300,11 @@ actor OfflineManager {
         }
       }
     #else
-      return .invalid
+      return 0
     #endif
   }
 
-  private func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) async {
+  private func endBackgroundTask(_ identifier: BackgroundTaskID) async {
     #if os(iOS)
       if identifier != .invalid {
         await MainActor.run {

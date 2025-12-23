@@ -7,24 +7,20 @@
 
 import Foundation
 
-#if canImport(ActivityKit)
+#if os(iOS)
   import ActivityKit
-#endif
 
-/// Manages Live Activity for download progress on iOS
-@MainActor
-final class LiveActivityManager {
-  static let shared = LiveActivityManager()
+  /// Manages Live Activity for download progress on iOS
+  @MainActor
+  final class LiveActivityManager {
+    static let shared = LiveActivityManager()
 
-  #if canImport(ActivityKit)
     private var currentActivity: Activity<DownloadActivityAttributes>?
-  #endif
 
-  private init() {}
+    private init() {}
 
-  /// Start a new download Live Activity
-  func startActivity(seriesTitle: String, bookInfo: String, totalBooks: Int, pendingCount: Int) {
-    #if canImport(ActivityKit)
+    /// Start a new download Live Activity
+    func startActivity(seriesTitle: String, bookInfo: String, totalBooks: Int, pendingCount: Int) {
       guard ActivityAuthorizationInfo().areActivitiesEnabled else {
         return
       }
@@ -50,18 +46,16 @@ final class LiveActivityManager {
       } catch {
         print("Failed to start Live Activity: \(error)")
       }
-    #endif
-  }
+    }
 
-  /// Update the current Live Activity with new progress
-  func updateActivity(
-    seriesTitle: String,
-    bookInfo: String,
-    progress: Double,
-    pendingCount: Int,
-    failedCount: Int
-  ) {
-    #if canImport(ActivityKit)
+    /// Update the current Live Activity with new progress
+    func updateActivity(
+      seriesTitle: String,
+      bookInfo: String,
+      progress: Double,
+      pendingCount: Int,
+      failedCount: Int
+    ) {
       guard let activity = currentActivity else { return }
 
       let state = DownloadActivityAttributes.ContentState(
@@ -75,18 +69,16 @@ final class LiveActivityManager {
       Task {
         await activity.update(.init(state: state, staleDate: nil))
       }
-    #endif
-  }
+    }
 
-  /// End the current Live Activity
-  func endActivity() {
-    #if canImport(ActivityKit)
+    /// End the current Live Activity
+    func endActivity() {
       guard let activity = currentActivity else { return }
 
       Task {
         await activity.end(nil, dismissalPolicy: .immediate)
       }
       currentActivity = nil
-    #endif
+    }
   }
-}
+#endif

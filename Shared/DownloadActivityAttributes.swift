@@ -8,7 +8,7 @@
 
 import Foundation
 
-#if canImport(ActivityKit)
+#if os(iOS)
   import ActivityKit
 
   public struct DownloadActivityAttributes: ActivityAttributes {
