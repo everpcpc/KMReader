@@ -12,7 +12,6 @@ struct SettingsOfflineTasksView: View {
   @Environment(\.modelContext) private var modelContext
   @AppStorage("currentInstanceId") private var instanceId: String = ""
   @AppStorage("offlinePaused") private var isPaused: Bool = false
-  @AppStorage("notifyDownloadFailure") private var notifyDownloadFailure: Bool = true
   @State private var showingBulkAlert = false
   @State private var pendingBulkAction: BulkAction?
 
@@ -74,13 +73,6 @@ struct SettingsOfflineTasksView: View {
             .foregroundColor(currentStatus.color)
         }
 
-        Toggle(isOn: $notifyDownloadFailure) {
-          Label(
-            "Notify Download Failure",
-            systemImage: notifyDownloadFailure ? "bell.fill" : "bell"
-          )
-          .foregroundColor(notifyDownloadFailure ? .primary : .secondary)
-        }
       }
 
       if !downloadingBooks.isEmpty {
@@ -148,7 +140,7 @@ struct SettingsOfflineTasksView: View {
     .inlineNavigationBarTitle(String(localized: "Offline Tasks"))
     .animation(.default, value: isPaused)
     .animation(.default, value: currentStatus)
-    .animation(.default, value: notifyDownloadFailure)
+    .animation(.default, value: books)
     .alert(
       "Confirm Action", isPresented: $showingBulkAlert,
       presenting: pendingBulkAction
@@ -174,9 +166,18 @@ struct SettingsOfflineTasksView: View {
       )
     }
     .onChange(of: isPaused) { _, newValue in
-      if !newValue {
+      if newValue {
+        // Pause: cancel all active background downloads
+        #if os(iOS)
+          BackgroundDownloadManager.shared.cancelAllDownloads()
+        #endif
+      } else {
+        // Resume: trigger sync to restart downloads
         OfflineManager.shared.triggerSync(instanceId: instanceId, restart: true)
       }
+    }
+    .task {
+      OfflineManager.shared.triggerSync(instanceId: instanceId)
     }
   }
 }
@@ -195,8 +196,7 @@ struct OfflineTaskRow: View {
         Text(book.seriesTitle)
           .font(.caption)
           .lineLimit(1)
-        Text(book.name)
-          .font(.headline)
+        Text("#\(book.metaNumber) - \(book.metaTitle)")
           .lineLimit(1)
 
         switch book.downloadStatus {

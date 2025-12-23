@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		193F57782EFA1C1D003362E1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57772EFA1C1D003362E1 /* WidgetKit.framework */; };
+		193F577A2EFA1C1D003362E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57792EFA1C1D003362E1 /* SwiftUI.framework */; };
+		193F578B2EFA1C1F003362E1 /* KMReaderWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B382ED616010066E8A4 /* ReadiumShared */; };
 		19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3A2ED616080066E8A4 /* ReadiumStreamer */; };
 		19600B3D2ED6160E0066E8A4 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */; };
@@ -18,12 +21,46 @@
 		19FDF1172EC9DDC700F7C3D9 /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 366522FBE7874AE69F5766E100695813 /* SDWebImageWebPCoder */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		193F57892EFA1C1F003362E1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 192E6F752EC4B4E20040D165 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 193F57742EFA1C1D003362E1;
+			remoteInfo = KMReaderWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		193F578C2EFA1C1F003362E1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				193F578B2EFA1C1F003362E1 /* KMReaderWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		192E6F7D2EC4B4E20040D165 /* KMReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KMReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KMReaderWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		193F57772EFA1C1D003362E1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		193F57792EFA1C1D003362E1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		19BDCCB02EC5A7AB00CF5F26 /* Exceptions for "KMReader" folder in "KMReader" target */ = {
+		193F57902EFA1C1F003362E1 /* Exceptions for "KMReaderWidgets" folder in "KMReaderWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 193F57742EFA1C1D003362E1 /* KMReaderWidgetsExtension */;
+		};
+		19AEC99F2EFA249300EC7D3B /* Exceptions for "KMReader" folder in "KMReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -36,9 +73,22 @@
 		192E6F7F2EC4B4E20040D165 /* KMReader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				19BDCCB02EC5A7AB00CF5F26 /* Exceptions for "KMReader" folder in "KMReader" target */,
+				19AEC99F2EFA249300EC7D3B /* Exceptions for "KMReader" folder in "KMReader" target */,
 			);
 			path = KMReader;
+			sourceTree = "<group>";
+		};
+		193F577B2EFA1C1D003362E1 /* KMReaderWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				193F57902EFA1C1F003362E1 /* Exceptions for "KMReaderWidgets" folder in "KMReaderWidgetsExtension" target */,
+			);
+			path = KMReaderWidgets;
+			sourceTree = "<group>";
+		};
+		193F57942EFA2244003362E1 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -60,6 +110,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		193F57722EFA1C1D003362E1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				193F577A2EFA1C1D003362E1 /* SwiftUI.framework in Frameworks */,
+				193F57782EFA1C1D003362E1 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -67,7 +126,10 @@
 			isa = PBXGroup;
 			children = (
 				192E6F7F2EC4B4E20040D165 /* KMReader */,
+				193F577B2EFA1C1D003362E1 /* KMReaderWidgets */,
+				193F57762EFA1C1D003362E1 /* Frameworks */,
 				192E6F7E2EC4B4E20040D165 /* Products */,
+				193F57942EFA2244003362E1 /* Shared */,
 			);
 			sourceTree = "<group>";
 		};
@@ -75,8 +137,18 @@
 			isa = PBXGroup;
 			children = (
 				192E6F7D2EC4B4E20040D165 /* KMReader.app */,
+				193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		193F57762EFA1C1D003362E1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				193F57772EFA1C1D003362E1 /* WidgetKit.framework */,
+				193F57792EFA1C1D003362E1 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -89,13 +161,16 @@
 				192E6F792EC4B4E20040D165 /* Sources */,
 				192E6F7A2EC4B4E20040D165 /* Frameworks */,
 				192E6F7B2EC4B4E20040D165 /* Resources */,
+				193F578C2EFA1C1F003362E1 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				193F578A2EFA1C1F003362E1 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				192E6F7F2EC4B4E20040D165 /* KMReader */,
+				193F57942EFA2244003362E1 /* Shared */,
 			);
 			name = KMReader;
 			packageProductDependencies = (
@@ -113,6 +188,29 @@
 			productReference = 192E6F7D2EC4B4E20040D165 /* KMReader.app */;
 			productType = "com.apple.product-type.application";
 		};
+		193F57742EFA1C1D003362E1 /* KMReaderWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 193F578F2EFA1C1F003362E1 /* Build configuration list for PBXNativeTarget "KMReaderWidgetsExtension" */;
+			buildPhases = (
+				193F57712EFA1C1D003362E1 /* Sources */,
+				193F57722EFA1C1D003362E1 /* Frameworks */,
+				193F57732EFA1C1D003362E1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				193F577B2EFA1C1D003362E1 /* KMReaderWidgets */,
+				193F57942EFA2244003362E1 /* Shared */,
+			);
+			name = KMReaderWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = KMReaderWidgetsExtension;
+			productReference = 193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -120,11 +218,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2610;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					192E6F7C2EC4B4E20040D165 = {
 						CreatedOnToolsVersion = 26.1;
+					};
+					193F57742EFA1C1D003362E1 = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -155,12 +256,20 @@
 			projectRoot = "";
 			targets = (
 				192E6F7C2EC4B4E20040D165 /* KMReader */,
+				193F57742EFA1C1D003362E1 /* KMReaderWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		192E6F7B2EC4B4E20040D165 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		193F57732EFA1C1D003362E1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -177,7 +286,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		193F57712EFA1C1D003362E1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		193F578A2EFA1C1F003362E1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = 193F57742EFA1C1D003362E1 /* KMReaderWidgetsExtension */;
+			targetProxy = 193F57892EFA1C1F003362E1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		192E6F882EC4B4E30040D165 /* Debug */ = {
@@ -314,7 +439,7 @@
 				CODE_SIGN_ENTITLEMENTS = KMReader/KMReader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 165;
+				CURRENT_PROJECT_VERSION = 166;
 				DEVELOPMENT_TEAM = M777UHWZA4;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -328,6 +453,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save images from books to your photo library";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -368,7 +494,7 @@
 				CODE_SIGN_ENTITLEMENTS = KMReader/KMReader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 165;
+				CURRENT_PROJECT_VERSION = 166;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=appletvos*]" = M777UHWZA4;
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = M777UHWZA4;
@@ -385,6 +511,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save images from books to your photo library";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -419,6 +546,74 @@
 			};
 			name = Release;
 		};
+		193F578D2EFA1C1F003362E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 166;
+				DEVELOPMENT_TEAM = M777UHWZA4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KMReaderWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = KMReaderWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.everpcpc.Komga.KMReaderWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		193F578E2EFA1C1F003362E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 166;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = M777UHWZA4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KMReaderWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = KMReaderWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.everpcpc.Komga.KMReaderWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "KMReader Widgets";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -436,6 +631,15 @@
 			buildConfigurations = (
 				192E6F8B2EC4B4E30040D165 /* Debug */,
 				192E6F8C2EC4B4E30040D165 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		193F578F2EFA1C1F003362E1 /* Build configuration list for PBXNativeTarget "KMReaderWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				193F578D2EFA1C1F003362E1 /* Debug */,
+				193F578E2EFA1C1F003362E1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

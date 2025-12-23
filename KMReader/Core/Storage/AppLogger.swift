@@ -24,7 +24,6 @@ enum LogCategory: String, CaseIterable, Sendable {
 }
 
 enum LogLevel: String, CaseIterable, Sendable {
-  case all = "ALL"
   case debug = "DEBUG"
   case info = "INFO"
   case warning = "WARNING"
@@ -40,7 +39,6 @@ enum LogLevel: String, CaseIterable, Sendable {
 
   var priority: Int {
     switch self {
-    case .all: return 0
     case .debug: return 1
     case .info: return 2
     case .warning: return 3
@@ -50,7 +48,6 @@ enum LogLevel: String, CaseIterable, Sendable {
 
   var color: Color {
     switch self {
-    case .all: return .primary
     case .debug: return .secondary
     case .info: return .blue
     case .warning: return .orange

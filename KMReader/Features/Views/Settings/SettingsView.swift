@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 #if !os(macOS)
@@ -42,9 +43,7 @@ import SwiftUI
           }
 
           Section(header: Text(String(localized: "Offline"))) {
-            NavigationLink(value: NavDestination.settingsOfflineTasks) {
-              SettingsSectionRow(section: .offlineTasks)
-            }
+            SettingsOfflineTasksRow()
             NavigationLink(value: NavDestination.settingsOfflineBooks) {
               SettingsSectionRow(section: .offlineBooks)
             }

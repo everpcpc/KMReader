@@ -10,8 +10,25 @@ import SDWebImageWebPCoder
 import SwiftData
 import SwiftUI
 
+#if os(iOS)
+  /// App delegate to handle background URLSession events
+  class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+      _ application: UIApplication,
+      handleEventsForBackgroundURLSession identifier: String,
+      completionHandler: @escaping () -> Void
+    ) {
+      BackgroundDownloadManager.shared.backgroundCompletionHandler = completionHandler
+      BackgroundDownloadManager.shared.reconnectSession()
+    }
+  }
+#endif
+
 @main
 struct MainApp: App {
+  #if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+  #endif
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   #if os(macOS)
     @Environment(\.openWindow) private var openWindow
