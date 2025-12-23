@@ -18,6 +18,8 @@
     <dict>
         <key>com.everpcpc.Komga</key>
         <string>KMReader iOS</string>
+        <key>com.everpcpc.Komga.KMReaderWidgets</key>
+        <string>KMReader Widgets</string>
     </dict>
 </dict>
 </plist>
