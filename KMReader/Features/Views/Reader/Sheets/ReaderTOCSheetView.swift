@@ -22,7 +22,6 @@ struct ReaderTOCSheetView: View {
             HStack(alignment: .center, spacing: 12) {
               VStack(alignment: .leading, spacing: 4) {
                 Text(entry.title)
-                  .font(.body)
                 Text(
                   "Page \(entry.pageNumber)",
                   tableName: nil,
