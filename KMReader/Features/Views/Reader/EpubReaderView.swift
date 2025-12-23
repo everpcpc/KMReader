@@ -171,14 +171,10 @@
               closeReader()
             } label: {
               Image(systemName: "xmark")
-                .font(.title3)
-                .foregroundColor(.white)
-                .padding()
-                .background(themeColor.color.opacity(0.9))
-                .clipShape(Circle())
             }
-            .frame(minWidth: 40, minHeight: 40)
-            .contentShape(Rectangle())
+            .controlSize(.large)
+            .adaptiveButtonStyle(.borderedProminent)
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
             Spacer()
 
@@ -192,23 +188,15 @@
                   if let totalProgression = currentLocator.locations.totalProgression {
                     HStack(spacing: 6) {
                       Image(systemName: "book.fill")
-                        .font(.footnote)
                       Text("\(totalProgression * 100, specifier: "%.1f")%")
                         .monospacedDigit()
                     }
                   }
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(themeColor.color.opacity(0.9))
-                .cornerRadius(20)
-                .overlay(
-                  RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
               }
+              .controlSize(.regular)
+              .adaptiveButtonStyle(.borderedProminent)
+              .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             }
 
             Spacer()
@@ -217,14 +205,10 @@
               showingPreferencesSheet = true
             } label: {
               Image(systemName: "gearshape")
-                .font(.title3)
-                .foregroundColor(.white)
-                .padding()
-                .background(themeColor.color.opacity(0.9))
-                .clipShape(Circle())
             }
-            .frame(minWidth: 40, minHeight: 40)
-            .contentShape(Rectangle())
+            .controlSize(.large)
+            .adaptiveButtonStyle(.borderedProminent)
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
         }
         .padding()

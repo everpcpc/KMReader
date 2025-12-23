@@ -46,7 +46,7 @@ struct NextBookInfoView: View {
             Text("From: \(readList.name)")
               .font(.caption)
           }
-          .foregroundColor(.white.opacity(0.8))
+          .foregroundColor(.white)
         }
         Text(nextBook.metadata.title)
         HStack(spacing: 4) {
@@ -61,7 +61,7 @@ struct NextBookInfoView: View {
       .padding(.vertical, 8)
       .background(
         RoundedRectangle(cornerRadius: 12)
-          .fill(themeColor.color.opacity(0.6))
+          .fill(themeColor.color.opacity(0.8))
       )
     } else {
       HStack(spacing: 8) {
@@ -73,7 +73,7 @@ struct NextBookInfoView: View {
       .padding(.vertical, 8)
       .background(
         RoundedRectangle(cornerRadius: 12)
-          .fill(themeColor.color.opacity(0.6))
+          .fill(themeColor.color.opacity(0.8))
       )
     }
   }

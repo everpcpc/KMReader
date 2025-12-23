@@ -13,10 +13,11 @@
     let chapters: [ReadiumShared.Link]
     let currentLink: ReadiumShared.Link?
     let goToChapter: (ReadiumShared.Link) -> Void
-    @Environment(\.dismiss) private var dismiss
+
+    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
     var body: some View {
-      NavigationStack {
+      SheetView(title: String(localized: "Chapters"), size: .large, applyFormStyle: true) {
         ScrollViewReader { proxy in
           List(chapters, id: \.href) { link in
             Button(action: {
@@ -25,13 +26,13 @@
               HStack {
                 VStack(alignment: .leading, spacing: 4) {
                   Text(link.title ?? link.href)
-                    .font(.body)
                 }
                 Spacer()
                 if let currentLink,
                   currentLink.href == link.href
                 {
                   Image(systemName: "bookmark.fill")
+                    .foregroundColor(themeColor.color)
                 }
               }
             }
@@ -39,23 +40,13 @@
             .contentShape(Rectangle())
             .id(link.href)
           }
+          .optimizedListStyle()
           .onAppear {
             // Wait for the List to fully render before scrolling
             DispatchQueue.main.async {
               if let target = currentLink {
                 proxy.scrollTo(target.href, anchor: .center)
               }
-            }
-          }
-        }
-        .padding(PlatformHelper.sheetPadding)
-        .inlineNavigationBarTitle(String(localized: "title.chapters"))
-        .toolbar {
-          ToolbarItem(placement: .cancellationAction) {
-            Button {
-              dismiss()
-            } label: {
-              Label("Close", systemImage: "xmark")
             }
           }
         }
