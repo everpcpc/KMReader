@@ -36,10 +36,15 @@ import WidgetKit
             Spacer()
 
             // Progress percentage
-            Text("\(Int(context.state.progress * 100))%")
-              .font(.title3.weight(.bold))
-              .foregroundStyle(.blue)
-              .monospacedDigit()
+            if context.state.progress > 0 {
+              Text("\(Int(context.state.progress * 100))%")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.blue)
+                .monospacedDigit()
+            } else {
+              ProgressView()
+                .tint(.blue)
+            }
           }
 
           // Progress bar
@@ -77,7 +82,7 @@ import WidgetKit
                 .foregroundStyle(.red)
             }
           }
-          .padding(.horizontal)
+          .padding(.horizontal, 4)
         }
         .padding(12)
         .activityBackgroundTint(Color(.systemBackground).opacity(0.95))
@@ -92,10 +97,15 @@ import WidgetKit
               .font(.title2)
           }
           DynamicIslandExpandedRegion(.trailing) {
-            Text("\(Int(context.state.progress * 100))%")
-              .font(.headline.weight(.bold))
-              .foregroundStyle(.blue)
-              .monospacedDigit()
+            if context.state.progress > 0 {
+              Text("\(Int(context.state.progress * 100))%")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.blue)
+                .monospacedDigit()
+            } else {
+              ProgressView()
+                .tint(.blue)
+            }
           }
           DynamicIslandExpandedRegion(.center) {
             VStack(spacing: 2) {
@@ -117,10 +127,16 @@ import WidgetKit
           Image(systemName: "arrow.down.circle.fill")
             .foregroundStyle(.blue)
         } compactTrailing: {
-          Text("\(Int(context.state.progress * 100))%")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.blue)
-            .monospacedDigit()
+          if context.state.progress > 0 {
+            Text("\(Int(context.state.progress * 100))%")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.blue)
+              .monospacedDigit()
+          } else {
+            Image(systemName: "ellipsis")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.blue)
+          }
         } minimal: {
           Image(systemName: "arrow.down.circle.fill")
             .foregroundStyle(.blue)

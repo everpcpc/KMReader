@@ -247,6 +247,9 @@ actor OfflineManager {
       try? await DatabaseOperator.shared.commit()
     }
     activeTasks.removeAll()
+    #if os(iOS)
+      await LiveActivityManager.shared.endActivity()
+    #endif
   }
 
   func retryFailedDownloads(instanceId: String) async {
@@ -370,6 +373,20 @@ actor OfflineManager {
       logger.info("⬇️ Starting background download for book: \(info.bookInfo) (\(info.bookId))")
 
       do {
+        // Get pending count and failed count for Live Activity
+        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
+        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+          instanceId: instanceId)
+
+        // Start or update Live Activity for download progress
+        await LiveActivityManager.shared.startActivity(
+          seriesTitle: info.seriesTitle,
+          bookInfo: info.bookInfo,
+          totalBooks: pendingBooks.count + 1,
+          pendingCount: pendingBooks.count,
+          failedCount: failedCount
+        )
+
         // First, fetch and save metadata (this needs to happen before background download)
         let pages = try await BookService.shared.getBookPages(id: info.bookId)
         await DatabaseOperator.shared.updateBookPages(bookId: info.bookId, pages: pages)
@@ -391,17 +408,6 @@ actor OfflineManager {
           bookInfo: info.bookInfo,
           isEpub: isEpub,
           totalPages: pages.count
-        )
-
-        // Get pending count for Live Activity
-        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
-
-        // Start Live Activity for download progress
-        await LiveActivityManager.shared.startActivity(
-          seriesTitle: info.seriesTitle,
-          bookInfo: info.bookInfo,
-          totalBooks: pendingBooks.count + 1,
-          pendingCount: pendingBooks.count
         )
 
         let serverURL = await MainActor.run { AppConfig.serverURL }
@@ -750,6 +756,25 @@ actor OfflineManager {
       pendingBackgroundPages.removeValue(forKey: bookId)
       backgroundDownloadInfo.removeValue(forKey: bookId)
       removeActiveTask(bookId)
+
+      // Update Live Activity or end if no more pending
+      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
+      if pendingBooks.isEmpty {
+        await LiveActivityManager.shared.endActivity()
+      } else {
+        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+          instanceId: info.instanceId)
+        await LiveActivityManager.shared.updateActivity(
+          seriesTitle: info.seriesTitle,
+          bookInfo: info.bookInfo,
+          progress: 1.0,
+          pendingCount: pendingBooks.count,
+          failedCount: failedCount
+        )
+      }
+
+      // Trigger next download
+      await syncDownloadQueue(instanceId: info.instanceId)
     }
 
     private func handleAllBackgroundDownloadsComplete(bookId: String) async {

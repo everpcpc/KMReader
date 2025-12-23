@@ -19,14 +19,24 @@ import Foundation
 
     private init() {}
 
-    /// Start a new download Live Activity
-    func startActivity(seriesTitle: String, bookInfo: String, totalBooks: Int, pendingCount: Int) {
+    /// Start or update a download Live Activity
+    func startActivity(
+      seriesTitle: String, bookInfo: String, totalBooks: Int, pendingCount: Int, failedCount: Int
+    ) {
       guard ActivityAuthorizationInfo().areActivitiesEnabled else {
         return
       }
 
-      // End any existing activity first
-      endActivity()
+      if currentActivity != nil {
+        updateActivity(
+          seriesTitle: seriesTitle,
+          bookInfo: bookInfo,
+          progress: 0.0,
+          pendingCount: pendingCount,
+          failedCount: failedCount
+        )
+        return
+      }
 
       let attributes = DownloadActivityAttributes(totalBooks: totalBooks)
       let state = DownloadActivityAttributes.ContentState(
@@ -34,7 +44,7 @@ import Foundation
         bookInfo: bookInfo,
         progress: 0.0,
         pendingCount: pendingCount,
-        failedCount: 0
+        failedCount: failedCount
       )
 
       do {
