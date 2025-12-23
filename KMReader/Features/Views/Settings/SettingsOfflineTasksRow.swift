@@ -39,54 +39,52 @@ struct SettingsOfflineTasksRow: View {
   }
 
   var body: some View {
-    NavigationLink(value: NavDestination.settingsOfflineTasks) {
-      HStack {
-        Label(
-          SettingsSection.offlineTasks.title,
-          systemImage: SettingsSection.offlineTasks.icon
-        )
+    HStack {
+      Label(
+        SettingsSection.offlineTasks.title,
+        systemImage: SettingsSection.offlineTasks.icon
+      )
 
-        Spacer()
+      Spacer()
 
-        HStack(spacing: 12) {
-          if offlinePaused {
+      HStack(spacing: 12) {
+        if offlinePaused {
+          HStack(spacing: 4) {
+            Image(systemName: "pause.fill")
+            Text(String(localized: "Paused"))
+          }
+          .font(.caption)
+          .fontWeight(.semibold)
+          .foregroundColor(.orange)
+        } else {
+          if downloadingCount > 0 {
             HStack(spacing: 4) {
-              Image(systemName: "pause.fill")
-              Text(String(localized: "Paused"))
+              Image(systemName: "arrow.down.circle.fill")
+              Text("\(downloadingCount)")
             }
             .font(.caption)
             .fontWeight(.semibold)
-            .foregroundColor(.orange)
-          } else {
-            if downloadingCount > 0 {
-              HStack(spacing: 4) {
-                Image(systemName: "arrow.down.circle.fill")
-                Text("\(downloadingCount)")
-              }
-              .font(.caption)
-              .fontWeight(.semibold)
-              .foregroundColor(themeColor.color)
-            }
+            .foregroundColor(themeColor.color)
+          }
 
-            if pendingCount > 0 {
-              HStack(spacing: 4) {
-                Image(systemName: "clock.fill")
-                Text("\(pendingCount)")
-              }
-              .font(.caption)
-              .fontWeight(.semibold)
-              .foregroundColor(.secondary)
+          if pendingCount > 0 {
+            HStack(spacing: 4) {
+              Image(systemName: "clock.fill")
+              Text("\(pendingCount)")
             }
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundColor(.secondary)
+          }
 
-            if failedCount > 0 {
-              HStack(spacing: 4) {
-                Image(systemName: "exclamationmark.circle.fill")
-                Text("\(failedCount)")
-              }
-              .font(.caption)
-              .fontWeight(.semibold)
-              .foregroundColor(.red)
+          if failedCount > 0 {
+            HStack(spacing: 4) {
+              Image(systemName: "exclamationmark.circle.fill")
+              Text("\(failedCount)")
             }
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundColor(.red)
           }
         }
       }

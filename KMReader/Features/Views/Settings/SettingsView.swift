@@ -43,7 +43,9 @@ import SwiftUI
           }
 
           Section(header: Text(String(localized: "Offline"))) {
-            SettingsOfflineTasksRow()
+            NavigationLink(value: NavDestination.settingsOfflineTasks) {
+              SettingsOfflineTasksRow()
+            }
             NavigationLink(value: NavDestination.settingsOfflineBooks) {
               SettingsSectionRow(section: .offlineBooks)
             }
