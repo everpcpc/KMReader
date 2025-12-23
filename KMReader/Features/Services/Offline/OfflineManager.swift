@@ -10,6 +10,10 @@ import Foundation
 import OSLog
 import UniformTypeIdentifiers
 
+#if os(iOS)
+  import UIKit
+#endif
+
 /// Simple Sendable struct for download info.
 struct DownloadInfo: Sendable {
   let bookId: String
@@ -282,6 +286,28 @@ actor OfflineManager {
     }
   }
 
+  private func startBackgroundTask() async -> UIBackgroundTaskIdentifier {
+    #if os(iOS)
+      return await MainActor.run {
+        UIApplication.shared.beginBackgroundTask(withName: "OfflineMetadataFetch") {
+          // If the task expires, there's not much we can do but log it
+        }
+      }
+    #else
+      return .invalid
+    #endif
+  }
+
+  private func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) async {
+    #if os(iOS)
+      if identifier != .invalid {
+        await MainActor.run {
+          UIApplication.shared.endBackgroundTask(identifier)
+        }
+      }
+    #endif
+  }
+
   private func syncDownloadQueue(instanceId: String) async {
     // Check if offline
     guard !AppConfig.isOffline else { return }
@@ -292,6 +318,13 @@ actor OfflineManager {
 
     // Only allow one download at a time
     guard activeTasks.isEmpty else { return }
+
+    let backgroundTaskId = await startBackgroundTask()
+    defer {
+      Task {
+        await endBackgroundTask(backgroundTaskId)
+      }
+    }
 
     isProcessingQueue = true
     defer { isProcessingQueue = false }
@@ -628,6 +661,13 @@ actor OfflineManager {
     private func handleBackgroundDownloadComplete(
       bookId: String, pageNumber: Int?, fileURL: URL
     ) async {
+      let backgroundTaskId = await startBackgroundTask()
+      defer {
+        Task {
+          await endBackgroundTask(backgroundTaskId)
+        }
+      }
+
       guard let info = backgroundDownloadInfo[bookId] else { return }
 
       if info.isEpub {
@@ -662,6 +702,13 @@ actor OfflineManager {
     private func handleBackgroundDownloadFailed(
       bookId: String, pageNumber: Int?, error: Error
     ) async {
+      let backgroundTaskId = await startBackgroundTask()
+      defer {
+        Task {
+          await endBackgroundTask(backgroundTaskId)
+        }
+      }
+
       guard let info = backgroundDownloadInfo[bookId] else { return }
 
       // Check if this is a network error while we're now offline
