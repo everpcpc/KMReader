@@ -43,6 +43,7 @@ import OSLog
       config.isDiscretionary = false  // download immediately, not when optimal
       config.sessionSendsLaunchEvents = true  // wake app on completion
       config.allowsCellularAccess = true
+      config.httpMaximumConnectionsPerHost = 3
 
       // Add auth headers
       var headers: [String: String] = [:]

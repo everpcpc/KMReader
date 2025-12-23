@@ -8201,6 +8201,7 @@
       }
     },
     "Download failed: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8241,6 +8242,7 @@
       }
     },
     "Download Notification" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -15453,6 +15455,7 @@
       }
     },
     "notification.download.current %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -15487,6 +15490,7 @@
       }
     },
     "notification.download.failed %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -15521,6 +15525,7 @@
       }
     },
     "notification.download.failed.body %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -15555,6 +15560,7 @@
       }
     },
     "notification.download.failed.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -15589,6 +15595,7 @@
       }
     },
     "notification.download.pending %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -15623,6 +15630,7 @@
       }
     },
     "notification.download.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {

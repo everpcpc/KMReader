@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 #if !os(macOS)
   struct SettingsView: View {
@@ -42,9 +43,7 @@ import SwiftUI
           }
 
           Section(header: Text(String(localized: "Offline"))) {
-            NavigationLink(value: NavDestination.settingsOfflineTasks) {
-              SettingsSectionRow(section: .offlineTasks)
-            }
+            SettingsOfflineTasksRow()
             NavigationLink(value: NavDestination.settingsOfflineBooks) {
               SettingsSectionRow(section: .offlineBooks)
             }

@@ -416,6 +416,11 @@ actor OfflineManager {
           }
           let destPath = bookDir.appendingPathComponent("book.epub").path
 
+          activeTasks[info.bookId] = Task {
+            // Wait indefinitely until explicitly cancelled via removeActiveTask
+            try? await Task.sleep(nanoseconds: UInt64.max)
+          }
+
           await MainActor.run {
             BackgroundDownloadManager.shared.downloadEpub(
               bookId: info.bookId,
@@ -456,6 +461,11 @@ actor OfflineManager {
           }
 
           pendingBackgroundPages[info.bookId] = Set(pagesToDownload.map { $0.number })
+
+          activeTasks[info.bookId] = Task {
+            // Wait indefinitely until explicitly cancelled via removeActiveTask
+            try? await Task.sleep(nanoseconds: UInt64.max)
+          }
 
           for page in pagesToDownload {
             guard
@@ -628,6 +638,7 @@ actor OfflineManager {
   // MARK: - Private Helpers
 
   private func removeActiveTask(_ bookId: String) {
+    activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
     Task { @MainActor in
       DownloadProgressTracker.shared.clearProgress(bookId: bookId)
@@ -738,6 +749,7 @@ actor OfflineManager {
       await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
       pendingBackgroundPages.removeValue(forKey: bookId)
       backgroundDownloadInfo.removeValue(forKey: bookId)
+      removeActiveTask(bookId)
     }
 
     private func handleAllBackgroundDownloadsComplete(bookId: String) async {
@@ -762,6 +774,7 @@ actor OfflineManager {
       // Cleanup tracking
       pendingBackgroundPages.removeValue(forKey: bookId)
       backgroundDownloadInfo.removeValue(forKey: bookId)
+      removeActiveTask(bookId)
 
       // Clear progress notification if no more pending downloads
       let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()

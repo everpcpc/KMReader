@@ -69,7 +69,7 @@ struct SettingsOfflineTasksView: View {
             }
           )
         ) {
-          Label(currentStatus.label, systemImage: currentStatus.icon)
+            Label(currentStatus.label, systemImage: currentStatus.icon)
             .foregroundColor(currentStatus.color)
         }
 
@@ -174,6 +174,9 @@ struct SettingsOfflineTasksView: View {
         // Resume: trigger sync to restart downloads
         OfflineManager.shared.triggerSync(instanceId: instanceId, restart: true)
       }
+    }
+    .task {
+      OfflineManager.shared.triggerSync(instanceId: instanceId)
     }
   }
 }
