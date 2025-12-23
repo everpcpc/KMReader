@@ -26,7 +26,6 @@
               HStack {
                 VStack(alignment: .leading, spacing: 4) {
                   Text(link.title ?? link.href)
-                    .font(.body)
                 }
                 Spacer()
                 if let currentLink,
