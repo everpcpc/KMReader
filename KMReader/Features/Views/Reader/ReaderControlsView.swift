@@ -110,13 +110,10 @@ struct ReaderControlsView: View {
           onDismiss()
         } label: {
           Image(systemName: "xmark")
-            .foregroundColor(.white)
-            .frame(minWidth: 40, minHeight: 40)
-            .padding(buttonPadding)
-            .background(themeColor.color.opacity(0.9))
-            .clipShape(Circle())
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
+        .controlSize(.large)
+        .adaptiveButtonStyle(.borderedProminent)
+        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         #if os(tvOS)
           .focused($focusedControl, equals: .close)
           .id("closeButton")
@@ -128,10 +125,10 @@ struct ReaderControlsView: View {
         if let book = currentBook {
           VStack(spacing: 4) {
             Text(book.seriesTitle)
-              .font(.footnote)
+              .font(.caption)
               .foregroundColor(.white)
             Text("#\(book.metadata.number) - \(book.metadata.title)")
-              .font(.callout)
+              .font(.footnote)
               .foregroundColor(.white)
           }
           .padding(.vertical, buttonPadding)
@@ -144,26 +141,21 @@ struct ReaderControlsView: View {
 
         // Action buttons
         HStack(spacing: PlatformHelper.buttonSpacing) {
-
           // Reader settings button
           Button {
             showingReaderSettingsSheet = true
           } label: {
             Image(systemName: "gearshape")
-              .foregroundColor(.white)
-              .frame(width: 40, height: 40)
-              .padding(buttonPadding)
-              .background(themeColor.color.opacity(0.9))
-              .clipShape(Circle())
-              .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
+          .controlSize(.large)
+          .adaptiveButtonStyle(.borderedProminent)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
             .focused($focusedControl, equals: .settings)
           #endif
         }
 
       }
-      .adaptiveButtonStyle(.plain)
       .padding(.horizontal, buttonMargin)
       .padding(.vertical, buttonPadding)
       .allowsHitTesting(true)
@@ -188,21 +180,15 @@ struct ReaderControlsView: View {
           } label: {
             HStack(spacing: 4) {
               Image(systemName: "chevron.left")
-                .font(.footnote.weight(.semibold))
               Text(
                 String(
                   localized: readingDirection == .rtl ? "reader.nextBook" : "reader.previousBook")
               )
-              .font(.footnote.weight(.medium))
             }
-            .foregroundColor(.white)
-            .padding(.horizontal, buttonMargin)
-            .padding(.vertical, buttonPadding)
-            .background(themeColor.color.opacity(0.9))
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
-          .adaptiveButtonStyle(.plain)
+          .controlSize(.mini)
+          .adaptiveButtonStyle(.borderedProminent)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           .opacity((readingDirection == .rtl ? nextBook : previousBook) != nil ? 1.0 : 0.0)
           .disabled((readingDirection == .rtl ? nextBook : previousBook) == nil)
           #if os(tvOS)
@@ -222,19 +208,10 @@ struct ReaderControlsView: View {
               Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
                 .monospacedDigit()
             }
-            .font(.footnote)
-            .foregroundColor(.white)
-            .padding(.horizontal, buttonMargin)
-            .padding(.vertical, buttonPadding)
-            .background(themeColor.color.opacity(0.9))
-            .cornerRadius(16)
-            .overlay(
-              RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.3), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
-          .adaptiveButtonStyle(.plain)
+          .controlSize(.mini)
+          .adaptiveButtonStyle(.borderedProminent)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
             .focused($focusedControl, equals: .pageNumber)
           #endif
@@ -245,14 +222,10 @@ struct ReaderControlsView: View {
               showingTOCSheet = true
             } label: {
               Image(systemName: "list.bullet")
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(.white)
-                .padding(buttonPadding)
-                .background(themeColor.color.opacity(0.9))
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             }
-            .adaptiveButtonStyle(.plain)
+            .controlSize(.mini)
+            .adaptiveButtonStyle(.borderedProminent)
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             #if os(tvOS)
               .focused($focusedControl, equals: .toc)
             #endif
@@ -277,18 +250,12 @@ struct ReaderControlsView: View {
                 String(
                   localized: readingDirection == .rtl ? "reader.previousBook" : "reader.nextBook")
               )
-              .font(.footnote.weight(.medium))
               Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
             }
-            .foregroundColor(.white)
-            .padding(.horizontal, buttonMargin)
-            .padding(.vertical, buttonPadding)
-            .background(themeColor.color.opacity(0.9))
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
-          .adaptiveButtonStyle(.plain)
+          .controlSize(.mini)
+          .adaptiveButtonStyle(.borderedProminent)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           .opacity((readingDirection == .rtl ? previousBook : nextBook) != nil ? 1.0 : 0.0)
           .disabled((readingDirection == .rtl ? previousBook : nextBook) == nil)
           #if os(tvOS)
@@ -300,6 +267,7 @@ struct ReaderControlsView: View {
         // Bottom slider
         ReadingProgressBar(progress: progress)
           .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
       }
       .padding()
     }
