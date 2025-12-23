@@ -877,8 +877,8 @@ extension Book {
   var downloadInfo: DownloadInfo {
     DownloadInfo(
       bookId: id,
-      seriesTitle: seriesTitle,
-      bookInfo: "#\(metadata.number) - \(metadata.title)",
+      seriesTitle: oneshot ? String(localized: "OneShot") : seriesTitle,
+      bookInfo: oneshot ? "\(metadata.title)" : "#\(metadata.number) - \(metadata.title)",
       isEpub: media.mediaProfile == .epub,
       epubDivinaCompatible: media.epubDivinaCompatible ?? false
     )
