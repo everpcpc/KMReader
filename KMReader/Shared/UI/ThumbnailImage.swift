@@ -19,6 +19,8 @@ struct ThumbnailImage<Overlay: View>: View {
   let refreshTrigger: Int
   let overlay: (() -> Overlay)?
 
+  let ratio: CGFloat = 1.4
+
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @State private var localURL: URL?
   @State private var isLoading = true
@@ -54,7 +56,7 @@ struct ThumbnailImage<Overlay: View>: View {
       // Background container with rounded corners
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.clear)
-        .frame(width: width, height: width * 1.3)
+        .frame(width: width, height: width * ratio)
 
       // Image content - this will be the target for overlay alignment
       if let localURL = localURL {
@@ -85,11 +87,11 @@ struct ThumbnailImage<Overlay: View>: View {
             EmptyView()
           }
         }
-        .frame(width: width, height: width * 1.3, alignment: .center)
+        .frame(width: width, height: width * ratio, alignment: .center)
       } else {
         RoundedRectangle(cornerRadius: cornerRadius)
           .fill(Color.gray.opacity(0.3))
-          .frame(width: width, height: width * 1.3, alignment: .center)
+          .frame(width: width, height: width * ratio, alignment: .center)
           .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
           .overlay {
             if showPlaceholder && isLoading {
@@ -98,7 +100,7 @@ struct ThumbnailImage<Overlay: View>: View {
           }
       }
     }
-    .frame(width: width, height: width * 1.3)
+    .frame(width: width, height: width * ratio)
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     .overlay {
       if !thumbnailPreserveAspectRatio, let overlay = overlay {
@@ -108,7 +110,7 @@ struct ThumbnailImage<Overlay: View>: View {
         EmptyView()
       }
     }
-    .shadow(color: Color.black.opacity(0.5), radius: 4)
+    .shadow(color: Color.black.opacity(0.5), radius: 2)
     .task(id: "\(id ?? "")_\(refreshTrigger)") {
       guard let id = id else {
         isLoading = false

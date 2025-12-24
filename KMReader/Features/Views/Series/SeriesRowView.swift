@@ -61,7 +61,7 @@ struct SeriesRowView: View {
                   Image(systemName: komgaSeries.downloadStatus.icon)
                     .foregroundColor(komgaSeries.downloadStatus.color)
                     .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                    .padding(.leading, 8)
+                    .padding(.horizontal, 4)
                 }
               }
             }
