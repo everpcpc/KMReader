@@ -335,15 +335,15 @@ enum AppConfig {
     }
   }
 
-  static var showSeriesCardTitle: Bool {
+  static var coverOnlyCards: Bool {
     get {
-      if UserDefaults.standard.object(forKey: "showSeriesCardTitle") != nil {
-        return UserDefaults.standard.bool(forKey: "showSeriesCardTitle")
+      if UserDefaults.standard.object(forKey: "coverOnlyCards") != nil {
+        return UserDefaults.standard.bool(forKey: "coverOnlyCards")
       }
-      return true
+      return false
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "showSeriesCardTitle")
+      UserDefaults.standard.set(newValue, forKey: "coverOnlyCards")
     }
   }
 

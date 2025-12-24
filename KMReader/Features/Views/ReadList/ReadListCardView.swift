@@ -12,6 +12,7 @@ struct ReadListCardView: View {
   let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
+  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
@@ -25,19 +26,21 @@ struct ReadListCardView: View {
       VStack(alignment: .leading, spacing: 8) {
         ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: width - 8)
 
-        VStack(alignment: .leading, spacing: 4) {
-          Text(komgaReadList.name)
-            .lineLimit(1)
+        if !coverOnlyCards {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(komgaReadList.name)
+              .lineLimit(1)
 
-          Text(bookCountText)
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-          if !komgaReadList.summary.isEmpty {
-            Text(komgaReadList.summary)
+            Text(bookCountText)
               .font(.caption)
               .foregroundColor(.secondary)
-              .lineLimit(2)
+
+            if !komgaReadList.summary.isEmpty {
+              Text(komgaReadList.summary)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+            }
           }
         }
       }

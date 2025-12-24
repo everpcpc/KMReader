@@ -18,6 +18,7 @@ struct BookCardView: View {
   var showSeriesNavigation: Bool = true
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
+  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @Environment(\.readerZoomNamespace) private var zoomNamespace
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
@@ -66,42 +67,44 @@ struct BookCardView: View {
             view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
           }
 
-          VStack(alignment: .leading, spacing: 2) {
-            if shouldShowSeriesTitle {
-              Text(komgaBook.seriesTitle)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-            }
-            Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
-              .font(.caption)
-              .foregroundColor(.primary)
-              .lineLimit(bookTitleLineLimit)
-
-            Group {
-              if komgaBook.deleted {
-                Text("Unavailable")
-                  .foregroundColor(.red)
-              } else {
-                HStack(spacing: 4) {
-                  Text("\(komgaBook.mediaPagesCount) pages")
-                    + Text(" • \(komgaBook.size)")
-                  if komgaBook.oneshot {
-                    Text("•")
-                    Text("Oneshot")
-                      .foregroundColor(.blue)
-                  }
-                  if komgaBook.downloadStatus != .notDownloaded {
-                    Image(systemName: komgaBook.downloadStatus.displayIcon)
-                      .foregroundColor(komgaBook.downloadStatus.displayColor)
-                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                      .padding(.horizontal, 4)
-                  }
-                }
-                .foregroundColor(.secondary)
-                .lineLimit(1)
+          if !coverOnlyCards {
+            VStack(alignment: .leading, spacing: 2) {
+              if shouldShowSeriesTitle {
+                Text(komgaBook.seriesTitle)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+                  .lineLimit(1)
               }
-            }.font(.caption)
+              Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+                .font(.caption)
+                .foregroundColor(.primary)
+                .lineLimit(bookTitleLineLimit)
+
+              Group {
+                if komgaBook.deleted {
+                  Text("Unavailable")
+                    .foregroundColor(.red)
+                } else {
+                  HStack(spacing: 4) {
+                    Text("\(komgaBook.mediaPagesCount) pages")
+                      + Text(" • \(komgaBook.size)")
+                    if komgaBook.oneshot {
+                      Text("•")
+                      Text("Oneshot")
+                        .foregroundColor(.blue)
+                    }
+                    if komgaBook.downloadStatus != .notDownloaded {
+                      Image(systemName: komgaBook.downloadStatus.displayIcon)
+                        .foregroundColor(komgaBook.downloadStatus.displayColor)
+                        .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                        .padding(.horizontal, 4)
+                    }
+                  }
+                  .foregroundColor(.secondary)
+                  .lineLimit(1)
+                }
+              }.font(.caption)
+            }
           }
         }
       }

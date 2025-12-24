@@ -13,7 +13,7 @@ struct SeriesCardView: View {
   let cardWidth: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
-  @AppStorage("showSeriesCardTitle") private var showTitle: Bool = true
+  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
@@ -33,35 +33,35 @@ struct SeriesCardView: View {
           }
         }
 
-        VStack(alignment: .leading, spacing: 2) {
-          if showTitle {
+        if !coverOnlyCards {
+          VStack(alignment: .leading, spacing: 2) {
             Text(komgaSeries.metaTitle)
               .font(.caption)
               .foregroundColor(.primary)
               .lineLimit(1)
-          }
-          Group {
-            if komgaSeries.deleted {
-              Text("Unavailable")
-                .foregroundColor(.red)
-            } else {
-              HStack(spacing: 4) {
-                Text("\(komgaSeries.booksCount) books")
-                if komgaSeries.oneshot {
-                  Text("•")
-                  Text("Oneshot")
-                    .foregroundColor(.blue)
+            Group {
+              if komgaSeries.deleted {
+                Text("Unavailable")
+                  .foregroundColor(.red)
+              } else {
+                HStack(spacing: 4) {
+                  Text("\(komgaSeries.booksCount) books")
+                  if komgaSeries.oneshot {
+                    Text("•")
+                    Text("Oneshot")
+                      .foregroundColor(.blue)
+                  }
+                  if komgaSeries.downloadStatus != .notDownloaded {
+                    Image(systemName: komgaSeries.downloadStatus.icon)
+                      .foregroundColor(komgaSeries.downloadStatus.color)
+                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                      .padding(.horizontal, 4)
+                  }
                 }
-                if komgaSeries.downloadStatus != .notDownloaded {
-                  Image(systemName: komgaSeries.downloadStatus.icon)
-                    .foregroundColor(komgaSeries.downloadStatus.color)
-                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                    .padding(.horizontal, 4)
-                }
+                .foregroundColor(.secondary)
               }
-              .foregroundColor(.secondary)
-            }
-          }.font(.caption2)
+            }.font(.caption2)
+          }
         }
       }
     }
