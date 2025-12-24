@@ -11,7 +11,7 @@ import SwiftUI
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
-  @AppStorage("showSeriesCardTitle") private var showSeriesCardTitle: Bool = true
+  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
@@ -195,10 +195,10 @@ struct SettingsAppearanceView: View {
       }
 
       Section(header: Text(String(localized: "settings.appearance.cards"))) {
-        Toggle(isOn: $showSeriesCardTitle) {
+        Toggle(isOn: $coverOnlyCards) {
           VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "settings.appearance.showSeriesCardTitles.title"))
-            Text(String(localized: "settings.appearance.showSeriesCardTitles.caption"))
+            Text(String(localized: "settings.appearance.coverOnlyCards.title"))
+            Text(String(localized: "settings.appearance.coverOnlyCards.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }

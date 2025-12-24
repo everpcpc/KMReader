@@ -12,6 +12,7 @@ struct CollectionCardView: View {
   let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
+  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
@@ -20,18 +21,19 @@ struct CollectionCardView: View {
       VStack(alignment: .leading, spacing: 8) {
         ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: width - 8)
 
-        VStack(alignment: .leading, spacing: 4) {
-          Text(komgaCollection.name)
-            .font(.headline)
-            .lineLimit(1)
+        if !coverOnlyCards {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(komgaCollection.name)
+              .lineLimit(1)
 
-          Text("\(komgaCollection.seriesIds.count) series")
-            .font(.caption)
-            .foregroundColor(.secondary)
+            Text("\(komgaCollection.seriesIds.count) series")
+              .font(.caption)
+              .foregroundColor(.secondary)
 
-          Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-            .font(.caption)
-            .foregroundColor(.secondary)
+            Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
         }
       }
     }

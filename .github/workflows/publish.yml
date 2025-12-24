@@ -74,10 +74,32 @@ jobs:
 
           echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
 
-  upload:
-    runs-on: macos-latest
+  release:
+    runs-on: ubuntu-latest
     needs: detect
     if: needs.detect.outputs.build_changed == 'true'
+    steps:
+      - name: Ensure GitHub release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.detect.outputs.marketing_version }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+          else
+            echo "Creating stable release: $TAG"
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          fi
+
+  upload:
+    runs-on: macos-latest
+    needs: [detect, release]
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ios, macos, tvos]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -135,46 +157,21 @@ jobs:
           echo ""
           echo "xcodebuild will automatically select the appropriate certificate and provisioning profile"
 
-      - name: Run make release
+      - name: Build and upload to App Store Connect
         env:
           APP_STORE_CONNECT_API_KEY_PATH: ${{ steps.prepare.outputs.APP_STORE_CONNECT_API_KEY_PATH }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-        run: make release
+        run: make release-${{ matrix.platform }}
 
-      - name: Run make artifacts
-        run: make artifacts
+      - name: Create artifact
+        run: make artifact-${{ matrix.platform }}
 
-      - name: Ensure GitHub release exists
+      - name: Upload artifact to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.detect.outputs.marketing_version }}
         run: |
           set -euo pipefail
           TAG="v${VERSION}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists."
-          else
-            echo "Creating stable release: $TAG"
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
-          fi
-
-      - name: Upload artifacts to GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.detect.outputs.marketing_version }}
-        run: |
-          set -euo pipefail
-          TAG="v${VERSION}"
-          ARTIFACTS=$(find artifacts -type f \( -name "*.ipa" -o -name "*.dmg" \) | sort)
-          if [ -z "$ARTIFACTS" ]; then
-            echo "No artifacts found"
-            ls -la artifacts/ || true
-            exit 1
-          fi
-          echo "Found artifacts:"
-          echo "$ARTIFACTS"
-          for artifact in $ARTIFACTS; do
-            echo "Uploading $(basename "$artifact")"
-            gh release upload "$TAG" "$artifact" --clobber
-          done
+          gh release upload "$TAG" artifacts/* --clobber

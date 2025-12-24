@@ -1,4 +1,4 @@
-.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer artifacts clean-archives clean-exports clean-artifacts bump major minor patch
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch
 
 # Configuration
 SCHEME = KMReader
@@ -117,9 +117,33 @@ release-organizer: ## Archive and export all platforms (appears in Xcode Organiz
 	@echo "$(GREEN)Building all platforms (will appear in Organizer)...$(NC)"
 	@$(MISC_DIR)/release.sh --show-in-organizer
 
+release-ios: ## Archive and export iOS only
+	@echo "$(GREEN)Building iOS...$(NC)"
+	@$(MISC_DIR)/release.sh --platform ios
+
+release-macos: ## Archive and export macOS only
+	@echo "$(GREEN)Building macOS...$(NC)"
+	@$(MISC_DIR)/release.sh --platform macos
+
+release-tvos: ## Archive and export tvOS only
+	@echo "$(GREEN)Building tvOS...$(NC)"
+	@$(MISC_DIR)/release.sh --platform tvos
+
 artifacts: ## Prepare artifacts (ipa + dmg) for GitHub Release
 	@echo "$(GREEN)Preparing artifacts for GitHub Release...$(NC)"
 	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts
+
+artifact-ios: ## Prepare iOS artifact for GitHub Release
+	@echo "$(GREEN)Preparing iOS artifact for GitHub Release...$(NC)"
+	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts ios
+
+artifact-macos: ## Prepare macOS artifact for GitHub Release
+	@echo "$(GREEN)Preparing macOS artifact for GitHub Release...$(NC)"
+	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts macos
+
+artifact-tvos: ## Prepare tvOS artifact for GitHub Release
+	@echo "$(GREEN)Preparing tvOS artifact for GitHub Release...$(NC)"
+	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts tvos
 
 clean-archives: ## Remove all archives
 	@echo "$(YELLOW)Cleaning archives...$(NC)"
