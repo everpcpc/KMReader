@@ -43,13 +43,13 @@ struct DashboardSeriesSection: View {
               cardWidth: CGFloat(dashboardCardWidth),
               layout: .grid
             )
-              .onAppear {
-                if index >= browseSeries.count - 3 {
-                  Task {
-                    await loadMore()
-                  }
+            .onAppear {
+              if index >= browseSeries.count - 3 {
+                Task {
+                  await loadMore()
                 }
               }
+            }
           }
         }
         .padding()

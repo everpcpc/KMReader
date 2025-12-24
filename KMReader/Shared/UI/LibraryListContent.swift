@@ -257,17 +257,20 @@ struct LibraryListContent: View {
 
       Spacer()
 
-      Toggle("", isOn: Binding(
-        get: { isSelected },
-        set: { newValue in
-          if newValue {
-            withAnimation(.easeInOut(duration: 0.2)) {
-              selectedLibraryIds = []
-              onLibrarySelected?("")
+      Toggle(
+        "",
+        isOn: Binding(
+          get: { isSelected },
+          set: { newValue in
+            if newValue {
+              withAnimation(.easeInOut(duration: 0.2)) {
+                selectedLibraryIds = []
+                onLibrarySelected?("")
+              }
             }
           }
-        }
-      ))
+        )
+      )
       .labelsHidden()
     }
     .contentShape(Rectangle())

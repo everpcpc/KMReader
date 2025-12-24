@@ -46,9 +46,9 @@ struct BookCardView: View {
     Button {
       onReadBook?(false)
     } label: {
-      CardView{
+      CardView {
         VStack(alignment: .leading, spacing: 6) {
-          ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth - 12) {
+          ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth - 8) {
             ZStack {
               if let progressCompleted = komgaBook.progressCompleted {
                 if !progressCompleted {

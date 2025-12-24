@@ -22,7 +22,7 @@ struct SeriesCardView: View {
   var body: some View {
     CardView {
       VStack(alignment: .leading, spacing: 6) {
-        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 12) {
+        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 8) {
           ZStack {
             if komgaSeries.booksUnreadCount > 0 {
               VStack(alignment: .trailing) {

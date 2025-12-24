@@ -101,11 +101,13 @@ struct ReaderControlsView: View {
   }
 
   private var leftButtonLabel: String {
-    readingDirection == .rtl ? String(localized: "reader.nextBook") : String(localized: "reader.previousBook")
+    readingDirection == .rtl
+      ? String(localized: "reader.nextBook") : String(localized: "reader.previousBook")
   }
 
   private var rightButtonLabel: String {
-    readingDirection == .rtl ? String(localized: "reader.previousBook") : String(localized: "reader.nextBook")
+    readingDirection == .rtl
+      ? String(localized: "reader.previousBook") : String(localized: "reader.nextBook")
   }
 
   var body: some View {

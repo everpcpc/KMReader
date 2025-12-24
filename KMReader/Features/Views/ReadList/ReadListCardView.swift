@@ -23,8 +23,7 @@ struct ReadListCardView: View {
   var body: some View {
     CardView {
       VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(
-          id: komgaReadList.readListId, type: .readlist, width: width - 12, cornerRadius: 10)
+        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: width - 8)
 
         VStack(alignment: .leading, spacing: 4) {
           Text(komgaReadList.name)

@@ -19,7 +19,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let refreshTrigger: Int
   let overlay: (() -> Overlay)?
 
-  let ratio: CGFloat = 1.4
+  let ratio: CGFloat = 1.413
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @State private var localURL: URL?
@@ -30,7 +30,7 @@ struct ThumbnailImage<Overlay: View>: View {
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
     width: CGFloat,
-    cornerRadius: CGFloat = 8,
+    cornerRadius: CGFloat = 4,
     refreshTrigger: Int = 0,
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {

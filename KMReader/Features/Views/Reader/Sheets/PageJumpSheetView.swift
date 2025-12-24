@@ -178,11 +178,15 @@ struct PageJumpSheetView: View {
                   }
                   .scrollTargetLayout()
                 }
-                .contentMargins(.horizontal, (geometry.size.width - imageHeight * 0.72) / 2, for: .scrollContent)
+                .contentMargins(
+                  .horizontal, (geometry.size.width - imageHeight * 0.72) / 2, for: .scrollContent
+                )
                 .scrollClipDisabled()
                 .scrollTargetBehavior(.viewAligned)
                 .scrollPosition(id: $scrollPosition, anchor: .center)
-                .environment(\.layoutDirection, readingDirection == .rtl ? .rightToLeft : .leftToRight)
+                .environment(
+                  \.layoutDirection, readingDirection == .rtl ? .rightToLeft : .leftToRight
+                )
                 .onAppear {
                   // Initial scroll to current page
                   proxy.scrollTo(pageValue, anchor: .center)

@@ -51,10 +51,13 @@ struct LibraryRowView: View {
         ProgressView()
           .progressViewStyle(.circular)
       } else {
-        Toggle("", isOn: Binding(
-          get: { isSelected },
-          set: { _ in onSelect() }
-        ))
+        Toggle(
+          "",
+          isOn: Binding(
+            get: { isSelected },
+            set: { _ in onSelect() }
+          )
+        )
         .labelsHidden()
       }
     }
