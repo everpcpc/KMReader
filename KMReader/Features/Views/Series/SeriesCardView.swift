@@ -20,7 +20,7 @@ struct SeriesCardView: View {
   @State private var showEditSheet = false
 
   var body: some View {
-    CardView(padding: 6, cornerRadius: 10) {
+    CardView {
       VStack(alignment: .leading, spacing: 6) {
         ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 12) {
           ZStack {

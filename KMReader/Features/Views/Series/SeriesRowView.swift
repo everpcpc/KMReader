@@ -21,7 +21,7 @@ struct SeriesRowView: View {
   }
 
   var body: some View {
-    CardView(padding: 8, cornerRadius: 10) {
+    CardView {
       HStack(spacing: 12) {
         ThumbnailImage(
           id: komgaSeries.seriesId, type: .series, showPlaceholder: false, width: 80, cornerRadius: 6)

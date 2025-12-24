@@ -15,7 +15,7 @@ struct CollectionRowView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    CardView(padding: 8, cornerRadius: 10) {
+    CardView {
       HStack(spacing: 12) {
         ThumbnailImage(
           id: komgaCollection.collectionId, type: .collection, width: 70, cornerRadius: 10)

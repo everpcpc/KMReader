@@ -46,7 +46,7 @@ struct BookCardView: View {
     Button {
       onReadBook?(false)
     } label: {
-      CardView(padding: 6, cornerRadius: 10) {
+      CardView{
         VStack(alignment: .leading, spacing: 6) {
           ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth - 12) {
             ZStack {
@@ -86,7 +86,6 @@ struct BookCardView: View {
                 HStack(spacing: 4) {
                   Text("\(komgaBook.mediaPagesCount) pages")
                     + Text(" • \(komgaBook.size)")
-                    .font(.footnote)
                   if komgaBook.oneshot {
                     Text("•")
                     Text("Oneshot")
@@ -102,7 +101,7 @@ struct BookCardView: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1)
               }
-            }.font(.caption2)
+            }.font(.caption)
           }
         }
       }

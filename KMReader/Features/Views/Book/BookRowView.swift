@@ -43,7 +43,7 @@ struct BookRowView: View {
     Button {
       onReadBook?(false)
     } label: {
-      CardView(padding: 8, cornerRadius: 10) {
+      CardView {
         HStack(spacing: 12) {
           ThumbnailImage(
             id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4
