@@ -24,7 +24,7 @@ class BookViewModel {
   private var currentSeriesId: String?
   private var currentSeriesBrowseOpts: BookBrowseOptions?
 
-  private let pageSize = 20
+  private let pageSize = 50
   private var currentLoadID = UUID()
 
   func loadSeriesBooks(

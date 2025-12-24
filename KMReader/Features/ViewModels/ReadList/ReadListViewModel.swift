@@ -21,7 +21,7 @@ class ReadListViewModel {
   }
 
   private let readListService = ReadListService.shared
-  private let pageSize = 20
+  private let pageSize = 50
   private var currentPage = 0
   private var hasMorePages = true
   private var currentLibraryIds: [String] = []

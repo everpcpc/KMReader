@@ -26,7 +26,7 @@ struct DashboardSeriesSection: View {
   @State private var isLoading = false
   @State private var hasLoadedInitial = false
 
-  private let pageSize = 20
+  private let pageSize = 50
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {

@@ -22,7 +22,7 @@ class SeriesViewModel {
   private var currentState: SeriesBrowseOptions?
   private var currentSearchText: String = ""
 
-  private let pageSize = 20
+  private let pageSize = 50
   private var currentLoadID = UUID()
 
   func loadSeries(
