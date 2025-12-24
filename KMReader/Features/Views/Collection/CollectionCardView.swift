@@ -22,7 +22,6 @@ struct CollectionCardView: View {
 
         VStack(alignment: .leading, spacing: 4) {
           Text(komgaCollection.name)
-            .font(.headline)
             .lineLimit(1)
 
           Text("\(komgaCollection.seriesIds.count) series")

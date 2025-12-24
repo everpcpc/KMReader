@@ -27,7 +27,6 @@ struct ReadListCardView: View {
 
         VStack(alignment: .leading, spacing: 4) {
           Text(komgaReadList.name)
-            .font(.headline)
             .lineLimit(1)
 
           Text(bookCountText)
