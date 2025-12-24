@@ -105,6 +105,8 @@ struct EndPageView: View {
             readingDirection: readingDirection,
             themeColor: themeColor.color
           )
+          .environment(\.layoutDirection, .leftToRight)
+          .allowsHitTesting(false)
         }
       #endif
 
@@ -146,36 +148,15 @@ struct EndPageView: View {
   private var content: some View {
     VStack(spacing: PlatformHelper.buttonSpacing) {
       HStack(spacing: PlatformHelper.buttonSpacing) {
-
-        // Next book button for RTL
-        if readingDirection == .rtl, let nextBook = nextBook {
-          Button {
-            onNextBook(nextBook.id)
-          } label: {
-            HStack(spacing: 8) {
-              Image(systemName: "arrow.left")
-              Text(String(localized: "reader.nextBook"))
-            }
-          }
-          .controlSize(.large)
-          .adaptiveButtonStyle(.borderedProminent)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          #if os(tvOS)
-            .focused($focusedButton, equals: .next)
-          #endif
-        }
-
-        // Hidden button for navigation
+        // Hidden button for navigation (leading side)
         #if os(tvOS)
-          if readingDirection != .rtl {
-            Button {
-            } label: {
-              Color.clear
-                .frame(width: 1, height: 1)
-            }
-            .adaptiveButtonStyle(.plain)
-            .focused($focusedButton, equals: .hidden)
+          Button {
+          } label: {
+            Color.clear
+              .frame(width: 1, height: 1)
           }
+          .adaptiveButtonStyle(.plain)
+          .focused($focusedButton, equals: .hidden)
         #endif
 
         // Dismiss button
@@ -183,46 +164,26 @@ struct EndPageView: View {
           onDismiss()
         } label: {
           HStack(spacing: 8) {
-            if readingDirection != .rtl {
-              Image(systemName: "xmark")
-            }
+            Image(systemName: "xmark")
             Text("Close")
-            if readingDirection == .rtl {
-              Image(systemName: "xmark")
-            }
           }
         }
-        .controlSize(.large)
         .adaptiveButtonStyle(.bordered)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         #if os(tvOS)
           .focused($focusedButton, equals: .close)
         #endif
 
-        // Hidden button for navigation
-        #if os(tvOS)
-          if readingDirection == .rtl {
-            Button {
-            } label: {
-              Color.clear
-                .frame(width: 1, height: 1)
-            }
-            .adaptiveButtonStyle(.plain)
-            .focused($focusedButton, equals: .hidden)
-          }
-        #endif
-
         // Next book button
-        if readingDirection != .rtl, let nextBook = nextBook {
+        if let nextBook = nextBook {
           Button {
             onNextBook(nextBook.id)
           } label: {
             HStack(spacing: 8) {
               Text(String(localized: "reader.nextBook"))
-              Image(systemName: "arrow.right")
+              Image(systemName: readingDirection == .rtl ? "arrow.left" : "arrow.right")
             }
           }
-          .controlSize(.large)
           .adaptiveButtonStyle(.borderedProminent)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
@@ -231,8 +192,11 @@ struct EndPageView: View {
         }
       }
       NextBookInfoView(nextBook: nextBook, readList: readList)
+        .environment(\.layoutDirection, .leftToRight)
         .allowsHitTesting(false)
     }
+    .environment(\.layoutDirection, readingDirection == .rtl ? .rightToLeft : .leftToRight)
+    .padding()
   }
 
 }

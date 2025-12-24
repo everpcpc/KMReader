@@ -99,6 +99,7 @@ struct PageView: View {
         }
         .scrollTargetLayout()
       }
+      .environment(\.layoutDirection, mode.isRTL ? .rightToLeft : .leftToRight)
     }
   }
 
@@ -107,17 +108,22 @@ struct PageView: View {
   @ViewBuilder
   private func verticalPageContent(proxy: ScrollViewProxy) -> some View {
     ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-      singlePageView(pageIndex: pageIndex)
-        .frame(width: screenSize.width, height: screenSize.height)
-        .pageTapGesture(
-          size: screenSize,
-          readingDirection: readingDirection,
-          onNextPage: goToNextPage,
-          onPreviousPage: goToPreviousPage,
-          onToggleControls: toggleControls
-        )
-        .id(pageIndex)
-        .readerPageScrollTransition(axis: .vertical)
+      SinglePageImageView(
+        viewModel: viewModel,
+        pageIndex: pageIndex,
+        screenSize: screenSize,
+        isZoomed: $isZoomed
+      )
+      .frame(width: screenSize.width, height: screenSize.height)
+      .pageTapGesture(
+        size: screenSize,
+        readingDirection: readingDirection,
+        onNextPage: goToNextPage,
+        onPreviousPage: goToPreviousPage,
+        onToggleControls: toggleControls
+      )
+      .id(pageIndex)
+      .readerPageScrollTransition(axis: .vertical)
     }
 
     // End page
@@ -157,59 +163,54 @@ struct PageView: View {
 
   @ViewBuilder
   private func singlePageHorizontalContent(proxy: ScrollViewProxy) -> some View {
-    // For RTL (manga), end page comes first, then pages in reverse
-    // For LTR (comic), pages come first, then end page
-    if mode.isRTL {
-      // End page at beginning for RTL
-      endPageView(proxy: proxy)
-        .id(viewModel.pages.count)
-        .readerPageScrollTransition()
-
-      // Pages in reverse order
-      ForEach((0..<viewModel.pages.count).reversed(), id: \.self) { pageIndex in
-        singlePageView(pageIndex: pageIndex)
-          .frame(width: screenSize.width, height: screenSize.height)
-          .pageTapGesture(
-            size: screenSize,
-            readingDirection: readingDirection,
-            onNextPage: goToNextPage,
-            onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls
-          )
-          .id(pageIndex)
-          .readerPageScrollTransition()
-      }
-    } else {
-      // Pages in normal order
-      ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-        singlePageView(pageIndex: pageIndex)
-          .frame(width: screenSize.width, height: screenSize.height)
-          .pageTapGesture(
-            size: screenSize,
-            readingDirection: readingDirection,
-            onNextPage: goToNextPage,
-            onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls
-          )
-          .id(pageIndex)
-          .readerPageScrollTransition()
-      }
-
-      // End page at end for LTR
-      endPageView(proxy: proxy)
-        .id(viewModel.pages.count)
-        .readerPageScrollTransition()
+    ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
+      SinglePageImageView(
+        viewModel: viewModel,
+        pageIndex: pageIndex,
+        screenSize: screenSize,
+        isZoomed: $isZoomed
+      )
+      .frame(width: screenSize.width, height: screenSize.height)
+      .pageTapGesture(
+        size: screenSize,
+        readingDirection: readingDirection,
+        onNextPage: goToNextPage,
+        onPreviousPage: goToPreviousPage,
+        onToggleControls: toggleControls
+      )
+      .id(pageIndex)
+      .readerPageScrollTransition()
     }
+
+    ZStack {
+      readerBackground.color.readerIgnoresSafeArea()
+      EndPageView(
+        viewModel: viewModel,
+        nextBook: nextBook,
+        readList: readList,
+        onDismiss: onDismiss,
+        onNextBook: onNextBook,
+        readingDirection: readingDirection,
+        onFocusChange: onEndPageFocusChange
+      )
+    }
+    .frame(width: screenSize.width, height: screenSize.height)
+    .pageTapGesture(
+      size: screenSize,
+      readingDirection: readingDirection,
+      onNextPage: goToNextPage,
+      onPreviousPage: goToPreviousPage,
+      onToggleControls: toggleControls
+    )
+    .id(viewModel.pages.count)
+    .readerPageScrollTransition()
   }
 
   @ViewBuilder
   private func dualPageContent(proxy: ScrollViewProxy) -> some View {
-    let pairs = mode.isRTL ? viewModel.pagePairs.reversed() : viewModel.pagePairs
-
-    ForEach(Array(pairs), id: \.self) { pagePair in
+    ForEach(Array(viewModel.pagePairs), id: \.self) { pagePair in
       Group {
         if pagePair.first == viewModel.pages.count {
-          // End page
           ZStack {
             readerBackground.color.readerIgnoresSafeArea()
             EndPageView(
@@ -223,7 +224,6 @@ struct PageView: View {
             )
           }
         } else {
-          // Regular pages
           if let second = pagePair.second {
             DualPageImageView(
               viewModel: viewModel,
@@ -254,42 +254,6 @@ struct PageView: View {
       .id(pagePair.first)
       .readerPageScrollTransition()
     }
-  }
-
-  // MARK: - Helper Views
-
-  @ViewBuilder
-  private func singlePageView(pageIndex: Int) -> some View {
-    SinglePageImageView(
-      viewModel: viewModel,
-      pageIndex: pageIndex,
-      screenSize: screenSize,
-      isZoomed: $isZoomed
-    )
-  }
-
-  @ViewBuilder
-  private func endPageView(proxy: ScrollViewProxy) -> some View {
-    ZStack {
-      readerBackground.color.readerIgnoresSafeArea()
-      EndPageView(
-        viewModel: viewModel,
-        nextBook: nextBook,
-        readList: readList,
-        onDismiss: onDismiss,
-        onNextBook: onNextBook,
-        readingDirection: readingDirection,
-        onFocusChange: onEndPageFocusChange
-      )
-    }
-    .frame(width: screenSize.width, height: screenSize.height)
-    .pageTapGesture(
-      size: screenSize,
-      readingDirection: readingDirection,
-      onNextPage: goToNextPage,
-      onPreviousPage: goToPreviousPage,
-      onToggleControls: toggleControls
-    )
   }
 
   // MARK: - Scroll Synchronization

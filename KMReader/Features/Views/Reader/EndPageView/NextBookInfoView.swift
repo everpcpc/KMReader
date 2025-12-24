@@ -33,48 +33,52 @@ struct NextBookInfoView: View {
   }
 
   var body: some View {
-    if let nextBook = nextBook {
-      VStack(spacing: 4) {
-        HStack(spacing: 6) {
-          Image(systemName: "arrow.right.circle")
-          Text(upNextLabel)
-        }
-        if let readList = readList {
-          HStack(spacing: 4) {
-            Image(systemName: "list.bullet.rectangle")
-              .font(.caption2)
-            Text("From: \(readList.name)")
-              .font(.caption)
+    Group {
+      if let nextBook = nextBook {
+        VStack(spacing: 4) {
+          HStack(spacing: 6) {
+            Text(upNextLabel)
           }
-          .foregroundColor(.white)
+          if let readList = readList {
+            HStack(spacing: 4) {
+              Image(systemName: "list.bullet.rectangle")
+                .font(.caption2)
+              Text("From: \(readList.name)")
+                .font(.caption)
+            }
+            .foregroundColor(.white)
+          }
+          Text(nextBook.metadata.title)
+            .font(.footnote)
+            .multilineTextAlignment(.center)
+          HStack(spacing: 4) {
+            Text("\(nextBook.media.pagesCount)")
+            Text("•")
+            Text(nextBook.size)
+          }
+          .font(.footnote)
         }
-        Text(nextBook.metadata.title)
-        HStack(spacing: 4) {
-          Text("\(nextBook.media.pagesCount) pages")
-          Text("•")
-          Text(nextBook.size)
+
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+          RoundedRectangle(cornerRadius: 12)
+            .fill(themeColor.color.opacity(0.8))
+        )
+      } else {
+        HStack(spacing: 8) {
+          Image(systemName: "checkmark.circle")
+          Text(String(localized: "You're all caught up!"))
         }
-        .font(.footnote)
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+          RoundedRectangle(cornerRadius: 12)
+            .fill(themeColor.color.opacity(0.8))
+        )
       }
-      .foregroundColor(.white)
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
-      .background(
-        RoundedRectangle(cornerRadius: 12)
-          .fill(themeColor.color.opacity(0.8))
-      )
-    } else {
-      HStack(spacing: 8) {
-        Image(systemName: "checkmark.circle")
-        Text(String(localized: "You're all caught up!"))
-      }
-      .foregroundColor(.white)
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
-      .background(
-        RoundedRectangle(cornerRadius: 12)
-          .fill(themeColor.color.opacity(0.8))
-      )
     }
   }
 }

@@ -110,7 +110,6 @@ struct ArcEffectView: View {
         }
       }
     }
-    .allowsHitTesting(false)
   }
 }
 
