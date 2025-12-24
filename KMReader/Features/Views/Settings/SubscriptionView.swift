@@ -16,7 +16,7 @@ struct SubscriptionView: View {
   @State private var coffeeOffset: CGFloat = 0
 
   var body: some View {
-    SheetView(title: "☕️", size: .medium) {
+    SheetView(title: "☕️", size: .large) {
       ScrollView {
         VStack(spacing: 24) {
           headerSection
