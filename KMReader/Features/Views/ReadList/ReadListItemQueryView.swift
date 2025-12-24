@@ -22,19 +22,22 @@ struct ReadListItemQueryView: View {
   }
 
   var body: some View {
-    switch layout {
-    case .grid:
-      ReadListCardView(
-        komgaReadList: readList,
-        width: cardWidth,
-        onActionCompleted: onActionCompleted
-      )
-      .focusPadding()
-    case .list:
-      ReadListRowView(
-        komgaReadList: readList,
-        onActionCompleted: onActionCompleted
-      )
+    NavigationLink(value: NavDestination.readListDetail(readListId: readList.readListId)) {
+      switch layout {
+      case .grid:
+        ReadListCardView(
+          komgaReadList: readList,
+          width: cardWidth,
+          onActionCompleted: onActionCompleted
+        )
+      case .list:
+        ReadListRowView(
+          komgaReadList: readList,
+          onActionCompleted: onActionCompleted
+        )
+      }
     }
+    .focusPadding()
+    .adaptiveButtonStyle(.plain)
   }
 }

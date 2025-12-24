@@ -21,32 +21,30 @@ struct ReadListCardView: View {
   }
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
-      CardView(padding: 6, cornerRadius: 10) {
-        VStack(alignment: .leading, spacing: 8) {
-          ThumbnailImage(
-            id: komgaReadList.readListId, type: .readlist, width: width - 12, cornerRadius: 10)
+    CardView(padding: 6, cornerRadius: 10) {
+      VStack(alignment: .leading, spacing: 8) {
+        ThumbnailImage(
+          id: komgaReadList.readListId, type: .readlist, width: width - 12, cornerRadius: 10)
 
-          VStack(alignment: .leading, spacing: 4) {
-            Text(komgaReadList.name)
-              .font(.headline)
-              .lineLimit(1)
+        VStack(alignment: .leading, spacing: 4) {
+          Text(komgaReadList.name)
+            .font(.headline)
+            .lineLimit(1)
 
-            Text(bookCountText)
+          Text(bookCountText)
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+          if !komgaReadList.summary.isEmpty {
+            Text(komgaReadList.summary)
               .font(.caption)
               .foregroundColor(.secondary)
-
-            if !komgaReadList.summary.isEmpty {
-              Text(komgaReadList.summary)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-            }
+              .lineLimit(2)
           }
         }
       }
-      .frame(width: width, alignment: .leading)
     }
+    .frame(width: width, alignment: .leading)
     .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())

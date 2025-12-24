@@ -16,31 +16,27 @@ struct CollectionCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    NavigationLink(
-      value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
-    ) {
-      CardView(padding: 6, cornerRadius: 10) {
-        VStack(alignment: .leading, spacing: 8) {
-          ThumbnailImage(
-            id: komgaCollection.collectionId, type: .collection, width: width - 12, cornerRadius: 10)
+    CardView(padding: 6, cornerRadius: 10) {
+      VStack(alignment: .leading, spacing: 8) {
+        ThumbnailImage(
+          id: komgaCollection.collectionId, type: .collection, width: width - 12, cornerRadius: 10)
 
-          VStack(alignment: .leading, spacing: 4) {
-            Text(komgaCollection.name)
-              .font(.headline)
-              .lineLimit(1)
+        VStack(alignment: .leading, spacing: 4) {
+          Text(komgaCollection.name)
+            .font(.headline)
+            .lineLimit(1)
 
-            Text("\(komgaCollection.seriesIds.count) series")
-              .font(.caption)
-              .foregroundColor(.secondary)
+          Text("\(komgaCollection.seriesIds.count) series")
+            .font(.caption)
+            .foregroundColor(.secondary)
 
-            Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
+          Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
       }
-      .frame(width: width, alignment: .leading)
     }
+    .frame(width: width, alignment: .leading)
     .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())

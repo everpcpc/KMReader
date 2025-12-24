@@ -67,17 +67,17 @@ struct ReadListBooksQueryView: View {
                     }
                   )
                 } else {
-                  BookCardView(
-                    komgaBook: b,
+                  BookItemView(
+                    book: b,
                     viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
+                    layout: .grid,
                     onReadBook: { incognito in
                       onReadBook(b.toBook(), incognito)
                     },
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
                   )
-                  .focusPadding()
                 }
               }
               .onAppear {
@@ -123,9 +123,11 @@ struct ReadListBooksQueryView: View {
                     }
                   )
                 } else {
-                  BookRowView(
-                    komgaBook: b,
+                  BookItemView(
+                    book: b,
                     viewModel: bookViewModel,
+                    cardWidth: layoutHelper.cardWidth,
+                    layout: .list,
                     onReadBook: { incognito in
                       onReadBook(b.toBook(), incognito)
                     },

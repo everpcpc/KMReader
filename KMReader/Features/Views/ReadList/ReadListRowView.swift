@@ -15,45 +15,43 @@ struct ReadListRowView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
-      CardView(padding: 8, cornerRadius: 10) {
-        HStack(spacing: 12) {
-          ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 70, cornerRadius: 10)
+    CardView(padding: 8, cornerRadius: 10) {
+      HStack(spacing: 12) {
+        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 70, cornerRadius: 10)
 
-          VStack(alignment: .leading, spacing: 6) {
-            Text(komgaReadList.name)
-              .font(.callout)
+        VStack(alignment: .leading, spacing: 6) {
+          Text(komgaReadList.name)
+            .font(.callout)
 
-            Label {
-              Text("\(komgaReadList.bookIds.count) book")
-            } icon: {
-              Image(systemName: "book")
-            }
-            .font(.footnote)
-            .foregroundColor(.secondary)
+          Label {
+            Text("\(komgaReadList.bookIds.count) book")
+          } icon: {
+            Image(systemName: "book")
+          }
+          .font(.footnote)
+          .foregroundColor(.secondary)
 
-            Label {
-              Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-            } icon: {
-              Image(systemName: "clock")
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
+          Label {
+            Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+          } icon: {
+            Image(systemName: "clock")
+          }
+          .font(.caption)
+          .foregroundColor(.secondary)
 
-            if !komgaReadList.summary.isEmpty {
-              Text(komgaReadList.summary)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-            }
-
+          if !komgaReadList.summary.isEmpty {
+            Text(komgaReadList.summary)
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(2)
           }
 
-          Spacer()
-
-          Image(systemName: "chevron.right")
-            .foregroundColor(.secondary)
         }
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .foregroundColor(.secondary)
       }
     }
     .adaptiveButtonStyle(.plain)

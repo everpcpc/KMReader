@@ -35,7 +35,7 @@ struct SeriesQueryView: View {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
-            BrowseSeriesItemView(
+            SeriesItemView(
               series: series,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
@@ -57,7 +57,7 @@ struct SeriesQueryView: View {
       case .list:
         LazyVStack(spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
-            BrowseSeriesItemView(
+            SeriesItemView(
               series: series,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
@@ -78,32 +78,5 @@ struct SeriesQueryView: View {
         }
       }
     }
-  }
-}
-
-private struct BrowseSeriesItemView: View {
-  @Bindable var series: KomgaSeries
-  let cardWidth: CGFloat
-  let layout: BrowseLayoutMode
-  let onActionCompleted: (() -> Void)?
-
-  var body: some View {
-    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
-      switch layout {
-      case .grid:
-        SeriesCardView(
-          komgaSeries: series,
-          cardWidth: cardWidth,
-          onActionCompleted: onActionCompleted
-        )
-      case .list:
-        SeriesRowView(
-          komgaSeries: series,
-          onActionCompleted: onActionCompleted
-        )
-      }
-    }
-    .focusPadding()
-    .adaptiveButtonStyle(.plain)
   }
 }
