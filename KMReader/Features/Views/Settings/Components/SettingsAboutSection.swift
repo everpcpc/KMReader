@@ -1,8 +1,38 @@
 import SwiftUI
 
 struct SettingsAboutSection: View {
+  @State private var showSubscription = false
+  @State private var storeManager = StoreManager.shared
+
+  private var isSupporter: Bool {
+    storeManager.hasActiveSubscription
+  }
+
   var body: some View {
     Section(header: Text(String(localized: "About"))) {
+      Button {
+        showSubscription = true
+      } label: {
+        HStack {
+          if isSupporter {
+            Label(String(localized: "Supporter"), systemImage: "heart.fill")
+              .foregroundColor(.pink)
+          } else {
+            Label(String(localized: "Buy Me a Coffee"), systemImage: "cup.and.saucer.fill")
+          }
+          Spacer()
+          if isSupporter {
+            Text("☕️")
+          } else {
+            Image(systemName: "chevron.right")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+      }
+      .sheet(isPresented: $showSubscription) {
+        SubscriptionView()
+      }
       Link(destination: URL(string: "https://kmreader.everpcpc.com/privacy/")!) {
         HStack {
           Label(String(localized: "Privacy Policy"), systemImage: "hand.raised")

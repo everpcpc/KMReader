@@ -1,0 +1,128 @@
+{
+  "identifier" : "2E4A6F9B-8C3D-4E5F-A1B2-C3D4E5F6A7B8",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6739620855",
+    "_developerTeamID" : "4K93Y875ZU",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "coffee_group",
+      "localizations" : [
+
+      ],
+      "name" : "Coffee",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "0.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "monthly_001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "A cup of coffee every month",
+              "displayName" : "Monthly Coffee",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.everpcpc.Komga.coffee.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Monthly Coffee",
+          "subscriptionGroupID" : "coffee_group",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "yearly_001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "A pot of coffee for the whole year",
+              "displayName" : "Yearly Coffee",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.everpcpc.Komga.coffee.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Yearly Coffee",
+          "subscriptionGroupID" : "coffee_group",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

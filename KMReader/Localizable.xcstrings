@@ -963,6 +963,15 @@
         }
       }
     },
+    "☕️" : {
+      "shouldTranslate" : false
+    },
+    "🎉" : {
+      "shouldTranslate" : false
+    },
+    "😅" : {
+      "shouldTranslate" : false
+    },
     "A comment helps you identify this API key later." : {
       "localizations" : {
         "en" : {
@@ -999,6 +1008,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這個 API 金鑰有甚麼用途？"
+          }
+        }
+      }
+    },
+    "A Cup / Month" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une tasse / Mois"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一杯 / 月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "한 잔 / 월"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每月一杯"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每月一杯"
+          }
+        }
+      }
+    },
+    "A Pot / Year" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une théière / An"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一壺 / 年"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "한 주전자 / 년"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年一壶"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年一壺"
           }
         }
       }
@@ -4163,6 +4240,40 @@
         }
       }
     },
+    "Brewing..." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Préparation..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "淹れています..."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "준비 중..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冲泡中..."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沖泡中..."
+          }
+        }
+      }
+    },
     "Briefly show keyboard shortcuts when opening the reader" : {
       "localizations" : {
         "en" : {
@@ -4519,6 +4630,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "構建時間"
+          }
+        }
+      }
+    },
+    "Buy Me a Coffee" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offrez-moi un café"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コーヒーをおごってください"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커피 사주기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请我喝杯咖啡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請我喝杯咖啡"
           }
         }
       }
@@ -5199,6 +5344,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉"
+          }
+        }
+      }
+    },
+    "Coffee machine is broken..." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La machine à café est en panne..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コーヒーマシンが故障中..."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커피 머신이 고장났어요..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "咖啡机坏了..."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "咖啡機壞了..."
           }
         }
       }
@@ -11437,6 +11616,40 @@
         }
       }
     },
+    "If you enjoy using this app, consider buying me a coffee! It keeps me caffeinated and coding. ☕️" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si vous aimez cette app, offrez-moi un café ! Ça me garde éveillé et productif. ☕️"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリが気に入ったら、コーヒーをおごってください！カフェインで元気に開発中。☕️"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 앱이 마음에 드신다면 커피 한 잔 사주세요! 카페인이 코딩의 원동력이에요. ☕️"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你喜欢这个 App，请我喝杯咖啡吧！咖啡因让我保持清醒和编码。☕️"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你喜歡這個 App，請我喝杯咖啡吧！咖啡因讓我保持清醒和編碼。☕️"
+          }
+        }
+      }
+    },
     "Image not cached yet" : {
       "localizations" : {
         "en" : {
@@ -16615,6 +16828,40 @@
         }
       }
     },
+    "Oops!" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oups !"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おっと！"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이런!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "哎呀！"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "哎呀！"
+          }
+        }
+      }
+    },
     "Operating System" : {
       "localizations" : {
         "en" : {
@@ -20133,6 +20380,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "找不到資源：%@"
+          }
+        }
+      }
+    },
+    "Restore Purchases" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurer les achats"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入を復元"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구매 복원"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复购买"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢復購買"
           }
         }
       }
@@ -25369,6 +25650,40 @@
         }
       }
     },
+    "Supporter" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supporter"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サポーター"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서포터"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持者"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持者"
+          }
+        }
+      }
+    },
     "Switched to %@" : {
       "localizations" : {
         "en" : {
@@ -26005,6 +26320,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "任務總耗時"
+          }
+        }
+      }
+    },
+    "Thanks for the coffee! ☕️" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merci pour le café ! ☕️"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コーヒーありがとう！☕️"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커피 감사합니다! ☕️"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "感谢咖啡！☕️"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "感謝咖啡！☕️"
           }
         }
       }
@@ -26925,6 +27274,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "任務總數"
+          }
+        }
+      }
+    },
+    "Transaction verification failed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la vérification de la transaction"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トランザクションの検証に失敗しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "거래 확인 실패"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易验证失败"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交易驗證失敗"
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重試"
           }
         }
       }
@@ -28205,6 +28622,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已讀完"
+          }
+        }
+      }
+    },
+    "You're awesome!" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes génial !"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最高です！"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "정말 감사합니다!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你太棒了！"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你太棒了！"
           }
         }
       }
