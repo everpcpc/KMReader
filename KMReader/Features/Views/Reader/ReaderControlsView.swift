@@ -100,6 +100,14 @@ struct ReaderControlsView: View {
     jumpToPage(page: entry.pageIndex + 1)
   }
 
+  private var leftButtonLabel: String {
+    readingDirection == .rtl ? String(localized: "reader.nextBook") : String(localized: "reader.previousBook")
+  }
+
+  private var rightButtonLabel: String {
+    readingDirection == .rtl ? String(localized: "reader.previousBook") : String(localized: "reader.nextBook")
+  }
+
   var body: some View {
     VStack {
 
@@ -180,11 +188,8 @@ struct ReaderControlsView: View {
           } label: {
             HStack(spacing: 4) {
               Image(systemName: "chevron.left")
-              Text(
-                String(
-                  localized: readingDirection == .rtl ? "reader.nextBook" : "reader.previousBook")
-              )
-            }
+              Text(leftButtonLabel)
+            }.font(.footnote)
           }
           .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
@@ -207,7 +212,7 @@ struct ReaderControlsView: View {
               Image(systemName: "bookmark")
               Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
                 .monospacedDigit()
-            }
+            }.font(.footnote)
           }
           .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
@@ -246,12 +251,9 @@ struct ReaderControlsView: View {
             }
           } label: {
             HStack(spacing: 4) {
-              Text(
-                String(
-                  localized: readingDirection == .rtl ? "reader.previousBook" : "reader.nextBook")
-              )
+              Text(rightButtonLabel)
               Image(systemName: "chevron.right")
-            }
+            }.font(.footnote)
           }
           .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
