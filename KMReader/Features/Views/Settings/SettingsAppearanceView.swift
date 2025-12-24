@@ -15,6 +15,8 @@ struct SettingsAppearanceView: View {
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
+  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
+    PlatformHelper.defaultDashboardCardWidth)
 
   private var portraitColumnsBinding: Binding<Int> {
     Binding(
@@ -48,11 +50,13 @@ struct SettingsAppearanceView: View {
   }
 
   #if os(tvOS)
-    private enum ColumnButtonFocus: Hashable {
+    private enum AppearanceFocus: Hashable {
       case columnMinus
       case columnPlus
+      case dashboardWidthMinus
+      case dashboardWidthPlus
     }
-    @FocusState private var columnFocusedButton: ColumnButtonFocus?
+    @FocusState private var appearanceFocusedButton: AppearanceFocus?
     @FocusState private var colorFocusedButton: ThemeColor?
   #endif
 
@@ -118,7 +122,7 @@ struct SettingsAppearanceView: View {
           VStack(alignment: .leading, spacing: 8) {
             Stepper(
               value: landscapeColumnsBinding,
-              in: 1...16,
+              in: 2...16,
               step: 1
             ) {
               HStack {
@@ -164,7 +168,7 @@ struct SettingsAppearanceView: View {
               } label: {
                 Image(systemName: "minus.circle.fill")
               }
-              .focused($columnFocusedButton, equals: .columnMinus)
+              .focused($appearanceFocusedButton, equals: .columnMinus)
               .adaptiveButtonStyle(.plain)
               Text("\(browseColumns.landscape)")
                 .frame(minWidth: 30)
@@ -174,7 +178,7 @@ struct SettingsAppearanceView: View {
               } label: {
                 Image(systemName: "plus.circle.fill")
               }
-              .focused($columnFocusedButton, equals: .columnPlus)
+              .focused($appearanceFocusedButton, equals: .columnPlus)
               .adaptiveButtonStyle(.plain)
             }
           }
@@ -220,6 +224,55 @@ struct SettingsAppearanceView: View {
             .foregroundColor(.secondary)
           }
         }
+
+        #if os(tvOS)
+          HStack {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "settings.appearance.dashboardCardWidth.label"))
+              Text(String(localized: "settings.appearance.dashboardCardWidth.caption"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 36) {
+              Button {
+                dashboardCardWidth = max(80, dashboardCardWidth - 20)
+              } label: {
+                Image(systemName: "minus.circle.fill")
+              }
+              .focused($appearanceFocusedButton, equals: .dashboardWidthMinus)
+              .adaptiveButtonStyle(.plain)
+
+              Text("\(Int(dashboardCardWidth))")
+                .frame(minWidth: 50)
+
+              Button {
+                dashboardCardWidth = min(320, dashboardCardWidth + 20)
+              } label: {
+                Image(systemName: "plus.circle.fill")
+              }
+              .focused($appearanceFocusedButton, equals: .dashboardWidthPlus)
+              .adaptiveButtonStyle(.plain)
+            }
+          }
+        #else
+          VStack(alignment: .leading, spacing: 8) {
+            Stepper(
+              value: $dashboardCardWidth,
+              in: 80...320,
+              step: 20
+            ) {
+              HStack {
+                Text(String(localized: "settings.appearance.dashboardCardWidth.label"))
+                Text("\(Int(dashboardCardWidth))")
+                  .foregroundColor(.secondary)
+              }
+            }
+            Text(String(localized: "settings.appearance.dashboardCardWidth.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        #endif
       }
     }
     .formStyle(.grouped)

@@ -28,10 +28,11 @@ struct SeriesBooksQueryView: View {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
             ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
-              BookCardView(
-                komgaBook: b,
+              BookItemView(
+                book: b,
                 viewModel: bookViewModel,
                 cardWidth: layoutHelper.cardWidth,
+                layout: .grid,
                 onReadBook: { incognito in
                   onReadBook(b.toBook(), incognito)
                 },
@@ -39,7 +40,6 @@ struct SeriesBooksQueryView: View {
                 showSeriesTitle: false,
                 showSeriesNavigation: false
               )
-              .focusPadding()
               .onAppear {
                 if index >= bookViewModel.browseBooks.count - 3 {
                   Task { await loadMore(false) }
@@ -51,9 +51,11 @@ struct SeriesBooksQueryView: View {
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
             ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
-              BookRowView(
-                komgaBook: b,
+              BookItemView(
+                book: b,
                 viewModel: bookViewModel,
+                cardWidth: layoutHelper.cardWidth,
+                layout: .list,
                 onReadBook: { incognito in
                   onReadBook(b.toBook(), incognito)
                 },

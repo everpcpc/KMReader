@@ -52,9 +52,11 @@ struct SeriesBrowseView: View {
         await loadSeries(refresh: true)
       }
     }
-    .onChange(of: browseOpts) { _, newValue in
-      Task {
-        await loadSeries(refresh: true)
+    .onChange(of: browseOpts) { oldValue, newValue in
+      if oldValue != newValue {
+        Task {
+          await loadSeries(refresh: true)
+        }
       }
     }
     .onChange(of: searchText) { _, newValue in

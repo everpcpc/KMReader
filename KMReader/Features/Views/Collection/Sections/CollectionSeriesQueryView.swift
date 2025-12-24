@@ -100,15 +100,12 @@ struct CollectionSeriesQueryView: View {
                     }
                   )
                 } else {
-                  NavigationLink(value: NavDestination.seriesDetail(seriesId: s.seriesId)) {
-                    SeriesCardView(
-                      komgaSeries: s,
-                      cardWidth: layoutHelper.cardWidth,
-                      onActionCompleted: onActionCompleted
-                    )
-                  }
-                  .focusPadding()
-                  .adaptiveButtonStyle(.plain)
+                  SeriesItemView(
+                    series: s,
+                    cardWidth: layoutHelper.cardWidth,
+                    layout: .grid,
+                    onActionCompleted: onActionCompleted
+                  )
                 }
               }
               .onAppear {
@@ -153,13 +150,12 @@ struct CollectionSeriesQueryView: View {
                     }
                   )
                 } else {
-                  NavigationLink(value: NavDestination.seriesDetail(seriesId: s.seriesId)) {
-                    SeriesRowView(
-                      komgaSeries: s,
-                      onActionCompleted: onActionCompleted
-                    )
-                  }
-                  .adaptiveButtonStyle(.plain)
+                  SeriesItemView(
+                    series: s,
+                    cardWidth: layoutHelper.cardWidth,
+                    layout: .list,
+                    onActionCompleted: onActionCompleted
+                  )
                 }
               }
               .onAppear {

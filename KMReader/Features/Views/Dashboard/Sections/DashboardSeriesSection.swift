@@ -15,6 +15,8 @@ struct DashboardSeriesSection: View {
   var onSeriesUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
+    PlatformHelper.defaultDashboardCardWidth)
   @Environment(\.modelContext) private var modelContext
 
   @State private var seriesIds: [String] = []
@@ -24,7 +26,7 @@ struct DashboardSeriesSection: View {
   @State private var isLoading = false
   @State private var hasLoadedInitial = false
 
-  private let pageSize = 20
+  private let pageSize = 50
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
@@ -36,7 +38,11 @@ struct DashboardSeriesSection: View {
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(alignment: .top, spacing: 12) {
           ForEach(Array(browseSeries.enumerated()), id: \.element.id) { index, series in
-            DashboardSeriesItemView(series: series)
+            SeriesItemView(
+              series: series,
+              cardWidth: CGFloat(dashboardCardWidth),
+              layout: .grid
+            )
               .onAppear {
                 if index >= browseSeries.count - 3 {
                   Task {
@@ -156,20 +162,5 @@ struct DashboardSeriesSection: View {
     }
     hasMore = moreAvailable
     currentPage += 1
-  }
-}
-
-private struct DashboardSeriesItemView: View {
-  @Bindable var series: KomgaSeries
-
-  var body: some View {
-    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
-      SeriesCardView(
-        komgaSeries: series,
-        cardWidth: PlatformHelper.dashboardCardWidth
-      )
-    }
-    .focusPadding()
-    .adaptiveButtonStyle(.plain)
   }
 }

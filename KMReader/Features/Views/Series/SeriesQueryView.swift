@@ -35,12 +35,13 @@ struct SeriesQueryView: View {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
-            BrowseSeriesItemView(
+            SeriesItemView(
               series: series,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onActionCompleted: {
                 Task {
+                  print("load more: true")
                   await loadMore(true)
                 }
               }
@@ -48,6 +49,7 @@ struct SeriesQueryView: View {
             .onAppear {
               if index >= viewModel.browseSeries.count - 3 {
                 Task {
+                  print("load more on \(index) : false")
                   await loadMore(false)
                 }
               }
@@ -57,12 +59,13 @@ struct SeriesQueryView: View {
       case .list:
         LazyVStack(spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
-            BrowseSeriesItemView(
+            SeriesItemView(
               series: series,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onActionCompleted: {
                 Task {
+                  print("load more: true")
                   await loadMore(true)
                 }
               }
@@ -70,6 +73,7 @@ struct SeriesQueryView: View {
             .onAppear {
               if index >= viewModel.browseSeries.count - 3 {
                 Task {
+                  print("load more on \(index): false")
                   await loadMore(false)
                 }
               }
@@ -78,32 +82,5 @@ struct SeriesQueryView: View {
         }
       }
     }
-  }
-}
-
-private struct BrowseSeriesItemView: View {
-  @Bindable var series: KomgaSeries
-  let cardWidth: CGFloat
-  let layout: BrowseLayoutMode
-  let onActionCompleted: (() -> Void)?
-
-  var body: some View {
-    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
-      switch layout {
-      case .grid:
-        SeriesCardView(
-          komgaSeries: series,
-          cardWidth: cardWidth,
-          onActionCompleted: onActionCompleted
-        )
-      case .list:
-        SeriesRowView(
-          komgaSeries: series,
-          onActionCompleted: onActionCompleted
-        )
-      }
-    }
-    .focusPadding()
-    .adaptiveButtonStyle(.plain)
   }
 }

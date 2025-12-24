@@ -21,10 +21,10 @@ struct ReadListCardView: View {
   }
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
+    CardView(padding: 6, cornerRadius: 10) {
       VStack(alignment: .leading, spacing: 8) {
         ThumbnailImage(
-          id: komgaReadList.readListId, type: .readlist, width: width, cornerRadius: 12)
+          id: komgaReadList.readListId, type: .readlist, width: width - 12, cornerRadius: 10)
 
         VStack(alignment: .leading, spacing: 4) {
           Text(komgaReadList.name)
@@ -43,8 +43,8 @@ struct ReadListCardView: View {
           }
         }
       }
-      .frame(width: width, alignment: .leading)
     }
+    .frame(width: width, alignment: .leading)
     .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())

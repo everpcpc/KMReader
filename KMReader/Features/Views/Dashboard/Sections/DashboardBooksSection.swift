@@ -15,6 +15,8 @@ struct DashboardBooksSection: View {
   var onBookUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
+    PlatformHelper.defaultDashboardCardWidth)
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @Environment(\.modelContext) private var modelContext
 
@@ -25,7 +27,7 @@ struct DashboardBooksSection: View {
   @State private var isLoading = false
   @State private var hasLoadedInitial = false
 
-  private let pageSize = 20
+  private let pageSize = 50
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
@@ -37,11 +39,16 @@ struct DashboardBooksSection: View {
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(alignment: .top, spacing: 12) {
           ForEach(Array(browseBooks.enumerated()), id: \.element.id) { index, book in
-            DashboardBookItemView(
+            BookItemView(
               book: book,
-              bookViewModel: bookViewModel,
+              viewModel: bookViewModel,
+              cardWidth: CGFloat(dashboardCardWidth),
+              layout: .grid,
+              onReadBook: { incognito in
+                readerPresentation.present(book: book.toBook(), incognito: incognito)
+              },
               onBookUpdated: onBookUpdated,
-              readerPresentation: readerPresentation
+              showSeriesTitle: true
             )
             .onAppear {
               if index >= browseBooks.count - 3 {
@@ -211,26 +218,5 @@ struct DashboardBooksSection: View {
     default:
       return []
     }
-  }
-}
-
-private struct DashboardBookItemView: View {
-  @Bindable var book: KomgaBook
-  let bookViewModel: BookViewModel
-  let onBookUpdated: (() -> Void)?
-  let readerPresentation: ReaderPresentationManager
-
-  var body: some View {
-    BookCardView(
-      komgaBook: book,
-      viewModel: bookViewModel,
-      cardWidth: PlatformHelper.dashboardCardWidth,
-      onReadBook: { incognito in
-        readerPresentation.present(book: book.toBook(), incognito: incognito)
-      },
-      onBookUpdated: onBookUpdated,
-      showSeriesTitle: true
-    )
-    .focusPadding()
   }
 }

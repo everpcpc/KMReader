@@ -15,7 +15,7 @@ struct ReadListRowView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
+    CardView(padding: 8, cornerRadius: 10) {
       HStack(spacing: 12) {
         ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 70, cornerRadius: 10)
 

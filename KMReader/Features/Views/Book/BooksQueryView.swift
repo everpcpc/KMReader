@@ -37,12 +37,14 @@ struct BooksQueryView: View {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseBooks.enumerated()), id: \.element.id) { index, book in
-            BrowseBookItemView(
+            BookItemView(
               book: book,
               viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
-              readerPresentation: readerPresentation,
+              onReadBook: { incognito in
+                readerPresentation.present(book: book.toBook(), incognito: incognito)
+              },
               onBookUpdated: {
                 Task {
                   await loadMore(true)
@@ -61,12 +63,14 @@ struct BooksQueryView: View {
       case .list:
         LazyVStack(spacing: layoutHelper.spacing) {
           ForEach(Array(viewModel.browseBooks.enumerated()), id: \.element.id) { index, book in
-            BrowseBookItemView(
+            BookItemView(
               book: book,
               viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
-              readerPresentation: readerPresentation,
+              onReadBook: { incognito in
+                readerPresentation.present(book: book.toBook(), incognito: incognito)
+              },
               onBookUpdated: {
                 Task {
                   await loadMore(true)
@@ -83,42 +87,6 @@ struct BooksQueryView: View {
           }
         }
       }
-    }
-  }
-}
-
-private struct BrowseBookItemView: View {
-  @Bindable var book: KomgaBook
-  let viewModel: BookViewModel
-  let cardWidth: CGFloat
-  let layout: BrowseLayoutMode
-  let readerPresentation: ReaderPresentationManager
-  let onBookUpdated: (() -> Void)?
-
-  var body: some View {
-    switch layout {
-    case .grid:
-      BookCardView(
-        komgaBook: book,
-        viewModel: viewModel,
-        cardWidth: cardWidth,
-        onReadBook: { incognito in
-          readerPresentation.present(book: book.toBook(), incognito: incognito)
-        },
-        onBookUpdated: onBookUpdated,
-        showSeriesTitle: true
-      )
-      .focusPadding()
-    case .list:
-      BookRowView(
-        komgaBook: book,
-        viewModel: viewModel,
-        onReadBook: { incognito in
-          readerPresentation.present(book: book.toBook(), incognito: incognito)
-        },
-        onBookUpdated: onBookUpdated,
-        showSeriesTitle: true
-      )
     }
   }
 }

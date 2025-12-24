@@ -46,62 +46,64 @@ struct BookCardView: View {
     Button {
       onReadBook?(false)
     } label: {
-      VStack(alignment: .leading, spacing: 6) {
-        ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth) {
-          ZStack {
-            if let progressCompleted = komgaBook.progressCompleted {
-              if !progressCompleted {
-                ThumbnailOverlayGradient(position: .bottom)
-                ReadingProgressBar(progress: progress)
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+      CardView(padding: 6, cornerRadius: 10) {
+        VStack(alignment: .leading, spacing: 6) {
+          ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth - 12) {
+            ZStack {
+              if let progressCompleted = komgaBook.progressCompleted {
+                if !progressCompleted {
+                  ThumbnailOverlayGradient(position: .bottom)
+                  ReadingProgressBar(progress: progress)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+              } else {
+                UnreadIndicator()
+                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
               }
-            } else {
-              UnreadIndicator()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
-        }
-        .ifLet(zoomNamespace) { view, namespace in
-          view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
-        }
+          .ifLet(zoomNamespace) { view, namespace in
+            view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
+          }
 
-        VStack(alignment: .leading, spacing: 2) {
-          if shouldShowSeriesTitle {
-            Text(komgaBook.seriesTitle)
+          VStack(alignment: .leading, spacing: 2) {
+            if shouldShowSeriesTitle {
+              Text(komgaBook.seriesTitle)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+            }
+            Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
               .font(.caption)
-              .foregroundColor(.secondary)
-              .lineLimit(1)
-          }
-          Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
-            .font(.caption)
-            .foregroundColor(.primary)
-            .lineLimit(bookTitleLineLimit)
+              .foregroundColor(.primary)
+              .lineLimit(bookTitleLineLimit)
 
-          Group {
-            if komgaBook.deleted {
-              Text("Unavailable")
-                .foregroundColor(.red)
-            } else {
-              HStack(spacing: 4) {
-                Text("\(komgaBook.mediaPagesCount) pages")
-                  + Text(" • \(komgaBook.size)")
-                  .font(.footnote)
-                if komgaBook.oneshot {
-                  Text("•")
-                  Text("Oneshot")
-                    .foregroundColor(.blue)
+            Group {
+              if komgaBook.deleted {
+                Text("Unavailable")
+                  .foregroundColor(.red)
+              } else {
+                HStack(spacing: 4) {
+                  Text("\(komgaBook.mediaPagesCount) pages")
+                    + Text(" • \(komgaBook.size)")
+                    .font(.footnote)
+                  if komgaBook.oneshot {
+                    Text("•")
+                    Text("Oneshot")
+                      .foregroundColor(.blue)
+                  }
+                  if komgaBook.downloadStatus != .notDownloaded {
+                    Image(systemName: komgaBook.downloadStatus.displayIcon)
+                      .foregroundColor(komgaBook.downloadStatus.displayColor)
+                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                      .padding(.leading, 8)
+                  }
                 }
-                if komgaBook.downloadStatus != .notDownloaded {
-                  Image(systemName: komgaBook.downloadStatus.displayIcon)
-                    .foregroundColor(komgaBook.downloadStatus.displayColor)
-                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                    .padding(.leading, 8)
-                }
+                .foregroundColor(.secondary)
+                .lineLimit(1)
               }
-              .foregroundColor(.secondary)
-              .lineLimit(1)
-            }
-          }.font(.caption2)
+            }.font(.caption2)
+          }
         }
       }
       .frame(width: cardWidth, alignment: .leading)

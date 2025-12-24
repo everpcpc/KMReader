@@ -98,9 +98,11 @@ struct CollectionsBrowseView: View {
         await loadCollections(refresh: true)
       }
     }
-    .onChange(of: sortOpts) { _, _ in
-      Task {
-        await loadCollections(refresh: true)
+    .onChange(of: sortOpts) { oldValue, newValue in
+      if oldValue != newValue {
+        Task {
+          await loadCollections(refresh: true)
+        }
       }
     }
     .onChange(of: searchText) { _, _ in
