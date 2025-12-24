@@ -34,18 +34,30 @@ fi
 # Parse arguments
 SHOW_IN_ORGANIZER=false
 SKIP_EXPORT=false
+SINGLE_PLATFORM=""
 
-for arg in "$@"; do
-	case "$arg" in
+while [[ $# -gt 0 ]]; do
+	case "$1" in
 	--show-in-organizer)
 		SHOW_IN_ORGANIZER=true
+		shift
 		;;
 	--skip-export)
 		SKIP_EXPORT=true
+		shift
+		;;
+	--platform)
+		if [[ -n "$2" && ! "$2" =~ ^-- ]]; then
+			SINGLE_PLATFORM="$2"
+			shift 2
+		else
+			echo -e "${RED}Error: --platform requires an argument (ios, macos, or tvos)${NC}"
+			exit 1
+		fi
 		;;
 	*)
-		echo -e "${RED}Unknown option: $arg${NC}"
-		echo "Usage: ./release.sh [--show-in-organizer] [--skip-export]"
+		echo -e "${RED}Unknown option: $1${NC}"
+		echo "Usage: ./release.sh [--show-in-organizer] [--skip-export] [--platform <ios|macos|tvos>]"
 		exit 1
 		;;
 	esac
@@ -57,7 +69,21 @@ EXPORTS_DIR="$PROJECT_ROOT/exports"
 EXPORT_OPTIONS_IOS="$SCRIPT_DIR/exportOptions.ios.plist"
 EXPORT_OPTIONS_MACOS="$SCRIPT_DIR/exportOptions.macos.plist"
 EXPORT_OPTIONS_TVOS="$SCRIPT_DIR/exportOptions.tvos.plist"
-PLATFORMS=("ios" "macos" "tvos")
+
+# Determine which platforms to build
+if [ -n "$SINGLE_PLATFORM" ]; then
+	case "$SINGLE_PLATFORM" in
+	ios | macos | tvos)
+		PLATFORMS=("$SINGLE_PLATFORM")
+		;;
+	*)
+		echo -e "${RED}Error: Invalid platform '$SINGLE_PLATFORM'. Must be ios, macos, or tvos.${NC}"
+		exit 1
+		;;
+	esac
+else
+	PLATFORMS=("ios" "macos" "tvos")
+fi
 
 # Check if export options files exist
 if [ "$SKIP_EXPORT" = false ]; then

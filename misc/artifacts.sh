@@ -26,6 +26,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Parse arguments
 SOURCE_DIR="${1:-$PROJECT_ROOT/exports}"
 DEST_DIR="${2:-$PROJECT_ROOT/artifacts}"
+PLATFORM="${3:-}"  # Optional: ios, macos, or tvos
 
 # Create destination directory
 mkdir -p "$DEST_DIR"
@@ -35,9 +36,30 @@ echo -e "${BLUE}Preparing Release Artifacts${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
-# Find all .ipa and .pkg files
-IPA_FILES=$(find "$SOURCE_DIR" -type f -name "*.ipa" | sort)
-PKG_FILES=$(find "$SOURCE_DIR" -type f -name "*.pkg" | sort)
+# Find all .ipa and .pkg files based on platform filter
+if [ -n "$PLATFORM" ]; then
+	case "$PLATFORM" in
+	ios)
+		IPA_FILES=$(find "$SOURCE_DIR" -type f -name "KMReader-iOS.ipa" | sort)
+		PKG_FILES=""
+		;;
+	macos)
+		IPA_FILES=""
+		PKG_FILES=$(find "$SOURCE_DIR" -type f -name "*.pkg" | sort)
+		;;
+	tvos)
+		IPA_FILES=$(find "$SOURCE_DIR" -type f -name "KMReader-tvOS.ipa" | sort)
+		PKG_FILES=""
+		;;
+	*)
+		echo -e "${RED}Error: Invalid platform '$PLATFORM'. Must be ios, macos, or tvos.${NC}"
+		exit 1
+		;;
+	esac
+else
+	IPA_FILES=$(find "$SOURCE_DIR" -type f -name "*.ipa" | sort)
+	PKG_FILES=$(find "$SOURCE_DIR" -type f -name "*.pkg" | sort)
+fi
 
 if [ -z "$IPA_FILES" ] && [ -z "$PKG_FILES" ]; then
 	echo -e "${RED}No artifacts found in $SOURCE_DIR${NC}"
