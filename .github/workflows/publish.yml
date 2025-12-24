@@ -79,6 +79,9 @@ jobs:
     needs: detect
     if: needs.detect.outputs.build_changed == 'true'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Ensure GitHub release exists
         env:
           GH_TOKEN: ${{ github.token }}
@@ -103,8 +106,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
