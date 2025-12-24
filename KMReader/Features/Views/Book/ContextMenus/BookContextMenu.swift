@@ -59,29 +59,6 @@ struct BookContextMenu: View {
       Divider()
 
       Button {
-        onEditRequested?()
-      } label: {
-        Label("Edit", systemImage: "pencil")
-      }
-      .disabled(!isAdmin || isOffline)
-
-      Button {
-        analyzeBook(bookId: book.id)
-      } label: {
-        Label("Analyze", systemImage: "waveform.path.ecg")
-      }
-      .disabled(!isAdmin || isOffline)
-
-      Button {
-        refreshMetadata(bookId: book.id)
-      } label: {
-        Label("Refresh Metadata", systemImage: "arrow.clockwise")
-      }
-      .disabled(!isAdmin || isOffline)
-
-      Divider()
-
-      Button {
         onShowReadListPicker?()
       } label: {
         Label("Add to Read List", systemImage: "list.bullet")
@@ -119,6 +96,43 @@ struct BookContextMenu: View {
 
       Divider()
 
+      Menu {
+        Button {
+          onEditRequested?()
+        } label: {
+          Label("Edit", systemImage: "pencil")
+        }
+        .disabled(!isAdmin || isOffline)
+
+        Button {
+          analyzeBook(bookId: book.id)
+        } label: {
+          Label("Analyze", systemImage: "waveform.path.ecg")
+        }
+        .disabled(!isAdmin || isOffline)
+
+        Button {
+          refreshMetadata(bookId: book.id)
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+        }
+        .disabled(!isAdmin || isOffline)
+
+        Divider()
+
+        Button(role: .destructive) {
+          Task {
+            await CacheManager.clearCache(forBookId: book.id)
+          }
+        } label: {
+          Label("Clear Cache", systemImage: "xmark.circle")
+        }
+      } label: {
+        Label("Manage", systemImage: "gearshape")
+      }
+
+      Divider()
+
       Button {
         Task {
           await OfflineManager.shared.toggleDownload(
@@ -126,16 +140,6 @@ struct BookContextMenu: View {
         }
       } label: {
         Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
-      }
-
-      Divider()
-
-      Button(role: .destructive) {
-        Task {
-          await CacheManager.clearCache(forBookId: book.id)
-        }
-      } label: {
-        Label("Clear Cache", systemImage: "xmark.circle")
       }
     }
   }

@@ -30,7 +30,8 @@ struct CardView<Content: View>: View {
   var body: some View {
     VStack {
       content().padding(padding)
-    }.background {
+    }
+    .background {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(background ?? .cardBackground)
         .shadow(color: shadow ?? Color.black.opacity(0.2), radius: 2)
