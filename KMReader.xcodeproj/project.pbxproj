@@ -16,6 +16,7 @@
 		19600B3F2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */; };
 		196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 196028582ED9F7980066E8A4 /* SwiftSoup */; };
 		19AEC07F2EE714150073EB5F /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 19AEC07E2EE714150073EB5F /* Flow */; };
+		19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19AEFE562EFC62E200EC7D3B /* StoreKit.framework */; };
 		19FDF1152EC9DDC700F7C3D9 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6ACB831E4AA344E7B2C3D4DB1846B6A4 /* SDWebImageSwiftUI */; };
 		19FDF1162EC9DDC700F7C3D9 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 585D1923D403492AAB307C02B56DBF71 /* SDWebImage */; };
 		19FDF1172EC9DDC700F7C3D9 /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 366522FBE7874AE69F5766E100695813 /* SDWebImageWebPCoder */; };
@@ -50,6 +51,7 @@
 		193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KMReaderWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		193F57772EFA1C1D003362E1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		193F57792EFA1C1D003362E1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		19AEFE562EFC62E200EC7D3B /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -105,6 +107,7 @@
 				19FDF1152EC9DDC700F7C3D9 /* SDWebImageSwiftUI in Frameworks */,
 				196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */,
 				19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */,
+				19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */,
 				19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */,
 				19AEC07F2EE714150073EB5F /* Flow in Frameworks */,
 			);
@@ -145,6 +148,7 @@
 		193F57762EFA1C1D003362E1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				19AEFE562EFC62E200EC7D3B /* StoreKit.framework */,
 				193F57772EFA1C1D003362E1 /* WidgetKit.framework */,
 				193F57792EFA1C1D003362E1 /* SwiftUI.framework */,
 			);

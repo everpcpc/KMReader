@@ -1,0 +1,220 @@
+//
+//  SubscriptionView.swift
+//  KMReader
+//
+//  Buy me a coffee ☕
+//
+
+import StoreKit
+import SwiftUI
+
+struct SubscriptionView: View {
+  @Environment(\.dismiss) private var dismiss
+  @State private var storeManager = StoreManager.shared
+  @State private var isPurchasing = false
+  @State private var showError = false
+  @State private var errorMessage = ""
+  @State private var coffeeOffset: CGFloat = 0
+
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        VStack(spacing: 24) {
+          headerSection
+
+          if storeManager.isLoading {
+            VStack(spacing: 12) {
+              ProgressView()
+              Text(String(localized: "Brewing..."))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 40)
+          } else if storeManager.hasActiveSubscription {
+            subscribedSection
+          } else if storeManager.products.isEmpty {
+            emptyProductsSection
+          } else {
+            productsSection
+          }
+
+          restoreButton
+        }
+        .padding()
+      }
+      .background(Color(.systemGroupedBackground))
+      .navigationTitle("☕")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) {
+          Button(String(localized: "Close")) {
+            dismiss()
+          }
+        }
+      }
+      .alert(String(localized: "Oops!"), isPresented: $showError) {
+        Button(String(localized: "OK"), role: .cancel) {}
+      } message: {
+        Text(errorMessage)
+      }
+    }
+  }
+
+  private var headerSection: some View {
+    VStack(spacing: 16) {
+      Text("☕")
+        .font(.system(size: 80))
+        .offset(y: coffeeOffset)
+        .onAppear {
+          withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+            coffeeOffset = -8
+          }
+        }
+
+      Text(String(localized: "Buy Me a Coffee"))
+        .font(.title2)
+        .fontWeight(.bold)
+
+      Text(String(localized: "If you enjoy using this app, consider buying me a coffee! It keeps me caffeinated and coding. ☕️"))
+        .font(.subheadline)
+        .foregroundColor(.secondary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal)
+    }
+    .padding(.top, 20)
+  }
+
+  private var subscribedSection: some View {
+    VStack(spacing: 16) {
+      Text("🎉")
+        .font(.system(size: 64))
+
+      Text(String(localized: "You're awesome!"))
+        .font(.title3)
+        .fontWeight(.bold)
+
+      Text(String(localized: "Thanks for the coffee! ☕️"))
+        .font(.subheadline)
+        .foregroundColor(.secondary)
+    }
+    .padding(.vertical, 40)
+    .frame(maxWidth: .infinity)
+    .background(
+      RoundedRectangle(cornerRadius: 16)
+        .fill(Color(.secondarySystemGroupedBackground))
+        .overlay(
+          RoundedRectangle(cornerRadius: 16)
+            .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+        )
+    )
+  }
+
+  private var emptyProductsSection: some View {
+    VStack(spacing: 12) {
+      Text("😅")
+        .font(.system(size: 48))
+
+      Text(String(localized: "Coffee machine is broken..."))
+        .font(.headline)
+
+      if let error = storeManager.errorMessage {
+        Text(error)
+          .font(.caption)
+          .foregroundColor(.secondary)
+          .multilineTextAlignment(.center)
+      }
+
+      Button {
+        Task {
+          await storeManager.loadProducts()
+        }
+      } label: {
+        Label(String(localized: "Try Again"), systemImage: "arrow.clockwise")
+      }
+      .buttonStyle(.bordered)
+      .tint(.orange)
+      .padding(.top, 8)
+    }
+    .padding(.vertical, 40)
+    .frame(maxWidth: .infinity)
+    .background(Color(.secondarySystemGroupedBackground))
+    .cornerRadius(16)
+  }
+
+  private var productsSection: some View {
+    VStack(spacing: 12) {
+      if let monthly = storeManager.monthlyProduct {
+        coffeeButton(for: monthly, emoji: "☕️", label: String(localized: "A Cup / Month"))
+      }
+
+      if let yearly = storeManager.yearlyProduct {
+        coffeeButton(for: yearly, emoji: "🫖", label: String(localized: "A Pot / Year"))
+      }
+    }
+  }
+
+  private func coffeeButton(for product: Product, emoji: String, label: String) -> some View {
+    Button {
+      Task {
+        await purchase(product)
+      }
+    } label: {
+      HStack(spacing: 16) {
+        Text(emoji)
+          .font(.system(size: 36))
+
+        Text(label)
+          .font(.headline)
+          .foregroundColor(.primary)
+
+        Spacer()
+
+        if isPurchasing {
+          ProgressView()
+        } else {
+          Text(product.displayPrice)
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .foregroundColor(.orange)
+        }
+      }
+      .padding()
+      .frame(maxWidth: .infinity)
+      .background(Color(.secondarySystemGroupedBackground))
+      .cornerRadius(16)
+    }
+    .buttonStyle(.plain)
+    .disabled(isPurchasing)
+  }
+
+
+  private var restoreButton: some View {
+    Button {
+      Task {
+        await storeManager.restorePurchases()
+      }
+    } label: {
+      Text(String(localized: "Restore Purchases"))
+        .font(.caption)
+        .foregroundColor(.secondary)
+    }
+    .disabled(storeManager.isLoading)
+    .padding(.top, 16)
+  }
+
+  private func purchase(_ product: Product) async {
+    isPurchasing = true
+    defer { isPurchasing = false }
+
+    do {
+      _ = try await storeManager.purchase(product)
+    } catch {
+      errorMessage = error.localizedDescription
+      showError = true
+    }
+  }
+}
+
+#Preview {
+  SubscriptionView()
+}
