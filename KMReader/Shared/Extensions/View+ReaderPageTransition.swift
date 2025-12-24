@@ -17,13 +17,41 @@ private struct ReaderPageScrollTransitionModifier: ViewModifier {
       switch style {
       case .default:
         content
-      case .fancy:
+      case .fade:
         content
           .scrollTransition(.interactive, axis: axis) { view, phase in
             view
               .opacity(phase.isIdentity ? 1 : 0.3)
-              .scaleEffect(phase.isIdentity ? 1 : 0.92)
-              .blur(radius: phase.isIdentity ? 0 : 3)
+          }
+      case .scale:
+        content
+          .scrollTransition(.interactive, axis: axis) { view, phase in
+            view
+              .scaleEffect(phase.isIdentity ? 1 : 0.8)
+              .opacity(phase.isIdentity ? 1 : 0.6)
+          }
+      case .rotation3D:
+        content
+          .scrollTransition(.interactive, axis: axis) { view, phase in
+            view
+              .rotation3DEffect(
+                .degrees(phase.value * -45),
+                axis: (x: 0, y: 1, z: 0),
+                perspective: 0.5
+              )
+              .opacity(phase.isIdentity ? 1 : 0.7)
+          }
+      case .cube:
+        content
+          .scrollTransition(.interactive, axis: axis) { view, phase in
+            view
+              .rotation3DEffect(
+                .degrees(phase.value * -90),
+                axis: (x: 0, y: 1, z: 0),
+                anchor: phase.value > 0 ? .leading : .trailing,
+                perspective: 0.4
+              )
+              .opacity(phase.isIdentity ? 1 : 0.9)
           }
       }
     #else
