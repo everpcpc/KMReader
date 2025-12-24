@@ -5,185 +5,69 @@
 //  Created by Komga iOS Client
 //
 
-import SDWebImage
 import SDWebImageSwiftUI
 import SwiftUI
 
-// Preview dimensions calculated based on available height
-private struct PreviewDimensions {
-  let scaleFactor: CGFloat
-  let imageWidth: CGFloat
-  let imageHeight: CGFloat
-  let centerY: CGFloat
-  let spacing: CGFloat
-}
-
-// Page transform properties for cover flow effect
-private struct PageTransform {
-  let x: CGFloat
-  let yRotation: Double
-  let scale: CGFloat
-  let opacity: Double
-  let zIndex: Int
-
-  // Calculate constrained x position within slider bounds
-  func constrainedX(
-    _ imageWidth: CGFloat,
-    containerWidth: CGFloat,
-    centerX: CGFloat
-  ) -> CGFloat {
-    let halfContainer = containerWidth / 2
-    let minX = centerX - halfContainer + imageWidth / 2
-    let maxX = centerX + halfContainer - imageWidth / 2
-    return max(minX, min(x, maxX))
-  }
-}
-
-// Single page preview item view
-private struct PagePreviewItem: View {
+// Simple page preview card for native scroll
+private struct PagePreviewCard: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
   let bookId: String
   let page: Int
-  let pageValue: Int
-  let availableHeight: CGFloat
-  let containerWidth: CGFloat
-  let containerCenterX: CGFloat
-  let maxPage: Int
-  let readingDirection: ReadingDirection
+  let isSelected: Bool
+  let imageHeight: CGFloat
 
   @State private var localURL: URL?
 
-  // Calculate preview dimensions based on available height
-  private var dimensions: PreviewDimensions {
-    // Base values for standard height (360)
-    let baseHeight: CGFloat = 360
-    let baseImageWidth: CGFloat = 180
-    let baseImageHeight: CGFloat = 250
-    let baseSpacing: CGFloat = 200
-
-    // Calculate scale factor based on available height
-    let scaleFactor = min(1.0, availableHeight / baseHeight)
-
-    // Apply scale factor to all dimensions
-    let imageWidth = baseImageWidth * scaleFactor
-    let imageHeight = baseImageHeight * scaleFactor
-    let centerY = (baseHeight * scaleFactor) / 2
-    let spacing = baseSpacing * scaleFactor
-
-    return PreviewDimensions(
-      scaleFactor: scaleFactor,
-      imageWidth: imageWidth,
-      imageHeight: imageHeight,
-      centerY: centerY,
-      spacing: spacing
-    )
-  }
-
-  private var xOffsetMultiplier: CGFloat {
-    readingDirection == .rtl ? -1 : 1
-  }
-
-  private var rotationMultiplier: Double {
-    readingDirection == .rtl ? -1 : 1
-  }
-
-  private func adjustedProgress(for progress: Double) -> Double {
-    readingDirection == .rtl ? 1.0 - progress : progress
-  }
-
-  private var transform: PageTransform {
-    let isCenter = page == pageValue
-    let offset = page - pageValue
-    let clampedOffset = max(-2, min(2, offset))
-    let baseX = containerCenterX
-
-    // Cover flow style transform
-    let spacing = dimensions.spacing
-    let xOffset = CGFloat(offset) * spacing * xOffsetMultiplier
-    let x = baseX + xOffset
-    let yRotation = Double(clampedOffset) * 20.0 * rotationMultiplier
-    let centerScale = 1.1
-    let scaleDrop = 0.12 * Double(abs(clampedOffset))
-    let scale = isCenter ? centerScale : max(0.7, centerScale - scaleDrop)
-    let opacity = isCenter ? 1.0 : max(0.45, 0.75 - 0.1 * Double(abs(clampedOffset)))
-    let zIndex = isCenter ? 20 : 20 - abs(offset)
-
-    return PageTransform(
-      x: x,
-      yRotation: yRotation,
-      scale: scale,
-      opacity: opacity,
-      zIndex: zIndex
-    )
+  private var imageWidth: CGFloat {
+    imageHeight * 0.72  // Approximate manga aspect ratio
   }
 
   var body: some View {
-    let isCenter = page == pageValue
-
-    VStack {
-      if let localURL = localURL {
-        WebImage(
-          url: localURL,
-          options: [.retryFailed, .scaleDownLargeImages],
-          context: [.customManager: SDImageCacheProvider.thumbnailManager]
-        )
-        .resizable()
-        .placeholder {
-          RoundedRectangle(cornerRadius: 6)
+    VStack(spacing: 8) {
+      Group {
+        if let localURL = localURL {
+          WebImage(
+            url: localURL,
+            options: [.retryFailed, .scaleDownLargeImages],
+            context: [.customManager: SDImageCacheProvider.thumbnailManager]
+          )
+          .resizable()
+          .placeholder {
+            RoundedRectangle(cornerRadius: 8)
+              .fill(Color.gray.opacity(0.3))
+              .overlay {
+                ProgressView()
+              }
+          }
+          .indicator(.activity)
+          .aspectRatio(contentMode: .fill)
+        } else {
+          RoundedRectangle(cornerRadius: 8)
             .fill(Color.gray.opacity(0.3))
             .overlay {
               ProgressView()
             }
         }
-        .indicator(.activity)
-        .aspectRatio(contentMode: .fit)
-        .frame(width: dimensions.imageWidth, height: dimensions.imageHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(alignment: .bottom) {
-          if isCenter {
-            Text("\(page)")
-              .foregroundColor(.white)
-              .padding(.horizontal, 6)
-              .padding(.vertical, 3)
-              .background {
-                RoundedRectangle(cornerRadius: 4)
-                  .fill(themeColor.color)
-              }
-              .offset(y: 30)
-          }
-        }
-      } else {
-        RoundedRectangle(cornerRadius: 6)
-          .fill(Color.gray.opacity(0.3))
-          .aspectRatio(contentMode: .fit)
-          .frame(width: dimensions.imageWidth, height: dimensions.imageHeight)
-          .overlay {
-            ProgressView()
-          }
       }
+      .frame(width: imageWidth, height: imageHeight)
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+      .overlay(
+        RoundedRectangle(cornerRadius: 8)
+          .stroke(isSelected ? themeColor.color : Color.clear, lineWidth: 3)
+      )
+      .shadow(
+        color: Color.black.opacity(isSelected ? 0.3 : 0.15),
+        radius: isSelected ? 8 : 4, x: 0, y: 2
+      )
+      .scaleEffect(isSelected ? 1.0 : 0.9)
+      .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+
+      Text("\(page)")
+        .font(.caption)
+        .fontWeight(isSelected ? .semibold : .regular)
+        .foregroundStyle(isSelected ? themeColor.color : .secondary)
     }
-    .shadow(
-      color: Color.black.opacity(isCenter ? 0.4 : 0.2),
-      radius: isCenter ? 8 : 4, x: 0, y: 2
-    )
-    .scaleEffect(transform.scale)
-    .opacity(transform.opacity)
-    .rotation3DEffect(
-      .degrees(transform.yRotation),
-      axis: (x: 0, y: 1, z: 0),
-      perspective: 0.6
-    )
-    .position(
-      x: transform.constrainedX(
-        dimensions.imageWidth,
-        containerWidth: containerWidth,
-        centerX: containerCenterX
-      ),
-      y: dimensions.centerY
-    )
-    .zIndex(Double(transform.zIndex))
-    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: pageValue)
     .task(id: page) {
       localURL = try? await ThumbnailCache.shared.ensureThumbnail(
         id: bookId, type: .page, page: page)
@@ -201,7 +85,7 @@ struct PageJumpSheetView: View {
   @Environment(\.dismiss) private var dismiss
 
   @State private var pageValue: Int
-  @State private var dragStartPage: Int?
+  @State private var scrollPosition: Int?
 
   private var maxPage: Int {
     max(totalPages, 1)
@@ -215,7 +99,10 @@ struct PageJumpSheetView: View {
     Binding(
       get: { Double(pageValue) },
       set: { newValue in
-        pageValue = Int(newValue.rounded())
+        let newPage = Int(newValue.rounded())
+        if newPage != pageValue {
+          pageValue = newPage
+        }
       }
     )
   }
@@ -233,14 +120,7 @@ struct PageJumpSheetView: View {
 
     let safeInitialPage = max(1, min(currentPage, max(totalPages, 1)))
     _pageValue = State(initialValue: safeInitialPage)
-  }
-
-  // Get preview pages range (current page ± offset)
-  private var previewPages: [Int] {
-    let offset = 2  // Show 2 pages before and after
-    let startPage = max(1, pageValue - offset)
-    let endPage = min(maxPage, pageValue + offset)
-    return Array(startPage...endPage)
+    _scrollPosition = State(initialValue: safeInitialPage)
   }
 
   private var sliderScaleX: CGFloat {
@@ -266,144 +146,138 @@ struct PageJumpSheetView: View {
     guard canJump else { return }
     let newValue = min(max(pageValue + step, 1), maxPage)
     pageValue = newValue
+    scrollPosition = newValue
   }
 
   var body: some View {
     SheetView(title: String(localized: "Go to Page"), size: .medium) {
-      VStack(alignment: .leading, spacing: 16) {
-        VStack(spacing: 24) {
-          VStack(spacing: 8) {
-            if canJump {
-              Text("Current page: \(currentPage)")
-                .foregroundStyle(.secondary)
-            }
-          }
-
-          if canJump {
-            VStack(spacing: 16) {
-              // Preview view above slider - scrolling fan effect
-              GeometryReader { geometry in
-                let fullWidth = geometry.size.width
-                let centerX = fullWidth / 2
-
-                ZStack {
-                  ForEach(previewPages, id: \.self) { page in
-                    PagePreviewItem(
-                      bookId: bookId,
-                      page: page,
-                      pageValue: pageValue,
-                      availableHeight: geometry.size.height,
-                      containerWidth: fullWidth,
-                      containerCenterX: centerX,
-                      maxPage: maxPage,
-                      readingDirection: readingDirection
-                    )
-                  }
-                }
-                #if os(iOS)
-                  .contentShape(Rectangle())
-                  .gesture(
-                    DragGesture(minimumDistance: 5)
-                      .onChanged { value in
-                        if dragStartPage == nil {
-                          dragStartPage = pageValue
-                        }
-                        let base = Double(dragStartPage ?? pageValue)
-                        let projected =
-                          value.translation.width
-                          + (value.predictedEndTranslation.width - value.translation.width) * 0.2
-                        let normalized = Double(projected / (fullWidth * 8.0))
-                        let directionMultiplier = readingDirection == .rtl ? -1.0 : 1.0
-                        let deltaPages = normalized * directionMultiplier * Double(maxPage - 1)
-                        let target = base - deltaPages
-                        let clamped = Int(target.rounded())
-                        pageValue = min(max(clamped, 1), maxPage)
-                      }
-                      .onEnded { _ in
-                        dragStartPage = nil
-                      }
-                  )
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                #endif
-              }
-              .frame(minHeight: 200, maxHeight: 360)
-
-              #if os(tvOS)
-                VStack(spacing: 40) {
-                  HStack(spacing: 32) {
-                    Text(pageLabels.left)
-                      .foregroundStyle(.secondary)
-                    Button {
-                      adjustPage(step: readingDirection == .rtl ? 1 : -1)
-                    } label: {
-                      Image(
-                        systemName: readingDirection == .rtl
-                          ? "plus.circle.fill" : "minus.circle.fill")
-                    }
-
-                    Text("Page \(pageValue)")
-                      .monospacedDigit()
-
-                    Button {
-                      adjustPage(step: readingDirection == .rtl ? -1 : 1)
-                    } label: {
-                      Image(
-                        systemName: readingDirection == .rtl
-                          ? "minus.circle.fill" : "plus.circle.fill")
-                    }
-                    Text(pageLabels.right)
-                      .foregroundStyle(.secondary)
-                  }
-
-                  Button {
-                    jumpToPage()
-                  } label: {
-                    // must be a full width button, otherwise it will not be focused
-                    HStack(spacing: 4) {
-                      Spacer()
-                      Text("Jump")
-                      Image(systemName: "arrow.right.to.line")
-                      Spacer()
-                    }
-                  }
-                  .adaptiveButtonStyle(.borderedProminent)
-                  .disabled(!canJump || pageValue == currentPage)
-                }
-                .focusSection()
-              #else
-                VStack(spacing: 0) {
-                  Slider(
-                    value: sliderBinding,
-                    in: 1...Double(maxPage),
-                    step: 1
-                  )
-                  .scaleEffect(x: sliderScaleX, y: 1)
-                  HStack {
-                    Text(pageLabels.left)
-                    Spacer()
-                    Text(pageLabels.right)
-                  }
-                  .foregroundStyle(.secondary)
-                }
-
-                HStack {
-                  Button {
-                    jumpToPage()
-                  } label: {
-                    HStack(spacing: 4) {
-                      Text("Jump")
-                      Image(systemName: "arrow.right.to.line")
-                    }
-                  }
-                  .adaptiveButtonStyle(.borderedProminent)
-                  .disabled(!canJump || pageValue == currentPage)
-                }
-              #endif
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-          }
-          Spacer()
+      VStack(spacing: 16) {
+        if canJump {
+          Text("Current page: \(currentPage)")
+            .foregroundStyle(.secondary)
         }
+
+        if canJump {
+          VStack(spacing: 16) {
+            // Native paging scroll view
+            GeometryReader { geometry in
+              let imageHeight = min(geometry.size.height - 40, 250)
+
+              ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                  LazyHStack(spacing: 8) {
+                    ForEach(1...maxPage, id: \.self) { page in
+                      PagePreviewCard(
+                        bookId: bookId,
+                        page: page,
+                        isSelected: page == pageValue,
+                        imageHeight: imageHeight
+                      )
+                      .id(page)
+                    }
+                  }
+                  .scrollTargetLayout()
+                }
+                .contentMargins(.horizontal, (geometry.size.width - imageHeight * 0.72) / 2, for: .scrollContent)
+                .scrollClipDisabled()
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $scrollPosition, anchor: .center)
+                .environment(\.layoutDirection, readingDirection == .rtl ? .rightToLeft : .leftToRight)
+                .onAppear {
+                  // Initial scroll to current page
+                  proxy.scrollTo(pageValue, anchor: .center)
+                }
+                .onChange(of: scrollPosition) { _, newValue in
+                  // User scrolled - update pageValue
+                  if let page = newValue {
+                    pageValue = page
+                  }
+                }
+                .onChange(of: pageValue) { oldValue, newValue in
+                  // Slider changed - scroll to new page (only if different from scroll position)
+                  if scrollPosition != newValue {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                      proxy.scrollTo(newValue, anchor: .center)
+                    }
+                  }
+                }
+              }
+            }
+            .frame(minHeight: 200, maxHeight: 320)
+
+            #if os(tvOS)
+              VStack(spacing: 40) {
+                HStack(spacing: 20) {
+                  Text(pageLabels.left)
+                    .foregroundStyle(.secondary)
+                  Button {
+                    adjustPage(step: readingDirection == .rtl ? 1 : -1)
+                  } label: {
+                    Image(
+                      systemName: readingDirection == .rtl
+                        ? "plus.circle.fill" : "minus.circle.fill")
+                  }
+
+                  Text("Page \(pageValue)")
+                    .monospacedDigit()
+
+                  Button {
+                    adjustPage(step: readingDirection == .rtl ? -1 : 1)
+                  } label: {
+                    Image(
+                      systemName: readingDirection == .rtl
+                        ? "minus.circle.fill" : "plus.circle.fill")
+                  }
+                  Text(pageLabels.right)
+                    .foregroundStyle(.secondary)
+                }
+
+                Button {
+                  jumpToPage()
+                } label: {
+                  HStack(spacing: 4) {
+                    Spacer()
+                    Text("Jump")
+                    Image(systemName: "arrow.right.to.line")
+                    Spacer()
+                  }
+                }
+                .adaptiveButtonStyle(.borderedProminent)
+                .disabled(!canJump || pageValue == currentPage)
+              }
+              .focusSection()
+            #else
+              VStack(spacing: 0) {
+                Slider(
+                  value: sliderBinding,
+                  in: 1...Double(maxPage),
+                  step: 1
+                )
+                .scaleEffect(x: sliderScaleX, y: 1)
+                HStack {
+                  Text(pageLabels.left)
+                  Spacer()
+                  Text(pageLabels.right)
+                }
+                .foregroundStyle(.secondary)
+              }
+
+              HStack {
+                Button {
+                  jumpToPage()
+                } label: {
+                  HStack(spacing: 4) {
+                    Text("Jump")
+                    Image(systemName: "arrow.right.to.line")
+                  }
+                }
+                .adaptiveButtonStyle(.borderedProminent)
+                .disabled(!canJump || pageValue == currentPage)
+              }
+            #endif
+          }
+        }
+        Spacer()
       }
       .padding()
     }

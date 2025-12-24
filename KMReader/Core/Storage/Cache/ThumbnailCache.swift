@@ -6,8 +6,10 @@
 //
 
 import Foundation
+import ImageIO
 import OSLog
 import SDWebImage
+import UniformTypeIdentifiers
 
 enum ThumbnailType: String, CaseIterable {
   case book
@@ -57,6 +59,7 @@ actor ThumbnailCache {
   }
 
   /// Ensures the thumbnail exists locally, downloading it if necessary.
+  /// For page thumbnails, will attempt to generate from offline downloaded pages first.
   /// Returns the local file:// URL.
   func ensureThumbnail(id: String, type: ThumbnailType, page: Int? = nil, force: Bool = false)
     async throws -> URL
@@ -65,6 +68,15 @@ actor ThumbnailCache {
 
     if !force && fileManager.fileExists(atPath: fileURL.path) {
       return fileURL
+    }
+
+    // For page thumbnails, try to generate from offline downloaded pages first
+    if case .page = type, let pageNum = page {
+      if let offlineURL = await generateThumbnailFromOfflinePage(
+        bookId: id, pageNumber: pageNum, thumbnailURL: fileURL)
+      {
+        return offlineURL
+      }
     }
 
     let cacheKey =
@@ -136,6 +148,112 @@ actor ThumbnailCache {
         "❌ Failed to download thumbnail for \(type.rawValue) \(id): \(error.localizedDescription)")
       throw error
     }
+  }
+
+  // MARK: - Offline Page Thumbnail Generation
+
+  /// Generate thumbnail from offline downloaded page image
+  /// - Parameters:
+  ///   - bookId: The book ID
+  ///   - pageNumber: The page number
+  ///   - thumbnailURL: Destination URL for the generated thumbnail
+  /// - Returns: URL of the generated thumbnail, or nil if generation failed
+  private func generateThumbnailFromOfflinePage(
+    bookId: String, pageNumber: Int, thumbnailURL: URL
+  ) async -> URL? {
+    // Check if book is downloaded offline
+    guard await OfflineManager.shared.isBookDownloaded(bookId: bookId) else {
+      return nil
+    }
+
+    let instanceId = await MainActor.run { AppConfig.currentInstanceId }
+
+    // Try common image extensions
+    let extensions = ["jpg", "jpeg", "png", "webp", "avif", "gif"]
+    var offlinePageURL: URL?
+
+    for ext in extensions {
+      if let url = await OfflineManager.shared.getOfflinePageImageURL(
+        instanceId: instanceId, bookId: bookId, pageNumber: pageNumber, fileExtension: ext)
+      {
+        offlinePageURL = url
+        break
+      }
+    }
+
+    guard let sourceURL = offlinePageURL else {
+      logger.debug("⚠️ Offline page not found for book \(bookId) page \(pageNumber)")
+      return nil
+    }
+
+    // Downsample the image to thumbnail size (300px max dimension, matching Komga API)
+    guard let thumbnailData = downsampleImage(at: sourceURL, maxDimension: 300) else {
+      logger.warning("⚠️ Failed to downsample offline page for book \(bookId) page \(pageNumber)")
+      return nil
+    }
+
+    // Ensure directory exists
+    let typeDir = thumbnailURL.deletingLastPathComponent()
+    if !fileManager.fileExists(atPath: typeDir.path) {
+      try? fileManager.createDirectory(at: typeDir, withIntermediateDirectories: true)
+    }
+
+    do {
+      try thumbnailData.write(to: thumbnailURL, options: [.atomic])
+      logger.info("✅ Generated thumbnail from offline page for book \(bookId) page \(pageNumber)")
+
+      // Update cached size and count
+      let fileSize = Int64(thumbnailData.count)
+      await Self.cacheSizeActor.updateSize(delta: fileSize)
+      await Self.cacheSizeActor.updateCount(delta: 1)
+
+      return thumbnailURL
+    } catch {
+      logger.error(
+        "❌ Failed to save generated thumbnail for book \(bookId) page \(pageNumber): \(error)")
+      return nil
+    }
+  }
+
+  /// Downsample an image efficiently using ImageIO
+  /// - Parameters:
+  ///   - url: Source image URL
+  ///   - maxDimension: Maximum width or height in pixels
+  /// - Returns: JPEG data of the downsampled image, or nil if failed
+  private nonisolated func downsampleImage(at url: URL, maxDimension: CGFloat) -> Data? {
+    let imageSourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, imageSourceOptions) else {
+      return nil
+    }
+
+    let downsampleOptions =
+      [
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceShouldCacheImmediately: true,
+        kCGImageSourceCreateThumbnailWithTransform: true,
+        kCGImageSourceThumbnailMaxPixelSize: maxDimension,
+      ] as CFDictionary
+
+    guard
+      let downsampledImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, downsampleOptions)
+    else {
+      return nil
+    }
+
+    // Convert to JPEG data
+    let data = NSMutableData()
+    guard
+      let destination = CGImageDestinationCreateWithData(
+        data, UTType.jpeg.identifier as CFString, 1, nil)
+    else {
+      return nil
+    }
+    CGImageDestinationAddImage(destination, downsampledImage, nil)
+    guard CGImageDestinationFinalize(destination) else {
+      return nil
+    }
+
+    return data as Data
   }
 
   // MARK: - Cache Management
