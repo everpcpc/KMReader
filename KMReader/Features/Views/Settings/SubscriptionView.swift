@@ -9,7 +9,6 @@ import StoreKit
 import SwiftUI
 
 struct SubscriptionView: View {
-  @Environment(\.dismiss) private var dismiss
   @State private var storeManager = StoreManager.shared
   @State private var isPurchasing = false
   @State private var showError = false
@@ -17,7 +16,7 @@ struct SubscriptionView: View {
   @State private var coffeeOffset: CGFloat = 0
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "☕️", size: .medium) {
       ScrollView {
         VStack(spacing: 24) {
           headerSection
@@ -42,16 +41,6 @@ struct SubscriptionView: View {
         }
         .padding()
       }
-      .background(Color(.systemGroupedBackground))
-      .navigationTitle("☕")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button(String(localized: "Close")) {
-            dismiss()
-          }
-        }
-      }
       .alert(String(localized: "Oops!"), isPresented: $showError) {
         Button(String(localized: "OK"), role: .cancel) {}
       } message: {
@@ -62,7 +51,7 @@ struct SubscriptionView: View {
 
   private var headerSection: some View {
     VStack(spacing: 16) {
-      Text("☕")
+      Text("☕️")
         .font(.system(size: 80))
         .offset(y: coffeeOffset)
         .onAppear {
@@ -75,11 +64,16 @@ struct SubscriptionView: View {
         .font(.title2)
         .fontWeight(.bold)
 
-      Text(String(localized: "If you enjoy using this app, consider buying me a coffee! It keeps me caffeinated and coding. ☕️"))
-        .font(.subheadline)
-        .foregroundColor(.secondary)
-        .multilineTextAlignment(.center)
-        .padding(.horizontal)
+      Text(
+        String(
+          localized:
+            "If you enjoy using this app, consider buying me a coffee! It keeps me caffeinated and coding. ☕️"
+        )
+      )
+      .font(.subheadline)
+      .foregroundColor(.secondary)
+      .multilineTextAlignment(.center)
+      .padding(.horizontal)
     }
     .padding(.top, 20)
   }
@@ -101,7 +95,7 @@ struct SubscriptionView: View {
     .frame(maxWidth: .infinity)
     .background(
       RoundedRectangle(cornerRadius: 16)
-        .fill(Color(.secondarySystemGroupedBackground))
+        .fill(Color.secondary.opacity(0.1))
         .overlay(
           RoundedRectangle(cornerRadius: 16)
             .stroke(Color.orange.opacity(0.3), lineWidth: 2)
@@ -137,7 +131,7 @@ struct SubscriptionView: View {
     }
     .padding(.vertical, 40)
     .frame(maxWidth: .infinity)
-    .background(Color(.secondarySystemGroupedBackground))
+    .background(Color.secondary.opacity(0.1))
     .cornerRadius(16)
   }
 
@@ -180,13 +174,12 @@ struct SubscriptionView: View {
       }
       .padding()
       .frame(maxWidth: .infinity)
-      .background(Color(.secondarySystemGroupedBackground))
+      .background(Color.secondary.opacity(0.1))
       .cornerRadius(16)
     }
     .buttonStyle(.plain)
     .disabled(isPurchasing)
   }
-
 
   private var restoreButton: some View {
     Button {
