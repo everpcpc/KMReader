@@ -13581,6 +13581,40 @@
         }
       }
     },
+    "Manage" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "관리"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
+          }
+        }
+      }
+    },
     "Manage Custom Fonts" : {
       "localizations" : {
         "en" : {
@@ -13632,7 +13666,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Administration"
+            "value" : "Gestion"
           }
         },
         "ja" : {
