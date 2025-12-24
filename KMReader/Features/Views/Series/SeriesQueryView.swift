@@ -41,6 +41,7 @@ struct SeriesQueryView: View {
               layout: .grid,
               onActionCompleted: {
                 Task {
+                  print("load more: true")
                   await loadMore(true)
                 }
               }
@@ -48,6 +49,7 @@ struct SeriesQueryView: View {
             .onAppear {
               if index >= viewModel.browseSeries.count - 3 {
                 Task {
+                  print("load more on \(index) : false")
                   await loadMore(false)
                 }
               }
@@ -63,6 +65,7 @@ struct SeriesQueryView: View {
               layout: .list,
               onActionCompleted: {
                 Task {
+                  print("load more: true")
                   await loadMore(true)
                 }
               }
@@ -70,6 +73,7 @@ struct SeriesQueryView: View {
             .onAppear {
               if index >= viewModel.browseSeries.count - 3 {
                 Task {
+                  print("load more on \(index): false")
                   await loadMore(false)
                 }
               }

@@ -96,9 +96,11 @@ struct ReadListsBrowseView: View {
         await loadReadLists(refresh: true)
       }
     }
-    .onChange(of: sortOpts) { _, _ in
-      Task {
-        await loadReadLists(refresh: true)
+    .onChange(of: sortOpts) { oldValue, newValue in
+      if oldValue != newValue {
+        Task {
+          await loadReadLists(refresh: true)
+        }
       }
     }
     .onChange(of: searchText) { _, _ in

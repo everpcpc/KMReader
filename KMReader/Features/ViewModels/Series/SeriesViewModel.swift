@@ -23,6 +23,7 @@ class SeriesViewModel {
   private var currentSearchText: String = ""
 
   private let pageSize = 20
+  private var currentLoadID = UUID()
 
   func loadSeries(
     context: ModelContext,
@@ -34,15 +35,28 @@ class SeriesViewModel {
     let paramsChanged = currentState != browseOpts || currentSearchText != searchText
     let shouldReset = refresh || paramsChanged
 
+    if !shouldReset {
+      guard hasMorePages && !isLoading else { return }
+    }
+
     if shouldReset {
+      currentLoadID = UUID()
       currentPage = 0
       hasMorePages = true
       currentState = browseOpts
       currentSearchText = searchText
     }
 
-    guard hasMorePages && !isLoading else { return }
+    let loadID = currentLoadID
     isLoading = true
+
+    defer {
+      if loadID == currentLoadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
 
     if AppConfig.isOffline {
       let ids = KomgaSeriesStore.fetchSeriesIds(
@@ -53,6 +67,7 @@ class SeriesViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      guard loadID == currentLoadID else { return }
       updateState(context: context, ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
@@ -65,17 +80,15 @@ class SeriesViewModel {
           browseOpts: browseOpts
         )
 
+        guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
         updateState(context: context, ids: ids, moreAvailable: !page.last)
       } catch {
+        guard loadID == currentLoadID else { return }
         if shouldReset {
           ErrorManager.shared.alert(error: error)
         }
       }
-    }
-
-    withAnimation {
-      isLoading = false
     }
   }
 
@@ -115,14 +128,26 @@ class SeriesViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
+    if !refresh {
+      guard hasMorePages && !isLoading else { return }
+    }
+
     if refresh {
+      currentLoadID = UUID()
       currentPage = 0
       hasMorePages = true
     }
 
-    guard hasMorePages && !isLoading else { return }
-
+    let loadID = currentLoadID
     isLoading = true
+
+    defer {
+      if loadID == currentLoadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
 
     if AppConfig.isOffline {
       let series = KomgaSeriesStore.fetchCollectionSeries(
@@ -132,6 +157,7 @@ class SeriesViewModel {
         size: 20,
         browseOpts: browseOpts
       )
+      guard loadID == currentLoadID else { return }
       let ids = series.map { $0.id }
       updateState(context: context, ids: ids, moreAvailable: ids.count == 20)
     } else {
@@ -144,15 +170,13 @@ class SeriesViewModel {
           libraryIds: libraryIds
         )
 
+        guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
         updateState(context: context, ids: ids, moreAvailable: !page.last)
       } catch {
+        guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)
       }
-    }
-
-    withAnimation {
-      isLoading = false
     }
   }
 

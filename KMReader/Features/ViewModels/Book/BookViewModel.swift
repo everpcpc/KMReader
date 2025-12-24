@@ -25,6 +25,7 @@ class BookViewModel {
   private var currentSeriesBrowseOpts: BookBrowseOptions?
 
   private let pageSize = 20
+  private var currentLoadID = UUID()
 
   func loadSeriesBooks(
     context: ModelContext,
@@ -33,15 +34,30 @@ class BookViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = true
   ) async {
-    if refresh || currentSeriesId != seriesId {
+    let shouldReset = refresh || currentSeriesId != seriesId
+
+    if !shouldReset {
+      guard hasMorePages && !isLoading else { return }
+    }
+
+    if shouldReset {
+      currentLoadID = UUID()
       currentPage = 0
       hasMorePages = true
       currentSeriesId = seriesId
       currentSeriesBrowseOpts = browseOpts
     }
 
-    guard hasMorePages && !isLoading else { return }
+    let loadID = currentLoadID
     isLoading = true
+
+    defer {
+      if loadID == currentLoadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
 
     if AppConfig.isOffline {
       let books = KomgaBookStore.fetchSeriesBooks(
@@ -51,6 +67,7 @@ class BookViewModel {
         size: 50,
         browseOpts: browseOpts
       )
+      guard loadID == currentLoadID else { return }
       let ids = books.map { $0.id }
       updateState(context: context, ids: ids, moreAvailable: ids.count == 50)
     } else {
@@ -63,15 +80,13 @@ class BookViewModel {
           libraryIds: libraryIds
         )
 
+        guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
         updateState(context: context, ids: ids, moreAvailable: !page.last)
       } catch {
+        guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)
       }
-    }
-
-    withAnimation {
-      isLoading = false
     }
   }
 
@@ -157,13 +172,26 @@ class BookViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
+    if !refresh {
+      guard hasMorePages && !isLoading else { return }
+    }
+
     if refresh {
+      currentLoadID = UUID()
       currentPage = 0
       hasMorePages = true
     }
 
-    guard hasMorePages && !isLoading else { return }
+    let loadID = currentLoadID
     isLoading = true
+
+    defer {
+      if loadID == currentLoadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
 
     if AppConfig.isOffline {
       let ids = KomgaBookStore.fetchBookIds(
@@ -174,6 +202,7 @@ class BookViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      guard loadID == currentLoadID else { return }
       updateState(context: context, ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
@@ -197,15 +226,13 @@ class BookViewModel {
           sort: browseOpts.sortString
         )
 
+        guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
         updateState(context: context, ids: ids, moreAvailable: !page.last)
       } catch {
+        guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)
       }
-    }
-
-    withAnimation {
-      isLoading = false
     }
   }
 
@@ -216,13 +243,26 @@ class BookViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
+    if !refresh {
+      guard hasMorePages && !isLoading else { return }
+    }
+
     if refresh {
+      currentLoadID = UUID()
       currentPage = 0
       hasMorePages = true
     }
 
-    guard hasMorePages && !isLoading else { return }
+    let loadID = currentLoadID
     isLoading = true
+
+    defer {
+      if loadID == currentLoadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
 
     if AppConfig.isOffline {
       let books = KomgaBookStore.fetchReadListBooks(
@@ -232,6 +272,7 @@ class BookViewModel {
         size: 50,
         browseOpts: browseOpts
       )
+      guard loadID == currentLoadID else { return }
       let ids = books.map { $0.id }
       updateState(context: context, ids: ids, moreAvailable: ids.count == 50)
     } else {
@@ -244,15 +285,13 @@ class BookViewModel {
           libraryIds: libraryIds
         )
 
+        guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
         updateState(context: context, ids: ids, moreAvailable: !page.last)
       } catch {
+        guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)
       }
-    }
-
-    withAnimation {
-      isLoading = false
     }
   }
 }

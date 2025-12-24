@@ -50,9 +50,11 @@ struct BooksBrowseView: View {
           await loadBooks(refresh: true)
         }
       }
-      .onChange(of: browseOpts) { _, newValue in
-        Task {
-          await loadBooks(refresh: true)
+      .onChange(of: browseOpts) { oldValue, newValue in
+        if oldValue != newValue {
+          Task {
+            await loadBooks(refresh: true)
+          }
         }
       }
       .onChange(of: searchText) { _, newValue in

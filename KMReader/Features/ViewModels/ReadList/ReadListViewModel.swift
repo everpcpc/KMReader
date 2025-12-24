@@ -27,6 +27,7 @@ class ReadListViewModel {
   private var currentLibraryIds: [String] = []
   private var currentSort: String?
   private var currentSearchText: String = ""
+  private var currentLoadID = UUID()
 
   func loadReadLists(
     context: ModelContext,
@@ -39,7 +40,12 @@ class ReadListViewModel {
       currentLibraryIds != libraryIds || currentSort != sort || currentSearchText != searchText
     let shouldReset = refresh || paramsChanged
 
+    if !shouldReset {
+      guard hasMorePages && !isLoading else { return }
+    }
+
     if shouldReset {
+      currentLoadID = UUID()
       currentPage = 0
       hasMorePages = true
       currentLibraryIds = libraryIds ?? []
@@ -47,9 +53,16 @@ class ReadListViewModel {
       currentSearchText = searchText
     }
 
-    guard hasMorePages && !isLoading else { return }
-
+    let loadID = currentLoadID
     isLoading = true
+
+    defer {
+      if loadID == currentLoadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
 
     if AppConfig.isOffline {
       let ids = KomgaReadListStore.fetchReadListIds(
@@ -60,6 +73,7 @@ class ReadListViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      guard loadID == currentLoadID else { return }
       let readLists = KomgaReadListStore.fetchReadListsByIds(
         context: context,
         ids: ids, instanceId: AppConfig.currentInstanceId)
@@ -84,6 +98,7 @@ class ReadListViewModel {
           search: searchText.isEmpty ? nil : searchText
         )
 
+        guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
         let readLists = KomgaReadListStore.fetchReadListsByIds(
           context: context,
@@ -100,14 +115,11 @@ class ReadListViewModel {
         hasMorePages = !page.last
         currentPage += 1
       } catch {
+        guard loadID == currentLoadID else { return }
         if shouldReset {
           ErrorManager.shared.alert(error: error)
         }
       }
-    }
-
-    withAnimation {
-      isLoading = false
     }
   }
 }

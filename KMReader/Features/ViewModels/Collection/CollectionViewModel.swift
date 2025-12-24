@@ -27,6 +27,7 @@ class CollectionViewModel {
   private var currentLibraryIds: [String] = []
   private var currentSort: String?
   private var currentSearchText: String = ""
+  private var currentLoadID = UUID()
 
   func loadCollections(
     context: ModelContext,
@@ -39,7 +40,12 @@ class CollectionViewModel {
       currentLibraryIds != libraryIds || currentSort != sort || currentSearchText != searchText
     let shouldReset = refresh || paramsChanged
 
+    if !shouldReset {
+      guard hasMorePages && !isLoading else { return }
+    }
+
     if shouldReset {
+      currentLoadID = UUID()
       currentPage = 0
       hasMorePages = true
       currentLibraryIds = libraryIds ?? []
@@ -47,9 +53,16 @@ class CollectionViewModel {
       currentSearchText = searchText
     }
 
-    guard hasMorePages && !isLoading else { return }
-
+    let loadID = currentLoadID
     isLoading = true
+
+    defer {
+      if loadID == currentLoadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
 
     if AppConfig.isOffline {
       let ids = KomgaCollectionStore.fetchCollectionIds(
@@ -60,6 +73,7 @@ class CollectionViewModel {
         offset: currentPage * pageSize,
         limit: pageSize
       )
+      guard loadID == currentLoadID else { return }
       let collections = KomgaCollectionStore.fetchCollectionsByIds(
         context: context,
         ids: ids, instanceId: AppConfig.currentInstanceId)
@@ -84,6 +98,7 @@ class CollectionViewModel {
           search: searchText.isEmpty ? nil : searchText
         )
 
+        guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
         let collections = KomgaCollectionStore.fetchCollectionsByIds(
           context: context,
@@ -100,14 +115,11 @@ class CollectionViewModel {
         hasMorePages = !page.last
         currentPage += 1
       } catch {
+        guard loadID == currentLoadID else { return }
         if shouldReset {
           ErrorManager.shared.alert(error: error)
         }
       }
-    }
-
-    withAnimation {
-      isLoading = false
     }
   }
 }
