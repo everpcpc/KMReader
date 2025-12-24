@@ -161,12 +161,14 @@ struct DashboardSeriesSection: View {
 
 private struct DashboardSeriesItemView: View {
   @Bindable var series: KomgaSeries
+  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
+    PlatformHelper.defaultDashboardCardWidth)
 
   var body: some View {
     NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
       SeriesCardView(
         komgaSeries: series,
-        cardWidth: PlatformHelper.dashboardCardWidth
+        cardWidth: CGFloat(dashboardCardWidth)
       )
     }
     .focusPadding()

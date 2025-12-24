@@ -16,42 +16,44 @@ struct ReadListRowView: View {
 
   var body: some View {
     NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
-      HStack(spacing: 12) {
-        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 70, cornerRadius: 10)
+      CardView(padding: 8, cornerRadius: 10) {
+        HStack(spacing: 12) {
+          ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 70, cornerRadius: 10)
 
-        VStack(alignment: .leading, spacing: 6) {
-          Text(komgaReadList.name)
-            .font(.callout)
+          VStack(alignment: .leading, spacing: 6) {
+            Text(komgaReadList.name)
+              .font(.callout)
 
-          Label {
-            Text("\(komgaReadList.bookIds.count) book")
-          } icon: {
-            Image(systemName: "book")
+            Label {
+              Text("\(komgaReadList.bookIds.count) book")
+            } icon: {
+              Image(systemName: "book")
+            }
+            .font(.footnote)
+            .foregroundColor(.secondary)
+
+            Label {
+              Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+            } icon: {
+              Image(systemName: "clock")
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+            if !komgaReadList.summary.isEmpty {
+              Text(komgaReadList.summary)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+            }
+
           }
-          .font(.footnote)
-          .foregroundColor(.secondary)
 
-          Label {
-            Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-          } icon: {
-            Image(systemName: "clock")
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
+          Spacer()
 
-          if !komgaReadList.summary.isEmpty {
-            Text(komgaReadList.summary)
-              .font(.caption)
-              .foregroundColor(.secondary)
-              .lineLimit(2)
-          }
-
+          Image(systemName: "chevron.right")
+            .foregroundColor(.secondary)
         }
-
-        Spacer()
-
-        Image(systemName: "chevron.right")
-          .foregroundColor(.secondary)
       }
     }
     .adaptiveButtonStyle(.plain)

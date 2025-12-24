@@ -15,6 +15,8 @@ struct SettingsAppearanceView: View {
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
+  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
+    PlatformHelper.defaultDashboardCardWidth)
 
   private var portraitColumnsBinding: Binding<Int> {
     Binding(
@@ -118,7 +120,7 @@ struct SettingsAppearanceView: View {
           VStack(alignment: .leading, spacing: 8) {
             Stepper(
               value: landscapeColumnsBinding,
-              in: 1...16,
+              in: 2...16,
               step: 1
             ) {
               HStack {
@@ -219,6 +221,23 @@ struct SettingsAppearanceView: View {
             .font(.caption)
             .foregroundColor(.secondary)
           }
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+          Stepper(
+            value: $dashboardCardWidth,
+            in: 80...320,
+            step: 20
+          ) {
+            HStack {
+              Text(String(localized: "settings.appearance.dashboardCardWidth.label"))
+              Text("\(Int(dashboardCardWidth))")
+                .foregroundColor(.secondary)
+            }
+          }
+          Text(String(localized: "settings.appearance.dashboardCardWidth.caption"))
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
       }
     }

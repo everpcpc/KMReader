@@ -10,16 +10,23 @@ import SwiftUI
 
 struct CollectionItemQueryView: View {
   @Bindable var collection: KomgaCollection
-  var width: CGFloat = PlatformHelper.dashboardCardWidth
+  var width: CGFloat?
   var layout: BrowseLayoutMode = .grid
   var onActionCompleted: (() -> Void)?
+
+  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
+    PlatformHelper.defaultDashboardCardWidth)
+
+  private var cardWidth: CGFloat {
+    width ?? CGFloat(dashboardCardWidth)
+  }
 
   var body: some View {
     switch layout {
     case .grid:
       CollectionCardView(
         komgaCollection: collection,
-        width: width,
+        width: cardWidth,
         onActionCompleted: onActionCompleted
       )
       .focusPadding()

@@ -43,80 +43,82 @@ struct BookRowView: View {
     Button {
       onReadBook?(false)
     } label: {
-      HStack(spacing: 12) {
-        ThumbnailImage(
-          id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4
-        )
-        .ifLet(zoomNamespace) { view, namespace in
-          view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
-        }
-
-        VStack(alignment: .leading, spacing: 4) {
-          if shouldShowSeriesTitle {
-            Text(komgaBook.seriesTitle)
-              .font(.footnote)
-              .foregroundColor(.secondary)
-              .lineLimit(1)
+      CardView(padding: 8, cornerRadius: 10) {
+        HStack(spacing: 12) {
+          ThumbnailImage(
+            id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4
+          )
+          .ifLet(zoomNamespace) { view, namespace in
+            view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
           }
 
-          Text("#\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
-            .font(.body)
-            .foregroundColor(completed ? .secondary : .primary)
-            .lineLimit(bookTitleLineLimit)
-
-          HStack(spacing: 4) {
-            if let releaseDate = komgaBook.metaReleaseDate, !releaseDate.isEmpty {
-              Label(releaseDate, systemImage: "calendar")
-            } else {
-              Label(
-                komgaBook.created.formatted(date: .abbreviated, time: .omitted),
-                systemImage: "clock")
+          VStack(alignment: .leading, spacing: 4) {
+            if shouldShowSeriesTitle {
+              Text(komgaBook.seriesTitle)
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
             }
-            if let progressPage = komgaBook.progressPage,
-              let progressCompleted = komgaBook.progressCompleted
-            {
-              Text("•")
-              if progressCompleted {
-                Image(systemName: "checkmark.circle.fill")
-                  .foregroundColor(.green)
+
+            Text("#\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+              .font(.body)
+              .foregroundColor(completed ? .secondary : .primary)
+              .lineLimit(bookTitleLineLimit)
+
+            HStack(spacing: 4) {
+              if let releaseDate = komgaBook.metaReleaseDate, !releaseDate.isEmpty {
+                Label(releaseDate, systemImage: "calendar")
               } else {
-                Text("Page \(progressPage + 1)")
-                  .foregroundColor(.blue)
+                Label(
+                  komgaBook.created.formatted(date: .abbreviated, time: .omitted),
+                  systemImage: "clock")
               }
-            }
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-          Group {
-            if komgaBook.deleted {
-              Text("Unavailable")
-                .foregroundColor(.red)
-            } else {
-              HStack(spacing: 4) {
-                Label("\(komgaBook.mediaPagesCount) pages", systemImage: "book.pages")
+              if let progressPage = komgaBook.progressPage,
+                let progressCompleted = komgaBook.progressCompleted
+              {
                 Text("•")
-                Label(komgaBook.size, systemImage: "doc")
-                if komgaBook.oneshot {
-                  Text("•")
-                  Text("Oneshot")
+                if progressCompleted {
+                  Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                } else {
+                  Text("Page \(progressPage + 1)")
                     .foregroundColor(.blue)
                 }
-                if komgaBook.downloadStatus != .notDownloaded {
-                  Image(systemName: komgaBook.downloadStatus.displayIcon)
-                    .foregroundColor(komgaBook.downloadStatus.displayColor)
-                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                    .padding(.leading, 8)
-                }
-              }.foregroundColor(.secondary)
+              }
             }
-          }.font(.footnote)
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+            Group {
+              if komgaBook.deleted {
+                Text("Unavailable")
+                  .foregroundColor(.red)
+              } else {
+                HStack(spacing: 4) {
+                  Label("\(komgaBook.mediaPagesCount) pages", systemImage: "book.pages")
+                  Text("•")
+                  Label(komgaBook.size, systemImage: "doc")
+                  if komgaBook.oneshot {
+                    Text("•")
+                    Text("Oneshot")
+                      .foregroundColor(.blue)
+                  }
+                  if komgaBook.downloadStatus != .notDownloaded {
+                    Image(systemName: komgaBook.downloadStatus.displayIcon)
+                      .foregroundColor(komgaBook.downloadStatus.displayColor)
+                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                      .padding(.leading, 8)
+                  }
+                }.foregroundColor(.secondary)
+              }
+            }.font(.footnote)
+          }
+
+          Spacer()
+
+          Image(systemName: "chevron.right")
+            .foregroundColor(.secondary)
         }
-
-        Spacer()
-
-        Image(systemName: "chevron.right")
-          .foregroundColor(.secondary)
       }
     }
     .contentShape(Rectangle())

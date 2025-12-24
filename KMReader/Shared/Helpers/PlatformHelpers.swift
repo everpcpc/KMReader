@@ -73,12 +73,7 @@ struct PlatformHelper {
     #endif
   }
 
-  /// Get dashboard card width based on platform
-  /// - iOS (iPhone): 120
-  /// - iOS (iPad): 160
-  /// - macOS: 160
-  /// - tvOS: 240
-  static var dashboardCardWidth: CGFloat {
+  static var defaultDashboardCardWidth: CGFloat {
     #if os(tvOS)
       return 240
     #elseif os(macOS)

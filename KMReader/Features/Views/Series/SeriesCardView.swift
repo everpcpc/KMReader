@@ -20,50 +20,52 @@ struct SeriesCardView: View {
   @State private var showEditSheet = false
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth) {
-        ZStack {
-          if komgaSeries.booksUnreadCount > 0 {
-            VStack(alignment: .trailing) {
-              UnreadCountBadge(count: komgaSeries.booksUnreadCount)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+    CardView(padding: 6, cornerRadius: 10) {
+      VStack(alignment: .leading, spacing: 6) {
+        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 12) {
+          ZStack {
+            if komgaSeries.booksUnreadCount > 0 {
+              VStack(alignment: .trailing) {
+                UnreadCountBadge(count: komgaSeries.booksUnreadCount)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+              }
             }
           }
         }
-      }
 
-      VStack(alignment: .leading, spacing: 2) {
-        if showTitle {
-          Text(komgaSeries.metaTitle)
-            .font(.caption)
-            .foregroundColor(.primary)
-            .lineLimit(1)
-        }
-        Group {
-          if komgaSeries.deleted {
-            Text("Unavailable")
-              .foregroundColor(.red)
-          } else {
-            HStack(spacing: 4) {
-              Text("\(komgaSeries.booksCount) books")
-              if komgaSeries.oneshot {
-                Text("•")
-                Text("Oneshot")
-                  .foregroundColor(.blue)
-              }
-              if komgaSeries.downloadStatus != .notDownloaded {
-                Image(systemName: komgaSeries.downloadStatus.icon)
-                  .foregroundColor(komgaSeries.downloadStatus.color)
-                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                  .padding(.leading, 8)
-              }
-            }
-            .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 2) {
+          if showTitle {
+            Text(komgaSeries.metaTitle)
+              .font(.caption)
+              .foregroundColor(.primary)
+              .lineLimit(1)
           }
-        }.font(.caption2)
+          Group {
+            if komgaSeries.deleted {
+              Text("Unavailable")
+                .foregroundColor(.red)
+            } else {
+              HStack(spacing: 4) {
+                Text("\(komgaSeries.booksCount) books")
+                if komgaSeries.oneshot {
+                  Text("•")
+                  Text("Oneshot")
+                    .foregroundColor(.blue)
+                }
+                if komgaSeries.downloadStatus != .notDownloaded {
+                  Image(systemName: komgaSeries.downloadStatus.icon)
+                    .foregroundColor(komgaSeries.downloadStatus.color)
+                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                    .padding(.leading, 8)
+                }
+              }
+              .foregroundColor(.secondary)
+            }
+          }.font(.caption2)
+        }
       }
-      .frame(width: cardWidth, alignment: .leading)
     }
+    .frame(width: cardWidth, alignment: .leading)
     .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())

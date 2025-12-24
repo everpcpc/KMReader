@@ -19,22 +19,24 @@ struct CollectionCardView: View {
     NavigationLink(
       value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
     ) {
-      VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(
-          id: komgaCollection.collectionId, type: .collection, width: width, cornerRadius: 12)
+      CardView(padding: 6, cornerRadius: 10) {
+        VStack(alignment: .leading, spacing: 8) {
+          ThumbnailImage(
+            id: komgaCollection.collectionId, type: .collection, width: width - 12, cornerRadius: 10)
 
-        VStack(alignment: .leading, spacing: 4) {
-          Text(komgaCollection.name)
-            .font(.headline)
-            .lineLimit(1)
+          VStack(alignment: .leading, spacing: 4) {
+            Text(komgaCollection.name)
+              .font(.headline)
+              .lineLimit(1)
 
-          Text("\(komgaCollection.seriesIds.count) series")
-            .font(.caption)
-            .foregroundColor(.secondary)
+            Text("\(komgaCollection.seriesIds.count) series")
+              .font(.caption)
+              .foregroundColor(.secondary)
 
-          Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-            .font(.caption)
-            .foregroundColor(.secondary)
+            Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
         }
       }
       .frame(width: width, alignment: .leading)

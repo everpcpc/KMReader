@@ -166,6 +166,18 @@ enum AppConfig {
     }
   }
 
+  static var dashboardCardWidth: CGFloat {
+    get {
+      if UserDefaults.standard.object(forKey: "dashboardCardWidth") != nil {
+        return CGFloat(UserDefaults.standard.double(forKey: "dashboardCardWidth"))
+      }
+      return PlatformHelper.defaultDashboardCardWidth
+    }
+    set {
+      UserDefaults.standard.set(Double(newValue), forKey: "dashboardCardWidth")
+    }
+  }
+
   static var serverLastUpdate: Date? {
     get {
       guard

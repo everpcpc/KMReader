@@ -219,12 +219,14 @@ private struct DashboardBookItemView: View {
   let bookViewModel: BookViewModel
   let onBookUpdated: (() -> Void)?
   let readerPresentation: ReaderPresentationManager
+  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
+    PlatformHelper.defaultDashboardCardWidth)
 
   var body: some View {
     BookCardView(
       komgaBook: book,
       viewModel: bookViewModel,
-      cardWidth: PlatformHelper.dashboardCardWidth,
+      cardWidth: CGFloat(dashboardCardWidth),
       onReadBook: { incognito in
         readerPresentation.present(book: book.toBook(), incognito: incognito)
       },
