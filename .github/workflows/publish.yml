@@ -14,7 +14,8 @@ jobs:
     outputs:
       marketing_version: ${{ steps.version.outputs.marketing }}
       build_number: ${{ steps.version.outputs.build }}
-      build_changed: ${{ steps.changed.outputs.changed }}
+      build_changed: ${{ steps.changed.outputs.build_changed }}
+      marketing_changed: ${{ steps.changed.outputs.marketing_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,7 +48,7 @@ jobs:
             echo "build=$BUILD"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Detect build number change
+      - name: Detect version changes
         id: changed
         run: |
           set -euo pipefail
@@ -62,22 +63,28 @@ jobs:
             fi
           fi
 
-          CHANGED=false
+          BUILD_CHANGED=false
+          MARKETING_CHANGED=false
           if [ -n "$BASE" ] && git cat-file -e "$BASE"^{commit} 2>/dev/null; then
             DIFF=$(git diff "$BASE" "$HEAD" -- "$FILE" || true)
             if echo "$DIFF" | grep -q 'CURRENT_PROJECT_VERSION'; then
-              CHANGED=true
+              BUILD_CHANGED=true
+            fi
+            if echo "$DIFF" | grep -q 'MARKETING_VERSION'; then
+              MARKETING_CHANGED=true
             fi
           else
-            CHANGED=true
+            BUILD_CHANGED=true
+            MARKETING_CHANGED=true
           fi
 
-          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "build_changed=$BUILD_CHANGED" >> "$GITHUB_OUTPUT"
+          echo "marketing_changed=$MARKETING_CHANGED" >> "$GITHUB_OUTPUT"
 
   release:
     runs-on: ubuntu-latest
     needs: detect
-    if: needs.detect.outputs.build_changed == 'true'
+    if: needs.detect.outputs.marketing_changed == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -99,6 +106,7 @@ jobs:
   upload:
     runs-on: macos-latest
     needs: [detect, release]
+    if: always() && needs.detect.outputs.build_changed == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -166,9 +174,11 @@ jobs:
         run: make release-${{ matrix.platform }}
 
       - name: Create artifact
+        if: needs.detect.outputs.marketing_changed == 'true'
         run: make artifact-${{ matrix.platform }}
 
       - name: Upload artifact to GitHub Release
+        if: needs.detect.outputs.marketing_changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.detect.outputs.marketing_version }}
