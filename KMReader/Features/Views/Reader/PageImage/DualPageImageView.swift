@@ -13,7 +13,6 @@ struct DualPageImageView: View {
   let firstPageIndex: Int
   let secondPageIndex: Int
   let screenSize: CGSize
-  let isRTL: Bool
   @Binding var isZoomed: Bool
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
 
@@ -22,14 +21,12 @@ struct DualPageImageView: View {
     firstPageIndex: Int,
     secondPageIndex: Int,
     screenSize: CGSize,
-    isRTL: Bool,
     isZoomed: Binding<Bool> = .constant(false)
   ) {
     self.viewModel = viewModel
     self.firstPageIndex = firstPageIndex
     self.secondPageIndex = secondPageIndex
     self.screenSize = screenSize
-    self.isRTL = isRTL
     self._isZoomed = isZoomed
   }
 
@@ -53,25 +50,14 @@ struct DualPageImageView: View {
       isZoomed: $isZoomed
     ) {
       HStack(spacing: 0) {
-        if isRTL {
-          pageView(
-            index: secondPageIndex,
-            alignment: .trailing
-          )
-          pageView(
-            index: firstPageIndex,
-            alignment: .leading
-          )
-        } else {
-          pageView(
-            index: firstPageIndex,
-            alignment: .trailing
-          )
-          pageView(
-            index: secondPageIndex,
-            alignment: .leading
-          )
-        }
+        pageView(
+          index: firstPageIndex,
+          alignment: .trailing
+        )
+        pageView(
+          index: secondPageIndex,
+          alignment: .leading
+        )
       }
       .frame(width: screenSize.width, height: screenSize.height)
     }

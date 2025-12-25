@@ -2,10 +2,9 @@ import SwiftUI
 
 struct SettingsAboutSection: View {
   @State private var showSubscription = false
-  @State private var storeManager = StoreManager.shared
 
   private var isSupporter: Bool {
-    storeManager.hasActiveSubscription
+    StoreManager.shared.hasActiveSubscription
   }
 
   var body: some View {
@@ -15,7 +14,7 @@ struct SettingsAboutSection: View {
       } label: {
         HStack {
           if isSupporter {
-            Label(String(localized: "Supporter"), systemImage: "heart.fill")
+            Label(String(localized: "Thanks for Support"), systemImage: "heart.fill")
               .foregroundColor(.pink)
           } else {
             Label(String(localized: "Buy Me a Coffee"), systemImage: "cup.and.saucer.fill")
@@ -30,9 +29,11 @@ struct SettingsAboutSection: View {
           }
         }
       }
+      .buttonStyle(.borderless)
       .sheet(isPresented: $showSubscription) {
         SubscriptionView()
       }
+
       Link(destination: URL(string: "https://kmreader.everpcpc.com/privacy/")!) {
         HStack {
           Label(String(localized: "Privacy Policy"), systemImage: "hand.raised")

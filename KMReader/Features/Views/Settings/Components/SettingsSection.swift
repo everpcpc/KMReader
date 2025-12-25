@@ -79,9 +79,9 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Logs")
 
     case .offlineTasks:
-      return String(localized: "Offline Tasks")
+      return String(localized: "Download Tasks")
     case .offlineBooks:
-      return String(localized: "Offline Books")
+      return String(localized: "Downloaded Books")
 
     case .libraries:
       return String(localized: "Libraries")

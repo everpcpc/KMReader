@@ -9,7 +9,6 @@ import StoreKit
 import SwiftUI
 
 struct SubscriptionView: View {
-  @State private var storeManager = StoreManager.shared
   @State private var isPurchasing = false
   @State private var showError = false
   @State private var errorMessage = ""
@@ -19,25 +18,27 @@ struct SubscriptionView: View {
     SheetView(title: "☕️", size: .large) {
       ScrollView {
         VStack(spacing: 24) {
-          headerSection
-
-          if storeManager.isLoading {
-            VStack(spacing: 12) {
-              ProgressView()
-              Text(String(localized: "Brewing..."))
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-            .padding(.vertical, 40)
-          } else if storeManager.hasActiveSubscription {
+          if StoreManager.shared.hasActiveSubscription {
             subscribedSection
-          } else if storeManager.products.isEmpty {
-            emptyProductsSection
           } else {
-            productsSection
-          }
+            headerSection
 
-          restoreButton
+            if StoreManager.shared.isLoading {
+              VStack(spacing: 12) {
+                ProgressView()
+                Text(String(localized: "Brewing..."))
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+              .padding(.vertical, 40)
+            } else if StoreManager.shared.products.isEmpty {
+              emptyProductsSection
+            } else {
+              productsSection
+            }
+
+            restoreButton
+          }
         }
         .padding()
       }
@@ -64,44 +65,62 @@ struct SubscriptionView: View {
         .font(.title2)
         .fontWeight(.bold)
 
-      Text(
-        String(
-          localized:
-            "If you enjoy using this app, consider buying me a coffee! It keeps me caffeinated and coding. ☕️"
-        )
-      )
-      .font(.subheadline)
-      .foregroundColor(.secondary)
-      .multilineTextAlignment(.center)
-      .padding(.horizontal)
+      Text(String(localized: "If you enjoy using this app, consider buying me a coffee!"))
+        .font(.subheadline)
+        .foregroundColor(.secondary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal)
     }
     .padding(.top, 20)
   }
 
   private var subscribedSection: some View {
-    VStack(spacing: 16) {
-      Text("🎉")
-        .font(.system(size: 64))
+    VStack(spacing: 20) {
+      VStack(spacing: 12) {
+        Text("🎉")
+          .font(.system(size: 64))
 
-      Text(String(localized: "You're awesome!"))
-        .font(.title3)
-        .fontWeight(.bold)
+        Text(String(localized: "You're awesome!"))
+          .font(.title3)
+          .fontWeight(.bold)
 
-      Text(String(localized: "Thanks for the coffee! ☕️"))
-        .font(.subheadline)
-        .foregroundColor(.secondary)
+        Text(String(localized: "Thanks for the coffee! ☕️"))
+          .font(.subheadline)
+          .foregroundColor(.secondary)
+      }
+      .padding(.vertical, 32)
+      .frame(maxWidth: .infinity)
+      .background(
+        RoundedRectangle(cornerRadius: 16)
+          .fill(Color.secondary.opacity(0.1))
+          .overlay(
+            RoundedRectangle(cornerRadius: 16)
+              .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+          )
+      )
+
+      #if os(iOS)
+        Button {
+          Task {
+            guard let scene = windowScene else { return }
+            try? await AppStore.showManageSubscriptions(in: scene)
+          }
+        } label: {
+          Text(String(localized: "Manage Subscription"))
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+        }
+      #endif
     }
-    .padding(.vertical, 40)
-    .frame(maxWidth: .infinity)
-    .background(
-      RoundedRectangle(cornerRadius: 16)
-        .fill(Color.secondary.opacity(0.1))
-        .overlay(
-          RoundedRectangle(cornerRadius: 16)
-            .stroke(Color.orange.opacity(0.3), lineWidth: 2)
-        )
-    )
   }
+
+  #if os(iOS)
+    private var windowScene: UIWindowScene? {
+      UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .first
+    }
+  #endif
 
   private var emptyProductsSection: some View {
     VStack(spacing: 12) {
@@ -111,7 +130,7 @@ struct SubscriptionView: View {
       Text(String(localized: "Coffee machine is broken..."))
         .font(.headline)
 
-      if let error = storeManager.errorMessage {
+      if let error = StoreManager.shared.errorMessage {
         Text(error)
           .font(.caption)
           .foregroundColor(.secondary)
@@ -120,12 +139,12 @@ struct SubscriptionView: View {
 
       Button {
         Task {
-          await storeManager.loadProducts()
+          await StoreManager.shared.loadProducts()
         }
       } label: {
         Label(String(localized: "Try Again"), systemImage: "arrow.clockwise")
       }
-      .buttonStyle(.bordered)
+      .adaptiveButtonStyle(.bordered)
       .tint(.orange)
       .padding(.top, 8)
     }
@@ -137,11 +156,11 @@ struct SubscriptionView: View {
 
   private var productsSection: some View {
     VStack(spacing: 12) {
-      if let monthly = storeManager.monthlyProduct {
+      if let monthly = StoreManager.shared.monthlyProduct {
         coffeeButton(for: monthly, emoji: "☕️", label: String(localized: "A Cup / Month"))
       }
 
-      if let yearly = storeManager.yearlyProduct {
+      if let yearly = StoreManager.shared.yearlyProduct {
         coffeeButton(for: yearly, emoji: "🫖", label: String(localized: "A Pot / Year"))
       }
     }
@@ -177,21 +196,21 @@ struct SubscriptionView: View {
       .background(Color.secondary.opacity(0.1))
       .cornerRadius(16)
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .disabled(isPurchasing)
   }
 
   private var restoreButton: some View {
     Button {
       Task {
-        await storeManager.restorePurchases()
+        await StoreManager.shared.restorePurchases()
       }
     } label: {
       Text(String(localized: "Restore Purchases"))
         .font(.caption)
         .foregroundColor(.secondary)
     }
-    .disabled(storeManager.isLoading)
+    .disabled(StoreManager.shared.isLoading)
     .padding(.top, 16)
   }
 
@@ -200,7 +219,7 @@ struct SubscriptionView: View {
     defer { isPurchasing = false }
 
     do {
-      _ = try await storeManager.purchase(product)
+      _ = try await StoreManager.shared.purchase(product)
     } catch {
       errorMessage = error.localizedDescription
       showError = true
