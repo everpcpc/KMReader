@@ -230,7 +230,6 @@ struct PageView: View {
               firstPageIndex: pagePair.first,
               secondPageIndex: second,
               screenSize: screenSize,
-              isRTL: mode.isRTL,
               isZoomed: $isZoomed
             )
           } else {
