@@ -131,7 +131,7 @@ struct SettingsOfflineTasksView: View {
 
       if books.isEmpty {
         ContentUnavailableView {
-          Label("No Offline Tasks", systemImage: "square.and.arrow.down")
+          Label("No Download Tasks", systemImage: "square.and.arrow.down")
         } description: {
           Text("No books are currently queued for offline reading.")
         }

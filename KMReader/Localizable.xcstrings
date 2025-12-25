@@ -14748,42 +14748,42 @@
         }
       }
     },
-    "No Offline Tasks" : {
+    "No Download Tasks" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No Offline Tasks"
+            "value" : "No Download Tasks"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucune tâche hors ligne"
+            "value" : "Aucune tâche de téléchargement"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "オフラインタスクはありません"
+            "value" : "ダウンロードタスクはありません"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오프라인 작업 없음"
+            "value" : "다운로드 작업 없음"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有离线任务"
+            "value" : "没有下载任务"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "沒有离線任務"
+            "value" : "沒有下載任務"
           }
         }
       }
@@ -16548,42 +16548,42 @@
         }
       }
     },
-    "Offline Books" : {
+    "Downloaded Books" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline Books"
+            "value" : "Downloaded Books"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Livres hors ligne"
+            "value" : "Livres téléchargés"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "オフライン本"
+            "value" : "ダウンロード済み"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오프라인 도서"
+            "value" : "다운로드된 도서"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "离线书籍"
+            "value" : "已下载书籍"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "離線書籍"
+            "value" : "已下載書籍"
           }
         }
       }
@@ -16628,42 +16628,42 @@
         }
       }
     },
-    "Offline Tasks" : {
+    "Download Tasks" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline Tasks"
+            "value" : "Download Tasks"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tâches hors ligne"
+            "value" : "Tâches de téléchargement"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "オフラインタスク"
+            "value" : "ダウンロードタスク"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오프라인 작업"
+            "value" : "다운로드 작업"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "离线任务"
+            "value" : "下载任务"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "離線任務"
+            "value" : "下載任務"
           }
         }
       }
