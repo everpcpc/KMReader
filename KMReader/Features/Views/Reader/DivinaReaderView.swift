@@ -423,6 +423,15 @@ struct DivinaReaderView: View {
         #endif
       }
     #endif
+    #if os(macOS)
+      .onChange(of: currentBook) { _, newBook in
+        // Update window manager state when book changes to refresh window title
+        if let book = newBook {
+          ReaderWindowManager.shared.currentState = BookReaderState(
+            book: book, incognito: incognito, readList: readList)
+        }
+      }
+    #endif
     .environment(\.readerBackgroundPreference, readerBackground)
   }
 
