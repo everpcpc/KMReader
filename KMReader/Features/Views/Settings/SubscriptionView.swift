@@ -65,12 +65,7 @@ struct SubscriptionView: View {
         .font(.title2)
         .fontWeight(.bold)
 
-      Text(
-        String(
-          localized:
-            "If you enjoy using this app, consider buying me a coffee! It keeps me caffeinated and coding. ☕️"
-        )
-      )
+      Text(String(localized: "If you enjoy using this app, consider buying me a coffee!"))
       .font(.subheadline)
       .foregroundColor(.secondary)
       .multilineTextAlignment(.center)
@@ -149,7 +144,7 @@ struct SubscriptionView: View {
       } label: {
         Label(String(localized: "Try Again"), systemImage: "arrow.clockwise")
       }
-      .buttonStyle(.bordered)
+      .adaptiveButtonStyle(.bordered)
       .tint(.orange)
       .padding(.top, 8)
     }
@@ -201,7 +196,7 @@ struct SubscriptionView: View {
       .background(Color.secondary.opacity(0.1))
       .cornerRadius(16)
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .disabled(isPurchasing)
   }
 

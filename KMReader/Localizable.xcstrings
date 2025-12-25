@@ -11616,36 +11616,36 @@
         }
       }
     },
-    "If you enjoy using this app, consider buying me a coffee! It keeps me caffeinated and coding. ☕️" : {
+    "If you enjoy using this app, consider buying me a coffee!" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Si vous aimez cette app, offrez-moi un café ! Ça me garde éveillé et productif. ☕️"
+            "value" : "Si vous aimez cette app, offrez-moi un café !"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このアプリが気に入ったら、コーヒーをおごってください！カフェインで元気に開発中。☕️"
+            "value" : "このアプリが気に入ったら、コーヒーをおごってください！"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 앱이 마음에 드신다면 커피 한 잔 사주세요! 카페인이 코딩의 원동력이에요. ☕️"
+            "value" : "이 앱이 마음에 드신다면 커피 한 잔 사주세요!"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果你喜欢这个 App，请我喝杯咖啡吧！咖啡因让我保持清醒和编码。☕️"
+            "value" : "如果你喜欢这个 App，请我喝杯咖啡吧！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果你喜歡這個 App，請我喝杯咖啡吧！咖啡因讓我保持清醒和編碼。☕️"
+            "value" : "如果你喜歡這個 App，請我喝杯咖啡吧！"
           }
         }
       }

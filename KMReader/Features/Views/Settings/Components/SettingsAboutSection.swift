@@ -29,7 +29,7 @@ struct SettingsAboutSection: View {
           }
         }
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.borderless)
       .sheet(isPresented: $showSubscription) {
         SubscriptionView()
       }
