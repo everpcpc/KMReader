@@ -16,9 +16,10 @@ import SwiftUI
     @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
     @State private var selectedSection: SettingsSection? = .appearance
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-      NavigationSplitView {
+      NavigationSplitView(columnVisibility: $columnVisibility) {
         List(selection: $selectedSection) {
           Section("General") {
             SettingsSectionRow(section: .appearance)
@@ -72,7 +73,8 @@ import SwiftUI
           SettingsAboutSection()
         }
         .listStyle(.sidebar)
-        .frame(minWidth: 200, minHeight: 400)
+        .toolbar(removing: .sidebarToggle)
+        .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
         .navigationTitle("Settings")
       } detail: {
         if let selectedSection {
@@ -116,6 +118,13 @@ import SwiftUI
           Text("Select a setting")
             .foregroundColor(.secondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+      }
+      .onChange(of: columnVisibility) { _, newValue in
+        if newValue != .all {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            columnVisibility = .all
+          }
         }
       }
     }

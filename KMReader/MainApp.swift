@@ -94,6 +94,7 @@ struct MainApp: App {
           .environment(readerPresentation)
           .modelContainer(modelContainer)
       }
+      .windowToolbarStyle(.unifiedCompact)
       .defaultSize(width: 1200, height: 800)
 
       Settings {
@@ -101,6 +102,7 @@ struct MainApp: App {
           .environment(authViewModel)
           .modelContainer(modelContainer)
       }
+      .windowToolbarStyle(.unifiedCompact)
       .defaultSize(width: 800, height: 600)
     #endif
   }
