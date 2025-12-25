@@ -66,10 +66,10 @@ struct SubscriptionView: View {
         .fontWeight(.bold)
 
       Text(String(localized: "If you enjoy using this app, consider buying me a coffee!"))
-      .font(.subheadline)
-      .foregroundColor(.secondary)
-      .multilineTextAlignment(.center)
-      .padding(.horizontal)
+        .font(.subheadline)
+        .foregroundColor(.secondary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal)
     }
     .padding(.top, 20)
   }
