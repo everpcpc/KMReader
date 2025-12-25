@@ -9,7 +9,6 @@ import StoreKit
 import SwiftUI
 
 struct SubscriptionView: View {
-  @State private var storeManager = StoreManager.shared
   @State private var isPurchasing = false
   @State private var showError = false
   @State private var errorMessage = ""
@@ -19,12 +18,12 @@ struct SubscriptionView: View {
     SheetView(title: "☕️", size: .large) {
       ScrollView {
         VStack(spacing: 24) {
-          if storeManager.hasActiveSubscription {
+          if StoreManager.shared.hasActiveSubscription {
             subscribedSection
           } else {
             headerSection
 
-            if storeManager.isLoading {
+            if StoreManager.shared.isLoading {
               VStack(spacing: 12) {
                 ProgressView()
                 Text(String(localized: "Brewing..."))
@@ -32,7 +31,7 @@ struct SubscriptionView: View {
                   .foregroundColor(.secondary)
               }
               .padding(.vertical, 40)
-            } else if storeManager.products.isEmpty {
+            } else if StoreManager.shared.products.isEmpty {
               emptyProductsSection
             } else {
               productsSection
@@ -136,7 +135,7 @@ struct SubscriptionView: View {
       Text(String(localized: "Coffee machine is broken..."))
         .font(.headline)
 
-      if let error = storeManager.errorMessage {
+      if let error = StoreManager.shared.errorMessage {
         Text(error)
           .font(.caption)
           .foregroundColor(.secondary)
@@ -145,7 +144,7 @@ struct SubscriptionView: View {
 
       Button {
         Task {
-          await storeManager.loadProducts()
+          await StoreManager.shared.loadProducts()
         }
       } label: {
         Label(String(localized: "Try Again"), systemImage: "arrow.clockwise")
@@ -162,11 +161,11 @@ struct SubscriptionView: View {
 
   private var productsSection: some View {
     VStack(spacing: 12) {
-      if let monthly = storeManager.monthlyProduct {
+      if let monthly = StoreManager.shared.monthlyProduct {
         coffeeButton(for: monthly, emoji: "☕️", label: String(localized: "A Cup / Month"))
       }
 
-      if let yearly = storeManager.yearlyProduct {
+      if let yearly = StoreManager.shared.yearlyProduct {
         coffeeButton(for: yearly, emoji: "🫖", label: String(localized: "A Pot / Year"))
       }
     }
@@ -209,14 +208,14 @@ struct SubscriptionView: View {
   private var restoreButton: some View {
     Button {
       Task {
-        await storeManager.restorePurchases()
+        await StoreManager.shared.restorePurchases()
       }
     } label: {
       Text(String(localized: "Restore Purchases"))
         .font(.caption)
         .foregroundColor(.secondary)
     }
-    .disabled(storeManager.isLoading)
+    .disabled(StoreManager.shared.isLoading)
     .padding(.top, 16)
   }
 
@@ -225,7 +224,7 @@ struct SubscriptionView: View {
     defer { isPurchasing = false }
 
     do {
-      _ = try await storeManager.purchase(product)
+      _ = try await StoreManager.shared.purchase(product)
     } catch {
       errorMessage = error.localizedDescription
       showError = true

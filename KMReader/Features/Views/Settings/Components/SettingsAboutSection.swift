@@ -2,10 +2,9 @@ import SwiftUI
 
 struct SettingsAboutSection: View {
   @State private var showSubscription = false
-  @State private var storeManager = StoreManager.shared
 
   private var isSupporter: Bool {
-    storeManager.hasActiveSubscription
+    StoreManager.shared.hasActiveSubscription
   }
 
   var body: some View {
