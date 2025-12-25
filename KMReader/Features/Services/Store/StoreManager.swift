@@ -43,7 +43,6 @@ final class StoreManager {
     }
   }
 
-
   func loadProducts() async {
     isLoading = true
     errorMessage = nil
@@ -61,23 +60,36 @@ final class StoreManager {
   }
 
   func purchase(_ product: Product) async throws -> Transaction? {
-    let result = try await product.purchase()
+    try await withThrowingTaskGroup(of: Transaction?.self) { group in
+      group.addTask { @MainActor in
+        let result = try await product.purchase()
 
-    switch result {
-    case .success(let verification):
-      let transaction = try checkVerified(verification)
-      await updatePurchasedProducts()
-      await transaction.finish()
-      return transaction
+        switch result {
+        case .success(let verification):
+          let transaction = try self.checkVerified(verification)
+          await self.updatePurchasedProducts()
+          await transaction.finish()
+          return transaction
 
-    case .userCancelled:
-      return nil
+        case .userCancelled:
+          return nil
 
-    case .pending:
-      return nil
+        case .pending:
+          return nil
 
-    @unknown default:
-      return nil
+        @unknown default:
+          return nil
+        }
+      }
+
+      group.addTask {
+        try await Task.sleep(for: .seconds(30))
+        throw StoreError.purchaseTimeout
+      }
+
+      let result = try await group.next()
+      group.cancelAll()
+      return result ?? nil
     }
   }
 
@@ -129,11 +141,14 @@ final class StoreManager {
 
 enum StoreError: LocalizedError {
   case verificationFailed
+  case purchaseTimeout
 
   var errorDescription: String? {
     switch self {
     case .verificationFailed:
       return String(localized: "Transaction verification failed")
+    case .purchaseTimeout:
+      return String(localized: "Purchase request timed out. Please try again.")
     }
   }
 }
