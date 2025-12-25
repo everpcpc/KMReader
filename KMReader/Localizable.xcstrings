@@ -20384,6 +20384,40 @@
         }
       }
     },
+    "Manage Subscription" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérer l'abonnement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サブスクリプションを管理"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구독 관리"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理订阅"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理訂閱"
+          }
+        }
+      }
+    },
     "Restore Purchases" : {
       "localizations" : {
         "fr" : {
@@ -25650,36 +25684,36 @@
         }
       }
     },
-    "Supporter" : {
+    "Thanks for Support" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supporter"
+            "value" : "Merci pour votre soutien"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サポーター"
+            "value" : "ご支援ありがとうございます"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "서포터"
+            "value" : "응원해 주셔서 감사합니다"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "支持者"
+            "value" : "感谢支持"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "支持者"
+            "value" : "感謝支持"
           }
         }
       }

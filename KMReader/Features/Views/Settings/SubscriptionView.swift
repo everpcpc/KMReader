@@ -19,25 +19,27 @@ struct SubscriptionView: View {
     SheetView(title: "☕️", size: .large) {
       ScrollView {
         VStack(spacing: 24) {
-          headerSection
-
-          if storeManager.isLoading {
-            VStack(spacing: 12) {
-              ProgressView()
-              Text(String(localized: "Brewing..."))
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-            .padding(.vertical, 40)
-          } else if storeManager.hasActiveSubscription {
+          if storeManager.hasActiveSubscription {
             subscribedSection
-          } else if storeManager.products.isEmpty {
-            emptyProductsSection
           } else {
-            productsSection
-          }
+            headerSection
 
-          restoreButton
+            if storeManager.isLoading {
+              VStack(spacing: 12) {
+                ProgressView()
+                Text(String(localized: "Brewing..."))
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+              .padding(.vertical, 40)
+            } else if storeManager.products.isEmpty {
+              emptyProductsSection
+            } else {
+              productsSection
+            }
+
+            restoreButton
+          }
         }
         .padding()
       }
@@ -79,29 +81,52 @@ struct SubscriptionView: View {
   }
 
   private var subscribedSection: some View {
-    VStack(spacing: 16) {
-      Text("🎉")
-        .font(.system(size: 64))
+    VStack(spacing: 20) {
+      VStack(spacing: 12) {
+        Text("🎉")
+          .font(.system(size: 64))
 
-      Text(String(localized: "You're awesome!"))
-        .font(.title3)
-        .fontWeight(.bold)
+        Text(String(localized: "You're awesome!"))
+          .font(.title3)
+          .fontWeight(.bold)
 
-      Text(String(localized: "Thanks for the coffee! ☕️"))
-        .font(.subheadline)
-        .foregroundColor(.secondary)
+        Text(String(localized: "Thanks for the coffee! ☕️"))
+          .font(.subheadline)
+          .foregroundColor(.secondary)
+      }
+      .padding(.vertical, 32)
+      .frame(maxWidth: .infinity)
+      .background(
+        RoundedRectangle(cornerRadius: 16)
+          .fill(Color.secondary.opacity(0.1))
+          .overlay(
+            RoundedRectangle(cornerRadius: 16)
+              .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+          )
+      )
+
+      #if os(iOS)
+        Button {
+          Task {
+            guard let scene = windowScene else { return }
+            try? await AppStore.showManageSubscriptions(in: scene)
+          }
+        } label: {
+          Text(String(localized: "Manage Subscription"))
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+        }
+      #endif
     }
-    .padding(.vertical, 40)
-    .frame(maxWidth: .infinity)
-    .background(
-      RoundedRectangle(cornerRadius: 16)
-        .fill(Color.secondary.opacity(0.1))
-        .overlay(
-          RoundedRectangle(cornerRadius: 16)
-            .stroke(Color.orange.opacity(0.3), lineWidth: 2)
-        )
-    )
   }
+
+  #if os(iOS)
+    private var windowScene: UIWindowScene? {
+      UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .first
+    }
+  #endif
 
   private var emptyProductsSection: some View {
     VStack(spacing: 12) {
