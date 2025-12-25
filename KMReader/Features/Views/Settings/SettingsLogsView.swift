@@ -15,6 +15,7 @@ struct SettingsLogsView: View {
   @State private var selectedLevel: LogLevel = .info
   @State private var selectedCategory: String = "All"
   @State private var selectedTimeRange: TimeRange = .oneHour
+  @State private var selectedLimit: LogLimit = .fifty
   @State private var searchText = ""
 
   private var sortedCategories: [(name: String, count: Int)] {
@@ -53,7 +54,7 @@ struct SettingsLogsView: View {
           }
         }
       } header: {
-        HFlow(spacing: 8) {
+        HStack {
           Menu {
             Picker("Time", selection: $selectedTimeRange) {
               ForEach(TimeRange.allCases, id: \.self) { range in
@@ -64,7 +65,6 @@ struct SettingsLogsView: View {
           } label: {
             LogFilterChip(icon: "clock", text: selectedTimeRange.displayName)
           }
-          .adaptiveButtonStyle(.bordered)
 
           Menu {
             Picker("Level", selection: $selectedLevel) {
@@ -76,8 +76,21 @@ struct SettingsLogsView: View {
           } label: {
             LogFilterChip(icon: "flag", text: selectedLevel.rawValue, color: selectedLevel.color)
           }
-          .adaptiveButtonStyle(.bordered)
 
+          Menu {
+            Picker("Limit", selection: $selectedLimit) {
+              ForEach(LogLimit.allCases, id: \.self) { limit in
+                Text(limit.displayName).tag(limit)
+              }
+            }
+            .pickerStyle(.inline)
+          } label: {
+            LogFilterChip(icon: "number", text: selectedLimit.displayName)
+          }
+        }
+        .adaptiveButtonStyle(.bordered)
+
+        HFlow(spacing: 8) {
           CategoryChip(
             name: "All",
             count: totalCount,
@@ -118,6 +131,9 @@ struct SettingsLogsView: View {
     .onChange(of: selectedCategory) {
       Task { await loadLogs() }
     }
+    .onChange(of: selectedLimit) {
+      Task { await loadLogs() }
+    }
     .refreshable {
       await loadLogs()
     }
@@ -145,7 +161,7 @@ struct SettingsLogsView: View {
       category: selectedCategory == "All" ? nil : selectedCategory,
       search: searchText.isEmpty ? nil : searchText,
       since: since,
-      limit: 500
+      limit: selectedLimit.value
     )
     withAnimation {
       logEntries = results
@@ -203,6 +219,19 @@ enum TimeRange: String, CaseIterable, Hashable {
     case .twentyFourHours: return -24 * 60 * 60
     }
   }
+}
+
+// MARK: - Log Limit
+
+enum LogLimit: Int, CaseIterable, Hashable {
+  case fifty = 50
+  case oneHundred = 100
+  case twoHundred = 200
+  case fiveHundred = 500
+
+  var displayName: String { "\(rawValue)" }
+
+  var value: Int { rawValue }
 }
 
 // MARK: - Log Filter Chip
