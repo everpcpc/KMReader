@@ -112,7 +112,6 @@ struct SettingsTasksView: View {
               }
             }
           }
-          .transition(.opacity.combined(with: .move(edge: .top)))
           .animation(.spring(response: 0.3, dampingFraction: 0.7), value: taskQueueStatus.count)
           .animation(
             .spring(response: 0.3, dampingFraction: 0.7), value: taskQueueStatus.countByType)

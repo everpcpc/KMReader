@@ -478,8 +478,9 @@
           guard let self = self, let vm = self.viewModel else { return }
           for i in max(0, minV - 2)...min(self.pages.count - 1, maxV + 2) {
             let page = self.pages[i]
-            if !(await vm.pageImageCache.hasImage(bookId: vm.bookId, page: page)) {
-              await self.loadImageForPage(i)
+            if let fileURL = await vm.getPageImageFileURL(page: page) {
+              // Preload into SDWebImage memory cache for instant display
+              await vm.preloadImageToMemory(fileURL: fileURL)
             }
           }
         }

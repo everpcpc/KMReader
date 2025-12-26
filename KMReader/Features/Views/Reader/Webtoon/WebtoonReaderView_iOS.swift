@@ -738,8 +738,9 @@
 
           for i in max(0, minVisible - 2)...min(self.pages.count - 1, maxVisible + 2) {
             let page = self.pages[i]
-            if !(await viewModel.pageImageCache.hasImage(bookId: viewModel.bookId, page: page)) {
-              await self.loadImageForPage(i)
+            if let fileURL = await viewModel.getPageImageFileURL(page: page) {
+              // Preload into SDWebImage memory cache for instant display
+              await viewModel.preloadImageToMemory(fileURL: fileURL)
             }
           }
         }

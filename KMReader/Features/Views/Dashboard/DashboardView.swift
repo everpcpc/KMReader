@@ -161,7 +161,6 @@ struct DashboardView: View {
                   refreshDashboard(reason: "Book action completed")
                 }
               )
-              .transition(.move(edge: .top).combined(with: .opacity))
 
             case .recentlyUpdatedSeries, .recentlyAddedSeries:
               DashboardSeriesSection(
@@ -172,7 +171,6 @@ struct DashboardView: View {
                   refreshDashboard(reason: "Series action completed")
                 }
               )
-              .transition(.move(edge: .top).combined(with: .opacity))
             }
           }
         }
