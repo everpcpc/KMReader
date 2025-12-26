@@ -25,18 +25,21 @@ actor DatabaseOperator {
     let compositeId = "\(instanceId)_\(dto.id)"
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      existing.name = dto.name
-      existing.url = dto.url
-      existing.number = dto.number
-      existing.lastModified = dto.lastModified
-      existing.sizeBytes = dto.sizeBytes
-      existing.size = dto.size
-      existing.media = dto.media
-      existing.metadata = dto.metadata
-      existing.readProgress = dto.readProgress
-      existing.deleted = dto.deleted
-      existing.oneshot = dto.oneshot
-      existing.seriesTitle = dto.seriesTitle
+      if existing.name != dto.name { existing.name = dto.name }
+      if existing.url != dto.url { existing.url = dto.url }
+      if existing.number != dto.number { existing.number = dto.number }
+      if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
+      if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
+      if existing.size != dto.size { existing.size = dto.size }
+      // Use lastModified to detect changes in complex types
+      if existing.lastModified != dto.lastModified {
+        existing.media = dto.media
+        existing.metadata = dto.metadata
+        existing.readProgress = dto.readProgress
+      }
+      if existing.deleted != dto.deleted { existing.deleted = dto.deleted }
+      if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
+      if existing.seriesTitle != dto.seriesTitle { existing.seriesTitle = dto.seriesTitle }
     } else {
       let newBook = KomgaBook(
         bookId: dto.id,
@@ -164,17 +167,20 @@ actor DatabaseOperator {
     let compositeId = "\(instanceId)_\(dto.id)"
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      existing.name = dto.name
-      existing.url = dto.url
-      existing.lastModified = dto.lastModified
-      existing.booksCount = dto.booksCount
-      existing.booksReadCount = dto.booksReadCount
-      existing.booksUnreadCount = dto.booksUnreadCount
-      existing.booksInProgressCount = dto.booksInProgressCount
-      existing.metadata = dto.metadata
-      existing.booksMetadata = dto.booksMetadata
-      existing.deleted = dto.deleted
-      existing.oneshot = dto.oneshot
+      if existing.name != dto.name { existing.name = dto.name }
+      if existing.url != dto.url { existing.url = dto.url }
+      if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
+      if existing.booksCount != dto.booksCount { existing.booksCount = dto.booksCount }
+      if existing.booksReadCount != dto.booksReadCount { existing.booksReadCount = dto.booksReadCount }
+      if existing.booksUnreadCount != dto.booksUnreadCount { existing.booksUnreadCount = dto.booksUnreadCount }
+      if existing.booksInProgressCount != dto.booksInProgressCount { existing.booksInProgressCount = dto.booksInProgressCount }
+      // Use lastModified to detect changes in complex types
+      if existing.lastModified != dto.lastModified {
+        existing.metadata = dto.metadata
+        existing.booksMetadata = dto.booksMetadata
+      }
+      if existing.deleted != dto.deleted { existing.deleted = dto.deleted }
+      if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
     } else {
       let newSeries = KomgaSeries(
         seriesId: dto.id,
@@ -222,11 +228,11 @@ actor DatabaseOperator {
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      existing.name = dto.name
-      existing.ordered = dto.ordered
-      existing.filtered = dto.filtered
-      existing.lastModifiedDate = dto.lastModifiedDate
-      existing.seriesIds = dto.seriesIds
+      if existing.name != dto.name { existing.name = dto.name }
+      if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
+      if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
+      if existing.lastModifiedDate != dto.lastModifiedDate { existing.lastModifiedDate = dto.lastModifiedDate }
+      if existing.seriesIds != dto.seriesIds { existing.seriesIds = dto.seriesIds }
     } else {
       let newCollection = KomgaCollection(
         collectionId: dto.id,
@@ -263,12 +269,12 @@ actor DatabaseOperator {
     let compositeId = "\(instanceId)_\(dto.id)"
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      existing.name = dto.name
-      existing.summary = dto.summary
-      existing.ordered = dto.ordered
-      existing.filtered = dto.filtered
-      existing.lastModifiedDate = dto.lastModifiedDate
-      existing.bookIds = dto.bookIds
+      if existing.name != dto.name { existing.name = dto.name }
+      if existing.summary != dto.summary { existing.summary = dto.summary }
+      if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
+      if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
+      if existing.lastModifiedDate != dto.lastModifiedDate { existing.lastModifiedDate = dto.lastModifiedDate }
+      if existing.bookIds != dto.bookIds { existing.bookIds = dto.bookIds }
     } else {
       let newReadList = KomgaReadList(
         readListId: dto.id,
@@ -647,12 +653,12 @@ actor DatabaseOperator {
     )
 
     if let existing = try modelContext.fetch(descriptor).first {
-      existing.fileSize = fileSize
-      existing.booksCount = booksCount
-      existing.seriesCount = seriesCount
-      existing.sidecarsCount = sidecarsCount
-      existing.collectionsCount = collectionsCount
-      existing.readlistsCount = readlistsCount
+      if existing.fileSize != fileSize { existing.fileSize = fileSize }
+      if existing.booksCount != booksCount { existing.booksCount = booksCount }
+      if existing.seriesCount != seriesCount { existing.seriesCount = seriesCount }
+      if existing.sidecarsCount != sidecarsCount { existing.sidecarsCount = sidecarsCount }
+      if existing.collectionsCount != collectionsCount { existing.collectionsCount = collectionsCount }
+      if existing.readlistsCount != readlistsCount { existing.readlistsCount = readlistsCount }
     } else {
       let allLibrariesEntry = KomgaLibrary(
         instanceId: instanceId,
@@ -909,10 +915,10 @@ actor DatabaseOperator {
     )
 
     if let existing = try? modelContext.fetch(descriptor).first {
-      existing.page = page
-      existing.completed = completed
-      existing.createdAt = Date()
-      existing.progressionData = progressionData
+      if existing.page != page { existing.page = page }
+      if existing.completed != completed { existing.completed = completed }
+      existing.createdAt = Date()  // Always update timestamp
+      if existing.progressionData != progressionData { existing.progressionData = progressionData }
     } else {
       let pending = PendingProgress(
         instanceId: instanceId,
