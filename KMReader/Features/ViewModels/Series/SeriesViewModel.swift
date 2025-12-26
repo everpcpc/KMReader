@@ -14,7 +14,6 @@ import SwiftUI
 class SeriesViewModel {
   var isLoading = false
   var browseSeriesIds: [String] = []
-  var browseSeries: [KomgaSeries] = []
 
   private let seriesService = SeriesService.shared
   private(set) var currentPage = 0
@@ -68,7 +67,7 @@ class SeriesViewModel {
         limit: pageSize
       )
       guard loadID == currentLoadID else { return }
-      updateState(context: context, ids: ids, moreAvailable: ids.count == pageSize)
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncSeriesPage(
@@ -82,7 +81,7 @@ class SeriesViewModel {
 
         guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(context: context, ids: ids, moreAvailable: !page.last)
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == currentLoadID else { return }
         if shouldReset {
@@ -159,7 +158,7 @@ class SeriesViewModel {
       )
       guard loadID == currentLoadID else { return }
       let ids = series.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: ids.count == 20)
+      updateState(ids: ids, moreAvailable: ids.count == 20)
     } else {
       do {
         let page = try await SyncService.shared.syncCollectionSeries(
@@ -172,7 +171,7 @@ class SeriesViewModel {
 
         guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(context: context, ids: ids, moreAvailable: !page.last)
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)
@@ -180,17 +179,12 @@ class SeriesViewModel {
     }
   }
 
-  private func updateState(context: ModelContext, ids: [String], moreAvailable: Bool) {
-    let series = KomgaSeriesStore.fetchSeriesByIds(
-      context: context,
-      ids: ids, instanceId: AppConfig.currentInstanceId)
+  private func updateState(ids: [String], moreAvailable: Bool) {
     withAnimation {
       if currentPage == 0 {
         browseSeriesIds = ids
-        browseSeries = series
       } else {
         browseSeriesIds.append(contentsOf: ids)
-        browseSeries.append(contentsOf: series)
       }
     }
     hasMorePages = moreAvailable

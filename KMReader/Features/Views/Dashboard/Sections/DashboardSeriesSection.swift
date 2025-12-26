@@ -20,7 +20,6 @@ struct DashboardSeriesSection: View {
   @Environment(\.modelContext) private var modelContext
 
   @State private var seriesIds: [String] = []
-  @State private var browseSeries: [KomgaSeries] = []
   @State private var currentPage = 0
   @State private var hasMore = true
   @State private var isLoading = false
@@ -37,14 +36,15 @@ struct DashboardSeriesSection: View {
 
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(alignment: .top, spacing: 12) {
-          ForEach(Array(browseSeries.enumerated()), id: \.element.id) { index, series in
-            SeriesItemView(
-              series: series,
+          ForEach(Array(seriesIds.enumerated()), id: \.element) { index, seriesId in
+            SeriesQueryItemView(
+              seriesId: seriesId,
               cardWidth: CGFloat(dashboardCardWidth),
-              layout: .grid
+              layout: .grid,
+              onActionCompleted: onSeriesUpdated
             )
             .onAppear {
-              if index >= browseSeries.count - 3 {
+              if index >= seriesIds.count - 3 {
                 Task {
                   await loadMore()
                 }
@@ -56,8 +56,8 @@ struct DashboardSeriesSection: View {
       }
       .scrollClipDisabled()
     }
-    .opacity(browseSeries.isEmpty ? 0 : 1)
-    .frame(height: browseSeries.isEmpty ? 0 : nil)
+    .opacity(seriesIds.isEmpty ? 0 : 1)
+    .frame(height: seriesIds.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
       Task {
         await refresh()
@@ -109,7 +109,6 @@ struct DashboardSeriesSection: View {
       }
       updateState(ids: ids, moreAvailable: ids.count == pageSize, isFirstPage: isFirstPage)
     } else {
-      // Online: fetch from API and sync
       do {
         let page: Page<Series>
 
@@ -148,16 +147,11 @@ struct DashboardSeriesSection: View {
   }
 
   private func updateState(ids: [String], moreAvailable: Bool, isFirstPage: Bool) {
-    let series = KomgaSeriesStore.fetchSeriesByIds(
-      context: modelContext,
-      ids: ids, instanceId: AppConfig.currentInstanceId)
     withAnimation {
       if isFirstPage {
         seriesIds = ids
-        browseSeries = series
       } else {
         seriesIds.append(contentsOf: ids)
-        browseSeries.append(contentsOf: series)
       }
     }
     hasMore = moreAvailable

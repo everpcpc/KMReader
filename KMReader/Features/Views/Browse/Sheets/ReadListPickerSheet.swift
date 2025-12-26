@@ -21,6 +21,8 @@ struct ReadListPickerSheet: View {
   @State private var showCreateSheet = false
   @State private var isCreating = false
 
+  @Query private var komgaReadLists: [KomgaReadList]
+
   let bookIds: [String]
   let onSelect: (String) -> Void
   let onComplete: (() -> Void)?
@@ -33,20 +35,33 @@ struct ReadListPickerSheet: View {
     self.bookIds = bookIds
     self.onSelect = onSelect
     self.onComplete = onComplete
+
+    let instanceId = AppConfig.currentInstanceId
+    _komgaReadLists = Query(
+      filter: #Predicate<KomgaReadList> { $0.instanceId == instanceId },
+      sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]
+    )
+  }
+
+  private var readLists: [ReadList] {
+    let ids = Set(readListViewModel.readListIds)
+    return komgaReadLists
+      .filter { ids.contains($0.readListId) }
+      .map { $0.toReadList() }
   }
 
   var body: some View {
     SheetView(title: String(localized: "Select Read List"), size: .large, applyFormStyle: true) {
       Form {
-        if isLoading && readListViewModel.readLists.isEmpty {
+        if isLoading && readLists.isEmpty {
           ProgressView()
             .frame(maxWidth: .infinity)
-        } else if readListViewModel.readLists.isEmpty && searchText.isEmpty {
+        } else if readLists.isEmpty && searchText.isEmpty {
           Text("No read lists found")
             .foregroundColor(.secondary)
         } else {
           Picker("Read List", selection: $selectedReadListId) {
-            ForEach(readListViewModel.readLists) { readList in
+            ForEach(readLists) { readList in
               Label(readList.name, systemImage: "list.bullet").tag(readList.id as String?)
             }
           }

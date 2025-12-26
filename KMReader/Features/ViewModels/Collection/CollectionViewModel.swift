@@ -13,12 +13,7 @@ import SwiftUI
 @Observable
 class CollectionViewModel {
   var collectionIds: [String] = []
-  var browseCollections: [KomgaCollection] = []
   var isLoading = false
-
-  var collections: [SeriesCollection] {
-    browseCollections.map { $0.toCollection() }
-  }
 
   private let collectionService = CollectionService.shared
   private let pageSize = 50
@@ -74,20 +69,7 @@ class CollectionViewModel {
         limit: pageSize
       )
       guard loadID == currentLoadID else { return }
-      let collections = KomgaCollectionStore.fetchCollectionsByIds(
-        context: context,
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if currentPage == 0 {
-          collectionIds = ids
-          browseCollections = collections
-        } else {
-          collectionIds.append(contentsOf: ids)
-          browseCollections.append(contentsOf: collections)
-        }
-      }
-      hasMorePages = ids.count == pageSize
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncCollections(
@@ -100,20 +82,7 @@ class CollectionViewModel {
 
         guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
-        let collections = KomgaCollectionStore.fetchCollectionsByIds(
-          context: context,
-          ids: ids, instanceId: AppConfig.currentInstanceId)
-        withAnimation {
-          if currentPage == 0 {
-            collectionIds = ids
-            browseCollections = collections
-          } else {
-            collectionIds.append(contentsOf: ids)
-            browseCollections.append(contentsOf: collections)
-          }
-        }
-        hasMorePages = !page.last
-        currentPage += 1
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == currentLoadID else { return }
         if shouldReset {
@@ -121,5 +90,17 @@ class CollectionViewModel {
         }
       }
     }
+  }
+
+  private func updateState(ids: [String], moreAvailable: Bool) {
+    withAnimation {
+      if currentPage == 0 {
+        collectionIds = ids
+      } else {
+        collectionIds.append(contentsOf: ids)
+      }
+    }
+    hasMorePages = moreAvailable
+    currentPage += 1
   }
 }

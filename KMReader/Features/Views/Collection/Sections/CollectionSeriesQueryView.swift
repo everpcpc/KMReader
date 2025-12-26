@@ -10,54 +10,20 @@ import SwiftUI
 
 struct CollectionSeriesQueryView: View {
   let collectionId: String
-  let seriesIds: [String]
-  let seriesViewModel: SeriesViewModel
+  @Bindable var seriesViewModel: SeriesViewModel
+  let browseOpts: CollectionSeriesBrowseOptions
   let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let isSelectionMode: Bool
   @Binding var selectedSeriesIds: Set<String>
   let isAdmin: Bool
-  let onActionCompleted: () -> Void
-  let loadMore: (Bool) async -> Void
+  let refreshSeries: () -> Void
 
-  @Query private var series: [KomgaSeries]
-
-  init(
-    collectionId: String,
-    seriesIds: [String],
-    seriesViewModel: SeriesViewModel,
-    layoutHelper: BrowseLayoutHelper,
-    browseLayout: BrowseLayoutMode,
-    isSelectionMode: Bool,
-    selectedSeriesIds: Binding<Set<String>>,
-    isAdmin: Bool,
-    onActionCompleted: @escaping () -> Void,
-    loadMore: @escaping (Bool) async -> Void
-  ) {
-    self.collectionId = collectionId
-    self.seriesIds = seriesIds
-    self.seriesViewModel = seriesViewModel
-    self.layoutHelper = layoutHelper
-    self.browseLayout = browseLayout
-    self.isSelectionMode = isSelectionMode
-    self._selectedSeriesIds = selectedSeriesIds
-    self.isAdmin = isAdmin
-    self.onActionCompleted = onActionCompleted
-    self.loadMore = loadMore
-
-    let instanceId = AppConfig.currentInstanceId
-    let predicate = #Predicate<KomgaSeries> { series in
-      series.instanceId == instanceId && seriesIds.contains(series.seriesId)
-    }
-
-    // Sorting collection series is usually by the order in seriesIds or name
-    // Since we can't easily sort by index in seriesIds array in Predicate, we'll sort by name or just fetch all
-    _series = Query(filter: predicate, sort: [SortDescriptor(\.name, order: .forward)])
-  }
+  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     Group {
-      if seriesViewModel.isLoading && series.isEmpty {
+      if seriesViewModel.isLoading && seriesViewModel.browseSeriesIds.isEmpty {
         ProgressView()
           .frame(maxWidth: .infinity)
           .padding()
@@ -65,52 +31,28 @@ struct CollectionSeriesQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(series) { s in
+            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
               Group {
                 if isSelectionMode && isAdmin {
-                  SeriesCardView(
-                    komgaSeries: s,
-                    cardWidth: layoutHelper.cardWidth,
-                    onActionCompleted: onActionCompleted
-                  )
-                  .focusPadding()
-                  .allowsHitTesting(false)
-                  .overlay(alignment: .topTrailing) {
-                    Image(
-                      systemName: selectedSeriesIds.contains(s.seriesId)
-                        ? "checkmark.circle.fill" : "circle"
-                    )
-                    .foregroundColor(
-                      selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary
-                    )
-                    .font(.title3)
-                    .padding(8)
-                    .background(Circle().fill(.ultraThinMaterial))
-                  }
-                  .contentShape(Rectangle())
-                  .highPriorityGesture(
-                    TapGesture().onEnded {
-                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        if selectedSeriesIds.contains(s.seriesId) {
-                          selectedSeriesIds.remove(s.seriesId)
-                        } else {
-                          selectedSeriesIds.insert(s.seriesId)
-                        }
-                      }
-                    }
-                  )
-                } else {
-                  SeriesItemView(
-                    series: s,
+                  SeriesSelectionItemView(
+                    seriesId: seriesId,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
-                    onActionCompleted: onActionCompleted
+                    selectedSeriesIds: $selectedSeriesIds,
+                    onActionCompleted: refreshSeries
+                  )
+                } else {
+                  SeriesQueryItemView(
+                    seriesId: seriesId,
+                    cardWidth: layoutHelper.cardWidth,
+                    layout: .grid,
+                    onActionCompleted: refreshSeries
                   )
                 }
               }
               .onAppear {
-                if s.id == series.last?.id {
-                  Task { await loadMore(false) }
+                if index >= seriesViewModel.browseSeriesIds.count - 3 {
+                  Task { await loadMore(refresh: false) }
                 }
               }
             }
@@ -118,49 +60,28 @@ struct CollectionSeriesQueryView: View {
           .padding(layoutHelper.spacing)
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(series) { s in
+            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
               Group {
                 if isSelectionMode && isAdmin {
-                  SeriesRowView(
-                    komgaSeries: s,
-                    onActionCompleted: onActionCompleted
-                  )
-                  .allowsHitTesting(false)
-                  .overlay(alignment: .trailing) {
-                    Image(
-                      systemName: selectedSeriesIds.contains(s.seriesId)
-                        ? "checkmark.circle.fill" : "circle"
-                    )
-                    .foregroundColor(
-                      selectedSeriesIds.contains(s.seriesId) ? .accentColor : .secondary
-                    )
-                    .font(.title3)
-                    .padding(.trailing, 16)
-                  }
-                  .contentShape(Rectangle())
-                  .highPriorityGesture(
-                    TapGesture().onEnded {
-                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        if selectedSeriesIds.contains(s.seriesId) {
-                          selectedSeriesIds.remove(s.seriesId)
-                        } else {
-                          selectedSeriesIds.insert(s.seriesId)
-                        }
-                      }
-                    }
-                  )
-                } else {
-                  SeriesItemView(
-                    series: s,
+                  SeriesSelectionItemView(
+                    seriesId: seriesId,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .list,
-                    onActionCompleted: onActionCompleted
+                    selectedSeriesIds: $selectedSeriesIds,
+                    onActionCompleted: refreshSeries
+                  )
+                } else {
+                  SeriesQueryItemView(
+                    seriesId: seriesId,
+                    cardWidth: layoutHelper.cardWidth,
+                    layout: .list,
+                    onActionCompleted: refreshSeries
                   )
                 }
               }
               .onAppear {
-                if s.id == series.last?.id {
-                  Task { await loadMore(false) }
+                if index >= seriesViewModel.browseSeriesIds.count - 3 {
+                  Task { await loadMore(refresh: false) }
                 }
               }
             }
@@ -168,5 +89,14 @@ struct CollectionSeriesQueryView: View {
         }
       }
     }
+  }
+
+  private func loadMore(refresh: Bool) async {
+    await seriesViewModel.loadCollectionSeries(
+      context: modelContext,
+      collectionId: collectionId,
+      browseOpts: browseOpts,
+      refresh: refresh
+    )
   }
 }

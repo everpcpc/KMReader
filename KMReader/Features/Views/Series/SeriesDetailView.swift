@@ -378,9 +378,6 @@ struct SeriesDetailView: View {
             BooksListViewForSeries(
               seriesId: seriesId,
               bookViewModel: bookViewModel,
-              onReadBook: { book, incognito in
-                presentReader(book: book, incognito: incognito)
-              },
               layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )

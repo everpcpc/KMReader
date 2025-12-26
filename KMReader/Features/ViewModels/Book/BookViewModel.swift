@@ -15,7 +15,6 @@ class BookViewModel {
   var currentBook: Book?
   var isLoading = false
   var browseBookIds: [String] = []
-  var browseBooks: [KomgaBook] = []
 
   private let bookService = BookService.shared
   private let sseService = SSEService.shared
@@ -69,7 +68,7 @@ class BookViewModel {
       )
       guard loadID == currentLoadID else { return }
       let ids = books.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: ids.count == 50)
+      updateState(ids: ids, moreAvailable: ids.count == 50)
     } else {
       do {
         let page = try await SyncService.shared.syncBooks(
@@ -82,7 +81,7 @@ class BookViewModel {
 
         guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(context: context, ids: ids, moreAvailable: !page.last)
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)
@@ -90,17 +89,12 @@ class BookViewModel {
     }
   }
 
-  private func updateState(context: ModelContext, ids: [String], moreAvailable: Bool) {
-    let books = KomgaBookStore.fetchBooksByIds(
-      context: context,
-      ids: ids, instanceId: AppConfig.currentInstanceId)
+  private func updateState(ids: [String], moreAvailable: Bool) {
     withAnimation {
       if currentPage == 0 {
         browseBookIds = ids
-        browseBooks = books
       } else {
         browseBookIds.append(contentsOf: ids)
-        browseBooks.append(contentsOf: books)
       }
     }
     hasMorePages = moreAvailable
@@ -203,7 +197,7 @@ class BookViewModel {
         limit: pageSize
       )
       guard loadID == currentLoadID else { return }
-      updateState(context: context, ids: ids, moreAvailable: ids.count == pageSize)
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
         let filters = BookSearchFilters(
@@ -228,7 +222,7 @@ class BookViewModel {
 
         guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(context: context, ids: ids, moreAvailable: !page.last)
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)
@@ -274,7 +268,7 @@ class BookViewModel {
       )
       guard loadID == currentLoadID else { return }
       let ids = books.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: ids.count == 50)
+      updateState(ids: ids, moreAvailable: ids.count == 50)
     } else {
       do {
         let page = try await SyncService.shared.syncReadListBooks(
@@ -287,7 +281,7 @@ class BookViewModel {
 
         guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(context: context, ids: ids, moreAvailable: !page.last)
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == currentLoadID else { return }
         ErrorManager.shared.alert(error: error)

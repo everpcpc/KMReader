@@ -21,7 +21,7 @@ struct SeriesQueryView: View {
   var body: some View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
-      isEmpty: viewModel.browseSeries.isEmpty,
+      isEmpty: viewModel.browseSeriesIds.isEmpty,
       emptyIcon: "books.vertical",
       emptyTitle: LocalizedStringKey("No series found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -34,22 +34,20 @@ struct SeriesQueryView: View {
       switch browseLayout {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
-            SeriesItemView(
-              series: series,
+          ForEach(Array(viewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+            SeriesQueryItemView(
+              seriesId: seriesId,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onActionCompleted: {
                 Task {
-                  print("load more: true")
                   await loadMore(true)
                 }
               }
             )
             .onAppear {
-              if index >= viewModel.browseSeries.count - 3 {
+              if index >= viewModel.browseSeriesIds.count - 3 {
                 Task {
-                  print("load more on \(index) : false")
                   await loadMore(false)
                 }
               }
@@ -58,22 +56,20 @@ struct SeriesQueryView: View {
         }
       case .list:
         LazyVStack(spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseSeries.enumerated()), id: \.element.id) { index, series in
-            SeriesItemView(
-              series: series,
+          ForEach(Array(viewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+            SeriesQueryItemView(
+              seriesId: seriesId,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onActionCompleted: {
                 Task {
-                  print("load more: true")
                   await loadMore(true)
                 }
               }
             )
             .onAppear {
-              if index >= viewModel.browseSeries.count - 3 {
+              if index >= viewModel.browseSeriesIds.count - 3 {
                 Task {
-                  print("load more on \(index): false")
                   await loadMore(false)
                 }
               }

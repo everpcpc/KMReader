@@ -118,9 +118,6 @@ struct ReadListDetailView: View {
             BooksListViewForReadList(
               readListId: readListId,
               bookViewModel: bookViewModel,
-              onReadBook: { book, incognito in
-                presentReader(book: book, incognito: incognito)
-              },
               layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )

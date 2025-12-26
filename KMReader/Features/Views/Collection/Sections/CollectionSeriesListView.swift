@@ -110,27 +110,20 @@ struct CollectionSeriesListView: View {
         )
       }
 
-      if let seriesIds = collection?.seriesIds {
+      if collection?.seriesIds != nil {
         CollectionSeriesQueryView(
           collectionId: collectionId,
-          seriesIds: seriesIds,
           seriesViewModel: seriesViewModel,
+          browseOpts: browseOpts,
           layoutHelper: layoutHelper,
           browseLayout: layoutMode,
           isSelectionMode: isSelectionMode,
           selectedSeriesIds: $selectedSeriesIds,
           isAdmin: isAdmin,
-          onActionCompleted: {
+          refreshSeries: {
             Task {
-              await seriesViewModel.loadCollectionSeries(
-                context: modelContext,
-                collectionId: collectionId, browseOpts: browseOpts, refresh: true)
+              await refreshSeries()
             }
-          },
-          loadMore: { refresh in
-            await seriesViewModel.loadCollectionSeries(
-              context: modelContext,
-              collectionId: collectionId, browseOpts: browseOpts, refresh: refresh)
           }
         )
       } else if seriesViewModel.isLoading {
@@ -140,17 +133,22 @@ struct CollectionSeriesListView: View {
       }
     }
     .task(id: collectionId) {
-      await seriesViewModel.loadCollectionSeries(
-        context: modelContext,
-        collectionId: collectionId, browseOpts: browseOpts, refresh: true)
+      await refreshSeries()
     }
     .onChange(of: browseOpts) {
       Task {
-        await seriesViewModel.loadCollectionSeries(
-          context: modelContext,
-          collectionId: collectionId, browseOpts: browseOpts, refresh: true)
+        await refreshSeries()
       }
     }
+  }
+
+  private func refreshSeries() async {
+    await seriesViewModel.loadCollectionSeries(
+      context: modelContext,
+      collectionId: collectionId,
+      browseOpts: browseOpts,
+      refresh: true
+    )
   }
 }
 
@@ -183,9 +181,7 @@ extension CollectionSeriesListView {
       }
 
       // Refresh the series list
-      await seriesViewModel.loadCollectionSeries(
-        context: modelContext,
-        collectionId: collectionId, browseOpts: browseOpts, refresh: true)
+      await refreshSeries()
     } catch {
       await MainActor.run {
         ErrorManager.shared.alert(error: error)

@@ -13,12 +13,7 @@ import SwiftUI
 @Observable
 class ReadListViewModel {
   var readListIds: [String] = []
-  var browseReadLists: [KomgaReadList] = []
   var isLoading = false
-
-  var readLists: [ReadList] {
-    browseReadLists.map { $0.toReadList() }
-  }
 
   private let readListService = ReadListService.shared
   private let pageSize = 50
@@ -74,20 +69,7 @@ class ReadListViewModel {
         limit: pageSize
       )
       guard loadID == currentLoadID else { return }
-      let readLists = KomgaReadListStore.fetchReadListsByIds(
-        context: context,
-        ids: ids, instanceId: AppConfig.currentInstanceId)
-      withAnimation {
-        if currentPage == 0 {
-          readListIds = ids
-          browseReadLists = readLists
-        } else {
-          readListIds.append(contentsOf: ids)
-          browseReadLists.append(contentsOf: readLists)
-        }
-      }
-      hasMorePages = ids.count == pageSize
-      currentPage += 1
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncReadLists(
@@ -100,20 +82,7 @@ class ReadListViewModel {
 
         guard loadID == currentLoadID else { return }
         let ids = page.content.map { $0.id }
-        let readLists = KomgaReadListStore.fetchReadListsByIds(
-          context: context,
-          ids: ids, instanceId: AppConfig.currentInstanceId)
-        withAnimation {
-          if currentPage == 0 {
-            readListIds = ids
-            browseReadLists = readLists
-          } else {
-            readListIds.append(contentsOf: ids)
-            browseReadLists.append(contentsOf: readLists)
-          }
-        }
-        hasMorePages = !page.last
-        currentPage += 1
+        updateState(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == currentLoadID else { return }
         if shouldReset {
@@ -121,5 +90,17 @@ class ReadListViewModel {
         }
       }
     }
+  }
+
+  private func updateState(ids: [String], moreAvailable: Bool) {
+    withAnimation {
+      if currentPage == 0 {
+        readListIds = ids
+      } else {
+        readListIds.append(contentsOf: ids)
+      }
+    }
+    hasMorePages = moreAvailable
+    currentPage += 1
   }
 }

@@ -10,20 +10,21 @@ import SwiftUI
 
 struct ReadListBooksQueryView: View {
   let readListId: String
-  let bookIds: [String]
-  let bookViewModel: BookViewModel
-  let onReadBook: (Book, Bool) -> Void
+  @Bindable var bookViewModel: BookViewModel
+  let browseOpts: ReadListBookBrowseOptions
   let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let isSelectionMode: Bool
   @Binding var selectedBookIds: Set<String>
   let isAdmin: Bool
   let refreshBooks: () -> Void
-  let loadMore: (Bool) async -> Void
+
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     Group {
-      if bookViewModel.isLoading && bookViewModel.browseBooks.isEmpty {
+      if bookViewModel.isLoading && bookViewModel.browseBookIds.isEmpty {
         ProgressView()
           .frame(maxWidth: .infinity)
           .padding()
@@ -31,58 +32,32 @@ struct ReadListBooksQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
+            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
               Group {
                 if isSelectionMode && isAdmin {
-                  BookCardView(
-                    komgaBook: b,
-                    viewModel: bookViewModel,
-                    cardWidth: layoutHelper.cardWidth,
-                    onReadBook: { _ in },
-                    onBookUpdated: refreshBooks,
-                    showSeriesTitle: true
-                  )
-                  .focusPadding()
-                  .allowsHitTesting(false)
-                  .overlay(alignment: .topTrailing) {
-                    Image(
-                      systemName: selectedBookIds.contains(b.bookId)
-                        ? "checkmark.circle.fill" : "circle"
-                    )
-                    .foregroundColor(selectedBookIds.contains(b.bookId) ? .accentColor : .secondary)
-                    .font(.title3)
-                    .padding(8)
-                    .background(Circle().fill(.ultraThinMaterial))
-                  }
-                  .contentShape(Rectangle())
-                  .highPriorityGesture(
-                    TapGesture().onEnded {
-                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        if selectedBookIds.contains(b.bookId) {
-                          selectedBookIds.remove(b.bookId)
-                        } else {
-                          selectedBookIds.insert(b.bookId)
-                        }
-                      }
-                    }
-                  )
-                } else {
-                  BookItemView(
-                    book: b,
+                  BookSelectionItemView(
+                    bookId: bookId,
                     viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
-                    onReadBook: { incognito in
-                      onReadBook(b.toBook(), incognito)
-                    },
+                    selectedBookIds: $selectedBookIds,
+                    refreshBooks: refreshBooks,
+                    showSeriesTitle: true
+                  )
+                } else {
+                  BookQueryItemView(
+                    bookId: bookId,
+                    viewModel: bookViewModel,
+                    cardWidth: layoutHelper.cardWidth,
+                    layout: .grid,
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
                   )
                 }
               }
               .onAppear {
-                if index >= bookViewModel.browseBooks.count - 3 {
-                  Task { await loadMore(false) }
+                if index >= bookViewModel.browseBookIds.count - 3 {
+                  Task { await loadMore(refresh: false) }
                 }
               }
             }
@@ -90,55 +65,32 @@ struct ReadListBooksQueryView: View {
           .padding(layoutHelper.spacing)
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(Array(bookViewModel.browseBooks.enumerated()), id: \.element.id) { index, b in
+            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
               Group {
                 if isSelectionMode && isAdmin {
-                  BookRowView(
-                    komgaBook: b,
-                    viewModel: bookViewModel,
-                    onReadBook: { _ in },
-                    onBookUpdated: refreshBooks,
-                    showSeriesTitle: true
-                  )
-                  .allowsHitTesting(false)
-                  .overlay(alignment: .trailing) {
-                    Image(
-                      systemName: selectedBookIds.contains(b.bookId)
-                        ? "checkmark.circle.fill" : "circle"
-                    )
-                    .foregroundColor(selectedBookIds.contains(b.bookId) ? .accentColor : .secondary)
-                    .font(.title3)
-                    .padding(.trailing, 16)
-                  }
-                  .contentShape(Rectangle())
-                  .highPriorityGesture(
-                    TapGesture().onEnded {
-                      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        if selectedBookIds.contains(b.bookId) {
-                          selectedBookIds.remove(b.bookId)
-                        } else {
-                          selectedBookIds.insert(b.bookId)
-                        }
-                      }
-                    }
-                  )
-                } else {
-                  BookItemView(
-                    book: b,
+                  BookSelectionItemView(
+                    bookId: bookId,
                     viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .list,
-                    onReadBook: { incognito in
-                      onReadBook(b.toBook(), incognito)
-                    },
+                    selectedBookIds: $selectedBookIds,
+                    refreshBooks: refreshBooks,
+                    showSeriesTitle: true
+                  )
+                } else {
+                  BookQueryItemView(
+                    bookId: bookId,
+                    viewModel: bookViewModel,
+                    cardWidth: layoutHelper.cardWidth,
+                    layout: .list,
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
                   )
                 }
               }
               .onAppear {
-                if index >= bookViewModel.browseBooks.count - 3 {
-                  Task { await loadMore(false) }
+                if index >= bookViewModel.browseBookIds.count - 3 {
+                  Task { await loadMore(refresh: false) }
                 }
               }
             }
@@ -146,5 +98,15 @@ struct ReadListBooksQueryView: View {
         }
       }
     }
+  }
+
+  private func loadMore(refresh: Bool) async {
+    await bookViewModel.loadReadListBooks(
+      context: modelContext,
+      readListId: readListId,
+      browseOpts: browseOpts,
+      libraryIds: dashboard.libraryIds,
+      refresh: refresh
+    )
   }
 }

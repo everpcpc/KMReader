@@ -12,7 +12,6 @@ import SwiftUI
 struct BooksListViewForReadList: View {
   let readListId: String
   @Bindable var bookViewModel: BookViewModel
-  var onReadBook: (Book, Bool) -> Void
   let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
@@ -34,12 +33,11 @@ struct BooksListViewForReadList: View {
   }
 
   init(
-    readListId: String, bookViewModel: BookViewModel, onReadBook: @escaping (Book, Bool) -> Void,
+    readListId: String, bookViewModel: BookViewModel,
     layoutHelper: BrowseLayoutHelper, showFilterSheet: Binding<Bool>
   ) {
     self.readListId = readListId
     self.bookViewModel = bookViewModel
-    self.onReadBook = onReadBook
     self.layoutHelper = layoutHelper
     self._showFilterSheet = showFilterSheet
 
@@ -64,7 +62,7 @@ struct BooksListViewForReadList: View {
 
         Button {
           Task {
-            await refreshBooks(refresh: true)
+            await refreshBooks()
           }
         } label: {
           Image(systemName: "arrow.clockwise")
@@ -123,12 +121,11 @@ struct BooksListViewForReadList: View {
         )
       }
 
-      if let bookIds = readList?.bookIds {
+      if readList?.bookIds != nil {
         ReadListBooksQueryView(
           readListId: readListId,
-          bookIds: bookIds,
           bookViewModel: bookViewModel,
-          onReadBook: onReadBook,
+          browseOpts: browseOpts,
           layoutHelper: layoutHelper,
           browseLayout: layoutMode,
           isSelectionMode: isSelectionMode,
@@ -136,11 +133,8 @@ struct BooksListViewForReadList: View {
           isAdmin: isAdmin,
           refreshBooks: {
             Task {
-              await refreshBooks(refresh: true)
+              await refreshBooks()
             }
-          },
-          loadMore: { refresh in
-            await refreshBooks(refresh: refresh)
           }
         )
       } else if bookViewModel.isLoading {
@@ -150,24 +144,27 @@ struct BooksListViewForReadList: View {
       }
     }
     .task(id: readListId) {
-      await refreshBooks(refresh: true)
+      await refreshBooks()
     }
     .onChange(of: browseOpts) {
       Task {
-        await refreshBooks(refresh: true)
+        await refreshBooks()
       }
     }
+  }
+
+  private func refreshBooks() async {
+    await bookViewModel.loadReadListBooks(
+      context: modelContext,
+      readListId: readListId,
+      browseOpts: browseOpts,
+      libraryIds: dashboard.libraryIds,
+      refresh: true
+    )
   }
 }
 
 extension BooksListViewForReadList {
-  fileprivate func refreshBooks(refresh: Bool) async {
-    await bookViewModel.loadReadListBooks(
-      context: modelContext,
-      readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
-      refresh: refresh)
-  }
-
   @MainActor
   private func deleteSelectedBooks() async {
     guard !selectedBookIds.isEmpty else { return }
@@ -195,7 +192,7 @@ extension BooksListViewForReadList {
       }
 
       // Refresh the books list
-      await refreshBooks(refresh: true)
+      await refreshBooks()
     } catch {
       await MainActor.run {
         ErrorManager.shared.alert(error: error)

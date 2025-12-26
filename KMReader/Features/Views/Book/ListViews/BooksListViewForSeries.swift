@@ -12,7 +12,6 @@ import SwiftUI
 struct BooksListViewForSeries: View {
   let seriesId: String
   @Bindable var bookViewModel: BookViewModel
-  var onReadBook: (Book, Bool) -> Void
   let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
@@ -51,7 +50,6 @@ struct BooksListViewForSeries: View {
       SeriesBooksQueryView(
         seriesId: seriesId,
         bookViewModel: bookViewModel,
-        onReadBook: onReadBook,
         layoutHelper: layoutHelper,
         browseLayout: layoutMode,
         refreshBooks: {

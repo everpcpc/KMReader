@@ -21,6 +21,8 @@ struct CollectionPickerSheet: View {
   @State private var showCreateSheet = false
   @State private var isCreating = false
 
+  @Query private var komgaCollections: [KomgaCollection]
+
   let seriesIds: [String]
   let onSelect: (String) -> Void
   let onComplete: (() -> Void)?
@@ -33,20 +35,33 @@ struct CollectionPickerSheet: View {
     self.seriesIds = seriesIds
     self.onSelect = onSelect
     self.onComplete = onComplete
+
+    let instanceId = AppConfig.currentInstanceId
+    _komgaCollections = Query(
+      filter: #Predicate<KomgaCollection> { $0.instanceId == instanceId },
+      sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]
+    )
+  }
+
+  private var collections: [SeriesCollection] {
+    let ids = Set(collectionViewModel.collectionIds)
+    return komgaCollections
+      .filter { ids.contains($0.collectionId) }
+      .map { $0.toCollection() }
   }
 
   var body: some View {
     SheetView(title: String(localized: "Select Collection"), size: .large, applyFormStyle: true) {
       Form {
-        if isLoading && collectionViewModel.collections.isEmpty {
+        if isLoading && collections.isEmpty {
           ProgressView()
             .frame(maxWidth: .infinity)
-        } else if collectionViewModel.collections.isEmpty && searchText.isEmpty {
+        } else if collections.isEmpty && searchText.isEmpty {
           Text("No collections found")
             .foregroundColor(.secondary)
         } else {
           Picker("Collection", selection: $selectedCollectionId) {
-            ForEach(collectionViewModel.collections) { collection in
+            ForEach(collections) { collection in
               Label(collection.name, systemImage: "square.grid.2x2").tag(collection.id as String?)
             }
           }
