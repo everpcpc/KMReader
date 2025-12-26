@@ -35,6 +35,9 @@ actor DatabaseOperator {
       if existing.lastModified != dto.lastModified {
         existing.media = dto.media
         existing.metadata = dto.metadata
+      }
+      // readProgress has its own lastModified field
+      if existing.readProgress?.lastModified != dto.readProgress?.lastModified {
         existing.readProgress = dto.readProgress
       }
       if existing.deleted != dto.deleted { existing.deleted = dto.deleted }
