@@ -59,17 +59,22 @@ struct SettingsOfflineBooksView: View {
       let seriesBooks = lBooks.filter { !$0.oneshot }
 
       let seriesGroupsMap = Dictionary(grouping: seriesBooks) { $0.seriesId }
+
+      // Batch fetch all series at once
+      let instanceId = AppConfig.currentInstanceId
+      let seriesIds = Set(seriesGroupsMap.keys)
+      let compositeIds = seriesIds.map { "\(instanceId)_\($0)" }
+      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { compositeIds.contains($0.id) })
+      let allSeries = (try? modelContext.fetch(seriesDescriptor)) ?? []
+      let seriesMap = Dictionary(uniqueKeysWithValues: allSeries.map { ($0.seriesId, $0) })
+
       var sGroups: [SeriesGroup] = []
-
       for (seriesId, sBooks) in seriesGroupsMap {
-        let instanceId = AppConfig.currentInstanceId
-        let compositeId = "\(instanceId)_\(seriesId)"
-        let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-          predicate: #Predicate { $0.id == compositeId })
-        let series = try? modelContext.fetch(seriesDescriptor).first
-
         sGroups.append(
-          SeriesGroup(id: seriesId, series: series, books: sBooks.sorted { $0.number < $1.number }))
+          SeriesGroup(
+            id: seriesId, series: seriesMap[seriesId],
+            books: sBooks.sorted { $0.metadata.numberSort < $1.metadata.numberSort }))
       }
 
       sGroups.sort {

@@ -20,7 +20,7 @@ private struct PagePreviewCard: View {
   @State private var localURL: URL?
 
   private var imageWidth: CGFloat {
-    imageHeight * 0.72  // Approximate manga aspect ratio
+    imageHeight * 0.72
   }
 
   var body: some View {
@@ -41,7 +41,7 @@ private struct PagePreviewCard: View {
               }
           }
           .indicator(.activity)
-          .aspectRatio(contentMode: .fill)
+          .aspectRatio(contentMode: .fit)
         } else {
           RoundedRectangle(cornerRadius: 8)
             .fill(Color.gray.opacity(0.3))
