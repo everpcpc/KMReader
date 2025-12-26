@@ -57,10 +57,10 @@ struct SeriesRowView: View {
                     .foregroundColor(.blue)
                 }
                 if komgaSeries.downloadStatus != .notDownloaded {
+                  Text("•")
                   Image(systemName: komgaSeries.downloadStatus.icon)
                     .foregroundColor(komgaSeries.downloadStatus.color)
                     .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                    .padding(.horizontal, 4)
                 }
               }
             }
