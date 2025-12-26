@@ -49,6 +49,7 @@ struct CollectionRowView: View {
 
         Image(systemName: "chevron.right")
           .foregroundColor(.secondary)
+          .padding(.trailing)
       }
     }
     .adaptiveButtonStyle(.plain)
