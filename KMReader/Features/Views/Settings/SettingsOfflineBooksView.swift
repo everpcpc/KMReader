@@ -74,7 +74,7 @@ struct SettingsOfflineBooksView: View {
         sGroups.append(
           SeriesGroup(
             id: seriesId, series: seriesMap[seriesId],
-            books: sBooks.sorted { $0.metadata.number < $1.metadata.number }))
+            books: sBooks.sorted { $0.metadata.numberSort < $1.metadata.numberSort }))
       }
 
       sGroups.sort {
