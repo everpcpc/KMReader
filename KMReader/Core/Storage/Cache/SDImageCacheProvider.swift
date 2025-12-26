@@ -11,22 +11,18 @@ import SDWebImageWebPCoder
 
 enum SDImageCacheProvider {
   static let thumbnailCache: SDImageCache = {
-    let cache = SDImageCache(namespace: "KomgaThumbnailCache")
+    let cache = SDImageCache(namespace: "KomgaThumbnailCache", diskCacheDirectory: nil)
     cache.config.shouldCacheImagesInMemory = true
     cache.config.maxMemoryCost = 50 * 1024 * 1024  // 50 MB decoded thumbnails
-    cache.config.maxMemoryCount = 150
-    cache.config.maxDiskSize = 10 * 1024 * 1024  // Minimal disk footprint; actual storage handled elsewhere
-    cache.config.diskCacheExpireType = .accessDate
+    cache.config.maxMemoryCount = 200
     return cache
   }()
 
   static let pageImageCache: SDImageCache = {
-    let cache = SDImageCache(namespace: "KomgaPageImageCache")
+    let cache = SDImageCache(namespace: "KomgaPageImageCache", diskCacheDirectory: nil)
     cache.config.shouldCacheImagesInMemory = true
-    cache.config.maxMemoryCost = 300 * 1024 * 1024  // 300 MB decoded pages
-    cache.config.maxMemoryCount = 60
-    cache.config.maxDiskSize = 10 * 1024 * 1024  // Minimal disk footprint; actual storage handled elsewhere
-    cache.config.diskCacheExpireType = .accessDate
+    cache.config.maxMemoryCost = 200 * 1024 * 1024  // 200 MB decoded pages
+    cache.config.maxMemoryCount = 50
     return cache
   }()
 

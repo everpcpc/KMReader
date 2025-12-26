@@ -250,17 +250,42 @@ class ReaderViewModel {
     // Load pages concurrently for better performance
     await withTaskGroup(of: Void.self) { group in
       for index in pagesToPreload {
-        // Only preload if not already cached
         let page = pages[index]
-        let hasImage = await pageImageCache.hasImage(bookId: bookId, page: page)
-        if !hasImage {
-          group.addTask {
-            _ = await self.getPageImageFileURL(page: page)
+        group.addTask {
+          // Get file URL (downloads if needed)
+          if let fileURL = await self.getPageImageFileURL(page: page) {
+            // Also preload into SDWebImage memory cache for instant display
+            await self.preloadImageToMemory(fileURL: fileURL)
           }
         }
       }
     }
   }
+
+  /// Preload image into SDWebImage memory cache for instant display
+  func preloadImageToMemory(fileURL: URL) async {
+    // Skip if already in memory cache
+    if let cacheKey = SDImageCacheProvider.pageImageManager.cacheKey(for: fileURL),
+      SDImageCacheProvider.pageImageCache.imageFromMemoryCache(forKey: cacheKey) != nil
+    {
+      return
+    }
+
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+      SDImageCacheProvider.pageImageManager.loadImage(
+        with: fileURL,
+        options: [.retryFailed, .scaleDownLargeImages],
+        context: [
+          .imageScaleDownLimitBytes: 50 * 1024 * 1024,
+          .storeCacheType: SDImageCacheType.memory.rawValue,
+        ],
+        progress: nil
+      ) { _, _, _, _, _, _ in
+        continuation.resume()
+      }
+    }
+  }
+
 
   /// Update reading progress on the server
   /// Uses API page number (1-based) instead of array index (0-based)

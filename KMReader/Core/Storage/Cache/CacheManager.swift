@@ -31,7 +31,6 @@ enum CacheManager {
     await ThumbnailCache.clearAllDiskCache()
     await MainActor.run {
       SDImageCacheProvider.thumbnailCache.clearMemory()
-      SDImageCacheProvider.thumbnailCache.clearDisk()
     }
   }
 
