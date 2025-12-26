@@ -290,12 +290,14 @@ actor ImageCache {
   }
 
   /// Perform disk cache cleanup
+  /// Uses high/low watermark strategy: trigger at 90%, clean down to 80%
   static func performDiskCacheCleanup(
     diskCacheURL: URL,
     fileManager: FileManager,
     maxCacheSize: Int
   ) async {
     let maxSize = Int64(maxCacheSize) * 1024 * 1024 * 1024
+    let targetSize = maxSize * 80 / 100  // Clean down to 80% for buffer
     let (_, fileInfo, totalSize) = collectFileInfo(
       at: diskCacheURL,
       fileManager: fileManager,
@@ -303,20 +305,22 @@ actor ImageCache {
     )
 
     if totalSize > maxSize {
-      // Sort by date (oldest first) and remove until under limit
+      // Sort by date (oldest first) and remove until under target
       let sortedFiles = fileInfo.sorted {
         ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast)
       }
       var currentSize = totalSize
+      var deletedCount = 0
       for fileInfo in sortedFiles {
-        if currentSize <= maxSize {
+        if currentSize <= targetSize {
           break
         }
         try? fileManager.removeItem(at: fileInfo.url)
         currentSize -= fileInfo.size
+        deletedCount += 1
       }
-      // Invalidate cache after cleanup
-      await cacheSizeActor.invalidate()
+      // Update cache with new size and count after cleanup
+      await cacheSizeActor.set(size: currentSize, count: fileInfo.count - deletedCount)
     } else {
       // Update cache with calculated size and count
       await cacheSizeActor.set(size: totalSize, count: fileInfo.count)
