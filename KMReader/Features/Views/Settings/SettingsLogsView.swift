@@ -54,58 +54,60 @@ struct SettingsLogsView: View {
           }
         }
       } header: {
-        HStack {
-          Menu {
-            Picker("Time", selection: $selectedTimeRange) {
-              ForEach(TimeRange.allCases, id: \.self) { range in
-                Text(range.displayName).tag(range)
+        VStack {
+          HStack {
+            Menu {
+              Picker("Time", selection: $selectedTimeRange) {
+                ForEach(TimeRange.allCases, id: \.self) { range in
+                  Text(range.displayName).tag(range)
+                }
               }
+              .pickerStyle(.inline)
+            } label: {
+              LogFilterChip(icon: "clock", text: selectedTimeRange.displayName)
             }
-            .pickerStyle(.inline)
-          } label: {
-            LogFilterChip(icon: "clock", text: selectedTimeRange.displayName)
-          }
 
-          Menu {
-            Picker("Level", selection: $selectedLevel) {
-              ForEach(LogLevel.allCases, id: \.self) { level in
-                Text(level.rawValue).tag(level)
+            Menu {
+              Picker("Level", selection: $selectedLevel) {
+                ForEach(LogLevel.allCases, id: \.self) { level in
+                  Text(level.rawValue).tag(level)
+                }
               }
+              .pickerStyle(.inline)
+            } label: {
+              LogFilterChip(icon: "flag", text: selectedLevel.rawValue, color: selectedLevel.color)
             }
-            .pickerStyle(.inline)
-          } label: {
-            LogFilterChip(icon: "flag", text: selectedLevel.rawValue, color: selectedLevel.color)
-          }
 
-          Menu {
-            Picker("Limit", selection: $selectedLimit) {
-              ForEach(LogLimit.allCases, id: \.self) { limit in
-                Text(limit.displayName).tag(limit)
+            Menu {
+              Picker("Limit", selection: $selectedLimit) {
+                ForEach(LogLimit.allCases, id: \.self) { limit in
+                  Text(limit.displayName).tag(limit)
+                }
               }
+              .pickerStyle(.inline)
+            } label: {
+              LogFilterChip(icon: "number", text: selectedLimit.displayName)
             }
-            .pickerStyle(.inline)
-          } label: {
-            LogFilterChip(icon: "number", text: selectedLimit.displayName)
           }
-        }
-        .adaptiveButtonStyle(.bordered)
+          .adaptiveButtonStyle(.bordered)
 
-        HFlow(spacing: 8) {
-          CategoryChip(
-            name: "All",
-            count: totalCount,
-            isSelected: selectedCategory == "All"
-          ) {
-            selectedCategory = "All"
-          }
-
-          ForEach(sortedCategories, id: \.name) { category in
+          HFlow(spacing: 8) {
             CategoryChip(
-              name: category.name,
-              count: category.count,
-              isSelected: selectedCategory == category.name
+              name: "All",
+              count: totalCount,
+              isSelected: selectedCategory == "All"
             ) {
-              selectedCategory = category.name
+              selectedCategory = "All"
+            }
+
+            ForEach(sortedCategories, id: \.name) { category in
+              CategoryChip(
+                name: category.name,
+                count: category.count,
+                isSelected: selectedCategory == category.name
+              ) {
+                selectedCategory = category.name
+              }
             }
           }
         }
