@@ -108,8 +108,6 @@ struct BookCardView: View {
               if komgaBook.downloadStatus != .notDownloaded {
                 Image(systemName: komgaBook.downloadStatus.displayIcon)
                   .foregroundColor(komgaBook.downloadStatus.displayColor)
-                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                  .padding(.horizontal, 4)
               }
               Menu {
                 BookContextMenu(
@@ -129,7 +127,11 @@ struct BookCardView: View {
                   showSeriesNavigation: showSeriesNavigation
                 )
               } label: {
-                Image(systemName: "ellipsis")
+                HStack {
+                  Image(systemName: "ellipsis")
+                }
+                .foregroundColor(.secondary)
+                .contentShape(Rectangle())
               }
             }
           }.foregroundColor(.secondary)

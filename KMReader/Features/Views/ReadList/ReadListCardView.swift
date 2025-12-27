@@ -45,7 +45,12 @@ struct ReadListCardView: View {
                 }
               )
             } label: {
-              Image(systemName: "ellipsis")
+              HStack {
+                Image(systemName: "ellipsis")
+                  .padding(.horizontal, 4)
+              }
+              .foregroundColor(.secondary)
+              .contentShape(Rectangle())
             }
           }.foregroundColor(.secondary)
         }.font(.footnote)

@@ -57,8 +57,6 @@ struct SeriesCardView: View {
               if komgaSeries.downloadStatus != .notDownloaded {
                 Image(systemName: komgaSeries.downloadStatus.icon)
                   .foregroundColor(komgaSeries.downloadStatus.color)
-                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                  .padding(.horizontal, 4)
               }
               Spacer()
               Menu {
@@ -76,7 +74,12 @@ struct SeriesCardView: View {
                   }
                 )
               } label: {
-                Image(systemName: "ellipsis")
+                HStack {
+                  Image(systemName: "ellipsis")
+                    .padding(.horizontal, 4)
+                }
+                .foregroundColor(.secondary)
+                .contentShape(Rectangle())
               }
             }
           }.foregroundColor(.secondary)

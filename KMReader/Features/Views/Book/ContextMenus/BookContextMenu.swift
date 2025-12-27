@@ -42,20 +42,19 @@ struct BookContextMenu: View {
           Label("Details", systemImage: "info.circle")
         }
 
+        if let onReadBook = onReadBook {
+          Button {
+            onReadBook(true)
+          } label: {
+            Label("Read Incognito", systemImage: "eye.slash")
+          }
+        }
+
         if showSeriesNavigation {
           NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
             Label("Series", systemImage: "book")
           }
         }
-      }
-
-      if let onReadBook = onReadBook {
-        Button {
-          onReadBook(true)
-        } label: {
-          Label("Read Incognito", systemImage: "eye.slash")
-        }
-        Divider()
       }
 
       Button {
