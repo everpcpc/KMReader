@@ -144,11 +144,13 @@ extension ThumbnailImage where Overlay == EmptyView {
     showPlaceholder: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
-    refreshTrigger: Int = 0
+    refreshTrigger: Int = 0,
+    alignment: Alignment = .center
   ) {
     self.init(
       id: id, type: type, showPlaceholder: showPlaceholder,
-      width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger
+      width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger,
+      alignment: alignment
     ) {}
   }
 }

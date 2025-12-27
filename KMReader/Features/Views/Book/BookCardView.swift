@@ -36,15 +36,29 @@ struct BookCardView: View {
   }
 
   var shouldShowSeriesTitle: Bool {
-    showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
+    if komgaBook.oneshot {
+      return false
+    }
+    return showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
+  }
+
+  var bookTitleLine: String {
+    if komgaBook.oneshot {
+      return komgaBook.metaTitle
+    }
+    return String("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
   }
 
   var bookTitleLineLimit: Int {
     shouldShowSeriesTitle ? 1 : 2
   }
 
+  var pagesText: String {
+    String(localized: "\(komgaBook.mediaPagesCount) pages")
+  }
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
+    VStack(alignment: .leading) {
       Button {
         onReadBook?(false)
       } label: {
@@ -69,65 +83,57 @@ struct BookCardView: View {
       }
 
       if !coverOnlyCards {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading) {
           if shouldShowSeriesTitle {
             Text(komgaBook.seriesTitle)
-              .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(1)
           }
-          Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
-            .font(.caption)
-            .foregroundColor(.primary)
+          Text(bookTitleLine)
             .lineLimit(bookTitleLineLimit)
 
-          Group {
+          HStack(spacing: 4) {
             if komgaBook.deleted {
               Text("Unavailable")
                 .foregroundColor(.red)
             } else {
-              HStack(spacing: 4) {
-                Text("\(komgaBook.mediaPagesCount) pages")
-                  + Text(" • \(komgaBook.size)")
-                if komgaBook.oneshot {
-                  Text("•")
-                  Text("Oneshot")
-                    .foregroundColor(.blue)
-                }
-                Spacer()
-                if komgaBook.downloadStatus != .notDownloaded {
-                  Image(systemName: komgaBook.downloadStatus.displayIcon)
-                    .foregroundColor(komgaBook.downloadStatus.displayColor)
-                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                    .padding(.horizontal, 4)
-                }
-                Menu {
-                  BookContextMenu(
-                    komgaBook: komgaBook,
-                    viewModel: viewModel,
-                    onReadBook: onReadBook,
-                    onActionCompleted: onBookUpdated,
-                    onShowReadListPicker: {
-                      showReadListPicker = true
-                    },
-                    onDeleteRequested: {
-                      showDeleteConfirmation = true
-                    },
-                    onEditRequested: {
-                      showEditSheet = true
-                    },
-                    showSeriesNavigation: showSeriesNavigation
-                  )
-                } label: {
-                  Image(systemName: "ellipsis")
-                    .foregroundColor(.secondary)
-                }
+              Text("\(pagesText) • \(komgaBook.size)")
+                .lineLimit(1)
+              if komgaBook.oneshot {
+                Text("•")
+                Text("Oneshot")
+                  .foregroundColor(.blue)
               }
-              .foregroundColor(.secondary)
-              .lineLimit(1)
+              Spacer()
+              if komgaBook.downloadStatus != .notDownloaded {
+                Image(systemName: komgaBook.downloadStatus.displayIcon)
+                  .foregroundColor(komgaBook.downloadStatus.displayColor)
+                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                  .padding(.horizontal, 4)
+              }
+              Menu {
+                BookContextMenu(
+                  komgaBook: komgaBook,
+                  viewModel: viewModel,
+                  onReadBook: onReadBook,
+                  onActionCompleted: onBookUpdated,
+                  onShowReadListPicker: {
+                    showReadListPicker = true
+                  },
+                  onDeleteRequested: {
+                    showDeleteConfirmation = true
+                  },
+                  onEditRequested: {
+                    showEditSheet = true
+                  },
+                  showSeriesNavigation: showSeriesNavigation
+                )
+              } label: {
+                Image(systemName: "ellipsis")
+              }
             }
-          }.font(.caption)
-        }
+          }.foregroundColor(.secondary)
+        }.font(.footnote)
       }
     }
     .frame(width: cardWidth)

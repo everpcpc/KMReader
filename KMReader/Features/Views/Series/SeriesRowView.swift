@@ -22,83 +22,90 @@ struct SeriesRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: 80)
-
-      VStack(alignment: .leading, spacing: 6) {
-        Text(komgaSeries.metaTitle)
-          .font(.callout)
-          .lineLimit(2)
-
-        Label(seriesDto.statusDisplayName, systemImage: seriesDto.statusIcon)
-          .font(.footnote)
-          .foregroundColor(seriesDto.statusColor)
-
-        Group {
-          if komgaSeries.deleted {
-            Text("Unavailable")
-              .foregroundColor(.red)
-          } else {
-            HStack {
-              if komgaSeries.booksUnreadCount > 0 {
-                Label("\(komgaSeries.booksUnreadCount) unread", systemImage: "circlebadge")
-                  .foregroundColor(seriesDto.readStatusColor)
-              } else {
-                Label("All read", systemImage: "checkmark.circle.fill")
-                  .foregroundColor(seriesDto.readStatusColor)
-              }
-              Text("•")
-                .foregroundColor(.secondary)
-              Label("\(komgaSeries.booksCount) books", systemImage: "book")
-                .foregroundColor(.secondary)
-              if komgaSeries.oneshot {
-                Text("•")
-                Text("Oneshot")
-                  .foregroundColor(.blue)
-              }
-              if komgaSeries.downloadStatus != .notDownloaded {
-                Text("•")
-                Image(systemName: komgaSeries.downloadStatus.icon)
-                  .foregroundColor(komgaSeries.downloadStatus.color)
-                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-              }
-            }
-          }
-        }.font(.caption)
-
-        if let releaseDate = komgaSeries.booksMetaReleaseDate {
-          Label("Release: \(releaseDate)", systemImage: "calendar")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        } else {
-          Label("Last Updated: \(seriesDto.lastUpdatedDisplay)", systemImage: "clock")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
+      NavigationLink(value: NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)) {
+        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: 80)
       }
 
-      Spacer()
+      VStack(alignment: .leading, spacing: 6) {
+        NavigationLink(value: NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)) {
+          Text(komgaSeries.metaTitle)
+            .font(.callout)
+            .lineLimit(2)
+        }
 
-      Image(systemName: "chevron.right")
-        .foregroundColor(.secondary)
-        .padding(.trailing)
+        HStack {
+          VStack(alignment: .leading, spacing: 4) {
+            Label(seriesDto.statusDisplayName, systemImage: seriesDto.statusIcon)
+              .font(.footnote)
+              .foregroundColor(seriesDto.statusColor)
+
+            if let releaseDate = komgaSeries.booksMetaReleaseDate {
+              Label("Release: \(releaseDate)", systemImage: "calendar")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            } else {
+              Label("Last Updated: \(seriesDto.lastUpdatedDisplay)", systemImage: "clock")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+
+            HStack {
+              if komgaSeries.deleted {
+                Text("Unavailable")
+                  .foregroundColor(.red)
+              } else {
+                HStack {
+                  Label("\(komgaSeries.booksCount) books", systemImage: "book")
+                    .foregroundColor(.secondary)
+                  Text("•")
+                    .foregroundColor(.secondary)
+                  if komgaSeries.booksUnreadCount > 0 {
+                    Label("\(komgaSeries.booksUnreadCount) unread", systemImage: "circlebadge")
+                      .foregroundColor(seriesDto.readStatusColor)
+                  } else {
+                    Label("All read", systemImage: "checkmark.circle.fill")
+                      .foregroundColor(seriesDto.readStatusColor)
+                  }
+                  if komgaSeries.oneshot {
+                    Text("•")
+                    Text("Oneshot")
+                      .foregroundColor(.blue)
+                  }
+                }
+              }
+            }.font(.footnote)
+          }
+
+          Spacer()
+
+          if komgaSeries.downloadStatus != .notDownloaded {
+            Image(systemName: komgaSeries.downloadStatus.icon)
+              .foregroundColor(komgaSeries.downloadStatus.color)
+              .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+          }
+          Menu {
+            SeriesContextMenu(
+              komgaSeries: komgaSeries,
+              onActionCompleted: onActionCompleted,
+              onShowCollectionPicker: {
+                showCollectionPicker = true
+              },
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              onEditRequested: {
+                showEditSheet = true
+              }
+            )
+          } label: {
+            Image(systemName: "ellipsis")
+              .foregroundColor(.secondary)
+          }
+        }.padding(.trailing)
+      }
     }
     .adaptiveButtonStyle(.plain)
     .contentShape(Rectangle())
-    .contextMenu {
-      SeriesContextMenu(
-        komgaSeries: komgaSeries,
-        onActionCompleted: onActionCompleted,
-        onShowCollectionPicker: {
-          showCollectionPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
-    }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

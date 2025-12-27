@@ -45,24 +45,19 @@ struct CollectionQueryItemView: View {
 
   var body: some View {
     if let collection = komgaCollection {
-      NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.collectionId))
-      {
-        switch layout {
-        case .grid:
-          CollectionCardView(
-            komgaCollection: collection,
-            width: cardWidth,
-            onActionCompleted: onActionCompleted
-          )
-        case .list:
-          CollectionRowView(
-            komgaCollection: collection,
-            onActionCompleted: onActionCompleted
-          )
-        }
+      switch layout {
+      case .grid:
+        CollectionCardView(
+          komgaCollection: collection,
+          width: cardWidth,
+          onActionCompleted: onActionCompleted
+        )
+      case .list:
+        CollectionRowView(
+          komgaCollection: collection,
+          onActionCompleted: onActionCompleted
+        )
       }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
     }
   }
 }

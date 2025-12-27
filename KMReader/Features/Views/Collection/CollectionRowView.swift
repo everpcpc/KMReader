@@ -16,54 +16,50 @@ struct CollectionRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
-
-      VStack(alignment: .leading, spacing: 6) {
-        Text(komgaCollection.name)
-          .font(.callout)
-        Text("\(komgaCollection.seriesIds.count) series")
-          .font(.footnote)
-          .foregroundColor(.secondary)
-
-        HStack(spacing: 12) {
-          Label {
-            Text(komgaCollection.createdDate.formatted(date: .abbreviated, time: .omitted))
-          } icon: {
-            Image(systemName: "calendar")
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-          Label {
-            Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-          } icon: {
-            Image(systemName: "clock")
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
-        }
+      NavigationLink(value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)) {
+        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
       }
 
-      Spacer()
+      VStack(alignment: .leading, spacing: 6) {
+        NavigationLink(value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)) {
+          Text(komgaCollection.name)
+            .font(.callout)
+            .lineLimit(2)
+        }
 
-      Image(systemName: "chevron.right")
-        .foregroundColor(.secondary)
-        .padding(.trailing)
+        HStack {
+          VStack(alignment: .leading, spacing: 4) {
+            Label("\(komgaCollection.seriesIds.count) series", systemImage: "book")
+              .font(.footnote)
+              .foregroundColor(.secondary)
+
+            Label(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+
+          Spacer()
+
+          Menu {
+            CollectionContextMenu(
+              collection: komgaCollection.toCollection(),
+              onActionCompleted: onActionCompleted,
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              onEditRequested: {
+                showEditSheet = true
+              }
+            )
+          } label: {
+            Image(systemName: "ellipsis")
+              .foregroundColor(.secondary)
+          }
+        }.padding(.trailing)
+      }
     }
     .adaptiveButtonStyle(.plain)
     .contentShape(Rectangle())
-    .contextMenu {
-      CollectionContextMenu(
-        collection: komgaCollection.toCollection(),
-        onActionCompleted: onActionCompleted,
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
-    }
     .alert("Delete Collection", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

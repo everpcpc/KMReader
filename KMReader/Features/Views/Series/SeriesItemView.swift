@@ -14,7 +14,6 @@ struct SeriesItemView: View {
   var onActionCompleted: (() -> Void)? = nil
 
   var body: some View {
-    NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
       switch layout {
       case .grid:
         SeriesCardView(
@@ -28,8 +27,5 @@ struct SeriesItemView: View {
           onActionCompleted: onActionCompleted
         )
       }
-    }
-    .focusPadding()
-    .adaptiveButtonStyle(.plain)
   }
 }

@@ -45,23 +45,19 @@ struct ReadListQueryItemView: View {
 
   var body: some View {
     if let readList = komgaReadList {
-      NavigationLink(value: NavDestination.readListDetail(readListId: readList.readListId)) {
-        switch layout {
-        case .grid:
-          ReadListCardView(
-            komgaReadList: readList,
-            width: cardWidth,
-            onActionCompleted: onActionCompleted
-          )
-        case .list:
-          ReadListRowView(
-            komgaReadList: readList,
-            onActionCompleted: onActionCompleted
-          )
-        }
+      switch layout {
+      case .grid:
+        ReadListCardView(
+          komgaReadList: readList,
+          width: cardWidth,
+          onActionCompleted: onActionCompleted
+        )
+      case .list:
+        ReadListRowView(
+          komgaReadList: readList,
+          onActionCompleted: onActionCompleted
+        )
       }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
     }
   }
 }

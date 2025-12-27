@@ -40,23 +40,19 @@ struct SeriesQueryItemView: View {
 
   var body: some View {
     if let series = komgaSeries {
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: series.seriesId)) {
-        switch layout {
-        case .grid:
-          SeriesCardView(
-            komgaSeries: series,
-            cardWidth: cardWidth,
-            onActionCompleted: onActionCompleted
-          )
-        case .list:
-          SeriesRowView(
-            komgaSeries: series,
-            onActionCompleted: onActionCompleted
-          )
-        }
+      switch layout {
+      case .grid:
+        SeriesCardView(
+          komgaSeries: series,
+          cardWidth: cardWidth,
+          onActionCompleted: onActionCompleted
+        )
+      case .list:
+        SeriesRowView(
+          komgaSeries: series,
+          onActionCompleted: onActionCompleted
+        )
       }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
     }
   }
 }

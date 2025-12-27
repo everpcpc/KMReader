@@ -44,7 +44,7 @@ struct BookContextMenu: View {
 
         if showSeriesNavigation {
           NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-            Label("Series", systemImage: "book.fill")
+            Label("Series", systemImage: "book")
           }
         }
       }

@@ -16,49 +16,42 @@ struct ReadListCardView: View {
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
-  private var bookCountText: String {
-    let count = komgaReadList.bookIds.count
-    return count == 1 ? "1 book" : "\(count) books"
-  }
-
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: width)
+    VStack(alignment: .leading) {
+      NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
+        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: width, alignment: .bottom)
+      }
+      .focusPadding()
+      .adaptiveButtonStyle(.plain)
 
       if !coverOnlyCards {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading) {
           Text(komgaReadList.name)
             .lineLimit(1)
 
-          Text(bookCountText)
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-          if !komgaReadList.summary.isEmpty {
-            Text(komgaReadList.summary)
-              .font(.caption)
-              .foregroundColor(.secondary)
-              .lineLimit(2)
-          }
-        }
+          HStack(spacing: 4) {
+            Text("\(komgaReadList.bookIds.count) books")
+            Spacer()
+            Menu {
+              ReadListContextMenu(
+                readList: komgaReadList.toReadList(),
+                onActionCompleted: onActionCompleted,
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                }
+              )
+            } label: {
+              Image(systemName: "ellipsis")
+            }
+          }.foregroundColor(.secondary)
+        }.font(.footnote)
       }
     }
     .frame(width: width, alignment: .leading)
-    .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
-    .contentShape(Rectangle())
-    .contextMenu {
-      ReadListContextMenu(
-        readList: komgaReadList.toReadList(),
-        onActionCompleted: onActionCompleted,
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
-    }
     .alert("Delete Read List", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {
