@@ -893,7 +893,6 @@ actor DatabaseOperator {
 
   // MARK: - Instance Operations
 
-  @discardableResult
   func upsertInstance(
     serverURL: String,
     username: String,

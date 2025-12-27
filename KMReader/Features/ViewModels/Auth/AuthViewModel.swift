@@ -104,7 +104,6 @@ class AuthViewModel {
   /// Load current user from server.
   /// Returns true if server is reachable, false if offline/unreachable.
   /// 401 errors trigger logout.
-  @discardableResult
   func loadCurrentUser(timeout: TimeInterval? = nil) async -> Bool {
     isLoading = true
     defer { isLoading = false }
