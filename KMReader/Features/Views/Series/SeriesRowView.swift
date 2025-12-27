@@ -24,14 +24,22 @@ struct SeriesRowView: View {
     komgaSeries.downloadStatus
   }
 
+  var navDestination: NavDestination {
+    if komgaSeries.oneshot {
+      return NavDestination.oneshotDetail(seriesId: komgaSeries.seriesId)
+    } else {
+      return NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)
+    }
+  }
+
   var body: some View {
     HStack(spacing: 12) {
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
+      NavigationLink(value: navDestination) {
         ThumbnailImage(id: series.id, type: .series, width: 80)
       }
 
       VStack(alignment: .leading, spacing: 6) {
-        NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
+        NavigationLink(value: navDestination) {
           Text(series.metadata.title)
             .font(.callout)
             .lineLimit(2)

@@ -19,9 +19,17 @@ struct SeriesCardView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
+  var navDestination: NavDestination {
+    if komgaSeries.oneshot {
+      return NavDestination.oneshotDetail(seriesId: komgaSeries.seriesId)
+    } else {
+      return NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)
+    }
+  }
+
   var body: some View {
     VStack(alignment: .leading) {
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)) {
+      NavigationLink(value: navDestination) {
         ThumbnailImage(
           id: komgaSeries.seriesId, type: .series, width: cardWidth, alignment: .bottom
         ) {

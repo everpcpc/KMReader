@@ -226,6 +226,7 @@ struct BookDetailView: View {
           Divider()
           BookActionsSection(
             book: book,
+            seriesLink: true,
             onRead: { incognito in
               readerPresentation.present(book: book, incognito: incognito) {
                 Task {
