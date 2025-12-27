@@ -10,7 +10,6 @@ import SwiftUI
 
 struct BookCardView: View {
   @Bindable var komgaBook: KomgaBook
-  var viewModel: BookViewModel
   let cardWidth: CGFloat
   var onReadBook: ((Bool) -> Void)? = nil
   var onBookUpdated: (() -> Void)? = nil
@@ -47,7 +46,7 @@ struct BookCardView: View {
   }
 
   var bookTitleLineLimit: Int {
-    shouldShowSeriesTitle && !komgaBook.oneshot ? 1 : 2
+    (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
   var pagesText: String {
@@ -112,7 +111,6 @@ struct BookCardView: View {
             Menu {
               BookContextMenu(
                 komgaBook: komgaBook,
-                viewModel: viewModel,
                 onReadBook: onReadBook,
                 onActionCompleted: onBookUpdated,
                 onShowReadListPicker: {
@@ -133,7 +131,9 @@ struct BookCardView: View {
               .foregroundColor(.secondary)
               .contentShape(Rectangle())
             }
-          }.foregroundColor(.secondary)
+          }
+          .font(.caption)
+          .foregroundColor(.secondary)
         }.font(.footnote)
       }
     }

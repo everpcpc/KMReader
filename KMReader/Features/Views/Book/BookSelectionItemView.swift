@@ -11,7 +11,6 @@ import SwiftUI
 /// View for book selection mode that accepts only bookId and uses @Query to fetch the book.
 struct BookSelectionItemView: View {
   let bookId: String
-  let viewModel: BookViewModel
   let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   @Binding var selectedBookIds: Set<String>
@@ -22,7 +21,6 @@ struct BookSelectionItemView: View {
 
   init(
     bookId: String,
-    viewModel: BookViewModel,
     cardWidth: CGFloat,
     layout: BrowseLayoutMode,
     selectedBookIds: Binding<Set<String>>,
@@ -30,7 +28,6 @@ struct BookSelectionItemView: View {
     showSeriesTitle: Bool = true
   ) {
     self.bookId = bookId
-    self.viewModel = viewModel
     self.cardWidth = cardWidth
     self.layout = layout
     self._selectedBookIds = selectedBookIds
@@ -56,7 +53,6 @@ struct BookSelectionItemView: View {
       case .grid:
         BookCardView(
           komgaBook: book,
-          viewModel: viewModel,
           cardWidth: cardWidth,
           onReadBook: { _ in },
           onBookUpdated: refreshBooks,
@@ -86,7 +82,6 @@ struct BookSelectionItemView: View {
       case .list:
         BookRowView(
           komgaBook: book,
-          viewModel: viewModel,
           onReadBook: { _ in },
           onBookUpdated: refreshBooks,
           showSeriesTitle: showSeriesTitle

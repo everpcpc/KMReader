@@ -1,6 +1,6 @@
 //
-//  DashboardSeriesSection.swift
-//  Komga
+//  DashboardSectionView.swift
+//  KMReader
 //
 //  Created by Komga iOS Client
 //
@@ -8,19 +8,19 @@
 import SwiftData
 import SwiftUI
 
-struct DashboardSeriesSection: View {
+struct DashboardSectionView: View {
   let section: DashboardSection
-  var seriesViewModel: SeriesViewModel
   let refreshTrigger: UUID
-  var onSeriesUpdated: (() -> Void)? = nil
+  var onUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
     PlatformHelper.defaultDashboardCardWidth)
   @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
-  @State private var seriesIds: [String] = []
+  @State private var itemIds: [String] = []
   @State private var currentPage = 0
   @State private var hasMore = true
   @State private var isLoading = false
@@ -28,7 +28,7 @@ struct DashboardSeriesSection: View {
 
   private let pageSize = 20
 
-  var backgroundColors: [Color] {
+  private var backgroundColors: [Color] {
     if colorScheme == .dark {
       return [
         Color.white.opacity(0.2),
@@ -46,27 +46,32 @@ struct DashboardSeriesSection: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text(section.displayName)
-        .font(.title3)
-        .fontWeight(.bold)
-        .padding(.horizontal)
+      NavigationLink {
+        DashboardSectionDetailView(section: section)
+      } label: {
+        HStack {
+          Text(section.displayName)
+            .font(.title3)
+            .fontWeight(.bold)
+          Image(systemName: "chevron.right")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
+      }
+      .buttonStyle(.plain)
+      .padding(.horizontal)
 
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(alignment: .top, spacing: 16) {
-          ForEach(Array(seriesIds.enumerated()), id: \.element) { index, seriesId in
-            SeriesQueryItemView(
-              seriesId: seriesId,
-              cardWidth: CGFloat(dashboardCardWidth),
-              layout: .grid,
-              onActionCompleted: onSeriesUpdated
-            )
-            .onAppear {
-              if index >= seriesIds.count - 3 {
-                Task {
-                  await loadMore()
+          ForEach(Array(itemIds.enumerated()), id: \.element) { index, itemId in
+            itemView(for: itemId)
+              .onAppear {
+                if index >= itemIds.count - 3 {
+                  Task {
+                    await loadMore()
+                  }
                 }
               }
-            }
           }
         }
         .padding()
@@ -81,8 +86,8 @@ struct DashboardSeriesSection: View {
         endPoint: .bottom
       )
     }
-    .opacity(seriesIds.isEmpty ? 0 : 1)
-    .frame(height: seriesIds.isEmpty ? 0 : nil)
+    .opacity(itemIds.isEmpty ? 0 : 1)
+    .frame(height: itemIds.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
       Task {
         await refresh()
@@ -90,6 +95,26 @@ struct DashboardSeriesSection: View {
     }
     .task {
       await loadInitial()
+    }
+  }
+
+  @ViewBuilder
+  private func itemView(for itemId: String) -> some View {
+    if section.isBookSection {
+      BookQueryItemView(
+        bookId: itemId,
+        cardWidth: CGFloat(dashboardCardWidth),
+        layout: .grid,
+        onBookUpdated: onUpdated,
+        showSeriesTitle: true
+      )
+    } else {
+      SeriesQueryItemView(
+        seriesId: itemId,
+        cardWidth: CGFloat(dashboardCardWidth),
+        layout: .grid,
+        onActionCompleted: onUpdated
+      )
     }
   }
 
@@ -114,53 +139,43 @@ struct DashboardSeriesSection: View {
 
     if AppConfig.isOffline {
       let ids: [String]
-      switch section {
-      case .recentlyAddedSeries:
-        ids = KomgaSeriesStore.fetchNewlyAddedSeriesIds(
+      if section.isBookSection {
+        ids = section.fetchOfflineBookIds(
           context: modelContext,
           libraryIds: libraryIds,
           offset: currentPage * pageSize,
           limit: pageSize
         )
-      case .recentlyUpdatedSeries:
-        ids = KomgaSeriesStore.fetchRecentlyUpdatedSeriesIds(
+      } else {
+        ids = section.fetchOfflineSeriesIds(
           context: modelContext,
           libraryIds: libraryIds,
           offset: currentPage * pageSize,
           limit: pageSize
         )
-      default:
-        ids = []
       }
       updateState(ids: ids, moreAvailable: ids.count == pageSize, isFirstPage: isFirstPage)
     } else {
       do {
-        let page: Page<Series>
-
-        switch section {
-        case .recentlyAddedSeries:
-          page = try await SyncService.shared.syncNewSeries(
+        if section.isBookSection {
+          if let page = try await section.fetchBooks(
             libraryIds: libraryIds,
             page: currentPage,
             size: pageSize
-          )
-
-        case .recentlyUpdatedSeries:
-          page = try await SyncService.shared.syncUpdatedSeries(
-            libraryIds: libraryIds,
-            page: currentPage,
-            size: pageSize
-          )
-
-        default:
-          withAnimation {
-            isLoading = false
+          ) {
+            let ids = page.content.map { $0.id }
+            updateState(ids: ids, moreAvailable: !page.last, isFirstPage: isFirstPage)
           }
-          return
+        } else {
+          if let page = try await section.fetchSeries(
+            libraryIds: libraryIds,
+            page: currentPage,
+            size: pageSize
+          ) {
+            let ids = page.content.map { $0.id }
+            updateState(ids: ids, moreAvailable: !page.last, isFirstPage: isFirstPage)
+          }
         }
-
-        let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last, isFirstPage: isFirstPage)
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -174,9 +189,9 @@ struct DashboardSeriesSection: View {
   private func updateState(ids: [String], moreAvailable: Bool, isFirstPage: Bool) {
     withAnimation {
       if isFirstPage {
-        seriesIds = ids
+        itemIds = ids
       } else {
-        seriesIds.append(contentsOf: ids)
+        itemIds.append(contentsOf: ids)
       }
     }
     hasMore = moreAvailable

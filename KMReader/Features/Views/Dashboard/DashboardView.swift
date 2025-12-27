@@ -10,8 +10,6 @@ import OSLog
 import SwiftUI
 
 struct DashboardView: View {
-  @State private var bookViewModel = BookViewModel()
-  @State private var seriesViewModel = SeriesViewModel()
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
   @State private var pendingRefreshTask: Task<Void, Never>?
@@ -150,28 +148,13 @@ struct DashboardView: View {
           }.padding()
 
           ForEach(dashboard.sections, id: \.id) { section in
-            switch section {
-            case .keepReading, .onDeck, .recentlyReadBooks, .recentlyReleasedBooks,
-              .recentlyAddedBooks:
-              DashboardBooksSection(
-                section: section,
-                bookViewModel: bookViewModel,
-                refreshTrigger: refreshTrigger,
-                onBookUpdated: {
-                  refreshDashboard(reason: "Book action completed")
-                }
-              )
-
-            case .recentlyUpdatedSeries, .recentlyAddedSeries:
-              DashboardSeriesSection(
-                section: section,
-                seriesViewModel: seriesViewModel,
-                refreshTrigger: refreshTrigger,
-                onSeriesUpdated: {
-                  refreshDashboard(reason: "Series action completed")
-                }
-              )
-            }
+            DashboardSectionView(
+              section: section,
+              refreshTrigger: refreshTrigger,
+              onUpdated: {
+                refreshDashboard(reason: "Section action completed")
+              }
+            )
           }
         }
         .padding(.vertical)

@@ -80,7 +80,9 @@ struct SeriesCardView: View {
               .foregroundColor(.secondary)
               .contentShape(Rectangle())
             }
-          }.foregroundColor(.secondary)
+          }
+          .font(.caption)
+          .foregroundColor(.secondary)
         }.font(.footnote)
       }
     }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 import SwiftUI
 
 enum DashboardSection: String, CaseIterable, Identifiable, Codable {
@@ -54,6 +55,154 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
       return "square.stack.3d.up.fill"
     case .recentlyReadBooks:
       return "checkmark.circle.fill"
+    }
+  }
+
+  var isBookSection: Bool {
+    switch self {
+    case .keepReading, .onDeck, .recentlyReadBooks, .recentlyReleasedBooks, .recentlyAddedBooks:
+      return true
+    case .recentlyUpdatedSeries, .recentlyAddedSeries:
+      return false
+    }
+  }
+
+  func fetchBooks(libraryIds: [String], page: Int, size: Int) async throws -> Page<Book>? {
+    switch self {
+    case .keepReading:
+      let condition = BookSearch.buildCondition(
+        filters: BookSearchFilters(
+          libraryIds: libraryIds,
+          includeReadStatuses: [ReadStatus.inProgress]
+        )
+      )
+      let search = BookSearch(condition: condition)
+      return try await SyncService.shared.syncBooksList(
+        search: search,
+        page: page,
+        size: size,
+        sort: "readProgress.readDate,desc"
+      )
+
+    case .onDeck:
+      return try await SyncService.shared.syncBooksOnDeck(
+        libraryIds: libraryIds,
+        page: page,
+        size: size
+      )
+
+    case .recentlyReadBooks:
+      return try await SyncService.shared.syncRecentlyReadBooks(
+        libraryIds: libraryIds,
+        page: page,
+        size: size
+      )
+
+    case .recentlyReleasedBooks:
+      return try await SyncService.shared.syncRecentlyReleasedBooks(
+        libraryIds: libraryIds,
+        page: page,
+        size: size
+      )
+
+    case .recentlyAddedBooks:
+      return try await SyncService.shared.syncRecentlyAddedBooks(
+        libraryIds: libraryIds,
+        page: page,
+        size: size
+      )
+
+    default:
+      return nil
+    }
+  }
+
+  func fetchSeries(libraryIds: [String], page: Int, size: Int) async throws -> Page<Series>? {
+    switch self {
+    case .recentlyAddedSeries:
+      return try await SyncService.shared.syncNewSeries(
+        libraryIds: libraryIds,
+        page: page,
+        size: size
+      )
+
+    case .recentlyUpdatedSeries:
+      return try await SyncService.shared.syncUpdatedSeries(
+        libraryIds: libraryIds,
+        page: page,
+        size: size
+      )
+
+    default:
+      return nil
+    }
+  }
+
+  func fetchOfflineBookIds(
+    context: ModelContext,
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    switch self {
+    case .keepReading:
+      return KomgaBookStore.fetchKeepReadingBookIds(
+        context: context,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .onDeck:
+      return []
+    case .recentlyReadBooks:
+      return KomgaBookStore.fetchRecentlyReadBookIds(
+        context: context,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .recentlyReleasedBooks:
+      return KomgaBookStore.fetchRecentlyReleasedBookIds(
+        context: context,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .recentlyAddedBooks:
+      return KomgaBookStore.fetchRecentlyAddedBookIds(
+        context: context,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    default:
+      return []
+    }
+  }
+
+  func fetchOfflineSeriesIds(
+    context: ModelContext,
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    switch self {
+    case .recentlyAddedSeries:
+      return KomgaSeriesStore.fetchNewlyAddedSeriesIds(
+        context: context,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .recentlyUpdatedSeries:
+      return KomgaSeriesStore.fetchRecentlyUpdatedSeriesIds(
+        context: context,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    default:
+      return []
     }
   }
 }

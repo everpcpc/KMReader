@@ -10,7 +10,6 @@ import SwiftUI
 
 struct BookRowView: View {
   @Bindable var komgaBook: KomgaBook
-  var viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?
   var onBookUpdated: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
@@ -32,7 +31,7 @@ struct BookRowView: View {
   }
 
   var shouldShowSeriesTitle: Bool {
-    showSeriesTitle && !komgaBook.seriesTitle.isEmpty
+    return showSeriesTitle && !komgaBook.seriesTitle.isEmpty
   }
 
   var bookTitleLine: String {
@@ -43,7 +42,7 @@ struct BookRowView: View {
   }
 
   var bookTitleLineLimit: Int {
-    shouldShowSeriesTitle && !komgaBook.oneshot ? 1 : 2
+    (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
   var body: some View {
@@ -128,7 +127,6 @@ struct BookRowView: View {
           Menu {
             BookContextMenu(
               komgaBook: komgaBook,
-              viewModel: viewModel,
               onReadBook: onReadBook,
               onActionCompleted: onBookUpdated,
               onShowReadListPicker: {

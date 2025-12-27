@@ -37,7 +37,6 @@ struct BooksQueryView: View {
           ForEach(Array(viewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
             BookQueryItemView(
               bookId: bookId,
-              viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onBookUpdated: {
@@ -62,7 +61,6 @@ struct BooksQueryView: View {
           ForEach(Array(viewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
             BookQueryItemView(
               bookId: bookId,
-              viewModel: viewModel,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onBookUpdated: {

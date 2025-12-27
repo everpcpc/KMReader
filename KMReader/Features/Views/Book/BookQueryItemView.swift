@@ -11,7 +11,6 @@ import SwiftUI
 /// Wrapper view that accepts only bookId and uses @Query to fetch the book reactively.
 struct BookQueryItemView: View {
   let bookId: String
-  let viewModel: BookViewModel
   let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   let onBookUpdated: (() -> Void)?
@@ -24,7 +23,6 @@ struct BookQueryItemView: View {
 
   init(
     bookId: String,
-    viewModel: BookViewModel,
     cardWidth: CGFloat,
     layout: BrowseLayoutMode,
     onBookUpdated: (() -> Void)?,
@@ -32,7 +30,6 @@ struct BookQueryItemView: View {
     showSeriesNavigation: Bool = true
   ) {
     self.bookId = bookId
-    self.viewModel = viewModel
     self.cardWidth = cardWidth
     self.layout = layout
     self.onBookUpdated = onBookUpdated
@@ -54,7 +51,6 @@ struct BookQueryItemView: View {
       case .grid:
         BookCardView(
           komgaBook: book,
-          viewModel: viewModel,
           cardWidth: cardWidth,
           onReadBook: { incognito in
             readerPresentation.present(book: book.toBook(), incognito: incognito)
@@ -67,7 +63,6 @@ struct BookQueryItemView: View {
       case .list:
         BookRowView(
           komgaBook: book,
-          viewModel: viewModel,
           onReadBook: { incognito in
             readerPresentation.present(book: book.toBook(), incognito: incognito)
           },

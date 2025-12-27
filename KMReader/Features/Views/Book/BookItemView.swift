@@ -9,7 +9,6 @@ import SwiftUI
 
 struct BookItemView: View {
   @Bindable var book: KomgaBook
-  let viewModel: BookViewModel
   let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   let onReadBook: (Bool) -> Void
@@ -22,7 +21,6 @@ struct BookItemView: View {
     case .grid:
       BookCardView(
         komgaBook: book,
-        viewModel: viewModel,
         cardWidth: cardWidth,
         onReadBook: onReadBook,
         onBookUpdated: onBookUpdated,
@@ -33,7 +31,6 @@ struct BookItemView: View {
     case .list:
       BookRowView(
         komgaBook: book,
-        viewModel: viewModel,
         onReadBook: onReadBook,
         onBookUpdated: onBookUpdated,
         showSeriesTitle: showSeriesTitle,

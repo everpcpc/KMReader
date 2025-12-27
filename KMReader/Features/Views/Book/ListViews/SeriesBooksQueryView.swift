@@ -30,7 +30,6 @@ struct SeriesBooksQueryView: View {
               index, bookId in
               BookQueryItemView(
                 bookId: bookId,
-                viewModel: bookViewModel,
                 cardWidth: layoutHelper.cardWidth,
                 layout: .grid,
                 onBookUpdated: refreshBooks,
@@ -52,7 +51,6 @@ struct SeriesBooksQueryView: View {
               index, bookId in
               BookQueryItemView(
                 bookId: bookId,
-                viewModel: bookViewModel,
                 cardWidth: layoutHelper.cardWidth,
                 layout: .list,
                 onBookUpdated: refreshBooks,

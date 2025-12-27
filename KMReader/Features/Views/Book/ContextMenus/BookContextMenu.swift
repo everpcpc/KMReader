@@ -11,7 +11,6 @@ import SwiftUI
 struct BookContextMenu: View {
   @Bindable var komgaBook: KomgaBook
 
-  let viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?
   var onActionCompleted: (() -> Void)? = nil
   var onShowReadListPicker: (() -> Void)? = nil
@@ -66,12 +65,7 @@ struct BookContextMenu: View {
 
       if !isCompleted {
         Button {
-          Task {
-            await viewModel.markAsRead(bookId: book.id)
-            await MainActor.run {
-              onActionCompleted?()
-            }
-          }
+          markAsRead(bookId: book.id)
         } label: {
           Label("Mark as Read", systemImage: "checkmark.circle")
         }
@@ -79,12 +73,7 @@ struct BookContextMenu: View {
       }
       if book.readProgress != nil {
         Button {
-          Task {
-            await viewModel.markAsUnread(bookId: book.id)
-            await MainActor.run {
-              onActionCompleted?()
-            }
-          }
+          markAsUnread(bookId: book.id)
         } label: {
           Label("Mark as Unread", systemImage: "circle")
         }
@@ -137,6 +126,40 @@ struct BookContextMenu: View {
         }
       } label: {
         Label("Manage", systemImage: "gearshape")
+      }
+    }
+  }
+
+  private func markAsRead(bookId: String) {
+    Task {
+      do {
+        try await BookService.shared.markAsRead(bookId: bookId)
+        _ = try await SyncService.shared.syncBook(bookId: bookId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
+          onActionCompleted?()
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func markAsUnread(bookId: String) {
+    Task {
+      do {
+        try await BookService.shared.markAsUnread(bookId: bookId)
+        _ = try await SyncService.shared.syncBook(bookId: bookId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
+          onActionCompleted?()
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
       }
     }
   }

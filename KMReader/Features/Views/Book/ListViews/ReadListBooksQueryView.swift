@@ -38,7 +38,6 @@ struct ReadListBooksQueryView: View {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(
                     bookId: bookId,
-                    viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     selectedBookIds: $selectedBookIds,
@@ -48,7 +47,6 @@ struct ReadListBooksQueryView: View {
                 } else {
                   BookQueryItemView(
                     bookId: bookId,
-                    viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     onBookUpdated: refreshBooks,
@@ -73,7 +71,6 @@ struct ReadListBooksQueryView: View {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(
                     bookId: bookId,
-                    viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     selectedBookIds: $selectedBookIds,
@@ -83,7 +80,6 @@ struct ReadListBooksQueryView: View {
                 } else {
                   BookQueryItemView(
                     bookId: bookId,
-                    viewModel: bookViewModel,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     onBookUpdated: refreshBooks,
