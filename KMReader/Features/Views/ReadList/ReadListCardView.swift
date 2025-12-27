@@ -19,7 +19,8 @@ struct ReadListCardView: View {
   var body: some View {
     VStack(alignment: .leading) {
       NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
-        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: width, alignment: .bottom)
+        ThumbnailImage(
+          id: komgaReadList.readListId, type: .readlist, width: width, alignment: .bottom)
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)

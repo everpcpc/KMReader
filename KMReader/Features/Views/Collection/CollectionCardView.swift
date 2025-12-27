@@ -18,8 +18,11 @@ struct CollectionCardView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      NavigationLink(value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)) {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: width, alignment: .bottom)
+      NavigationLink(
+        value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+      ) {
+        ThumbnailImage(
+          id: komgaCollection.collectionId, type: .collection, width: width, alignment: .bottom)
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)

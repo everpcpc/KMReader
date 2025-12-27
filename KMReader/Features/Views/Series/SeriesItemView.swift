@@ -14,18 +14,18 @@ struct SeriesItemView: View {
   var onActionCompleted: (() -> Void)? = nil
 
   var body: some View {
-      switch layout {
-      case .grid:
-        SeriesCardView(
-          komgaSeries: series,
-          cardWidth: cardWidth,
-          onActionCompleted: onActionCompleted
-        )
-      case .list:
-        SeriesRowView(
-          komgaSeries: series,
-          onActionCompleted: onActionCompleted
-        )
-      }
+    switch layout {
+    case .grid:
+      SeriesCardView(
+        komgaSeries: series,
+        cardWidth: cardWidth,
+        onActionCompleted: onActionCompleted
+      )
+    case .list:
+      SeriesRowView(
+        komgaSeries: series,
+        onActionCompleted: onActionCompleted
+      )
+    }
   }
 }

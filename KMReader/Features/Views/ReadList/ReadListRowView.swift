@@ -33,9 +33,12 @@ struct ReadListRowView: View {
               .font(.footnote)
               .foregroundColor(.secondary)
 
-            Label(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
-              .font(.caption)
-              .foregroundColor(.secondary)
+            Label(
+              komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
+              systemImage: "clock"
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
 
             if !komgaReadList.summary.isEmpty {
               Text(komgaReadList.summary)

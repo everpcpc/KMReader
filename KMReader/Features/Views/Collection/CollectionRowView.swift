@@ -16,12 +16,16 @@ struct CollectionRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      NavigationLink(value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)) {
+      NavigationLink(
+        value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+      ) {
         ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
       }
 
       VStack(alignment: .leading, spacing: 6) {
-        NavigationLink(value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)) {
+        NavigationLink(
+          value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+        ) {
           Text(komgaCollection.name)
             .font(.callout)
             .lineLimit(2)
@@ -33,9 +37,12 @@ struct CollectionRowView: View {
               .font(.footnote)
               .foregroundColor(.secondary)
 
-            Label(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
-              .font(.caption)
-              .foregroundColor(.secondary)
+            Label(
+              komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
+              systemImage: "clock"
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
           }
 
           Spacer()
