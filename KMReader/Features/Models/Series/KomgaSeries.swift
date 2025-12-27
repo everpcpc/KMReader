@@ -196,97 +196,52 @@ final class KomgaSeries {
   }
 
   var metadata: SeriesMetadata {
-    get {
-      SeriesMetadata(
-        status: metaStatus,
-        statusLock: metaStatusLock,
-        created: metaCreated,
-        lastModified: metaLastModified,
-        title: metaTitle,
-        titleLock: metaTitleLock,
-        titleSort: metaTitleSort,
-        titleSortLock: metaTitleSortLock,
-        summary: metaSummary,
-        summaryLock: metaSummaryLock,
-        readingDirection: metaReadingDirection,
-        readingDirectionLock: metaReadingDirectionLock,
-        publisher: metaPublisher,
-        publisherLock: metaPublisherLock,
-        ageRating: metaAgeRating,
-        ageRatingLock: metaAgeRatingLock,
-        language: metaLanguage,
-        languageLock: metaLanguageLock,
-        genres: metaGenres,
-        genresLock: metaGenresLock,
-        tags: metaTags,
-        tagsLock: metaTagsLock,
-        totalBookCount: metaTotalBookCount,
-        totalBookCountLock: metaTotalBookCountLock,
-        sharingLabels: metaSharingLabels,
-        sharingLabelsLock: metaSharingLabelsLock,
-        links: metaLinksRaw.flatMap { try? JSONDecoder().decode([WebLink].self, from: $0) },
-        linksLock: metaLinksLock,
-        alternateTitles: metaAlternateTitlesRaw.flatMap {
-          try? JSONDecoder().decode([AlternateTitle].self, from: $0)
-        },
-        alternateTitlesLock: metaAlternateTitlesLock
-      )
-    }
-    set {
-      self.metaStatus = newValue.status
-      self.metaStatusLock = newValue.statusLock
-      self.metaCreated = newValue.created
-      self.metaLastModified = newValue.lastModified
-      self.metaTitle = newValue.title
-      self.metaTitleLock = newValue.titleLock
-      self.metaTitleSort = newValue.titleSort
-      self.metaTitleSortLock = newValue.titleSortLock
-      self.metaSummary = newValue.summary
-      self.metaSummaryLock = newValue.summaryLock
-      self.metaReadingDirection = newValue.readingDirection
-      self.metaReadingDirectionLock = newValue.readingDirectionLock
-      self.metaPublisher = newValue.publisher
-      self.metaPublisherLock = newValue.publisherLock
-      self.metaAgeRating = newValue.ageRating
-      self.metaAgeRatingLock = newValue.ageRatingLock
-      self.metaLanguage = newValue.language
-      self.metaLanguageLock = newValue.languageLock
-      self.metaGenres = newValue.genres
-      self.metaGenresLock = newValue.genresLock
-      self.metaTags = newValue.tags
-      self.metaTagsLock = newValue.tagsLock
-      self.metaTotalBookCount = newValue.totalBookCount
-      self.metaTotalBookCountLock = newValue.totalBookCountLock
-      self.metaSharingLabels = newValue.sharingLabels
-      self.metaSharingLabelsLock = newValue.sharingLabelsLock
-      self.metaLinksRaw = try? JSONEncoder().encode(newValue.links)
-      self.metaLinksLock = newValue.linksLock
-      self.metaAlternateTitlesRaw = try? JSONEncoder().encode(newValue.alternateTitles)
-      self.metaAlternateTitlesLock = newValue.alternateTitlesLock
-    }
+    SeriesMetadata(
+      status: metaStatus,
+      statusLock: metaStatusLock,
+      created: metaCreated,
+      lastModified: metaLastModified,
+      title: metaTitle,
+      titleLock: metaTitleLock,
+      titleSort: metaTitleSort,
+      titleSortLock: metaTitleSortLock,
+      summary: metaSummary,
+      summaryLock: metaSummaryLock,
+      readingDirection: metaReadingDirection,
+      readingDirectionLock: metaReadingDirectionLock,
+      publisher: metaPublisher,
+      publisherLock: metaPublisherLock,
+      ageRating: metaAgeRating,
+      ageRatingLock: metaAgeRatingLock,
+      language: metaLanguage,
+      languageLock: metaLanguageLock,
+      genres: metaGenres,
+      genresLock: metaGenresLock,
+      tags: metaTags,
+      tagsLock: metaTagsLock,
+      totalBookCount: metaTotalBookCount,
+      totalBookCountLock: metaTotalBookCountLock,
+      sharingLabels: metaSharingLabels,
+      sharingLabelsLock: metaSharingLabelsLock,
+      links: metaLinksRaw.flatMap { try? JSONDecoder().decode([WebLink].self, from: $0) },
+      linksLock: metaLinksLock,
+      alternateTitles: metaAlternateTitlesRaw.flatMap {
+        try? JSONDecoder().decode([AlternateTitle].self, from: $0)
+      },
+      alternateTitlesLock: metaAlternateTitlesLock
+    )
   }
 
   var booksMetadata: SeriesBooksMetadata {
-    get {
-      SeriesBooksMetadata(
-        created: booksMetaCreated,
-        lastModified: booksMetaLastModified,
-        authors: booksMetaAuthorsRaw.flatMap { try? JSONDecoder().decode([Author].self, from: $0) },
-        tags: booksMetaTags,
-        releaseDate: booksMetaReleaseDate,
-        summary: booksMetaSummary,
-        summaryNumber: booksMetaSummaryNumber
-      )
-    }
-    set {
-      self.booksMetaCreated = newValue.created
-      self.booksMetaLastModified = newValue.lastModified
-      self.booksMetaAuthorsRaw = try? JSONEncoder().encode(newValue.authors)
-      self.booksMetaTags = newValue.tags
-      self.booksMetaReleaseDate = newValue.releaseDate
-      self.booksMetaSummary = newValue.summary
-      self.booksMetaSummaryNumber = newValue.summaryNumber
-    }
+    SeriesBooksMetadata(
+      created: booksMetaCreated,
+      lastModified: booksMetaLastModified,
+      authors: booksMetaAuthorsRaw.flatMap { try? JSONDecoder().decode([Author].self, from: $0) },
+      tags: booksMetaTags,
+      releaseDate: booksMetaReleaseDate,
+      summary: booksMetaSummary,
+      summaryNumber: booksMetaSummaryNumber
+    )
   }
 
   func toSeries() -> Series {

@@ -191,100 +191,56 @@ final class KomgaBook {
   }
 
   var media: Media {
-    get {
-      Media(
-        status: MediaStatus(rawValue: mediaStatus) ?? .unknown,
-        mediaType: mediaType,
-        pagesCount: mediaPagesCount,
-        comment: mediaComment,
-        mediaProfile: mediaProfile.flatMap(MediaProfile.init),
-        epubDivinaCompatible: mediaEpubDivinaCompatible,
-        epubIsKepub: mediaEpubIsKepub
-      )
-    }
-    set {
-      self.mediaStatus = newValue.status.rawValue
-      self.mediaType = newValue.mediaType
-      self.mediaPagesCount = newValue.pagesCount
-      self.mediaComment = newValue.comment
-      self.mediaProfile = newValue.mediaProfile?.rawValue
-      self.mediaEpubDivinaCompatible = newValue.epubDivinaCompatible
-      self.mediaEpubIsKepub = newValue.epubIsKepub
-    }
+    Media(
+      status: MediaStatus(rawValue: mediaStatus) ?? .unknown,
+      mediaType: mediaType,
+      pagesCount: mediaPagesCount,
+      comment: mediaComment,
+      mediaProfile: mediaProfile.flatMap(MediaProfile.init),
+      epubDivinaCompatible: mediaEpubDivinaCompatible,
+      epubIsKepub: mediaEpubIsKepub
+    )
   }
 
   var metadata: BookMetadata {
-    get {
-      BookMetadata(
-        created: metaCreated,
-        lastModified: metaLastModified,
-        title: metaTitle,
-        titleLock: metaTitleLock,
-        summary: metaSummary,
-        summaryLock: metaSummaryLock,
-        number: metaNumber,
-        numberLock: metaNumberLock,
-        numberSort: metaNumberSort,
-        numberSortLock: metaNumberSortLock,
-        releaseDate: metaReleaseDate,
-        releaseDateLock: metaReleaseDateLock,
-        authors: metaAuthorsRaw.flatMap { try? JSONDecoder().decode([Author].self, from: $0) },
-        authorsLock: metaAuthorsLock,
-        tags: metaTags,
-        tagsLock: metaTagsLock,
-        isbn: metaIsbn,
-        isbnLock: metaIsbnLock,
-        links: metaLinksRaw.flatMap { try? JSONDecoder().decode([WebLink].self, from: $0) },
-        linksLock: metaLinksLock
-      )
-    }
-    set {
-      self.metaCreated = newValue.created
-      self.metaLastModified = newValue.lastModified
-      self.metaTitle = newValue.title
-      self.metaTitleLock = newValue.titleLock
-      self.metaSummary = newValue.summary
-      self.metaSummaryLock = newValue.summaryLock
-      self.metaNumber = newValue.number
-      self.metaNumberLock = newValue.numberLock
-      self.metaNumberSort = newValue.numberSort
-      self.metaNumberSortLock = newValue.numberSortLock
-      self.metaReleaseDate = newValue.releaseDate
-      self.metaReleaseDateLock = newValue.releaseDateLock
-      self.metaAuthorsRaw = try? JSONEncoder().encode(newValue.authors)
-      self.metaAuthorsLock = newValue.authorsLock
-      self.metaTags = newValue.tags
-      self.metaTagsLock = newValue.tagsLock
-      self.metaIsbn = newValue.isbn
-      self.metaIsbnLock = newValue.isbnLock
-      self.metaLinksRaw = try? JSONEncoder().encode(newValue.links)
-      self.metaLinksLock = newValue.linksLock
-    }
+    BookMetadata(
+      created: metaCreated,
+      lastModified: metaLastModified,
+      title: metaTitle,
+      titleLock: metaTitleLock,
+      summary: metaSummary,
+      summaryLock: metaSummaryLock,
+      number: metaNumber,
+      numberLock: metaNumberLock,
+      numberSort: metaNumberSort,
+      numberSortLock: metaNumberSortLock,
+      releaseDate: metaReleaseDate,
+      releaseDateLock: metaReleaseDateLock,
+      authors: metaAuthorsRaw.flatMap { try? JSONDecoder().decode([Author].self, from: $0) },
+      authorsLock: metaAuthorsLock,
+      tags: metaTags,
+      tagsLock: metaTagsLock,
+      isbn: metaIsbn,
+      isbnLock: metaIsbnLock,
+      links: metaLinksRaw.flatMap { try? JSONDecoder().decode([WebLink].self, from: $0) },
+      linksLock: metaLinksLock
+    )
   }
 
   var readProgress: ReadProgress? {
-    get {
-      guard let page = progressPage,
-        let completed = progressCompleted,
-        let readDate = progressReadDate,
-        let created = progressCreated,
-        let lastModified = progressLastModified
-      else { return nil }
-      return ReadProgress(
-        page: page,
-        completed: completed,
-        readDate: readDate,
-        created: created,
-        lastModified: lastModified
-      )
-    }
-    set {
-      self.progressPage = newValue?.page
-      self.progressCompleted = newValue?.completed
-      self.progressReadDate = newValue?.readDate
-      self.progressCreated = newValue?.created
-      self.progressLastModified = newValue?.lastModified
-    }
+    guard let page = progressPage,
+      let completed = progressCompleted,
+      let readDate = progressReadDate,
+      let created = progressCreated,
+      let lastModified = progressLastModified
+    else { return nil }
+    return ReadProgress(
+      page: page,
+      completed: completed,
+      readDate: readDate,
+      created: created,
+      lastModified: lastModified
+    )
   }
 
   func toBook() -> Book {
