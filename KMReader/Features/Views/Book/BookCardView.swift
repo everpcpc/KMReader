@@ -77,6 +77,7 @@ struct BookCardView: View {
           view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
       }
+      .adaptiveButtonStyle(.plain)
 
       if !coverOnlyCards {
         VStack(alignment: .leading) {
