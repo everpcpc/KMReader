@@ -35,7 +35,6 @@ extension EnvironmentValues {
             )
           ) {
             ReaderContentView()
-              .interactiveDismissDisabled()
               .navigationTransitionZoomIfAvailable(
                 sourceID: readerPresentation.sourceBookId ?? "",
                 in: namespace
@@ -122,6 +121,7 @@ extension EnvironmentValues {
       .background(PlatformHelper.systemBackgroundColor.ignoresSafeArea())
     }
   }
+
 #elseif os(macOS)
   struct MacReaderWindowConfigurator: View {
     @Environment(ReaderPresentationManager.self) private var readerPresentation

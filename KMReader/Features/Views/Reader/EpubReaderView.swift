@@ -120,6 +120,7 @@
         }
       }
       .ignoresSafeArea()
+      .readerDismissGesture(isVerticalReading: false)
     }
 
     @ViewBuilder

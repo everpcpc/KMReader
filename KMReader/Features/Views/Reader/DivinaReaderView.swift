@@ -433,6 +433,10 @@ struct DivinaReaderView: View {
       }
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)
+    #if os(iOS)
+      .readerDismissGesture(
+        isVerticalReading: readingDirection == .vertical || readingDirection == .webtoon)
+    #endif
   }
 
   private func loadBook(bookId: String, preserveReaderOptions: Bool) async {
