@@ -37,26 +37,26 @@ struct BookContextMenu: View {
 
   var body: some View {
     Group {
+      ControlGroup {
+        NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
+          Label("Details", systemImage: "info.circle")
+        }
+
+        if showSeriesNavigation {
+          NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
+            Label("Series", systemImage: "book.fill")
+          }
+        }
+      }
+
       if let onReadBook = onReadBook {
         Button {
           onReadBook(true)
         } label: {
           Label("Read Incognito", systemImage: "eye.slash")
         }
+        Divider()
       }
-
-      Divider()
-
-      NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
-        Label("View Details", systemImage: "info.circle")
-      }
-      if showSeriesNavigation {
-        NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-          Label("Go to Series", systemImage: "book.fill")
-        }
-      }
-
-      Divider()
 
       Button {
         onShowReadListPicker?()
@@ -64,8 +64,6 @@ struct BookContextMenu: View {
         Label("Add to Read List", systemImage: "list.bullet")
       }
       .disabled(isOffline)
-
-      Divider()
 
       if !isCompleted {
         Button {
@@ -92,6 +90,17 @@ struct BookContextMenu: View {
           Label("Mark as Unread", systemImage: "circle")
         }
         .disabled(isOffline)
+      }
+
+      Divider()
+
+      Button {
+        Task {
+          await OfflineManager.shared.toggleDownload(
+            instanceId: currentInstanceId, info: book.downloadInfo)
+        }
+      } label: {
+        Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
       }
 
       Divider()
@@ -129,17 +138,6 @@ struct BookContextMenu: View {
         }
       } label: {
         Label("Manage", systemImage: "gearshape")
-      }
-
-      Divider()
-
-      Button {
-        Task {
-          await OfflineManager.shared.toggleDownload(
-            instanceId: currentInstanceId, info: book.downloadInfo)
-        }
-      } label: {
-        Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
       }
     }
   }

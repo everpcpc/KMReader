@@ -44,11 +44,11 @@ struct BookCardView: View {
   }
 
   var body: some View {
-    Button {
-      onReadBook?(false)
-    } label: {
-      VStack(alignment: .leading, spacing: 6) {
-        ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth) {
+    VStack(alignment: .leading, spacing: 6) {
+      Button {
+        onReadBook?(false)
+      } label: {
+        ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth, alignment: .bottom) {
           ZStack {
             if let progressCompleted = komgaBook.progressCompleted {
               if !progressCompleted {
@@ -62,73 +62,76 @@ struct BookCardView: View {
             }
           }
         }
+        .adaptiveButtonStyle(.plain)
         .ifLet(zoomNamespace) { view, namespace in
           view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
+      }
 
-        if !coverOnlyCards {
-          VStack(alignment: .leading, spacing: 2) {
-            if shouldShowSeriesTitle {
-              Text(komgaBook.seriesTitle)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-            }
-            Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+      if !coverOnlyCards {
+        VStack(alignment: .leading, spacing: 2) {
+          if shouldShowSeriesTitle {
+            Text(komgaBook.seriesTitle)
               .font(.caption)
-              .foregroundColor(.primary)
-              .lineLimit(bookTitleLineLimit)
-
-            Group {
-              if komgaBook.deleted {
-                Text("Unavailable")
-                  .foregroundColor(.red)
-              } else {
-                HStack(spacing: 4) {
-                  Text("\(komgaBook.mediaPagesCount) pages")
-                    + Text(" • \(komgaBook.size)")
-                  if komgaBook.oneshot {
-                    Text("•")
-                    Text("Oneshot")
-                      .foregroundColor(.blue)
-                  }
-                  if komgaBook.downloadStatus != .notDownloaded {
-                    Image(systemName: komgaBook.downloadStatus.displayIcon)
-                      .foregroundColor(komgaBook.downloadStatus.displayColor)
-                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                      .padding(.horizontal, 4)
-                  }
-                }
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-              }
-            }.font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(1)
           }
+          Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+            .font(.caption)
+            .foregroundColor(.primary)
+            .lineLimit(bookTitleLineLimit)
+
+          Group {
+            if komgaBook.deleted {
+              Text("Unavailable")
+                .foregroundColor(.red)
+            } else {
+              HStack(spacing: 4) {
+                Text("\(komgaBook.mediaPagesCount) pages")
+                  + Text(" • \(komgaBook.size)")
+                if komgaBook.oneshot {
+                  Text("•")
+                  Text("Oneshot")
+                    .foregroundColor(.blue)
+                }
+                Spacer()
+                if komgaBook.downloadStatus != .notDownloaded {
+                  Image(systemName: komgaBook.downloadStatus.displayIcon)
+                    .foregroundColor(komgaBook.downloadStatus.displayColor)
+                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                    .padding(.horizontal, 4)
+                }
+                Menu {
+                  BookContextMenu(
+                    komgaBook: komgaBook,
+                    viewModel: viewModel,
+                    onReadBook: onReadBook,
+                    onActionCompleted: onBookUpdated,
+                    onShowReadListPicker: {
+                      showReadListPicker = true
+                    },
+                    onDeleteRequested: {
+                      showDeleteConfirmation = true
+                    },
+                    onEditRequested: {
+                      showEditSheet = true
+                    },
+                    showSeriesNavigation: showSeriesNavigation
+                  )
+                } label: {
+                  Image(systemName: "ellipsis")
+                    .foregroundColor(.secondary)
+                }
+              }
+              .foregroundColor(.secondary)
+              .lineLimit(1)
+            }
+          }.font(.caption)
         }
       }
-      .frame(width: cardWidth, alignment: .leading)
     }
-    .adaptiveButtonStyle(.plain)
+    .frame(width: cardWidth)
     .frame(maxHeight: .infinity, alignment: .top)
-    .contentShape(Rectangle())
-    .contextMenu {
-      BookContextMenu(
-        komgaBook: komgaBook,
-        viewModel: viewModel,
-        onReadBook: onReadBook,
-        onActionCompleted: onBookUpdated,
-        onShowReadListPicker: {
-          showReadListPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        },
-        showSeriesNavigation: showSeriesNavigation
-      )
-    }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

@@ -28,14 +28,12 @@ struct LoginView: View {
         headerSection
         formSection
       }
-      .padding(.vertical, 40)
-      .padding(.horizontal, 24)
+      .padding(16)
       #if os(tvOS)
         .frame(maxWidth: 800)
       #else
         .frame(maxWidth: 520)
       #endif
-      .frame(maxWidth: .infinity)
     }
     .task {
       serverURLText = serverURL
@@ -99,8 +97,6 @@ struct LoginView: View {
         .multilineTextAlignment(.center)
         .padding(.horizontal, 12)
     }
-    .frame(maxWidth: .infinity)
-    .padding(.top, 20)
   }
 
   private var formSection: some View {

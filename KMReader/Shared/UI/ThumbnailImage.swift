@@ -17,6 +17,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let width: CGFloat
   let cornerRadius: CGFloat
   let refreshTrigger: Int
+  let alignment: Alignment
   let overlay: (() -> Overlay)?
 
   let ratio: CGFloat = 1.413
@@ -32,6 +33,7 @@ struct ThumbnailImage<Overlay: View>: View {
     width: CGFloat,
     cornerRadius: CGFloat = 4,
     refreshTrigger: Int = 0,
+    alignment: Alignment = .center,
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {
     self.id = id
@@ -40,6 +42,7 @@ struct ThumbnailImage<Overlay: View>: View {
     self.width = width
     self.cornerRadius = cornerRadius
     self.refreshTrigger = refreshTrigger
+    self.alignment = alignment
     self.overlay = overlay
   }
 
@@ -87,11 +90,11 @@ struct ThumbnailImage<Overlay: View>: View {
             EmptyView()
           }
         }
-        .frame(width: width, height: width * ratio, alignment: .center)
+        .frame(width: width, height: width * ratio, alignment: alignment)
       } else {
         RoundedRectangle(cornerRadius: cornerRadius)
           .fill(Color.gray.opacity(0.3))
-          .frame(width: width, height: width * ratio, alignment: .center)
+          .frame(width: width, height: width * ratio, alignment: alignment)
           .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
           .overlay {
             if showPlaceholder && isLoading {
