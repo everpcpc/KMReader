@@ -28,6 +28,7 @@ import SwiftUI
             SettingsSectionRow(section: .reader)
             SettingsSectionRow(section: .sse)
             SettingsSectionRow(section: .logs)
+            SettingsSectionRow(section: .network)
           }
 
           Section("Offline") {
@@ -92,6 +93,8 @@ import SwiftUI
               SettingsSSEView()
             case .logs:
               SettingsLogsView()
+            case .network:
+              SettingsNetworkView()
 
             case .offlineTasks:
               SettingsOfflineTasksView()

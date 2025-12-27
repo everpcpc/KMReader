@@ -40,6 +40,9 @@ import SwiftUI
             NavigationLink(value: NavDestination.settingsLogs) {
               SettingsSectionRow(section: .logs)
             }
+            NavigationLink(value: NavDestination.settingsNetwork) {
+              SettingsSectionRow(section: .network)
+            }
           }
 
           Section(header: Text(String(localized: "Offline"))) {

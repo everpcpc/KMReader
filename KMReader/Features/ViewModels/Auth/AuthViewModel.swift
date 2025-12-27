@@ -104,12 +104,12 @@ class AuthViewModel {
   /// Load current user from server.
   /// Returns true if server is reachable, false if offline/unreachable.
   /// 401 errors trigger logout.
-  @discardableResult
-  func loadCurrentUser() async -> Bool {
+  func loadCurrentUser(timeout: TimeInterval? = nil) async -> Bool {
     isLoading = true
     defer { isLoading = false }
     do {
-      user = try await authService.getCurrentUser()
+      user = try await authService.getCurrentUser(timeout: timeout)
+
       if let user = user {
         AppConfig.isAdmin = user.roles.contains("ADMIN")
       }

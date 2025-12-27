@@ -20,6 +20,7 @@ enum NavDestination: Hashable {
   case settingsReader
   case settingsSSE
   case settingsLogs
+  case settingsNetwork
 
   case settingsOfflineTasks
   case settingsOfflineBooks
