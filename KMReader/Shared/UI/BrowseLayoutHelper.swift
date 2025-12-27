@@ -17,7 +17,7 @@ struct BrowseLayoutHelper {
   #if os(tvOS)
     static let defaultSpacing: CGFloat = 40
   #else
-    static let defaultSpacing: CGFloat = 12
+    static let defaultSpacing: CGFloat = 16
   #endif
 
   init(

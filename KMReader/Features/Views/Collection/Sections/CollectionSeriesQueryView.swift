@@ -58,9 +58,9 @@ struct CollectionSeriesQueryView: View {
               }
             }
           }
-          .padding(layoutHelper.spacing)
+          .padding(.horizontal, layoutHelper.spacing)
         case .list:
-          LazyVStack(spacing: layoutHelper.spacing) {
+          LazyVStack {
             ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) {
               index, seriesId in
               Group {
@@ -86,8 +86,12 @@ struct CollectionSeriesQueryView: View {
                   Task { await loadMore(refresh: false) }
                 }
               }
+              if index < seriesViewModel.browseSeriesIds.count - 1 {
+                Divider()
+              }
             }
           }
+          .padding(.horizontal)
         }
       }
     }

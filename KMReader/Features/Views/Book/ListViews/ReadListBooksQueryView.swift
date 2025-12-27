@@ -63,9 +63,9 @@ struct ReadListBooksQueryView: View {
               }
             }
           }
-          .padding(layoutHelper.spacing)
+          .padding(.horizontal, layoutHelper.spacing)
         case .list:
-          LazyVStack(spacing: layoutHelper.spacing) {
+          LazyVStack {
             ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) {
               index, bookId in
               Group {
@@ -95,8 +95,12 @@ struct ReadListBooksQueryView: View {
                   Task { await loadMore(refresh: false) }
                 }
               }
+              if index < bookViewModel.browseBookIds.count - 1 {
+                Divider()
+              }
             }
           }
+          .padding(.horizontal)
         }
       }
     }

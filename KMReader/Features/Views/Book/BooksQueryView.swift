@@ -55,8 +55,9 @@ struct BooksQueryView: View {
             }
           }
         }
+        .padding(.horizontal, layoutHelper.spacing)
       case .list:
-        LazyVStack(spacing: layoutHelper.spacing) {
+        LazyVStack {
           ForEach(Array(viewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
             BookQueryItemView(
               bookId: bookId,
@@ -76,8 +77,12 @@ struct BooksQueryView: View {
                 }
               }
             }
+            if index < viewModel.browseBookIds.count - 1 {
+              Divider()
+            }
           }
         }
+        .padding(.horizontal)
       }
     }
   }

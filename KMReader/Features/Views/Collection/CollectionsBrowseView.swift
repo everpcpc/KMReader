@@ -14,8 +14,6 @@ struct CollectionsBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
-  private let spacing: CGFloat = 12
-
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
@@ -26,7 +24,7 @@ struct CollectionsBrowseView: View {
   var body: some View {
     VStack(spacing: 0) {
       CollectionSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
-        .padding(spacing)
+        .padding()
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
@@ -42,7 +40,7 @@ struct CollectionsBrowseView: View {
       ) {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: layoutHelper.columns, spacing: spacing) {
+          LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
             ForEach(Array(viewModel.collectionIds.enumerated()), id: \.element) {
               index, collectionId in
               CollectionQueryItemView(
@@ -63,8 +61,9 @@ struct CollectionsBrowseView: View {
               }
             }
           }
+          .padding(.horizontal, layoutHelper.spacing)
         case .list:
-          LazyVStack(spacing: spacing) {
+          LazyVStack {
             ForEach(Array(viewModel.collectionIds.enumerated()), id: \.element) {
               index, collectionId in
               CollectionQueryItemView(
@@ -83,8 +82,12 @@ struct CollectionsBrowseView: View {
                   }
                 }
               }
+              if index < viewModel.collectionIds.count - 1 {
+                Divider()
+              }
             }
           }
+          .padding(.horizontal)
         }
       }
     }

@@ -61,8 +61,9 @@ struct ReadListsBrowseView: View {
               }
             }
           }
+          .padding(.horizontal, layoutHelper.spacing)
         case .list:
-          LazyVStack(spacing: layoutHelper.spacing) {
+          LazyVStack {
             ForEach(Array(viewModel.readListIds.enumerated()), id: \.element) {
               index, readListId in
               ReadListQueryItemView(
@@ -81,8 +82,12 @@ struct ReadListsBrowseView: View {
                   }
                 }
               }
+              if index < viewModel.readListIds.count - 1 {
+                Divider()
+              }
             }
           }
+          .padding(.horizontal)
         }
       }
     }
