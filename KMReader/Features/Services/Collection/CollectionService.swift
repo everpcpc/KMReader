@@ -60,25 +60,36 @@ class CollectionService {
     browseOpts: CollectionSeriesBrowseOptions,
     libraryIds: [String]? = nil
   ) async throws -> Page<Series> {
-    let condition = SeriesSearch.buildCondition(
-      filters: SeriesSearchFilters(
-        libraryIds: libraryIds,
-        includeReadStatuses: Array(browseOpts.includeReadStatuses),
-        excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
-        includeSeriesStatuses: browseOpts.includeSeriesStatuses.compactMap { $0.apiValue },
-        excludeSeriesStatuses: browseOpts.excludeSeriesStatuses.compactMap { $0.apiValue },
-        seriesStatusLogic: browseOpts.seriesStatusLogic,
-        oneshot: browseOpts.oneshotFilter.effectiveBool,
-        deleted: browseOpts.deletedFilter.effectiveBool,
-        complete: browseOpts.completeFilter.effectiveBool,
-        collectionId: collectionId
-      ))
-    let search = SeriesSearch(condition: condition)
-    return try await SeriesService.shared.getSeriesList(
-      search: search,
-      page: page,
-      size: size,
-      sort: nil
+    var queryItems = [
+      URLQueryItem(name: "page", value: "\(page)"),
+      URLQueryItem(name: "size", value: "\(size)"),
+    ]
+
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
+    }
+
+    for status in browseOpts.includeSeriesStatuses {
+      queryItems.append(URLQueryItem(name: "status", value: status.apiValue))
+    }
+
+    for status in browseOpts.includeReadStatuses {
+      queryItems.append(URLQueryItem(name: "read_status", value: status.rawValue))
+    }
+
+    if let deleted = browseOpts.deletedFilter.effectiveBool {
+      queryItems.append(URLQueryItem(name: "deleted", value: String(deleted)))
+    }
+
+    if let complete = browseOpts.completeFilter.effectiveBool {
+      queryItems.append(URLQueryItem(name: "complete", value: String(complete)))
+    }
+
+    return try await apiClient.request(
+      path: "/api/v1/collections/\(collectionId)/series",
+      queryItems: queryItems
     )
   }
 

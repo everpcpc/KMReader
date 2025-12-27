@@ -60,21 +60,28 @@ class ReadListService {
     browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
-    let filters = BookSearchFilters(
-      libraryIds: libraryIds,
-      includeReadStatuses: Array(browseOpts.includeReadStatuses),
-      excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
-      oneshot: browseOpts.oneshotFilter.effectiveBool,
-      deleted: browseOpts.deletedFilter.effectiveBool,
-      readListId: readListId
-    )
-    let condition = BookSearch.buildCondition(filters: filters)
-    let search = BookSearch(condition: condition)
-    return try await BookService.shared.getBooksList(
-      search: search,
-      page: page,
-      size: size,
-      sort: nil
+    var queryItems = [
+      URLQueryItem(name: "page", value: "\(page)"),
+      URLQueryItem(name: "size", value: "\(size)"),
+    ]
+
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
+    }
+
+    for status in browseOpts.includeReadStatuses {
+      queryItems.append(URLQueryItem(name: "read_status", value: status.rawValue))
+    }
+
+    if let deleted = browseOpts.deletedFilter.effectiveBool {
+      queryItems.append(URLQueryItem(name: "deleted", value: String(deleted)))
+    }
+
+    return try await apiClient.request(
+      path: "/api/v1/readlists/\(readListId)/books",
+      queryItems: queryItems
     )
   }
 
