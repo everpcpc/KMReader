@@ -9,6 +9,7 @@ import SwiftUI
 
 struct BookActionsSection: View {
   let book: Book
+  var seriesLink: Bool
   var onRead: (Bool) -> Void
 
   var body: some View {
@@ -29,10 +30,12 @@ struct BookActionsSection: View {
 
       Spacer()
 
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-        Label("View Series", systemImage: "book.fill")
+      if seriesLink {
+        NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
+          Label("View Series", systemImage: "book.fill")
+        }
+        .adaptiveButtonStyle(.bordered)
       }
-      .adaptiveButtonStyle(.bordered)
     }.font(.caption)
   }
 }

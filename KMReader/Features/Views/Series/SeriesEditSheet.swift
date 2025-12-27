@@ -39,6 +39,8 @@ struct SeriesEditSheet: View {
   @State private var linksLock: Bool
   @State private var alternateTitles: [AlternateTitle]
   @State private var alternateTitlesLock: Bool
+  @State private var sharingLabels: [String]
+  @State private var sharingLabelsLock: Bool
 
   @State private var newGenre: String = ""
   @State private var newTag: String = ""
@@ -46,6 +48,7 @@ struct SeriesEditSheet: View {
   @State private var newLinkURL: String = ""
   @State private var newAlternateTitleLabel: String = ""
   @State private var newAlternateTitle: String = ""
+  @State private var newSharingLabel: String = ""
 
   init(series: Series) {
     self.series = series
@@ -78,6 +81,8 @@ struct SeriesEditSheet: View {
     _linksLock = State(initialValue: series.metadata.linksLock ?? false)
     _alternateTitles = State(initialValue: series.metadata.alternateTitles ?? [])
     _alternateTitlesLock = State(initialValue: series.metadata.alternateTitlesLock ?? false)
+    _sharingLabels = State(initialValue: series.metadata.sharingLabels ?? [])
+    _sharingLabelsLock = State(initialValue: series.metadata.sharingLabelsLock ?? false)
   }
 
   var body: some View {
@@ -299,6 +304,42 @@ struct SeriesEditSheet: View {
           Text("Links")
             .lockToggle(isLocked: $linksLock)
         }
+
+        Section {
+          ForEach(sharingLabels.indices, id: \.self) { index in
+            HStack {
+              Text(sharingLabels[index])
+              Spacer()
+              Button(role: .destructive) {
+                let indexToRemove = index
+                withAnimation {
+                  sharingLabels.remove(at: indexToRemove)
+                  sharingLabelsLock = true
+                }
+              } label: {
+                Image(systemName: "trash")
+              }
+            }
+          }
+          HStack {
+            TextField("Label", text: $newSharingLabel)
+            Button {
+              if !newSharingLabel.isEmpty && !sharingLabels.contains(newSharingLabel) {
+                withAnimation {
+                  sharingLabels.append(newSharingLabel)
+                  newSharingLabel = ""
+                  sharingLabelsLock = true
+                }
+              }
+            } label: {
+              Image(systemName: "plus.circle.fill")
+            }
+            .disabled(newSharingLabel.isEmpty)
+          }
+        } header: {
+          Text("Sharing Labels")
+            .lockToggle(isLocked: $sharingLabelsLock)
+        }
       }
     } controls: {
       Button(action: saveChanges) {
@@ -396,6 +437,12 @@ struct SeriesEditSheet: View {
           }
         }
         metadata["alternateTitlesLock"] = alternateTitlesLock
+
+        let currentSharingLabels = series.metadata.sharingLabels ?? []
+        if sharingLabels != currentSharingLabels {
+          metadata["sharingLabels"] = sharingLabels
+        }
+        metadata["sharingLabelsLock"] = sharingLabelsLock
 
         if !metadata.isEmpty {
           try await SeriesService.shared.updateSeriesMetadata(

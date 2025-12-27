@@ -1,5 +1,5 @@
 //
-//  BookDetailView.swift
+//  OneshotDetailView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -9,94 +9,113 @@ import Flow
 import SwiftData
 import SwiftUI
 
-struct BookDetailView: View {
-  let bookId: String
+struct OneshotDetailView: View {
+  let seriesId: String
 
   @Environment(\.dismiss) private var dismiss
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @Environment(\.readerZoomNamespace) private var zoomNamespace
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
-  // SwiftData query for reactive download status
-  @Query private var komgaBooks: [KomgaBook]
+  @Query private var komgaSeriesList: [KomgaSeries]
+  @Query private var komgaBookList: [KomgaBook]
 
   @State private var isLoading = true
-  @State private var showDeleteConfirmation = false
-  @State private var showReadListPicker = false
-  @State private var showEditSheet = false
-  @State private var bookReadLists: [ReadList] = []
-  @State private var isLoadingRelations = false
+  @State private var isLoadingCollections = false
+  @State private var isLoadingReadLists = false
   @State private var thumbnailRefreshTrigger = 0
+  @State private var showDeleteConfirmation = false
+  @State private var showEditSheet = false
+  @State private var showCollectionPicker = false
+  @State private var showReadListPicker = false
+  @State private var containingCollections: [SeriesCollection] = []
+  @State private var bookReadLists: [ReadList] = []
 
-  init(bookId: String) {
-    self.bookId = bookId
+  init(seriesId: String) {
+    self.seriesId = seriesId
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+    let seriesCompositeId = "\(instanceId)_\(seriesId)"
+    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == seriesCompositeId })
+    _komgaBookList = Query(
+      filter: #Predicate<KomgaBook> { $0.instanceId == instanceId && $0.seriesId == seriesId })
+  }
+
+  /// The KomgaSeries from SwiftData (reactive).
+  private var komgaSeries: KomgaSeries? {
+    komgaSeriesList.first
   }
 
   /// The KomgaBook from SwiftData (reactive).
   private var komgaBook: KomgaBook? {
-    komgaBooks.first
+    komgaBookList.first
   }
 
-  /// Convert to API Book type for compatibility with existing components.
+  private var series: Series? {
+    komgaSeries?.toSeries()
+  }
+
   private var book: Book? {
     komgaBook?.toBook()
   }
 
-  /// Download status from SwiftData (reactive, no manual refresh needed).
   private var downloadStatus: DownloadStatus {
     komgaBook?.downloadStatus ?? .notDownloaded
   }
 
   private var progress: Double {
-    guard let book = book, let readProgress = book.readProgress else { return 0 }
-    guard book.media.pagesCount > 0 else { return 0 }
-    return Double(readProgress.page) / Double(book.media.pagesCount)
+    guard let komgaBook = komgaBook else { return 0 }
+    guard let readProgress = komgaBook.readProgress else { return 0 }
+    guard komgaBook.mediaPagesCount > 0 else { return 0 }
+    return Double(readProgress.page) / Double(komgaBook.mediaPagesCount)
   }
 
   private var isCompleted: Bool {
-    book?.readProgress?.completed ?? false
+    komgaBook?.progressCompleted ?? false
   }
 
   private var isInProgress: Bool {
-    guard let readProgress = book?.readProgress else { return false }
+    guard let readProgress = komgaBook?.readProgress else { return false }
     return !readProgress.completed
+  }
+
+  private var hasReadInfo: Bool {
+    guard let series else { return false }
+    if let language = series.metadata.language, !language.isEmpty {
+      return true
+    }
+    if let direction = series.metadata.readingDirection, !direction.isEmpty {
+      return true
+    }
+    return false
   }
 
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
-        if let book = book {
-          Text(book.seriesTitle)
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-
-          Text(book.metadata.title)
-            .font(.title2)
-            .fixedSize(horizontal: false, vertical: true)
+        if let book, let series {
+          HStack(alignment: .bottom) {
+            Text(book.metadata.title)
+              .font(.title2)
+              .fixedSize(horizontal: false, vertical: true)
+            if let ageRating = series.metadata.ageRating, ageRating > 0 {
+              AgeRatingBadge(ageRating: ageRating)
+            }
+            Spacer()
+          }
 
           HStack(alignment: .top) {
             ThumbnailImage(
-              id: bookId, type: .book, width: PlatformHelper.detailThumbnailWidth,
+              id: book.id, type: .book,
+              width: PlatformHelper.detailThumbnailWidth,
               refreshTrigger: thumbnailRefreshTrigger
             )
             .thumbnailFocus()
             .ifLet(zoomNamespace) { view, namespace in
-              view.matchedTransitionSourceIfAvailable(id: bookId, in: namespace)
+              view.matchedTransitionSourceIfAvailable(id: book.id, in: namespace)
             }
 
             VStack(alignment: .leading) {
               HStack(spacing: 6) {
-                InfoChip(
-                  label: "\(book.metadata.number)",
-                  systemImage: "number",
-                  backgroundColor: Color.gray.opacity(0.2),
-                  foregroundColor: .gray
-                )
-
                 if book.media.status != .ready {
                   InfoChip(
                     label: book.media.status.label,
@@ -163,12 +182,43 @@ struct BookDetailView: View {
                 )
               }
 
+              if hasReadInfo {
+                HStack(spacing: 6) {
+                  if let language = series.metadata.language, !language.isEmpty {
+                    InfoChip(
+                      label: LanguageCodeHelper.displayName(for: language),
+                      systemImage: "globe",
+                      backgroundColor: Color.purple.opacity(0.2),
+                      foregroundColor: .purple
+                    )
+                  }
+
+                  if let direction = series.metadata.readingDirection, !direction.isEmpty {
+                    InfoChip(
+                      label: ReadingDirection.fromString(direction).displayName,
+                      systemImage: ReadingDirection.fromString(direction).icon,
+                      backgroundColor: Color.cyan.opacity(0.2),
+                      foregroundColor: .cyan
+                    )
+                  }
+                }
+              }
+
               if let isbn = book.metadata.isbn, !isbn.isEmpty {
                 InfoChip(
                   label: isbn,
                   systemImage: "barcode",
                   backgroundColor: Color.cyan.opacity(0.2),
                   foregroundColor: .cyan
+                )
+              }
+
+              if let publisher = series.metadata.publisher, !publisher.isEmpty {
+                InfoChip(
+                  label: publisher,
+                  systemImage: "building.2",
+                  backgroundColor: Color.teal.opacity(0.2),
+                  foregroundColor: .teal
                 )
               }
 
@@ -188,7 +238,22 @@ struct BookDetailView: View {
             }
           }
 
-          // Tags
+          // Seires genres
+          if let genres = series.metadata.genres, !genres.isEmpty {
+            HFlow {
+              ForEach(genres.sorted(), id: \.self) { genre in
+                InfoChip(
+                  label: genre,
+                  systemImage: "bookmark",
+                  backgroundColor: Color.blue.opacity(0.1),
+                  foregroundColor: .blue,
+                  cornerRadius: 8
+                )
+              }
+            }
+          }
+
+          // Book tags
           if let tags = book.metadata.tags, !tags.isEmpty {
             HFlow {
               ForEach(tags.sorted(), id: \.self) { tag in
@@ -226,11 +291,11 @@ struct BookDetailView: View {
           Divider()
           BookActionsSection(
             book: book,
-            seriesLink: true,
+            seriesLink: false,
             onRead: { incognito in
               readerPresentation.present(book: book, incognito: incognito) {
                 Task {
-                  await loadBook()
+                  await refreshOneshotData()
                 }
               }
             }
@@ -238,11 +303,42 @@ struct BookDetailView: View {
           Divider()
 
           #if os(tvOS)
-            bookToolbarContent
+            oneshotToolbarContent
               .padding(.vertical, 8)
           #endif
 
-          if !isLoadingRelations && !bookReadLists.isEmpty {
+          if !isLoadingCollections && !containingCollections.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+              HStack(spacing: 4) {
+                Text("Collections")
+                  .font(.headline)
+              }
+              .foregroundColor(.secondary)
+
+              VStack(alignment: .leading, spacing: 8) {
+                ForEach(containingCollections) { collection in
+                  NavigationLink(
+                    value: NavDestination.collectionDetail(collectionId: collection.id)
+                  ) {
+                    HStack {
+                      Label(collection.name, systemImage: "square.grid.2x2")
+                        .foregroundColor(.primary)
+                      Spacer()
+                      Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(16)
+                  }
+                }
+              }
+            }
+            .padding(.vertical)
+          }
+
+          if !isLoadingReadLists && !bookReadLists.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
               HStack(spacing: 4) {
                 Image(systemName: "list.bullet")
@@ -322,7 +418,27 @@ struct BookDetailView: View {
             Divider()
           }
 
-          // Links
+          if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+              Divider()
+              Text("Alternate Titles")
+                .font(.headline)
+              VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(alternateTitles.enumerated()), id: \.offset) { index, altTitle in
+                  HStack(alignment: .top, spacing: 4) {
+                    Text("\(altTitle.label):")
+                      .font(.caption)
+                      .foregroundColor(.secondary)
+                      .frame(width: 60, alignment: .leading)
+                    Text(altTitle.title)
+                      .font(.caption)
+                      .foregroundColor(.primary)
+                  }
+                }
+              }
+            }.padding(.bottom, 8)
+          }
+
           if let links = book.metadata.links, !links.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
               Text("Links")
@@ -356,193 +472,125 @@ struct BookDetailView: View {
             ExpandableSummaryView(summary: summary)
           }
         } else if isLoading {
-          ProgressView()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+          VStack(spacing: 16) {
+            ProgressView()
+          }
+          .frame(maxWidth: .infinity)
         } else {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
               .font(.largeTitle)
               .foregroundColor(.secondary)
-            Text("Failed to load book details")
-              .font(.headline)
           }
           .frame(maxWidth: .infinity)
         }
       }
       .padding()
     }
-    .inlineNavigationBarTitle(String(localized: "Book"))
+    .inlineNavigationBarTitle(String(localized: "Oneshot"))
     #if !os(tvOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
-          bookToolbarContent
+          oneshotToolbarContent
         }
       }
     #endif
-    .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
+    .alert("Delete Oneshot?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
-        deleteBook()
+        deleteOneshot()
       }
       Button("Cancel", role: .cancel) {}
     } message: {
-      Text("This will permanently delete \(book?.metadata.title ?? "this book") from Komga.")
+      Text("This will permanently delete \(book?.metadata.title ?? "this oneshot") from Komga.")
     }
-    .sheet(isPresented: $showReadListPicker) {
-      ReadListPickerSheet(
-        bookIds: [bookId],
-        onSelect: { readListId in
-          addToReadList(readListId: readListId)
+    .sheet(isPresented: $showCollectionPicker) {
+      CollectionPickerSheet(
+        seriesIds: [seriesId],
+        onSelect: { collectionId in
+          addToCollection(collectionId: collectionId)
         },
         onComplete: {
-          // Create already adds book, just refresh
           Task {
-            await loadBook()
+            await refreshOneshotData()
           }
         }
       )
     }
-    .sheet(isPresented: $showEditSheet) {
+    .sheet(isPresented: $showReadListPicker) {
       if let book = book {
-        BookEditSheet(book: book)
+        ReadListPickerSheet(
+          bookIds: [book.id],
+          onSelect: { readListId in
+            addToReadList(readListId: readListId, bookId: book.id)
+          },
+          onComplete: {
+            Task {
+              await refreshOneshotData()
+            }
+          }
+        )
+      }
+    }
+    .sheet(isPresented: $showEditSheet) {
+      if let series = series, let book = book {
+        OneshotEditSheet(series: series, book: book)
           .onDisappear {
             Task {
-              await loadBook()
+              await refreshOneshotData()
             }
           }
       }
     }
     .task {
-      await loadBook()
+      await refreshOneshotData()
     }
   }
 
-  private func analyzeBook() {
-    Task {
-      do {
-        try await BookService.shared.analyzeBook(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.analysisStarted"))
-        }
-        await loadBook()
-      } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-    }
-  }
-
-  private func refreshMetadata() {
-    Task {
-      do {
-        try await BookService.shared.refreshMetadata(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.metadataRefreshed"))
-        }
-        await loadBook()
-      } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-    }
-  }
-
-  private func deleteBook() {
-    Task {
-      do {
-        try await BookService.shared.deleteBook(bookId: bookId)
-        await CacheManager.clearCache(forBookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
-          dismiss()
-        }
-      } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-    }
-  }
-
-  private func markBookAsRead() {
-    Task {
-      do {
-        try await BookService.shared.markAsRead(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
-        }
-        await loadBook()
-      } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-    }
-  }
-
-  private func markBookAsUnread() {
-    Task {
-      do {
-        try await BookService.shared.markAsUnread(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
-        }
-        await loadBook()
-      } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-    }
-  }
-
-  private func clearCache() {
-    Task {
-      await CacheManager.clearCache(forBookId: bookId)
-    }
-  }
-
-  private func reloadThumbnail() {
-    guard !AppConfig.isOffline else { return }
-    thumbnailRefreshTrigger += 1
-  }
-
-  @MainActor
-  private func loadBook() async {
-    // Only show loading if we don't have cached data
-    isLoading = komgaBook == nil
-
+  private func refreshOneshotData() async {
+    isLoading = true
     do {
-      // Sync from network to SwiftData (book property will update reactively)
-      let previousLastModified = komgaBook?.lastModified
-      let fetchedBook = try await SyncService.shared.syncBook(bookId: bookId)
-      isLoading = false
-      isLoadingRelations = true
-      bookReadLists = []
-      Task {
-        await loadBookRelations(for: fetchedBook)
-      }
-      if previousLastModified != fetchedBook.lastModified {
+      let previousLastModified = komgaSeries?.lastModified
+      let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
+      if previousLastModified != fetchedSeries.lastModified {
         reloadThumbnail()
+      }
+      let fetchedBooks = try await SyncService.shared.syncBooks(
+        seriesId: seriesId,
+        page: 0,
+        size: 1,
+      )
+      isLoading = false
+      await loadOneshotCollections(seriesId: seriesId)
+      if let fetchedBook = fetchedBooks.content.first {
+        await loadBookReadLists(for: fetchedBook)
       }
     } catch {
       if case APIError.notFound = error {
         dismiss()
-      } else {
-        isLoading = false
-        if komgaBook == nil {
-          ErrorManager.shared.alert(error: error)
-        }
+      } else if komgaSeries == nil || komgaBook == nil {
+        ErrorManager.shared.alert(error: error)
       }
+      isLoading = false
     }
   }
 
-  @MainActor
-  private func loadBookRelations(for book: Book) async {
-    isLoadingRelations = true
+  private func loadOneshotCollections(seriesId: String) async {
+    isLoadingCollections = true
+    containingCollections = []
+    do {
+      let collections = try await SeriesService.shared.getSeriesCollections(seriesId: seriesId)
+      withAnimation {
+        containingCollections = collections
+      }
+    } catch {
+      containingCollections = []
+      ErrorManager.shared.alert(error: error)
+    }
+    isLoadingCollections = false
+  }
+
+  private func loadBookReadLists(for book: Book) async {
+    isLoadingReadLists = true
     let targetBookId = book.id
     bookReadLists = []
 
@@ -561,7 +609,90 @@ struct BookDetailView: View {
     }
 
     if self.book?.id == targetBookId {
-      isLoadingRelations = false
+      isLoadingReadLists = false
+    }
+  }
+
+  private func reloadThumbnail() {
+    guard !AppConfig.isOffline else { return }
+    thumbnailRefreshTrigger += 1
+  }
+
+  private func clearCache() {
+    guard let book = book else { return }
+    Task {
+      await CacheManager.clearCache(forBookId: book.id)
+    }
+  }
+
+  private func addToCollection(collectionId: String) {
+    Task {
+      do {
+        try await CollectionService.shared.addSeriesToCollection(
+          collectionId: collectionId,
+          seriesIds: [seriesId]
+        )
+        _ = try? await SyncService.shared.syncCollection(id: collectionId)
+        await MainActor.run {
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.addedToCollection"))
+        }
+        await refreshOneshotData()
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func markOneshotAsRead() {
+    guard let book = book else { return }
+    Task {
+      do {
+        try await BookService.shared.markAsRead(bookId: book.id)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
+        }
+        await refreshOneshotData()
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func markOneshotAsUnread() {
+    guard let book = book else { return }
+    Task {
+      do {
+        try await BookService.shared.markAsUnread(bookId: book.id)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
+        }
+        await refreshOneshotData()
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func deleteOneshot() {
+    Task {
+      do {
+        try await SeriesService.shared.deleteSeries(seriesId: seriesId)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
+          dismiss()
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
     }
   }
 
@@ -572,7 +703,7 @@ struct BookDetailView: View {
     return formatter.string(from: date)
   }
 
-  private func addToReadList(readListId: String) {
+  private func addToReadList(readListId: String, bookId: String) {
     Task {
       do {
         try await ReadListService.shared.addBooksToReadList(
@@ -585,7 +716,43 @@ struct BookDetailView: View {
           ErrorManager.shared.notify(
             message: String(localized: "notification.book.booksAddedToReadList"))
         }
-        await loadBook()
+        await refreshOneshotData()
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func analyzeOneshot() {
+    guard let book = book else { return }
+    Task {
+      do {
+        try await BookService.shared.analyzeBook(bookId: book.id)
+        await MainActor.run {
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.analysisStarted"))
+        }
+        await refreshOneshotData()
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func refreshMetadata() {
+    guard let book = book else { return }
+    Task {
+      do {
+        try await BookService.shared.refreshMetadata(bookId: book.id)
+        await MainActor.run {
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.metadataRefreshed"))
+        }
+        await refreshOneshotData()
       } catch {
         await MainActor.run {
           ErrorManager.shared.alert(error: error)
@@ -595,9 +762,8 @@ struct BookDetailView: View {
   }
 
   @ViewBuilder
-  private var bookToolbarContent: some View {
+  private var oneshotToolbarContent: some View {
     HStack(spacing: PlatformHelper.buttonSpacing) {
-
       Menu {
         Button {
           showEditSheet = true
@@ -609,7 +775,7 @@ struct BookDetailView: View {
         Divider()
 
         Button {
-          analyzeBook()
+          analyzeOneshot()
         } label: {
           Label("Analyze", systemImage: "waveform.path.ecg")
         }
@@ -625,6 +791,12 @@ struct BookDetailView: View {
         Divider()
 
         Button {
+          showCollectionPicker = true
+        } label: {
+          Label("Add to Collection", systemImage: "square.grid.2x2")
+        }
+
+        Button {
           showReadListPicker = true
         } label: {
           Label("Add to Read List", systemImage: "list.bullet")
@@ -635,7 +807,7 @@ struct BookDetailView: View {
         if let book = book {
           if !(book.readProgress?.completed ?? false) {
             Button {
-              markBookAsRead()
+              markOneshotAsRead()
             } label: {
               Label("Mark as Read", systemImage: "checkmark.circle")
             }
@@ -643,7 +815,7 @@ struct BookDetailView: View {
 
           if book.readProgress != nil {
             Button {
-              markBookAsUnread()
+              markOneshotAsUnread()
             } label: {
               Label("Mark as Unread", systemImage: "circle")
             }
@@ -655,7 +827,7 @@ struct BookDetailView: View {
         Button(role: .destructive) {
           showDeleteConfirmation = true
         } label: {
-          Label("Delete Book", systemImage: "trash")
+          Label("Delete Oneshot", systemImage: "trash")
         }
         .disabled(!isAdmin)
 

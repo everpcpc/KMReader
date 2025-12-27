@@ -21,7 +21,6 @@ struct SeriesDetailView: View {
   // SwiftData query for reactive updates
   @Query private var komgaSeriesList: [KomgaSeries]
 
-  @State private var seriesViewModel = SeriesViewModel()
   @State private var bookViewModel = BookViewModel()
   @State private var showDeleteConfirmation = false
   @State private var showCollectionPicker = false
@@ -182,7 +181,7 @@ struct SeriesDetailView: View {
                     HStack(spacing: 6) {
                       if let language = series.metadata.language, !language.isEmpty {
                         InfoChip(
-                          label: languageDisplayName(language),
+                          label: LanguageCodeHelper.displayName(for: language),
                           systemImage: "globe",
                           backgroundColor: Color.purple.opacity(0.2),
                           foregroundColor: .purple
@@ -296,7 +295,7 @@ struct SeriesDetailView: View {
                   }
                 }
               }
-              .padding(.top, 8)
+              .padding(.vertical)
             }
 
             if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
@@ -395,7 +394,14 @@ struct SeriesDetailView: View {
         }
       }
     }
-    .inlineNavigationBarTitle(String(localized: "title.series"))
+    .inlineNavigationBarTitle(String(localized: "Series"))
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .automatic) {
+          seriesToolbarContent
+        }
+      }
+    #endif
     .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteSeries()
@@ -404,13 +410,6 @@ struct SeriesDetailView: View {
     } message: {
       Text("This will permanently delete \(series?.metadata.title ?? "this series") from Komga.")
     }
-    #if !os(tvOS)
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          seriesToolbarContent
-        }
-      }
-    #endif
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
         seriesIds: [seriesId],
@@ -435,7 +434,7 @@ struct SeriesDetailView: View {
       }
     }
     .task {
-      await loadSeriesDetails()
+      await refreshSeriesData()
     }
     .onGeometryChange(for: CGSize.self) { geometry in
       geometry.size
@@ -474,13 +473,7 @@ extension SeriesDetailView {
     }
   }
 
-  @MainActor
   private func refreshSeriesData() async {
-    await loadSeriesDetails()
-  }
-
-  @MainActor
-  private func loadSeriesDetails() async {
     do {
       // Sync from network to SwiftData (series property will update reactively)
       let previousLastModified = komgaSeries?.lastModified
@@ -621,10 +614,6 @@ extension SeriesDetailView {
         }
       }
     }
-  }
-
-  private func languageDisplayName(_ language: String) -> String {
-    LanguageCodeHelper.displayName(for: language)
   }
 
   private func formatDate(_ date: Date) -> String {

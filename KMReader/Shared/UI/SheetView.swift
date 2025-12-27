@@ -70,7 +70,7 @@ struct SheetView<Content: View, Controls: View>: View {
   var body: some View {
     NavigationStack {
       sheetContent()
-        .padding(PlatformHelper.sheetPadding)
+        .padding(applyFormStyle ? 0 : PlatformHelper.sheetPadding)
         .inlineTitleIfNeeded(title)
     }.applySheetSize(size)
   }

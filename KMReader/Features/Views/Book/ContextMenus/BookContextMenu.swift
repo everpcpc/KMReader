@@ -37,8 +37,14 @@ struct BookContextMenu: View {
   var body: some View {
     Group {
       ControlGroup {
-        NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
-          Label("Details", systemImage: "info.circle")
+        if komgaBook.oneshot {
+          NavigationLink(value: NavDestination.oneshotDetail(seriesId: book.seriesId)) {
+            Label("Details", systemImage: "info.circle")
+          }
+        } else {
+          NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
+            Label("Details", systemImage: "info.circle")
+          }
         }
 
         if let onReadBook = onReadBook {
@@ -49,7 +55,7 @@ struct BookContextMenu: View {
           }
         }
 
-        if showSeriesNavigation {
+        if showSeriesNavigation && !komgaBook.oneshot {
           NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
             Label("Series", systemImage: "book")
           }
