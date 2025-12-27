@@ -54,7 +54,7 @@ struct SettingsLogsView: View {
           }
         }
       } header: {
-        VStack {
+        VStack(alignment: .leading) {
           HStack {
             Menu {
               Picker("Time", selection: $selectedTimeRange) {
