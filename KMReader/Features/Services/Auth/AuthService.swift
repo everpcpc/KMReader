@@ -128,9 +128,9 @@ class AuthService {
     return user
   }
 
-  /// Get current user - bypasses offline check to allow connectivity verification
-  func getCurrentUser() async throws -> User {
-    return try await apiClient.request(path: "/api/v2/users/me", bypassOfflineCheck: true)
+  func getCurrentUser(timeout: TimeInterval? = nil) async throws -> User {
+    return try await apiClient.request(
+      path: "/api/v2/users/me", bypassOfflineCheck: true, timeout: timeout)
   }
 
   func getAuthenticationActivity(page: Int = 0, size: Int = 20) async throws -> Page<

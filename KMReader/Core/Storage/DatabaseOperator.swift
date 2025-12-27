@@ -48,7 +48,9 @@ actor DatabaseOperator {
         existing.mediaEpubIsKepub = dto.media.epubIsKepub
       }
       // Metadata fields
-      if existing.metaCreated != dto.metadata.created { existing.metaCreated = dto.metadata.created }
+      if existing.metaCreated != dto.metadata.created {
+        existing.metaCreated = dto.metadata.created
+      }
       if existing.metaLastModified != dto.metadata.lastModified {
         existing.metaLastModified = dto.metadata.lastModified
       }
@@ -56,7 +58,9 @@ actor DatabaseOperator {
       if existing.metaTitleLock != dto.metadata.titleLock {
         existing.metaTitleLock = dto.metadata.titleLock
       }
-      if existing.metaSummary != dto.metadata.summary { existing.metaSummary = dto.metadata.summary }
+      if existing.metaSummary != dto.metadata.summary {
+        existing.metaSummary = dto.metadata.summary
+      }
       if existing.metaSummaryLock != dto.metadata.summaryLock {
         existing.metaSummaryLock = dto.metadata.summaryLock
       }

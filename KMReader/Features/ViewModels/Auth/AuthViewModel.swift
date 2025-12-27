@@ -109,7 +109,8 @@ class AuthViewModel {
     isLoading = true
     defer { isLoading = false }
     do {
-      user = try await authService.getCurrentUser()
+      user = try await authService.getCurrentUser(timeout: 5)
+
       if let user = user {
         AppConfig.isAdmin = user.roles.contains("ADMIN")
       }

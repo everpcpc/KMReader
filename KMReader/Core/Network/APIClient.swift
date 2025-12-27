@@ -25,6 +25,7 @@ class APIClient {
       diskPath: "komga_cache"
     )
     configuration.requestCachePolicy = .useProtocolCachePolicy
+    configuration.timeoutIntervalForRequest = 10
     return URLSession(configuration: configuration)
   }()
 
@@ -217,7 +218,8 @@ class APIClient {
     method: String,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    timeout: TimeInterval? = nil
   ) throws -> URLRequest {
     guard var urlComponents = URLComponents(string: AppConfig.serverURL + path) else {
       throw APIError.invalidURL
@@ -542,7 +544,8 @@ class APIClient {
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
-    bypassOfflineCheck: Bool = false
+    bypassOfflineCheck: Bool = false,
+    timeout: TimeInterval? = nil
   ) async throws -> T {
     if !bypassOfflineCheck {
       try throwIfOffline()
