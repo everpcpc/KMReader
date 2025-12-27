@@ -535,6 +535,7 @@ struct BookDetailView: View {
 
     do {
       // Sync from network to SwiftData (book property will update reactively)
+      let previousLastModified = komgaBook?.lastModified
       let fetchedBook = try await SyncService.shared.syncBook(bookId: bookId)
       isLoading = false
       isLoadingRelations = true
@@ -542,7 +543,9 @@ struct BookDetailView: View {
       Task {
         await loadBookRelations(for: fetchedBook)
       }
-      reloadThumbnail()
+      if previousLastModified != fetchedBook.lastModified {
+        reloadThumbnail()
+      }
     } catch {
       if case APIError.notFound = error {
         dismiss()

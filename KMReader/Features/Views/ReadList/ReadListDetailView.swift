@@ -187,8 +187,11 @@ extension ReadListDetailView {
   private func loadReadListDetails() async {
     do {
       // Sync from network to SwiftData (readList property will update reactively)
-      _ = try await SyncService.shared.syncReadList(id: readListId)
-      reloadThumbnail()
+      let previousLastModified = komgaReadList?.lastModifiedDate
+      let fetchedReadList = try await SyncService.shared.syncReadList(id: readListId)
+      if previousLastModified != fetchedReadList.lastModifiedDate {
+        reloadThumbnail()
+      }
     } catch {
       if case APIError.notFound = error {
         dismiss()

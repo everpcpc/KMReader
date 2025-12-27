@@ -475,9 +475,12 @@ extension SeriesDetailView {
   private func loadSeriesDetails() async {
     do {
       // Sync from network to SwiftData (series property will update reactively)
+      let previousLastModified = komgaSeries?.lastModified
       let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await loadSeriesCollections(seriesId: fetchedSeries.id)
-      reloadThumbnail()
+      if previousLastModified != fetchedSeries.lastModified {
+        reloadThumbnail()
+      }
     } catch {
       if case APIError.notFound = error {
         dismiss()

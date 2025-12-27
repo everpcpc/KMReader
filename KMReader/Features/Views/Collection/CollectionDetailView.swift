@@ -179,8 +179,11 @@ extension CollectionDetailView {
   private func loadCollectionDetails() async {
     do {
       // Sync from network to SwiftData (collection property will update reactively)
-      _ = try await SyncService.shared.syncCollection(id: collectionId)
-      reloadThumbnail()
+      let previousLastModified = komgaCollection?.lastModifiedDate
+      let fetchedCollection = try await SyncService.shared.syncCollection(id: collectionId)
+      if previousLastModified != fetchedCollection.lastModifiedDate {
+        reloadThumbnail()
+      }
     } catch {
       if case APIError.notFound = error {
         dismiss()
