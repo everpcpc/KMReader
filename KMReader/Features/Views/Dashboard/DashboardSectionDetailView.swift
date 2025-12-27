@@ -23,11 +23,19 @@ struct DashboardSectionDetailView: View {
 
   @Environment(\.modelContext) private var modelContext
 
-  private let pageSize = 20
+  private let pageSize = 50
 
   var body: some View {
     GeometryReader { geometry in
       ScrollView {
+        Picker("Layout", selection: $browseLayout) {
+          ForEach(BrowseLayoutMode.allCases, id: \.self) { layout in
+            Image(systemName: layout.iconName)
+          }
+        }
+        .pickerStyle(.segmented)
+        .padding()
+
         contentView
           .padding(.horizontal, layoutHelper.spacing)
       }
@@ -35,19 +43,12 @@ struct DashboardSectionDetailView: View {
         updateLayoutHelper(width: newWidth)
       }
     }
+    .animation(.default, value: browseLayout)
     .inlineNavigationBarTitle(section.displayName)
-    .toolbar {
-      ToolbarItem(placement: .automatic) {
-        Button {
-          withAnimation {
-            browseLayout = browseLayout == .grid ? .list : .grid
-          }
-        } label: {
-          Image(systemName: browseLayout.iconName)
-        }
-      }
-    }
     .task {
+      await loadItems(refresh: true)
+    }
+    .refreshable {
       await loadItems(refresh: true)
     }
   }

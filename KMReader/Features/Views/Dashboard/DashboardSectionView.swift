@@ -76,7 +76,7 @@ struct DashboardSectionView: View {
       }
       .scrollClipDisabled()
     }
-    .padding(.vertical, 12)
+    .padding(.vertical, 16)
     .background {
       LinearGradient(
         colors: backgroundColors,
