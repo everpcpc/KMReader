@@ -10,6 +10,7 @@ import Foundation
 enum NavDestination: Hashable {
   case seriesDetail(seriesId: String)
   case bookDetail(bookId: String)
+  case oneshotDetail(seriesId: String)
   case collectionDetail(collectionId: String)
   case readListDetail(readListId: String)
   case dashboardSectionDetail(section: DashboardSection)

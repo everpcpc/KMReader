@@ -41,6 +41,8 @@ extension View {
           SeriesDetailView(seriesId: seriesId)
         case .bookDetail(let bookId):
           BookDetailView(bookId: bookId)
+        case .oneshotDetail(let seriesId):
+          OneshotDetailView(seriesId: seriesId)
         case .collectionDetail(let collectionId):
           CollectionDetailView(collectionId: collectionId)
         case .readListDetail(let readListId):

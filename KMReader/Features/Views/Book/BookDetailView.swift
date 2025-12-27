@@ -16,7 +16,6 @@ struct BookDetailView: View {
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @Environment(\.readerZoomNamespace) private var zoomNamespace
   @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   // SwiftData query for reactive download status
   @Query private var komgaBooks: [KomgaBook]
@@ -27,7 +26,6 @@ struct BookDetailView: View {
   @State private var showEditSheet = false
   @State private var bookReadLists: [ReadList] = []
   @State private var isLoadingRelations = false
-  @State private var showDownloadSheet = false
   @State private var thumbnailRefreshTrigger = 0
 
   init(bookId: String) {
@@ -42,14 +40,14 @@ struct BookDetailView: View {
     komgaBooks.first
   }
 
-  /// Download status from SwiftData (reactive, no manual refresh needed).
-  private var downloadStatus: DownloadStatus {
-    komgaBook?.downloadStatus ?? .notDownloaded
-  }
-
   /// Convert to API Book type for compatibility with existing components.
   private var book: Book? {
     komgaBook?.toBook()
+  }
+
+  /// Download status from SwiftData (reactive, no manual refresh needed).
+  private var downloadStatus: DownloadStatus {
+    komgaBook?.downloadStatus ?? .notDownloaded
   }
 
   private var progress: Double {
@@ -270,7 +268,7 @@ struct BookDetailView: View {
                 }
               }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical)
           }
 
           // book media info
@@ -372,7 +370,14 @@ struct BookDetailView: View {
       }
       .padding()
     }
-    .inlineNavigationBarTitle(String(localized: "title.book"))
+    .inlineNavigationBarTitle(String(localized: "Book"))
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .automatic) {
+          bookToolbarContent
+        }
+      }
+    #endif
     .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteBook()
@@ -381,13 +386,6 @@ struct BookDetailView: View {
     } message: {
       Text("This will permanently delete \(book?.metadata.title ?? "this book") from Komga.")
     }
-    #if !os(tvOS)
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          bookToolbarContent
-        }
-      }
-    #endif
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
         bookIds: [bookId],
@@ -410,14 +408,6 @@ struct BookDetailView: View {
               await loadBook()
             }
           }
-      }
-    }
-    .sheet(isPresented: $showDownloadSheet) {
-      if let book = book {
-        BookDownloadSheet(book: book)
-      } else {
-        ProgressView()
-          .platformSheetPresentation(detents: [.medium])
       }
     }
     .task {
@@ -632,8 +622,6 @@ struct BookDetailView: View {
         .disabled(!isAdmin)
 
         Divider()
-
-        // Note: Removed "Show Download Sheet" as we have a direct button now.
 
         Button {
           showReadListPicker = true

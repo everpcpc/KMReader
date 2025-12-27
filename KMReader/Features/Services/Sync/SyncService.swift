@@ -170,15 +170,15 @@ class SyncService {
     seriesId: String,
     page: Int,
     size: Int,
-    browseOpts: BookBrowseOptions,
-    libraryIds: [String]?
+    browseOpts: BookBrowseOptions? = nil,
+    libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
     let result = try await BookService.shared.getBooks(
       seriesId: seriesId,
       page: page,
       size: size,
-      browseOpts: browseOpts,
-      libraryIds: libraryIds
+      browseOpts: browseOpts ?? BookBrowseOptions(),
+      libraryIds: libraryIds ?? []
     )
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
