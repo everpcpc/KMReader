@@ -45,6 +45,7 @@ struct SeriesQueryView: View {
                 }
               }
             )
+            .padding(.bottom)
             .onAppear {
               if index >= viewModel.browseSeriesIds.count - 3 {
                 Task {

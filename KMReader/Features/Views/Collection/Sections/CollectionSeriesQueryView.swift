@@ -51,6 +51,7 @@ struct CollectionSeriesQueryView: View {
                   )
                 }
               }
+              .padding(.bottom)
               .onAppear {
                 if index >= seriesViewModel.browseSeriesIds.count - 3 {
                   Task { await loadMore(refresh: false) }

@@ -56,6 +56,7 @@ struct ReadListBooksQueryView: View {
                   )
                 }
               }
+              .padding(.bottom)
               .onAppear {
                 if index >= bookViewModel.browseBookIds.count - 3 {
                   Task { await loadMore(refresh: false) }

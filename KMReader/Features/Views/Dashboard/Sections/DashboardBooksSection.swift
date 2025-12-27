@@ -18,6 +18,7 @@ struct DashboardBooksSection: View {
   @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
     PlatformHelper.defaultDashboardCardWidth)
   @Environment(\.modelContext) private var modelContext
+  @Environment(\.colorScheme) private var colorScheme
 
   @State private var bookIds: [String] = []
   @State private var currentPage = 0
@@ -27,6 +28,22 @@ struct DashboardBooksSection: View {
 
   private let pageSize = 20
 
+  var backgroundColors: [Color] {
+    if colorScheme == .dark {
+      return [
+        Color.white.opacity(0.2),
+        Color.clear,
+        Color.clear,
+      ]
+    } else {
+      return [
+        Color.clear,
+        Color.clear,
+        Color.secondary.opacity(0.1),
+      ]
+    }
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(section.displayName)
@@ -35,7 +52,7 @@ struct DashboardBooksSection: View {
         .padding(.horizontal)
 
       ScrollView(.horizontal, showsIndicators: false) {
-        LazyHStack(alignment: .top, spacing: 12) {
+        LazyHStack(alignment: .top, spacing: 16) {
           ForEach(Array(bookIds.enumerated()), id: \.element) { index, bookId in
             BookQueryItemView(
               bookId: bookId,
@@ -57,6 +74,14 @@ struct DashboardBooksSection: View {
         .padding()
       }
       .scrollClipDisabled()
+    }
+    .padding(.vertical, 12)
+    .background {
+      LinearGradient(
+        colors: backgroundColors,
+        startPoint: .top,
+        endPoint: .bottom
+      )
     }
     .opacity(bookIds.isEmpty ? 0 : 1)
     .frame(height: bookIds.isEmpty ? 0 : nil)
