@@ -47,40 +47,38 @@ struct SeriesCardView: View {
             if komgaSeries.deleted {
               Text("Unavailable")
                 .foregroundColor(.red)
+            } else if komgaSeries.oneshot {
+              Text("Oneshot")
+                .foregroundColor(.blue)
             } else {
               Text("\(komgaSeries.booksCount) books")
-              if komgaSeries.oneshot {
-                Text("•")
-                Text("Oneshot")
-                  .foregroundColor(.blue)
-              }
-              if komgaSeries.downloadStatus != .notDownloaded {
-                Image(systemName: komgaSeries.downloadStatus.icon)
-                  .foregroundColor(komgaSeries.downloadStatus.color)
-              }
-              Spacer()
-              Menu {
-                SeriesContextMenu(
-                  komgaSeries: komgaSeries,
-                  onActionCompleted: onActionCompleted,
-                  onShowCollectionPicker: {
-                    showCollectionPicker = true
-                  },
-                  onDeleteRequested: {
-                    showDeleteConfirmation = true
-                  },
-                  onEditRequested: {
-                    showEditSheet = true
-                  }
-                )
-              } label: {
-                HStack {
-                  Image(systemName: "ellipsis")
-                    .padding(.horizontal, 4)
+            }
+            if komgaSeries.downloadStatus != .notDownloaded {
+              Image(systemName: komgaSeries.downloadStatus.icon)
+                .foregroundColor(komgaSeries.downloadStatus.color)
+            }
+            Spacer()
+            Menu {
+              SeriesContextMenu(
+                komgaSeries: komgaSeries,
+                onActionCompleted: onActionCompleted,
+                onShowCollectionPicker: {
+                  showCollectionPicker = true
+                },
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
                 }
-                .foregroundColor(.secondary)
-                .contentShape(Rectangle())
+              )
+            } label: {
+              HStack {
+                Image(systemName: "ellipsis")
+                  .padding(.horizontal, 4)
               }
+              .foregroundColor(.secondary)
+              .contentShape(Rectangle())
             }
           }.foregroundColor(.secondary)
         }.font(.footnote)

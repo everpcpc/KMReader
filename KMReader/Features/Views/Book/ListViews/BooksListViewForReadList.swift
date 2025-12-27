@@ -120,7 +120,7 @@ struct BooksListViewForReadList: View {
             selectedBookIds.removeAll()
           }
         )
-      .padding(.horizontal)
+        .padding(.horizontal)
       }
 
       if readList?.bookIds != nil {

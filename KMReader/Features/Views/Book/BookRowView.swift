@@ -35,8 +35,15 @@ struct BookRowView: View {
     showSeriesTitle && !komgaBook.seriesTitle.isEmpty
   }
 
+  var bookTitleLine: String {
+    if komgaBook.oneshot {
+      return komgaBook.metaTitle
+    }
+    return String("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+  }
+
   var bookTitleLineLimit: Int {
-    shouldShowSeriesTitle ? 1 : 2
+    shouldShowSeriesTitle && !komgaBook.oneshot ? 1 : 2
   }
 
   var body: some View {
@@ -55,7 +62,11 @@ struct BookRowView: View {
           onReadBook?(false)
         } label: {
           VStack(alignment: .leading, spacing: 4) {
-            if shouldShowSeriesTitle {
+            if komgaBook.oneshot {
+              Text("Oneshot")
+                .font(.footnote)
+                .foregroundColor(.blue)
+            } else if shouldShowSeriesTitle {
               Text(komgaBook.seriesTitle)
                 .font(.footnote)
                 .foregroundColor(.secondary)
@@ -104,11 +115,6 @@ struct BookRowView: View {
                 Text("•").foregroundColor(.secondary)
                 Label(komgaBook.size, systemImage: "doc")
                   .foregroundColor(.secondary)
-                if komgaBook.oneshot {
-                  Text("•")
-                  Text("Oneshot")
-                    .foregroundColor(.blue)
-                }
               }
             }.font(.footnote)
           }

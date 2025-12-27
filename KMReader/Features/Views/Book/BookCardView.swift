@@ -36,9 +36,6 @@ struct BookCardView: View {
   }
 
   var shouldShowSeriesTitle: Bool {
-    if komgaBook.oneshot {
-      return false
-    }
     return showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
   }
 
@@ -50,7 +47,7 @@ struct BookCardView: View {
   }
 
   var bookTitleLineLimit: Int {
-    shouldShowSeriesTitle ? 1 : 2
+    shouldShowSeriesTitle && !komgaBook.oneshot ? 1 : 2
   }
 
   var pagesText: String {
@@ -84,11 +81,18 @@ struct BookCardView: View {
 
       if !coverOnlyCards {
         VStack(alignment: .leading) {
-          if shouldShowSeriesTitle {
+          if komgaBook.oneshot {
+            Text("Oneshot")
+              .font(.caption)
+              .foregroundColor(.blue)
+              .lineLimit(1)
+          } else if shouldShowSeriesTitle {
             Text(komgaBook.seriesTitle)
+              .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(1)
           }
+
           Text(bookTitleLine)
             .lineLimit(bookTitleLineLimit)
 
@@ -99,40 +103,35 @@ struct BookCardView: View {
             } else {
               Text("\(pagesText) • \(komgaBook.size)")
                 .lineLimit(1)
-              if komgaBook.oneshot {
-                Text("•")
-                Text("Oneshot")
-                  .foregroundColor(.blue)
+            }
+            Spacer()
+            if komgaBook.downloadStatus != .notDownloaded {
+              Image(systemName: komgaBook.downloadStatus.displayIcon)
+                .foregroundColor(komgaBook.downloadStatus.displayColor)
+            }
+            Menu {
+              BookContextMenu(
+                komgaBook: komgaBook,
+                viewModel: viewModel,
+                onReadBook: onReadBook,
+                onActionCompleted: onBookUpdated,
+                onShowReadListPicker: {
+                  showReadListPicker = true
+                },
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                },
+                showSeriesNavigation: showSeriesNavigation
+              )
+            } label: {
+              HStack {
+                Image(systemName: "ellipsis")
               }
-              Spacer()
-              if komgaBook.downloadStatus != .notDownloaded {
-                Image(systemName: komgaBook.downloadStatus.displayIcon)
-                  .foregroundColor(komgaBook.downloadStatus.displayColor)
-              }
-              Menu {
-                BookContextMenu(
-                  komgaBook: komgaBook,
-                  viewModel: viewModel,
-                  onReadBook: onReadBook,
-                  onActionCompleted: onBookUpdated,
-                  onShowReadListPicker: {
-                    showReadListPicker = true
-                  },
-                  onDeleteRequested: {
-                    showDeleteConfirmation = true
-                  },
-                  onEditRequested: {
-                    showEditSheet = true
-                  },
-                  showSeriesNavigation: showSeriesNavigation
-                )
-              } label: {
-                HStack {
-                  Image(systemName: "ellipsis")
-                }
-                .foregroundColor(.secondary)
-                .contentShape(Rectangle())
-              }
+              .foregroundColor(.secondary)
+              .contentShape(Rectangle())
             }
           }.foregroundColor(.secondary)
         }.font(.footnote)

@@ -53,6 +53,15 @@ struct SeriesRowView: View {
               if komgaSeries.deleted {
                 Text("Unavailable")
                   .foregroundColor(.red)
+              } else if komgaSeries.oneshot {
+                Text("Oneshot")
+                  .foregroundColor(.blue)
+                if komgaSeries.booksReadCount > 0 {
+                  Text("•")
+                    .foregroundColor(.secondary)
+                  Label("readStatus.read", systemImage: "checkmark.circle.fill")
+                    .foregroundColor(seriesDto.readStatusColor)
+                }
               } else {
                 HStack {
                   Label("\(komgaSeries.booksCount) books", systemImage: "book")
@@ -65,11 +74,6 @@ struct SeriesRowView: View {
                   } else {
                     Label("All read", systemImage: "checkmark.circle.fill")
                       .foregroundColor(seriesDto.readStatusColor)
-                  }
-                  if komgaSeries.oneshot {
-                    Text("•")
-                    Text("Oneshot")
-                      .foregroundColor(.blue)
                   }
                 }
               }
