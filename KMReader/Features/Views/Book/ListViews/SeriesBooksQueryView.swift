@@ -37,6 +37,7 @@ struct SeriesBooksQueryView: View {
                 showSeriesTitle: false,
                 showSeriesNavigation: false
               )
+              .padding(.bottom)
               .onAppear {
                 if index >= bookViewModel.browseBookIds.count - 3 {
                   Task { await loadMore(false) }

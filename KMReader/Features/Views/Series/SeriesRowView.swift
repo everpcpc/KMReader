@@ -81,7 +81,6 @@ struct SeriesRowView: View {
           if komgaSeries.downloadStatus != .notDownloaded {
             Image(systemName: komgaSeries.downloadStatus.icon)
               .foregroundColor(komgaSeries.downloadStatus.color)
-              .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
           }
           Menu {
             SeriesContextMenu(
@@ -98,10 +97,14 @@ struct SeriesRowView: View {
               }
             )
           } label: {
-            Image(systemName: "ellipsis")
-              .foregroundColor(.secondary)
+            HStack {
+              Image(systemName: "ellipsis")
+                .padding(.horizontal, 4)
+            }
+            .foregroundColor(.secondary)
+            .contentShape(Rectangle())
           }
-        }.padding(.trailing)
+        }
       }
     }
     .adaptiveButtonStyle(.plain)

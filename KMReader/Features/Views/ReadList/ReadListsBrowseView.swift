@@ -52,6 +52,7 @@ struct ReadListsBrowseView: View {
                   }
                 }
               )
+              .padding(.bottom)
               .onAppear {
                 if index >= viewModel.readListIds.count - 3 {
                   Task {

@@ -52,6 +52,7 @@ struct CollectionsBrowseView: View {
                   }
                 }
               )
+              .padding(.bottom)
               .onAppear {
                 if index >= viewModel.collectionIds.count - 3 {
                   Task {

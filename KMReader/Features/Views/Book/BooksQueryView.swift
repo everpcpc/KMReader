@@ -46,6 +46,7 @@ struct BooksQueryView: View {
                 }
               }
             )
+            .padding(.bottom)
             .onAppear {
               if index >= viewModel.browseBookIds.count - 3 {
                 Task {

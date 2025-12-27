@@ -59,10 +59,14 @@ struct CollectionRowView: View {
               }
             )
           } label: {
-            Image(systemName: "ellipsis")
-              .foregroundColor(.secondary)
+            HStack {
+              Image(systemName: "ellipsis")
+                .padding(.horizontal, 4)
+            }
+            .foregroundColor(.secondary)
+            .contentShape(Rectangle())
           }
-        }.padding(.trailing)
+        }
       }
     }
     .adaptiveButtonStyle(.plain)
