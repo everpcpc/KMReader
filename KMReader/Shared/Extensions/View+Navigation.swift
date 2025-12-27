@@ -45,6 +45,8 @@ extension View {
           CollectionDetailView(collectionId: collectionId)
         case .readListDetail(let readListId):
           ReadListDetailView(readListId: readListId)
+        case .dashboardSectionDetail(let section):
+          DashboardSectionDetailView(section: section)
 
         #if !os(macOS)
           case .settingsAppearance:

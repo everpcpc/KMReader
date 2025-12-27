@@ -12,6 +12,7 @@ enum NavDestination: Hashable {
   case bookDetail(bookId: String)
   case collectionDetail(collectionId: String)
   case readListDetail(readListId: String)
+  case dashboardSectionDetail(section: DashboardSection)
 
   case settingsAppearance
   case settingsDashboard

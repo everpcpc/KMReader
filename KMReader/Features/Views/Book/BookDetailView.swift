@@ -264,9 +264,7 @@ struct BookDetailView: View {
 
               VStack(alignment: .leading, spacing: 8) {
                 ForEach(bookReadLists) { readList in
-                  NavigationLink {
-                    ReadListDetailView(readListId: readList.id)
-                  } label: {
+                  NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
                     HStack {
                       Label(readList.name, systemImage: "list.bullet")
                       Spacer()

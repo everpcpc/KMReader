@@ -272,9 +272,7 @@ struct SeriesDetailView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                   ForEach(containingCollections) { collection in
-                    NavigationLink {
-                      CollectionDetailView(collectionId: collection.id)
-                    } label: {
+                    NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
                       HStack {
                         Label(collection.name, systemImage: "square.grid.2x2")
                           .foregroundColor(.primary)

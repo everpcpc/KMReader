@@ -46,9 +46,7 @@ struct DashboardSectionView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      NavigationLink {
-        DashboardSectionDetailView(section: section)
-      } label: {
+      NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
         HStack {
           Text(section.displayName)
             .font(.title3)
