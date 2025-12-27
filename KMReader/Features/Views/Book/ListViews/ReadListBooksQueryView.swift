@@ -32,7 +32,8 @@ struct ReadListBooksQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) {
+              index, bookId in
               Group {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(
@@ -65,7 +66,8 @@ struct ReadListBooksQueryView: View {
           .padding(layoutHelper.spacing)
         case .list:
           LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) {
+              index, bookId in
               Group {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(

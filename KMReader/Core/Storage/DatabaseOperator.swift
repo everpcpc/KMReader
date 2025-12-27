@@ -174,9 +174,15 @@ actor DatabaseOperator {
       if existing.url != dto.url { existing.url = dto.url }
       if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
       if existing.booksCount != dto.booksCount { existing.booksCount = dto.booksCount }
-      if existing.booksReadCount != dto.booksReadCount { existing.booksReadCount = dto.booksReadCount }
-      if existing.booksUnreadCount != dto.booksUnreadCount { existing.booksUnreadCount = dto.booksUnreadCount }
-      if existing.booksInProgressCount != dto.booksInProgressCount { existing.booksInProgressCount = dto.booksInProgressCount }
+      if existing.booksReadCount != dto.booksReadCount {
+        existing.booksReadCount = dto.booksReadCount
+      }
+      if existing.booksUnreadCount != dto.booksUnreadCount {
+        existing.booksUnreadCount = dto.booksUnreadCount
+      }
+      if existing.booksInProgressCount != dto.booksInProgressCount {
+        existing.booksInProgressCount = dto.booksInProgressCount
+      }
       // Use lastModified to detect changes in complex types
       if existing.lastModified != dto.lastModified {
         existing.metadata = dto.metadata
@@ -234,7 +240,9 @@ actor DatabaseOperator {
       if existing.name != dto.name { existing.name = dto.name }
       if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
       if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
-      if existing.lastModifiedDate != dto.lastModifiedDate { existing.lastModifiedDate = dto.lastModifiedDate }
+      if existing.lastModifiedDate != dto.lastModifiedDate {
+        existing.lastModifiedDate = dto.lastModifiedDate
+      }
       if existing.seriesIds != dto.seriesIds { existing.seriesIds = dto.seriesIds }
     } else {
       let newCollection = KomgaCollection(
@@ -276,7 +284,9 @@ actor DatabaseOperator {
       if existing.summary != dto.summary { existing.summary = dto.summary }
       if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
       if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
-      if existing.lastModifiedDate != dto.lastModifiedDate { existing.lastModifiedDate = dto.lastModifiedDate }
+      if existing.lastModifiedDate != dto.lastModifiedDate {
+        existing.lastModifiedDate = dto.lastModifiedDate
+      }
       if existing.bookIds != dto.bookIds { existing.bookIds = dto.bookIds }
     } else {
       let newReadList = KomgaReadList(
@@ -660,7 +670,9 @@ actor DatabaseOperator {
       if existing.booksCount != booksCount { existing.booksCount = booksCount }
       if existing.seriesCount != seriesCount { existing.seriesCount = seriesCount }
       if existing.sidecarsCount != sidecarsCount { existing.sidecarsCount = sidecarsCount }
-      if existing.collectionsCount != collectionsCount { existing.collectionsCount = collectionsCount }
+      if existing.collectionsCount != collectionsCount {
+        existing.collectionsCount = collectionsCount
+      }
       if existing.readlistsCount != readlistsCount { existing.readlistsCount = readlistsCount }
     } else {
       let allLibrariesEntry = KomgaLibrary(

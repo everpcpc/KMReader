@@ -45,7 +45,8 @@ struct CollectionQueryItemView: View {
 
   var body: some View {
     if let collection = komgaCollection {
-      NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.collectionId)) {
+      NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.collectionId))
+      {
         switch layout {
         case .grid:
           CollectionCardView(

@@ -15,45 +15,43 @@ struct ReadListRowView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    CardView {
-      HStack(spacing: 12) {
-        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 60)
+    HStack(spacing: 12) {
+      ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 60)
 
-        VStack(alignment: .leading, spacing: 6) {
-          Text(komgaReadList.name)
-            .font(.callout)
+      VStack(alignment: .leading, spacing: 6) {
+        Text(komgaReadList.name)
+          .font(.callout)
 
-          Label {
-            Text("\(komgaReadList.bookIds.count) book")
-          } icon: {
-            Image(systemName: "book")
-          }
-          .font(.footnote)
-          .foregroundColor(.secondary)
+        Label {
+          Text("\(komgaReadList.bookIds.count) book")
+        } icon: {
+          Image(systemName: "book")
+        }
+        .font(.footnote)
+        .foregroundColor(.secondary)
 
-          Label {
-            Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-          } icon: {
-            Image(systemName: "clock")
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
+        Label {
+          Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+        } icon: {
+          Image(systemName: "clock")
+        }
+        .font(.caption)
+        .foregroundColor(.secondary)
 
-          if !komgaReadList.summary.isEmpty {
-            Text(komgaReadList.summary)
-              .font(.caption)
-              .foregroundColor(.secondary)
-              .lineLimit(2)
-          }
-
+        if !komgaReadList.summary.isEmpty {
+          Text(komgaReadList.summary)
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .lineLimit(2)
         }
 
-        Spacer()
-
-        Image(systemName: "chevron.right")
-          .foregroundColor(.secondary)
-          .padding(.trailing)
       }
+
+      Spacer()
+
+      Image(systemName: "chevron.right")
+        .foregroundColor(.secondary)
+        .padding(.trailing)
     }
     .adaptiveButtonStyle(.plain)
     .contentShape(Rectangle())

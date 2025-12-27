@@ -21,68 +21,66 @@ struct SeriesRowView: View {
   }
 
   var body: some View {
-    CardView {
-      HStack(spacing: 12) {
-        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: 80)
+    HStack(spacing: 12) {
+      ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: 80)
 
-        VStack(alignment: .leading, spacing: 6) {
-          Text(komgaSeries.metaTitle)
-            .font(.callout)
-            .lineLimit(2)
+      VStack(alignment: .leading, spacing: 6) {
+        Text(komgaSeries.metaTitle)
+          .font(.callout)
+          .lineLimit(2)
 
-          Label(seriesDto.statusDisplayName, systemImage: seriesDto.statusIcon)
-            .font(.footnote)
-            .foregroundColor(seriesDto.statusColor)
+        Label(seriesDto.statusDisplayName, systemImage: seriesDto.statusIcon)
+          .font(.footnote)
+          .foregroundColor(seriesDto.statusColor)
 
-          Group {
-            if komgaSeries.deleted {
-              Text("Unavailable")
-                .foregroundColor(.red)
-            } else {
-              HStack {
-                if komgaSeries.booksUnreadCount > 0 {
-                  Label("\(komgaSeries.booksUnreadCount) unread", systemImage: "circlebadge")
-                    .foregroundColor(seriesDto.readStatusColor)
-                } else {
-                  Label("All read", systemImage: "checkmark.circle.fill")
-                    .foregroundColor(seriesDto.readStatusColor)
-                }
+        Group {
+          if komgaSeries.deleted {
+            Text("Unavailable")
+              .foregroundColor(.red)
+          } else {
+            HStack {
+              if komgaSeries.booksUnreadCount > 0 {
+                Label("\(komgaSeries.booksUnreadCount) unread", systemImage: "circlebadge")
+                  .foregroundColor(seriesDto.readStatusColor)
+              } else {
+                Label("All read", systemImage: "checkmark.circle.fill")
+                  .foregroundColor(seriesDto.readStatusColor)
+              }
+              Text("•")
+                .foregroundColor(.secondary)
+              Label("\(komgaSeries.booksCount) books", systemImage: "book")
+                .foregroundColor(.secondary)
+              if komgaSeries.oneshot {
                 Text("•")
-                  .foregroundColor(.secondary)
-                Label("\(komgaSeries.booksCount) books", systemImage: "book")
-                  .foregroundColor(.secondary)
-                if komgaSeries.oneshot {
-                  Text("•")
-                  Text("Oneshot")
-                    .foregroundColor(.blue)
-                }
-                if komgaSeries.downloadStatus != .notDownloaded {
-                  Text("•")
-                  Image(systemName: komgaSeries.downloadStatus.icon)
-                    .foregroundColor(komgaSeries.downloadStatus.color)
-                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                }
+                Text("Oneshot")
+                  .foregroundColor(.blue)
+              }
+              if komgaSeries.downloadStatus != .notDownloaded {
+                Text("•")
+                Image(systemName: komgaSeries.downloadStatus.icon)
+                  .foregroundColor(komgaSeries.downloadStatus.color)
+                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
               }
             }
-          }.font(.caption)
-
-          if let releaseDate = komgaSeries.booksMetaReleaseDate {
-            Label("Release: \(releaseDate)", systemImage: "calendar")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          } else {
-            Label("Last Updated: \(seriesDto.lastUpdatedDisplay)", systemImage: "clock")
-              .font(.caption)
-              .foregroundColor(.secondary)
           }
+        }.font(.caption)
+
+        if let releaseDate = komgaSeries.booksMetaReleaseDate {
+          Label("Release: \(releaseDate)", systemImage: "calendar")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        } else {
+          Label("Last Updated: \(seriesDto.lastUpdatedDisplay)", systemImage: "clock")
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
-
-        Spacer()
-
-        Image(systemName: "chevron.right")
-          .foregroundColor(.secondary)
-          .padding(.trailing)
       }
+
+      Spacer()
+
+      Image(systemName: "chevron.right")
+        .foregroundColor(.secondary)
+        .padding(.trailing)
     }
     .adaptiveButtonStyle(.plain)
     .contentShape(Rectangle())

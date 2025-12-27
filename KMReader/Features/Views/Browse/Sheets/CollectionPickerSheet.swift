@@ -45,7 +45,8 @@ struct CollectionPickerSheet: View {
 
   private var collections: [SeriesCollection] {
     let ids = Set(collectionViewModel.collectionIds)
-    return komgaCollections
+    return
+      komgaCollections
       .filter { ids.contains($0.collectionId) }
       .map { $0.toCollection() }
   }

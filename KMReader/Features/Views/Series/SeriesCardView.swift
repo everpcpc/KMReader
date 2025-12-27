@@ -20,48 +20,46 @@ struct SeriesCardView: View {
   @State private var showEditSheet = false
 
   var body: some View {
-    CardView {
-      VStack(alignment: .leading, spacing: 6) {
-        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 8) {
-          ZStack {
-            if komgaSeries.booksUnreadCount > 0 {
-              VStack(alignment: .trailing) {
-                UnreadCountBadge(count: komgaSeries.booksUnreadCount)
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-              }
+    VStack(alignment: .leading, spacing: 6) {
+      ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth) {
+        ZStack {
+          if komgaSeries.booksUnreadCount > 0 {
+            VStack(alignment: .trailing) {
+              UnreadCountBadge(count: komgaSeries.booksUnreadCount)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
         }
+      }
 
-        if !coverOnlyCards {
-          VStack(alignment: .leading, spacing: 2) {
-            Text(komgaSeries.metaTitle)
-              .font(.caption)
-              .foregroundColor(.primary)
-              .lineLimit(1)
-            Group {
-              if komgaSeries.deleted {
-                Text("Unavailable")
-                  .foregroundColor(.red)
-              } else {
-                HStack(spacing: 4) {
-                  Text("\(komgaSeries.booksCount) books")
-                  if komgaSeries.oneshot {
-                    Text("•")
-                    Text("Oneshot")
-                      .foregroundColor(.blue)
-                  }
-                  if komgaSeries.downloadStatus != .notDownloaded {
-                    Image(systemName: komgaSeries.downloadStatus.icon)
-                      .foregroundColor(komgaSeries.downloadStatus.color)
-                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                      .padding(.horizontal, 4)
-                  }
+      if !coverOnlyCards {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(komgaSeries.metaTitle)
+            .font(.caption)
+            .foregroundColor(.primary)
+            .lineLimit(1)
+          Group {
+            if komgaSeries.deleted {
+              Text("Unavailable")
+                .foregroundColor(.red)
+            } else {
+              HStack(spacing: 4) {
+                Text("\(komgaSeries.booksCount) books")
+                if komgaSeries.oneshot {
+                  Text("•")
+                  Text("Oneshot")
+                    .foregroundColor(.blue)
                 }
-                .foregroundColor(.secondary)
+                if komgaSeries.downloadStatus != .notDownloaded {
+                  Image(systemName: komgaSeries.downloadStatus.icon)
+                    .foregroundColor(komgaSeries.downloadStatus.color)
+                    .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                    .padding(.horizontal, 4)
+                }
               }
-            }.font(.caption2)
-          }
+              .foregroundColor(.secondary)
+            }
+          }.font(.caption2)
         }
       }
     }

@@ -22,25 +22,23 @@ struct ReadListCardView: View {
   }
 
   var body: some View {
-    CardView {
-      VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: width - 8)
+    VStack(alignment: .leading, spacing: 8) {
+      ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: width)
 
-        if !coverOnlyCards {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(komgaReadList.name)
-              .lineLimit(1)
+      if !coverOnlyCards {
+        VStack(alignment: .leading, spacing: 4) {
+          Text(komgaReadList.name)
+            .lineLimit(1)
 
-            Text(bookCountText)
+          Text(bookCountText)
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+          if !komgaReadList.summary.isEmpty {
+            Text(komgaReadList.summary)
               .font(.caption)
               .foregroundColor(.secondary)
-
-            if !komgaReadList.summary.isEmpty {
-              Text(komgaReadList.summary)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-            }
+              .lineLimit(2)
           }
         }
       }

@@ -17,23 +17,21 @@ struct CollectionCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    CardView {
-      VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: width - 8)
+    VStack(alignment: .leading, spacing: 8) {
+      ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: width)
 
-        if !coverOnlyCards {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(komgaCollection.name)
-              .lineLimit(1)
+      if !coverOnlyCards {
+        VStack(alignment: .leading, spacing: 4) {
+          Text(komgaCollection.name)
+            .lineLimit(1)
 
-            Text("\(komgaCollection.seriesIds.count) series")
-              .font(.caption)
-              .foregroundColor(.secondary)
+          Text("\(komgaCollection.seriesIds.count) series")
+            .font(.caption)
+            .foregroundColor(.secondary)
 
-            Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
+          Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
       }
     }

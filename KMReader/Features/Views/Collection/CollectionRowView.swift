@@ -15,42 +15,40 @@ struct CollectionRowView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    CardView {
-      HStack(spacing: 12) {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
+    HStack(spacing: 12) {
+      ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
 
-        VStack(alignment: .leading, spacing: 6) {
-          Text(komgaCollection.name)
-            .font(.callout)
-          Text("\(komgaCollection.seriesIds.count) series")
-            .font(.footnote)
-            .foregroundColor(.secondary)
-
-          HStack(spacing: 12) {
-            Label {
-              Text(komgaCollection.createdDate.formatted(date: .abbreviated, time: .omitted))
-            } icon: {
-              Image(systemName: "calendar")
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-            Label {
-              Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-            } icon: {
-              Image(systemName: "clock")
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-          }
-        }
-
-        Spacer()
-
-        Image(systemName: "chevron.right")
+      VStack(alignment: .leading, spacing: 6) {
+        Text(komgaCollection.name)
+          .font(.callout)
+        Text("\(komgaCollection.seriesIds.count) series")
+          .font(.footnote)
           .foregroundColor(.secondary)
-          .padding(.trailing)
+
+        HStack(spacing: 12) {
+          Label {
+            Text(komgaCollection.createdDate.formatted(date: .abbreviated, time: .omitted))
+          } icon: {
+            Image(systemName: "calendar")
+          }
+          .font(.caption)
+          .foregroundColor(.secondary)
+
+          Label {
+            Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
+          } icon: {
+            Image(systemName: "clock")
+          }
+          .font(.caption)
+          .foregroundColor(.secondary)
+        }
       }
+
+      Spacer()
+
+      Image(systemName: "chevron.right")
+        .foregroundColor(.secondary)
+        .padding(.trailing)
     }
     .adaptiveButtonStyle(.plain)
     .contentShape(Rectangle())

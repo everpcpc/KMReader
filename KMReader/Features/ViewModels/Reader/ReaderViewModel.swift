@@ -286,7 +286,6 @@ class ReaderViewModel {
     }
   }
 
-
   /// Update reading progress on the server
   /// Uses API page number (1-based) instead of array index (0-based)
   /// Skip update if incognito mode is enabled
