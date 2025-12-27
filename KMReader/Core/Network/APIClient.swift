@@ -457,9 +457,12 @@ class APIClient {
           // Retry on server errors if we haven't exceeded the max retry count
           // and it's not a cancellation error
           if retryCount < AppConfig.apiRetryCount {
-             logger.warning("⚠️ Server error, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(httpResponse.statusCode)")
-             try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1s before retry
-             return try await executeRequest(request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
+            logger.warning(
+              "⚠️ Server error, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(httpResponse.statusCode)"
+            )
+            try? await Task.sleep(nanoseconds: 1_000_000_000)  // Wait 1s before retry
+            return try await executeRequest(
+              request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
           }
 
           logger.error("❌ Server Error \(httpResponse.statusCode): \(errorMessage)")
@@ -490,9 +493,12 @@ class APIClient {
       // Retry on network errors if we haven't exceeded the max retry count
       // and it's not a cancellation error
       if retryCount < AppConfig.apiRetryCount && !(error is CancellationError) {
-        logger.warning("⚠️ Request failed, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(error.localizedDescription)")
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1s before retry
-        return try await executeRequest(request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
+        logger.warning(
+          "⚠️ Request failed, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(error.localizedDescription)"
+        )
+        try? await Task.sleep(nanoseconds: 1_000_000_000)  // Wait 1s before retry
+        return try await executeRequest(
+          request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
       }
 
       logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")

@@ -44,7 +44,9 @@ struct SettingsNetworkView: View {
         VStack(alignment: .leading, spacing: 8) {
           #if os(tvOS)
             HStack {
-              Label(String(localized: "settings.network.api_retry_count.label"), systemImage: "arrow.counterclockwise")
+              Label(
+                String(localized: "settings.network.api_retry_count.label"),
+                systemImage: "arrow.counterclockwise")
               Spacer()
               Text("\(apiRetryCount)")
                 .foregroundStyle(.secondary)
@@ -52,7 +54,9 @@ struct SettingsNetworkView: View {
           #else
             Stepper(value: $apiRetryCount, in: 0...5) {
               HStack {
-                Label(String(localized: "settings.network.api_retry_count.label"), systemImage: "arrow.counterclockwise")
+                Label(
+                  String(localized: "settings.network.api_retry_count.label"),
+                  systemImage: "arrow.counterclockwise")
                 Spacer()
                 Text("\(apiRetryCount)")
                   .foregroundStyle(.secondary)
