@@ -63,18 +63,18 @@ class BookViewModel {
         context: context,
         seriesId: seriesId,
         page: currentPage,
-        size: 50,
+        size: pageSize,
         browseOpts: browseOpts
       )
       guard loadID == currentLoadID else { return }
       let ids = books.map { $0.id }
-      updateState(ids: ids, moreAvailable: ids.count == 50)
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncBooks(
           seriesId: seriesId,
           page: currentPage,
-          size: 50,
+          size: pageSize,
           browseOpts: browseOpts,
           libraryIds: libraryIds
         )
@@ -263,18 +263,18 @@ class BookViewModel {
         context: context,
         readListId: readListId,
         page: currentPage,
-        size: 50,
+        size: pageSize,
         browseOpts: browseOpts
       )
       guard loadID == currentLoadID else { return }
       let ids = books.map { $0.id }
-      updateState(ids: ids, moreAvailable: ids.count == 50)
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncReadListBooks(
           readListId: readListId,
           page: currentPage,
-          size: 50,
+          size: pageSize,
           browseOpts: browseOpts,
           libraryIds: libraryIds
         )

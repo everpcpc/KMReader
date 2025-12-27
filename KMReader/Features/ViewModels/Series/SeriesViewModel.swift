@@ -153,18 +153,18 @@ class SeriesViewModel {
         context: context,
         collectionId: collectionId,
         page: currentPage,
-        size: 20,
+        size: pageSize,
         browseOpts: browseOpts
       )
       guard loadID == currentLoadID else { return }
       let ids = series.map { $0.id }
-      updateState(ids: ids, moreAvailable: ids.count == 20)
+      updateState(ids: ids, moreAvailable: ids.count == pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncCollectionSeries(
           collectionId: collectionId,
           page: currentPage,
-          size: 20,
+          size: pageSize,
           browseOpts: browseOpts,
           libraryIds: libraryIds
         )
