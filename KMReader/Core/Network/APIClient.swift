@@ -21,11 +21,10 @@ class APIClient {
     // Enable disk cache
     configuration.urlCache = URLCache(
       memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
-      diskCapacity: 500 * 1024 * 1024,  // 500MB disk cache
+      diskCapacity: 200 * 1024 * 1024,  // 200MB disk cache
       diskPath: "komga_cache"
     )
     configuration.requestCachePolicy = .useProtocolCachePolicy
-    configuration.timeoutIntervalForRequest = 10
     return URLSession(configuration: configuration)
   }()
 
@@ -455,6 +454,14 @@ class APIClient {
           throw APIError.tooManyRequests(
             message: errorMessage, url: urlString, response: responseBody)
         case 500...599:
+          // Retry on server errors if we haven't exceeded the max retry count
+          // and it's not a cancellation error
+          if retryCount < AppConfig.apiRetryCount {
+             logger.warning("⚠️ Server error, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(httpResponse.statusCode)")
+             try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1s before retry
+             return try await executeRequest(request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
+          }
+
           logger.error("❌ Server Error \(httpResponse.statusCode): \(errorMessage)")
           throw APIError.serverError(
             code: httpResponse.statusCode, message: errorMessage, url: urlString,
@@ -480,6 +487,14 @@ class APIClient {
       handleNetworkError(nsError)
       throw APIError.networkError(appError, url: urlString)
     } catch {
+      // Retry on network errors if we haven't exceeded the max retry count
+      // and it's not a cancellation error
+      if retryCount < AppConfig.apiRetryCount && !(error is CancellationError) {
+        logger.warning("⚠️ Request failed, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(error.localizedDescription)")
+        try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1s before retry
+        return try await executeRequest(request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
+      }
+
       logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")
       handleNetworkError(error)
       throw APIError.networkError(error, url: urlString)

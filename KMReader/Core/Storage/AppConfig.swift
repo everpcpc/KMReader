@@ -16,6 +16,26 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "serverURL") }
   }
 
+  static var apiTimeout: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "apiTimeout") != nil {
+        return UserDefaults.standard.double(forKey: "apiTimeout")
+      }
+      return 10.0
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "apiTimeout") }
+  }
+
+  static var apiRetryCount: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "apiRetryCount") != nil {
+        return UserDefaults.standard.integer(forKey: "apiRetryCount")
+      }
+      return 0
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "apiRetryCount") }
+  }
+
   static var serverDisplayName: String {
     get { UserDefaults.standard.string(forKey: "serverDisplayName") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "serverDisplayName") }

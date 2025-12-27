@@ -14,6 +14,7 @@ enum SettingsSection: String, CaseIterable {
   case reader
   case sse
   case logs
+  case network
 
   case offlineTasks
   case offlineBooks
@@ -40,6 +41,8 @@ enum SettingsSection: String, CaseIterable {
       return "antenna.radiowaves.left.and.right"
     case .logs:
       return "doc.text.magnifyingglass"
+    case .network:
+      return "network"
 
     case .offlineTasks:
       return "tray.and.arrow.down"
@@ -77,6 +80,8 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Real-time Updates")
     case .logs:
       return String(localized: "Logs")
+    case .network:
+      return String(localized: "Network")
 
     case .offlineTasks:
       return String(localized: "Download Tasks")

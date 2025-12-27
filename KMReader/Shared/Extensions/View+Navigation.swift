@@ -61,6 +61,8 @@ extension View {
             SettingsSSEView()
           case .settingsLogs:
             SettingsLogsView()
+          case .settingsNetwork:
+            SettingsNetworkView()
 
           case .settingsOfflineTasks:
             SettingsOfflineTasksView()
@@ -88,6 +90,7 @@ extension View {
             .settingsReader,
             .settingsSSE,
             .settingsLogs,
+            .settingsNetwork,
 
             .settingsOfflineTasks,
             .settingsOfflineBooks,
