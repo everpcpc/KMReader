@@ -110,44 +110,50 @@ struct SeriesDetailView: View {
               VStack(alignment: .leading) {
 
                 VStack(alignment: .leading, spacing: 6) {
-                  HStack(spacing: 6) {
-                    if let totalBookCount = series.metadata.totalBookCount {
-                      InfoChip(
-                        labelKey: "\(series.booksCount) / \(totalBookCount) books",
-                        systemImage: "book",
-                        backgroundColor: Color.blue.opacity(0.2),
-                        foregroundColor: .blue
-                      )
-                    } else {
-                      InfoChip(
-                        labelKey: "\(series.booksCount) books",
-                        systemImage: "book",
-                        backgroundColor: Color.blue.opacity(0.2),
-                        foregroundColor: .blue
-                      )
-                    }
+                  if series.deleted {
+                    Text("Unavailable")
+                      .foregroundColor(.red)
+                  } else {
+                    HStack(spacing: 6) {
+                      if let totalBookCount = series.metadata.totalBookCount {
+                        InfoChip(
+                          labelKey: "\(series.booksCount) / \(totalBookCount) books",
+                          systemImage: "book",
+                          backgroundColor: Color.blue.opacity(0.2),
+                          foregroundColor: .blue
+                        )
+                      } else {
+                        InfoChip(
+                          labelKey: "\(series.booksCount) books",
+                          systemImage: "book",
+                          backgroundColor: Color.blue.opacity(0.2),
+                          foregroundColor: .blue
+                        )
+                      }
 
-                    if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount {
-                      InfoChip(
-                        labelKey: "\(series.booksUnreadCount) unread",
-                        systemImage: "circle",
-                        backgroundColor: Color.gray.opacity(0.2),
-                        foregroundColor: .gray
-                      )
-                    } else if series.booksInProgressCount > 0 {
-                      InfoChip(
-                        labelKey: "\(series.booksInProgressCount) in progress",
-                        systemImage: "circle.righthalf.filled",
-                        backgroundColor: Color.orange.opacity(0.2),
-                        foregroundColor: .orange
-                      )
-                    } else if series.booksUnreadCount == 0 && series.booksCount > 0 {
-                      InfoChip(
-                        labelKey: "All read",
-                        systemImage: "checkmark.circle.fill",
-                        backgroundColor: Color.green.opacity(0.2),
-                        foregroundColor: .green
-                      )
+                      if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount
+                      {
+                        InfoChip(
+                          labelKey: "\(series.booksUnreadCount) unread",
+                          systemImage: "circle",
+                          backgroundColor: Color.gray.opacity(0.2),
+                          foregroundColor: .gray
+                        )
+                      } else if series.booksInProgressCount > 0 {
+                        InfoChip(
+                          labelKey: "\(series.booksInProgressCount) in progress",
+                          systemImage: "circle.righthalf.filled",
+                          backgroundColor: Color.orange.opacity(0.2),
+                          foregroundColor: .orange
+                        )
+                      } else if series.booksUnreadCount == 0 && series.booksCount > 0 {
+                        InfoChip(
+                          labelKey: "All read",
+                          systemImage: "checkmark.circle.fill",
+                          backgroundColor: Color.green.opacity(0.2),
+                          foregroundColor: .green
+                        )
+                      }
                     }
                   }
 

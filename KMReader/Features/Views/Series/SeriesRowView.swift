@@ -16,64 +16,68 @@ struct SeriesRowView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-  var seriesDto: Series {
+  var series: Series {
     komgaSeries.toSeries()
+  }
+
+  var downloadStatus: SeriesDownloadStatus {
+    komgaSeries.downloadStatus
   }
 
   var body: some View {
     HStack(spacing: 12) {
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)) {
-        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: 80)
+      NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
+        ThumbnailImage(id: series.id, type: .series, width: 80)
       }
 
       VStack(alignment: .leading, spacing: 6) {
-        NavigationLink(value: NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)) {
-          Text(komgaSeries.metaTitle)
+        NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
+          Text(series.metadata.title)
             .font(.callout)
             .lineLimit(2)
         }
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
-            Label(seriesDto.statusDisplayName, systemImage: seriesDto.statusIcon)
+            Label(series.statusDisplayName, systemImage: series.statusIcon)
               .font(.footnote)
-              .foregroundColor(seriesDto.statusColor)
+              .foregroundColor(series.statusColor)
 
-            if let releaseDate = komgaSeries.booksMetaReleaseDate {
+            if let releaseDate = series.booksMetadata.releaseDate {
               Label("Release: \(releaseDate)", systemImage: "calendar")
                 .font(.caption)
                 .foregroundColor(.secondary)
             } else {
-              Label("Last Updated: \(seriesDto.lastUpdatedDisplay)", systemImage: "clock")
+              Label("Last Updated: \(series.lastUpdatedDisplay)", systemImage: "clock")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
 
             HStack {
-              if komgaSeries.deleted {
+              if series.deleted {
                 Text("Unavailable")
                   .foregroundColor(.red)
-              } else if komgaSeries.oneshot {
+              } else if series.oneshot {
                 Text("Oneshot")
                   .foregroundColor(.blue)
-                if komgaSeries.booksReadCount > 0 {
+                if series.booksReadCount > 0 {
                   Text("•")
                     .foregroundColor(.secondary)
                   Label("readStatus.read", systemImage: "checkmark.circle.fill")
-                    .foregroundColor(seriesDto.readStatusColor)
+                    .foregroundColor(series.readStatusColor)
                 }
               } else {
                 HStack {
-                  Label("\(komgaSeries.booksCount) books", systemImage: "book")
+                  Label("\(series.booksCount) books", systemImage: "book")
                     .foregroundColor(.secondary)
                   Text("•")
                     .foregroundColor(.secondary)
-                  if komgaSeries.booksUnreadCount > 0 {
-                    Label("\(komgaSeries.booksUnreadCount) unread", systemImage: "circlebadge")
-                      .foregroundColor(seriesDto.readStatusColor)
+                  if series.booksUnreadCount > 0 {
+                    Label("\(series.booksUnreadCount) unread", systemImage: "circlebadge")
+                      .foregroundColor(series.readStatusColor)
                   } else {
                     Label("All read", systemImage: "checkmark.circle.fill")
-                      .foregroundColor(seriesDto.readStatusColor)
+                      .foregroundColor(series.readStatusColor)
                   }
                 }
               }
@@ -82,9 +86,9 @@ struct SeriesRowView: View {
 
           Spacer()
 
-          if komgaSeries.downloadStatus != .notDownloaded {
-            Image(systemName: komgaSeries.downloadStatus.icon)
-              .foregroundColor(komgaSeries.downloadStatus.color)
+          if downloadStatus != .notDownloaded {
+            Image(systemName: downloadStatus.icon)
+              .foregroundColor(downloadStatus.color)
           }
           Menu {
             SeriesContextMenu(
@@ -123,7 +127,7 @@ struct SeriesRowView: View {
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
-        seriesIds: [komgaSeries.seriesId],
+        seriesIds: [series.id],
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
         },
@@ -134,7 +138,7 @@ struct SeriesRowView: View {
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      SeriesEditSheet(series: seriesDto)
+      SeriesEditSheet(series: series)
         .onDisappear {
           onActionCompleted?()
         }
@@ -146,7 +150,7 @@ struct SeriesRowView: View {
       do {
         try await CollectionService.shared.addSeriesToCollection(
           collectionId: collectionId,
-          seriesIds: [komgaSeries.seriesId]
+          seriesIds: [series.id]
         )
         await MainActor.run {
           ErrorManager.shared.notify(
@@ -164,7 +168,7 @@ struct SeriesRowView: View {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.shared.deleteSeries(seriesId: komgaSeries.seriesId)
+        try await SeriesService.shared.deleteSeries(seriesId: series.id)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
           onActionCompleted?()

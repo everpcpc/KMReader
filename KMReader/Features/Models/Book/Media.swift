@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 enum MediaProfile: String, Codable, Hashable, Sendable {
   case divina = "DIVINA"
@@ -26,13 +27,28 @@ enum MediaStatus: String, Codable, Hashable, Sendable {
     case .ready:
       return ""
     case .error:
-      return "Failed to load media"
+      return String(localized: "Failed to load media")
     case .unsupported:
-      return "Media format is not supported"
+      return String(localized: "Media format is not supported")
     case .outdated:
-      return "Media is outdated"
+      return String(localized: "Media is outdated")
     case .unknown:
-      return "Media status is unknown"
+      return String(localized: "Media status is unknown")
+    }
+  }
+
+  var label: String {
+    switch self {
+    case .ready:
+      return String(localized: "Ready")
+    case .error:
+      return String(localized: "Error")
+    case .unsupported:
+      return String(localized: "Unsupported")
+    case .outdated:
+      return String(localized: "Outdated")
+    case .unknown:
+      return String(localized: "Unknown")
     }
   }
 
@@ -48,6 +64,21 @@ enum MediaStatus: String, Codable, Hashable, Sendable {
       return "clock.badge.exclamationmark"
     case .unknown:
       return "questionmark.circle"
+    }
+  }
+
+  var color: Color {
+    switch self {
+    case .ready:
+      return .blue
+    case .error:
+      return .red
+    case .unsupported:
+      return .orange
+    case .outdated:
+      return .yellow
+    case .unknown:
+      return .gray
     }
   }
 }

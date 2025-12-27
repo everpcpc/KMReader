@@ -114,7 +114,7 @@ actor DatabaseOperator {
       if existing.progressLastModified != dto.readProgress?.lastModified {
         existing.progressLastModified = dto.readProgress?.lastModified
       }
-      if existing.deleted != dto.deleted { existing.deleted = dto.deleted }
+      if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
       if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
       if existing.seriesTitle != dto.seriesTitle { existing.seriesTitle = dto.seriesTitle }
     } else {
@@ -133,7 +133,7 @@ actor DatabaseOperator {
         media: dto.media,
         metadata: dto.metadata,
         readProgress: dto.readProgress,
-        deleted: dto.deleted,
+        isUnavailable: dto.deleted,
         oneshot: dto.oneshot,
         seriesTitle: dto.seriesTitle
       )
@@ -363,7 +363,7 @@ actor DatabaseOperator {
       if existing.booksMetaSummaryNumber != dto.booksMetadata.summaryNumber {
         existing.booksMetaSummaryNumber = dto.booksMetadata.summaryNumber
       }
-      if existing.deleted != dto.deleted { existing.deleted = dto.deleted }
+      if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
       if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
     } else {
       let newSeries = KomgaSeries(
@@ -380,7 +380,7 @@ actor DatabaseOperator {
         booksInProgressCount: dto.booksInProgressCount,
         metadata: dto.metadata,
         booksMetadata: dto.booksMetadata,
-        deleted: dto.deleted,
+        isUnavailable: dto.deleted,
         oneshot: dto.oneshot
       )
       modelContext.insert(newSeries)

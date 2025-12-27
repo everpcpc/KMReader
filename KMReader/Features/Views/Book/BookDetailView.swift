@@ -99,12 +99,12 @@ struct BookDetailView: View {
                   foregroundColor: .gray
                 )
 
-                if book.media.status == .unknown {
+                if book.media.status != .ready {
                   InfoChip(
-                    labelKey: "Unknown",
-                    systemImage: "questionmark.circle",
-                    backgroundColor: Color.gray.opacity(0.2),
-                    foregroundColor: .gray
+                    label: book.media.status.label,
+                    systemImage: book.media.status.icon,
+                    backgroundColor: book.media.status.color.opacity(0.2),
+                    foregroundColor: book.media.status.color
                   )
                 } else {
                   InfoChip(
@@ -121,15 +121,6 @@ struct BookDetailView: View {
                   labelKey: "Unavailable",
                   backgroundColor: Color.red.opacity(0.2),
                   foregroundColor: .red
-                )
-              }
-
-              if book.media.status == .outdated {
-                InfoChip(
-                  labelKey: "Outdated",
-                  systemImage: "exclamationmark.triangle",
-                  backgroundColor: Color.orange.opacity(0.2),
-                  foregroundColor: .orange
                 )
               }
 

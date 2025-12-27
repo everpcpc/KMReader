@@ -49,7 +49,7 @@ enum KomgaBookStore {
       let filtered = allBooks.filter { book in
         // Filter by deleted
         if let deletedState = browseOpts.deletedFilter.effectiveBool {
-          if book.deleted != deletedState { return false }
+          if book.isUnavailable != deletedState { return false }
         }
 
         // Filter by oneshot
@@ -120,7 +120,7 @@ enum KomgaBookStore {
     let filtered = allBooks.filter { book in
       // Filter by deleted
       if let deletedState = browseOpts.deletedFilter.effectiveBool {
-        if book.deleted != deletedState { return false }
+        if book.isUnavailable != deletedState { return false }
       }
 
       // Filter by oneshot

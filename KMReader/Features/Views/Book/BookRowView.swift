@@ -105,9 +105,12 @@ struct BookRowView: View {
             .foregroundColor(.secondary)
 
             HStack(spacing: 4) {
-              if komgaBook.deleted {
+              if komgaBook.isUnavailable {
                 Text("Unavailable")
                   .foregroundColor(.red)
+              } else if komgaBook.media.status != .ready {
+                Text(komgaBook.media.status.label)
+                  .foregroundColor(komgaBook.media.status.color)
               } else {
                 Label("\(komgaBook.mediaPagesCount) pages", systemImage: "book.pages")
                   .foregroundColor(.secondary)

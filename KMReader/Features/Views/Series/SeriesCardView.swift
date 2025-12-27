@@ -44,7 +44,7 @@ struct SeriesCardView: View {
             .lineLimit(1)
 
           HStack(spacing: 4) {
-            if komgaSeries.deleted {
+            if komgaSeries.isUnavailable {
               Text("Unavailable")
                 .foregroundColor(.red)
             } else if komgaSeries.oneshot {

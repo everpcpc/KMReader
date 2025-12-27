@@ -143,7 +143,7 @@ struct SeriesDownloadActionsSection: View {
   private func updatePolicy(_ newPolicy: SeriesOfflinePolicy) {
     Task {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
-        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: newPolicy
+        seriesId: series.id, instanceId: currentInstanceId, policy: newPolicy
       )
       try? await DatabaseOperator.shared.commit()
     }
@@ -161,7 +161,7 @@ struct SeriesDownloadActionsSection: View {
   private func downloadAll() {
     Task {
       await DatabaseOperator.shared.downloadSeriesOffline(
-        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
+        seriesId: series.id, instanceId: currentInstanceId
       )
       try? await DatabaseOperator.shared.commit()
     }
@@ -170,7 +170,7 @@ struct SeriesDownloadActionsSection: View {
   private func removeAll() {
     Task {
       await DatabaseOperator.shared.removeSeriesOffline(
-        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId
+        seriesId: series.id, instanceId: currentInstanceId
       )
       try? await DatabaseOperator.shared.commit()
     }

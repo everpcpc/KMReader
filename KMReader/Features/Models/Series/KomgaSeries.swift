@@ -67,7 +67,7 @@ final class KomgaSeries {
   var booksMetaSummary: String?
   var booksMetaSummaryNumber: String?
 
-  var deleted: Bool
+  var isUnavailable: Bool = false
   var oneshot: Bool
 
   // Track offline download status (managed locally)
@@ -126,7 +126,7 @@ final class KomgaSeries {
     booksInProgressCount: Int,
     metadata: SeriesMetadata,
     booksMetadata: SeriesBooksMetadata,
-    deleted: Bool,
+    isUnavailable: Bool,
     oneshot: Bool,
     downloadedBooks: Int = 0,
     pendingBooks: Int = 0,
@@ -187,7 +187,7 @@ final class KomgaSeries {
     self.booksMetaSummary = booksMetadata.summary
     self.booksMetaSummaryNumber = booksMetadata.summaryNumber
 
-    self.deleted = deleted
+    self.isUnavailable = isUnavailable
     self.oneshot = oneshot
     self.downloadedBooks = downloadedBooks
     self.pendingBooks = pendingBooks
@@ -258,7 +258,7 @@ final class KomgaSeries {
       booksInProgressCount: booksInProgressCount,
       metadata: metadata,
       booksMetadata: booksMetadata,
-      deleted: deleted,
+      deleted: isUnavailable,
       oneshot: oneshot
     )
   }

@@ -261,7 +261,7 @@ enum KomgaSeriesStore {
     let filtered = allSeries.filter { series in
       // Filter by deleted
       if let deletedState = browseOpts.deletedFilter.effectiveBool {
-        if series.deleted != deletedState { return false }
+        if series.isUnavailable != deletedState { return false }
       }
 
       // Filter by oneshot

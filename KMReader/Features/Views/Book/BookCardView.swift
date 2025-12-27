@@ -96,9 +96,12 @@ struct BookCardView: View {
             .lineLimit(bookTitleLineLimit)
 
           HStack(spacing: 4) {
-            if komgaBook.deleted {
+            if komgaBook.isUnavailable {
               Text("Unavailable")
                 .foregroundColor(.red)
+            } else if komgaBook.media.status != .ready {
+              Text(komgaBook.media.status.label)
+                .foregroundColor(komgaBook.media.status.color)
             } else {
               Text("\(pagesText) • \(komgaBook.size)")
                 .lineLimit(1)

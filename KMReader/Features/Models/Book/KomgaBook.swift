@@ -63,7 +63,7 @@ final class KomgaBook {
   var progressCreated: Date?
   var progressLastModified: Date?
 
-  var deleted: Bool
+  var isUnavailable: Bool = false
   var oneshot: Bool
   var seriesTitle: String = ""
 
@@ -128,7 +128,7 @@ final class KomgaBook {
     media: Media,
     metadata: BookMetadata,
     readProgress: ReadProgress?,
-    deleted: Bool,
+    isUnavailable: Bool,
     oneshot: Bool,
     seriesTitle: String = "",
     downloadedSize: Int64 = 0
@@ -185,7 +185,7 @@ final class KomgaBook {
     self.progressCreated = readProgress?.created
     self.progressLastModified = readProgress?.lastModified
 
-    self.deleted = deleted
+    self.isUnavailable = isUnavailable
     self.oneshot = oneshot
     self.downloadedSize = downloadedSize
   }
@@ -259,7 +259,7 @@ final class KomgaBook {
       media: media,
       metadata: metadata,
       readProgress: readProgress,
-      deleted: deleted,
+      deleted: isUnavailable,
       oneshot: oneshot
     )
   }
