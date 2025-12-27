@@ -83,6 +83,7 @@ struct CollectionSeriesListView: View {
           }
         }
       }
+      .padding(.horizontal)
 
       if supportsSelectionMode && isSelectionMode {
         SelectionToolbar(
@@ -108,6 +109,7 @@ struct CollectionSeriesListView: View {
             selectedSeriesIds.removeAll()
           }
         )
+        .padding(.horizontal)
       }
 
       if collection?.seriesIds != nil {

@@ -46,6 +46,7 @@ struct BooksListViewForSeries: View {
           layoutMode: $layoutMode
         )
       }
+      .padding(.horizontal)
 
       SeriesBooksQueryView(
         seriesId: seriesId,

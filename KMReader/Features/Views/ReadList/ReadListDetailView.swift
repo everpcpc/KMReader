@@ -45,73 +45,73 @@ struct ReadListDetailView: View {
     komgaReadList?.toReadList()
   }
 
-  // SwiftUI's default horizontal padding is 16 on each side (32 total)
-  private let horizontalPadding: CGFloat = 16
-
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
         if let readList = readList {
-          // Header with thumbnail and info
-          Text(readList.name)
-            .font(.title2)
+          VStack(alignment: .leading) {
+            // Header with thumbnail and info
+            Text(readList.name)
+              .font(.title2)
 
-          HStack(alignment: .top) {
-            ThumbnailImage(
-              id: readListId, type: .readlist, showPlaceholder: false,
-              width: PlatformHelper.detailThumbnailWidth,
-              refreshTrigger: thumbnailRefreshTrigger
-            )
-            .thumbnailFocus()
+            HStack(alignment: .top) {
+              ThumbnailImage(
+                id: readListId, type: .readlist, showPlaceholder: false,
+                width: PlatformHelper.detailThumbnailWidth,
+                refreshTrigger: thumbnailRefreshTrigger
+              )
+              .thumbnailFocus()
 
-            VStack(alignment: .leading) {
+              VStack(alignment: .leading) {
 
-              // Summary
-              if !readList.summary.isEmpty {
-                Text(readList.summary)
-                  .font(.subheadline)
-                  .foregroundColor(.secondary)
-                  .padding(.top, 4)
-              }
+                // Summary
+                if !readList.summary.isEmpty {
+                  Text(readList.summary)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+                }
 
-              // Info chips
-              VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
+                // Info chips
+                VStack(alignment: .leading, spacing: 6) {
+                  HStack(spacing: 6) {
+                    InfoChip(
+                      labelKey: "\(readList.bookIds.count) books",
+                      systemImage: "books.vertical",
+                      backgroundColor: Color.blue.opacity(0.2),
+                      foregroundColor: .blue
+                    )
+                    if readList.ordered {
+                      InfoChip(
+                        labelKey: "Ordered",
+                        systemImage: "arrow.up.arrow.down",
+                        backgroundColor: Color.cyan.opacity(0.2),
+                        foregroundColor: .cyan
+                      )
+                    }
+                  }
                   InfoChip(
-                    labelKey: "\(readList.bookIds.count) books",
-                    systemImage: "books.vertical",
+                    labelKey: "Created: \(formatDate(readList.createdDate))",
+                    systemImage: "calendar.badge.plus",
                     backgroundColor: Color.blue.opacity(0.2),
                     foregroundColor: .blue
                   )
-                  if readList.ordered {
-                    InfoChip(
-                      labelKey: "Ordered",
-                      systemImage: "arrow.up.arrow.down",
-                      backgroundColor: Color.cyan.opacity(0.2),
-                      foregroundColor: .cyan
-                    )
-                  }
+                  InfoChip(
+                    labelKey: "Modified: \(formatDate(readList.lastModifiedDate))",
+                    systemImage: "clock",
+                    backgroundColor: Color.purple.opacity(0.2),
+                    foregroundColor: .purple
+                  )
                 }
-                InfoChip(
-                  labelKey: "Created: \(formatDate(readList.createdDate))",
-                  systemImage: "calendar.badge.plus",
-                  backgroundColor: Color.blue.opacity(0.2),
-                  foregroundColor: .blue
-                )
-                InfoChip(
-                  labelKey: "Modified: \(formatDate(readList.lastModifiedDate))",
-                  systemImage: "clock",
-                  backgroundColor: Color.purple.opacity(0.2),
-                  foregroundColor: .purple
-                )
               }
             }
-          }
 
-          #if os(tvOS)
-            readListToolbarContent
-              .padding(.vertical, 8)
-          #endif
+            #if os(tvOS)
+              readListToolbarContent
+                .padding(.vertical, 8)
+            #endif
+          }
+          .padding(.horizontal)
 
           // Books list
           if containerWidth > 0 {
@@ -127,7 +127,6 @@ struct ReadListDetailView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
       }
-      .padding(.horizontal, horizontalPadding)
     }
     .inlineNavigationBarTitle(String(localized: "title.readList"))
     .alert("Delete Read List?", isPresented: $showDeleteConfirmation) {
@@ -163,7 +162,7 @@ struct ReadListDetailView: View {
     .onGeometryChange(for: CGSize.self) { geometry in
       geometry.size
     } action: { newSize in
-      let newContentWidth = max(0, newSize.width - horizontalPadding * 2)
+      let newContentWidth = max(0, newSize.width)
       if abs(containerWidth - newContentWidth) > 1 {
         containerWidth = newContentWidth
         layoutHelper = BrowseLayoutHelper(
@@ -175,7 +174,7 @@ struct ReadListDetailView: View {
     .onChange(of: browseColumns) { _, _ in
       if containerWidth > 0 {
         layoutHelper = BrowseLayoutHelper(
-          width: containerWidth - horizontalPadding * 2,
+          width: containerWidth,
           browseColumns: browseColumns
         )
       }

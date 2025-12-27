@@ -23,8 +23,6 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
 
-  private let horizontalPadding: CGFloat = PlatformHelper.sheetPadding
-
   private func refreshBrowse() {
     refreshTrigger = UUID()
     isRefreshDisabled = true
@@ -49,11 +47,10 @@ struct BrowseView: View {
             .labelsHidden()
             Spacer()
           }
-          .padding(.horizontal, horizontalPadding)
+          .padding(.horizontal)
 
           if contentWidth > 0 {
             contentView(layoutHelper: layoutHelper)
-              .padding(.horizontal, horizontalPadding)
           }
         }
       }
@@ -92,7 +89,7 @@ struct BrowseView: View {
       .onGeometryChange(for: CGSize.self) { geometry in
         geometry.size
       } action: { newSize in
-        let newContentWidth = max(0, newSize.width - horizontalPadding * 2)
+        let newContentWidth = max(0, newSize.width)
         if abs(contentWidth - newContentWidth) > 1 {
           contentWidth = newContentWidth
           layoutHelper = BrowseLayoutHelper(

@@ -44,66 +44,66 @@ struct CollectionDetailView: View {
     komgaCollection?.toCollection()
   }
 
-  // SwiftUI's default horizontal padding is 16 on each side (32 total)
-  private let horizontalPadding: CGFloat = 16
-
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
         if let collection = collection {
-          // Header with thumbnail and info
-          Text(collection.name)
-            .font(.title2)
+          VStack(alignment: .leading) {
+            // Header with thumbnail and info
+            Text(collection.name)
+              .font(.title2)
 
-          HStack(alignment: .top) {
-            ThumbnailImage(
-              id: collectionId, type: .collection, showPlaceholder: false,
-              width: PlatformHelper.detailThumbnailWidth,
-              refreshTrigger: thumbnailRefreshTrigger
-            )
-            .thumbnailFocus()
+            HStack(alignment: .top) {
+              ThumbnailImage(
+                id: collectionId, type: .collection, showPlaceholder: false,
+                width: PlatformHelper.detailThumbnailWidth,
+                refreshTrigger: thumbnailRefreshTrigger
+              )
+              .thumbnailFocus()
 
-            VStack(alignment: .leading) {
+              VStack(alignment: .leading) {
 
-              // Info chips
-              VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
+                // Info chips
+                VStack(alignment: .leading, spacing: 6) {
+                  HStack(spacing: 6) {
+                    InfoChip(
+                      labelKey: "\(collection.seriesIds.count) series",
+                      systemImage: "square.grid.2x2",
+                      backgroundColor: Color.blue.opacity(0.2),
+                      foregroundColor: .blue
+                    )
+                    if collection.ordered {
+                      InfoChip(
+                        labelKey: "Ordered",
+                        systemImage: "arrow.up.arrow.down",
+                        backgroundColor: Color.cyan.opacity(0.2),
+                        foregroundColor: .cyan
+                      )
+                    }
+                  }
                   InfoChip(
-                    labelKey: "\(collection.seriesIds.count) series",
-                    systemImage: "square.grid.2x2",
+                    labelKey: "Created: \(formatDate(collection.createdDate))",
+                    systemImage: "calendar.badge.plus",
                     backgroundColor: Color.blue.opacity(0.2),
                     foregroundColor: .blue
                   )
-                  if collection.ordered {
-                    InfoChip(
-                      labelKey: "Ordered",
-                      systemImage: "arrow.up.arrow.down",
-                      backgroundColor: Color.cyan.opacity(0.2),
-                      foregroundColor: .cyan
-                    )
-                  }
-                }
-                InfoChip(
-                  labelKey: "Created: \(formatDate(collection.createdDate))",
-                  systemImage: "calendar.badge.plus",
-                  backgroundColor: Color.blue.opacity(0.2),
-                  foregroundColor: .blue
-                )
-                InfoChip(
-                  labelKey: "Modified: \(formatDate(collection.lastModifiedDate))",
-                  systemImage: "clock",
-                  backgroundColor: Color.purple.opacity(0.2),
-                  foregroundColor: .purple
-                )
+                  InfoChip(
+                    labelKey: "Modified: \(formatDate(collection.lastModifiedDate))",
+                    systemImage: "clock",
+                    backgroundColor: Color.purple.opacity(0.2),
+                    foregroundColor: .purple
+                  )
 
+                }
               }
             }
-          }
 
-          #if os(tvOS)
-            collectionToolbarContent
-              .padding(.vertical, 8)
-          #endif
+            #if os(tvOS)
+              collectionToolbarContent
+                .padding(.vertical, 8)
+            #endif
+
+          }.padding(.horizontal)
 
           // Series list
           if containerWidth > 0 {
@@ -119,7 +119,6 @@ struct CollectionDetailView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
       }
-      .padding(.horizontal, horizontalPadding)
     }
     .inlineNavigationBarTitle(String(localized: "title.collection"))
     .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
@@ -155,7 +154,7 @@ struct CollectionDetailView: View {
     .onGeometryChange(for: CGSize.self) { geometry in
       geometry.size
     } action: { newSize in
-      let newContentWidth = max(0, newSize.width - horizontalPadding * 2)
+      let newContentWidth = max(0, newSize.width)
       if abs(containerWidth - newContentWidth) > 1 {
         containerWidth = newContentWidth
         layoutHelper = BrowseLayoutHelper(
@@ -167,7 +166,7 @@ struct CollectionDetailView: View {
     .onChange(of: browseColumns) { _, _ in
       if containerWidth > 0 {
         layoutHelper = BrowseLayoutHelper(
-          width: containerWidth - horizontalPadding * 2,
+          width: containerWidth,
           browseColumns: browseColumns
         )
       }

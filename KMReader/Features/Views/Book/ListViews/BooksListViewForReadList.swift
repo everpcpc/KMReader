@@ -94,6 +94,7 @@ struct BooksListViewForReadList: View {
           }
         }
       }
+      .padding(.horizontal)
 
       if supportsSelectionMode && isSelectionMode {
         SelectionToolbar(
@@ -119,6 +120,7 @@ struct BooksListViewForReadList: View {
             selectedBookIds.removeAll()
           }
         )
+      .padding(.horizontal)
       }
 
       if readList?.bookIds != nil {
