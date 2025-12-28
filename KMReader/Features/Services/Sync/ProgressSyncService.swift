@@ -42,6 +42,7 @@ actor ProgressSyncService {
 
     var successCount = 0
     var failureCount = 0
+    var completedBookIds = Set<String>()
 
     for item in pending {
       do {
@@ -49,11 +50,27 @@ actor ProgressSyncService {
         await DatabaseOperator.shared.deletePendingProgress(id: item.id)
         try? await DatabaseOperator.shared.commit()
         successCount += 1
+
+        if item.completed {
+          completedBookIds.insert(item.bookId)
+        }
       } catch {
         logger.error(
           "❌ Failed to sync progress for book \(item.bookId): \(error.localizedDescription)")
         failureCount += 1
       }
+    }
+
+    // Batch sync books and series after individual progress items are processed
+    var completedSeriesIds = Set<String>()
+    for bookId in completedBookIds {
+      if let book = try? await SyncService.shared.syncBook(bookId: bookId) {
+        completedSeriesIds.insert(book.seriesId)
+      }
+    }
+
+    for seriesId in completedSeriesIds {
+      _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
     }
 
     if successCount > 0 {
