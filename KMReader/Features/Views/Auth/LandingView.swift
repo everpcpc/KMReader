@@ -11,50 +11,58 @@ struct LandingView: View {
   @State private var showGetStarted = false
 
   var body: some View {
-    NavigationStack {
-      VStack(spacing: 40) {
-        Spacer()
+    VStack(spacing: 40) {
+      Spacer()
 
-        // Logo
-        Image("logo")
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-          .frame(height: 120)
+      // Logo
+      Image("logo")
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(height: 120)
 
-        // App Name
-        Text("KMReader")
-          .font(.system(size: 42, weight: .bold))
-          .foregroundStyle(.primary)
+      // App Name
+      Text("KMReader")
+        .font(.system(size: 42, weight: .bold))
+        .foregroundStyle(.primary)
 
-        // Tagline
-        Text("Your personal manga and comic reader")
-          .font(.title3)
-          .foregroundStyle(.secondary)
-          .multilineTextAlignment(.center)
-          .padding(.horizontal, 40)
-
-        Spacer()
-
-        // Get Started Button
-        Button(action: {
-          showGetStarted = true
-        }) {
-          HStack {
-            Text("Get Started")
-              .fontWeight(.semibold)
-            Image(systemName: "arrow.right")
-          }
-          .frame(maxWidth: .infinity)
-          .frame(height: 56)
-        }
-        .adaptiveButtonStyle(.borderedProminent)
+      // Tagline
+      Text("Your personal manga and comic reader")
+        .font(.title3)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
         .padding(.horizontal, 40)
-        .padding(.bottom, 60)
+
+      Spacer()
+
+      // Get Started Button
+      Button(action: {
+        showGetStarted = true
+      }) {
+        HStack {
+          Text("Get Started")
+            .fontWeight(.semibold)
+          Image(systemName: "arrow.right")
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 56)
       }
-      .navigationDestination(isPresented: $showGetStarted) {
+      .adaptiveButtonStyle(.borderedProminent)
+      .padding(.horizontal, 40)
+      .padding(.bottom, 60)
+    }
+    #if !os(macOS)
+    .fullScreenCover(isPresented: $showGetStarted) {
+      NavigationStack {
         SettingsServersView(mode: .onboarding)
       }
     }
+    #else
+    .sheet(isPresented: $showGetStarted) {
+      NavigationStack {
+        SettingsServersView(mode: .onboarding)
+      }
+    }
+    #endif
   }
 }
 
