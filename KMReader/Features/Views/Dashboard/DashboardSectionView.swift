@@ -62,10 +62,11 @@ struct DashboardSectionView: View {
 
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(alignment: .top, spacing: 16) {
-          ForEach(Array(itemIds.enumerated()), id: \.element) { index, itemId in
+          ForEach(itemIds, id: \.self) { itemId in
             itemView(for: itemId)
               .onAppear {
-                if index >= itemIds.count - 3 {
+                // O(1): suffix is a slice, contains checks only 3 elements
+                if itemIds.suffix(3).contains(itemId) {
                   Task {
                     await loadMore()
                   }

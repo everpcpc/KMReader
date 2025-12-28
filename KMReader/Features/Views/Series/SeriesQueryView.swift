@@ -34,7 +34,7 @@ struct SeriesQueryView: View {
       switch browseLayout {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+          ForEach(viewModel.browseSeriesIds, id: \.self) { seriesId in
             SeriesQueryItemView(
               seriesId: seriesId,
               cardWidth: layoutHelper.cardWidth,
@@ -47,7 +47,7 @@ struct SeriesQueryView: View {
             )
             .padding(.bottom)
             .onAppear {
-              if index >= viewModel.browseSeriesIds.count - 3 {
+              if viewModel.browseSeriesIds.suffix(3).contains(seriesId) {
                 Task {
                   await loadMore(false)
                 }
@@ -58,7 +58,7 @@ struct SeriesQueryView: View {
         .padding(.horizontal, layoutHelper.spacing)
       case .list:
         LazyVStack {
-          ForEach(Array(viewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+          ForEach(viewModel.browseSeriesIds, id: \.self) { seriesId in
             SeriesQueryItemView(
               seriesId: seriesId,
               cardWidth: layoutHelper.cardWidth,
@@ -70,13 +70,13 @@ struct SeriesQueryView: View {
               }
             )
             .onAppear {
-              if index >= viewModel.browseSeriesIds.count - 3 {
+              if viewModel.browseSeriesIds.suffix(3).contains(seriesId) {
                 Task {
                   await loadMore(false)
                 }
               }
             }
-            if index < viewModel.browseSeriesIds.count - 1 {
+            if seriesId != viewModel.browseSeriesIds.last {
               Divider()
             }
           }

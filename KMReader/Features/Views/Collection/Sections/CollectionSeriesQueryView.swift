@@ -31,8 +31,7 @@ struct CollectionSeriesQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) {
-              index, seriesId in
+            ForEach(seriesViewModel.browseSeriesIds, id: \.self) { seriesId in
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
@@ -53,7 +52,7 @@ struct CollectionSeriesQueryView: View {
               }
               .padding(.bottom)
               .onAppear {
-                if index >= seriesViewModel.browseSeriesIds.count - 3 {
+                if seriesViewModel.browseSeriesIds.suffix(3).contains(seriesId) {
                   Task { await loadMore(refresh: false) }
                 }
               }
@@ -62,8 +61,7 @@ struct CollectionSeriesQueryView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) {
-              index, seriesId in
+            ForEach(seriesViewModel.browseSeriesIds, id: \.self) { seriesId in
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
@@ -83,11 +81,11 @@ struct CollectionSeriesQueryView: View {
                 }
               }
               .onAppear {
-                if index >= seriesViewModel.browseSeriesIds.count - 3 {
+                if seriesViewModel.browseSeriesIds.suffix(3).contains(seriesId) {
                   Task { await loadMore(refresh: false) }
                 }
               }
-              if index < seriesViewModel.browseSeriesIds.count - 1 {
+              if seriesId != seriesViewModel.browseSeriesIds.last {
                 Divider()
               }
             }

@@ -41,8 +41,7 @@ struct ReadListsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.readListIds.enumerated()), id: \.element) {
-              index, readListId in
+            ForEach(viewModel.readListIds, id: \.self) { readListId in
               ReadListQueryItemView(
                 readListId: readListId,
                 width: layoutHelper.cardWidth,
@@ -54,7 +53,7 @@ struct ReadListsBrowseView: View {
               )
               .padding(.bottom)
               .onAppear {
-                if index >= viewModel.readListIds.count - 3 {
+                if viewModel.readListIds.suffix(3).contains(readListId) {
                   Task {
                     await loadReadLists(refresh: false)
                   }
@@ -65,8 +64,7 @@ struct ReadListsBrowseView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(Array(viewModel.readListIds.enumerated()), id: \.element) {
-              index, readListId in
+            ForEach(viewModel.readListIds, id: \.self) { readListId in
               ReadListQueryItemView(
                 readListId: readListId,
                 layout: .list,
@@ -77,13 +75,13 @@ struct ReadListsBrowseView: View {
                 }
               )
               .onAppear {
-                if index >= viewModel.readListIds.count - 3 {
+                if viewModel.readListIds.suffix(3).contains(readListId) {
                   Task {
                     await loadReadLists(refresh: false)
                   }
                 }
               }
-              if index < viewModel.readListIds.count - 1 {
+              if readListId != viewModel.readListIds.last {
                 Divider()
               }
             }

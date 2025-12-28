@@ -67,7 +67,7 @@ struct DashboardSectionDetailView: View {
     switch browseLayout {
     case .grid:
       LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-        ForEach(Array(itemIds.enumerated()), id: \.element) { index, bookId in
+        ForEach(itemIds, id: \.self) { bookId in
           BookQueryItemView(
             bookId: bookId,
             cardWidth: layoutHelper.cardWidth,
@@ -79,7 +79,7 @@ struct DashboardSectionDetailView: View {
           )
           .padding(.bottom)
           .onAppear {
-            if index >= itemIds.count - 3 {
+            if itemIds.suffix(3).contains(bookId) {
               Task { await loadItems(refresh: false) }
             }
           }
@@ -87,7 +87,7 @@ struct DashboardSectionDetailView: View {
       }
     case .list:
       LazyVStack {
-        ForEach(Array(itemIds.enumerated()), id: \.element) { index, bookId in
+        ForEach(itemIds, id: \.self) { bookId in
           BookQueryItemView(
             bookId: bookId,
             cardWidth: layoutHelper.cardWidth,
@@ -98,11 +98,11 @@ struct DashboardSectionDetailView: View {
             showSeriesTitle: true
           )
           .onAppear {
-            if index >= itemIds.count - 3 {
+            if itemIds.suffix(3).contains(bookId) {
               Task { await loadItems(refresh: false) }
             }
           }
-          if index < itemIds.count - 1 {
+          if bookId != itemIds.last {
             Divider()
           }
         }
@@ -115,7 +115,7 @@ struct DashboardSectionDetailView: View {
     switch browseLayout {
     case .grid:
       LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-        ForEach(Array(itemIds.enumerated()), id: \.element) { index, seriesId in
+        ForEach(itemIds, id: \.self) { seriesId in
           SeriesQueryItemView(
             seriesId: seriesId,
             cardWidth: layoutHelper.cardWidth,
@@ -126,7 +126,7 @@ struct DashboardSectionDetailView: View {
           )
           .padding(.bottom)
           .onAppear {
-            if index >= itemIds.count - 3 {
+            if itemIds.suffix(3).contains(seriesId) {
               Task { await loadItems(refresh: false) }
             }
           }
@@ -134,7 +134,7 @@ struct DashboardSectionDetailView: View {
       }
     case .list:
       LazyVStack {
-        ForEach(Array(itemIds.enumerated()), id: \.element) { index, seriesId in
+        ForEach(itemIds, id: \.self) { seriesId in
           SeriesQueryItemView(
             seriesId: seriesId,
             cardWidth: layoutHelper.cardWidth,
@@ -144,11 +144,11 @@ struct DashboardSectionDetailView: View {
             }
           )
           .onAppear {
-            if index >= itemIds.count - 3 {
+            if itemIds.suffix(3).contains(seriesId) {
               Task { await loadItems(refresh: false) }
             }
           }
-          if index < itemIds.count - 1 {
+          if seriesId != itemIds.last {
             Divider()
           }
         }
