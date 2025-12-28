@@ -402,11 +402,21 @@ struct DivinaReaderView: View {
         readerPresentation.hideStatusBar = !newValue
       }
     }
+    #if os(iOS)
+      .onAppear {
+        if readingDirection != readerPresentation.readingDirection {
+          readerPresentation.readingDirection = readingDirection
+        }
+      }
+    #endif
     #if os(iOS) || os(macOS)
-      .onChange(of: readingDirection) { _, _ in
+      .onChange(of: readingDirection) { _, newDirection in
         // When switching read mode via settings, briefly show overlays again
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 2)
+        if readingDirection != readerPresentation.readingDirection {
+          readerPresentation.readingDirection = newDirection
+        }
       }
     #endif
     #if os(macOS) || os(tvOS)
@@ -433,10 +443,6 @@ struct DivinaReaderView: View {
       }
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)
-    #if os(iOS)
-      .readerDismissGesture(
-        isVerticalReading: readingDirection == .vertical || readingDirection == .webtoon)
-    #endif
   }
 
   private func loadBook(bookId: String, preserveReaderOptions: Bool) async {

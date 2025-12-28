@@ -10,26 +10,30 @@
   /// Configures fullScreenCover dismiss gestures based on reading direction.
   /// - For horizontal reading (ltr/rtl): only swipe down to dismiss
   /// - For vertical reading (vertical/webtoon): only edge swipe to dismiss
-  struct ReaderDismissGestureConfigurator: UIViewRepresentable {
-    let isVerticalReading: Bool
+  struct ReaderDismissGestureConfigurator: UIViewControllerRepresentable {
+    let readingDirection: ReadingDirection
+
+    private var isVerticalReading: Bool {
+      readingDirection == .vertical || readingDirection == .webtoon
+    }
 
     func makeCoordinator() -> Coordinator {
       Coordinator(isVerticalReading: isVerticalReading)
     }
 
-    func makeUIView(context: Context) -> GestureConfiguratorView {
-      let view = GestureConfiguratorView()
-      view.coordinator = context.coordinator
-      return view
+    func makeUIViewController(context: Context) -> GestureConfiguratorViewController {
+      let vc = GestureConfiguratorViewController()
+      vc.coordinator = context.coordinator
+      return vc
     }
 
-    func updateUIView(_ uiView: GestureConfiguratorView, context: Context) {
+    func updateUIViewController(_ uiViewController: GestureConfiguratorViewController, context: Context) {
       context.coordinator.isVerticalReading = isVerticalReading
-      uiView.configureGestures()
     }
 
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
       var isVerticalReading: Bool
+      var configuredRecognizers: [(recognizer: UIGestureRecognizer, originalDelegate: UIGestureRecognizerDelegate?)] = []
 
       init(isVerticalReading: Bool) {
         self.isVerticalReading = isVerticalReading
@@ -51,60 +55,69 @@
           return true
         }
       }
+
+      func restoreOriginalDelegates() {
+        for (recognizer, originalDelegate) in configuredRecognizers {
+          recognizer.delegate = originalDelegate
+        }
+        configuredRecognizers.removeAll()
+      }
     }
   }
 
-  class GestureConfiguratorView: UIView {
+  class GestureConfiguratorViewController: UIViewController {
     weak var coordinator: ReaderDismissGestureConfigurator.Coordinator?
-    private var configuredRecognizers: Set<ObjectIdentifier> = []
 
-    override func didMoveToWindow() {
-      super.didMoveToWindow()
-      if window != nil {
-        // Delay configuration to ensure gestures are available
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-          self?.configureGestures()
-        }
+    override func viewDidAppear(_ animated: Bool) {
+      super.viewDidAppear(animated)
+      // Delay to ensure gesture recognizers are set up
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        self?.configureGestures()
       }
     }
 
-    func configureGestures() {
-      guard let window = self.window, let coordinator = coordinator else { return }
-      searchAndConfigureGestures(in: window, coordinator: coordinator)
+    override func viewWillDisappear(_ animated: Bool) {
+      super.viewWillDisappear(animated)
+      // Restore original delegates when fullScreenCover is dismissed
+      coordinator?.restoreOriginalDelegates()
     }
 
-    private func searchAndConfigureGestures(
-      in view: UIView, coordinator: ReaderDismissGestureConfigurator.Coordinator
-    ) {
-      if let gestureRecognizers = view.gestureRecognizers {
-        for recognizer in gestureRecognizers {
-          let recognizerType = String(describing: type(of: recognizer))
-          let recognizerId = ObjectIdentifier(recognizer)
+    private func configureGestures() {
+      guard let window = view.window, let coordinator = coordinator else { return }
 
-          // Only configure recognize types we care about
-          guard
-            recognizerType == "_UIParallaxTransitionPanGestureRecognizer"
-              || recognizerType == "_UIContentSwipeDismissGestureRecognizer"
-          else { continue }
+      func searchAndConfigure(in view: UIView) {
+        if let gestureRecognizers = view.gestureRecognizers {
+          for recognizer in gestureRecognizers {
+            let recognizerType = String(describing: type(of: recognizer))
 
-          // Set delegate if not already configured
-          if !configuredRecognizers.contains(recognizerId) {
-            recognizer.delegate = coordinator
-            configuredRecognizers.insert(recognizerId)
+            guard
+              recognizerType == "_UIParallaxTransitionPanGestureRecognizer"
+                || recognizerType == "_UIContentSwipeDismissGestureRecognizer"
+            else { continue }
+
+            // Check if already configured
+            let alreadyConfigured = coordinator.configuredRecognizers.contains { $0.recognizer === recognizer }
+            if !alreadyConfigured {
+              let originalDelegate = recognizer.delegate
+              coordinator.configuredRecognizers.append((recognizer: recognizer, originalDelegate: originalDelegate))
+              recognizer.delegate = coordinator
+            }
           }
         }
+
+        for subview in view.subviews {
+          searchAndConfigure(in: subview)
+        }
       }
 
-      for subview in view.subviews {
-        searchAndConfigureGestures(in: subview, coordinator: coordinator)
-      }
+      searchAndConfigure(in: window)
     }
   }
 
   extension View {
     /// Configures dismiss gestures for the reader based on reading direction.
-    func readerDismissGesture(isVerticalReading: Bool) -> some View {
-      self.background(ReaderDismissGestureConfigurator(isVerticalReading: isVerticalReading))
+    func readerDismissGesture(readingDirection: ReadingDirection) -> some View {
+      self.background(ReaderDismissGestureConfigurator(readingDirection: readingDirection))
     }
   }
 #endif

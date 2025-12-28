@@ -34,11 +34,20 @@ extension EnvironmentValues {
               set: { if !$0 { readerPresentation.closeReader() } }
             )
           ) {
-            ReaderContentView()
-              .navigationTransitionZoomIfAvailable(
-                sourceID: readerPresentation.sourceBookId ?? "",
-                in: namespace
-              )
+            #if os(iOS)
+              ReaderContentView()
+                .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
+                .navigationTransitionZoomIfAvailable(
+                  sourceID: readerPresentation.sourceBookId ?? "",
+                  in: namespace
+                )
+            #else
+              ReaderContentView()
+                .navigationTransitionZoomIfAvailable(
+                  sourceID: readerPresentation.sourceBookId ?? "",
+                  in: namespace
+                )
+            #endif
           }
       } else {
         // iOS 17 and earlier: Use overlay with opacity/scale animation

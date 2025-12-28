@@ -16,6 +16,7 @@ final class ReaderPresentationManager {
 
   var hideStatusBar: Bool = false
   var isDismissing: Bool = false
+  var readingDirection: ReadingDirection = .ltr
 
   /// Book ID used as source for zoom transition (iOS 18+)
   private(set) var sourceBookId: String?

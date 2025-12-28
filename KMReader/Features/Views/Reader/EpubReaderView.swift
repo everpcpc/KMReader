@@ -120,7 +120,11 @@
         }
       }
       .ignoresSafeArea()
-      .readerDismissGesture(isVerticalReading: false)
+      .onAppear {
+        if .ltr != readerPresentation.readingDirection {
+          readerPresentation.readingDirection = .ltr
+        }
+      }
     }
 
     @ViewBuilder
