@@ -17,7 +17,7 @@ struct CollectionCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 12) {
       NavigationLink(
         value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
       ) {

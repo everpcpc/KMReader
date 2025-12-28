@@ -17,7 +17,7 @@ struct ReadListCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 12) {
       NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
         ThumbnailImage(
           id: komgaReadList.readListId, type: .readlist, showShadow: false, width: width,

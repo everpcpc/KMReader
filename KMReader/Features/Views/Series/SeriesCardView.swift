@@ -29,7 +29,7 @@ struct SeriesCardView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 12) {
       NavigationLink(value: navDestination) {
         ThumbnailImage(
           id: komgaSeries.seriesId, type: .series, showShadow: false, width: cardWidth, alignment: .bottom
