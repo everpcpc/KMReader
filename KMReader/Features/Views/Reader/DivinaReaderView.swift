@@ -673,7 +673,9 @@ struct DivinaReaderView: View {
   /// Hide helper overlay and cancel timer
   private func hideTapZoneOverlay() {
     tapZoneOverlayTimer?.invalidate()
-    showTapZoneOverlay = false
+    withAnimation {
+      showTapZoneOverlay = false
+    }
   }
 
   /// Show reader helper overlay (Tap zones on iOS, keyboard help on macOS)
@@ -682,7 +684,9 @@ struct DivinaReaderView: View {
     guard showTapZoneHints, !viewModel.pages.isEmpty else { return }
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-      self.showTapZoneOverlay = true
+      withAnimation {
+        self.showTapZoneOverlay = true
+      }
       self.resetTapZoneOverlayTimer(timeout: timeout)
     }
   }
@@ -692,9 +696,7 @@ struct DivinaReaderView: View {
     tapZoneOverlayTimer?.invalidate()
     tapZoneOverlayTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
       DispatchQueue.main.async {
-        withAnimation {
-          self.hideTapZoneOverlay()
-        }
+        self.hideTapZoneOverlay()
       }
     }
   }
@@ -702,7 +704,9 @@ struct DivinaReaderView: View {
   /// Hide keyboard help overlay and cancel timer
   private func hideKeyboardHelp() {
     keyboardHelpTimer?.invalidate()
-    showKeyboardHelp = false
+    withAnimation {
+      showKeyboardHelp = false
+    }
   }
 
   /// Show keyboard help overlay
@@ -711,7 +715,9 @@ struct DivinaReaderView: View {
     guard showKeyboardHelpOverlay, !viewModel.pages.isEmpty else { return }
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-      self.showKeyboardHelp = true
+      withAnimation {
+        self.showKeyboardHelp = true
+      }
       self.resetKeyboardHelpTimer(timeout: timeout)
     }
   }
@@ -721,9 +727,7 @@ struct DivinaReaderView: View {
     keyboardHelpTimer?.invalidate()
     keyboardHelpTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
       DispatchQueue.main.async {
-        withAnimation {
-          self.hideKeyboardHelp()
-        }
+        self.hideKeyboardHelp()
       }
     }
   }
