@@ -16,7 +16,7 @@ struct ShadowModifier: ViewModifier {
     if colorScheme == .light {
       return .black.opacity(0.4)
     } else {
-      return .white.opacity(0.4)
+      return .white.opacity(0.1)
     }
   }
 
@@ -24,7 +24,7 @@ struct ShadowModifier: ViewModifier {
     if colorScheme == .light {
       return .black.opacity(0.1)
     } else {
-      return .white.opacity(0.1)
+      return .white.opacity(0.05)
     }
   }
 
