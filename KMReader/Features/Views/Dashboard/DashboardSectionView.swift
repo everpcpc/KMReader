@@ -35,6 +35,7 @@ struct DashboardSectionView: View {
   @State private var hasMore = true
   @State private var isLoading = false
   @State private var hasLoadedInitial = false
+  @State private var didSeedFromCache = false
 
   private let pageSize = 20
 
@@ -146,6 +147,10 @@ struct DashboardSectionView: View {
     let libraryIds = dashboard.libraryIds
     let isFirstPage = currentPage == 0
 
+    if !AppConfig.isOffline {
+      await seedFromCacheIfNeeded(isFirstPage: isFirstPage, libraryIds: libraryIds)
+    }
+
     if AppConfig.isOffline {
       let ids: [String]
       if section.isBookSection {
@@ -192,6 +197,33 @@ struct DashboardSectionView: View {
 
     withAnimation {
       isLoading = false
+    }
+  }
+
+  private func seedFromCacheIfNeeded(isFirstPage: Bool, libraryIds: [String]) async {
+    guard isFirstPage, !didSeedFromCache, itemIds.isEmpty else { return }
+    didSeedFromCache = true
+
+    let cachedIds: [String]
+    if section.isBookSection {
+      cachedIds = section.fetchOfflineBookIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: 0,
+        limit: pageSize
+      )
+    } else {
+      cachedIds = section.fetchOfflineSeriesIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: 0,
+        limit: pageSize
+      )
+    }
+
+    guard !cachedIds.isEmpty else { return }
+    withAnimation {
+      itemIds = cachedIds
     }
   }
 
