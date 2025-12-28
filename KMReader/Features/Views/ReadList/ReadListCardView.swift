@@ -21,6 +21,18 @@ struct ReadListCardView: View {
       NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
         ThumbnailImage(
           id: komgaReadList.readListId, type: .readlist, width: width, alignment: .bottom)
+        .contextMenu {
+          ReadListContextMenu(
+            readList: komgaReadList.toReadList(),
+            onActionCompleted: onActionCompleted,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
+            onEditRequested: {
+              showEditSheet = true
+            }
+          )
+        }
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
@@ -33,25 +45,6 @@ struct ReadListCardView: View {
           HStack(spacing: 4) {
             Text("\(komgaReadList.bookIds.count) books")
             Spacer()
-            Menu {
-              ReadListContextMenu(
-                readList: komgaReadList.toReadList(),
-                onActionCompleted: onActionCompleted,
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
-              )
-            } label: {
-              HStack {
-                Image(systemName: "ellipsis")
-                  .padding(.horizontal, 4)
-              }
-              .foregroundColor(.secondary)
-              .contentShape(Rectangle())
-            }
           }.foregroundColor(.secondary)
         }.font(.footnote)
       }

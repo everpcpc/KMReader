@@ -23,6 +23,18 @@ struct CollectionCardView: View {
       ) {
         ThumbnailImage(
           id: komgaCollection.collectionId, type: .collection, width: width, alignment: .bottom)
+        .contextMenu {
+          CollectionContextMenu(
+            collection: komgaCollection.toCollection(),
+            onActionCompleted: onActionCompleted,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
+            onEditRequested: {
+              showEditSheet = true
+            }
+          )
+        }
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
@@ -35,25 +47,6 @@ struct CollectionCardView: View {
           HStack(spacing: 4) {
             Text("\(komgaCollection.seriesIds.count) series")
             Spacer()
-            Menu {
-              CollectionContextMenu(
-                collection: komgaCollection.toCollection(),
-                onActionCompleted: onActionCompleted,
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
-              )
-            } label: {
-              HStack {
-                Image(systemName: "ellipsis")
-                  .padding(.horizontal, 4)
-              }
-              .foregroundColor(.secondary)
-              .contentShape(Rectangle())
-            }
           }.foregroundColor(.secondary)
         }.font(.footnote)
       }

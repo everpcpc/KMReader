@@ -20,7 +20,7 @@ struct CollectionRowView: View {
         value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
       ) {
         ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
-      }
+      }.adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(
@@ -29,7 +29,7 @@ struct CollectionRowView: View {
           Text(komgaCollection.name)
             .font(.callout)
             .lineLimit(2)
-        }
+        }.adaptiveButtonStyle(.plain)
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
@@ -47,30 +47,30 @@ struct CollectionRowView: View {
 
           Spacer()
 
-          Menu {
-            CollectionContextMenu(
-              collection: komgaCollection.toCollection(),
-              onActionCompleted: onActionCompleted,
-              onDeleteRequested: {
-                showDeleteConfirmation = true
-              },
-              onEditRequested: {
-                showEditSheet = true
-              }
+          Image(systemName: "ellipsis")
+            .hidden()
+            .overlay(
+              Menu {
+                CollectionContextMenu(
+                  collection: komgaCollection.toCollection(),
+                  onActionCompleted: onActionCompleted,
+                  onDeleteRequested: {
+                    showDeleteConfirmation = true
+                  },
+                  onEditRequested: {
+                    showEditSheet = true
+                  }
+                )
+              } label: {
+                Image(systemName: "ellipsis")
+                  .foregroundColor(.secondary)
+                  .frame(width: 40, height: 40)
+                  .contentShape(Rectangle())
+              }.adaptiveButtonStyle(.plain)
             )
-          } label: {
-            HStack {
-              Image(systemName: "ellipsis")
-                .padding(.horizontal, 4)
-            }
-            .foregroundColor(.secondary)
-            .contentShape(Rectangle())
-          }
         }
       }
     }
-    .adaptiveButtonStyle(.plain)
-    .contentShape(Rectangle())
     .alert("Delete Collection", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

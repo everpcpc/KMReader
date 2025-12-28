@@ -42,6 +42,21 @@ struct SeriesCardView: View {
             }
           }
         }
+        .contextMenu {
+          SeriesContextMenu(
+            komgaSeries: komgaSeries,
+            onActionCompleted: onActionCompleted,
+            onShowCollectionPicker: {
+              showCollectionPicker = true
+            },
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
+            onEditRequested: {
+              showEditSheet = true
+            }
+          )
+        }
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
@@ -62,31 +77,9 @@ struct SeriesCardView: View {
               Text("\(komgaSeries.booksCount) books")
             }
             if komgaSeries.downloadStatus != .notDownloaded {
+              Spacer()
               Image(systemName: komgaSeries.downloadStatus.icon)
                 .foregroundColor(komgaSeries.downloadStatus.color)
-            }
-            Spacer()
-            Menu {
-              SeriesContextMenu(
-                komgaSeries: komgaSeries,
-                onActionCompleted: onActionCompleted,
-                onShowCollectionPicker: {
-                  showCollectionPicker = true
-                },
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
-              )
-            } label: {
-              HStack {
-                Image(systemName: "ellipsis")
-                  .padding(.horizontal, 4)
-              }
-              .foregroundColor(.secondary)
-              .contentShape(Rectangle())
             }
           }
           .font(.caption)

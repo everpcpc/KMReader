@@ -36,31 +36,7 @@ struct BookContextMenu: View {
 
   var body: some View {
     Group {
-      ControlGroup {
-        if komgaBook.oneshot {
-          NavigationLink(value: NavDestination.oneshotDetail(seriesId: book.seriesId)) {
-            Label("Details", systemImage: "info.circle")
-          }
-        } else {
-          NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
-            Label("Details", systemImage: "info.circle")
-          }
-        }
-
-        if let onReadBook = onReadBook {
-          Button {
-            onReadBook(true)
-          } label: {
-            Label("Read Incognito", systemImage: "eye.slash")
-          }
-        }
-
-        if showSeriesNavigation && !komgaBook.oneshot {
-          NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-            Label("Series", systemImage: "book")
-          }
-        }
-      }
+      detailsSection
 
       Button {
         onShowReadListPicker?()
@@ -222,5 +198,60 @@ struct BookContextMenu: View {
         }
       }
     }
+  }
+
+  @ViewBuilder
+  private var detailsSection: some View {
+    #if os(iOS)
+      ControlGroup {
+        if komgaBook.oneshot {
+          NavigationLink(value: NavDestination.oneshotDetail(seriesId: book.seriesId)) {
+            Label("Details", systemImage: "info.circle")
+          }
+        } else {
+          NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
+            Label("Details", systemImage: "info.circle")
+          }
+        }
+
+        if let onReadBook = onReadBook {
+          Button {
+            onReadBook(true)
+          } label: {
+            Label("Read Incognito", systemImage: "eye.slash")
+          }
+        }
+
+        if showSeriesNavigation && !komgaBook.oneshot {
+          NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
+            Label("Series", systemImage: "book")
+          }
+        }
+      }
+    #else
+      if let onReadBook = onReadBook {
+        Button {
+          onReadBook(true)
+        } label: {
+          Label("Read Incognito", systemImage: "eye.slash")
+        }
+        Divider()
+      }
+      if komgaBook.oneshot {
+        NavigationLink(value: NavDestination.oneshotDetail(seriesId: book.seriesId)) {
+          Label("Details", systemImage: "info.circle")
+        }
+      } else {
+        NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
+          Label("Details", systemImage: "info.circle")
+        }
+      }
+      if showSeriesNavigation && !komgaBook.oneshot {
+        NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
+          Label("Series", systemImage: "book")
+        }
+      }
+      Divider()
+    #endif
   }
 }

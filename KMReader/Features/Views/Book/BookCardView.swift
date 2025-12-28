@@ -72,11 +72,29 @@ struct BookCardView: View {
             }
           }
         }
+        .contextMenu {
+          BookContextMenu(
+            komgaBook: komgaBook,
+            onReadBook: onReadBook,
+            onActionCompleted: onBookUpdated,
+            onShowReadListPicker: {
+              showReadListPicker = true
+            },
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
+            onEditRequested: {
+              showEditSheet = true
+            },
+            showSeriesNavigation: showSeriesNavigation
+          )
+        }
         .adaptiveButtonStyle(.plain)
         .ifLet(zoomNamespace) { view, namespace in
           view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
       }
+      .focusPadding()
       .adaptiveButtonStyle(.plain)
 
       if !coverOnlyCards {
@@ -107,33 +125,10 @@ struct BookCardView: View {
               Text("\(pagesText) • \(komgaBook.size)")
                 .lineLimit(1)
             }
-            Spacer()
             if komgaBook.downloadStatus != .notDownloaded {
+              Spacer()
               Image(systemName: komgaBook.downloadStatus.displayIcon)
                 .foregroundColor(komgaBook.downloadStatus.displayColor)
-            }
-            Menu {
-              BookContextMenu(
-                komgaBook: komgaBook,
-                onReadBook: onReadBook,
-                onActionCompleted: onBookUpdated,
-                onShowReadListPicker: {
-                  showReadListPicker = true
-                },
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                },
-                showSeriesNavigation: showSeriesNavigation
-              )
-            } label: {
-              HStack {
-                Image(systemName: "ellipsis")
-              }
-              .foregroundColor(.secondary)
-              .contentShape(Rectangle())
             }
           }
           .font(.caption)
