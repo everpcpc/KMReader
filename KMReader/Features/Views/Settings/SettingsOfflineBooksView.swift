@@ -145,7 +145,13 @@ struct SettingsOfflineBooksView: View {
                     HStack {
                       Text("#\(book.metaNumber) - \(book.metaTitle)")
                         .font(.footnote)
+
                       Spacer()
+                      if book.readProgress?.completed == true {
+                        Image(systemName: "checkmark.circle.fill")
+                          .font(.caption)
+                          .foregroundColor(.secondary)
+                      }
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -158,7 +164,13 @@ struct SettingsOfflineBooksView: View {
                     HStack {
                       Text("#\(book.metaNumber) - \(book.metaTitle)")
                         .font(.footnote)
+
                       Spacer()
+                      if book.readProgress?.completed == true {
+                        Image(systemName: "checkmark.circle.fill")
+                          .font(.caption)
+                          .foregroundColor(.secondary)
+                      }
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -205,7 +217,13 @@ struct SettingsOfflineBooksView: View {
                     HStack {
                       Text(book.metaTitle)
                         .font(.footnote)
+
                       Spacer()
+                      if book.readProgress?.completed == true {
+                        Image(systemName: "checkmark.circle.fill")
+                          .font(.caption)
+                          .foregroundColor(.secondary)
+                      }
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -218,6 +236,13 @@ struct SettingsOfflineBooksView: View {
                     HStack {
                       Text(book.metaTitle)
                         .font(.footnote)
+
+                      Spacer()
+                      if book.readProgress?.completed == true {
+                        Image(systemName: "checkmark.circle.fill")
+                          .font(.caption)
+                          .foregroundColor(.secondary)
+                      }
                       Spacer()
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
