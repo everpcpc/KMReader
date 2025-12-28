@@ -17,10 +17,12 @@ struct ReadListCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    VStack(alignment: .leading) {
+    VStack(alignment: .leading, spacing: 16) {
       NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
         ThumbnailImage(
-          id: komgaReadList.readListId, type: .readlist, width: width, alignment: .bottom)
+          id: komgaReadList.readListId, type: .readlist, showShadow: false, width: width,
+          alignment: .bottom)
+        .platformShadow()
         .contextMenu {
           ReadListContextMenu(
             readList: komgaReadList.toReadList(),

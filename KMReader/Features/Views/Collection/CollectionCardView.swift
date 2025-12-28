@@ -17,12 +17,14 @@ struct CollectionCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    VStack(alignment: .leading) {
+    VStack(alignment: .leading, spacing: 16) {
       NavigationLink(
         value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
       ) {
         ThumbnailImage(
-          id: komgaCollection.collectionId, type: .collection, width: width, alignment: .bottom)
+          id: komgaCollection.collectionId, type: .collection, showShadow: false, width: width,
+          alignment: .bottom)
+        .platformShadow()
         .contextMenu {
           CollectionContextMenu(
             collection: komgaCollection.toCollection(),

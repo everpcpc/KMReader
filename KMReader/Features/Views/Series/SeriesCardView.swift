@@ -14,6 +14,7 @@ struct SeriesCardView: View {
   var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @Environment(\.colorScheme) private var colorScheme
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
@@ -28,10 +29,10 @@ struct SeriesCardView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading) {
+    VStack(alignment: .leading, spacing: 16) {
       NavigationLink(value: navDestination) {
         ThumbnailImage(
-          id: komgaSeries.seriesId, type: .series, width: cardWidth, alignment: .bottom
+          id: komgaSeries.seriesId, type: .series, showShadow: false, width: cardWidth, alignment: .bottom
         ) {
           ZStack {
             if komgaSeries.booksUnreadCount > 0 {
@@ -57,6 +58,7 @@ struct SeriesCardView: View {
             }
           )
         }
+        .platformShadow()
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)

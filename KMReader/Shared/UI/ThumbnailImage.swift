@@ -14,6 +14,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let id: String?
   let type: ThumbnailType
   let showPlaceholder: Bool
+  let showShadow: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
   let refreshTrigger: Int
@@ -30,6 +31,7 @@ struct ThumbnailImage<Overlay: View>: View {
     id: String?,
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
+    showShadow: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 4,
     refreshTrigger: Int = 0,
@@ -39,6 +41,7 @@ struct ThumbnailImage<Overlay: View>: View {
     self.id = id
     self.type = type
     self.showPlaceholder = showPlaceholder
+    self.showShadow = showShadow
     self.width = width
     self.cornerRadius = cornerRadius
     self.refreshTrigger = refreshTrigger
@@ -85,7 +88,7 @@ struct ThumbnailImage<Overlay: View>: View {
         .overlay {
           if thumbnailPreserveAspectRatio, let overlay = overlay {
             overlay()
-              .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
           } else {
             EmptyView()
           }
@@ -113,7 +116,7 @@ struct ThumbnailImage<Overlay: View>: View {
         EmptyView()
       }
     }
-    .shadow(color: Color.black.opacity(0.5), radius: 2)
+    .shadow(color: showShadow ? Color.black.opacity(0.5) : .clear, radius: showShadow ? 2 : 0)
     .task(id: "\(id ?? "")_\(refreshTrigger)") {
       guard let id = id else {
         isLoading = false
@@ -142,13 +145,14 @@ extension ThumbnailImage where Overlay == EmptyView {
     id: String?,
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
+    showShadow: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
     refreshTrigger: Int = 0,
     alignment: Alignment = .center
   ) {
     self.init(
-      id: id, type: type, showPlaceholder: showPlaceholder,
+      id: id, type: type, showPlaceholder: showPlaceholder, showShadow: showShadow,
       width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger,
       alignment: alignment
     ) {}
