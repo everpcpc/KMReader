@@ -34,7 +34,7 @@ struct BooksQueryView: View {
       switch browseLayout {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-          ForEach(Array(viewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+          ForEach(viewModel.browseBookIds, id: \.self) { bookId in
             BookQueryItemView(
               bookId: bookId,
               cardWidth: layoutHelper.cardWidth,
@@ -47,7 +47,7 @@ struct BooksQueryView: View {
             )
             .padding(.bottom)
             .onAppear {
-              if index >= viewModel.browseBookIds.count - 3 {
+              if viewModel.browseBookIds.suffix(3).contains(bookId) {
                 Task {
                   await loadMore(false)
                 }
@@ -58,7 +58,7 @@ struct BooksQueryView: View {
         .padding(.horizontal, layoutHelper.spacing)
       case .list:
         LazyVStack {
-          ForEach(Array(viewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+          ForEach(viewModel.browseBookIds, id: \.self) { bookId in
             BookQueryItemView(
               bookId: bookId,
               cardWidth: layoutHelper.cardWidth,
@@ -70,13 +70,13 @@ struct BooksQueryView: View {
               }
             )
             .onAppear {
-              if index >= viewModel.browseBookIds.count - 3 {
+              if viewModel.browseBookIds.suffix(3).contains(bookId) {
                 Task {
                   await loadMore(false)
                 }
               }
             }
-            if index < viewModel.browseBookIds.count - 1 {
+            if bookId != viewModel.browseBookIds.last {
               Divider()
             }
           }

@@ -41,8 +41,7 @@ struct CollectionsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(viewModel.collectionIds.enumerated()), id: \.element) {
-              index, collectionId in
+            ForEach(viewModel.collectionIds, id: \.self) { collectionId in
               CollectionQueryItemView(
                 collectionId: collectionId,
                 width: layoutHelper.cardWidth,
@@ -54,7 +53,7 @@ struct CollectionsBrowseView: View {
               )
               .padding(.bottom)
               .onAppear {
-                if index >= viewModel.collectionIds.count - 3 {
+                if viewModel.collectionIds.suffix(3).contains(collectionId) {
                   Task {
                     await loadCollections(refresh: false)
                   }
@@ -65,8 +64,7 @@ struct CollectionsBrowseView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(Array(viewModel.collectionIds.enumerated()), id: \.element) {
-              index, collectionId in
+            ForEach(viewModel.collectionIds, id: \.self) { collectionId in
               CollectionQueryItemView(
                 collectionId: collectionId,
                 layout: .list,
@@ -77,13 +75,13 @@ struct CollectionsBrowseView: View {
                 }
               )
               .onAppear {
-                if index >= viewModel.collectionIds.count - 3 {
+                if viewModel.collectionIds.suffix(3).contains(collectionId) {
                   Task {
                     await loadCollections(refresh: false)
                   }
                 }
               }
-              if index < viewModel.collectionIds.count - 1 {
+              if collectionId != viewModel.collectionIds.last {
                 Divider()
               }
             }

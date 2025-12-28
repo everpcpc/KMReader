@@ -32,8 +32,7 @@ struct ReadListBooksQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) {
-              index, bookId in
+            ForEach(bookViewModel.browseBookIds, id: \.self) { bookId in
               Group {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(
@@ -56,7 +55,7 @@ struct ReadListBooksQueryView: View {
               }
               .padding(.bottom)
               .onAppear {
-                if index >= bookViewModel.browseBookIds.count - 3 {
+                if bookViewModel.browseBookIds.suffix(3).contains(bookId) {
                   Task { await loadMore(refresh: false) }
                 }
               }
@@ -65,8 +64,7 @@ struct ReadListBooksQueryView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) {
-              index, bookId in
+            ForEach(bookViewModel.browseBookIds, id: \.self) { bookId in
               Group {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(
@@ -88,11 +86,11 @@ struct ReadListBooksQueryView: View {
                 }
               }
               .onAppear {
-                if index >= bookViewModel.browseBookIds.count - 3 {
+                if bookViewModel.browseBookIds.suffix(3).contains(bookId) {
                   Task { await loadMore(refresh: false) }
                 }
               }
-              if index < bookViewModel.browseBookIds.count - 1 {
+              if bookId != bookViewModel.browseBookIds.last {
                 Divider()
               }
             }
