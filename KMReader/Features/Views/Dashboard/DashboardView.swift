@@ -10,7 +10,7 @@ import OSLog
 import SwiftUI
 
 struct DashboardView: View {
-  @State private var refreshTrigger = UUID()
+  @State private var refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: .manual)
   @State private var isRefreshDisabled = false
   @State private var pendingRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
@@ -30,11 +30,11 @@ struct DashboardView: View {
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
   private let logger = AppLogger(.dashboard)
 
-  private func performRefresh(reason: String) {
+  private func performRefresh(reason: String, source: DashboardRefreshSource) {
     logger.debug("Dashboard refresh start: \(reason)")
 
     // Update refresh trigger to cause all sections to reload
-    refreshTrigger = UUID()
+    refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: source)
     isRefreshDisabled = true
     Task {
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
@@ -59,7 +59,7 @@ struct DashboardView: View {
     }
 
     // Perform refresh immediately
-    performRefresh(reason: reason)
+    performRefresh(reason: reason, source: .manual)
   }
 
   private func scheduleRefresh(reason: String) {
@@ -95,7 +95,7 @@ struct DashboardView: View {
         if isReaderActive {
           shouldRefreshAfterReading = true
         } else {
-          performRefresh(reason: "Auto after debounce: \(reason)")
+          performRefresh(reason: "Auto after debounce: \(reason)", source: .auto)
         }
         pendingRefreshTask = nil
       }

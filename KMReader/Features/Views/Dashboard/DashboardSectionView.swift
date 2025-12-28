@@ -8,9 +8,19 @@
 import SwiftData
 import SwiftUI
 
+enum DashboardRefreshSource {
+  case manual
+  case auto
+}
+
+struct DashboardRefreshTrigger: Equatable {
+  let id: UUID
+  let source: DashboardRefreshSource
+}
+
 struct DashboardSectionView: View {
   let section: DashboardSection
-  let refreshTrigger: UUID
+  let refreshTrigger: DashboardRefreshTrigger
   var onUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
@@ -85,6 +95,9 @@ struct DashboardSectionView: View {
     .opacity(itemIds.isEmpty ? 0 : 1)
     .frame(height: itemIds.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
+      if refreshTrigger.source == .auto, currentPage > 0 {
+        return
+      }
       Task {
         await refresh()
       }
