@@ -33,6 +33,13 @@
       context.coordinator.isVerticalReading = isVerticalReading
     }
 
+    static func dismantleUIViewController(
+      _ uiViewController: GestureConfiguratorViewController,
+      coordinator: Coordinator
+    ) {
+      coordinator.restoreOriginalDelegates()
+    }
+
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
       var isVerticalReading: Bool
       var configuredRecognizers:
