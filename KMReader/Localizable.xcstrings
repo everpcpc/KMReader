@@ -23339,7 +23339,44 @@
       }
     },
     "Server unreachable, switched to offline mode" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server unreachable, switched to offline mode"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serveur inaccessible, passage en mode hors ligne"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーに到達できないため、オフラインモードに切り替えました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서버에 연결할 수 없어 오프라인 모드로 전환되었습니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接服务器，已切换到离线模式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法連線伺服器，已切換至離線模式"
+          }
+        }
+      }
     },
     "Server updated %@ ago" : {
       "localizations" : {
