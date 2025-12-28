@@ -31,7 +31,7 @@ struct DashboardSectionView: View {
   private var backgroundColors: [Color] {
     if colorScheme == .dark {
       return [
-        Color.white.opacity(0.1),
+        Color.secondary.opacity(0.1),
         Color.clear,
         Color.clear,
         Color.clear,
@@ -51,8 +51,7 @@ struct DashboardSectionView: View {
       NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
         HStack {
           Text(section.displayName)
-            .font(.title3)
-            .fontWeight(.bold)
+            .font(.appSerifDesign(size: 22, weight: .bold))
           Image(systemName: "chevron.right")
             .font(.subheadline)
             .foregroundStyle(.secondary)

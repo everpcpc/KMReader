@@ -49,10 +49,6 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
-  var pagesText: String {
-    String(localized: "\(komgaBook.mediaPagesCount) pages")
-  }
-
   var body: some View {
     VStack(alignment: .leading) {
       Button {
@@ -122,7 +118,7 @@ struct BookCardView: View {
               Text(komgaBook.media.status.label)
                 .foregroundColor(komgaBook.media.status.color)
             } else {
-              Text("\(pagesText) • \(komgaBook.size)")
+              Text("\(komgaBook.mediaPagesCount) pages")
                 .lineLimit(1)
             }
             if komgaBook.downloadStatus != .notDownloaded {
