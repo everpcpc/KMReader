@@ -35,54 +35,50 @@ struct SeriesContextMenu: View {
 
   var body: some View {
     Group {
-      Button {
-        onEditRequested?()
-      } label: {
-        Label("Edit", systemImage: "pencil")
-      }
-      .disabled(!isAdmin || isOffline)
+      if !isOffline {
 
-      Button {
-        analyzeSeries()
-      } label: {
-        Label("Analyze", systemImage: "waveform.path.ecg")
-      }
-      .disabled(!isAdmin || isOffline)
-
-      Button {
-        refreshMetadata()
-      } label: {
-        Label("Refresh Metadata", systemImage: "arrow.clockwise")
-      }
-      .disabled(!isAdmin || isOffline)
-
-      Divider()
-
-      Button {
-        onShowCollectionPicker?()
-      } label: {
-        Label("Add to Collection", systemImage: "square.grid.2x2")
-      }
-      .disabled(isOffline)
-
-      Divider()
-
-      if canMarkAsRead {
-        Button {
-          markSeriesAsRead()
-        } label: {
-          Label("Mark as Read", systemImage: "checkmark.circle")
+        if isAdmin {
+          Button {
+            onEditRequested?()
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
+          Button {
+            analyzeSeries()
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
+          Button {
+            refreshMetadata()
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
+          Divider()
         }
-        .disabled(isOffline)
-      }
 
-      if canMarkAsUnread {
         Button {
-          markSeriesAsUnread()
+          onShowCollectionPicker?()
         } label: {
-          Label("Mark as Unread", systemImage: "circle")
+          Label("Add to Collection", systemImage: "square.grid.2x2")
         }
-        .disabled(isOffline)
+
+        Divider()
+
+        if canMarkAsRead {
+          Button {
+            markSeriesAsRead()
+          } label: {
+            Label("Mark as Read", systemImage: "checkmark.circle")
+          }
+        }
+
+        if canMarkAsUnread {
+          Button {
+            markSeriesAsUnread()
+          } label: {
+            Label("Mark as Unread", systemImage: "circle")
+          }
+        }
       }
     }
   }

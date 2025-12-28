@@ -23,23 +23,20 @@ struct CollectionContextMenu: View {
         Label("View Details", systemImage: "info.circle")
       }
 
-      Divider()
-
-      Button {
-        onEditRequested?()
-      } label: {
-        Label("Edit", systemImage: "pencil")
+      if !isOffline && isAdmin {
+        Divider()
+        Button {
+          onEditRequested?()
+        } label: {
+          Label("Edit", systemImage: "pencil")
+        }
+        Divider()
+        Button(role: .destructive) {
+          onDeleteRequested?()
+        } label: {
+          Label("Delete", systemImage: "trash")
+        }
       }
-      .disabled(!isAdmin || isOffline)
-
-      Divider()
-
-      Button(role: .destructive) {
-        onDeleteRequested?()
-      } label: {
-        Label("Delete", systemImage: "trash")
-      }
-      .disabled(!isAdmin || isOffline)
     }
   }
 }

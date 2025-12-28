@@ -38,28 +38,50 @@ struct BookContextMenu: View {
     Group {
       detailsSection
 
-      Button {
-        onShowReadListPicker?()
-      } label: {
-        Label("Add to Read List", systemImage: "list.bullet")
+      if !isOffline {
+        Button {
+          onShowReadListPicker?()
+        } label: {
+          Label("Add to Read List", systemImage: "list.bullet")
+        }
+        if !isCompleted {
+          Button {
+            markAsRead(bookId: book.id)
+          } label: {
+            Label("Mark as Read", systemImage: "checkmark.circle")
+          }
+        }
+        if book.readProgress != nil {
+          Button {
+            markAsUnread(bookId: book.id)
+          } label: {
+            Label("Mark as Unread", systemImage: "circle")
+          }
+        }
+        Divider()
       }
-      .disabled(isOffline)
 
-      if !isCompleted {
-        Button {
-          markAsRead(bookId: book.id)
+      if !isOffline && isAdmin {
+        Menu {
+          Button {
+            onEditRequested?()
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
+          Button {
+            analyzeBook(bookId: book.id)
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
+          Button {
+            refreshMetadata(bookId: book.id)
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
+          Divider()
         } label: {
-          Label("Mark as Read", systemImage: "checkmark.circle")
+          Label("Manage", systemImage: "gearshape")
         }
-        .disabled(isOffline)
-      }
-      if book.readProgress != nil {
-        Button {
-          markAsUnread(bookId: book.id)
-        } label: {
-          Label("Mark as Unread", systemImage: "circle")
-        }
-        .disabled(isOffline)
       }
 
       Divider()
@@ -73,41 +95,12 @@ struct BookContextMenu: View {
         Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
       }
 
-      Divider()
-
-      Menu {
-        Button {
-          onEditRequested?()
-        } label: {
-          Label("Edit", systemImage: "pencil")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Button {
-          analyzeBook(bookId: book.id)
-        } label: {
-          Label("Analyze", systemImage: "waveform.path.ecg")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Button {
-          refreshMetadata(bookId: book.id)
-        } label: {
-          Label("Refresh Metadata", systemImage: "arrow.clockwise")
-        }
-        .disabled(!isAdmin || isOffline)
-
-        Divider()
-
-        Button(role: .destructive) {
-          Task {
-            await CacheManager.clearCache(forBookId: book.id)
-          }
-        } label: {
-          Label("Clear Cache", systemImage: "xmark.circle")
+      Button(role: .destructive) {
+        Task {
+          await CacheManager.clearCache(forBookId: book.id)
         }
       } label: {
-        Label("Manage", systemImage: "gearshape")
+        Label("Clear Cache", systemImage: "xmark.circle")
       }
     }
   }
