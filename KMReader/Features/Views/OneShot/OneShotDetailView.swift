@@ -300,7 +300,6 @@ struct OneshotDetailView: View {
               }
             }
           )
-          Divider()
 
           #if os(tvOS)
             oneshotToolbarContent
@@ -368,8 +367,59 @@ struct OneshotDetailView: View {
             .padding(.vertical)
           }
 
+          if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+              Divider()
+              Text("Alternate Titles")
+                .font(.headline)
+              VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(alternateTitles.enumerated()), id: \.offset) { index, altTitle in
+                  HStack(alignment: .top, spacing: 4) {
+                    Text("\(altTitle.label):")
+                      .font(.caption)
+                      .foregroundColor(.secondary)
+                      .frame(width: 60, alignment: .leading)
+                    Text(altTitle.title)
+                      .font(.caption)
+                      .foregroundColor(.primary)
+                  }
+                }
+              }
+            }.padding(.bottom, 8)
+          }
+
+          if let links = book.metadata.links, !links.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+              Divider()
+              Text("Links")
+                .font(.headline)
+              HFlow {
+                ForEach(Array(links.enumerated()), id: \.offset) { _, link in
+                  if let url = URL(string: link.url) {
+                    Link(destination: url) {
+                      InfoChip(
+                        label: link.label,
+                        systemImage: "link",
+                        backgroundColor: Color.blue.opacity(0.2),
+                        foregroundColor: .blue
+                      )
+                    }
+                  } else {
+                    InfoChip(
+                      label: link.label,
+                      systemImage: "link",
+                      backgroundColor: Color.gray.opacity(0.2),
+                      foregroundColor: .gray
+                    )
+                  }
+                }
+              }
+            }
+          }
+
           // book media info
           VStack(alignment: .leading, spacing: 8) {
+            Divider()
             Text("Media Information")
               .font(.headline)
 
@@ -415,60 +465,10 @@ struct OneshotDetailView: View {
                 }
               }
             }
-            Divider()
-          }
-
-          if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-              Divider()
-              Text("Alternate Titles")
-                .font(.headline)
-              VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(alternateTitles.enumerated()), id: \.offset) { index, altTitle in
-                  HStack(alignment: .top, spacing: 4) {
-                    Text("\(altTitle.label):")
-                      .font(.caption)
-                      .foregroundColor(.secondary)
-                      .frame(width: 60, alignment: .leading)
-                    Text(altTitle.title)
-                      .font(.caption)
-                      .foregroundColor(.primary)
-                  }
-                }
-              }
-            }.padding(.bottom, 8)
-          }
-
-          if let links = book.metadata.links, !links.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-              Text("Links")
-                .font(.headline)
-              HFlow {
-                ForEach(Array(links.enumerated()), id: \.offset) { _, link in
-                  if let url = URL(string: link.url) {
-                    Link(destination: url) {
-                      InfoChip(
-                        label: link.label,
-                        systemImage: "link",
-                        backgroundColor: Color.blue.opacity(0.2),
-                        foregroundColor: .blue
-                      )
-                    }
-                  } else {
-                    InfoChip(
-                      label: link.label,
-                      systemImage: "link",
-                      backgroundColor: Color.gray.opacity(0.2),
-                      foregroundColor: .gray
-                    )
-                  }
-                }
-              }
-              Divider()
-            }
           }
 
           if let summary = book.metadata.summary, !summary.isEmpty {
+            Divider()
             ExpandableSummaryView(summary: summary)
           }
         } else if isLoading {
