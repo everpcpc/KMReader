@@ -33,25 +33,27 @@ struct ReadListCardView: View {
           HStack(spacing: 4) {
             Text("\(komgaReadList.bookIds.count) books")
             Spacer()
-            Menu {
-              ReadListContextMenu(
-                readList: komgaReadList.toReadList(),
-                onActionCompleted: onActionCompleted,
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
+            Image(systemName: "ellipsis")
+              .hidden()
+              .overlay(
+                Menu {
+                  ReadListContextMenu(
+                    readList: komgaReadList.toReadList(),
+                    onActionCompleted: onActionCompleted,
+                    onDeleteRequested: {
+                      showDeleteConfirmation = true
+                    },
+                    onEditRequested: {
+                      showEditSheet = true
+                    }
+                  )
+                } label: {
+                  Image(systemName: "ellipsis")
+                    .foregroundColor(.secondary)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
+                }.adaptiveButtonStyle(.plain)
               )
-            } label: {
-              HStack {
-                Image(systemName: "ellipsis")
-                  .padding(.horizontal, 4)
-              }
-              .foregroundColor(.secondary)
-              .contentShape(Rectangle())
-            }
           }.foregroundColor(.secondary)
         }.font(.footnote)
       }

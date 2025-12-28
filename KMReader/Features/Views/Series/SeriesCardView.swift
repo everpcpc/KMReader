@@ -66,28 +66,30 @@ struct SeriesCardView: View {
                 .foregroundColor(komgaSeries.downloadStatus.color)
             }
             Spacer()
-            Menu {
-              SeriesContextMenu(
-                komgaSeries: komgaSeries,
-                onActionCompleted: onActionCompleted,
-                onShowCollectionPicker: {
-                  showCollectionPicker = true
-                },
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
+            Image(systemName: "ellipsis")
+              .hidden()
+              .overlay(
+                Menu {
+                  SeriesContextMenu(
+                    komgaSeries: komgaSeries,
+                    onActionCompleted: onActionCompleted,
+                    onShowCollectionPicker: {
+                      showCollectionPicker = true
+                    },
+                    onDeleteRequested: {
+                      showDeleteConfirmation = true
+                    },
+                    onEditRequested: {
+                      showEditSheet = true
+                    }
+                  )
+                } label: {
+                  Image(systemName: "ellipsis")
+                    .foregroundColor(.secondary)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
+                }.adaptiveButtonStyle(.plain)
               )
-            } label: {
-              HStack {
-                Image(systemName: "ellipsis")
-                  .padding(.horizontal, 4)
-              }
-              .foregroundColor(.secondary)
-              .contentShape(Rectangle())
-            }
           }
           .font(.caption)
           .foregroundColor(.secondary)

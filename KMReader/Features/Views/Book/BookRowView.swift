@@ -127,30 +127,32 @@ struct BookRowView: View {
             Image(systemName: komgaBook.downloadStatus.displayIcon)
               .foregroundColor(komgaBook.downloadStatus.displayColor)
           }
-          Menu {
-            BookContextMenu(
-              komgaBook: komgaBook,
-              onReadBook: onReadBook,
-              onActionCompleted: onBookUpdated,
-              onShowReadListPicker: {
-                showReadListPicker = true
-              },
-              onDeleteRequested: {
-                showDeleteConfirmation = true
-              },
-              onEditRequested: {
-                showEditSheet = true
-              },
-              showSeriesNavigation: showSeriesNavigation
+          Image(systemName: "ellipsis")
+            .hidden()
+            .overlay(
+              Menu {
+                BookContextMenu(
+                  komgaBook: komgaBook,
+                  onReadBook: onReadBook,
+                  onActionCompleted: onBookUpdated,
+                  onShowReadListPicker: {
+                    showReadListPicker = true
+                  },
+                  onDeleteRequested: {
+                    showDeleteConfirmation = true
+                  },
+                  onEditRequested: {
+                    showEditSheet = true
+                  },
+                  showSeriesNavigation: showSeriesNavigation
+                )
+              } label: {
+                Image(systemName: "ellipsis")
+                  .foregroundColor(.secondary)
+                  .frame(width: 40, height: 40)
+                  .contentShape(Rectangle())
+              }.adaptiveButtonStyle(.plain)
             )
-          } label: {
-            HStack {
-              Image(systemName: "ellipsis")
-                .padding(.horizontal, 4)
-            }
-            .foregroundColor(.secondary)
-            .contentShape(Rectangle())
-          }
         }
       }
     }

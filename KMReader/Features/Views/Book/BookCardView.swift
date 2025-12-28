@@ -77,6 +77,7 @@ struct BookCardView: View {
           view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
       }
+      .focusPadding()
       .adaptiveButtonStyle(.plain)
 
       if !coverOnlyCards {
@@ -112,29 +113,32 @@ struct BookCardView: View {
               Image(systemName: komgaBook.downloadStatus.displayIcon)
                 .foregroundColor(komgaBook.downloadStatus.displayColor)
             }
-            Menu {
-              BookContextMenu(
-                komgaBook: komgaBook,
-                onReadBook: onReadBook,
-                onActionCompleted: onBookUpdated,
-                onShowReadListPicker: {
-                  showReadListPicker = true
-                },
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                },
-                showSeriesNavigation: showSeriesNavigation
+            Image(systemName: "ellipsis")
+              .hidden()
+              .overlay(
+                Menu {
+                  BookContextMenu(
+                    komgaBook: komgaBook,
+                    onReadBook: onReadBook,
+                    onActionCompleted: onBookUpdated,
+                    onShowReadListPicker: {
+                      showReadListPicker = true
+                    },
+                    onDeleteRequested: {
+                      showDeleteConfirmation = true
+                    },
+                    onEditRequested: {
+                      showEditSheet = true
+                    },
+                    showSeriesNavigation: showSeriesNavigation
+                  )
+                } label: {
+                  Image(systemName: "ellipsis")
+                    .foregroundColor(.secondary)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
+                }.adaptiveButtonStyle(.plain)
               )
-            } label: {
-              HStack {
-                Image(systemName: "ellipsis")
-              }
-              .foregroundColor(.secondary)
-              .contentShape(Rectangle())
-            }
           }
           .font(.caption)
           .foregroundColor(.secondary)

@@ -36,14 +36,14 @@ struct SeriesRowView: View {
     HStack(spacing: 12) {
       NavigationLink(value: navDestination) {
         ThumbnailImage(id: series.id, type: .series, width: 80)
-      }
+      }.adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(value: navDestination) {
           Text(series.metadata.title)
             .font(.callout)
             .lineLimit(2)
-        }
+        }.adaptiveButtonStyle(.plain)
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
@@ -98,33 +98,33 @@ struct SeriesRowView: View {
             Image(systemName: downloadStatus.icon)
               .foregroundColor(downloadStatus.color)
           }
-          Menu {
-            SeriesContextMenu(
-              komgaSeries: komgaSeries,
-              onActionCompleted: onActionCompleted,
-              onShowCollectionPicker: {
-                showCollectionPicker = true
-              },
-              onDeleteRequested: {
-                showDeleteConfirmation = true
-              },
-              onEditRequested: {
-                showEditSheet = true
-              }
+          Image(systemName: "ellipsis")
+            .hidden()
+            .overlay(
+              Menu {
+                SeriesContextMenu(
+                  komgaSeries: komgaSeries,
+                  onActionCompleted: onActionCompleted,
+                  onShowCollectionPicker: {
+                    showCollectionPicker = true
+                  },
+                  onDeleteRequested: {
+                    showDeleteConfirmation = true
+                  },
+                  onEditRequested: {
+                    showEditSheet = true
+                  }
+                )
+              } label: {
+                Image(systemName: "ellipsis")
+                  .foregroundColor(.secondary)
+                  .frame(width: 40, height: 40)
+                  .contentShape(Rectangle())
+              }.adaptiveButtonStyle(.plain)
             )
-          } label: {
-            HStack {
-              Image(systemName: "ellipsis")
-                .padding(.horizontal, 4)
-            }
-            .foregroundColor(.secondary)
-            .contentShape(Rectangle())
-          }
         }
       }
     }
-    .adaptiveButtonStyle(.plain)
-    .contentShape(Rectangle())
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {
