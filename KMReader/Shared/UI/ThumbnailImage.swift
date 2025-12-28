@@ -15,7 +15,6 @@ struct ThumbnailImage<Overlay: View>: View {
   let type: ThumbnailType
   let showPlaceholder: Bool
   let shadowStyle: ShadowStyle
-  let showSpine: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
   let refreshTrigger: Int
@@ -25,7 +24,6 @@ struct ThumbnailImage<Overlay: View>: View {
   let ratio: CGFloat = 1.413
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
-  @Environment(\.colorScheme) private var colorScheme
   @State private var localURL: URL?
   @State private var isLoading = true
 
@@ -34,7 +32,6 @@ struct ThumbnailImage<Overlay: View>: View {
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
     shadowStyle: ShadowStyle = .basic,
-    showSpine: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 4,
     refreshTrigger: Int = 0,
@@ -45,16 +42,11 @@ struct ThumbnailImage<Overlay: View>: View {
     self.type = type
     self.showPlaceholder = showPlaceholder
     self.shadowStyle = shadowStyle
-    self.showSpine = showSpine
     self.width = width
     self.cornerRadius = cornerRadius
     self.refreshTrigger = refreshTrigger
     self.alignment = alignment
     self.overlay = overlay
-  }
-
-  private var effectiveCornerRadius: CGFloat {
-    showSpine ? 2 : cornerRadius
   }
 
   private var contentMode: ContentMode {
@@ -68,7 +60,7 @@ struct ThumbnailImage<Overlay: View>: View {
   var body: some View {
     ZStack {
       // Background container with rounded corners
-      RoundedRectangle(cornerRadius: effectiveCornerRadius)
+      RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.clear)
         .frame(width: width, height: width * ratio)
 
@@ -92,38 +84,17 @@ struct ThumbnailImage<Overlay: View>: View {
         .indicator(.activity)
         .transition(.fade)
         .aspectRatio(contentMode: contentMode)
-        .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
         .overlay {
           if thumbnailPreserveAspectRatio, let overlay = overlay {
             overlay()
-              .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
-          } else {
-            EmptyView()
           }
         }
-        .bookSpine(showSpine)
-        .background {
-          if shadowStyle == .platform {
-            RoundedRectangle(cornerRadius: effectiveCornerRadius)
-              .fill(colorScheme == .light ? Color.black.opacity(0.3) : Color.white.opacity(0.15))
-              .offset(y: colorScheme == .light ? 12 : 6)
-              .blur(radius: colorScheme == .light ? 12 : 12)
-              .scaleEffect(x: 0.9)
-          }
-        }
-        .shadow(
-          color: shadowStyle == .platform
-            ? (colorScheme == .light ? .black.opacity(0.15) : .white.opacity(0.1)) : .clear,
-          radius: shadowStyle == .platform ? 2 : 0,
-          x: 0,
-          y: shadowStyle == .platform ? 1 : 0
-        )
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .frame(width: width, height: width * ratio, alignment: alignment)
       } else {
-        RoundedRectangle(cornerRadius: effectiveCornerRadius)
+        RoundedRectangle(cornerRadius: cornerRadius)
           .fill(Color.gray.opacity(0.3))
           .frame(width: width, height: width * ratio, alignment: alignment)
-          .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
           .overlay {
             if showPlaceholder && isLoading {
               ProgressView()
@@ -135,15 +106,10 @@ struct ThumbnailImage<Overlay: View>: View {
     .overlay {
       if !thumbnailPreserveAspectRatio, let overlay = overlay {
         overlay()
-          .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
-      } else {
-        EmptyView()
       }
     }
-    .shadow(
-      color: shadowStyle == .basic ? Color.black.opacity(0.5) : .clear,
-      radius: shadowStyle == .basic ? 2 : 0
-    )
+    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    .shadowStyle(shadowStyle)
     .task(id: "\(id ?? "")_\(refreshTrigger)") {
       guard let id = id else {
         isLoading = false
@@ -173,7 +139,6 @@ extension ThumbnailImage where Overlay == EmptyView {
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
     shadowStyle: ShadowStyle = .basic,
-    showSpine: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
     refreshTrigger: Int = 0,
@@ -181,9 +146,23 @@ extension ThumbnailImage where Overlay == EmptyView {
   ) {
     self.init(
       id: id, type: type, showPlaceholder: showPlaceholder, shadowStyle: shadowStyle,
-      showSpine: showSpine,
       width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger,
       alignment: alignment
     ) {}
+  }
+}
+
+#Preview {
+  VStack {
+    ThumbnailImage(
+      id: "1",
+      type: .book,
+      showPlaceholder: true,
+      shadowStyle: .platform,
+      width: 200,
+      cornerRadius: 8,
+      refreshTrigger: 0,
+      alignment: .center
+    )
   }
 }
