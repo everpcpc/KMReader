@@ -19,11 +19,8 @@ enum CacheManager {
     // Clear BookFileCache (KomgaBookFileCache)
     await BookFileCache.clearDiskCache(forBookId: bookId)
 
-    // Clear SDWebImage caches
-    // Note: SDWebImage doesn't support clearing by bookId directly,
-    // but we clear memory cache which may contain images for this book
+    // Clear SDWebImage thumbnail memory cache
     SDImageCacheProvider.thumbnailCache.clearMemory()
-    SDImageCacheProvider.pageImageCache.clearMemory()
   }
 
   /// Clear thumbnail cache

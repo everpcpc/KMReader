@@ -46,6 +46,8 @@ class ReaderViewModel {
   // map of page index to dual page index
   var dualPageIndices: [Int: PagePair] = [:]
   var tableOfContents: [ReaderTOCEntry] = []
+  /// Cache of preloaded images keyed by page number for instant display
+  var preloadedImages: [Int: PlatformImage] = [:]
   private var dualPageNoCoverEnabled: Bool
   private var forceDualPagePairs: Bool
 
@@ -86,6 +88,7 @@ class ReaderViewModel {
       task.cancel()
     }
     downloadingTasks.removeAll()
+    preloadedImages.removeAll()
 
     do {
       let fetchedPages: [BookPage]
@@ -247,43 +250,67 @@ class ReaderViewModel {
     let preloadAfter = min(currentPageIndex + 4, pages.count)
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
-    // Load pages concurrently for better performance
-    await withTaskGroup(of: Void.self) { group in
+    // Load pages concurrently and collect decoded images
+    let results = await withTaskGroup(of: (Int, PlatformImage?).self) { group -> [(Int, PlatformImage?)] in
       for index in pagesToPreload {
         let page = pages[index]
+        // Skip if already preloaded
+        if preloadedImages[page.number] != nil {
+          continue
+        }
         group.addTask {
           // Get file URL (downloads if needed)
-          if let fileURL = await self.getPageImageFileURL(page: page) {
-            // Also preload into SDWebImage memory cache for instant display
-            await self.preloadImageToMemory(fileURL: fileURL)
+          guard let fileURL = await self.getPageImageFileURL(page: page) else {
+            return (page.number, nil)
           }
+          // Decode image from file
+          let image = await self.loadImageFromFile(fileURL: fileURL)
+          return (page.number, image)
         }
       }
+      var collected: [(Int, PlatformImage?)] = []
+      for await result in group {
+        collected.append(result)
+      }
+      return collected
+    }
+
+    // Store preloaded images for instant access by PageImageView
+    for (pageNumber, image) in results {
+      if let image = image {
+        preloadedImages[pageNumber] = image
+      }
+    }
+
+    // Clean up images too far from current page to release memory
+    // Keep a window of -4 to +6 pages around current position
+    cleanupDistantImages()
+  }
+
+  /// Remove preloaded images that are too far from current page to release memory
+  private func cleanupDistantImages() {
+    guard !pages.isEmpty else { return }
+    let currentPageNumber = currentPage?.number ?? 1
+    let keepRange = (currentPageNumber - 4)...(currentPageNumber + 6)
+
+    let keysToRemove = preloadedImages.keys.filter { !keepRange.contains($0) }
+    for key in keysToRemove {
+      preloadedImages.removeValue(forKey: key)
     }
   }
 
-  /// Preload image into SDWebImage memory cache for instant display
-  func preloadImageToMemory(fileURL: URL) async {
-    // Skip if already in memory cache
-    if let cacheKey = SDImageCacheProvider.pageImageManager.cacheKey(for: fileURL),
-      SDImageCacheProvider.pageImageCache.imageFromMemoryCache(forKey: cacheKey) != nil
-    {
-      return
-    }
-
-    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-      SDImageCacheProvider.pageImageManager.loadImage(
-        with: fileURL,
-        options: [.retryFailed, .scaleDownLargeImages],
-        context: [
-          .imageScaleDownLimitBytes: 50 * 1024 * 1024,
-          .storeCacheType: SDImageCacheType.memory.rawValue,
-        ],
-        progress: nil
-      ) { _, _, _, _, _, _ in
-        continuation.resume()
+  /// Load and decode image from file URL
+  private func loadImageFromFile(fileURL: URL) async -> PlatformImage? {
+    return await Task.detached(priority: .userInitiated) {
+      guard let data = try? Data(contentsOf: fileURL) else {
+        return nil
       }
-    }
+      #if os(iOS) || os(tvOS)
+        return UIImage(data: data)
+      #elseif os(macOS)
+        return NSImage(data: data)
+      #endif
+    }.value
   }
 
   /// Update reading progress on the server
@@ -397,7 +424,7 @@ class ReaderViewModel {
     }
 
     // Unsupported type: convert to PNG in-memory and add via resource API
-    guard let image = await loadImageWithSDWebImage(from: fileURL),
+    guard let image = await loadImageFromFile(fileURL: fileURL),
       let pngData = PlatformHelper.pngData(from: image)
     else {
       return .failure(.failedToLoadImageData)
@@ -414,56 +441,6 @@ class ReaderViewModel {
     } catch {
       return .failure(.saveImageError(error.localizedDescription))
     }
-  }
-
-  /// Load image using SDWebImage
-  /// - Parameter fileURL: Local file URL
-  /// - Returns: PlatformImage if successfully loaded, nil otherwise
-  private func loadImageWithSDWebImage(from fileURL: URL) async -> PlatformImage? {
-    #if os(iOS)
-      return await withCheckedContinuation { continuation in
-        SDImageCacheProvider.pageImageCache.queryImage(
-          forKey: fileURL.absoluteString,
-          options: [],
-          context: nil
-        ) { image, data, cacheType in
-          if let image = image {
-            continuation.resume(returning: image)
-          } else {
-            if let imageData = try? Data(contentsOf: fileURL),
-              let image = SDImageCodersManager.shared.decodedImage(with: imageData, options: nil)
-            {
-              continuation.resume(returning: image)
-            } else {
-              continuation.resume(returning: nil)
-            }
-          }
-        }
-      }
-    #elseif os(macOS)
-      return await withCheckedContinuation { continuation in
-        SDImageCacheProvider.pageImageCache.queryImage(
-          forKey: fileURL.absoluteString,
-          options: [],
-          context: nil
-        ) { image, data, cacheType in
-          if let image = image {
-            continuation.resume(returning: image)
-          } else {
-            if let imageData = try? Data(contentsOf: fileURL),
-              let image = SDImageCodersManager.shared.decodedImage(
-                with: imageData, options: nil)
-            {
-              continuation.resume(returning: image)
-            } else {
-              continuation.resume(returning: nil)
-            }
-          }
-        }
-      }
-    #else
-      return nil
-    #endif
   }
 }
 

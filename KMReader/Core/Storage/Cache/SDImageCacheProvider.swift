@@ -18,20 +18,8 @@ enum SDImageCacheProvider {
     return cache
   }()
 
-  static let pageImageCache: SDImageCache = {
-    let cache = SDImageCache(namespace: "KomgaPageImageCache", diskCacheDirectory: nil)
-    cache.config.shouldCacheImagesInMemory = true
-    cache.config.maxMemoryCost = 200 * 1024 * 1024  // 200 MB decoded pages
-    cache.config.maxMemoryCount = 50
-    return cache
-  }()
-
   static let thumbnailManager: SDWebImageManager = {
     SDWebImageManager(cache: thumbnailCache, loader: SDWebImageDownloader.shared)
-  }()
-
-  static let pageImageManager: SDWebImageManager = {
-    SDWebImageManager(cache: pageImageCache, loader: SDWebImageDownloader.shared)
   }()
 
   static func configureSDWebImage() {

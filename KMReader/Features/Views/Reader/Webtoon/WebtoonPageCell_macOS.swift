@@ -7,7 +7,6 @@
 
 #if os(macOS)
   import AppKit
-  import SDWebImage
   import SwiftUI
 
   class WebtoonPageCell: NSCollectionViewItem {
@@ -68,39 +67,46 @@
       self.pageIndex = pageIndex
       self.loadImage = loadImage
 
-      pageImageView.image = nil
-      pageImageView.alphaValue = 0.0
-      loadingIndicator.startAnimation(nil)
+      if let image = image {
+        // Instant display if image is provided
+        pageImageView.image = image
+        pageImageView.alphaValue = 1.0
+        loadingIndicator.stopAnimation(nil)
+      } else {
+        pageImageView.image = nil
+        pageImageView.alphaValue = 0.0
+        loadingIndicator.startAnimation(nil)
+      }
     }
 
-    func setImageURL(_ url: URL, imageSize _: CGSize?) {
-      pageImageView.sd_setImage(
-        with: url,
-        placeholderImage: nil,
-        options: [.retryFailed, .scaleDownLargeImages],
-        context: [
-          .imageScaleDownLimitBytes: 50 * 1024 * 1024,
-          .customManager: SDImageCacheProvider.pageImageManager,
-          .storeCacheType: SDImageCacheType.memory.rawValue,
-          .queryCacheType: SDImageCacheType.memory.rawValue,
-        ],
-        progress: nil,
-        completed: { [weak self] image, error, _, _ in
-          guard let self = self else { return }
+    /// Set image directly from preloaded cache
+    func setImage(_ image: NSImage) {
+      loadingIndicator.stopAnimation(nil)
+      pageImageView.image = image
+      NSAnimationContext.runAnimationGroup { context in
+        context.duration = 0.2
+        self.pageImageView.animator().alphaValue = 1.0
+      }
+    }
 
-          if error != nil {
-            self.pageImageView.image = nil
-            self.pageImageView.alphaValue = 0.0
-            self.loadingIndicator.stopAnimation(nil)
-          } else if image != nil {
-            self.loadingIndicator.stopAnimation(nil)
-            NSAnimationContext.runAnimationGroup { context in
-              context.duration = 0.2
-              self.pageImageView.animator().alphaValue = 1.0
-            }
-          }
+    /// Load image from URL and return its size (fallback for non-preloaded images)
+    func loadImageFromURL(_ url: URL) async -> CGSize? {
+      let image = await Task.detached(priority: .userInitiated) {
+        guard let data = try? Data(contentsOf: url) else { return nil as NSImage? }
+        return NSImage(data: data)
+      }.value
+
+      if let image = image {
+        self.setImage(image)
+        // Return pixel dimensions for accurate layout
+        if let rep = image.representations.first {
+          return CGSize(width: CGFloat(rep.pixelsWide), height: CGFloat(rep.pixelsHigh))
         }
-      )
+        return image.size
+      } else {
+        self.showError()
+        return nil
+      }
     }
 
     func showError() {
@@ -111,7 +117,6 @@
 
     override func prepareForReuse() {
       super.prepareForReuse()
-      pageImageView.sd_cancelCurrentImageLoad()
       pageImageView.image = nil
       pageImageView.alphaValue = 0.0
       loadingIndicator.stopAnimation(nil)

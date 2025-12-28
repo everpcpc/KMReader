@@ -6,8 +6,6 @@
 //
 
 import Photos
-import SDWebImage
-import SDWebImageSwiftUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -17,12 +15,12 @@ struct PageImageView: View {
   let pageIndex: Int
   var pageNumberAlignment: Alignment = .top
 
-  @State private var imageURL: URL?
+  /// Cached image from memory for display
+  @State private var displayImage: PlatformImage?
   @State private var loadError: String?
   @State private var isSaving = false
   @State private var showDocumentPicker = false
   @State private var fileToSave: URL?
-  @State private var imageLoaded = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
   private var currentPage: BookPage? {
@@ -48,30 +46,19 @@ struct PageImageView: View {
 
   var body: some View {
     Group {
-      if let imageURL = imageURL {
+      if let displayImage = displayImage {
         ZStack(alignment: pageNumberAlignment) {
-          WebImage(
-            url: imageURL,
-            options: [.retryFailed, .scaleDownLargeImages],
-            context: [
-              // Limit single image memory to 50MB (will scale down if larger)
-              .imageScaleDownLimitBytes: 50 * 1024 * 1024,
-              .customManager: SDImageCacheProvider.pageImageManager,
-              .storeCacheType: SDImageCacheType.memory.rawValue,
-              .queryCacheType: SDImageCacheType.memory.rawValue,
-            ]
-          )
-          .onSuccess { _, _, _ in
-            imageLoaded = true
-          }
-          .placeholder {
-            ProgressView()
-          }
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-          .transition(.opacity)
+          #if os(iOS) || os(tvOS)
+            Image(uiImage: displayImage)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+          #elseif os(macOS)
+            Image(nsImage: displayImage)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+          #endif
 
-          if showPageNumber && imageLoaded {
+          if showPageNumber {
             pageNumberOverlay
           }
         }
@@ -127,15 +114,7 @@ struct PageImageView: View {
             .padding(.horizontal)
           Button("Retry") {
             Task {
-              loadError = nil
-              if let page = currentPage {
-                imageURL = await viewModel.getPageImageFileURL(page: page)
-              } else {
-                imageURL = nil
-              }
-              if imageURL == nil && loadError == nil {
-                loadError = "Failed to load page image. Please check your network connection"
-              }
+              await loadImage()
             }
           }
           .adaptiveButtonStyle(.borderedProminent)
@@ -146,30 +125,71 @@ struct PageImageView: View {
           .padding()
       }
     }
-    .animation(.default, value: imageURL)
     .animation(.default, value: loadError)
-    .onChange(of: imageURL) { _, _ in
-      imageLoaded = false
+    .onAppear {
+      // Synchronous check for preloaded image on appear for instant display
+      guard displayImage == nil else { return }
+
+      guard let page = currentPage else {
+        loadError = "Invalid page index"
+        return
+      }
+
+      // Try to get image from preloaded cache
+      if let image = viewModel.preloadedImages[page.number] {
+        displayImage = image
+      }
     }
     .task(id: pageIndex) {
-      // Skip if image URL is already loaded
-      guard imageURL == nil else { return }
-
-      loadError = nil
-      // Download to cache if needed, then get file URL
-      // SDWebImage will handle decoding and display
-      if let page = currentPage {
-        imageURL = await viewModel.getPageImageFileURL(page: page)
-      } else {
-        imageURL = nil
-        loadError = "Invalid page index"
-      }
-
-      // If download failed, show error
-      if imageURL == nil && loadError == nil {
-        loadError = "Failed to load page image. Please check your network connection"
-      }
+      // Async fallback for images not preloaded
+      guard displayImage == nil else { return }
+      await loadImage()
     }
+  }
+
+  private func loadImage() async {
+    // Skip if already have image
+    guard displayImage == nil else { return }
+
+    loadError = nil
+
+    guard let page = currentPage else {
+      loadError = "Invalid page index"
+      return
+    }
+
+    // Check preloaded images again (may have been loaded while waiting)
+    if let image = viewModel.preloadedImages[page.number] {
+      displayImage = image
+      return
+    }
+
+    // Fall back to async loading if not preloaded
+    if let url = await viewModel.getPageImageFileURL(page: page) {
+      // Load and decode image
+      if let image = await loadImageFromFile(fileURL: url) {
+        displayImage = image
+        // Store for future access
+        viewModel.preloadedImages[page.number] = image
+      } else {
+        loadError = "Failed to decode image"
+      }
+    } else {
+      loadError = "Failed to load page image. Please check your network connection"
+    }
+  }
+
+  private func loadImageFromFile(fileURL: URL) async -> PlatformImage? {
+    return await Task.detached(priority: .userInitiated) {
+      guard let data = try? Data(contentsOf: fileURL) else {
+        return nil
+      }
+      #if os(iOS) || os(tvOS)
+        return UIImage(data: data)
+      #elseif os(macOS)
+        return NSImage(data: data)
+      #endif
+    }.value
   }
 
   private func saveImageToPhotos(page: BookPage) async {

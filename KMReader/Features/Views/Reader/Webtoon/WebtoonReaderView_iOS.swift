@@ -7,7 +7,6 @@
 
 #if os(iOS)
   import ImageIO
-  import SDWebImage
   import SwiftUI
   import UIKit
 
@@ -583,22 +582,37 @@
         }
 
         let page = pages[pageIndex]
+
+        // First check if image is already preloaded
+        if let preloadedImage = viewModel.preloadedImages[page.number] {
+          if let collectionView = collectionView {
+            let indexPath = IndexPath(item: pageIndex, section: 0)
+            if let cell = collectionView.cellForItem(at: indexPath) as? WebtoonPageCell {
+              cell.setImage(preloadedImage)
+            }
+          }
+
+          let size = preloadedImage.size
+          let aspectRatio = size.height / size.width
+          let height = pageWidth * aspectRatio
+          let oldHeight = pageHeights[pageIndex] ?? pageWidth
+          pageHeights[pageIndex] = height
+          updateLayoutIfNeeded(pageIndex: pageIndex, height: height, oldHeight: oldHeight)
+          return
+        }
+
+        // Fall back to loading from file
         guard let imageURL = await viewModel.getPageImageFileURL(page: page) else {
           showImageError(for: pageIndex)
           return
         }
 
-        let isFromCache = await viewModel.pageImageCache.hasImage(
-          bookId: viewModel.bookId,
-          page: page
-        )
-
-        let imageSize = await getImageSize(from: imageURL)
-
+        // Load image and get size in one operation
+        var imageSize: CGSize?
         if let collectionView = collectionView {
           let indexPath = IndexPath(item: pageIndex, section: 0)
           if let cell = collectionView.cellForItem(at: indexPath) as? WebtoonPageCell {
-            cell.setImageURL(imageURL, imageSize: imageSize)
+            imageSize = await cell.loadImageFromURL(imageURL)
           }
         }
 
@@ -609,41 +623,8 @@
           pageHeights[pageIndex] = height
 
           updateLayoutIfNeeded(pageIndex: pageIndex, height: height, oldHeight: oldHeight)
-
-          if !isFromCache {
-            tryScrollToInitialPageIfNeeded(pageIndex: pageIndex)
-          }
+          tryScrollToInitialPageIfNeeded(pageIndex: pageIndex)
         }
-      }
-
-      private func getImageSize(from url: URL) async -> CGSize? {
-        if let cacheKey = SDImageCacheProvider.pageImageManager.cacheKey(for: url),
-          let cachedImage = SDImageCacheProvider.pageImageCache.imageFromCache(forKey: cacheKey)
-        {
-          return cachedImage.size
-        }
-        return await Task.detached {
-          if url.isFileURL {
-            guard let data = try? Data(contentsOf: url),
-              let imageSource = CGImageSourceCreateWithData(data as CFData, nil)
-            else {
-              return nil
-            }
-
-            guard
-              let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil)
-                as? [String: Any],
-              let width = properties[kCGImagePropertyPixelWidth as String] as? CGFloat,
-              let height = properties[kCGImagePropertyPixelHeight as String] as? CGFloat
-            else {
-              return nil
-            }
-
-            return CGSize(width: width, height: height)
-          }
-
-          return nil
-        }.value
       }
 
       private func updateLayoutIfNeeded(pageIndex: Int, height: CGFloat, oldHeight: CGFloat) {
@@ -738,9 +719,19 @@
 
           for i in max(0, minVisible - 2)...min(self.pages.count - 1, maxVisible + 2) {
             let page = self.pages[i]
+            // Skip if already preloaded
+            if viewModel.preloadedImages[page.number] != nil {
+              continue
+            }
             if let fileURL = await viewModel.getPageImageFileURL(page: page) {
-              // Preload into SDWebImage memory cache for instant display
-              await viewModel.preloadImageToMemory(fileURL: fileURL)
+              // Load and decode image
+              if let data = try? Data(contentsOf: fileURL) {
+                #if os(iOS)
+                  if let image = UIImage(data: data) {
+                    viewModel.preloadedImages[page.number] = image
+                  }
+                #endif
+              }
             }
           }
         }

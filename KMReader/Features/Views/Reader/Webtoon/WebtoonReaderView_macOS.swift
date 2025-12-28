@@ -8,7 +8,6 @@
 #if os(macOS)
   import AppKit
   import ImageIO
-  import SDWebImage
   import SwiftUI
 
   struct WebtoonReaderView: NSViewRepresentable {
@@ -427,15 +426,39 @@
       func loadImageForPage(_ pageIndex: Int) async {
         guard isValidPageIndex(pageIndex), let vm = viewModel else { return }
         let page = pages[pageIndex]
+
+        // First check if image is already preloaded
+        if let preloadedImage = vm.preloadedImages[page.number] {
+          if let cv = collectionView,
+            let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell
+          {
+            cell.setImage(preloadedImage)
+          }
+
+          if let rep = preloadedImage.representations.first {
+            let size = CGSize(width: CGFloat(rep.pixelsWide), height: CGFloat(rep.pixelsHigh))
+            let h = pageWidth * size.height / size.width
+            let old = pageHeights[pageIndex] ?? pageWidth
+            pageHeights[pageIndex] = h
+            if abs(h - old) > 1 {
+              layout?.invalidateLayout()
+            }
+          }
+          return
+        }
+
+        // Fall back to loading from file
         guard let url = await vm.getPageImageFileURL(page: page) else { return }
 
+        // Load image and get size in one operation
+        var imageSize: CGSize?
         if let cv = collectionView,
           let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell
         {
-          cell.setImageURL(url, imageSize: nil)
+          imageSize = await cell.loadImageFromURL(url)
         }
 
-        if let size = await getImageSize(from: url) {
+        if let size = imageSize {
           let h = pageWidth * size.height / size.width
           let old = pageHeights[pageIndex] ?? pageWidth
           pageHeights[pageIndex] = h
@@ -443,27 +466,6 @@
             layout?.invalidateLayout()
           }
         }
-      }
-
-      private func getImageSize(from url: URL) async -> CGSize? {
-        if let key = SDImageCacheProvider.pageImageManager.cacheKey(for: url),
-          let img = SDImageCacheProvider.pageImageCache.imageFromCache(forKey: key)
-        {
-          if let rep = img.representations.first {
-            return CGSize(width: CGFloat(rep.pixelsWide), height: CGFloat(rep.pixelsHigh))
-          }
-          return img.size
-        }
-        return await Task.detached {
-          guard url.isFileURL,
-            let data = try? Data(contentsOf: url),
-            let src = CGImageSourceCreateWithData(data as CFData, nil),
-            let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any],
-            let w = props[kCGImagePropertyPixelWidth as String] as? CGFloat,
-            let h = props[kCGImagePropertyPixelHeight as String] as? CGFloat
-          else { return nil }
-          return CGSize(width: w, height: h)
-        }.value
       }
 
       func preloadNearbyPages() {
@@ -478,9 +480,17 @@
           guard let self = self, let vm = self.viewModel else { return }
           for i in max(0, minV - 2)...min(self.pages.count - 1, maxV + 2) {
             let page = self.pages[i]
+            // Skip if already preloaded
+            if vm.preloadedImages[page.number] != nil {
+              continue
+            }
             if let fileURL = await vm.getPageImageFileURL(page: page) {
-              // Preload into SDWebImage memory cache for instant display
-              await vm.preloadImageToMemory(fileURL: fileURL)
+              // Load and decode image
+              if let data = try? Data(contentsOf: fileURL) {
+                if let image = NSImage(data: data) {
+                  vm.preloadedImages[page.number] = image
+                }
+              }
             }
           }
         }

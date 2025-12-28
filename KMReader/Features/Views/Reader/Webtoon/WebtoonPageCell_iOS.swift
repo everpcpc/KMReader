@@ -6,7 +6,6 @@
 //
 
 #if os(iOS)
-  import SDWebImage
   import SwiftUI
   import UIKit
 
@@ -62,39 +61,43 @@
       self.pageIndex = pageIndex
       self.loadImage = loadImage
 
-      imageView.image = nil
-      imageView.alpha = 0.0
-      loadingIndicator.isHidden = false
-      loadingIndicator.startAnimating()
+      if let image = image {
+        // Instant display if image is provided
+        imageView.image = image
+        imageView.alpha = 1.0
+        loadingIndicator.stopAnimating()
+        loadingIndicator.isHidden = true
+      } else {
+        imageView.image = nil
+        imageView.alpha = 0.0
+        loadingIndicator.isHidden = false
+        loadingIndicator.startAnimating()
+      }
     }
 
-    func setImageURL(_ url: URL, imageSize _: CGSize?) {
-      imageView.sd_setImage(
-        with: url,
-        placeholderImage: nil,
-        options: [.retryFailed, .scaleDownLargeImages],
-        context: [
-          .imageScaleDownLimitBytes: 50 * 1024 * 1024,
-          .customManager: SDImageCacheProvider.pageImageManager,
-          .storeCacheType: SDImageCacheType.memory.rawValue,
-          .queryCacheType: SDImageCacheType.memory.rawValue,
-        ],
-        progress: nil,
-        completed: { [weak self] image, error, _, _ in
-          guard let self = self else { return }
+    /// Set image directly from preloaded cache
+    func setImage(_ image: UIImage) {
+      loadingIndicator.stopAnimating()
+      imageView.image = image
+      UIView.animate(withDuration: 0.2) {
+        self.imageView.alpha = 1.0
+      }
+    }
 
-          if error != nil {
-            self.imageView.image = nil
-            self.imageView.alpha = 0.0
-            self.loadingIndicator.stopAnimating()
-          } else if image != nil {
-            self.loadingIndicator.stopAnimating()
-            UIView.animate(withDuration: 0.2) {
-              self.imageView.alpha = 1.0
-            }
-          }
-        }
-      )
+    /// Load image from URL and return its size (fallback for non-preloaded images)
+    func loadImageFromURL(_ url: URL) async -> CGSize? {
+      let image = await Task.detached(priority: .userInitiated) {
+        guard let data = try? Data(contentsOf: url) else { return nil as UIImage? }
+        return UIImage(data: data)
+      }.value
+
+      if let image = image {
+        self.setImage(image)
+        return image.size
+      } else {
+        self.showError()
+        return nil
+      }
     }
 
     func showError() {
@@ -105,7 +108,6 @@
 
     override func prepareForReuse() {
       super.prepareForReuse()
-      imageView.sd_cancelCurrentImageLoad()
       imageView.image = nil
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
