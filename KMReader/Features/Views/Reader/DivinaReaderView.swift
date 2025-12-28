@@ -272,6 +272,7 @@ struct DivinaReaderView: View {
           )
           .opacity(showKeyboardHelp ? 1.0 : 0.0)
           .allowsHitTesting(showKeyboardHelp)
+          .animation(.default, value: showKeyboardHelp)
         #endif
 
       }
