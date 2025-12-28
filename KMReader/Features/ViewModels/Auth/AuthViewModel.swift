@@ -186,11 +186,7 @@ class AuthViewModel {
         AppConfig.currentInstanceId = instance.id.uuidString
         AppConfig.serverDisplayName = instance.displayName
 
-        // Clear libraries if switching to a different instance
-        // Note: effectively this means offline switch to a different instance will result in empty library
-        // unless we support multi-instance caching in the future
         if isDifferentInstance {
-          LibraryManager.shared.clearAllLibraries()
           AppConfig.clearSelectedLibraryIds()
           AppConfig.serverLastUpdate = nil
         }
@@ -245,7 +241,6 @@ class AuthViewModel {
 
     // Clear libraries if switching to a different instance
     if clearLibrariesIfDifferent {
-      LibraryManager.shared.clearAllLibraries()
       AppConfig.clearSelectedLibraryIds()
       AppConfig.serverLastUpdate = nil
     }
