@@ -23,7 +23,8 @@ struct CollectionCardView: View {
       ) {
         ThumbnailImage(
           id: komgaCollection.collectionId, type: .collection, shadowStyle: .platform, width: width,
-          alignment: .bottom)
+          alignment: .bottom
+        )
         .contextMenu {
           CollectionContextMenu(
             collection: komgaCollection.toCollection(),

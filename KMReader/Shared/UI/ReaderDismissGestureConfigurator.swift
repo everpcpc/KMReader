@@ -27,13 +27,16 @@
       return vc
     }
 
-    func updateUIViewController(_ uiViewController: GestureConfiguratorViewController, context: Context) {
+    func updateUIViewController(
+      _ uiViewController: GestureConfiguratorViewController, context: Context
+    ) {
       context.coordinator.isVerticalReading = isVerticalReading
     }
 
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
       var isVerticalReading: Bool
-      var configuredRecognizers: [(recognizer: UIGestureRecognizer, originalDelegate: UIGestureRecognizerDelegate?)] = []
+      var configuredRecognizers:
+        [(recognizer: UIGestureRecognizer, originalDelegate: UIGestureRecognizerDelegate?)] = []
 
       init(isVerticalReading: Bool) {
         self.isVerticalReading = isVerticalReading
@@ -96,10 +99,13 @@
             else { continue }
 
             // Check if already configured
-            let alreadyConfigured = coordinator.configuredRecognizers.contains { $0.recognizer === recognizer }
+            let alreadyConfigured = coordinator.configuredRecognizers.contains {
+              $0.recognizer === recognizer
+            }
             if !alreadyConfigured {
               let originalDelegate = recognizer.delegate
-              coordinator.configuredRecognizers.append((recognizer: recognizer, originalDelegate: originalDelegate))
+              coordinator.configuredRecognizers.append(
+                (recognizer: recognizer, originalDelegate: originalDelegate))
               recognizer.delegate = coordinator
             }
           }

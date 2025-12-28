@@ -156,8 +156,6 @@ class AuthViewModel {
         timeout: 5
       )
 
-
-
       // Apply switch configuration
       try await applyLoginConfiguration(
         serverURL: instance.serverURL,
@@ -181,7 +179,7 @@ class AuthViewModel {
         APIClient.shared.setAuthToken(instance.authToken)
         AppConfig.authMethod = instance.resolvedAuthMethod
         AppConfig.username = instance.username
-        AppConfig.isAdmin = false // Cannot verify admin status offline
+        AppConfig.isAdmin = false  // Cannot verify admin status offline
         AppConfig.isLoggedIn = true
         AppConfig.currentInstanceId = instance.id.uuidString
         AppConfig.serverDisplayName = instance.displayName
@@ -194,11 +192,11 @@ class AuthViewModel {
         // Switch to offline mode
         AppConfig.isOffline = true
         SSEService.shared.disconnect()
-        
+
         // We cannot load the user object offline, but isLoggedIn=true allows entry
         self.user = nil
         credentialsVersion = UUID()
-        
+
         ErrorManager.shared.notify(
           message: String(localized: "Server unreachable, switched to offline mode")
         )

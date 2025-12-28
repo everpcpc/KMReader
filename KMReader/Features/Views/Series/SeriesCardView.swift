@@ -32,7 +32,8 @@ struct SeriesCardView: View {
     VStack(alignment: .leading, spacing: 12) {
       NavigationLink(value: navDestination) {
         ThumbnailImage(
-          id: komgaSeries.seriesId, type: .series, shadowStyle: .platform, width: cardWidth, alignment: .bottom
+          id: komgaSeries.seriesId, type: .series, shadowStyle: .platform, width: cardWidth,
+          alignment: .bottom
         ) {
           ZStack {
             if komgaSeries.booksUnreadCount > 0 {

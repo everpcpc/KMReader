@@ -21,7 +21,8 @@ struct ReadListCardView: View {
       NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
         ThumbnailImage(
           id: komgaReadList.readListId, type: .readlist, shadowStyle: .platform, width: width,
-          alignment: .bottom)
+          alignment: .bottom
+        )
         .contextMenu {
           ReadListContextMenu(
             readList: komgaReadList.toReadList(),

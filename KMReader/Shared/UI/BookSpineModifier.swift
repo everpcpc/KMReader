@@ -12,7 +12,7 @@ struct BookSpineModifier: ViewModifier {
             .init(color: .black.opacity(0.15), location: 0),
             .init(color: .white.opacity(0.2), location: 0.08),
             .init(color: .black.opacity(0.15), location: 0.25),
-            .init(color: .clear, location: 1)
+            .init(color: .clear, location: 1),
           ],
           startPoint: .leading,
           endPoint: .trailing

@@ -51,17 +51,17 @@ struct LandingView: View {
       .padding(.bottom, 60)
     }
     #if !os(macOS)
-    .fullScreenCover(isPresented: $showGetStarted) {
-      NavigationStack {
-        SettingsServersView(mode: .onboarding)
+      .fullScreenCover(isPresented: $showGetStarted) {
+        NavigationStack {
+          SettingsServersView(mode: .onboarding)
+        }
       }
-    }
     #else
-    .sheet(isPresented: $showGetStarted) {
-      NavigationStack {
-        SettingsServersView(mode: .onboarding)
+      .sheet(isPresented: $showGetStarted) {
+        NavigationStack {
+          SettingsServersView(mode: .onboarding)
+        }
       }
-    }
     #endif
   }
 }

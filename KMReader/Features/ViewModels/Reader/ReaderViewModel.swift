@@ -251,7 +251,8 @@ class ReaderViewModel {
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
     // Load pages concurrently and collect decoded images
-    let results = await withTaskGroup(of: (Int, PlatformImage?).self) { group -> [(Int, PlatformImage?)] in
+    let results = await withTaskGroup(of: (Int, PlatformImage?).self) {
+      group -> [(Int, PlatformImage?)] in
       for index in pagesToPreload {
         let page = pages[index]
         // Skip if already preloaded

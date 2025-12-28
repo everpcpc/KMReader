@@ -96,7 +96,7 @@ struct ThumbnailImage<Overlay: View>: View {
         .overlay {
           if thumbnailPreserveAspectRatio, let overlay = overlay {
             overlay()
-            .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
+              .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
           } else {
             EmptyView()
           }
@@ -112,7 +112,8 @@ struct ThumbnailImage<Overlay: View>: View {
           }
         }
         .shadow(
-          color: shadowStyle == .platform ? (colorScheme == .light ? .black.opacity(0.15) : .white.opacity(0.1)) : .clear,
+          color: shadowStyle == .platform
+            ? (colorScheme == .light ? .black.opacity(0.15) : .white.opacity(0.1)) : .clear,
           radius: shadowStyle == .platform ? 2 : 0,
           x: 0,
           y: shadowStyle == .platform ? 1 : 0
@@ -139,7 +140,10 @@ struct ThumbnailImage<Overlay: View>: View {
         EmptyView()
       }
     }
-    .shadow(color: shadowStyle == .basic ? Color.black.opacity(0.5) : .clear, radius: shadowStyle == .basic ? 2 : 0)
+    .shadow(
+      color: shadowStyle == .basic ? Color.black.opacity(0.5) : .clear,
+      radius: shadowStyle == .basic ? 2 : 0
+    )
     .task(id: "\(id ?? "")_\(refreshTrigger)") {
       guard let id = id else {
         isLoading = false
