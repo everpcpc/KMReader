@@ -59,7 +59,7 @@ class AuthService {
 
   func establishSession(
     serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth,
-    rememberMe: Bool = true
+    rememberMe: Bool = true, timeout: TimeInterval? = nil
   ) async throws
     -> User
   {
@@ -78,7 +78,8 @@ class AuthService {
       authToken: authToken,
       authMethod: authMethod,
       queryItems: queryItems,
-      headers: headers
+      headers: headers,
+      timeout: timeout
     )
   }
 

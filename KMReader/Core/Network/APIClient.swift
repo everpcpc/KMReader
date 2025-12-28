@@ -88,7 +88,8 @@ class APIClient {
     authToken: String,
     authMethod: AuthenticationMethod = .basicAuth,
     queryItems: [URLQueryItem]? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    timeout: TimeInterval? = nil
   ) async throws -> User {
     let request = try buildLoginRequest(
       serverURL: serverURL,
@@ -97,9 +98,22 @@ class APIClient {
       queryItems: queryItems,
       headers: headers,
       authToken: authToken,
-      authMethod: authMethod
+      authMethod: authMethod,
+      timeout: timeout
     )
-    let (data, httpResponse) = try await executeRequest(request, isTemporary: false)
+
+    // Use a session with timeout for login requests
+    let session: URLSession
+    if let timeout = timeout {
+      let config = URLSessionConfiguration.default
+      config.timeoutIntervalForRequest = timeout
+      config.timeoutIntervalForResource = timeout
+      session = URLSession(configuration: config)
+    } else {
+      session = cachedSession
+    }
+
+    let (data, httpResponse) = try await executeRequest(request, session: session, isTemporary: false)
     return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
   }
 
@@ -257,7 +271,8 @@ class APIClient {
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
     authToken: String? = nil,
-    authMethod: AuthenticationMethod? = nil
+    authMethod: AuthenticationMethod? = nil,
+    timeout: TimeInterval? = nil
   ) throws -> URLRequest {
     let baseURL = (serverURL ?? AppConfig.serverURL).trimmingCharacters(
       in: .whitespacesAndNewlines)
@@ -283,6 +298,10 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
+
+    if let timeout = timeout {
+      request.timeoutInterval = timeout
+    }
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 

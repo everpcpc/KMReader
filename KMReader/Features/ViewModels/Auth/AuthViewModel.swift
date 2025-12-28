@@ -148,7 +148,8 @@ class AuthViewModel {
       let validatedUser = try await authService.establishSession(
         serverURL: instance.serverURL,
         authToken: instance.authToken,
-        authMethod: instance.resolvedAuthMethod
+        authMethod: instance.resolvedAuthMethod,
+        timeout: 5
       )
 
       // Check if switching to a different instance
