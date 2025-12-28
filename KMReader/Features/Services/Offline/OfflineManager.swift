@@ -42,6 +42,7 @@ actor OfflineManager {
   private var isProcessingQueue = false
 
   private let logger = AppLogger(.offline)
+  private let pageImageCache = ImageCache()
 
   private init() {
     #if os(iOS)
@@ -400,6 +401,24 @@ actor OfflineManager {
         }
 
         let isEpub = info.isEpub && !info.epubDivinaCompatible
+        if isEpub {
+          let destination = bookDir.appendingPathComponent("book.epub")
+          if await copyCachedEpubIfAvailable(bookId: info.bookId, destination: destination) {
+            logger.info("✅ Using cached EPUB for book: \(info.bookId)")
+            let totalSize = (try? calculateDirectorySize(bookDir)) ?? 0
+            await DatabaseOperator.shared.updateBookDownloadStatus(
+              bookId: info.bookId,
+              instanceId: instanceId,
+              status: .downloaded,
+              downloadedSize: totalSize
+            )
+            try? await DatabaseOperator.shared.commit()
+            await clearCachesAfterDownload(bookId: info.bookId, isEpub: true)
+            removeActiveTask(info.bookId)
+            await syncDownloadQueue(instanceId: instanceId)
+            return
+          }
+        }
 
         // Store download info for completion handling
         backgroundDownloadInfo[info.bookId] = (
@@ -441,13 +460,35 @@ actor OfflineManager {
 
           for page in pages {
             let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-            let destPath = bookDir.appendingPathComponent("page-\(page.number).\(ext)").path
+            let destination = bookDir.appendingPathComponent("page-\(page.number).\(ext)")
 
             // Skip if page already exists
-            if FileManager.default.fileExists(atPath: destPath) {
+            if FileManager.default.fileExists(atPath: destination.path) {
+              continue
+            }
+            if await copyCachedPageIfAvailable(
+              bookId: info.bookId,
+              page: page,
+              destination: destination
+            ) {
               continue
             }
             pagesToDownload.append(page)
+          }
+
+          let completedCount = pages.count - pagesToDownload.count
+          if pages.count > 0, completedCount > 0 {
+            let progress = Double(completedCount) / Double(pages.count)
+            await MainActor.run {
+              DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: progress)
+            }
+            await LiveActivityManager.shared.updateActivity(
+              seriesTitle: info.seriesTitle,
+              bookInfo: info.bookInfo,
+              progress: progress,
+              pendingCount: pendingBooks.count,
+              failedCount: failedCount
+            )
           }
 
           // If all pages already exist, mark as complete
@@ -461,7 +502,9 @@ actor OfflineManager {
               downloadedSize: totalSize
             )
             try? await DatabaseOperator.shared.commit()
+            await clearCachesAfterDownload(bookId: info.bookId, isEpub: false)
             backgroundDownloadInfo.removeValue(forKey: info.bookId)
+            removeActiveTask(info.bookId)
             await syncDownloadQueue(instanceId: instanceId)
             return
           }
@@ -514,7 +557,8 @@ actor OfflineManager {
       do {
         logger.info("⬇️ Starting download for book: \(info.bookInfo) (\(info.bookId))")
 
-        if info.isEpub && !info.epubDivinaCompatible {
+        let isEpub = info.isEpub && !info.epubDivinaCompatible
+        if isEpub {
           try await downloadEpub(bookId: info.bookId, to: bookDir)
         } else {
           try await downloadPages(bookId: info.bookId, to: bookDir)
@@ -527,6 +571,7 @@ actor OfflineManager {
           downloadedSize: totalSize
         )
         try? await DatabaseOperator.shared.commit()
+        await clearCachesAfterDownload(bookId: info.bookId, isEpub: isEpub)
         await removeActiveTask(info.bookId)
         logger.info("✅ Download complete for book: \(info.bookId)")
 
@@ -803,6 +848,7 @@ actor OfflineManager {
           downloadedSize: totalSize
         )
         try? await DatabaseOperator.shared.commit()
+        await clearCachesAfterDownload(bookId: bookId, isEpub: info.isEpub)
         logger.info("✅ All background downloads complete for book: \(bookId)")
       } catch {
         logger.error("❌ Failed to calculate size for book \(bookId): \(error)")
@@ -853,9 +899,13 @@ actor OfflineManager {
       try? await DatabaseOperator.shared.commit()
     }
 
+    let destination = bookDir.appendingPathComponent("book.epub")
+    if await copyCachedEpubIfAvailable(bookId: bookId, destination: destination) {
+      return
+    }
+
     let data = try await BookService.shared.downloadEpubFile(bookId: bookId)
-    let dest = bookDir.appendingPathComponent("book.epub")
-    try data.write(to: dest)
+    try data.write(to: destination)
   }
 
   private func downloadPages(bookId: String, to bookDir: URL) async throws {
@@ -872,13 +922,47 @@ actor OfflineManager {
       try? await DatabaseOperator.shared.commit()
     }
 
+    var pagesToDownload: [BookPage] = []
+
+    for page in pages {
+      let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
+      let destination = bookDir.appendingPathComponent("page-\(page.number).\(ext)")
+
+      if FileManager.default.fileExists(atPath: destination.path) {
+        continue
+      }
+
+      if await copyCachedPageIfAvailable(
+        bookId: bookId,
+        page: page,
+        destination: destination
+      ) {
+        continue
+      }
+
+      pagesToDownload.append(page)
+    }
+
     let total = Double(pages.count)
+    var completedCount = pages.count - pagesToDownload.count
+    if total > 0, completedCount > 0 {
+      let progress = Double(completedCount) / total
+      await MainActor.run {
+        DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: progress)
+      }
+    }
+
+    if pagesToDownload.isEmpty {
+      await MainActor.run {
+        DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
+      }
+      return
+    }
 
     try await withThrowingTaskGroup(of: Void.self) { group in
-      var completedCount = 0
       let maxConcurrent = 4
       var active = 0
-      var iterator = pages.makeIterator()
+      var iterator = pagesToDownload.makeIterator()
 
       func submitNext() {
         if let page = iterator.next() {
@@ -917,6 +1001,57 @@ actor OfflineManager {
 
         submitNext()
       }
+    }
+  }
+
+  private func copyCachedPageIfAvailable(
+    bookId: String,
+    page: BookPage,
+    destination: URL
+  ) async -> Bool {
+    if FileManager.default.fileExists(atPath: destination.path) {
+      return true
+    }
+
+    guard await pageImageCache.hasImage(bookId: bookId, page: page) else {
+      return false
+    }
+
+    let cachedURL = pageImageCache.imageFileURL(bookId: bookId, page: page)
+    do {
+      try FileManager.default.copyItem(at: cachedURL, to: destination)
+      return true
+    } catch {
+      logger.error("❌ Failed to copy cached page for book \(bookId) page \(page.number): \(error)")
+      return false
+    }
+  }
+
+  private func copyCachedEpubIfAvailable(
+    bookId: String,
+    destination: URL
+  ) async -> Bool {
+    if FileManager.default.fileExists(atPath: destination.path) {
+      return true
+    }
+
+    guard let cachedURL = await BookFileCache.shared.cachedEpubFileURL(bookId: bookId) else {
+      return false
+    }
+
+    do {
+      try FileManager.default.copyItem(at: cachedURL, to: destination)
+      return true
+    } catch {
+      logger.error("❌ Failed to copy cached EPUB for book \(bookId): \(error)")
+      return false
+    }
+  }
+
+  private func clearCachesAfterDownload(bookId: String, isEpub: Bool) async {
+    await ImageCache.clearDiskCache(forBookId: bookId)
+    if isEpub {
+      await BookFileCache.clearDiskCache(forBookId: bookId)
     }
   }
 }
