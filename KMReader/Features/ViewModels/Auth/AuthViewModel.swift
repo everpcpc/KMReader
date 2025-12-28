@@ -171,6 +171,29 @@ class AuthViewModel {
       )
 
       return true
+    } catch let apiError as APIError {
+      // Check if this is a network error - switch to offline mode
+      if case .networkError = apiError {
+        // Set up the instance config without full login
+        APIClient.shared.setServer(url: instance.serverURL)
+        APIClient.shared.setAuthToken(instance.authToken)
+        AppConfig.authMethod = instance.resolvedAuthMethod
+        AppConfig.username = instance.username
+        AppConfig.currentInstanceId = instance.id.uuidString
+        AppConfig.serverDisplayName = instance.displayName
+
+        // Switch to offline mode
+        AppConfig.isOffline = true
+        SSEService.shared.disconnect()
+        ErrorManager.shared.notify(
+          message: String(localized: "Server unreachable, switched to offline mode")
+        )
+        return true
+      }
+
+      // Non-network errors: show alert and fail
+      ErrorManager.shared.alert(error: apiError)
+      return false
     } catch {
       ErrorManager.shared.alert(error: error)
       return false
