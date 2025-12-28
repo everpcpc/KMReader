@@ -56,7 +56,7 @@ struct BookCardView: View {
         onReadBook?(false)
       } label: {
         ThumbnailImage(
-          id: komgaBook.bookId, type: .book, showShadow: false, width: cardWidth, alignment: .bottom
+          id: komgaBook.bookId, type: .book, shadowStyle: .platform, width: cardWidth, alignment: .bottom
         ) {
           ZStack {
             if let progressCompleted = komgaBook.progressCompleted {
@@ -92,7 +92,6 @@ struct BookCardView: View {
         .ifLet(zoomNamespace) { view, namespace in
           view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
-        .platformShadow()
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)

@@ -22,9 +22,8 @@ struct CollectionCardView: View {
         value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
       ) {
         ThumbnailImage(
-          id: komgaCollection.collectionId, type: .collection, showShadow: false, width: width,
+          id: komgaCollection.collectionId, type: .collection, shadowStyle: .platform, width: width,
           alignment: .bottom)
-        .platformShadow()
         .contextMenu {
           CollectionContextMenu(
             collection: komgaCollection.toCollection(),

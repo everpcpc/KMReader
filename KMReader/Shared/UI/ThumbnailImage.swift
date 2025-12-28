@@ -14,7 +14,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let id: String?
   let type: ThumbnailType
   let showPlaceholder: Bool
-  let showShadow: Bool
+  let shadowStyle: ShadowStyle
   let showSpine: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
@@ -25,6 +25,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let ratio: CGFloat = 1.413
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
+  @Environment(\.colorScheme) private var colorScheme
   @State private var localURL: URL?
   @State private var isLoading = true
 
@@ -32,7 +33,7 @@ struct ThumbnailImage<Overlay: View>: View {
     id: String?,
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
-    showShadow: Bool = true,
+    shadowStyle: ShadowStyle = .basic,
     showSpine: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 4,
@@ -43,7 +44,7 @@ struct ThumbnailImage<Overlay: View>: View {
     self.id = id
     self.type = type
     self.showPlaceholder = showPlaceholder
-    self.showShadow = showShadow
+    self.shadowStyle = shadowStyle
     self.showSpine = showSpine
     self.width = width
     self.cornerRadius = cornerRadius
@@ -101,6 +102,21 @@ struct ThumbnailImage<Overlay: View>: View {
           }
         }
         .bookSpine(showSpine)
+        .background {
+          if shadowStyle == .platform {
+            RoundedRectangle(cornerRadius: effectiveCornerRadius)
+              .fill(colorScheme == .light ? Color.black.opacity(0.3) : Color.white.opacity(0.15))
+              .offset(y: colorScheme == .light ? 12 : 6)
+              .blur(radius: colorScheme == .light ? 12 : 12)
+              .scaleEffect(x: 0.9)
+          }
+        }
+        .shadow(
+          color: shadowStyle == .platform ? (colorScheme == .light ? .black.opacity(0.15) : .white.opacity(0.1)) : .clear,
+          radius: shadowStyle == .platform ? 2 : 0,
+          x: 0,
+          y: shadowStyle == .platform ? 1 : 0
+        )
         .frame(width: width, height: width * ratio, alignment: alignment)
       } else {
         RoundedRectangle(cornerRadius: effectiveCornerRadius)
@@ -115,7 +131,6 @@ struct ThumbnailImage<Overlay: View>: View {
       }
     }
     .frame(width: width, height: width * ratio)
-    .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
     .overlay {
       if !thumbnailPreserveAspectRatio, let overlay = overlay {
         overlay()
@@ -124,7 +139,7 @@ struct ThumbnailImage<Overlay: View>: View {
         EmptyView()
       }
     }
-    .shadow(color: showShadow ? Color.black.opacity(0.5) : .clear, radius: showShadow ? 2 : 0)
+    .shadow(color: shadowStyle == .basic ? Color.black.opacity(0.5) : .clear, radius: shadowStyle == .basic ? 2 : 0)
     .task(id: "\(id ?? "")_\(refreshTrigger)") {
       guard let id = id else {
         isLoading = false
@@ -153,7 +168,7 @@ extension ThumbnailImage where Overlay == EmptyView {
     id: String?,
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
-    showShadow: Bool = true,
+    shadowStyle: ShadowStyle = .basic,
     showSpine: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
@@ -161,7 +176,7 @@ extension ThumbnailImage where Overlay == EmptyView {
     alignment: Alignment = .center
   ) {
     self.init(
-      id: id, type: type, showPlaceholder: showPlaceholder, showShadow: showShadow,
+      id: id, type: type, showPlaceholder: showPlaceholder, shadowStyle: shadowStyle,
       showSpine: showSpine,
       width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger,
       alignment: alignment
