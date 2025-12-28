@@ -103,6 +103,8 @@ struct ThumbnailImage<Overlay: View>: View {
       }
     }
     .frame(width: width, height: width * ratio)
+    .animation(.default, value: localURL)
+    .animation(.default, value: isLoading)
     .overlay {
       if !thumbnailPreserveAspectRatio, let overlay = overlay {
         overlay()
