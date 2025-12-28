@@ -651,6 +651,7 @@ struct OneshotDetailView: View {
     Task {
       do {
         try await BookService.shared.markAsRead(bookId: book.id)
+        _ = try? await SyncService.shared.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         }

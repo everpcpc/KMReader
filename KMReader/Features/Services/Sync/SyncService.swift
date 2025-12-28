@@ -262,6 +262,12 @@ class SyncService {
     }
   }
 
+  func syncBookAndSeries(bookId: String, seriesId: String? = nil) async throws {
+    let book = try await syncBook(bookId: bookId)
+    let targetSeriesId = seriesId ?? book.seriesId
+    _ = try? await syncSeriesDetail(seriesId: targetSeriesId)
+  }
+
   func syncNextBook(bookId: String, readListId: String? = nil) async -> Book? {
     do {
       if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId)
