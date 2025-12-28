@@ -25,6 +25,7 @@
 
     @State private var viewModel: EpubReaderViewModel
     @State private var snapshotRefreshId = UUID()
+    @State private var pageCurlReady = false
     @State private var showingControls = true
     @State private var controlsTimer: Timer?
     @State private var currentBook: Book?
@@ -64,6 +65,7 @@
         .task(id: readerPrefs) {
           viewModel.applyPreferences(readerPrefs, colorScheme: colorScheme)
           snapshotRefreshId = UUID()
+          pageCurlReady = false
         }
         .onDisappear {
           controlsTimer?.invalidate()
@@ -142,20 +144,27 @@
         ZStack {
           if readerPrefs.pagination == .paged {
             NavigatorView(navigatorViewController: navigatorViewController)
-              .opacity(0.01)
-              .allowsHitTesting(false)
+              .opacity(pageCurlReady ? 0.01 : 1.0)
+              .allowsHitTesting(!pageCurlReady)
               .ignoresSafeArea()
 
-            EpubPageCurlView(
-              navigatorViewController: navigatorViewController,
-              viewModel: viewModel,
-              readingDirection: viewModel.readingDirection,
-              refreshToken: snapshotRefreshId,
-              onTap: {
-                toggleControls()
-              }
-            )
-            .ignoresSafeArea()
+            if viewModel.currentLocator != nil {
+              EpubPageCurlView(
+                navigatorViewController: navigatorViewController,
+                viewModel: viewModel,
+                readingDirection: viewModel.readingDirection,
+                refreshToken: snapshotRefreshId,
+                onTap: {
+                  toggleControls()
+                },
+                onReady: {
+                  pageCurlReady = true
+                }
+              )
+              .opacity(pageCurlReady ? 1.0 : 0.0)
+              .allowsHitTesting(pageCurlReady)
+              .ignoresSafeArea()
+            }
           } else {
             NavigatorView(navigatorViewController: navigatorViewController)
               .ignoresSafeArea()

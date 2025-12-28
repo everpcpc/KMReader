@@ -39,6 +39,7 @@
     private let updateThrottleInterval: TimeInterval = 2.0  // Update at most once every 2 seconds
     private let logger = AppLogger(.reader)
     private var suppressProgressUpdates = false
+    private var locatorChangeWaiter: CheckedContinuation<Void, Never>?
 
     let incognito: Bool
 
@@ -187,6 +188,25 @@
       return await operation()
     }
 
+    func waitForLocationChange(timeoutNanoseconds: UInt64 = 200_000_000) async {
+      if let waiter = locatorChangeWaiter {
+        locatorChangeWaiter = nil
+        waiter.resume()
+      }
+      await withCheckedContinuation { continuation in
+        locatorChangeWaiter = continuation
+        Task {
+          try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+          await MainActor.run { [weak self] in
+            guard let self else { return }
+            guard let waiter = self.locatorChangeWaiter else { return }
+            self.locatorChangeWaiter = nil
+            waiter.resume()
+          }
+        }
+      }
+    }
+
     // Convert R2Locator to Readium Locator
     private func locatorFromR2Locator(_ r2Locator: R2Locator, in publication: Publication)
       -> Locator?
@@ -232,6 +252,8 @@
 
     func navigator(_ navigator: Navigator, locationDidChange locator: Locator) {
       guard !suppressProgressUpdates else { return }
+      locatorChangeWaiter?.resume()
+      locatorChangeWaiter = nil
       // Update current locator for UI display
       currentLocator = locator
 
@@ -255,6 +277,8 @@
 
     func navigator(_ navigator: Navigator, didJumpTo locator: Locator) {
       guard !suppressProgressUpdates else { return }
+      locatorChangeWaiter?.resume()
+      locatorChangeWaiter = nil
       // Update current locator for UI display
       currentLocator = locator
 
