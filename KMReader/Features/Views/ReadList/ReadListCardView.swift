@@ -23,21 +23,21 @@ struct ReadListCardView: View {
           id: komgaReadList.readListId, type: .readlist, shadowStyle: .platform, width: width,
           alignment: .bottom
         )
-        .contextMenu {
-          ReadListContextMenu(
-            readList: komgaReadList.toReadList(),
-            onActionCompleted: onActionCompleted,
-            onDeleteRequested: {
-              showDeleteConfirmation = true
-            },
-            onEditRequested: {
-              showEditSheet = true
-            }
-          )
-        }
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
+      .contextMenu {
+        ReadListContextMenu(
+          readList: komgaReadList.toReadList(),
+          onActionCompleted: onActionCompleted,
+          onDeleteRequested: {
+            showDeleteConfirmation = true
+          },
+          onEditRequested: {
+            showEditSheet = true
+          }
+        )
+      }
 
       if !coverOnlyCards {
         VStack(alignment: .leading) {

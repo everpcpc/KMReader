@@ -72,23 +72,6 @@ struct BookCardView: View {
             }
           }
         }
-        .contextMenu {
-          BookContextMenu(
-            komgaBook: komgaBook,
-            onReadBook: onReadBook,
-            onActionCompleted: onBookUpdated,
-            onShowReadListPicker: {
-              showReadListPicker = true
-            },
-            onDeleteRequested: {
-              showDeleteConfirmation = true
-            },
-            onEditRequested: {
-              showEditSheet = true
-            },
-            showSeriesNavigation: showSeriesNavigation
-          )
-        }
         .adaptiveButtonStyle(.plain)
         .ifLet(zoomNamespace) { view, namespace in
           view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
@@ -96,6 +79,23 @@ struct BookCardView: View {
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
+      .contextMenu {
+        BookContextMenu(
+          komgaBook: komgaBook,
+          onReadBook: onReadBook,
+          onActionCompleted: onBookUpdated,
+          onShowReadListPicker: {
+            showReadListPicker = true
+          },
+          onDeleteRequested: {
+            showDeleteConfirmation = true
+          },
+          onEditRequested: {
+            showEditSheet = true
+          },
+          showSeriesNavigation: showSeriesNavigation
+        )
+      }
 
       if !coverOnlyCards {
         VStack(alignment: .leading) {

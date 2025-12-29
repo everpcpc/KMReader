@@ -11,8 +11,8 @@ struct BrowseView: View {
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(AuthViewModel.self) private var authViewModel
 
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
@@ -106,8 +106,11 @@ struct BrowseView: View {
           )
         }
       }
-      .onChange(of: currentInstanceId) { _, _ in
-        refreshBrowse()
+      .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
+        // Refresh when server switch completes to avoid race condition
+        if oldValue && !newValue {
+          refreshBrowse()
+        }
       }
       .onChange(of: dashboard.libraryIds) { _, _ in
         refreshBrowse()
