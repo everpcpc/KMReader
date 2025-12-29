@@ -8,6 +8,7 @@
 import SwiftData
 import SwiftUI
 
+@MainActor
 struct DashboardSectionDetailView: View {
   let section: DashboardSection
 
@@ -16,14 +17,10 @@ struct DashboardSectionDetailView: View {
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
 
   @State private var layoutHelper = BrowseLayoutHelper()
-  @State private var itemIds: [String] = []
-  @State private var currentPage = 0
-  @State private var hasMore = true
+  @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   @State private var isLoading = false
 
   @Environment(\.modelContext) private var modelContext
-
-  private let pageSize = 50
 
   var body: some View {
     GeometryReader { geometry in
@@ -67,9 +64,9 @@ struct DashboardSectionDetailView: View {
     switch browseLayout {
     case .grid:
       LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-        ForEach(itemIds, id: \.self) { bookId in
+        ForEach(pagination.items) { book in
           BookQueryItemView(
-            bookId: bookId,
+            bookId: book.id,
             cardWidth: layoutHelper.cardWidth,
             layout: .grid,
             onBookUpdated: {
@@ -79,7 +76,7 @@ struct DashboardSectionDetailView: View {
           )
           .padding(.bottom)
           .onAppear {
-            if itemIds.suffix(3).contains(bookId) {
+            if pagination.items.suffix(3).contains(book) {
               Task { await loadItems(refresh: false) }
             }
           }
@@ -87,9 +84,9 @@ struct DashboardSectionDetailView: View {
       }
     case .list:
       LazyVStack {
-        ForEach(itemIds, id: \.self) { bookId in
+        ForEach(pagination.items) { book in
           BookQueryItemView(
-            bookId: bookId,
+            bookId: book.id,
             cardWidth: layoutHelper.cardWidth,
             layout: .list,
             onBookUpdated: {
@@ -98,11 +95,11 @@ struct DashboardSectionDetailView: View {
             showSeriesTitle: true
           )
           .onAppear {
-            if itemIds.suffix(3).contains(bookId) {
+            if pagination.items.suffix(3).contains(book) {
               Task { await loadItems(refresh: false) }
             }
           }
-          if bookId != itemIds.last {
+          if book != pagination.items.last {
             Divider()
           }
         }
@@ -115,9 +112,9 @@ struct DashboardSectionDetailView: View {
     switch browseLayout {
     case .grid:
       LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-        ForEach(itemIds, id: \.self) { seriesId in
+        ForEach(pagination.items) { series in
           SeriesQueryItemView(
-            seriesId: seriesId,
+            seriesId: series.id,
             cardWidth: layoutHelper.cardWidth,
             layout: .grid,
             onActionCompleted: {
@@ -126,7 +123,7 @@ struct DashboardSectionDetailView: View {
           )
           .padding(.bottom)
           .onAppear {
-            if itemIds.suffix(3).contains(seriesId) {
+            if pagination.items.suffix(3).contains(series) {
               Task { await loadItems(refresh: false) }
             }
           }
@@ -134,9 +131,9 @@ struct DashboardSectionDetailView: View {
       }
     case .list:
       LazyVStack {
-        ForEach(itemIds, id: \.self) { seriesId in
+        ForEach(pagination.items) { series in
           SeriesQueryItemView(
-            seriesId: seriesId,
+            seriesId: series.id,
             cardWidth: layoutHelper.cardWidth,
             layout: .list,
             onActionCompleted: {
@@ -144,11 +141,11 @@ struct DashboardSectionDetailView: View {
             }
           )
           .onAppear {
-            if itemIds.suffix(3).contains(seriesId) {
+            if pagination.items.suffix(3).contains(series) {
               Task { await loadItems(refresh: false) }
             }
           }
-          if seriesId != itemIds.last {
+          if series != pagination.items.last {
             Divider()
           }
         }
@@ -171,53 +168,50 @@ struct DashboardSectionDetailView: View {
   private func loadItems(refresh: Bool) async {
     guard !isLoading else { return }
     if refresh {
-      currentPage = 0
-      hasMore = true
+      pagination.reset()
     }
-    guard hasMore else { return }
+    guard pagination.hasMorePages else { return }
 
     isLoading = true
 
     let libraryIds = dashboard.libraryIds
-    let isFirstPage = currentPage == 0
-
     if AppConfig.isOffline {
       let ids: [String]
       if section.isBookSection {
         ids = section.fetchOfflineBookIds(
           context: modelContext,
           libraryIds: libraryIds,
-          offset: currentPage * pageSize,
-          limit: pageSize
+          offset: pagination.currentPage * pagination.pageSize,
+          limit: pagination.pageSize
         )
       } else {
         ids = section.fetchOfflineSeriesIds(
           context: modelContext,
           libraryIds: libraryIds,
-          offset: currentPage * pageSize,
-          limit: pageSize
+          offset: pagination.currentPage * pagination.pageSize,
+          limit: pagination.pageSize
         )
       }
-      updateState(ids: ids, moreAvailable: ids.count == pageSize, isFirstPage: isFirstPage)
+      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
         if section.isBookSection {
           if let page = try await section.fetchBooks(
             libraryIds: libraryIds,
-            page: currentPage,
-            size: pageSize
+            page: pagination.currentPage,
+            size: pagination.pageSize
           ) {
             let ids = page.content.map { $0.id }
-            updateState(ids: ids, moreAvailable: !page.last, isFirstPage: isFirstPage)
+            applyPage(ids: ids, moreAvailable: !page.last)
           }
         } else {
           if let page = try await section.fetchSeries(
             libraryIds: libraryIds,
-            page: currentPage,
-            size: pageSize
+            page: pagination.currentPage,
+            size: pagination.pageSize
           ) {
             let ids = page.content.map { $0.id }
-            updateState(ids: ids, moreAvailable: !page.last, isFirstPage: isFirstPage)
+            applyPage(ids: ids, moreAvailable: !page.last)
           }
         }
       } catch {
@@ -228,15 +222,11 @@ struct DashboardSectionDetailView: View {
     isLoading = false
   }
 
-  private func updateState(ids: [String], moreAvailable: Bool, isFirstPage: Bool) {
+  private func applyPage(ids: [String], moreAvailable: Bool) {
+    let wrappedIds = ids.map(IdentifiedString.init)
     withAnimation {
-      if isFirstPage {
-        itemIds = ids
-      } else {
-        itemIds.append(contentsOf: ids)
-      }
+      _ = pagination.applyPage(wrappedIds)
     }
-    hasMore = moreAvailable
-    currentPage += 1
+    pagination.advance(moreAvailable: moreAvailable)
   }
 }

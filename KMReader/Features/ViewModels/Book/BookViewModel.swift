@@ -14,17 +14,13 @@ import SwiftUI
 class BookViewModel {
   var currentBook: Book?
   var isLoading = false
-  var browseBookIds: [String] = []
+  var browseBookIds: [String] { pagination.items.map(\.id) }
 
   private let bookService = BookService.shared
   private let sseService = SSEService.shared
-  private(set) var currentPage = 0
-  private var hasMorePages = true
+  private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   private var currentSeriesId: String?
   private var currentSeriesBrowseOpts: BookBrowseOptions?
-
-  private let pageSize = 50
-  private var currentLoadID = UUID()
 
   func loadSeriesBooks(
     context: ModelContext,
@@ -36,22 +32,20 @@ class BookViewModel {
     let shouldReset = refresh || currentSeriesId != seriesId
 
     if !shouldReset {
-      guard hasMorePages && !isLoading else { return }
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     if shouldReset {
-      currentLoadID = UUID()
-      currentPage = 0
-      hasMorePages = true
+      pagination.reset()
       currentSeriesId = seriesId
       currentSeriesBrowseOpts = browseOpts
     }
 
-    let loadID = currentLoadID
+    let loadID = pagination.loadID
     isLoading = true
 
     defer {
-      if loadID == currentLoadID {
+      if loadID == pagination.loadID {
         withAnimation {
           isLoading = false
         }
@@ -62,43 +56,39 @@ class BookViewModel {
       let books = KomgaBookStore.fetchSeriesBooks(
         context: context,
         seriesId: seriesId,
-        page: currentPage,
-        size: pageSize,
+        page: pagination.currentPage,
+        size: pagination.pageSize,
         browseOpts: browseOpts
       )
-      guard loadID == currentLoadID else { return }
+      guard loadID == pagination.loadID else { return }
       let ids = books.map { $0.id }
-      updateState(ids: ids, moreAvailable: ids.count == pageSize)
+      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncBooks(
           seriesId: seriesId,
-          page: currentPage,
-          size: pageSize,
+          page: pagination.currentPage,
+          size: pagination.pageSize,
           browseOpts: browseOpts,
           libraryIds: libraryIds
         )
 
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last)
+        applyPage(ids: ids, moreAvailable: !page.last)
       } catch {
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         ErrorManager.shared.alert(error: error)
       }
     }
   }
 
-  private func updateState(ids: [String], moreAvailable: Bool) {
+  private func applyPage(ids: [String], moreAvailable: Bool) {
+    let wrappedIds = ids.map(IdentifiedString.init)
     withAnimation {
-      if currentPage == 0 {
-        browseBookIds = ids
-      } else {
-        browseBookIds.append(contentsOf: ids)
-      }
+      _ = pagination.applyPage(wrappedIds)
     }
-    hasMorePages = moreAvailable
-    currentPage += 1
+    pagination.advance(moreAvailable: moreAvailable)
   }
 
   func loadBook(context: ModelContext, id: String) async {
@@ -167,20 +157,18 @@ class BookViewModel {
     refresh: Bool = false
   ) async {
     if !refresh {
-      guard hasMorePages && !isLoading else { return }
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     if refresh {
-      currentLoadID = UUID()
-      currentPage = 0
-      hasMorePages = true
+      pagination.reset()
     }
 
-    let loadID = currentLoadID
+    let loadID = pagination.loadID
     isLoading = true
 
     defer {
-      if loadID == currentLoadID {
+      if loadID == pagination.loadID {
         withAnimation {
           isLoading = false
         }
@@ -193,11 +181,11 @@ class BookViewModel {
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
-        offset: currentPage * pageSize,
-        limit: pageSize
+        offset: pagination.currentPage * pagination.pageSize,
+        limit: pagination.pageSize
       )
-      guard loadID == currentLoadID else { return }
-      updateState(ids: ids, moreAvailable: ids.count == pageSize)
+      guard loadID == pagination.loadID else { return }
+      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
         let filters = BookSearchFilters(
@@ -215,16 +203,16 @@ class BookViewModel {
 
         let page = try await SyncService.shared.syncBooksList(
           search: bookSearch,
-          page: currentPage,
-          size: pageSize,
+          page: pagination.currentPage,
+          size: pagination.pageSize,
           sort: browseOpts.sortString
         )
 
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last)
+        applyPage(ids: ids, moreAvailable: !page.last)
       } catch {
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         ErrorManager.shared.alert(error: error)
       }
     }
@@ -238,20 +226,18 @@ class BookViewModel {
     refresh: Bool = false
   ) async {
     if !refresh {
-      guard hasMorePages && !isLoading else { return }
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     if refresh {
-      currentLoadID = UUID()
-      currentPage = 0
-      hasMorePages = true
+      pagination.reset()
     }
 
-    let loadID = currentLoadID
+    let loadID = pagination.loadID
     isLoading = true
 
     defer {
-      if loadID == currentLoadID {
+      if loadID == pagination.loadID {
         withAnimation {
           isLoading = false
         }
@@ -262,28 +248,28 @@ class BookViewModel {
       let books = KomgaBookStore.fetchReadListBooks(
         context: context,
         readListId: readListId,
-        page: currentPage,
-        size: pageSize,
+        page: pagination.currentPage,
+        size: pagination.pageSize,
         browseOpts: browseOpts
       )
-      guard loadID == currentLoadID else { return }
+      guard loadID == pagination.loadID else { return }
       let ids = books.map { $0.id }
-      updateState(ids: ids, moreAvailable: ids.count == pageSize)
+      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncReadListBooks(
           readListId: readListId,
-          page: currentPage,
-          size: pageSize,
+          page: pagination.currentPage,
+          size: pagination.pageSize,
           browseOpts: browseOpts,
           libraryIds: libraryIds
         )
 
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last)
+        applyPage(ids: ids, moreAvailable: !page.last)
       } catch {
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         ErrorManager.shared.alert(error: error)
       }
     }

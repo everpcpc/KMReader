@@ -13,16 +13,12 @@ import SwiftUI
 @Observable
 class SeriesViewModel {
   var isLoading = false
-  var browseSeriesIds: [String] = []
+  var browseSeriesIds: [String] { pagination.items.map(\.id) }
 
   private let seriesService = SeriesService.shared
-  private(set) var currentPage = 0
-  private var hasMorePages = true
+  private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   private var currentState: SeriesBrowseOptions?
   private var currentSearchText: String = ""
-
-  private let pageSize = 50
-  private var currentLoadID = UUID()
 
   func loadSeries(
     context: ModelContext,
@@ -35,22 +31,20 @@ class SeriesViewModel {
     let shouldReset = refresh || paramsChanged
 
     if !shouldReset {
-      guard hasMorePages && !isLoading else { return }
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     if shouldReset {
-      currentLoadID = UUID()
-      currentPage = 0
-      hasMorePages = true
+      pagination.reset()
       currentState = browseOpts
       currentSearchText = searchText
     }
 
-    let loadID = currentLoadID
+    let loadID = pagination.loadID
     isLoading = true
 
     defer {
-      if loadID == currentLoadID {
+      if loadID == pagination.loadID {
         withAnimation {
           isLoading = false
         }
@@ -63,27 +57,27 @@ class SeriesViewModel {
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
-        offset: currentPage * pageSize,
-        limit: pageSize
+        offset: pagination.currentPage * pagination.pageSize,
+        limit: pagination.pageSize
       )
-      guard loadID == currentLoadID else { return }
-      updateState(ids: ids, moreAvailable: ids.count == pageSize)
+      guard loadID == pagination.loadID else { return }
+      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncSeriesPage(
           libraryIds: libraryIds,
-          page: currentPage,
-          size: pageSize,
+          page: pagination.currentPage,
+          size: pagination.pageSize,
           sort: browseOpts.sortString,
           searchTerm: searchText.isEmpty ? nil : searchText,
           browseOpts: browseOpts
         )
 
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last)
+        applyPage(ids: ids, moreAvailable: !page.last)
       } catch {
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         if shouldReset {
           ErrorManager.shared.alert(error: error)
         }
@@ -128,20 +122,18 @@ class SeriesViewModel {
     refresh: Bool = false
   ) async {
     if !refresh {
-      guard hasMorePages && !isLoading else { return }
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     if refresh {
-      currentLoadID = UUID()
-      currentPage = 0
-      hasMorePages = true
+      pagination.reset()
     }
 
-    let loadID = currentLoadID
+    let loadID = pagination.loadID
     isLoading = true
 
     defer {
-      if loadID == currentLoadID {
+      if loadID == pagination.loadID {
         withAnimation {
           isLoading = false
         }
@@ -152,42 +144,38 @@ class SeriesViewModel {
       let series = KomgaSeriesStore.fetchCollectionSeries(
         context: context,
         collectionId: collectionId,
-        page: currentPage,
-        size: pageSize,
+        page: pagination.currentPage,
+        size: pagination.pageSize,
         browseOpts: browseOpts
       )
-      guard loadID == currentLoadID else { return }
+      guard loadID == pagination.loadID else { return }
       let ids = series.map { $0.id }
-      updateState(ids: ids, moreAvailable: ids.count == pageSize)
+      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
         let page = try await SyncService.shared.syncCollectionSeries(
           collectionId: collectionId,
-          page: currentPage,
-          size: pageSize,
+          page: pagination.currentPage,
+          size: pagination.pageSize,
           browseOpts: browseOpts,
           libraryIds: libraryIds
         )
 
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         let ids = page.content.map { $0.id }
-        updateState(ids: ids, moreAvailable: !page.last)
+        applyPage(ids: ids, moreAvailable: !page.last)
       } catch {
-        guard loadID == currentLoadID else { return }
+        guard loadID == pagination.loadID else { return }
         ErrorManager.shared.alert(error: error)
       }
     }
   }
 
-  private func updateState(ids: [String], moreAvailable: Bool) {
+  private func applyPage(ids: [String], moreAvailable: Bool) {
+    let wrappedIds = ids.map(IdentifiedString.init)
     withAnimation {
-      if currentPage == 0 {
-        browseSeriesIds = ids
-      } else {
-        browseSeriesIds.append(contentsOf: ids)
-      }
+      _ = pagination.applyPage(wrappedIds)
     }
-    hasMorePages = moreAvailable
-    currentPage += 1
+    pagination.advance(moreAvailable: moreAvailable)
   }
 }

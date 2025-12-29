@@ -9,16 +9,14 @@ import SwiftUI
 
 struct AuthenticationActivityView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @State private var activities: [AuthenticationActivity] = []
+  @State private var pagination = PaginationState<AuthenticationActivity>(pageSize: 20)
   @State private var isLoading = false
   @State private var isLoadingMore = false
-  @State private var currentPage = 0
-  @State private var hasMorePages = true
   @State private var lastTriggeredIndex: Int = -1
 
   var body: some View {
     List {
-      if isLoading && activities.isEmpty {
+      if isLoading && pagination.items.isEmpty {
         Section {
           HStack {
             Spacer()
@@ -26,7 +24,7 @@ struct AuthenticationActivityView: View {
             Spacer()
           }
         }
-      } else if activities.isEmpty {
+      } else if pagination.items.isEmpty {
         Section {
           HStack {
             Spacer()
@@ -44,7 +42,7 @@ struct AuthenticationActivityView: View {
         }
       } else {
         Section {
-          ForEach(Array(activities.enumerated()), id: \.offset) { index, activity in
+          ForEach(Array(pagination.items.enumerated()), id: \.element.id) { index, activity in
             activityRow(activity: activity, index: index)
           }
 
@@ -139,8 +137,8 @@ struct AuthenticationActivityView: View {
       .padding(.vertical, 4)
     #endif
     .onAppear {
-      guard index >= activities.count - 3,
-        hasMorePages,
+      guard index >= pagination.items.count - 3,
+        pagination.hasMorePages,
         !isLoadingMore,
         lastTriggeredIndex != index
       else {
@@ -155,19 +153,20 @@ struct AuthenticationActivityView: View {
 
   private func loadActivities(refresh: Bool = false) async {
     if refresh {
-      currentPage = 0
-      hasMorePages = true
+      pagination.reset()
       lastTriggeredIndex = -1
     }
 
     isLoading = true
 
     do {
-      let page = try await AuthService.shared.getAuthenticationActivity(page: 0, size: 20)
+      let page = try await AuthService.shared.getAuthenticationActivity(
+        page: pagination.currentPage,
+        size: pagination.pageSize
+      )
       await MainActor.run {
-        activities = page.content
-        hasMorePages = !page.last
-        currentPage = 1
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
         lastTriggeredIndex = -1
       }
     } catch {
@@ -178,16 +177,18 @@ struct AuthenticationActivityView: View {
   }
 
   private func loadMoreActivities() async {
-    guard hasMorePages && !isLoadingMore else { return }
+    guard pagination.hasMorePages && !isLoadingMore else { return }
 
     isLoadingMore = true
 
     do {
-      let page = try await AuthService.shared.getAuthenticationActivity(page: currentPage, size: 20)
+      let page = try await AuthService.shared.getAuthenticationActivity(
+        page: pagination.currentPage,
+        size: pagination.pageSize
+      )
       await MainActor.run {
-        activities.append(contentsOf: page.content)
-        hasMorePages = !page.last
-        currentPage += 1
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
         lastTriggeredIndex = -1
       }
     } catch {
