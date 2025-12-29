@@ -49,6 +49,7 @@ struct PageView: View {
   let toggleControls: () -> Void
   let screenSize: CGSize
   let onEndPageFocusChange: ((Bool) -> Void)?
+  let onScrollActivityChange: ((Bool) -> Void)?
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
@@ -57,9 +58,40 @@ struct PageView: View {
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
 
+  init(
+    mode: PageViewMode,
+    readingDirection: ReadingDirection,
+    viewModel: ReaderViewModel,
+    nextBook: Book?,
+    readList: ReadList?,
+    onDismiss: @escaping () -> Void,
+    onNextBook: @escaping (String) -> Void,
+    goToNextPage: @escaping () -> Void,
+    goToPreviousPage: @escaping () -> Void,
+    toggleControls: @escaping () -> Void,
+    screenSize: CGSize,
+    onEndPageFocusChange: ((Bool) -> Void)?,
+    onScrollActivityChange: ((Bool) -> Void)? = nil
+  ) {
+    self.mode = mode
+    self.readingDirection = readingDirection
+    self.viewModel = viewModel
+    self.nextBook = nextBook
+    self.readList = readList
+    self.onDismiss = onDismiss
+    self.onNextBook = onNextBook
+    self.goToNextPage = goToNextPage
+    self.goToPreviousPage = goToPreviousPage
+    self.toggleControls = toggleControls
+    self.screenSize = screenSize
+    self.onEndPageFocusChange = onEndPageFocusChange
+    self.onScrollActivityChange = onScrollActivityChange
+  }
+
   var body: some View {
     ScrollViewReader { proxy in
       scrollViewContent(proxy: proxy)
+        .frame(width: screenSize.width, height: screenSize.height)
         .scrollTargetBehavior(.paging)
         .scrollIndicators(.hidden)
         .scrollPosition(id: $scrollPosition)
@@ -78,6 +110,7 @@ struct PageView: View {
           handleTargetPageChange(newTarget, proxy: proxy)
         }
         .onChange(of: scrollPosition) { _, newTarget in
+          onScrollActivityChange?(true)
           handleScrollPositionChange(newTarget)
         }
     }
@@ -339,4 +372,5 @@ struct PageView: View {
       viewModel.targetPageIndex = nil
     }
   }
+
 }
