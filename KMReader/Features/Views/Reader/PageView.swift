@@ -310,9 +310,6 @@ struct PageView: View {
 
     if viewModel.currentPageIndex != pageIndexToUpdate {
       viewModel.currentPageIndex = pageIndexToUpdate
-      Task(priority: .userInitiated) {
-        await viewModel.preloadPages()
-      }
     }
   }
 
@@ -335,9 +332,6 @@ struct PageView: View {
     if viewModel.currentPageIndex != newPageIndex {
       viewModel.currentPageIndex = newPageIndex
       viewModel.targetPageIndex = nil
-      Task(priority: .userInitiated) {
-        await viewModel.preloadPages()
-      }
     }
   }
 }
