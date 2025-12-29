@@ -249,6 +249,9 @@ struct SettingsServersView: View {
 
     let instanceId = instance.id.uuidString
 
+    // Clear cached session/cookies for this instance
+    APIClient.shared.removeSession(for: instanceId)
+
     // Clear SwiftData entities and offline data (async)
     Task {
       await SyncService.shared.clearInstanceData(instanceId: instanceId)
