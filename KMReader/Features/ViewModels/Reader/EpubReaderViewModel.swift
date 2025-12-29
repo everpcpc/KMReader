@@ -28,6 +28,7 @@
     var currentLocator: Locator?
     var tableOfContents: [ReadiumShared.Link] = []
     var preferences: EPUBPreferences = .empty
+    var readingDirection: ReadingDirection = .ltr
 
     private var bookId: String = ""
     private var epubFileURL: URL?
@@ -37,6 +38,8 @@
     private var lastUpdateTime: Date = Date()
     private let updateThrottleInterval: TimeInterval = 2.0  // Update at most once every 2 seconds
     private let logger = AppLogger(.reader)
+    private var suppressProgressUpdates = false
+    private var locatorChangeWaiter: CheckedContinuation<Void, Never>?
 
     let incognito: Bool
 
@@ -108,6 +111,8 @@
 
         self.publication = publication
         await loadTableOfContents(from: publication)
+        readingDirection =
+          publication.metadata.readingProgression == .rtl ? .rtl : .ltr
 
         // Get progression if not in incognito mode
         var initialLocation: Locator? = nil
@@ -144,17 +149,25 @@
     }
 
     func goToNextPage() {
-      guard let navigator = navigatorViewController else { return }
       Task {
-        _ = await navigator.goForward(options: .animated)
+        _ = await goToNextPage(animated: true)
       }
     }
 
     func goToPreviousPage() {
-      guard let navigator = navigatorViewController else { return }
       Task {
-        _ = await navigator.goBackward(options: .animated)
+        _ = await goToPreviousPage(animated: true)
       }
+    }
+
+    func goToNextPage(animated: Bool) async -> Bool {
+      guard let navigator = navigatorViewController else { return false }
+      return await navigator.goForward(options: NavigatorGoOptions(animated: animated))
+    }
+
+    func goToPreviousPage(animated: Bool) async -> Bool {
+      guard let navigator = navigatorViewController else { return false }
+      return await navigator.goBackward(options: NavigatorGoOptions(animated: animated))
     }
 
     func goToChapter(link: ReadiumShared.Link) {
@@ -167,6 +180,31 @@
     func applyPreferences(_ stored: EpubReaderPreferences, colorScheme: ColorScheme? = nil) {
       preferences = stored.toPreferences(colorScheme: colorScheme)
       navigatorViewController?.submitPreferences(preferences)
+    }
+
+    func withoutProgressUpdates<T>(_ operation: () async -> T) async -> T {
+      suppressProgressUpdates = true
+      defer { suppressProgressUpdates = false }
+      return await operation()
+    }
+
+    func waitForLocationChange(timeoutNanoseconds: UInt64 = 200_000_000) async {
+      if let waiter = locatorChangeWaiter {
+        locatorChangeWaiter = nil
+        waiter.resume()
+      }
+      await withCheckedContinuation { continuation in
+        locatorChangeWaiter = continuation
+        Task {
+          try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+          await MainActor.run { [weak self] in
+            guard let self else { return }
+            guard let waiter = self.locatorChangeWaiter else { return }
+            self.locatorChangeWaiter = nil
+            waiter.resume()
+          }
+        }
+      }
     }
 
     // Convert R2Locator to Readium Locator
@@ -213,6 +251,9 @@
     // MARK: - NavigatorDelegate
 
     func navigator(_ navigator: Navigator, locationDidChange locator: Locator) {
+      guard !suppressProgressUpdates else { return }
+      locatorChangeWaiter?.resume()
+      locatorChangeWaiter = nil
       // Update current locator for UI display
       currentLocator = locator
 
@@ -235,6 +276,9 @@
     }
 
     func navigator(_ navigator: Navigator, didJumpTo locator: Locator) {
+      guard !suppressProgressUpdates else { return }
+      locatorChangeWaiter?.resume()
+      locatorChangeWaiter = nil
       // Update current locator for UI display
       currentLocator = locator
 

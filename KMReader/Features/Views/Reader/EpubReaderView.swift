@@ -24,10 +24,10 @@
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @State private var viewModel: EpubReaderViewModel
+    @State private var snapshotRefreshId = UUID()
+    @State private var pageCurlReady = false
     @State private var showingControls = true
     @State private var controlsTimer: Timer?
-    @State private var showTapZoneOverlay = false
-    @State private var overlayTimer: Timer?
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
@@ -61,14 +61,14 @@
         .task(id: bookId) {
           await loadBook()
           resetControlsTimer(timeout: 1)
-          triggerTapZoneDisplay()
         }
         .task(id: readerPrefs) {
           viewModel.applyPreferences(readerPrefs, colorScheme: colorScheme)
+          snapshotRefreshId = UUID()
+          pageCurlReady = false
         }
         .onDisappear {
           controlsTimer?.invalidate()
-          overlayTimer?.invalidate()
           withAnimation {
             readerPresentation.hideStatusBar = false
           }
@@ -76,13 +76,6 @@
         .onChange(of: shouldShowControls) { _, newValue in
           withAnimation {
             readerPresentation.hideStatusBar = !newValue
-          }
-        }
-        .onChange(of: showTapZoneOverlay) { _, newValue in
-          if newValue {
-            resetOverlayTimer()
-          } else {
-            overlayTimer?.invalidate()
           }
         }
         .onChange(of: colorScheme) { _, newScheme in
@@ -109,11 +102,6 @@
 
           contentView(for: geometry.size)
 
-          if viewModel.navigatorViewController != nil {
-            ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
-              .ignoresSafeArea()
-          }
-
           controlsOverlay
 
           chapterStatusOverlay
@@ -121,9 +109,10 @@
       }
       .ignoresSafeArea()
       .onAppear {
-        if .ltr != readerPresentation.readingDirection {
-          readerPresentation.readingDirection = .ltr
-        }
+        readerPresentation.readingDirection = viewModel.readingDirection
+      }
+      .onChange(of: viewModel.readingDirection) { _, newDirection in
+        readerPresentation.readingDirection = newDirection
       }
     }
 
@@ -152,15 +141,42 @@
         }
         .padding()
       } else if let navigatorViewController = viewModel.navigatorViewController {
-        NavigatorView(navigatorViewController: navigatorViewController)
-          .ignoresSafeArea()
-          .contentShape(Rectangle())
-          .simultaneousGesture(
-            SpatialTapGesture()
-              .onEnded { value in
-                handleTap(location: value.location, in: size)
-              }
-          )
+        ZStack {
+          if readerPrefs.pagination == .paged {
+            NavigatorView(navigatorViewController: navigatorViewController)
+              .opacity(pageCurlReady ? 0.01 : 1.0)
+              .allowsHitTesting(!pageCurlReady)
+              .ignoresSafeArea()
+
+            if viewModel.currentLocator != nil {
+              EpubPageCurlView(
+                navigatorViewController: navigatorViewController,
+                viewModel: viewModel,
+                readingDirection: viewModel.readingDirection,
+                refreshToken: snapshotRefreshId,
+                onTap: {
+                  toggleControls()
+                },
+                onReady: {
+                  pageCurlReady = true
+                }
+              )
+              .opacity(pageCurlReady ? 1.0 : 0.0)
+              .allowsHitTesting(pageCurlReady)
+              .ignoresSafeArea()
+            }
+          } else {
+            NavigatorView(navigatorViewController: navigatorViewController)
+              .ignoresSafeArea()
+              .contentShape(Rectangle())
+              .simultaneousGesture(
+                SpatialTapGesture()
+                  .onEnded { _ in
+                    toggleControls()
+                  }
+              )
+          }
+        }
       } else {
         Text("No content available.")
           .foregroundStyle(.secondary)
@@ -336,44 +352,6 @@
       }
     }
 
-    private func handleTap(location: CGPoint, in size: CGSize) {
-      let width = size.width
-      let leftZone = width * 0.3
-      let rightZone = width * 0.7
-
-      if showingControls {
-        toggleControls()
-        return
-      }
-
-      switch location.x {
-      case ..<leftZone:
-        viewModel.goToPreviousPage()
-      case rightZone...:
-        viewModel.goToNextPage()
-      default:
-        toggleControls()
-      }
-    }
-
-    private func triggerTapZoneDisplay() {
-      guard viewModel.navigatorViewController != nil else { return }
-      showTapZoneOverlay = false
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-        withAnimation {
-          showTapZoneOverlay = true
-        }
-      }
-    }
-
-    private func resetOverlayTimer() {
-      overlayTimer?.invalidate()
-      overlayTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
-        withAnimation {
-          showTapZoneOverlay = false
-        }
-      }
-    }
   }
 
   import UIKit
