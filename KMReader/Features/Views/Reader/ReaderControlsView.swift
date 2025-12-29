@@ -110,6 +110,22 @@ struct ReaderControlsView: View {
       ? String(localized: "reader.previousBook") : String(localized: "reader.nextBook")
   }
 
+  private var topPadding: CGFloat {
+    #if os(iOS)
+      UIDevice.current.userInterfaceIdiom == .phone ? 60 : 24
+    #else
+      24
+    #endif
+  }
+
+  private var bottomPadding: CGFloat {
+    #if os(iOS)
+      UIDevice.current.userInterfaceIdiom == .phone ? 30 : 16
+    #else
+      16
+    #endif
+  }
+
   var body: some View {
     VStack {
 
@@ -193,6 +209,7 @@ struct ReaderControlsView: View {
               Text(leftButtonLabel)
             }.font(.footnote)
           }
+          .contentShape(Rectangle())
           .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
@@ -216,6 +233,7 @@ struct ReaderControlsView: View {
                 .monospacedDigit()
             }.font(.footnote)
           }
+          .contentShape(Rectangle())
           .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
@@ -229,7 +247,9 @@ struct ReaderControlsView: View {
               showingTOCSheet = true
             } label: {
               Image(systemName: "list.bullet")
+                .padding(2)
             }
+            .contentShape(Rectangle())
             .controlSize(.mini)
             .adaptiveButtonStyle(.borderedProminent)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
@@ -257,6 +277,7 @@ struct ReaderControlsView: View {
               Image(systemName: "chevron.right")
             }.font(.footnote)
           }
+          .contentShape(Rectangle())
           .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
@@ -267,6 +288,8 @@ struct ReaderControlsView: View {
               $focusedControl, equals: readingDirection == .rtl ? .previousBook : .nextBook)
           #endif
         }
+        .allowsHitTesting(true)
+
 
         // Bottom slider
         ReadingProgressBar(progress: progress)
@@ -275,7 +298,8 @@ struct ReaderControlsView: View {
       }
       .padding()
     }
-    .padding(.vertical)
+    .padding(.top, topPadding)
+    .padding(.bottom, bottomPadding)
     .transition(.opacity)
     #if os(tvOS)
       .onAppear {

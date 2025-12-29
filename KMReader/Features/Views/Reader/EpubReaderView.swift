@@ -105,13 +105,13 @@
     private var readerBody: some View {
       GeometryReader { geometry in
         ZStack {
-          readerBackground.color.ignoresSafeArea()
+          readerBackground.color.readerIgnoresSafeArea()
 
           contentView(for: geometry.size)
 
           if viewModel.navigatorViewController != nil {
             ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
-              .ignoresSafeArea()
+              .readerIgnoresSafeArea()
           }
 
           controlsOverlay
@@ -119,7 +119,7 @@
           chapterStatusOverlay
         }
       }
-      .ignoresSafeArea()
+      .readerIgnoresSafeArea()
       .onAppear {
         if .ltr != readerPresentation.readingDirection {
           readerPresentation.readingDirection = .ltr
@@ -153,7 +153,7 @@
         .padding()
       } else if let navigatorViewController = viewModel.navigatorViewController {
         NavigatorView(navigatorViewController: navigatorViewController)
-          .ignoresSafeArea()
+          .readerIgnoresSafeArea()
           .contentShape(Rectangle())
           .simultaneousGesture(
             SpatialTapGesture()
@@ -239,7 +239,7 @@
       }
       .padding(.vertical, 24)
       .padding(.horizontal, 8)
-      .ignoresSafeArea()
+      .readerIgnoresSafeArea()
       .opacity(shouldShowControls ? 1.0 : 0.0)
       .allowsHitTesting(shouldShowControls)
       .transition(.opacity)
@@ -323,7 +323,7 @@
           .padding(.bottom, 24)
         }
       }
-      .ignoresSafeArea()
+      .readerIgnoresSafeArea()
       .allowsHitTesting(false)
     }
 

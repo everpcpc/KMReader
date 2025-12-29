@@ -130,7 +130,7 @@ extension EnvironmentValues {
         .adaptiveButtonStyle(.bordered)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(PlatformHelper.systemBackgroundColor.ignoresSafeArea())
+      .background(PlatformHelper.systemBackgroundColor.readerIgnoresSafeArea())
     }
   }
 
