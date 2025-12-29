@@ -34,6 +34,12 @@ class AuthViewModel {
     defer { isLoading = false }
 
     let instanceId = UUID().uuidString
+    var didSucceed = false
+    defer {
+      if !didSucceed {
+        APIClient.shared.removeSession(for: instanceId)
+      }
+    }
 
     // Validate authentication using temporary request
     let result = try await authService.login(
@@ -52,6 +58,7 @@ class AuthViewModel {
       successMessage: String(localized: "Logged in successfully"),
       instanceId: instanceId
     )
+    didSucceed = true
   }
 
   func loginWithAPIKey(
@@ -63,6 +70,12 @@ class AuthViewModel {
     defer { isLoading = false }
 
     let instanceId = UUID().uuidString
+    var didSucceed = false
+    defer {
+      if !didSucceed {
+        APIClient.shared.removeSession(for: instanceId)
+      }
+    }
 
     // Validate authentication using API Key
     let result = try await authService.loginWithAPIKey(
@@ -81,6 +94,7 @@ class AuthViewModel {
       successMessage: String(localized: "Logged in successfully"),
       instanceId: instanceId
     )
+    didSucceed = true
   }
 
   func logout() {

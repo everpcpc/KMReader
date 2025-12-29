@@ -77,6 +77,13 @@ class APIClient {
     return instanceId
   }
 
+  func removeSession(for instanceId: String) {
+    guard !instanceId.isEmpty else { return }
+    sessionLock.lock()
+    defer { sessionLock.unlock() }
+    sessionByInstanceId.removeValue(forKey: instanceId)
+  }
+
   func setServer(url: String) {
     AppConfig.serverURL = url
   }
