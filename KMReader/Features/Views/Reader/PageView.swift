@@ -118,6 +118,7 @@ struct PageView: View {
       .pageTapGesture(
         size: screenSize,
         readingDirection: readingDirection,
+        isZoomed: isZoomed,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
@@ -143,6 +144,7 @@ struct PageView: View {
     .pageTapGesture(
       size: screenSize,
       readingDirection: readingDirection,
+      isZoomed: isZoomed,
       onNextPage: goToNextPage,
       onPreviousPage: goToPreviousPage,
       onToggleControls: toggleControls
@@ -174,6 +176,7 @@ struct PageView: View {
       .pageTapGesture(
         size: screenSize,
         readingDirection: readingDirection,
+        isZoomed: isZoomed,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
@@ -198,6 +201,7 @@ struct PageView: View {
     .pageTapGesture(
       size: screenSize,
       readingDirection: readingDirection,
+      isZoomed: isZoomed,
       onNextPage: goToNextPage,
       onPreviousPage: goToPreviousPage,
       onToggleControls: toggleControls
@@ -246,6 +250,7 @@ struct PageView: View {
       .pageTapGesture(
         size: screenSize,
         readingDirection: readingDirection,
+        isZoomed: isZoomed,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
