@@ -16,6 +16,7 @@ enum DashboardRefreshSource {
 struct DashboardRefreshTrigger: Equatable {
   let id: UUID
   let source: DashboardRefreshSource
+  var sectionsToRefresh: Set<DashboardSection>?  // nil means refresh all
 }
 
 @MainActor
@@ -69,7 +70,6 @@ struct DashboardSectionView: View {
           ForEach(pagination.items) { item in
             itemView(for: item.id)
               .onAppear {
-                // O(1): suffix is a slice, contains checks only 3 elements
                 if pagination.shouldLoadMore(after: item) {
                   Task {
                     await loadMore()
@@ -95,6 +95,10 @@ struct DashboardSectionView: View {
     .opacity(pagination.isEmpty ? 0 : 1)
     .frame(height: pagination.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
+      // Skip if targeted refresh excludes this section
+      if let sections = refreshTrigger.sectionsToRefresh, !sections.contains(section) {
+        return
+      }
       if refreshTrigger.source == .auto, pagination.currentPage > 0 {
         return
       }

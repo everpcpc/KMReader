@@ -53,7 +53,12 @@ struct BookQueryItemView: View {
           komgaBook: book,
           cardWidth: cardWidth,
           onReadBook: { incognito in
-            readerPresentation.present(book: book.toBook(), incognito: incognito)
+            readerPresentation.present(book: book.toBook(), incognito: incognito) {
+              Task {
+                try? await SyncService.shared.syncBookAndSeries(
+                  bookId: book.bookId, seriesId: book.seriesId)
+              }
+            }
           },
           onBookUpdated: onBookUpdated,
           showSeriesTitle: showSeriesTitle,
@@ -64,7 +69,12 @@ struct BookQueryItemView: View {
         BookRowView(
           komgaBook: book,
           onReadBook: { incognito in
-            readerPresentation.present(book: book.toBook(), incognito: incognito)
+            readerPresentation.present(book: book.toBook(), incognito: incognito) {
+              Task {
+                try? await SyncService.shared.syncBookAndSeries(
+                  bookId: book.bookId, seriesId: book.seriesId)
+              }
+            }
           },
           onBookUpdated: onBookUpdated,
           showSeriesTitle: showSeriesTitle,
