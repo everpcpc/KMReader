@@ -44,24 +44,24 @@ struct SeriesCardView: View {
             }
           }
         }
-        .contextMenu {
-          SeriesContextMenu(
-            komgaSeries: komgaSeries,
-            onActionCompleted: onActionCompleted,
-            onShowCollectionPicker: {
-              showCollectionPicker = true
-            },
-            onDeleteRequested: {
-              showDeleteConfirmation = true
-            },
-            onEditRequested: {
-              showEditSheet = true
-            }
-          )
-        }
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
+      .contextMenu {
+        SeriesContextMenu(
+          komgaSeries: komgaSeries,
+          onActionCompleted: onActionCompleted,
+          onShowCollectionPicker: {
+            showCollectionPicker = true
+          },
+          onDeleteRequested: {
+            showDeleteConfirmation = true
+          },
+          onEditRequested: {
+            showEditSheet = true
+          }
+        )
+      }
 
       if !coverOnlyCards {
         VStack(alignment: .leading) {

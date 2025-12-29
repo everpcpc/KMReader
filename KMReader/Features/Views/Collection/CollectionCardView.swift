@@ -25,21 +25,21 @@ struct CollectionCardView: View {
           id: komgaCollection.collectionId, type: .collection, shadowStyle: .platform, width: width,
           alignment: .bottom
         )
-        .contextMenu {
-          CollectionContextMenu(
-            collection: komgaCollection.toCollection(),
-            onActionCompleted: onActionCompleted,
-            onDeleteRequested: {
-              showDeleteConfirmation = true
-            },
-            onEditRequested: {
-              showEditSheet = true
-            }
-          )
-        }
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
+      .contextMenu {
+        CollectionContextMenu(
+          collection: komgaCollection.toCollection(),
+          onActionCompleted: onActionCompleted,
+          onDeleteRequested: {
+            showDeleteConfirmation = true
+          },
+          onEditRequested: {
+            showEditSheet = true
+          }
+        )
+      }
 
       if !coverOnlyCards {
         VStack(alignment: .leading) {

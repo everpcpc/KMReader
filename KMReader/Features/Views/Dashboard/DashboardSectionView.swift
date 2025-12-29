@@ -83,6 +83,7 @@ struct DashboardSectionView: View {
       .scrollClipDisabled()
     }
     .padding(.vertical, 16)
+    #if os(iOS) || os(macOS)
     .background {
       LinearGradient(
         colors: backgroundColors,
@@ -90,6 +91,7 @@ struct DashboardSectionView: View {
         endPoint: .bottom
       )
     }
+    #endif
     .opacity(pagination.isEmpty ? 0 : 1)
     .frame(height: pagination.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
