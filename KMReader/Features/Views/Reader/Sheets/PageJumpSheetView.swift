@@ -5,7 +5,6 @@
 //  Created by Komga iOS Client
 //
 
-import SDWebImageSwiftUI
 import SwiftUI
 
 // Simple page preview card for native scroll
@@ -17,7 +16,7 @@ private struct PagePreviewCard: View {
   let isSelected: Bool
   let imageHeight: CGFloat
 
-  @State private var localURL: URL?
+  @State private var loadedImage: PlatformImage?
 
   private var imageWidth: CGFloat {
     imageHeight * 0.72
@@ -26,22 +25,10 @@ private struct PagePreviewCard: View {
   var body: some View {
     VStack(spacing: 8) {
       Group {
-        if let localURL = localURL {
-          WebImage(
-            url: localURL,
-            options: [.retryFailed, .scaleDownLargeImages],
-            context: [.customManager: SDImageCacheProvider.thumbnailManager]
-          )
-          .resizable()
-          .placeholder {
-            RoundedRectangle(cornerRadius: 8)
-              .fill(Color.gray.opacity(0.3))
-              .overlay {
-                ProgressView()
-              }
-          }
-          .indicator(.activity)
-          .aspectRatio(contentMode: .fit)
+        if let platformImage = loadedImage {
+          Image(platformImage: platformImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
         } else {
           RoundedRectangle(cornerRadius: 8)
             .fill(Color.gray.opacity(0.3))
@@ -69,8 +56,11 @@ private struct PagePreviewCard: View {
         .foregroundStyle(isSelected ? themeColor.color : .secondary)
     }
     .task(id: page) {
-      localURL = try? await ThumbnailCache.shared.ensureThumbnail(
+      if let url = try? await ThumbnailCache.shared.ensureThumbnail(
         id: bookId, type: .page, page: page)
+      {
+        loadedImage = PlatformImage(contentsOfFile: url.path)
+      }
     }
   }
 }

@@ -8,7 +8,6 @@
 import Foundation
 import OSLog
 import Photos
-import SDWebImage
 import SwiftUI
 import UniformTypeIdentifiers
 

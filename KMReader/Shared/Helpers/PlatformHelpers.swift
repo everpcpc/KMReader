@@ -254,3 +254,14 @@ enum DeviceOrientation {
     }
   }
 #endif
+
+extension Image {
+  /// Create a SwiftUI Image from a PlatformImage (UIImage on iOS/tvOS, NSImage on macOS)
+  init(platformImage: PlatformImage) {
+    #if os(iOS) || os(tvOS)
+      self.init(uiImage: platformImage)
+    #elseif os(macOS)
+      self.init(nsImage: platformImage)
+    #endif
+  }
+}

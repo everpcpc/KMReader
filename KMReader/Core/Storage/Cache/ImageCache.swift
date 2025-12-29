@@ -10,7 +10,7 @@ import OSLog
 import SwiftUI
 
 /// Disk cache system for storing raw image data
-/// Used to avoid re-downloading images. Decoding is handled by SDWebImage or on-demand.
+/// Used to avoid re-downloading images.
 actor ImageCache {
   // Logger for cache operations
   private let logger = AppLogger(.cache)

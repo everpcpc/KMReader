@@ -48,15 +48,9 @@ struct PageImageView: View {
     Group {
       if let displayImage = displayImage {
         ZStack(alignment: pageNumberAlignment) {
-          #if os(iOS) || os(tvOS)
-            Image(uiImage: displayImage)
-              .resizable()
-              .aspectRatio(contentMode: .fit)
-          #elseif os(macOS)
-            Image(nsImage: displayImage)
-              .resizable()
-              .aspectRatio(contentMode: .fit)
-          #endif
+          Image(platformImage: displayImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
 
           if showPageNumber {
             pageNumberOverlay
@@ -184,11 +178,7 @@ struct PageImageView: View {
       guard let data = try? Data(contentsOf: fileURL) else {
         return nil
       }
-      #if os(iOS) || os(tvOS)
-        return UIImage(data: data)
-      #elseif os(macOS)
-        return NSImage(data: data)
-      #endif
+      return PlatformImage(data: data)
     }.value
   }
 

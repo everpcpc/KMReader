@@ -8,7 +8,6 @@
 import Foundation
 import ImageIO
 import OSLog
-import SDWebImage
 import UniformTypeIdentifiers
 
 enum ThumbnailType: String, CaseIterable {
@@ -110,14 +109,6 @@ actor ThumbnailCache {
 
       let isNewFile = !FileManager.default.fileExists(atPath: fileURL.path)
       try data.write(to: fileURL, options: [.atomic])
-
-      // Clear memory cache if it was overwritten
-      if !isNewFile {
-        await MainActor.run {
-          SDImageCacheProvider.thumbnailCache.removeImage(
-            forKey: fileURL.absoluteString, fromDisk: false)
-        }
-      }
 
       logger.info("✅ Saved thumbnail for \(type.rawValue) \(id)")
 

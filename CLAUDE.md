@@ -77,7 +77,6 @@ Linting note from project rules: "Lint is not stable for swift, run `make build-
 - **State**: `@Observable` pattern (not `ObservableObject`)
 - **Persistence**: SwiftData for profiles/libraries/fonts, UserDefaults via `AppConfig`
 - **Networking**: Centralized `APIClient` with feature-specific services
-- **Images**: SDWebImage + SDWebImageWebPCoder
 - **Real-time**: Server-Sent Events (SSE) via `SSEService`
 
 ### Project Structure
@@ -152,7 +151,7 @@ KMReader/
 
 **App Lifecycle**
 
-- `MainApp.swift`: Loads SwiftData schema, configures stores, sets up SDWebImage coders, registers iOS AppDelegate for background downloads
+- `MainApp.swift`: Loads SwiftData schema, configures stores, registers iOS AppDelegate for background downloads
 - `ContentView.swift`: Decides between onboarding (`LandingView`) and authenticated tabs
   - iOS 18.0+, macOS 15.0+, tvOS 18.0+: `MainTabView` (modern tab navigation)
   - Earlier versions: `OldTabView` (compatibility fallback)
