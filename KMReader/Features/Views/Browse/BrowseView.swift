@@ -115,11 +115,6 @@ struct BrowseView: View {
       .onChange(of: dashboard.libraryIds) { _, _ in
         refreshBrowse()
       }
-      .onChange(of: readerPresentation.readerState == nil) { _, isReaderClosed in
-        if isReaderClosed {
-          refreshBrowse()
-        }
-      }
     }
   }
 

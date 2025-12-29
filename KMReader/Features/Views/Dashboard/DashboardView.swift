@@ -204,11 +204,12 @@ struct DashboardView: View {
           pendingRefreshTask?.cancel()
           pendingRefreshTask = nil
         } else if shouldRefreshAfterReading {
+          // Check if there's a pending refresh
           shouldRefreshAfterReading = false
-          refreshSections([.keepReading, .onDeck], reason: "Deferred after reader closed")
-        } else if !enableSSE {
-          // Without SSE events we refresh when exiting the reader
-          refreshSections([.keepReading, .onDeck], reason: "Reader closed without SSE")
+          refreshDashboard(reason: "Deferred after reader closed")
+        } else {
+          // Refresh sections when reader is closed otherwise
+          refreshSections([.keepReading, .onDeck], reason: "Reader closed")
         }
       }
       #if !os(tvOS)
