@@ -50,10 +50,6 @@ class ReaderViewModel {
   var preloadedImages: [Int: PlatformImage] = [:]
   private var dualPageNoCoverEnabled: Bool
   private var forceDualPagePairs: Bool
-  /// Flag to prevent duplicate completion sync
-  private var hasTriggeredCompletionSync: Bool = false
-  /// Timestamp of last progress update for debouncing
-  private var lastProgressUpdate: Date = .distantPast
 
   private let logger = AppLogger(.reader)
   /// Current book ID for API calls and cache access
@@ -86,7 +82,6 @@ class ReaderViewModel {
   func loadPages(book: Book, initialPageNumber: Int? = nil) async {
     self.bookId = book.id
     isLoading = true
-    hasTriggeredCompletionSync = false
 
     // Cancel all ongoing download tasks when loading a new book
     for (_, task) in downloadingTasks {
@@ -328,20 +323,9 @@ class ReaderViewModel {
     guard !bookId.isEmpty else { return }
     guard let currentPage = currentPage else { return }
 
-    // Debounce: skip if last update was less than 0.3 seconds ago
-    let now = Date()
-    guard now.timeIntervalSince(lastProgressUpdate) >= 0.3 else { return }
-    lastProgressUpdate = now
-
     let activeBookId = bookId
     let currentPageNumber = currentPage.number
     let completed = currentPageIndex >= pages.count - 1
-
-    // Only trigger completion sync once per book
-    let shouldSyncOnComplete = completed && !hasTriggeredCompletionSync
-    if shouldSyncOnComplete {
-      hasTriggeredCompletionSync = true
-    }
 
     Task.detached(priority: .utility) {
       do {
@@ -367,9 +351,6 @@ class ReaderViewModel {
             page: currentPageNumber,
             completed: completed
           )
-          if shouldSyncOnComplete {
-            _ = try? await SyncService.shared.syncBookAndSeries(bookId: activeBookId)
-          }
         }
       } catch {
         // Progress updates are non-critical, fail silently
