@@ -75,6 +75,7 @@ struct ZoomableImageContainer<Content: View>: View {
     func makeUIView(context: Context) -> UIScrollView {
       let scrollView = UIScrollView()
       scrollView.delegate = context.coordinator
+      context.coordinator.scrollView = scrollView
       scrollView.minimumZoomScale = minScale
       scrollView.maximumZoomScale = max(maxScale * 1.5, maxScale)
       scrollView.bouncesZoom = true
@@ -108,6 +109,7 @@ struct ZoomableImageContainer<Content: View>: View {
 
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
       context.coordinator.parent = self
+      context.coordinator.scrollView = scrollView
       context.coordinator.updateContent(with: content())
       scrollView.minimumZoomScale = minScale
       scrollView.maximumZoomScale = max(maxScale * 1.5, maxScale)
@@ -118,6 +120,10 @@ struct ZoomableImageContainer<Content: View>: View {
       }
 
       context.coordinator.updateZoomState(for: scrollView)
+      if scrollView.zoomScale <= minScale + 0.01 {
+        context.coordinator.resetOffsetIfNeeded(for: scrollView)
+      }
+      context.coordinator.updateScrollEnabled(for: scrollView)
       context.coordinator.centerContentIfNeeded(scrollView)
     }
 
@@ -125,6 +131,7 @@ struct ZoomableImageContainer<Content: View>: View {
       var parent: ZoomableScrollViewRepresentable
       let hostingController: UIHostingController<AnyView>
       var lastResetID: AnyHashable?
+      weak var scrollView: UIScrollView?
 
       init(parent: ZoomableScrollViewRepresentable) {
         self.parent = parent
@@ -169,6 +176,10 @@ struct ZoomableImageContainer<Content: View>: View {
         DispatchQueue.main.async { [weak self] in
           self?.parent.isZoomed.wrappedValue = zoomed
         }
+        if !zoomed {
+          resetOffsetIfNeeded(for: scrollView)
+        }
+        updateScrollEnabled(for: scrollView)
       }
 
       func centerContentIfNeeded(_ scrollView: UIScrollView) {
@@ -180,6 +191,23 @@ struct ZoomableImageContainer<Content: View>: View {
           bottom: verticalInset,
           right: horizontalInset
         )
+      }
+
+      func resetOffsetIfNeeded(for scrollView: UIScrollView) {
+        guard scrollView.contentOffset != .zero else { return }
+        scrollView.setContentOffset(.zero, animated: false)
+      }
+
+      func updateScrollEnabled(for scrollView: UIScrollView) {
+        let zoomed = scrollView.zoomScale > (parent.minScale + 0.01)
+        if zoomed {
+          scrollView.isScrollEnabled = true
+          return
+        }
+
+        let canScrollHorizontally = scrollView.contentSize.width > scrollView.bounds.width + 1
+        let canScrollVertically = scrollView.contentSize.height > scrollView.bounds.height + 1
+        scrollView.isScrollEnabled = canScrollHorizontally || canScrollVertically
       }
 
       func clampScaleIfNeeded(for scrollView: UIScrollView, currentScale: CGFloat) {

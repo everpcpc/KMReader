@@ -92,6 +92,12 @@ struct DivinaReaderView: View {
     }
   }
 
+  private func applyStatusBarVisibility(controlsHidden: Bool) {
+    withAnimation {
+      readerPresentation.hideStatusBar = controlsHidden
+    }
+  }
+
   private func resetReaderPreferencesForCurrentBook() {
     pageLayout = AppConfig.pageLayout
     viewModel.updatePageLayout(pageLayout)
@@ -114,10 +120,11 @@ struct DivinaReaderView: View {
 
   var body: some View {
     GeometryReader { geometry in
-      let screenKey = "\(Int(geometry.size.width))x\(Int(geometry.size.height))"
+      let currentSize = geometry.size
+      let screenKey = "\(Int(currentSize.width))x\(Int(currentSize.height))"
       // Use cached screenKey during dismissal to prevent view recreation from scale animation
       let stableScreenKey = readerPresentation.isDismissing ? cachedScreenKey : screenKey
-      let useDualPage = shouldUseDualPage(screenSize: geometry.size)
+      let useDualPage = shouldUseDualPage(screenSize: currentSize)
 
       ZStack {
         readerBackground.color.readerIgnoresSafeArea()
@@ -131,150 +138,19 @@ struct DivinaReaderView: View {
             .opacity(0.001)
         #endif
 
-        if !viewModel.pages.isEmpty {
-          // Page viewer based on reading direction
-          Group {
-            if readingDirection == .webtoon {
-              #if os(iOS) || os(macOS)
-                WebtoonPageView(
-                  viewModel: viewModel,
-                  isAtBottom: $isAtBottom,
-                  nextBook: nextBook,
-                  readList: readList,
-                  onDismiss: { closeReader() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  pageWidthPercentage: webtoonPageWidthPercentage,
-                  readerBackground: readerBackground
-                )
-                .readerIgnoresSafeArea()
-              #else
-                // Webtoon requires UIKit/AppKit, fallback to vertical
-                PageView(
-                  mode: .vertical,
-                  readingDirection: readingDirection,
-                  viewModel: viewModel,
-                  nextBook: nextBook,
-                  readList: readList,
-                  onDismiss: { closeReader() },
-                  onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                  toggleControls: { toggleControls() },
-                  screenSize: geometry.size,
-                  onEndPageFocusChange: endPageFocusChangeHandler
-                )
-                .readerIgnoresSafeArea()
-              #endif
-            } else {
-              PageView(
-                mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-                readingDirection: readingDirection,
-                viewModel: viewModel,
-                nextBook: nextBook,
-                readList: readList,
-                onDismiss: { closeReader() },
-                onNextBook: { openNextBook(nextBookId: $0) },
-                goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-                toggleControls: { toggleControls() },
-                screenSize: geometry.size,
-                onEndPageFocusChange: endPageFocusChangeHandler
-              )
-              .readerIgnoresSafeArea()
-            }
-          }
-          .id("\(currentBookId)-\(stableScreenKey)-\(readingDirection)")
-          .onChange(of: viewModel.currentPageIndex) {
-            // Update progress and preload pages in background without blocking UI
-            Task(priority: .userInitiated) {
-              await viewModel.updateProgress()
-              await viewModel.preloadPages()
-            }
-          }
-        } else if viewModel.isLoading {
-          // Show loading indicator when loading
-          ProgressView()
-        } else {
-          // No pages available
-          NoPagesView(
-            onDismiss: { closeReader() }
-          )
-        }
-
-        // Helper overlay (iOS: always, macOS: with keyboard help)
-        #if os(iOS) || os(macOS)
-          Group {
-            switch readingDirection {
-            case .ltr:
-              ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
-            case .rtl:
-              MangaTapZoneOverlay(isVisible: $showTapZoneOverlay)
-            case .vertical:
-              VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
-            case .webtoon:
-              WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
-            }
-          }
-          .readerIgnoresSafeArea()
-          .onChange(of: screenKey) {
-            // Don't trigger overlay during dismissal
-            guard !readerPresentation.isDismissing else { return }
-            // Cache the screen key for use during dismissal
-            cachedScreenKey = screenKey
-            // Show helper overlay when screen orientation changes
-            triggerTapZoneOverlay(timeout: 1)
-          }
-          .onAppear {
-            if cachedScreenKey != screenKey {
-              // Initialize cached screen key
-              cachedScreenKey = screenKey
-            }
-          }
-        #endif
-
-        // Controls overlay (always rendered, use opacity to control visibility)
-        ReaderControlsView(
-          showingControls: $showingControls,
-          showingKeyboardHelp: $showKeyboardHelp,
-          readingDirection: $readingDirection,
-          pageLayout: $pageLayout,
-          dualPageNoCover: $dualPageNoCover,
-          viewModel: viewModel,
-          currentBook: currentBook,
-          bookId: currentBookId,
-          dualPage: useDualPage,
-          onDismiss: { closeReader() },
-          goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-          goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-          previousBook: previousBook,
-          nextBook: nextBook,
-          onPreviousBook: { openPreviousBook(previousBookId: $0) },
-          onNextBook: { openNextBook(nextBookId: $0) }
+        readerContent(
+          currentSize: currentSize,
+          useDualPage: useDualPage,
+          stableScreenKey: stableScreenKey
         )
-        .padding(.vertical, 24)
-        .padding(.horizontal, 8)
-        .readerIgnoresSafeArea()
-        .opacity(shouldShowControls ? 1.0 : 0.0)
-        .allowsHitTesting(shouldShowControls)
-        .animation(.default, value: shouldShowControls)
+
+        helperOverlay(screenKey: screenKey)
+
+        controlsOverlay(useDualPage: useDualPage)
 
         #if os(macOS)
-          // Keyboard shortcuts help overlay (independent of controls visibility)
-          KeyboardHelpOverlay(
-            readingDirection: readingDirection,
-            hasTOC: !viewModel.tableOfContents.isEmpty,
-            hasNextBook: nextBook != nil,
-            onDismiss: {
-              hideKeyboardHelp()
-            }
-          )
-          .opacity(showKeyboardHelp ? 1.0 : 0.0)
-          .allowsHitTesting(showKeyboardHelp)
-          .animation(.default, value: showKeyboardHelp)
+          keyboardHelpOverlay
         #endif
-
       }
       #if os(tvOS)
         .onPlayPauseCommand {
@@ -297,7 +173,7 @@ struct DivinaReaderView: View {
             return
           }
 
-          let useDualPage = shouldUseDualPage(screenSize: geometry.size)
+          let useDualPage = shouldUseDualPage(screenSize: currentSize)
 
           // Execute page navigation
           switch readingDirection {
@@ -396,12 +272,10 @@ struct DivinaReaderView: View {
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
     }
-    .onChange(of: shouldShowControls) { _, newValue in
+    .onChange(of: showingControls) { _, newValue in
       // Don't change status bar during dismissal to avoid geometry changes
       guard !readerPresentation.isDismissing else { return }
-      withAnimation {
-        readerPresentation.hideStatusBar = !newValue
-      }
+      applyStatusBarVisibility(controlsHidden: !newValue)
     }
     #if os(iOS)
       .onAppear {
@@ -445,6 +319,167 @@ struct DivinaReaderView: View {
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)
   }
+
+  @ViewBuilder
+  private func readerContent(
+    currentSize: CGSize,
+    useDualPage: Bool,
+    stableScreenKey: String
+  ) -> some View {
+    if !viewModel.pages.isEmpty {
+      Group {
+        if readingDirection == .webtoon {
+          #if os(iOS) || os(macOS)
+            WebtoonPageView(
+              viewModel: viewModel,
+              isAtBottom: $isAtBottom,
+              nextBook: nextBook,
+              readList: readList,
+              onDismiss: { closeReader() },
+              onNextBook: { openNextBook(nextBookId: $0) },
+              toggleControls: { toggleControls() },
+              screenSize: currentSize,
+              pageWidthPercentage: webtoonPageWidthPercentage,
+              readerBackground: readerBackground
+            )
+            .readerIgnoresSafeArea()
+          #else
+            PageView(
+              mode: .vertical,
+              readingDirection: readingDirection,
+              viewModel: viewModel,
+              nextBook: nextBook,
+              readList: readList,
+              onDismiss: { closeReader() },
+              onNextBook: { openNextBook(nextBookId: $0) },
+              goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+              goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+              toggleControls: { toggleControls() },
+              screenSize: currentSize,
+              onEndPageFocusChange: endPageFocusChangeHandler,
+              onScrollActivityChange: { isScrolling in
+                if isScrolling {
+                  resetControlsTimer(timeout: 1.5)
+                }
+              }
+            )
+            .readerIgnoresSafeArea()
+          #endif
+        } else {
+          PageView(
+            mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+            readingDirection: readingDirection,
+            viewModel: viewModel,
+            nextBook: nextBook,
+            readList: readList,
+            onDismiss: { closeReader() },
+            onNextBook: { openNextBook(nextBookId: $0) },
+            goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+            goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+            toggleControls: { toggleControls() },
+            screenSize: currentSize,
+            onEndPageFocusChange: endPageFocusChangeHandler,
+            onScrollActivityChange: { isScrolling in
+              if isScrolling {
+                resetControlsTimer(timeout: 1.5)
+              }
+            }
+          )
+          .readerIgnoresSafeArea()
+        }
+      }
+      .id("\(currentBookId)-\(stableScreenKey)-\(readingDirection)")
+      .onChange(of: viewModel.currentPageIndex) {
+        // Update progress and preload pages in background without blocking UI
+        Task(priority: .userInitiated) {
+          await viewModel.updateProgress()
+          await viewModel.preloadPages()
+        }
+      }
+    } else if viewModel.isLoading {
+      ProgressView()
+    } else {
+      NoPagesView(onDismiss: { closeReader() })
+    }
+  }
+
+  @ViewBuilder
+  private func helperOverlay(screenKey: String) -> some View {
+    #if os(iOS) || os(macOS)
+      Group {
+        switch readingDirection {
+        case .ltr:
+          ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
+        case .rtl:
+          MangaTapZoneOverlay(isVisible: $showTapZoneOverlay)
+        case .vertical:
+          VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
+        case .webtoon:
+          WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
+        }
+      }
+      .readerIgnoresSafeArea()
+      .onChange(of: screenKey) {
+        // Don't trigger overlay during dismissal
+        guard !readerPresentation.isDismissing else { return }
+        // Cache the screen key for use during dismissal
+        cachedScreenKey = screenKey
+        // Show helper overlay when screen orientation changes
+        triggerTapZoneOverlay(timeout: 1)
+      }
+      .onAppear {
+        if cachedScreenKey != screenKey {
+          // Initialize cached screen key
+          cachedScreenKey = screenKey
+        }
+      }
+    #else
+      EmptyView()
+    #endif
+  }
+
+  private func controlsOverlay(useDualPage: Bool) -> some View {
+    ReaderControlsView(
+      showingControls: $showingControls,
+      showingKeyboardHelp: $showKeyboardHelp,
+      readingDirection: $readingDirection,
+      pageLayout: $pageLayout,
+      dualPageNoCover: $dualPageNoCover,
+      viewModel: viewModel,
+      currentBook: currentBook,
+      bookId: currentBookId,
+      dualPage: useDualPage,
+      onDismiss: { closeReader() },
+      goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+      goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+      previousBook: previousBook,
+      nextBook: nextBook,
+      onPreviousBook: { openPreviousBook(previousBookId: $0) },
+      onNextBook: { openNextBook(nextBookId: $0) }
+    )
+    .padding(.vertical, 24)
+    .padding(.horizontal, 8)
+    .readerIgnoresSafeArea()
+    .opacity(shouldShowControls ? 1.0 : 0.0)
+    .allowsHitTesting(shouldShowControls)
+    .animation(.default, value: shouldShowControls)
+  }
+
+  #if os(macOS)
+    private var keyboardHelpOverlay: some View {
+      KeyboardHelpOverlay(
+        readingDirection: readingDirection,
+        hasTOC: !viewModel.tableOfContents.isEmpty,
+        hasNextBook: nextBook != nil,
+        onDismiss: {
+          hideKeyboardHelp()
+        }
+      )
+      .opacity(showKeyboardHelp ? 1.0 : 0.0)
+      .allowsHitTesting(showKeyboardHelp)
+      .animation(.default, value: showKeyboardHelp)
+    }
+  #endif
 
   private func loadBook(bookId: String, preserveReaderOptions: Bool) async {
     // Mark that loading has started
