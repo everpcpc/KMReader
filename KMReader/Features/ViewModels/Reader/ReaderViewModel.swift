@@ -351,9 +351,6 @@ class ReaderViewModel {
             page: currentPageNumber,
             completed: completed
           )
-          if completed {
-            _ = try? await SyncService.shared.syncBookAndSeries(bookId: activeBookId)
-          }
         }
       } catch {
         // Progress updates are non-critical, fail silently

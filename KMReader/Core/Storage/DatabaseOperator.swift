@@ -19,6 +19,10 @@ actor DatabaseOperator {
     try modelContext.save()
   }
 
+  func hasChanges() -> Bool {
+    return modelContext.hasChanges
+  }
+
   // MARK: - Book Operations
 
   func upsertBook(dto: Book, instanceId: String) {

@@ -118,6 +118,7 @@ struct PageView: View {
       .pageTapGesture(
         size: screenSize,
         readingDirection: readingDirection,
+        isZoomed: isZoomed,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
@@ -143,6 +144,7 @@ struct PageView: View {
     .pageTapGesture(
       size: screenSize,
       readingDirection: readingDirection,
+      isZoomed: isZoomed,
       onNextPage: goToNextPage,
       onPreviousPage: goToPreviousPage,
       onToggleControls: toggleControls
@@ -174,6 +176,7 @@ struct PageView: View {
       .pageTapGesture(
         size: screenSize,
         readingDirection: readingDirection,
+        isZoomed: isZoomed,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
@@ -198,6 +201,7 @@ struct PageView: View {
     .pageTapGesture(
       size: screenSize,
       readingDirection: readingDirection,
+      isZoomed: isZoomed,
       onNextPage: goToNextPage,
       onPreviousPage: goToPreviousPage,
       onToggleControls: toggleControls
@@ -246,6 +250,7 @@ struct PageView: View {
       .pageTapGesture(
         size: screenSize,
         readingDirection: readingDirection,
+        isZoomed: isZoomed,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
@@ -310,9 +315,6 @@ struct PageView: View {
 
     if viewModel.currentPageIndex != pageIndexToUpdate {
       viewModel.currentPageIndex = pageIndexToUpdate
-      Task(priority: .userInitiated) {
-        await viewModel.preloadPages()
-      }
     }
   }
 
@@ -335,9 +337,6 @@ struct PageView: View {
     if viewModel.currentPageIndex != newPageIndex {
       viewModel.currentPageIndex = newPageIndex
       viewModel.targetPageIndex = nil
-      Task(priority: .userInitiated) {
-        await viewModel.preloadPages()
-      }
     }
   }
 }

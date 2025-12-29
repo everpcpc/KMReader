@@ -10,11 +10,16 @@ import SwiftUI
 struct PageTapModifier: ViewModifier {
   let size: CGSize
   let readingDirection: ReadingDirection
+  let isZoomed: Bool
   let onNextPage: () -> Void
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
 
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+
+  private var shouldDisablePageTurn: Bool {
+    disableTapToTurnPage || isZoomed
+  }
 
   func body(content: Content) -> some View {
     #if os(iOS) || os(macOS)
@@ -45,7 +50,7 @@ struct PageTapModifier: ViewModifier {
 
     if normalizedX < 0.3 {
       // Left tap
-      if !disableTapToTurnPage {
+      if !shouldDisablePageTurn {
         if readingDirection == .rtl {
           onNextPage()
         } else {
@@ -54,7 +59,7 @@ struct PageTapModifier: ViewModifier {
       }
     } else if normalizedX > 0.7 {
       // Right tap
-      if !disableTapToTurnPage {
+      if !shouldDisablePageTurn {
         if readingDirection == .rtl {
           onPreviousPage()
         } else {
@@ -72,12 +77,12 @@ struct PageTapModifier: ViewModifier {
 
     if normalizedY < 0.3 {
       // Top tap
-      if !disableTapToTurnPage {
+      if !shouldDisablePageTurn {
         onPreviousPage()
       }
     } else if normalizedY > 0.7 {
       // Bottom tap
-      if !disableTapToTurnPage {
+      if !shouldDisablePageTurn {
         onNextPage()
       }
     } else {
@@ -90,6 +95,7 @@ extension View {
   func pageTapGesture(
     size: CGSize,
     readingDirection: ReadingDirection,
+    isZoomed: Bool = false,
     onNextPage: @escaping () -> Void,
     onPreviousPage: @escaping () -> Void,
     onToggleControls: @escaping () -> Void
@@ -98,6 +104,7 @@ extension View {
       PageTapModifier(
         size: size,
         readingDirection: readingDirection,
+        isZoomed: isZoomed,
         onNextPage: onNextPage,
         onPreviousPage: onPreviousPage,
         onToggleControls: onToggleControls
