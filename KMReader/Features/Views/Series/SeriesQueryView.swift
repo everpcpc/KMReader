@@ -21,7 +21,7 @@ struct SeriesQueryView: View {
   var body: some View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
-      isEmpty: viewModel.browseSeriesIds.isEmpty,
+      isEmpty: viewModel.pagination.isEmpty,
       emptyIcon: "books.vertical",
       emptyTitle: LocalizedStringKey("No series found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -34,9 +34,9 @@ struct SeriesQueryView: View {
       switch browseLayout {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-          ForEach(viewModel.browseSeriesIds, id: \.self) { seriesId in
+          ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
-              seriesId: seriesId,
+              seriesId: series.id,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onActionCompleted: {
@@ -47,7 +47,7 @@ struct SeriesQueryView: View {
             )
             .padding(.bottom)
             .onAppear {
-              if viewModel.browseSeriesIds.suffix(3).contains(seriesId) {
+              if viewModel.pagination.shouldLoadMore(after: series) {
                 Task {
                   await loadMore(false)
                 }
@@ -58,9 +58,9 @@ struct SeriesQueryView: View {
         .padding(.horizontal, layoutHelper.spacing)
       case .list:
         LazyVStack {
-          ForEach(viewModel.browseSeriesIds, id: \.self) { seriesId in
+          ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
-              seriesId: seriesId,
+              seriesId: series.id,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onActionCompleted: {
@@ -70,13 +70,13 @@ struct SeriesQueryView: View {
               }
             )
             .onAppear {
-              if viewModel.browseSeriesIds.suffix(3).contains(seriesId) {
+              if viewModel.pagination.shouldLoadMore(after: series) {
                 Task {
                   await loadMore(false)
                 }
               }
             }
-            if seriesId != viewModel.browseSeriesIds.last {
+            if !viewModel.pagination.isLast(series) {
               Divider()
             }
           }

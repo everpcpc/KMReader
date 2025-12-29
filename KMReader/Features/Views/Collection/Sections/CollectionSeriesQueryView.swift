@@ -23,7 +23,7 @@ struct CollectionSeriesQueryView: View {
 
   var body: some View {
     Group {
-      if seriesViewModel.isLoading && seriesViewModel.browseSeriesIds.isEmpty {
+      if seriesViewModel.isLoading && seriesViewModel.pagination.isEmpty {
         ProgressView()
           .frame(maxWidth: .infinity)
           .padding()
@@ -31,11 +31,11 @@ struct CollectionSeriesQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(seriesViewModel.browseSeriesIds, id: \.self) { seriesId in
+            ForEach(seriesViewModel.pagination.items) { series in
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
-                    seriesId: seriesId,
+                    seriesId: series.id,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     selectedSeriesIds: $selectedSeriesIds,
@@ -43,7 +43,7 @@ struct CollectionSeriesQueryView: View {
                   )
                 } else {
                   SeriesQueryItemView(
-                    seriesId: seriesId,
+                    seriesId: series.id,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     onActionCompleted: refreshSeries
@@ -52,7 +52,7 @@ struct CollectionSeriesQueryView: View {
               }
               .padding(.bottom)
               .onAppear {
-                if seriesViewModel.browseSeriesIds.suffix(3).contains(seriesId) {
+                if seriesViewModel.pagination.shouldLoadMore(after: series) {
                   Task { await loadMore(refresh: false) }
                 }
               }
@@ -61,11 +61,11 @@ struct CollectionSeriesQueryView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(seriesViewModel.browseSeriesIds, id: \.self) { seriesId in
+            ForEach(seriesViewModel.pagination.items) { series in
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
-                    seriesId: seriesId,
+                    seriesId: series.id,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     selectedSeriesIds: $selectedSeriesIds,
@@ -73,7 +73,7 @@ struct CollectionSeriesQueryView: View {
                   )
                 } else {
                   SeriesQueryItemView(
-                    seriesId: seriesId,
+                    seriesId: series.id,
                     cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     onActionCompleted: refreshSeries
@@ -81,11 +81,11 @@ struct CollectionSeriesQueryView: View {
                 }
               }
               .onAppear {
-                if seriesViewModel.browseSeriesIds.suffix(3).contains(seriesId) {
+                if seriesViewModel.pagination.shouldLoadMore(after: series) {
                   Task { await loadMore(refresh: false) }
                 }
               }
-              if seriesId != seriesViewModel.browseSeriesIds.last {
+              if !seriesViewModel.pagination.isLast(series) {
                 Divider()
               }
             }

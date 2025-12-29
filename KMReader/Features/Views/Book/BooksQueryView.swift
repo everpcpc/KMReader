@@ -21,7 +21,7 @@ struct BooksQueryView: View {
   var body: some View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
-      isEmpty: viewModel.browseBookIds.isEmpty,
+      isEmpty: viewModel.pagination.isEmpty,
       emptyIcon: "book",
       emptyTitle: LocalizedStringKey("No books found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -34,9 +34,9 @@ struct BooksQueryView: View {
       switch browseLayout {
       case .grid:
         LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-          ForEach(viewModel.browseBookIds, id: \.self) { bookId in
+          ForEach(viewModel.pagination.items) { book in
             BookQueryItemView(
-              bookId: bookId,
+              bookId: book.id,
               cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onBookUpdated: {
@@ -47,7 +47,7 @@ struct BooksQueryView: View {
             )
             .padding(.bottom)
             .onAppear {
-              if viewModel.browseBookIds.suffix(3).contains(bookId) {
+              if viewModel.pagination.shouldLoadMore(after: book) {
                 Task {
                   await loadMore(false)
                 }
@@ -58,9 +58,9 @@ struct BooksQueryView: View {
         .padding(.horizontal, layoutHelper.spacing)
       case .list:
         LazyVStack {
-          ForEach(viewModel.browseBookIds, id: \.self) { bookId in
+          ForEach(viewModel.pagination.items) { book in
             BookQueryItemView(
-              bookId: bookId,
+              bookId: book.id,
               cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onBookUpdated: {
@@ -70,13 +70,13 @@ struct BooksQueryView: View {
               }
             )
             .onAppear {
-              if viewModel.browseBookIds.suffix(3).contains(bookId) {
+              if viewModel.pagination.shouldLoadMore(after: book) {
                 Task {
                   await loadMore(false)
                 }
               }
             }
-            if bookId != viewModel.browseBookIds.last {
+            if !viewModel.pagination.isLast(book) {
               Divider()
             }
           }
