@@ -96,13 +96,10 @@ class AuthService {
   }
 
   func logout() async throws {
-    // Call logout API only when instanceId is available
-    if !AppConfig.currentInstanceId.isEmpty {
-      do {
-        let _: EmptyResponse = try await apiClient.request(path: "/api/logout", method: "POST")
-      } catch {
-        // Continue even if logout API fails
-      }
+    do {
+      let _: EmptyResponse = try await apiClient.request(path: "/api/logout", method: "POST")
+    } catch {
+      // Continue even if logout API fails
     }
 
     // Clear local data
