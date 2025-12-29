@@ -29,7 +29,6 @@ actor DatabaseOperator {
     let compositeId = "\(instanceId)_\(dto.id)"
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      print("==> upsertBook for: \(dto.id)")
       if existing.name != dto.name { existing.name = dto.name }
       if existing.url != dto.url { existing.url = dto.url }
       if existing.number != dto.number { existing.number = dto.number }
@@ -249,7 +248,6 @@ actor DatabaseOperator {
     let compositeId = "\(instanceId)_\(dto.id)"
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      print("==> upsertSeries for: \(dto.id)")
       if existing.name != dto.name { existing.name = dto.name }
       if existing.url != dto.url { existing.url = dto.url }
       if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
