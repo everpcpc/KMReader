@@ -17,7 +17,7 @@ class APIClient {
 
   private let sessionLock = NSLock()
   private var sessionByInstanceId: [String: URLSession] = [:]
-
+  private var cookieStorageByInstanceId: [String: HTTPCookieStorage] = [:]
 
   private init() {
     let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
@@ -39,7 +39,13 @@ class APIClient {
       "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
   }
 
-  private func makeSession() -> URLSession {
+  private func makeCookieStorage(for instanceId: String) -> HTTPCookieStorage {
+    let storage = HTTPCookieStorage()
+    cookieStorageByInstanceId[instanceId] = storage
+    return storage
+  }
+
+  private func makeSession(instanceId: String) -> URLSession {
     let configuration = URLSessionConfiguration.default
     configuration.urlCache = URLCache(
       memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
@@ -47,6 +53,8 @@ class APIClient {
       diskPath: nil
     )
     configuration.requestCachePolicy = .useProtocolCachePolicy
+    let cookieStorage = cookieStorageByInstanceId[instanceId] ?? makeCookieStorage(for: instanceId)
+    configuration.httpCookieStorage = cookieStorage
     return URLSession(configuration: configuration)
   }
 
@@ -60,7 +68,7 @@ class APIClient {
       return session
     }
 
-    let session = makeSession()
+    let session = makeSession(instanceId: instanceId)
     sessionByInstanceId[instanceId] = session
     return session
   }
@@ -82,6 +90,9 @@ class APIClient {
     sessionLock.lock()
     defer { sessionLock.unlock() }
     sessionByInstanceId.removeValue(forKey: instanceId)
+    if let storage = cookieStorageByInstanceId.removeValue(forKey: instanceId) {
+      storage.removeCookies(since: Date.distantPast)
+    }
   }
 
   func setServer(url: String) {
