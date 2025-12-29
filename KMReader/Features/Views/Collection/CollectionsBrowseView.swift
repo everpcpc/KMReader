@@ -28,7 +28,7 @@ struct CollectionsBrowseView: View {
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
-        isEmpty: viewModel.collectionIds.isEmpty,
+        isEmpty: viewModel.pagination.isEmpty,
         emptyIcon: "square.grid.2x2",
         emptyTitle: LocalizedStringKey("No collections found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -41,9 +41,9 @@ struct CollectionsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(viewModel.collectionIds, id: \.self) { collectionId in
+            ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
-                collectionId: collectionId,
+                collectionId: collection.id,
                 width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
@@ -53,7 +53,7 @@ struct CollectionsBrowseView: View {
               )
               .padding(.bottom)
               .onAppear {
-                if viewModel.collectionIds.suffix(3).contains(collectionId) {
+                if viewModel.pagination.shouldLoadMore(after: collection) {
                   Task {
                     await loadCollections(refresh: false)
                   }
@@ -64,9 +64,9 @@ struct CollectionsBrowseView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(viewModel.collectionIds, id: \.self) { collectionId in
+            ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
-                collectionId: collectionId,
+                collectionId: collection.id,
                 layout: .list,
                 onActionCompleted: {
                   Task {
@@ -75,13 +75,13 @@ struct CollectionsBrowseView: View {
                 }
               )
               .onAppear {
-                if viewModel.collectionIds.suffix(3).contains(collectionId) {
+                if viewModel.pagination.shouldLoadMore(after: collection) {
                   Task {
                     await loadCollections(refresh: false)
                   }
                 }
               }
-              if collectionId != viewModel.collectionIds.last {
+              if !viewModel.pagination.isLast(collection) {
                 Divider()
               }
             }
@@ -91,7 +91,7 @@ struct CollectionsBrowseView: View {
       }
     }
     .task {
-      if viewModel.collectionIds.isEmpty {
+      if viewModel.pagination.isEmpty {
         await loadCollections(refresh: true)
       }
     }

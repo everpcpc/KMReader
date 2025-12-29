@@ -70,7 +70,7 @@ struct DashboardSectionView: View {
             itemView(for: item.id)
               .onAppear {
                 // O(1): suffix is a slice, contains checks only 3 elements
-                if pagination.items.suffix(3).contains(item) {
+                if pagination.shouldLoadMore(after: item) {
                   Task {
                     await loadMore()
                   }
@@ -90,8 +90,8 @@ struct DashboardSectionView: View {
         endPoint: .bottom
       )
     }
-    .opacity(pagination.items.isEmpty ? 0 : 1)
-    .frame(height: pagination.items.isEmpty ? 0 : nil)
+    .opacity(pagination.isEmpty ? 0 : 1)
+    .frame(height: pagination.isEmpty ? 0 : nil)
     .onChange(of: refreshTrigger) {
       if refreshTrigger.source == .auto, pagination.currentPage > 0 {
         return
@@ -197,7 +197,7 @@ struct DashboardSectionView: View {
   }
 
   private func seedFromCacheIfNeeded(isFirstPage: Bool, libraryIds: [String]) async {
-    guard isFirstPage, !didSeedFromCache, pagination.items.isEmpty else { return }
+    guard isFirstPage, !didSeedFromCache, pagination.isEmpty else { return }
     didSeedFromCache = true
 
     let cachedIds: [String]

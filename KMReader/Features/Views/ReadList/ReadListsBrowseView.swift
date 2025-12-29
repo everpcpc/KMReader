@@ -28,7 +28,7 @@ struct ReadListsBrowseView: View {
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
-        isEmpty: viewModel.readListIds.isEmpty,
+        isEmpty: viewModel.pagination.isEmpty,
         emptyIcon: "list.bullet.rectangle",
         emptyTitle: LocalizedStringKey("No read lists found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -41,9 +41,9 @@ struct ReadListsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(viewModel.readListIds, id: \.self) { readListId in
+            ForEach(viewModel.pagination.items) { readList in
               ReadListQueryItemView(
-                readListId: readListId,
+                readListId: readList.id,
                 width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
@@ -53,7 +53,7 @@ struct ReadListsBrowseView: View {
               )
               .padding(.bottom)
               .onAppear {
-                if viewModel.readListIds.suffix(3).contains(readListId) {
+                if viewModel.pagination.shouldLoadMore(after: readList) {
                   Task {
                     await loadReadLists(refresh: false)
                   }
@@ -64,9 +64,9 @@ struct ReadListsBrowseView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(viewModel.readListIds, id: \.self) { readListId in
+            ForEach(viewModel.pagination.items) { readList in
               ReadListQueryItemView(
-                readListId: readListId,
+                readListId: readList.id,
                 layout: .list,
                 onActionCompleted: {
                   Task {
@@ -75,13 +75,13 @@ struct ReadListsBrowseView: View {
                 }
               )
               .onAppear {
-                if viewModel.readListIds.suffix(3).contains(readListId) {
+                if viewModel.pagination.shouldLoadMore(after: readList) {
                   Task {
                     await loadReadLists(refresh: false)
                   }
                 }
               }
-              if readListId != viewModel.readListIds.last {
+              if !viewModel.pagination.isLast(readList) {
                 Divider()
               }
             }
@@ -91,7 +91,7 @@ struct ReadListsBrowseView: View {
       }
     }
     .task {
-      if viewModel.readListIds.isEmpty {
+      if viewModel.pagination.isEmpty {
         await loadReadLists(refresh: true)
       }
     }

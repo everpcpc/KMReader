@@ -18,7 +18,7 @@ struct SeriesBooksQueryView: View {
 
   var body: some View {
     Group {
-      if bookViewModel.isLoading && bookViewModel.browseBookIds.isEmpty {
+      if bookViewModel.isLoading && bookViewModel.pagination.isEmpty {
         ProgressView()
           .frame(maxWidth: .infinity)
           .padding()
@@ -26,9 +26,9 @@ struct SeriesBooksQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(bookViewModel.browseBookIds, id: \.self) { bookId in
+            ForEach(bookViewModel.pagination.items) { book in
               BookQueryItemView(
-                bookId: bookId,
+                bookId: book.id,
                 cardWidth: layoutHelper.cardWidth,
                 layout: .grid,
                 onBookUpdated: refreshBooks,
@@ -37,7 +37,7 @@ struct SeriesBooksQueryView: View {
               )
               .padding(.bottom)
               .onAppear {
-                if bookViewModel.browseBookIds.suffix(3).contains(bookId) {
+                if bookViewModel.pagination.shouldLoadMore(after: book) {
                   Task { await loadMore(false) }
                 }
               }
@@ -46,9 +46,9 @@ struct SeriesBooksQueryView: View {
           .padding(.horizontal, layoutHelper.spacing)
         case .list:
           LazyVStack {
-            ForEach(bookViewModel.browseBookIds, id: \.self) { bookId in
+            ForEach(bookViewModel.pagination.items) { book in
               BookQueryItemView(
-                bookId: bookId,
+                bookId: book.id,
                 cardWidth: layoutHelper.cardWidth,
                 layout: .list,
                 onBookUpdated: refreshBooks,
@@ -56,11 +56,11 @@ struct SeriesBooksQueryView: View {
                 showSeriesNavigation: false
               )
               .onAppear {
-                if bookViewModel.browseBookIds.suffix(3).contains(bookId) {
+                if bookViewModel.pagination.shouldLoadMore(after: book) {
                   Task { await loadMore(false) }
                 }
               }
-              if bookId != bookViewModel.browseBookIds.last {
+              if !bookViewModel.pagination.isLast(book) {
                 Divider()
               }
             }

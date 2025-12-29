@@ -76,7 +76,7 @@ struct DashboardSectionDetailView: View {
           )
           .padding(.bottom)
           .onAppear {
-            if pagination.items.suffix(3).contains(book) {
+            if pagination.shouldLoadMore(after: book) {
               Task { await loadItems(refresh: false) }
             }
           }
@@ -95,11 +95,11 @@ struct DashboardSectionDetailView: View {
             showSeriesTitle: true
           )
           .onAppear {
-            if pagination.items.suffix(3).contains(book) {
+            if pagination.shouldLoadMore(after: book) {
               Task { await loadItems(refresh: false) }
             }
           }
-          if book != pagination.items.last {
+          if !pagination.isLast(book) {
             Divider()
           }
         }
@@ -123,7 +123,7 @@ struct DashboardSectionDetailView: View {
           )
           .padding(.bottom)
           .onAppear {
-            if pagination.items.suffix(3).contains(series) {
+            if pagination.shouldLoadMore(after: series) {
               Task { await loadItems(refresh: false) }
             }
           }
@@ -141,11 +141,11 @@ struct DashboardSectionDetailView: View {
             }
           )
           .onAppear {
-            if pagination.items.suffix(3).contains(series) {
+            if pagination.shouldLoadMore(after: series) {
               Task { await loadItems(refresh: false) }
             }
           }
-          if series != pagination.items.last {
+          if !pagination.isLast(series) {
             Divider()
           }
         }

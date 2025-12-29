@@ -30,6 +30,19 @@ struct PaginationState<Item: Identifiable & Equatable> {
     currentPage += 1
   }
 
+  var isEmpty: Bool {
+    items.isEmpty
+  }
+
+  func isLast(_ item: Item) -> Bool {
+    items.last == item
+  }
+
+  func shouldLoadMore(after item: Item, threshold: Int = 3) -> Bool {
+    guard threshold > 0 else { return isLast(item) }
+    return items.suffix(threshold).contains(item)
+  }
+
   mutating func applyPage(_ newItems: [Item]) -> Bool {
     if currentPage == 0 {
       guard newItems != items else { return false }

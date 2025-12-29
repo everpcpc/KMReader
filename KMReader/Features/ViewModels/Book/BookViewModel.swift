@@ -14,7 +14,6 @@ import SwiftUI
 class BookViewModel {
   var currentBook: Book?
   var isLoading = false
-  var browseBookIds: [String] { pagination.items.map(\.id) }
 
   private let bookService = BookService.shared
   private let sseService = SSEService.shared

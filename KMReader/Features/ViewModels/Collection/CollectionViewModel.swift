@@ -12,11 +12,10 @@ import SwiftUI
 @MainActor
 @Observable
 class CollectionViewModel {
-  var collectionIds: [String] { pagination.items.map(\.id) }
   var isLoading = false
 
   private let collectionService = CollectionService.shared
-  private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
+  private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   private var currentLibraryIds: [String] = []
   private var currentSort: String?
   private var currentSearchText: String = ""

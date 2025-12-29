@@ -44,7 +44,7 @@ struct ReadListPickerSheet: View {
   }
 
   private var readLists: [ReadList] {
-    let ids = Set(readListViewModel.readListIds)
+    let ids = Set(readListViewModel.pagination.items.map(\.id))
     return
       komgaReadLists
       .filter { ids.contains($0.readListId) }

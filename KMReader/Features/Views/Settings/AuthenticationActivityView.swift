@@ -16,7 +16,7 @@ struct AuthenticationActivityView: View {
 
   var body: some View {
     List {
-      if isLoading && pagination.items.isEmpty {
+      if isLoading && pagination.isEmpty {
         Section {
           HStack {
             Spacer()
@@ -24,7 +24,7 @@ struct AuthenticationActivityView: View {
             Spacer()
           }
         }
-      } else if pagination.items.isEmpty {
+      } else if pagination.isEmpty {
         Section {
           HStack {
             Spacer()

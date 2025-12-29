@@ -12,11 +12,10 @@ import SwiftUI
 @MainActor
 @Observable
 class ReadListViewModel {
-  var readListIds: [String] { pagination.items.map(\.id) }
   var isLoading = false
 
   private let readListService = ReadListService.shared
-  private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
+  private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   private var currentLibraryIds: [String] = []
   private var currentSort: String?
   private var currentSearchText: String = ""

@@ -13,7 +13,6 @@ import SwiftUI
 @Observable
 class SeriesViewModel {
   var isLoading = false
-  var browseSeriesIds: [String] { pagination.items.map(\.id) }
 
   private let seriesService = SeriesService.shared
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
