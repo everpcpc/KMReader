@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SDWebImage
 
 /// Unified cache manager for all cache types
 enum CacheManager {
@@ -18,17 +17,11 @@ enum CacheManager {
 
     // Clear BookFileCache (KomgaBookFileCache)
     await BookFileCache.clearDiskCache(forBookId: bookId)
-
-    // Clear SDWebImage thumbnail memory cache
-    SDImageCacheProvider.thumbnailCache.clearMemory()
   }
 
   /// Clear thumbnail cache
   static func clearThumbnailCache() async {
     await ThumbnailCache.clearAllDiskCache()
-    await MainActor.run {
-      SDImageCacheProvider.thumbnailCache.clearMemory()
-    }
   }
 
   /// Remove all cached data for a specific Komga instance.

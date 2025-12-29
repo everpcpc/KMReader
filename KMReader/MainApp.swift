@@ -5,8 +5,6 @@
 //  Created by Komga iOS Client
 //
 
-import SDWebImage
-import SDWebImageWebPCoder
 import SwiftData
 import SwiftUI
 
@@ -62,7 +60,6 @@ struct MainApp: App {
     CustomFontStore.shared.configure(with: modelContainer)
     DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
     _authViewModel = State(initialValue: AuthViewModel())
-    SDImageCacheProvider.configureSDWebImage()
   }
 
   var body: some Scene {
