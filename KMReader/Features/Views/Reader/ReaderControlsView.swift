@@ -290,7 +290,6 @@ struct ReaderControlsView: View {
         }
         .allowsHitTesting(true)
 
-
         // Bottom slider
         ReadingProgressBar(progress: progress)
           .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
