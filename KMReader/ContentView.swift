@@ -140,11 +140,8 @@ struct OldTabView: View {
       TabItem.browse.content
         .tabItem { TabItem.browse.label }
 
-      #if !os(macOS)
-        TabItem.settings.content
-          .tabItem { TabItem.settings.label }
-      #endif
-
+      TabItem.settings.content
+        .tabItem { TabItem.settings.label }
     }
   }
 }
