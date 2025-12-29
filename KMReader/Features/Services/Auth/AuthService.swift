@@ -19,7 +19,13 @@ class AuthService {
 
   private init() {}
 
-  func login(username: String, password: String, serverURL: String, rememberMe: Bool = true)
+  func login(
+    username: String,
+    password: String,
+    serverURL: String,
+    rememberMe: Bool = true,
+    timeout: TimeInterval? = nil
+  )
     async throws -> (user: User, authToken: String)
   {
     // Create basic auth token
@@ -36,13 +42,18 @@ class AuthService {
     logger.info("🔐 Establishing session for \(username) at \(serverURL)")
     let user = try await establishSession(
       serverURL: serverURL, authToken: base64Credentials, authMethod: .basicAuth,
-      rememberMe: rememberMe)
+      rememberMe: rememberMe, timeout: timeout)
 
     logger.info("✅ Session established for \(username)")
     return (user: user, authToken: base64Credentials)
   }
 
-  func loginWithAPIKey(apiKey: String, serverURL: String, rememberMe: Bool = true)
+  func loginWithAPIKey(
+    apiKey: String,
+    serverURL: String,
+    rememberMe: Bool = true,
+    timeout: TimeInterval? = nil
+  )
     async throws -> (user: User, apiKey: String)
   {
     // 1. Validate server connection (unauthenticated)
@@ -51,7 +62,8 @@ class AuthService {
     // 2. Perform stateful login to establish session cookies
     logger.info("🔐 Establishing session with API Key at \(serverURL)")
     let user = try await establishSession(
-      serverURL: serverURL, authToken: apiKey, authMethod: .apiKey, rememberMe: rememberMe)
+      serverURL: serverURL, authToken: apiKey, authMethod: .apiKey, rememberMe: rememberMe,
+      timeout: timeout)
 
     logger.info("✅ Session established with API Key")
     return (user: user, apiKey: apiKey)
@@ -84,7 +96,6 @@ class AuthService {
   }
 
   func logout() async throws {
-    // Call logout API
     do {
       let _: EmptyResponse = try await apiClient.request(path: "/api/logout", method: "POST")
     } catch {

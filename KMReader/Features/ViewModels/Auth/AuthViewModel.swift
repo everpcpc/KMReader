@@ -35,7 +35,7 @@ class AuthViewModel {
 
     // Validate authentication using temporary request
     let result = try await authService.login(
-      username: username, password: password, serverURL: serverURL)
+      username: username, password: password, serverURL: serverURL, timeout: AppConfig.apiTimeout)
 
     // Apply login configuration
     try await applyLoginConfiguration(
@@ -60,7 +60,7 @@ class AuthViewModel {
 
     // Validate authentication using API Key
     let result = try await authService.loginWithAPIKey(
-      apiKey: apiKey, serverURL: serverURL)
+      apiKey: apiKey, serverURL: serverURL, timeout: AppConfig.apiTimeout)
 
     // Apply login configuration
     try await applyLoginConfiguration(
@@ -143,9 +143,8 @@ class AuthViewModel {
       switchingInstanceId = nil
     }
 
-    // Check if switching to a different instance
-    let previousInstanceId = AppConfig.currentInstanceId
-    let isDifferentInstance = previousInstanceId != instance.id.uuidString
+    // Ensure current session is logged out before switching to a new instance when sharing a single session
+    try? await authService.logout()
 
     // Establish stateful session before switching
     do {
@@ -153,8 +152,11 @@ class AuthViewModel {
         serverURL: instance.serverURL,
         authToken: instance.authToken,
         authMethod: instance.resolvedAuthMethod,
-        timeout: 5
+        timeout: AppConfig.apiTimeout
       )
+
+      // Set current instance before applying configuration (shared session)
+      AppConfig.currentInstanceId = instance.id.uuidString
 
       // Apply switch configuration
       try await applyLoginConfiguration(
@@ -165,9 +167,7 @@ class AuthViewModel {
         user: validatedUser,
         displayName: instance.displayName,
         shouldPersistInstance: false,
-        successMessage: String(localized: "Switched to \(instance.name)"),
-        currentInstanceId: instance.id.uuidString,
-        clearLibrariesIfDifferent: isDifferentInstance
+        successMessage: String(localized: "Switched to \(instance.name)")
       )
 
       return true
@@ -184,10 +184,8 @@ class AuthViewModel {
         AppConfig.currentInstanceId = instance.id.uuidString
         AppConfig.serverDisplayName = instance.displayName
 
-        if isDifferentInstance {
-          AppConfig.clearSelectedLibraryIds()
-          AppConfig.serverLastUpdate = nil
-        }
+        AppConfig.clearSelectedLibraryIds()
+        AppConfig.serverLastUpdate = nil
 
         // Switch to offline mode
         AppConfig.isOffline = true
@@ -220,9 +218,7 @@ class AuthViewModel {
     user: User,
     displayName: String?,
     shouldPersistInstance: Bool,
-    successMessage: String,
-    currentInstanceId: String? = nil,
-    clearLibrariesIfDifferent: Bool = true
+    successMessage: String
   ) async throws {
     // Update AppConfig only after validation succeeds
     APIClient.shared.setServer(url: serverURL)
@@ -237,11 +233,8 @@ class AuthViewModel {
       AppConfig.isOffline = false
     }
 
-    // Clear libraries if switching to a different instance
-    if clearLibrariesIfDifferent {
-      AppConfig.clearSelectedLibraryIds()
-      AppConfig.serverLastUpdate = nil
-    }
+    AppConfig.clearSelectedLibraryIds()
+    AppConfig.serverLastUpdate = nil
 
     // Persist instance if this is a new login
     if shouldPersistInstance {
@@ -255,9 +248,7 @@ class AuthViewModel {
       )
       AppConfig.currentInstanceId = instance.id.uuidString
       AppConfig.serverDisplayName = instance.displayName
-    } else if let instanceId = currentInstanceId {
-      // Update current instance ID for switch
-      AppConfig.currentInstanceId = instanceId
+    } else {
       AppConfig.serverDisplayName = displayName ?? ""
     }
 

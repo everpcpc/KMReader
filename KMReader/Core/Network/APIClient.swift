@@ -15,14 +15,12 @@ class APIClient {
 
   private let userAgent: String
 
-  // URLSession with cache configuration for all requests
-  private lazy var cachedSession: URLSession = {
+  private lazy var sharedSession: URLSession = {
     let configuration = URLSessionConfiguration.default
-    // Enable disk cache
     configuration.urlCache = URLCache(
       memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
-      diskCapacity: 200 * 1024 * 1024,  // 200MB disk cache
-      diskPath: "komga_cache"
+      diskCapacity: 0,
+      diskPath: nil
     )
     configuration.requestCachePolicy = .useProtocolCachePolicy
     return URLSession(configuration: configuration)
@@ -46,6 +44,10 @@ class APIClient {
     #endif
     self.userAgent =
       "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
+  }
+
+  private func currentSession() -> URLSession {
+    sharedSession
   }
 
   func setServer(url: String) {
@@ -102,20 +104,9 @@ class APIClient {
       timeout: timeout
     )
 
-    // Use a session with timeout for login requests
-    let session: URLSession
-    if let timeout = timeout {
-      let config = URLSessionConfiguration.default
-      config.timeoutIntervalForRequest = timeout
-      config.timeoutIntervalForResource = timeout
-      session = URLSession(configuration: config)
-    } else {
-      session = cachedSession
-    }
-
     // Skip offline switch for login requests - caller handles offline mode manually
     let (data, httpResponse) = try await executeRequest(
-      request, session: session, isTemporary: false, skipOfflineSwitch: true)
+      request, session: currentSession(), isTemporary: false, skipOfflineSwitch: true)
     return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
   }
 
@@ -251,6 +242,9 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
+    if let timeout = timeout {
+      request.timeoutInterval = timeout
+    }
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
@@ -300,7 +294,6 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
-
     if let timeout = timeout {
       request.timeoutInterval = timeout
     }
@@ -388,7 +381,7 @@ class APIClient {
     logger.info("📡 \(prefix)\(method) \(urlString)")
 
     let startTime = Date()
-    let sessionToUse = session ?? cachedSession
+    let sessionToUse = session ?? currentSession()
 
     do {
       let (data, response) = try await sessionToUse.data(for: request)
