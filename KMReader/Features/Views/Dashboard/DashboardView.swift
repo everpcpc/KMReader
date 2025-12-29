@@ -162,10 +162,12 @@ struct DashboardView: View {
       .handleNavigation()
       .inlineNavigationBarTitle(String(localized: "title.dashboard"))
       .animation(.default, value: dashboard)
-      .onChange(of: currentInstanceId) { _, _ in
-        // Reset server last update time when switching servers
-        // Bypass auto-refresh setting for configuration changes
-        refreshDashboard(reason: "Instance changed")
+      .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
+        // Refresh when server switch completes (transitions from switching to not switching)
+        // This avoids race condition where refresh happens after logout but before new auth is ready
+        if oldValue && !newValue {
+          refreshDashboard(reason: "Server switch completed")
+        }
       }
       .onChange(of: dashboard.libraryIds) { _, _ in
         // Bypass auto-refresh setting for configuration changes
