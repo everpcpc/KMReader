@@ -18,7 +18,6 @@ struct BookCardView: View {
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
-  @Environment(\.readerZoomNamespace) private var zoomNamespace
   @Environment(\.colorScheme) private var colorScheme
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
@@ -71,10 +70,6 @@ struct BookCardView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
-        }
-        .adaptiveButtonStyle(.plain)
-        .ifLet(zoomNamespace) { view, namespace in
-          view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
       }
       .focusPadding()

@@ -11,7 +11,7 @@ import SwiftUI
 
 /// A reusable thumbnail image component using SDWebImageSwiftUI
 struct ThumbnailImage<Overlay: View>: View {
-  let id: String?
+  let id: String
   let type: ThumbnailType
   let shadowStyle: ShadowStyle
   let width: CGFloat
@@ -23,15 +23,16 @@ struct ThumbnailImage<Overlay: View>: View {
   let ratio: CGFloat = 1.413
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
+  @Environment(\.readerZoomNamespace) private var zoomNamespace
   @State private var localURL: URL?
   @State private var isLoading = true
 
   init(
-    id: String?,
+    id: String,
     type: ThumbnailType = .book,
     shadowStyle: ShadowStyle = .basic,
     width: CGFloat,
-    cornerRadius: CGFloat = 4,
+    cornerRadius: CGFloat = 8,
     refreshTrigger: Int = 0,
     alignment: Alignment = .center,
     @ViewBuilder overlay: @escaping () -> Overlay
@@ -81,6 +82,12 @@ struct ThumbnailImage<Overlay: View>: View {
           }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        #if os(iOS)
+          .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+        #endif
+        .ifLet(zoomNamespace) { view, namespace in
+          view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
+        }
         .frame(width: width, height: width * ratio, alignment: alignment)
       } else {
         RoundedRectangle(cornerRadius: cornerRadius)
@@ -98,11 +105,7 @@ struct ThumbnailImage<Overlay: View>: View {
     }
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     .shadowStyle(shadowStyle)
-    .task(id: "\(id ?? "")_\(refreshTrigger)") {
-      guard let id = id else {
-        isLoading = false
-        return
-      }
+    .task(id: "\(id)_\(refreshTrigger)") {
 
       if localURL == nil {
         isLoading = true
@@ -123,7 +126,7 @@ struct ThumbnailImage<Overlay: View>: View {
 
 extension ThumbnailImage where Overlay == EmptyView {
   init(
-    id: String?,
+    id: String,
     type: ThumbnailType = .book,
     shadowStyle: ShadowStyle = .basic,
     width: CGFloat,

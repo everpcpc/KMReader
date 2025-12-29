@@ -39,7 +39,7 @@ struct DashboardSectionView: View {
   private var backgroundColors: [Color] {
     if colorScheme == .dark {
       return [
-        Color.white.opacity(0.2),
+        Color.secondary.opacity(0.4),
         Color.clear,
       ]
     } else {
