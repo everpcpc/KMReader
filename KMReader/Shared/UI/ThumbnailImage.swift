@@ -53,13 +53,7 @@ struct ThumbnailImage<Overlay: View>: View {
   }
 
   var body: some View {
-    ZStack {
-      // Background container with rounded corners
-      RoundedRectangle(cornerRadius: cornerRadius)
-        .fill(Color.clear)
-        .frame(width: width, height: width * ratio)
-
-      // Image content
+    Group {
       if let platformImage = loadedImage {
         Image(platformImage: platformImage)
           .resizable()
@@ -76,15 +70,12 @@ struct ThumbnailImage<Overlay: View>: View {
           .ifLet(zoomNamespace) { view, namespace in
             view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
           }
-          .frame(width: width, height: width * ratio, alignment: alignment)
       } else {
         RoundedRectangle(cornerRadius: cornerRadius)
           .fill(Color.gray.opacity(0.3))
-          .frame(width: width, height: width * ratio, alignment: alignment)
       }
     }
-    .frame(width: width, height: width * ratio)
-    .animation(.default, value: loadedImage != nil)
+    .frame(width: width, height: width * ratio, alignment: alignment)
     .overlay {
       if !thumbnailPreserveAspectRatio, let overlay = overlay {
         overlay()
