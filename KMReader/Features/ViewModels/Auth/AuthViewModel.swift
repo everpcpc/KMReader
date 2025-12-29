@@ -33,18 +33,9 @@ class AuthViewModel {
     isLoading = true
     defer { isLoading = false }
 
-    let instanceId = UUID().uuidString
-    var didSucceed = false
-    defer {
-      if !didSucceed {
-        APIClient.shared.removeSession(for: instanceId)
-      }
-    }
-
     // Validate authentication using temporary request
     let result = try await authService.login(
-      username: username, password: password, serverURL: serverURL, instanceId: instanceId,
-      timeout: AppConfig.apiTimeout)
+      username: username, password: password, serverURL: serverURL, timeout: AppConfig.apiTimeout)
 
     // Apply login configuration
     try await applyLoginConfiguration(
@@ -55,10 +46,8 @@ class AuthViewModel {
       user: result.user,
       displayName: displayName,
       shouldPersistInstance: true,
-      successMessage: String(localized: "Logged in successfully"),
-      instanceId: instanceId
+      successMessage: String(localized: "Logged in successfully")
     )
-    didSucceed = true
   }
 
   func loginWithAPIKey(
@@ -69,18 +58,9 @@ class AuthViewModel {
     isLoading = true
     defer { isLoading = false }
 
-    let instanceId = UUID().uuidString
-    var didSucceed = false
-    defer {
-      if !didSucceed {
-        APIClient.shared.removeSession(for: instanceId)
-      }
-    }
-
     // Validate authentication using API Key
     let result = try await authService.loginWithAPIKey(
-      apiKey: apiKey, serverURL: serverURL, instanceId: instanceId,
-      timeout: AppConfig.apiTimeout)
+      apiKey: apiKey, serverURL: serverURL, timeout: AppConfig.apiTimeout)
 
     // Apply login configuration
     try await applyLoginConfiguration(
@@ -91,10 +71,8 @@ class AuthViewModel {
       user: result.user,
       displayName: displayName,
       shouldPersistInstance: true,
-      successMessage: String(localized: "Logged in successfully"),
-      instanceId: instanceId
+      successMessage: String(localized: "Logged in successfully")
     )
-    didSucceed = true
   }
 
   func logout() {
@@ -165,15 +143,20 @@ class AuthViewModel {
       switchingInstanceId = nil
     }
 
+    // Ensure current session is logged out before switching to a new instance when sharing a single session
+    try? await authService.logout()
+
     // Establish stateful session before switching
     do {
       let validatedUser = try await authService.establishSession(
         serverURL: instance.serverURL,
         authToken: instance.authToken,
         authMethod: instance.resolvedAuthMethod,
-        instanceId: instance.id.uuidString,
         timeout: AppConfig.apiTimeout
       )
+
+      // Set current instance before applying configuration (shared session)
+      AppConfig.currentInstanceId = instance.id.uuidString
 
       // Apply switch configuration
       try await applyLoginConfiguration(
@@ -184,8 +167,7 @@ class AuthViewModel {
         user: validatedUser,
         displayName: instance.displayName,
         shouldPersistInstance: false,
-        successMessage: String(localized: "Switched to \(instance.name)"),
-        instanceId: instance.id.uuidString
+        successMessage: String(localized: "Switched to \(instance.name)")
       )
 
       return true
@@ -236,12 +218,8 @@ class AuthViewModel {
     user: User,
     displayName: String?,
     shouldPersistInstance: Bool,
-    successMessage: String,
-    instanceId: String
+    successMessage: String
   ) async throws {
-    if instanceId.isEmpty {
-      throw AppErrorType.invalidConfiguration(message: "instanceId is required")
-    }
     // Update AppConfig only after validation succeeds
     APIClient.shared.setServer(url: serverURL)
     APIClient.shared.setAuthToken(authToken)
@@ -260,21 +238,17 @@ class AuthViewModel {
 
     // Persist instance if this is a new login
     if shouldPersistInstance {
-      let resolvedInstanceId = UUID(uuidString: instanceId)
       let instance = try await DatabaseOperator.shared.upsertInstance(
         serverURL: serverURL,
         username: username,
         authToken: authToken,
         isAdmin: user.roles.contains("ADMIN"),
         authMethod: authMethod,
-        displayName: displayName,
-        instanceId: resolvedInstanceId
+        displayName: displayName
       )
       AppConfig.currentInstanceId = instance.id.uuidString
       AppConfig.serverDisplayName = instance.displayName
     } else {
-      // Update current instance ID for switch
-      AppConfig.currentInstanceId = instanceId
       AppConfig.serverDisplayName = displayName ?? ""
     }
 

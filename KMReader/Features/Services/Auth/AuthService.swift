@@ -24,7 +24,6 @@ class AuthService {
     password: String,
     serverURL: String,
     rememberMe: Bool = true,
-    instanceId: String,
     timeout: TimeInterval? = nil
   )
     async throws -> (user: User, authToken: String)
@@ -43,7 +42,7 @@ class AuthService {
     logger.info("🔐 Establishing session for \(username) at \(serverURL)")
     let user = try await establishSession(
       serverURL: serverURL, authToken: base64Credentials, authMethod: .basicAuth,
-      rememberMe: rememberMe, instanceId: instanceId, timeout: timeout)
+      rememberMe: rememberMe, timeout: timeout)
 
     logger.info("✅ Session established for \(username)")
     return (user: user, authToken: base64Credentials)
@@ -53,7 +52,6 @@ class AuthService {
     apiKey: String,
     serverURL: String,
     rememberMe: Bool = true,
-    instanceId: String,
     timeout: TimeInterval? = nil
   )
     async throws -> (user: User, apiKey: String)
@@ -65,7 +63,7 @@ class AuthService {
     logger.info("🔐 Establishing session with API Key at \(serverURL)")
     let user = try await establishSession(
       serverURL: serverURL, authToken: apiKey, authMethod: .apiKey, rememberMe: rememberMe,
-      instanceId: instanceId, timeout: timeout)
+      timeout: timeout)
 
     logger.info("✅ Session established with API Key")
     return (user: user, apiKey: apiKey)
@@ -73,7 +71,7 @@ class AuthService {
 
   func establishSession(
     serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth,
-    rememberMe: Bool = true, instanceId: String, timeout: TimeInterval? = nil
+    rememberMe: Bool = true, timeout: TimeInterval? = nil
   ) async throws
     -> User
   {
@@ -93,7 +91,6 @@ class AuthService {
       authMethod: authMethod,
       queryItems: queryItems,
       headers: headers,
-      instanceId: instanceId,
       timeout: timeout
     )
   }

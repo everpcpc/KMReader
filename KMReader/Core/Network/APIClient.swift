@@ -15,9 +15,16 @@ class APIClient {
 
   private let userAgent: String
 
-  private let sessionLock = NSLock()
-  private var sessionByInstanceId: [String: URLSession] = [:]
-  private var cookieStorageByInstanceId: [String: HTTPCookieStorage] = [:]
+  private lazy var sharedSession: URLSession = {
+    let configuration = URLSessionConfiguration.default
+    configuration.urlCache = URLCache(
+      memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
+      diskCapacity: 0,
+      diskPath: nil
+    )
+    configuration.requestCachePolicy = .useProtocolCachePolicy
+    return URLSession(configuration: configuration)
+  }()
 
   private init() {
     let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
@@ -39,60 +46,8 @@ class APIClient {
       "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
   }
 
-  private func makeCookieStorage(for instanceId: String) -> HTTPCookieStorage {
-    let storage = HTTPCookieStorage()
-    cookieStorageByInstanceId[instanceId] = storage
-    return storage
-  }
-
-  private func makeSession(instanceId: String) -> URLSession {
-    let configuration = URLSessionConfiguration.default
-    configuration.urlCache = URLCache(
-      memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
-      diskCapacity: 0,
-      diskPath: nil
-    )
-    configuration.requestCachePolicy = .useProtocolCachePolicy
-    let cookieStorage = cookieStorageByInstanceId[instanceId] ?? makeCookieStorage(for: instanceId)
-    configuration.httpCookieStorage = cookieStorage
-    return URLSession(configuration: configuration)
-  }
-
-  private func session(for instanceId: String) -> URLSession {
-    precondition(!instanceId.isEmpty, "instanceId must not be empty")
-
-    sessionLock.lock()
-    defer { sessionLock.unlock() }
-
-    if let session = sessionByInstanceId[instanceId] {
-      return session
-    }
-
-    let session = makeSession(instanceId: instanceId)
-    sessionByInstanceId[instanceId] = session
-    return session
-  }
-
   private func currentSession() -> URLSession {
-    session(for: AppConfig.currentInstanceId)
-  }
-
-  private func requireInstanceId() throws -> String {
-    let instanceId = AppConfig.currentInstanceId
-    if instanceId.isEmpty {
-      throw AppErrorType.invalidConfiguration(message: "instanceId is required")
-    }
-    return instanceId
-  }
-
-  func removeSession(for instanceId: String) {
-    guard !instanceId.isEmpty else { return }
-    sessionLock.lock()
-    defer { sessionLock.unlock() }
-    sessionByInstanceId.removeValue(forKey: instanceId)
-    if let storage = cookieStorageByInstanceId.removeValue(forKey: instanceId) {
-      storage.removeCookies(since: Date.distantPast)
-    }
+    sharedSession
   }
 
   func setServer(url: String) {
@@ -136,12 +91,8 @@ class APIClient {
     authMethod: AuthenticationMethod = .basicAuth,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
-    instanceId: String,
     timeout: TimeInterval? = nil
   ) async throws -> User {
-    if instanceId.isEmpty {
-      throw AppErrorType.invalidConfiguration(message: "instanceId is required")
-    }
     let request = try buildLoginRequest(
       serverURL: serverURL,
       path: path,
@@ -153,11 +104,9 @@ class APIClient {
       timeout: timeout
     )
 
-    let session = session(for: instanceId)
-
     // Skip offline switch for login requests - caller handles offline mode manually
     let (data, httpResponse) = try await executeRequest(
-      request, session: session, isTemporary: false, skipOfflineSwitch: true)
+      request, session: currentSession(), isTemporary: false, skipOfflineSwitch: true)
     return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
   }
 
@@ -645,7 +594,6 @@ class APIClient {
     if !bypassOfflineCheck {
       try throwIfOffline()
     }
-    _ = try requireInstanceId()
 
     let urlRequest = try buildRequest(
       path: path,
@@ -667,7 +615,6 @@ class APIClient {
     headers: [String: String]? = nil
   ) async throws -> T? {
     try throwIfOffline()
-    _ = try requireInstanceId()
 
     let urlRequest = try buildRequest(
       path: path,
@@ -699,7 +646,6 @@ class APIClient {
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
     try throwIfOffline()
-    _ = try requireInstanceId()
 
     let urlRequest = try buildRequest(
       path: path, method: method, headers: headers)
@@ -714,7 +660,6 @@ class APIClient {
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
     try throwIfOffline()
-    _ = try requireInstanceId()
 
     let urlRequest = buildRequest(url: url, method: method, headers: headers)
     let (data, httpResponse) = try await executeRequest(urlRequest)
