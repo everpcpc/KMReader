@@ -42,6 +42,15 @@ struct DashboardView: View {
     }
   }
 
+  private func refreshSections(_ sections: Set<DashboardSection>, reason: String) {
+    logger.debug("Dashboard partial refresh: \(reason)")
+    refreshTrigger = DashboardRefreshTrigger(
+      id: UUID(),
+      source: .auto,
+      sectionsToRefresh: sections
+    )
+  }
+
   private func refreshDashboard(reason: String) {
     logger.debug("Dashboard refresh requested: \(reason)")
 
@@ -196,10 +205,10 @@ struct DashboardView: View {
           pendingRefreshTask = nil
         } else if shouldRefreshAfterReading {
           shouldRefreshAfterReading = false
-          refreshDashboard(reason: "Deferred after reader closed")
+          refreshSections([.keepReading, .onDeck], reason: "Deferred after reader closed")
         } else if !enableSSE {
           // Without SSE events we refresh when exiting the reader
-          refreshDashboard(reason: "Reader closed without SSE")
+          refreshSections([.keepReading, .onDeck], reason: "Reader closed without SSE")
         }
       }
       #if !os(tvOS)

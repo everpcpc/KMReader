@@ -262,10 +262,17 @@ class SyncService {
     }
   }
 
-  func syncBookAndSeries(bookId: String, seriesId: String? = nil) async throws {
-    let book = try await syncBook(bookId: bookId)
-    let targetSeriesId = seriesId ?? book.seriesId
-    _ = try? await syncSeriesDetail(seriesId: targetSeriesId)
+  func syncBookAndSeries(bookId: String, seriesId: String) async throws {
+    async let bookTask = BookService.shared.getBook(id: bookId)
+    async let seriesTask = SeriesService.shared.getOneSeries(id: seriesId)
+
+    let book = try await bookTask
+    let series = try await seriesTask
+
+    let instanceId = AppConfig.currentInstanceId
+    await db.upsertBook(dto: book, instanceId: instanceId)
+    await db.upsertSeries(dto: series, instanceId: instanceId)
+    await db.commit()
   }
 
   func syncNextBook(bookId: String, readListId: String? = nil) async -> Book? {
