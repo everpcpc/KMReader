@@ -71,6 +71,9 @@ struct BookQueryItemView: View {
           showSeriesNavigation: showSeriesNavigation
         )
       }
+    } else {
+      CardPlaceholder(cardWidth: cardWidth, layout: layout)
+        .focusPadding()
     }
   }
 }

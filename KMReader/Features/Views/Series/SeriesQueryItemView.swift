@@ -53,6 +53,8 @@ struct SeriesQueryItemView: View {
           onActionCompleted: onActionCompleted
         )
       }
+    } else {
+      CardPlaceholder(cardWidth: cardWidth, layout: layout)
     }
   }
 }
