@@ -22,7 +22,7 @@ struct SettingsNetworkView: View {
               Text("\(Int(apiTimeout))s")
                 .foregroundStyle(.secondary)
             #elseif os(macOS)
-              TextField("Timeout Seconds", value: $apiTimeout, format: .number)
+              TextField("", value: $apiTimeout, format: .number)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 50)
               Text("s")

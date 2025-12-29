@@ -117,16 +117,15 @@ struct MainTabView: View {
         TabItem.browse.content
       }
 
-      #if !os(macOS)
-        Tab(
-          TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings,
-          role: settingsTabRole
-        ) {
-          TabItem.settings.content
-        }
-      #endif
-
-    }.tabBarMinimizeBehaviorIfAvailable()
+      Tab(
+        TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings,
+        role: settingsTabRole
+      ) {
+        TabItem.settings.content
+      }
+    }
+    .tabBarMinimizeBehaviorIfAvailable()
+    .tabViewStyle(.sidebarAdaptable)
   }
 }
 
@@ -141,11 +140,8 @@ struct OldTabView: View {
       TabItem.browse.content
         .tabItem { TabItem.browse.label }
 
-      #if !os(macOS)
-        TabItem.settings.content
-          .tabItem { TabItem.settings.label }
-      #endif
-
+      TabItem.settings.content
+        .tabItem { TabItem.settings.label }
     }
   }
 }

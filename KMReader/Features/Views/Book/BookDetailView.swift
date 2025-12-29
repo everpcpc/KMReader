@@ -472,7 +472,8 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.markAsRead(bookId: bookId)
         if let book {
-          _ = try? await SyncService.shared.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
+          _ = try? await SyncService.shared.syncBookAndSeries(
+            bookId: bookId, seriesId: book.seriesId)
         }
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
