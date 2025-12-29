@@ -56,7 +56,7 @@ struct ReadListDetailView: View {
 
             HStack(alignment: .top) {
               ThumbnailImage(
-                id: readListId, type: .readlist, showPlaceholder: false,
+                id: readListId, type: .readlist,
                 width: PlatformHelper.detailThumbnailWidth,
                 refreshTrigger: thumbnailRefreshTrigger
               )

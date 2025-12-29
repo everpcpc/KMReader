@@ -36,7 +36,7 @@ class SyncService {
       let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await db.replaceLibraries(libraryInfos, for: instanceId)
-      try await db.commit()
+      await db.commit()
       logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
       logger.error("❌ Failed to sync libraries: \(error)")
@@ -54,7 +54,7 @@ class SyncService {
         hasMore = !result.last
         page += 1
       }
-      try await db.commit()
+      await db.commit()
       logger.info("📂 Synced collections")
     } catch {
       logger.error("❌ Failed to sync collections: \(error)")
@@ -65,7 +65,7 @@ class SyncService {
     do {
       let readLists: [ReadList] = try await api.request(path: "/api/v1/readlists")
       await db.upsertReadLists(readLists, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       logger.info("📖 Synced readlists")
     } catch {
       logger.error("❌ Failed to sync readlists: \(error)")
@@ -85,7 +85,7 @@ class SyncService {
         await db.upsertSeriesList(result.content, instanceId: instanceId)
         hasMore = !result.last
         page += 1
-        try await db.commit()
+        await db.commit()
       }
       logger.info("📚 Synced series for library \(libraryId)")
     } catch {
@@ -128,7 +128,7 @@ class SyncService {
 
     let instanceId = AppConfig.currentInstanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
 
     return result
   }
@@ -138,12 +138,12 @@ class SyncService {
       let series = try await SeriesService.shared.getOneSeries(id: seriesId)
       let instanceId = AppConfig.currentInstanceId
       await db.upsertSeries(dto: series, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       return series
     } catch APIError.notFound {
       let instanceId = AppConfig.currentInstanceId
       await db.deleteSeries(id: seriesId, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       throw APIError.notFound(message: "Series not found", url: nil, response: nil)
     }
   }
@@ -153,7 +153,7 @@ class SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -162,7 +162,7 @@ class SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -182,7 +182,7 @@ class SyncService {
     )
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -201,7 +201,7 @@ class SyncService {
 
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
 
     return result
   }
@@ -211,7 +211,7 @@ class SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -221,7 +221,7 @@ class SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -232,7 +232,7 @@ class SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -243,7 +243,7 @@ class SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -252,12 +252,12 @@ class SyncService {
       let book = try await BookService.shared.getBook(id: bookId)
       let instanceId = AppConfig.currentInstanceId
       await db.upsertBook(dto: book, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       return book
     } catch APIError.notFound {
       let instanceId = AppConfig.currentInstanceId
       await db.deleteBook(id: bookId, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       throw APIError.notFound(message: "Book not found", url: nil, response: nil)
     }
   }
@@ -274,7 +274,7 @@ class SyncService {
       {
         let instanceId = AppConfig.currentInstanceId
         await db.upsertBook(dto: book, instanceId: instanceId)
-        try await db.commit()
+        await db.commit()
         return book
       }
     } catch {
@@ -288,7 +288,7 @@ class SyncService {
       if let book = try await BookService.shared.getPreviousBook(bookId: bookId) {
         let instanceId = AppConfig.currentInstanceId
         await db.upsertBook(dto: book, instanceId: instanceId)
-        try await db.commit()
+        await db.commit()
         return book
       }
     } catch {
@@ -313,7 +313,7 @@ class SyncService {
     )
     let instanceId = AppConfig.currentInstanceId
     await db.upsertCollections(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -322,12 +322,12 @@ class SyncService {
       let collection = try await CollectionService.shared.getCollection(id: id)
       let instanceId = AppConfig.currentInstanceId
       await db.upsertCollection(dto: collection, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       return collection
     } catch APIError.notFound {
       let instanceId = AppConfig.currentInstanceId
       await db.deleteCollection(id: id, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       throw APIError.notFound(message: "Collection not found", url: nil, response: nil)
     }
   }
@@ -348,7 +348,7 @@ class SyncService {
     )
     let instanceId = AppConfig.currentInstanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -368,7 +368,7 @@ class SyncService {
     )
     let instanceId = AppConfig.currentInstanceId
     await db.upsertReadLists(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 
@@ -377,12 +377,12 @@ class SyncService {
       let readList = try await ReadListService.shared.getReadList(id: id)
       let instanceId = AppConfig.currentInstanceId
       await db.upsertReadList(dto: readList, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       return readList
     } catch APIError.notFound {
       let instanceId = AppConfig.currentInstanceId
       await db.deleteReadList(id: id, instanceId: instanceId)
-      try await db.commit()
+      await db.commit()
       throw APIError.notFound(message: "Read list not found", url: nil, response: nil)
     }
   }
@@ -403,7 +403,7 @@ class SyncService {
     )
     let instanceId = AppConfig.currentInstanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
-    try await db.commit()
+    await db.commit()
     return result
   }
 

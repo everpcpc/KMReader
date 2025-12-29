@@ -145,7 +145,7 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: series.id, instanceId: currentInstanceId, policy: newPolicy
       )
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -163,7 +163,7 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.downloadSeriesOffline(
         seriesId: series.id, instanceId: currentInstanceId
       )
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -172,7 +172,7 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.removeSeriesOffline(
         seriesId: series.id, instanceId: currentInstanceId
       )
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
   }
 }

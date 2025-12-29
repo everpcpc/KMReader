@@ -344,7 +344,7 @@ class ReaderViewModel {
             page: currentPageNumber,
             completed: completed
           )
-          try? await DatabaseOperator.shared.commit()
+          await DatabaseOperator.shared.commit()
         } else {
           try await BookService.shared.updatePageReadProgress(
             bookId: activeBookId,

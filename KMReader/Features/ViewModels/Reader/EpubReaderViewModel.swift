@@ -338,7 +338,7 @@
               completed: false,
               progressionData: progressionData
             )
-            try? await DatabaseOperator.shared.commit()
+            await DatabaseOperator.shared.commit()
           } else {
             try await BookService.shared.updateWebPubProgression(
               bookId: activeBookId,

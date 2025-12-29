@@ -48,7 +48,7 @@ actor ProgressSyncService {
       do {
         try await syncProgressItem(item)
         await DatabaseOperator.shared.deletePendingProgress(id: item.id)
-        try? await DatabaseOperator.shared.commit()
+        await DatabaseOperator.shared.commit()
         successCount += 1
 
         if item.completed {

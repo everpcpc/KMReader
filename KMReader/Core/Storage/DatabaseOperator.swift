@@ -14,8 +14,26 @@ actor DatabaseOperator {
   static var shared: DatabaseOperator!
 
   private let logger = AppLogger(.database)
+  private var pendingCommitTask: Task<Void, Never>?
 
-  func commit() throws {
+  /// Commits changes with a 2-second debounce to avoid frequent UI updates
+  func commit() {
+    pendingCommitTask?.cancel()
+    pendingCommitTask = Task {
+      try? await Task.sleep(for: .milliseconds(500))
+      guard !Task.isCancelled else { return }
+      do {
+        try modelContext.save()
+      } catch {
+        logger.error("Failed to commit: \(error)")
+      }
+    }
+  }
+
+  /// Commits changes immediately without debounce
+  func commitImmediately() throws {
+    pendingCommitTask?.cancel()
+    pendingCommitTask = nil
     try modelContext.save()
   }
 
@@ -670,7 +688,7 @@ actor DatabaseOperator {
         }
         await DatabaseOperator.shared.syncSeriesDownloadStatus(
           seriesId: seriesId, instanceId: instanceId)
-        try? await DatabaseOperator.shared.commit()
+        await DatabaseOperator.shared.commit()
       }
     }
   }
@@ -733,7 +751,7 @@ actor DatabaseOperator {
       }
       await DatabaseOperator.shared.syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
   }
 

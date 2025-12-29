@@ -58,6 +58,8 @@ struct CollectionQueryItemView: View {
           onActionCompleted: onActionCompleted
         )
       }
+    } else {
+      CardPlaceholder(cardWidth: cardWidth, layout: layout)
     }
   }
 }

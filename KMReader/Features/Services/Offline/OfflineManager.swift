@@ -149,7 +149,7 @@ actor OfflineManager {
         status: .pending,
         downloadAt: .now
       )
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
       await syncDownloadQueue(instanceId: instanceId)
     }
   }
@@ -161,7 +161,7 @@ actor OfflineManager {
       status: .pending,
       downloadAt: .now
     )
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
     await syncDownloadQueue(instanceId: instanceId)
   }
 
@@ -178,7 +178,7 @@ actor OfflineManager {
       syncSeriesStatus: syncSeriesStatus
     )
     if commit {
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
 
     // Then delete files
@@ -219,7 +219,7 @@ actor OfflineManager {
     }
     await DatabaseOperator.shared.syncSeriesDownloadStatus(
       seriesId: seriesId, instanceId: instanceId)
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
   }
 
   func cancelDownload(
@@ -233,7 +233,7 @@ actor OfflineManager {
       syncSeriesStatus: syncSeriesStatus
     )
     if commit {
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -245,7 +245,7 @@ actor OfflineManager {
       await DatabaseOperator.shared.updateBookDownloadStatus(
         bookId: bookId, instanceId: instanceId, status: .notDownloaded
       )
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
     activeTasks.removeAll()
     #if os(iOS)
@@ -255,13 +255,13 @@ actor OfflineManager {
 
   func retryFailedDownloads(instanceId: String) async {
     await DatabaseOperator.shared.retryFailedBooks(instanceId: instanceId)
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
     await syncDownloadQueue(instanceId: instanceId)
   }
 
   func cancelFailedDownloads(instanceId: String) async {
     await DatabaseOperator.shared.cancelFailedBooks(instanceId: instanceId)
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
   }
 
   /// Trigger the download queue processing in the background.
@@ -391,13 +391,13 @@ actor OfflineManager {
         // First, fetch and save metadata (this needs to happen before background download)
         let pages = try await BookService.shared.getBookPages(id: info.bookId)
         await DatabaseOperator.shared.updateBookPages(bookId: info.bookId, pages: pages)
-        try? await DatabaseOperator.shared.commit()
+        await DatabaseOperator.shared.commit()
 
         // Save TOC if available
         if let manifest = try? await BookService.shared.getBookManifest(id: info.bookId) {
           let toc = await ReaderManifestService(bookId: info.bookId).parseTOC(manifest: manifest)
           await DatabaseOperator.shared.updateBookTOC(bookId: info.bookId, toc: toc)
-          try? await DatabaseOperator.shared.commit()
+          await DatabaseOperator.shared.commit()
         }
 
         let isEpub = info.isEpub && !info.epubDivinaCompatible
@@ -412,7 +412,7 @@ actor OfflineManager {
               status: .downloaded,
               downloadedSize: totalSize
             )
-            try? await DatabaseOperator.shared.commit()
+            await DatabaseOperator.shared.commit()
             await clearCachesAfterDownload(bookId: info.bookId, isEpub: true)
             removeActiveTask(info.bookId)
             await syncDownloadQueue(instanceId: instanceId)
@@ -501,7 +501,7 @@ actor OfflineManager {
               status: .downloaded,
               downloadedSize: totalSize
             )
-            try? await DatabaseOperator.shared.commit()
+            await DatabaseOperator.shared.commit()
             await clearCachesAfterDownload(bookId: info.bookId, isEpub: false)
             backgroundDownloadInfo.removeValue(forKey: info.bookId)
             removeActiveTask(info.bookId)
@@ -543,7 +543,7 @@ actor OfflineManager {
           instanceId: instanceId,
           status: .failed(error: error.localizedDescription)
         )
-        try? await DatabaseOperator.shared.commit()
+        await DatabaseOperator.shared.commit()
         await syncDownloadQueue(instanceId: instanceId)
       }
     }
@@ -570,7 +570,7 @@ actor OfflineManager {
           bookId: info.bookId, instanceId: instanceId, status: .downloaded,
           downloadedSize: totalSize
         )
-        try? await DatabaseOperator.shared.commit()
+        await DatabaseOperator.shared.commit()
         await clearCachesAfterDownload(bookId: info.bookId, isEpub: isEpub)
         await removeActiveTask(info.bookId)
         logger.info("✅ Download complete for book: \(info.bookId)")
@@ -598,7 +598,7 @@ actor OfflineManager {
               instanceId: instanceId,
               status: .failed(error: error.localizedDescription)
             )
-            try? await DatabaseOperator.shared.commit()
+            await DatabaseOperator.shared.commit()
           }
         }
         await removeActiveTask(info.bookId)
@@ -616,7 +616,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId, instanceId: instanceId, status: .notDownloaded
     )
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
   }
 
   // MARK: - Accessors for Reader
@@ -672,7 +672,7 @@ actor OfflineManager {
   func updateLocalProgress(bookId: String, page: Int, completed: Bool) async {
     await DatabaseOperator.shared.updateReadingProgress(
       bookId: bookId, page: page, completed: completed)
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
   }
 
   private func calculateDirectorySize(_ url: URL) throws -> Int64 {
@@ -794,7 +794,7 @@ actor OfflineManager {
         instanceId: info.instanceId,
         status: .failed(error: error.localizedDescription)
       )
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
 
       // Cancel remaining downloads for this book
       await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
@@ -847,7 +847,7 @@ actor OfflineManager {
           status: .downloaded,
           downloadedSize: totalSize
         )
-        try? await DatabaseOperator.shared.commit()
+        await DatabaseOperator.shared.commit()
         await clearCachesAfterDownload(bookId: bookId, isEpub: info.isEpub)
         logger.info("✅ All background downloads complete for book: \(bookId)")
       } catch {
@@ -890,13 +890,13 @@ actor OfflineManager {
     // Save pages metadata to DB
     let pages = try await BookService.shared.getBookPages(id: bookId)
     await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: pages)
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
 
     // Save TOC if it exists to DB
     if let manifest = try? await BookService.shared.getBookManifest(id: bookId) {
       let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
       await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: toc)
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
 
     let destination = bookDir.appendingPathComponent("book.epub")
@@ -913,13 +913,13 @@ actor OfflineManager {
 
     // Save pages metadata to DB
     await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: pages)
-    try? await DatabaseOperator.shared.commit()
+    await DatabaseOperator.shared.commit()
 
     // Save TOC to DB
     if let manifest = try? await BookService.shared.getBookManifest(id: bookId) {
       let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
       await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: toc)
-      try? await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.commit()
     }
 
     var pagesToDownload: [BookPage] = []

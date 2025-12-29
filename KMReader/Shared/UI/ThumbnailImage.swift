@@ -13,7 +13,6 @@ import SwiftUI
 struct ThumbnailImage<Overlay: View>: View {
   let id: String?
   let type: ThumbnailType
-  let showPlaceholder: Bool
   let shadowStyle: ShadowStyle
   let width: CGFloat
   let cornerRadius: CGFloat
@@ -30,7 +29,6 @@ struct ThumbnailImage<Overlay: View>: View {
   init(
     id: String?,
     type: ThumbnailType = .book,
-    showPlaceholder: Bool = true,
     shadowStyle: ShadowStyle = .basic,
     width: CGFloat,
     cornerRadius: CGFloat = 4,
@@ -40,7 +38,6 @@ struct ThumbnailImage<Overlay: View>: View {
   ) {
     self.id = id
     self.type = type
-    self.showPlaceholder = showPlaceholder
     self.shadowStyle = shadowStyle
     self.width = width
     self.cornerRadius = cornerRadius
@@ -75,13 +72,7 @@ struct ThumbnailImage<Overlay: View>: View {
         .placeholder {
           Rectangle()
             .fill(Color.gray.opacity(0.3))
-            .overlay {
-              if showPlaceholder {
-                ProgressView()
-              }
-            }
         }
-        .indicator(.activity)
         .transition(.fade)
         .aspectRatio(contentMode: contentMode)
         .overlay {
@@ -95,11 +86,6 @@ struct ThumbnailImage<Overlay: View>: View {
         RoundedRectangle(cornerRadius: cornerRadius)
           .fill(Color.gray.opacity(0.3))
           .frame(width: width, height: width * ratio, alignment: alignment)
-          .overlay {
-            if showPlaceholder && isLoading {
-              ProgressView()
-            }
-          }
       }
     }
     .frame(width: width, height: width * ratio)
@@ -139,7 +125,6 @@ extension ThumbnailImage where Overlay == EmptyView {
   init(
     id: String?,
     type: ThumbnailType = .book,
-    showPlaceholder: Bool = true,
     shadowStyle: ShadowStyle = .basic,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
@@ -147,7 +132,7 @@ extension ThumbnailImage where Overlay == EmptyView {
     alignment: Alignment = .center
   ) {
     self.init(
-      id: id, type: type, showPlaceholder: showPlaceholder, shadowStyle: shadowStyle,
+      id: id, type: type, shadowStyle: shadowStyle,
       width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger,
       alignment: alignment
     ) {}
@@ -159,7 +144,6 @@ extension ThumbnailImage where Overlay == EmptyView {
     ThumbnailImage(
       id: "1",
       type: .book,
-      showPlaceholder: true,
       shadowStyle: .platform,
       width: 200,
       cornerRadius: 8,

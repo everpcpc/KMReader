@@ -100,7 +100,6 @@ struct SeriesDetailView: View {
               ThumbnailImage(
                 id: seriesId,
                 type: .series,
-                showPlaceholder: false,
                 width: PlatformHelper.detailThumbnailWidth,
                 refreshTrigger: thumbnailRefreshTrigger
               )

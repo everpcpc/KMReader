@@ -55,7 +55,7 @@ struct CollectionDetailView: View {
 
             HStack(alignment: .top) {
               ThumbnailImage(
-                id: collectionId, type: .collection, showPlaceholder: false,
+                id: collectionId, type: .collection,
                 width: PlatformHelper.detailThumbnailWidth,
                 refreshTrigger: thumbnailRefreshTrigger
               )
