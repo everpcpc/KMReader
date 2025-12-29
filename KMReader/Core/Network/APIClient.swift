@@ -15,18 +15,9 @@ class APIClient {
 
   private let userAgent: String
 
-  // URLSession with cache configuration for all requests
-  private lazy var cachedSession: URLSession = {
-    let configuration = URLSessionConfiguration.default
-    // Enable disk cache
-    configuration.urlCache = URLCache(
-      memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
-      diskCapacity: 200 * 1024 * 1024,  // 200MB disk cache
-      diskPath: "komga_cache"
-    )
-    configuration.requestCachePolicy = .useProtocolCachePolicy
-    return URLSession(configuration: configuration)
-  }()
+  private let sessionLock = NSLock()
+  private var sessionByInstanceId: [String: URLSession] = [:]
+
 
   private init() {
     let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
@@ -46,6 +37,44 @@ class APIClient {
     #endif
     self.userAgent =
       "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
+  }
+
+  private func makeSession() -> URLSession {
+    let configuration = URLSessionConfiguration.default
+    configuration.urlCache = URLCache(
+      memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
+      diskCapacity: 0,
+      diskPath: nil
+    )
+    configuration.requestCachePolicy = .useProtocolCachePolicy
+    return URLSession(configuration: configuration)
+  }
+
+  private func session(for instanceId: String) -> URLSession {
+    precondition(!instanceId.isEmpty, "instanceId must not be empty")
+
+    sessionLock.lock()
+    defer { sessionLock.unlock() }
+
+    if let session = sessionByInstanceId[instanceId] {
+      return session
+    }
+
+    let session = makeSession()
+    sessionByInstanceId[instanceId] = session
+    return session
+  }
+
+  private func currentSession() -> URLSession {
+    session(for: AppConfig.currentInstanceId)
+  }
+
+  private func requireInstanceId() throws -> String {
+    let instanceId = AppConfig.currentInstanceId
+    if instanceId.isEmpty {
+      throw AppErrorType.invalidConfiguration(message: "instanceId is required")
+    }
+    return instanceId
   }
 
   func setServer(url: String) {
@@ -89,8 +118,12 @@ class APIClient {
     authMethod: AuthenticationMethod = .basicAuth,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
+    instanceId: String,
     timeout: TimeInterval? = nil
   ) async throws -> User {
+    if instanceId.isEmpty {
+      throw AppErrorType.invalidConfiguration(message: "instanceId is required")
+    }
     let request = try buildLoginRequest(
       serverURL: serverURL,
       path: path,
@@ -102,16 +135,7 @@ class APIClient {
       timeout: timeout
     )
 
-    // Use a session with timeout for login requests
-    let session: URLSession
-    if let timeout = timeout {
-      let config = URLSessionConfiguration.default
-      config.timeoutIntervalForRequest = timeout
-      config.timeoutIntervalForResource = timeout
-      session = URLSession(configuration: config)
-    } else {
-      session = cachedSession
-    }
+    let session = session(for: instanceId)
 
     // Skip offline switch for login requests - caller handles offline mode manually
     let (data, httpResponse) = try await executeRequest(
@@ -251,6 +275,9 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
+    if let timeout = timeout {
+      request.timeoutInterval = timeout
+    }
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
@@ -300,7 +327,6 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
-
     if let timeout = timeout {
       request.timeoutInterval = timeout
     }
@@ -388,7 +414,7 @@ class APIClient {
     logger.info("📡 \(prefix)\(method) \(urlString)")
 
     let startTime = Date()
-    let sessionToUse = session ?? cachedSession
+    let sessionToUse = session ?? currentSession()
 
     do {
       let (data, response) = try await sessionToUse.data(for: request)
@@ -601,6 +627,7 @@ class APIClient {
     if !bypassOfflineCheck {
       try throwIfOffline()
     }
+    _ = try requireInstanceId()
 
     let urlRequest = try buildRequest(
       path: path,
@@ -622,6 +649,7 @@ class APIClient {
     headers: [String: String]? = nil
   ) async throws -> T? {
     try throwIfOffline()
+    _ = try requireInstanceId()
 
     let urlRequest = try buildRequest(
       path: path,
@@ -653,6 +681,7 @@ class APIClient {
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
     try throwIfOffline()
+    _ = try requireInstanceId()
 
     let urlRequest = try buildRequest(
       path: path, method: method, headers: headers)
@@ -667,6 +696,7 @@ class APIClient {
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
     try throwIfOffline()
+    _ = try requireInstanceId()
 
     let urlRequest = buildRequest(url: url, method: method, headers: headers)
     let (data, httpResponse) = try await executeRequest(urlRequest)

@@ -899,7 +899,8 @@ actor DatabaseOperator {
     authToken: String,
     isAdmin: Bool,
     authMethod: AuthenticationMethod = .basicAuth,
-    displayName: String? = nil
+    displayName: String? = nil,
+    instanceId: UUID? = nil
   ) throws -> KomgaInstance {
     let trimmedDisplayName = displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
     let descriptor = FetchDescriptor<KomgaInstance>(
@@ -922,6 +923,7 @@ actor DatabaseOperator {
       let resolvedName = Self.resolvedName(
         displayName: trimmedDisplayName, serverURL: serverURL, username: username)
       let instance = KomgaInstance(
+        id: instanceId ?? UUID(),
         name: resolvedName,
         serverURL: serverURL,
         username: username,
