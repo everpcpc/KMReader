@@ -86,7 +86,7 @@ struct AuthenticationActivityView: View {
             .font(.headline)
         }
         Spacer()
-        Text(formatDate(activity.dateTime))
+        Text(activity.dateTime.formattedMediumDateTime)
           .font(.caption)
           .foregroundColor(.secondary)
       }
@@ -196,12 +196,5 @@ struct AuthenticationActivityView: View {
     }
 
     isLoadingMore = false
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .short
-    return formatter.string(from: date)
   }
 }

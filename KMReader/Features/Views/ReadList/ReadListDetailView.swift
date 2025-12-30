@@ -15,12 +15,10 @@ struct ReadListDetailView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   // SwiftData query for reactive updates
   @Query private var komgaReadLists: [KomgaReadList]
 
-  @State private var bookViewModel = BookViewModel()
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
@@ -50,61 +48,10 @@ struct ReadListDetailView: View {
       VStack(alignment: .leading) {
         if let readList = readList {
           VStack(alignment: .leading) {
-            // Header with thumbnail and info
-            Text(readList.name)
-              .font(.title2)
-
-            HStack(alignment: .top) {
-              ThumbnailImage(
-                id: readListId, type: .readlist,
-                width: PlatformHelper.detailThumbnailWidth,
-                refreshTrigger: thumbnailRefreshTrigger
-              )
-              .thumbnailFocus()
-
-              VStack(alignment: .leading) {
-
-                // Summary
-                if !readList.summary.isEmpty {
-                  Text(readList.summary)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
-                }
-
-                // Info chips
-                VStack(alignment: .leading, spacing: 6) {
-                  HStack(spacing: 6) {
-                    InfoChip(
-                      labelKey: "\(readList.bookIds.count) books",
-                      systemImage: "books.vertical",
-                      backgroundColor: Color.blue.opacity(0.2),
-                      foregroundColor: .blue
-                    )
-                    if readList.ordered {
-                      InfoChip(
-                        labelKey: "Ordered",
-                        systemImage: "arrow.up.arrow.down",
-                        backgroundColor: Color.cyan.opacity(0.2),
-                        foregroundColor: .cyan
-                      )
-                    }
-                  }
-                  InfoChip(
-                    labelKey: "Created: \(formatDate(readList.createdDate))",
-                    systemImage: "calendar.badge.plus",
-                    backgroundColor: Color.blue.opacity(0.2),
-                    foregroundColor: .blue
-                  )
-                  InfoChip(
-                    labelKey: "Modified: \(formatDate(readList.lastModifiedDate))",
-                    systemImage: "clock",
-                    backgroundColor: Color.purple.opacity(0.2),
-                    foregroundColor: .purple
-                  )
-                }
-              }
-            }
+            ReadListDetailContentView(
+              readList: readList,
+              thumbnailRefreshTrigger: $thumbnailRefreshTrigger
+            )
 
             #if os(tvOS)
               readListToolbarContent
@@ -117,7 +64,6 @@ struct ReadListDetailView: View {
           if containerWidth > 0 {
             BooksListViewForReadList(
               readListId: readListId,
-              bookViewModel: bookViewModel,
               layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )
@@ -201,10 +147,6 @@ extension ReadListDetailView {
     }
   }
 
-  private func presentReader(book: Book, incognito: Bool) {
-    readerPresentation.present(book: book, incognito: incognito, readList: readList)
-  }
-
   @MainActor
   private func deleteReadList() async {
     do {
@@ -221,13 +163,6 @@ extension ReadListDetailView {
   private func reloadThumbnail() {
     guard !AppConfig.isOffline else { return }
     thumbnailRefreshTrigger += 1
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
   }
 
   @ViewBuilder

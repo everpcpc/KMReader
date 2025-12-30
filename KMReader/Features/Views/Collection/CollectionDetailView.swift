@@ -19,7 +19,6 @@ struct CollectionDetailView: View {
   // SwiftData query for reactive updates
   @Query private var komgaCollections: [KomgaCollection]
 
-  @State private var seriesViewModel = SeriesViewModel()
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
@@ -48,68 +47,21 @@ struct CollectionDetailView: View {
     ScrollView {
       VStack(alignment: .leading) {
         if let collection = collection {
-          VStack(alignment: .leading) {
-            // Header with thumbnail and info
-            Text(collection.name)
-              .font(.title2)
 
-            HStack(alignment: .top) {
-              ThumbnailImage(
-                id: collectionId, type: .collection,
-                width: PlatformHelper.detailThumbnailWidth,
-                refreshTrigger: thumbnailRefreshTrigger
-              )
-              .thumbnailFocus()
+          #if os(tvOS)
+            collectionToolbarContent
+              .padding(.vertical, 8)
+          #endif
 
-              VStack(alignment: .leading) {
-
-                // Info chips
-                VStack(alignment: .leading, spacing: 6) {
-                  HStack(spacing: 6) {
-                    InfoChip(
-                      labelKey: "\(collection.seriesIds.count) series",
-                      systemImage: "square.grid.2x2",
-                      backgroundColor: Color.blue.opacity(0.2),
-                      foregroundColor: .blue
-                    )
-                    if collection.ordered {
-                      InfoChip(
-                        labelKey: "Ordered",
-                        systemImage: "arrow.up.arrow.down",
-                        backgroundColor: Color.cyan.opacity(0.2),
-                        foregroundColor: .cyan
-                      )
-                    }
-                  }
-                  InfoChip(
-                    labelKey: "Created: \(formatDate(collection.createdDate))",
-                    systemImage: "calendar.badge.plus",
-                    backgroundColor: Color.blue.opacity(0.2),
-                    foregroundColor: .blue
-                  )
-                  InfoChip(
-                    labelKey: "Modified: \(formatDate(collection.lastModifiedDate))",
-                    systemImage: "clock",
-                    backgroundColor: Color.purple.opacity(0.2),
-                    foregroundColor: .purple
-                  )
-
-                }
-              }
-            }
-
-            #if os(tvOS)
-              collectionToolbarContent
-                .padding(.vertical, 8)
-            #endif
-
-          }.padding(.horizontal)
+          CollectionDetailContentView(
+            collection: collection,
+            thumbnailRefreshTrigger: $thumbnailRefreshTrigger
+          ).padding(.horizontal)
 
           // Series list
           if containerWidth > 0 {
             CollectionSeriesListView(
               collectionId: collectionId,
-              seriesViewModel: seriesViewModel,
               layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )
@@ -209,13 +161,6 @@ extension CollectionDetailView {
   private func reloadThumbnail() {
     guard !AppConfig.isOffline else { return }
     thumbnailRefreshTrigger += 1
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
   }
 
   @ViewBuilder

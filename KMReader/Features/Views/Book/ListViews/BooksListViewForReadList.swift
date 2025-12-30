@@ -11,7 +11,6 @@ import SwiftUI
 // Books list view for read list
 struct BooksListViewForReadList: View {
   let readListId: String
-  @Bindable var bookViewModel: BookViewModel
   let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
@@ -21,6 +20,7 @@ struct BooksListViewForReadList: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
+  @State private var bookViewModel = BookViewModel()
   @State private var selectedBookIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
@@ -33,11 +33,11 @@ struct BooksListViewForReadList: View {
   }
 
   init(
-    readListId: String, bookViewModel: BookViewModel,
-    layoutHelper: BrowseLayoutHelper, showFilterSheet: Binding<Bool>
+    readListId: String,
+    layoutHelper: BrowseLayoutHelper,
+    showFilterSheet: Binding<Bool>
   ) {
     self.readListId = readListId
-    self.bookViewModel = bookViewModel
     self.layoutHelper = layoutHelper
     self._showFilterSheet = showFilterSheet
 

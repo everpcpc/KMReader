@@ -6,17 +6,10 @@
 import SwiftUI
 
 struct BookDownloadActionsSection: View {
-  @Bindable var komgaBook: KomgaBook
+  let book: Book
+  let status: DownloadStatus
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
-
-  private var book: Book {
-    komgaBook.toBook()
-  }
-
-  private var status: DownloadStatus {
-    komgaBook.downloadStatus
-  }
 
   var body: some View {
     HStack {
