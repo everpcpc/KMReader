@@ -123,7 +123,7 @@ struct LibraryRowView: View {
       parts.append(
         formatMetricCount(
           key: "library.list.metrics.series",
-          defaultValue: "%@ series",
+          defaultValue: "%lld series",
           value: seriesCount
         ))
     }
@@ -131,7 +131,7 @@ struct LibraryRowView: View {
       parts.append(
         formatMetricCount(
           key: "library.list.metrics.books",
-          defaultValue: "%@ books",
+          defaultValue: "%lld books",
           value: booksCount
         ))
     }
@@ -139,7 +139,7 @@ struct LibraryRowView: View {
       parts.append(
         formatMetricCount(
           key: "library.list.metrics.sidecars",
-          defaultValue: "%@ sidecars",
+          defaultValue: "%lld sidecars",
           value: sidecarsCount
         ))
     }
