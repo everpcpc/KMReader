@@ -85,6 +85,12 @@ struct AuthenticationActivityView: View {
           Text(activity.success ? "Success" : "Failed")
             .font(.headline)
         }
+        if let apiKeyComment = activity.apiKeyComment {
+          Label(apiKeyComment, systemImage: "key")
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .lineLimit(1)
+        }
         Spacer()
         Text(activity.dateTime.formattedMediumDateTime)
           .font(.caption)
@@ -109,20 +115,9 @@ struct AuthenticationActivityView: View {
         .foregroundColor(.secondary)
       }
 
-      if let apiKeyComment = activity.apiKeyComment {
-        HStack {
-          Image(systemName: "key")
-          Text("API Key")
-          Text(apiKeyComment)
-        }
-        .font(.caption)
-        .foregroundColor(.secondary)
-      }
-
       if let error = activity.error {
         HStack {
           Image(systemName: "exclamationmark.triangle.fill")
-
           Text(error)
         }
         .font(.caption)
