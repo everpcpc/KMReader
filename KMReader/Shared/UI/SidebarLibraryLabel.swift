@@ -13,6 +13,7 @@ struct SidebarLibraryLabel: View {
     Label {
       HStack {
         Text(library.name)
+          .lineLimit(1)
         Spacer()
         if let booksCount = library.booksCount {
           Text("\(Int(booksCount))")
