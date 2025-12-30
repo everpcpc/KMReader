@@ -47,12 +47,27 @@ struct ArcEffectView: View {
   let readingDirection: ReadingDirection
   let themeColor: Color
 
+  private let maxArcWidth: CGFloat = 80
+
   private var isLeading: Bool {
     readingDirection == .rtl
   }
 
   private var isVertical: Bool {
     readingDirection == .vertical || readingDirection == .webtoon
+  }
+
+
+  private var currentArcWidth: CGFloat {
+    maxArcWidth * progress
+  }
+
+  private var arrowSize: CGFloat {
+    24 * progress
+  }
+
+  private var showArrow: Bool {
+    progress > 0.1
   }
 
   var body: some View {
@@ -88,24 +103,22 @@ struct ArcEffectView: View {
             .shadow(color: themeColor.opacity(0.4), radius: 20, x: 0, y: 0)
         }
 
-        if progress > 0.1 {
-          let maxWidth: CGFloat = 80
-          let currentWidth = maxWidth * progress
-
+        if showArrow {
           if isVertical {
-            let arrowY = geometry.size.height - currentWidth / 4
             Image(systemName: "arrow.up")
-              .font(.system(size: 24, weight: .bold))
+              .font(.system(size: arrowSize, weight: .bold))
               .foregroundColor(.white)
               .opacity(Double(progress))
-              .position(x: geometry.size.width / 2, y: arrowY)
+              .position(x: geometry.size.width / 2, y: geometry.size.height - currentArcWidth / 4)
           } else {
-            let arrowX = isLeading ? (currentWidth / 4) : (geometry.size.width - currentWidth / 4)
             Image(systemName: isLeading ? "arrow.left" : "arrow.right")
-              .font(.system(size: 24, weight: .bold))
+              .font(.system(size: arrowSize, weight: .bold))
               .foregroundColor(.white)
               .opacity(Double(progress))
-              .position(x: arrowX, y: geometry.size.height / 2)
+              .position(
+                x: isLeading ? (currentArcWidth / 4) : (geometry.size.width - currentArcWidth / 4),
+                y: geometry.size.height / 2
+              )
           }
         }
       }

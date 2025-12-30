@@ -303,28 +303,27 @@ struct BookDetailView: View {
     HStack(spacing: PlatformHelper.buttonSpacing) {
 
       Menu {
-        Button {
-          showEditSheet = true
-        } label: {
-          Label("Edit", systemImage: "pencil")
-        }
-        .disabled(!isAdmin)
+        if isAdmin {
+          Button {
+            showEditSheet = true
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
 
-        Divider()
+          Divider()
 
-        Button {
-          analyzeBook()
-        } label: {
-          Label("Analyze", systemImage: "waveform.path.ecg")
-        }
-        .disabled(!isAdmin)
+          Button {
+            analyzeBook()
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
 
-        Button {
-          refreshMetadata()
-        } label: {
-          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          Button {
+            refreshMetadata()
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
         }
-        .disabled(!isAdmin)
 
         Divider()
 
@@ -356,12 +355,13 @@ struct BookDetailView: View {
 
         Divider()
 
-        Button(role: .destructive) {
-          showDeleteConfirmation = true
-        } label: {
-          Label("Delete Book", systemImage: "trash")
+        if isAdmin {
+          Button(role: .destructive) {
+            showDeleteConfirmation = true
+          } label: {
+            Label("Delete Book", systemImage: "trash")
+          }
         }
-        .disabled(!isAdmin)
 
         Button(role: .destructive) {
           clearCache()

@@ -365,28 +365,27 @@ struct OneshotDetailView: View {
   private var oneshotToolbarContent: some View {
     HStack(spacing: PlatformHelper.buttonSpacing) {
       Menu {
-        Button {
-          showEditSheet = true
-        } label: {
-          Label("Edit", systemImage: "pencil")
-        }
-        .disabled(!isAdmin)
+        if isAdmin {
+          Button {
+            showEditSheet = true
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
 
-        Divider()
+          Divider()
 
-        Button {
-          analyzeOneshot()
-        } label: {
-          Label("Analyze", systemImage: "waveform.path.ecg")
-        }
-        .disabled(!isAdmin)
+          Button {
+            analyzeOneshot()
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
 
-        Button {
-          refreshMetadata()
-        } label: {
-          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          Button {
+            refreshMetadata()
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
         }
-        .disabled(!isAdmin)
 
         Divider()
 
@@ -424,12 +423,13 @@ struct OneshotDetailView: View {
 
         Divider()
 
-        Button(role: .destructive) {
-          showDeleteConfirmation = true
-        } label: {
-          Label("Delete Oneshot", systemImage: "trash")
+        if isAdmin {
+          Button(role: .destructive) {
+            showDeleteConfirmation = true
+          } label: {
+            Label("Delete Oneshot", systemImage: "trash")
+          }
         }
-        .disabled(!isAdmin)
 
         Button(role: .destructive) {
           clearCache()

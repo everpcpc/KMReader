@@ -38,14 +38,14 @@ import SwiftUI
 
           Section("Management") {
             SettingsSectionRow(section: .libraries)
-            SettingsSectionRow(section: .serverInfo)
-              .disabled(!isAdmin)
-            SettingsSectionRow(
-              section: .tasks,
-              badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
-              badgeColor: themeColor.color
-            )
-            .disabled(!isAdmin)
+            if isAdmin {
+              SettingsSectionRow(section: .serverInfo)
+              SettingsSectionRow(
+                section: .tasks,
+                badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
+                badgeColor: themeColor.color
+              )
+            }
           }
 
           Section("Account") {

@@ -317,28 +317,27 @@ extension SeriesDetailView {
       .toolbarButtonStyle()
 
       Menu {
-        Button {
-          showEditSheet = true
-        } label: {
-          Label("Edit", systemImage: "pencil")
-        }
-        .disabled(!isAdmin)
+        if isAdmin {
+          Button {
+            showEditSheet = true
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
 
-        Divider()
+          Divider()
 
-        Button {
-          analyzeSeries()
-        } label: {
-          Label("Analyze", systemImage: "waveform.path.ecg")
-        }
-        .disabled(!isAdmin)
+          Button {
+            analyzeSeries()
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
 
-        Button {
-          refreshSeriesMetadata()
-        } label: {
-          Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          Button {
+            refreshSeriesMetadata()
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
         }
-        .disabled(!isAdmin)
 
         Divider()
 
@@ -370,12 +369,13 @@ extension SeriesDetailView {
 
         Divider()
 
-        Button(role: .destructive) {
-          showDeleteConfirmation = true
-        } label: {
-          Label("Delete Series", systemImage: "trash")
+        if isAdmin {
+          Button(role: .destructive) {
+            showDeleteConfirmation = true
+          } label: {
+            Label("Delete Series", systemImage: "trash")
+          }
         }
-        .disabled(!isAdmin)
       } label: {
         Image(systemName: "ellipsis.circle")
       }
