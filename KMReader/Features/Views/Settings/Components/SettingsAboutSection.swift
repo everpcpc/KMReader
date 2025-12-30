@@ -43,6 +43,15 @@ struct SettingsAboutSection: View {
             .foregroundColor(.secondary)
         }
       }
+      Link(destination: URL(string: "https://kmreader.everpcpc.com/terms/")!) {
+        HStack {
+          Label(String(localized: "Terms of Use"), systemImage: "doc.text")
+          Spacer()
+          Image(systemName: "arrow.up.right.square")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
       Link(destination: URL(string: "https://kmreader.userjot.com/")!) {
         HStack {
           Label(String(localized: "Feedback"), systemImage: "paperplane")

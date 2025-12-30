@@ -38,6 +38,8 @@ struct SubscriptionView: View {
             }
 
             restoreButton
+
+            legalLinksSection
           }
         }
         .padding()
@@ -212,6 +214,27 @@ struct SubscriptionView: View {
     }
     .disabled(StoreManager.shared.isLoading)
     .padding(.top, 16)
+  }
+
+  private var legalLinksSection: some View {
+    VStack(spacing: 8) {
+      HStack(spacing: 16) {
+        Link(destination: URL(string: "https://kmreader.everpcpc.com/terms/")!) {
+          Text(String(localized: "Terms of Use"))
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        Text("·")
+          .font(.caption)
+          .foregroundColor(.secondary)
+        Link(destination: URL(string: "https://kmreader.everpcpc.com/privacy/")!) {
+          Text(String(localized: "Privacy Policy"))
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
+    }
+    .padding(.top, 8)
   }
 
   private func purchase(_ product: Product) async {
