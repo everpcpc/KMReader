@@ -10,19 +10,20 @@ import SwiftUI
 struct BookActionsSection: View {
   let book: Book
   var seriesLink: Bool
-  var onRead: (Bool) -> Void
+
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   var body: some View {
     HStack {
       Button {
-        onRead(false)
+        readerPresentation.present(book: book, incognito: false)
       } label: {
         Label("Read", systemImage: "book.pages")
       }
       .adaptiveButtonStyle(.borderedProminent)
 
       Button {
-        onRead(true)
+        readerPresentation.present(book: book, incognito: true)
       } label: {
         Label("Read Incognito", systemImage: "eye.slash")
       }
