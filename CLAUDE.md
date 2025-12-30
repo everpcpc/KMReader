@@ -166,6 +166,7 @@ KMReader/
 - **AppConfig**: Centralizes UserDefaults (server URL, tokens, SSE toggles, reader preferences, cache budgets, API timeout/retry settings)
 - **Caches**: Multi-tier caching scoped per Komga instance via `CacheNamespace` (managed by `CacheManager`)
 - Use `@AppStorage` in views, `AppConfig` elsewhere
+- When building JSON strings for storage or cache keys, use `JSONSerialization` with `sortedKeys` to keep raw values stable and prevent redundant updates.
 
 **Networking**
 

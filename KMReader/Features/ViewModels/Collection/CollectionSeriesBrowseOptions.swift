@@ -22,10 +22,18 @@ struct CollectionSeriesBrowseOptions: Equatable, RawRepresentable {
 
   var rawValue: String {
     let dict: [String: String] = [
-      "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.joined(separator: ","),
-      "excludeReadStatuses": excludeReadStatuses.map { $0.rawValue }.joined(separator: ","),
-      "includeSeriesStatuses": includeSeriesStatuses.map { $0.apiValue }.joined(separator: ","),
-      "excludeSeriesStatuses": excludeSeriesStatuses.map { $0.apiValue }.joined(separator: ","),
+      "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.sorted().joined(
+        separator: ","
+      ),
+      "excludeReadStatuses": excludeReadStatuses.map { $0.rawValue }.sorted().joined(
+        separator: ","
+      ),
+      "includeSeriesStatuses": includeSeriesStatuses.map { $0.apiValue }.sorted().joined(
+        separator: ","
+      ),
+      "excludeSeriesStatuses": excludeSeriesStatuses.map { $0.apiValue }.sorted().joined(
+        separator: ","
+      ),
       "seriesStatusLogic": seriesStatusLogic.rawValue,
       "completeFilter": completeFilter.storageValue,
       "oneshotFilter": oneshotFilter.storageValue,

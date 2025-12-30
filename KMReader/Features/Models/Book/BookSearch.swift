@@ -22,7 +22,7 @@ struct BookSearch: Encodable {
 
     if let condition = condition {
       // Use JSONSerialization to encode the condition dictionary
-      let conditionJSON = try JSONSerialization.data(withJSONObject: condition)
+      let conditionJSON = try JSONSerialization.data(withJSONObject: condition, options: [.sortedKeys])
       // Decode it back to a proper Codable structure
       let conditionDict = try JSONDecoder().decode([String: JSONAny].self, from: conditionJSON)
       try container.encodeIfPresent(conditionDict, forKey: .condition)

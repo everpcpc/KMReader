@@ -104,7 +104,7 @@ class CollectionService {
     }
 
     let body = ["name": name, "ordered": ordered, "seriesIds": seriesIds] as [String: Any]
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     return try await apiClient.request(
       path: "/api/v1/collections",
       method: "POST",
@@ -157,7 +157,7 @@ class CollectionService {
 
   private func updateCollectionSeriesIds(collectionId: String, seriesIds: [String]) async throws {
     let body = ["seriesIds": seriesIds] as [String: Any]
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/collections/\(collectionId)",
       method: "PATCH",
@@ -175,7 +175,7 @@ class CollectionService {
     if let ordered = ordered {
       body["ordered"] = ordered
     }
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/collections/\(collectionId)",
       method: "PATCH",

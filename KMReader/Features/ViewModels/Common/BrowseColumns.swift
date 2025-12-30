@@ -26,7 +26,7 @@ struct BrowseColumns: Equatable, RawRepresentable {
       "portrait": portrait,
       "landscape": landscape,
     ]
-    if let data = try? JSONSerialization.data(withJSONObject: dict),
+    if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys]),
       let json = String(data: data, encoding: .utf8)
     {
       return json

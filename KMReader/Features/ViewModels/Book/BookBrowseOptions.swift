@@ -24,8 +24,12 @@ struct BookBrowseOptions: Equatable, RawRepresentable {
 
   var rawValue: String {
     let dict: [String: String] = [
-      "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.joined(separator: ","),
-      "excludeReadStatuses": excludeReadStatuses.map { $0.rawValue }.joined(separator: ","),
+      "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.sorted().joined(
+        separator: ","
+      ),
+      "excludeReadStatuses": excludeReadStatuses.map { $0.rawValue }.sorted().joined(
+        separator: ","
+      ),
       "oneshotFilter": oneshotFilter.storageValue,
       "deletedFilter": deletedFilter.storageValue,
       "sortField": sortField.rawValue,

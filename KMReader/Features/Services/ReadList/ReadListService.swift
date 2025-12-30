@@ -98,7 +98,7 @@ class ReadListService {
 
     let body =
       ["name": name, "summary": summary, "ordered": ordered, "bookIds": bookIds] as [String: Any]
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     return try await apiClient.request(
       path: "/api/v1/readlists",
       method: "POST",
@@ -151,7 +151,7 @@ class ReadListService {
 
   private func updateReadListBookIds(readListId: String, bookIds: [String]) async throws {
     let body = ["bookIds": bookIds] as [String: Any]
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/readlists/\(readListId)",
       method: "PATCH",
@@ -172,7 +172,7 @@ class ReadListService {
     if let ordered = ordered {
       body["ordered"] = ordered
     }
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/readlists/\(readListId)",
       method: "PATCH",

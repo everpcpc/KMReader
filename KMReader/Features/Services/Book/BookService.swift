@@ -184,7 +184,7 @@ class BookService {
 
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async throws {
     let body = ["page": page, "completed": completed] as [String: Any]
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
 
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/read-progress",
@@ -254,7 +254,7 @@ class BookService {
 
     // Use PATCH with completed: true and the last page number
     let body = ["page": lastPage, "completed": true] as [String: Any]
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
+    let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
 
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/read-progress",
@@ -336,7 +336,7 @@ class BookService {
   }
 
   func updateBookMetadata(bookId: String, metadata: [String: Any]) async throws {
-    let jsonData = try JSONSerialization.data(withJSONObject: metadata)
+    let jsonData = try JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/metadata",
       method: "PATCH",
