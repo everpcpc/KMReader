@@ -105,9 +105,6 @@ class AuthService {
     // Clear local data
     apiClient.setAuthToken("")
     AppConfig.clearAuthData()
-
-    // Clear library data
-    LibraryManager.shared.clearAllLibraries()
   }
 
   func validate(serverURL: String) async throws {

@@ -62,18 +62,6 @@ class LibraryManager {
     await loadLibraries()
   }
 
-  func clearAllLibraries() {
-    hasLoaded = false
-    loadedInstanceId = nil
-    Task {
-      do {
-        try await DatabaseOperator.shared.deleteLibraries(instanceId: nil)
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-  }
-
   func removeLibraries(for instanceId: String) {
     Task {
       do {
