@@ -57,18 +57,18 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsLibraries) {
             SettingsSectionRow(section: .libraries)
           }
-          NavigationLink(value: NavDestination.settingsServerInfo) {
-            SettingsSectionRow(section: .serverInfo)
+          if isAdmin {
+            NavigationLink(value: NavDestination.settingsServerInfo) {
+              SettingsSectionRow(section: .serverInfo)
+            }
+            NavigationLink(value: NavDestination.settingsTasks) {
+              SettingsSectionRow(
+                section: .tasks,
+                badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
+                badgeColor: themeColor.color
+              )
+            }
           }
-          .disabled(!isAdmin)
-          NavigationLink(value: NavDestination.settingsTasks) {
-            SettingsSectionRow(
-              section: .tasks,
-              badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
-              badgeColor: themeColor.color
-            )
-          }
-          .disabled(!isAdmin)
         }
 
         Section(header: Text(String(localized: "Account"))) {

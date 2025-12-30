@@ -180,21 +180,21 @@ extension CollectionDetailView {
   @ViewBuilder
   private var actionsMenu: some View {
     Menu {
-      Button {
-        showEditSheet = true
-      } label: {
-        Label("Edit", systemImage: "pencil")
-      }
-      .disabled(!isAdmin)
+      if isAdmin {
+        Button {
+          showEditSheet = true
+        } label: {
+          Label("Edit", systemImage: "pencil")
+        }
 
-      Divider()
+        Divider()
 
-      Button(role: .destructive) {
-        showDeleteConfirmation = true
-      } label: {
-        Label("Delete Collection", systemImage: "trash")
+        Button(role: .destructive) {
+          showDeleteConfirmation = true
+        } label: {
+          Label("Delete Collection", systemImage: "trash")
+        }
       }
-      .disabled(!isAdmin)
     } label: {
       Image(systemName: "ellipsis.circle")
     }
