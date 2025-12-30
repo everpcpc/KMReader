@@ -87,7 +87,6 @@ struct SettingsTasksView: View {
                         .font(.subheadline)
                       Spacer()
                       Text("\(count)")
-                        .font(.body)
                         .fontWeight(.semibold)
                         .foregroundColor(count > 0 ? themeColor.color : .secondary)
                         .contentTransition(.numericText())

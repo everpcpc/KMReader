@@ -138,7 +138,6 @@ struct SeriesEditSheet: View {
             VStack(alignment: .leading) {
               HStack {
                 Text(alternateTitles[index].label)
-                  .font(.body)
                 Spacer()
                 Button(role: .destructive) {
                   let indexToRemove = index
@@ -262,7 +261,6 @@ struct SeriesEditSheet: View {
             VStack(alignment: .leading) {
               HStack {
                 Text(links[index].label)
-                  .font(.body)
                 Spacer()
                 Button(role: .destructive) {
                   let indexToRemove = index

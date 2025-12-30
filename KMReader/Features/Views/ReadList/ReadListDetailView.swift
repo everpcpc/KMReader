@@ -109,6 +109,8 @@ struct ReadListDetailView: View {
       geometry.size
     } action: { newSize in
       let newContentWidth = max(0, newSize.width)
+      // Skip anomalous widths during app transitions
+      guard PlatformHelper.isValidWidth(newContentWidth) else { return }
       if abs(containerWidth - newContentWidth) > 1 {
         containerWidth = newContentWidth
         layoutHelper = BrowseLayoutHelper(

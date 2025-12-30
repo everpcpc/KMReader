@@ -83,7 +83,6 @@ struct ExpandableSummaryView: View {
       titleView
 
       Text(summary)
-        .font(.body)
         .foregroundColor(.primary)
         .lineLimit(isExpanded ? nil : collapsedLineLimit)
         .animation(.easeInOut(duration: 0.2), value: isExpanded)
@@ -91,7 +90,6 @@ struct ExpandableSummaryView: View {
           GeometryReader { geometry in
             VStack(spacing: 0) {
               Text(summary)
-                .font(.body)
                 .lineLimit(collapsedLineLimit)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(width: geometry.size.width, alignment: .leading)
@@ -106,7 +104,6 @@ struct ExpandableSummaryView: View {
                 )
 
               Text(summary)
-                .font(.body)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(width: geometry.size.width, alignment: .leading)
                 .background(

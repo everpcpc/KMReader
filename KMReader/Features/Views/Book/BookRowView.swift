@@ -72,7 +72,6 @@ struct BookRowView: View {
                 .lineLimit(1)
             }
             Text("#\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
-              .font(.body)
               .foregroundColor(completed ? .secondary : .primary)
               .lineLimit(bookTitleLineLimit)
           }
