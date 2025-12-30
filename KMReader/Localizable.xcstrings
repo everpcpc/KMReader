@@ -118,6 +118,9 @@
       },
       "shouldTranslate" : false
     },
+    "·" : {
+      "shouldTranslate" : false
+    },
     "#%@ - %@" : {
       "localizations" : {
         "en" : {
@@ -27486,6 +27489,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "任務總耗時"
+          }
+        }
+      }
+    },
+    "Terms of Use" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conditions d'utilisation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用規約"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이용약관"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用条款"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用條款"
           }
         }
       }
