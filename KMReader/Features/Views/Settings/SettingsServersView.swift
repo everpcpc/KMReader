@@ -243,11 +243,12 @@ struct SettingsServersView: View {
     if isActive(instance) {
       authViewModel.logout()
     }
+    // Clear libraries (sync)
+    let instanceId = instance.id.uuidString
+    LibraryManager.shared.removeLibraries(for: instanceId)
     modelContext.delete(instance)
     saveChanges()
     instancePendingDeletion = nil
-
-    let instanceId = instance.id.uuidString
 
     // Clear SwiftData entities and offline data (async)
     Task {
@@ -256,9 +257,6 @@ struct SettingsServersView: View {
       OfflineManager.removeOfflineData(for: instanceId)
       CacheManager.clearCaches(instanceId: instanceId)
     }
-
-    // Clear libraries (sync)
-    LibraryManager.shared.removeLibraries(for: instanceId)
   }
 
   private func saveChanges() {
