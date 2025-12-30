@@ -38,7 +38,7 @@ struct CardPlaceholder: View {
     case .list:
       RoundedRectangle(cornerRadius: 8)
         .fill(Color.gray.opacity(0.2))
-        .frame(height: 60)
+        .frame(height: 60 * ratio)
     }
   }
 }
