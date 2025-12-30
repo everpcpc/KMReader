@@ -34,7 +34,7 @@ struct ReadingProgressBar: View {
             height: progressBarHeight
           )
       }
-      .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+      .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
     }
     .frame(height: progressBarHeight)
     .padding(progressBarHeight)
