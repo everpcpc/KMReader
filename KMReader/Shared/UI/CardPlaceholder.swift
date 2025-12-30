@@ -20,15 +20,15 @@ struct CardPlaceholder: View {
     switch layout {
     case .grid:
       VStack(alignment: .leading, spacing: 12) {
-        RoundedRectangle(cornerRadius: 4)
-          .fill(Color.gray.opacity(0.3))
+        RoundedRectangle(cornerRadius: 8)
+          .fill(Color.gray.opacity(0.2))
           .frame(width: cardWidth, height: cardWidth * ratio)
         if !coverOnlyCards {
           VStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2)
+            RoundedRectangle(cornerRadius: 8)
               .fill(Color.gray.opacity(0.2))
               .frame(height: 14)
-            RoundedRectangle(cornerRadius: 2)
+            RoundedRectangle(cornerRadius: 8)
               .fill(Color.gray.opacity(0.15))
               .frame(width: cardWidth * 0.6, height: 12)
           }
@@ -36,8 +36,8 @@ struct CardPlaceholder: View {
       }
       .frame(width: cardWidth)
     case .list:
-      RoundedRectangle(cornerRadius: 4)
-        .fill(Color.gray.opacity(0.3))
+      RoundedRectangle(cornerRadius: 8)
+        .fill(Color.gray.opacity(0.2))
         .frame(height: 60)
     }
   }
