@@ -52,7 +52,7 @@ struct NextBookInfoView: View {
             .font(.footnote)
             .multilineTextAlignment(.center)
           HStack(spacing: 4) {
-            Text("\(nextBook.media.pagesCount)")
+            Text("\(nextBook.media.pagesCount) pages")
             Text("•")
             Text(nextBook.size)
           }
