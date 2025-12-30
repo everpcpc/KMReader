@@ -183,6 +183,7 @@ class AuthViewModel {
         AppConfig.serverDisplayName = instance.displayName
 
         AppConfig.dashboard.libraryIds = []
+        AppConfig.dashboardSectionCache = DashboardSectionCache()
         AppConfig.serverLastUpdate = nil
 
         // Switch to offline mode
@@ -232,6 +233,7 @@ class AuthViewModel {
     }
 
     AppConfig.dashboard.libraryIds = []
+    AppConfig.dashboardSectionCache = DashboardSectionCache()
     AppConfig.serverLastUpdate = nil
 
     // Persist instance if this is a new login
