@@ -23,10 +23,10 @@
 ## ✨ Highlights
 
 - **Multi-server vault**: Save unlimited Komga servers with password or API key authentication.
-- **Cloud-drive-like offline**: Background downloads with Live Activity on iOS. Offline policies (manual, latest, all) per series. Progress syncs when connection restores.
-- **Browse + dashboards**: Search, filters, grid/list layouts. Customizable dashboard sections per library.
-- **Readers**: DIVINA (LTR/RTL/vertical/Webtoon) with spreads, zoom, tap zones, and exports. EPUB with custom fonts/themes, pagination, TOC navigation, and incognito mode.
-- **Admin tools**: Metadata editing, scans, task management, and live metrics via SSE.
+- **Cloud-drive-like offline**: Background downloads with Live Activity on iOS. Offline policies (manual, latest, all) per series. Read lists and collections stay available offline. Progress syncs when connection restores.
+- **Browse + dashboards**: Search, filters, grid/list layouts. Customizable dashboard sections per library with faster first paint and stable refresh.
+- **Readers**: DIVINA (LTR/RTL/vertical/Webtoon) with spreads, zoom, tap zones, page transition styles, and exports. EPUB with custom fonts/themes, pagination, TOC navigation, and incognito mode.
+- **Admin tools**: Metadata editing, scans, task management, live metrics via SSE, and an in-app log viewer with filtering.
 - **Caching**: Three-tier caches (pages, books, thumbnails) with adjustable limits and auto-cleanup.
 
 ---
