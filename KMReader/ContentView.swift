@@ -37,7 +37,7 @@ struct ContentView: View {
           if isReady {
             #if os(macOS)
               MainSplitView()
-            #else
+            #elseif os(iOS)
               if PlatformHelper.isPad {
                 MainSplitView()
               } else {
@@ -46,6 +46,12 @@ struct ContentView: View {
                 } else {
                   OldTabView()
                 }
+              }
+            #elseif os(tvOS)
+              if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
+                MainTabView()
+              } else {
+                OldTabView()
               }
             #endif
           } else {
