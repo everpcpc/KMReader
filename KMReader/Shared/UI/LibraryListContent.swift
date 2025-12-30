@@ -354,7 +354,7 @@ struct LibraryListContent: View {
       firstLineParts.append(
         formatMetricCount(
           key: "library.list.metrics.series",
-          defaultValue: "%@ series",
+          defaultValue: "%lld series",
           value: seriesCount
         ))
     }
@@ -362,7 +362,7 @@ struct LibraryListContent: View {
       firstLineParts.append(
         formatMetricCount(
           key: "library.list.metrics.books",
-          defaultValue: "%@ books",
+          defaultValue: "%lld books",
           value: booksCount
         ))
     }
@@ -370,7 +370,7 @@ struct LibraryListContent: View {
       firstLineParts.append(
         formatMetricCount(
           key: "library.list.metrics.sidecars",
-          defaultValue: "%@ sidecars",
+          defaultValue: "%lld sidecars",
           value: sidecarsCount
         ))
     }
@@ -384,7 +384,7 @@ struct LibraryListContent: View {
       secondLineParts.append(
         formatMetricCount(
           key: "library.list.metrics.collections",
-          defaultValue: "%@ collections",
+          defaultValue: "%lld collections",
           value: collectionsCount
         ))
     }
@@ -392,7 +392,7 @@ struct LibraryListContent: View {
       secondLineParts.append(
         formatMetricCount(
           key: "library.list.metrics.readlists",
-          defaultValue: "%@ read lists",
+          defaultValue: "%lld read lists",
           value: readlistsCount
         ))
     }

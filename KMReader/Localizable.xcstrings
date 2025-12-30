@@ -866,12 +866,6 @@
     },
     "%lld+" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld+"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13099,34 +13093,16 @@
     },
     "Layout" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Layout"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Layout"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diseño"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mise en page"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Layout"
           }
         },
         "ja" : {
@@ -13139,12 +13115,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "레이아웃"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Layout"
           }
         },
         "zh-Hans" : {
@@ -13366,37 +13336,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ books"
+            "value" : "%lld books"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ livres"
+            "value" : "%lld livres"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 冊"
+            "value" : "%lld 冊"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 권"
+            "value" : "%lld 권"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 本书"
+            "value" : "%lld 本书"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 本書"
+            "value" : "%lld 本書"
           }
         }
       }
@@ -13406,7 +13376,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ collections"
+            "value" : "%lld collections"
           }
         },
         "fr" : {
@@ -13424,19 +13394,19 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 모음집"
+            "value" : "%lld 모음집"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 个收藏"
+            "value" : "%lld 个收藏"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 個收藏"
+            "value" : "%lld 個收藏"
           }
         }
       }
@@ -13446,7 +13416,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ read lists"
+            "value" : "%lld read lists"
           }
         },
         "fr" : {
@@ -13464,19 +13434,19 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 읽기 목록"
+            "value" : "%lld 읽기 목록"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 个阅读列表"
+            "value" : "%lld 个阅读列表"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 個閱讀列表"
+            "value" : "%lld 個閱讀列表"
           }
         }
       }
@@ -13486,37 +13456,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ series"
+            "value" : "%lld series"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ séries"
+            "value" : "%lld séries"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ シリーズ"
+            "value" : "%lld シリーズ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 시리즈"
+            "value" : "%lld 시리즈"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 个系列"
+            "value" : "%lld 个系列"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 個系列"
+            "value" : "%lld 個系列"
           }
         }
       }
@@ -13526,37 +13496,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ sidecars"
+            "value" : "%lld sidecars"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ sidecars"
+            "value" : "%lld sidecars"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ サイドカー"
+            "value" : "%lld サイドカー"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 사이드카"
+            "value" : "%lld 사이드카"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 个附加文件"
+            "value" : "%lld 个附加文件"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 個附加檔案"
+            "value" : "%lld 個附加檔案"
           }
         }
       }
@@ -14163,34 +14133,16 @@
     },
     "Logs" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protokolle"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Logs"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registros"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Journaux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registri"
           }
         },
         "ja" : {
@@ -14203,12 +14155,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "로그"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registros"
           }
         },
         "zh-Hans" : {
@@ -14877,34 +14823,16 @@
     },
     "Network" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Netzwerk"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Network"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Red"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Réseau"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rete"
           }
         },
         "ja" : {
@@ -14917,12 +14845,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "네트워크"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rede"
           }
         },
         "zh-Hans" : {
@@ -21399,31 +21321,13 @@
     },
     "s" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "s"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "s"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "s"
-          }
-        },
         "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "s"
-          }
-        },
-        "it" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "s"
@@ -21439,12 +21343,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "초"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "s"
           }
         },
         "zh-Hans" : {
@@ -24623,34 +24521,16 @@
     },
     "settings.logs.empty" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Protokolle gefunden"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No logs found"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se encontraron registros"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucun journal trouvé"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun registro trovato"
           }
         },
         "ja" : {
@@ -24663,12 +24543,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "로그를 찾을 수 없음"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nenhum registro encontrado"
           }
         },
         "zh-Hans" : {
@@ -24687,34 +24561,16 @@
     },
     "settings.logs.search" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protokolle durchsuchen..."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search logs..."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar registros..."
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rechercher dans les journaux..."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cerca registri..."
           }
         },
         "ja" : {
@@ -24727,12 +24583,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "로그 검색..."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pesquisar registros..."
           }
         },
         "zh-Hans" : {
@@ -24751,34 +24601,16 @@
     },
     "settings.network.api_retry_count.description" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anzahl der Wiederholungsversuche für fehlgeschlagene Anfragen (außer 401)."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Number of retries for failed requests (excluding 401)."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Número de reintentos para solicitudes fallidas (excluyendo 401)."
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nombre de tentatives pour les requêtes échouées (hors 401)."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Numero di tentativi per le richieste fallite (escluso 401)."
           }
         },
         "ja" : {
@@ -24791,12 +24623,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "실패한 요청에 대한 재시도 횟수(401 제외)."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Número de tentativas para solicitações falhas (excluindo 401)."
           }
         },
         "zh-Hans" : {
@@ -24815,34 +24641,16 @@
     },
     "settings.network.api_retry_count.label" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "API-Wiederholungsanzahl"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "API Retry Count"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reintentos de API"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nombre de tentatives API"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conteggio tentativi API"
           }
         },
         "ja" : {
@@ -24855,12 +24663,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API 재시도 횟수"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contagem de repetição da API"
           }
         },
         "zh-Hans" : {
@@ -24879,34 +24681,16 @@
     },
     "settings.network.api_timeout.description" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeitüberschreitung für API-Anfragen in Sekunden. Standard ist 10s."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Timeout for API requests in seconds. Default is 10s."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tiempo de espera para solicitudes API en segundos. El valor predeterminado es 10s."
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Délai d'attente pour les requêtes API en secondes. La valeur par défaut est de 10s."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timeout per le richieste API in secondi. Il valore predefinito è 10s."
           }
         },
         "ja" : {
@@ -24919,12 +24703,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API 요청 시간 제한(초). 기본값은 10초입니다."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tempo limite para solicitações de API em segundos. O padrão é 10s."
           }
         },
         "zh-Hans" : {
@@ -24943,34 +24721,16 @@
     },
     "settings.network.api_timeout.label" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "API-Zeitüberschreitung"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "API Timeout"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tiempo de espera de API"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Délai d'expiration API"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timeout API"
           }
         },
         "ja" : {
@@ -24983,12 +24743,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "API 시간 제한"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timeout da API"
           }
         },
         "zh-Hans" : {
@@ -25007,19 +24761,7 @@
     },
     "settings.network.general" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allgemein"
-          }
-        },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "General"
-          }
-        },
-        "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "General"
@@ -25029,12 +24771,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Général"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Generale"
           }
         },
         "ja" : {
@@ -25047,12 +24783,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "일반"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geral"
           }
         },
         "zh-Hans" : {
@@ -25391,34 +25121,16 @@
     },
     "Share" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Teilen"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Share"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compartir"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Partager"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Condividi"
           }
         },
         "ja" : {
@@ -25431,12 +25143,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "공유"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compartilhar"
           }
         },
         "zh-Hans" : {
@@ -28043,34 +27749,16 @@
     },
     "Timeout Seconds" : {
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeitüberschreitung (Sekunden)"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Timeout Seconds"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segundos de tiempo de espera"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Délai d'expiration (secondes)"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timeout (secondi)"
           }
         },
         "ja" : {
@@ -28083,12 +27771,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "시간 제한(초)"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segundos de tempo limite"
           }
         },
         "zh-Hans" : {
