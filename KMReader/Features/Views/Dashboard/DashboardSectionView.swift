@@ -28,6 +28,8 @@ struct DashboardSectionView: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
     PlatformHelper.defaultDashboardCardWidth)
+  @AppStorage("dashboardSectionCache") private var sectionCache: DashboardSectionCache =
+    DashboardSectionCache()
   @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -180,6 +182,9 @@ struct DashboardSectionView: View {
             size: pagination.pageSize
           ) {
             let ids = page.content.map { $0.id }
+            if isFirstPage {
+              sectionCache.update(section: section, ids: ids)
+            }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
         } else {
@@ -189,6 +194,9 @@ struct DashboardSectionView: View {
             size: pagination.pageSize
           ) {
             let ids = page.content.map { $0.id }
+            if isFirstPage {
+              sectionCache.update(section: section, ids: ids)
+            }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
         }
@@ -206,23 +214,7 @@ struct DashboardSectionView: View {
     guard isFirstPage, !didSeedFromCache, pagination.isEmpty else { return }
     didSeedFromCache = true
 
-    let cachedIds: [String]
-    if section.isBookSection {
-      cachedIds = section.fetchOfflineBookIds(
-        context: modelContext,
-        libraryIds: libraryIds,
-        offset: 0,
-        limit: pagination.pageSize
-      )
-    } else {
-      cachedIds = section.fetchOfflineSeriesIds(
-        context: modelContext,
-        libraryIds: libraryIds,
-        offset: 0,
-        limit: pagination.pageSize
-      )
-    }
-
+    let cachedIds = sectionCache.ids(for: section)
     guard !cachedIds.isEmpty else { return }
     withAnimation {
       pagination.items = cachedIds.map(IdentifiedString.init)

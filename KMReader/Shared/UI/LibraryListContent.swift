@@ -41,7 +41,7 @@ struct LibraryListContent: View {
     onLibrarySelected: ((String?) -> Void)? = nil,
     onDeleteLibrary: ((KomgaLibrary) -> Void)? = nil
   ) {
-    let initialSelection = AppConfig.dashboardConfiguration.libraryIds
+    let initialSelection = AppConfig.dashboard.libraryIds
     self.showDeleteAction = showDeleteAction
     self.loadMetrics = loadMetrics
     self.alwaysRefreshMetrics = alwaysRefreshMetrics

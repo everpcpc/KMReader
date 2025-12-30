@@ -82,12 +82,10 @@ class AuthViewModel {
     Task {
       try? await authService.logout()
     }
+    // ViewModel-specific cleanup
     AppConfig.isLoggedIn = false
-    AppConfig.serverLastUpdate = nil
     user = nil
     credentialsVersion = UUID()
-    LibraryManager.shared.clearAllLibraries()
-    AppConfig.clearSelectedLibraryIds()
   }
 
   func validate(serverURL: String) async throws {
@@ -184,7 +182,7 @@ class AuthViewModel {
         AppConfig.currentInstanceId = instance.id.uuidString
         AppConfig.serverDisplayName = instance.displayName
 
-        AppConfig.clearSelectedLibraryIds()
+        AppConfig.dashboard.libraryIds = []
         AppConfig.serverLastUpdate = nil
 
         // Switch to offline mode
@@ -233,7 +231,7 @@ class AuthViewModel {
       AppConfig.isOffline = false
     }
 
-    AppConfig.clearSelectedLibraryIds()
+    AppConfig.dashboard.libraryIds = []
     AppConfig.serverLastUpdate = nil
 
     // Persist instance if this is a new login

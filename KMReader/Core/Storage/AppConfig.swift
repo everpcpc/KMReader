@@ -172,20 +172,6 @@ enum AppConfig {
 
   // MARK: - Dashboard
 
-  static var dashboardConfiguration: DashboardConfiguration {
-    get {
-      guard let rawValue = UserDefaults.standard.string(forKey: "dashboard"),
-        let config = DashboardConfiguration(rawValue: rawValue)
-      else {
-        return DashboardConfiguration()
-      }
-      return config
-    }
-    set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "dashboard")
-    }
-  }
-
   static var dashboardCardWidth: CGFloat {
     get {
       if UserDefaults.standard.object(forKey: "dashboardCardWidth") != nil {
@@ -574,13 +560,17 @@ enum AppConfig {
     }
   }
 
-  // MARK: - Clear selected library IDs
-  static func clearSelectedLibraryIds() {
-    if let rawValue = UserDefaults.standard.string(forKey: "dashboard"),
-      var config = DashboardConfiguration(rawValue: rawValue)
-    {
-      config.libraryIds = []
-      UserDefaults.standard.set(config.rawValue, forKey: "dashboard")
+  static var dashboardSectionCache: DashboardSectionCache {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "dashboardSectionCache"),
+        let cache = DashboardSectionCache(rawValue: stored)
+      {
+        return cache
+      }
+      return DashboardSectionCache()
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "dashboardSectionCache")
     }
   }
 
@@ -591,8 +581,9 @@ enum AppConfig {
     username = ""
     serverDisplayName = ""
     isAdmin = false
-    clearSelectedLibraryIds()
     currentInstanceId = ""
     serverLastUpdate = nil
+    dashboard.libraryIds = []
+    dashboardSectionCache = DashboardSectionCache()
   }
 }
