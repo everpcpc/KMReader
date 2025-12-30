@@ -228,11 +228,7 @@ struct BookDetailView: View {
             book: book,
             seriesLink: true,
             onRead: { incognito in
-              readerPresentation.present(book: book, incognito: incognito) {
-                Task {
-                  await loadBook()
-                }
-              }
+              readerPresentation.present(book: book, incognito: incognito)
             }
           )
           Divider()

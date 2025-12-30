@@ -498,6 +498,7 @@ struct DivinaReaderView: View {
     if let book = await DatabaseOperator.shared.fetchBook(id: bookId) {
       currentBook = book
       seriesId = book.seriesId
+      readerPresentation.trackVisitedBook(bookId: book.id, seriesId: book.seriesId)
       initialPageNumber = incognito ? nil : book.readProgress?.page
     } else if !AppConfig.isOffline {
       // 2. Fetch from network if not in DB and online
@@ -505,6 +506,7 @@ struct DivinaReaderView: View {
         let book = try await SyncService.shared.syncBook(bookId: bookId)
         currentBook = book
         seriesId = book.seriesId
+        readerPresentation.trackVisitedBook(bookId: book.id, seriesId: book.seriesId)
         initialPageNumber = incognito ? nil : book.readProgress?.page
       } catch {
         // Fail silently

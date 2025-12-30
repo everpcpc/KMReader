@@ -275,6 +275,41 @@ class SyncService {
     await db.commit()
   }
 
+  /// Batch sync multiple books and series concurrently with a single commit
+  func syncVisitedItems(bookIds: Set<String>, seriesIds: Set<String>) async {
+    guard !bookIds.isEmpty || !seriesIds.isEmpty else { return }
+
+    let instanceId = AppConfig.currentInstanceId
+
+    // Fetch all books and series concurrently
+    await withTaskGroup(of: Void.self) { group in
+      for bookId in bookIds {
+        group.addTask {
+          do {
+            let book = try await BookService.shared.getBook(id: bookId)
+            await self.db.upsertBook(dto: book, instanceId: instanceId)
+          } catch {
+            // Silently ignore individual fetch failures
+          }
+        }
+      }
+
+      for seriesId in seriesIds {
+        group.addTask {
+          do {
+            let series = try await SeriesService.shared.getOneSeries(id: seriesId)
+            await self.db.upsertSeries(dto: series, instanceId: instanceId)
+          } catch {
+            // Silently ignore individual fetch failures
+          }
+        }
+      }
+    }
+
+    // Single commit after all fetches complete
+    await db.commit()
+  }
+
   func syncNextBook(bookId: String, readListId: String? = nil) async -> Book? {
     do {
       if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId)

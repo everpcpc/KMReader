@@ -12,7 +12,6 @@ import Observation
 @Observable
 final class ReaderPresentationManager {
   private(set) var readerState: BookReaderState?
-  private var onDismiss: (() -> Void)?
 
   var hideStatusBar: Bool = false
   var isDismissing: Bool = false
@@ -21,26 +20,41 @@ final class ReaderPresentationManager {
   /// Book ID used as source for zoom transition (iOS 18+)
   private(set) var sourceBookId: String?
 
+  /// Track all book IDs visited during this reader session
+  private(set) var visitedBookIds: Set<String> = []
+  /// Track all series IDs visited during this reader session
+  private(set) var visitedSeriesIds: Set<String> = []
+
   #if os(macOS)
     private var openWindowHandler: (() -> Void)?
     private var isWindowDrivenClose = false
   #endif
 
+  /// Track a visited book and its series during the current reader session
+  func trackVisitedBook(bookId: String, seriesId: String?) {
+    visitedBookIds.insert(bookId)
+    if let seriesId {
+      visitedSeriesIds.insert(seriesId)
+    }
+  }
+
   func present(
-    book: Book, incognito: Bool, readList: ReadList? = nil, onDismiss: (() -> Void)? = nil
+    book: Book, incognito: Bool, readList: ReadList? = nil
   ) {
     #if !os(macOS)
       // On iOS/tvOS we need to re-trigger the presentation cycle by dismissing first
       if readerState != nil {
-        closeReader(callHandler: false)
+        closeReader(syncVisited: false)
       }
     #endif
 
     isDismissing = false
     sourceBookId = book.id
+    // Reset tracking sets for new session
+    visitedBookIds = []
+    visitedSeriesIds = []
     let state = BookReaderState(book: book, incognito: incognito, readList: readList)
     readerState = state
-    self.onDismiss = onDismiss
 
     #if os(macOS)
       guard let openWindowHandler else {
@@ -60,13 +74,13 @@ final class ReaderPresentationManager {
     #endif
   }
 
-  func closeReader(callHandler: Bool = true) {
+  func closeReader(syncVisited: Bool = true) {
     guard readerState != nil else {
-      onDismiss = nil
       return
     }
 
     isDismissing = true
+    hideStatusBar = false
 
     #if os(macOS)
       if !isWindowDrivenClose {
@@ -76,12 +90,13 @@ final class ReaderPresentationManager {
       readerState = nil
     #endif
 
-    if callHandler {
-      let handler = onDismiss
-      onDismiss = nil
-      handler?()
-    } else {
-      onDismiss = nil
+    // Sync all visited books and series concurrently
+    if syncVisited && !visitedBookIds.isEmpty {
+      let bookIds = visitedBookIds
+      let seriesIds = visitedSeriesIds
+      Task {
+        await SyncService.shared.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
+      }
     }
 
     // iOS/tvOS: handle state cleanup

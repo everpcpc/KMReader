@@ -209,7 +209,7 @@ struct DashboardView: View {
           refreshDashboard(reason: "Deferred after reader closed")
         } else {
           // Refresh sections when reader is closed otherwise
-          refreshSections([.keepReading, .onDeck], reason: "Reader closed")
+          refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
         }
       }
       #if !os(tvOS)

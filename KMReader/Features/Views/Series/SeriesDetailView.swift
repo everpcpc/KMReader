@@ -459,19 +459,6 @@ struct SeriesDetailView: View {
 }
 
 extension SeriesDetailView {
-  private func presentReader(book: Book, incognito: Bool) {
-    readerPresentation.present(book: book, incognito: incognito) {
-      refreshAfterReading()
-    }
-  }
-
-  private func refreshAfterReading() {
-    Task {
-      await refreshSeriesData()
-      // Books list refreshes via SwiftData Query reactivity
-    }
-  }
-
   private func refreshSeriesData() async {
     do {
       // Sync from network to SwiftData (series property will update reactively)

@@ -293,11 +293,7 @@ struct OneshotDetailView: View {
             book: book,
             seriesLink: false,
             onRead: { incognito in
-              readerPresentation.present(book: book, incognito: incognito) {
-                Task {
-                  await refreshOneshotData()
-                }
-              }
+              readerPresentation.present(book: book, incognito: incognito)
             }
           )
 

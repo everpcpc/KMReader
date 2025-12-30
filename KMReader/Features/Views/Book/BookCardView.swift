@@ -61,9 +61,9 @@ struct BookCardView: View {
           ZStack {
             if let progressCompleted = komgaBook.progressCompleted {
               if !progressCompleted {
-                ThumbnailOverlayGradient(position: .bottom)
                 ReadingProgressBar(progress: progress)
                   .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                  .padding(2)
               }
             } else {
               UnreadIndicator()
