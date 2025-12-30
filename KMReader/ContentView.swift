@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct ContentView: View {
@@ -34,11 +35,19 @@ struct ContentView: View {
       if isLoggedIn {
         Group {
           if isReady {
-            if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
-              MainTabView()
-            } else {
-              OldTabView()
-            }
+            #if os(macOS)
+              MainSplitView()
+            #else
+              if PlatformHelper.isPad {
+                MainSplitView()
+              } else {
+                if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
+                  MainTabView()
+                } else {
+                  OldTabView()
+                }
+              }
+            #endif
           } else {
             SplashView(initializer: instanceInitializer)
           }
@@ -95,53 +104,28 @@ struct ContentView: View {
   }
 }
 
-@available(iOS 18.0, macOS 15.0, tvOS 18.0, *)
-struct MainTabView: View {
-  @State private var selectedTab: TabItem = .home
-
-  private var settingsTabRole: TabRole? {
-    #if os(iOS)
-      PlatformHelper.isPad ? nil : .search
-    #else
-      nil
-    #endif
-  }
-
-  var body: some View {
-    TabView(selection: $selectedTab) {
-      Tab(TabItem.home.title, systemImage: TabItem.home.icon, value: TabItem.home) {
-        TabItem.home.content
-      }
-
-      Tab(TabItem.browse.title, systemImage: TabItem.browse.icon, value: TabItem.browse) {
-        TabItem.browse.content
-      }
-
-      Tab(
-        TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings,
-        role: settingsTabRole
-      ) {
-        TabItem.settings.content
-      }
-    }
-    .tabBarMinimizeBehaviorIfAvailable()
-    .tabViewStyle(.sidebarAdaptable)
-  }
-}
-
 struct OldTabView: View {
   @State private var selectedTab: TabItem = .home
 
   var body: some View {
     TabView(selection: $selectedTab) {
-      TabItem.home.content
-        .tabItem { TabItem.home.label }
+      NavigationStack {
+        TabItem.home.content
+          .handleNavigation()
+      }
+      .tabItem { TabItem.home.label }
 
-      TabItem.browse.content
-        .tabItem { TabItem.browse.label }
+      NavigationStack {
+        TabItem.browse.content
+          .handleNavigation()
+      }
+      .tabItem { TabItem.browse.label }
 
-      TabItem.settings.content
-        .tabItem { TabItem.settings.label }
+      NavigationStack {
+        TabItem.settings.content
+          .handleNavigation()
+      }
+      .tabItem { TabItem.settings.label }
     }
   }
 }

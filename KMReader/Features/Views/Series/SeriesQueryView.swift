@@ -10,9 +10,6 @@ import SwiftUI
 
 struct SeriesQueryView: View {
   let browseOpts: SeriesBrowseOptions
-  let searchText: String
-  let libraryIds: [String]
-  let instanceId: String
   let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let viewModel: SeriesViewModel

@@ -9,6 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct ReadListsBrowseView: View {
+  let libraryIds: [String]
   let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
@@ -16,7 +17,6 @@ struct ReadListsBrowseView: View {
 
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = ReadListViewModel()
   @Environment(\.modelContext) private var modelContext
@@ -117,7 +117,7 @@ struct ReadListsBrowseView: View {
   private func loadReadLists(refresh: Bool) async {
     await viewModel.loadReadLists(
       context: modelContext,
-      libraryIds: dashboard.libraryIds,
+      libraryIds: libraryIds,
       sort: sortOpts.sortString,
       searchText: searchText,
       refresh: refresh

@@ -9,6 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct SeriesBrowseView: View {
+  let libraryIds: [String]
   let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
@@ -16,7 +17,6 @@ struct SeriesBrowseView: View {
 
   @AppStorage("seriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
@@ -35,9 +35,6 @@ struct SeriesBrowseView: View {
       SeriesQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
           ? SeriesBrowseOptions() : browseOpts,
-        searchText: searchText,
-        libraryIds: dashboard.libraryIds,
-        instanceId: AppConfig.currentInstanceId,
         layoutHelper: layoutHelper,
         browseLayout: browseLayout,
         viewModel: viewModel,
@@ -73,7 +70,7 @@ struct SeriesBrowseView: View {
       context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
-      libraryIds: dashboard.libraryIds,
+      libraryIds: libraryIds,
       refresh: refresh
     )
   }
