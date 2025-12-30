@@ -7,10 +7,18 @@
 
 import SwiftUI
 
-enum TabItem: String, CaseIterable, Hashable {
-  case home = "home"
-  case browse = "browse"
-  case settings = "settings"
+enum TabItem: Hashable, Identifiable {
+  case home
+  case browse
+  case settings
+
+  var id: String {
+    switch self {
+    case .home: return "home"
+    case .browse: return "browse"
+    case .settings: return "settings"
+    }
+  }
 
   var title: String {
     switch self {

@@ -9,13 +9,13 @@ import SwiftData
 import SwiftUI
 
 struct BooksBrowseView: View {
+  let libraryIds: [String]
   let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
   @State private var viewModel = BookViewModel()
@@ -34,9 +34,6 @@ struct BooksBrowseView: View {
 
       BooksQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
-        searchText: searchText,
-        libraryIds: dashboard.libraryIds,
-        instanceId: AppConfig.currentInstanceId,
         layoutHelper: layoutHelper,
         browseLayout: browseLayout,
         viewModel: viewModel,
@@ -72,7 +69,7 @@ struct BooksBrowseView: View {
       context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
-      libraryIds: dashboard.libraryIds,
+      libraryIds: libraryIds,
       refresh: refresh
     )
   }

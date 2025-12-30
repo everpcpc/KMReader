@@ -10,9 +10,6 @@ import SwiftUI
 
 struct BooksQueryView: View {
   let browseOpts: BookBrowseOptions
-  let searchText: String
-  let libraryIds: [String]
-  let instanceId: String
   let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let viewModel: BookViewModel

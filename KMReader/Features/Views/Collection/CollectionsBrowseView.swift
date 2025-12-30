@@ -9,6 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct CollectionsBrowseView: View {
+  let libraryIds: [String]
   let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
@@ -16,7 +17,6 @@ struct CollectionsBrowseView: View {
 
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = CollectionViewModel()
   @Environment(\.modelContext) private var modelContext
@@ -117,7 +117,7 @@ struct CollectionsBrowseView: View {
   private func loadCollections(refresh: Bool) async {
     await viewModel.loadCollections(
       context: modelContext,
-      libraryIds: dashboard.libraryIds,
+      libraryIds: libraryIds,
       sort: sortOpts.sortString,
       searchText: searchText,
       refresh: refresh
