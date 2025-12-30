@@ -219,7 +219,7 @@ struct SubscriptionView: View {
   private var legalLinksSection: some View {
     VStack(spacing: 8) {
       HStack(spacing: 16) {
-        Link(destination: URL(string: "https://kmreader.everpcpc.com/terms/")!) {
+        Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
           Text(String(localized: "Terms of Use"))
             .font(.caption)
             .foregroundColor(.secondary)
