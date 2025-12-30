@@ -67,6 +67,7 @@ final class ReaderPresentationManager {
     }
 
     isDismissing = true
+    hideStatusBar = false
 
     #if os(macOS)
       if !isWindowDrivenClose {
