@@ -52,13 +52,13 @@ struct ReadListDetailContentView: View {
               }
             }
             InfoChip(
-              labelKey: "Created: \(formatDate(readList.createdDate))",
+              labelKey: "Created: \(readList.createdDate.formattedMediumDate)",
               systemImage: "calendar.badge.plus",
               backgroundColor: Color.blue.opacity(0.2),
               foregroundColor: .blue
             )
             InfoChip(
-              labelKey: "Modified: \(formatDate(readList.lastModifiedDate))",
+              labelKey: "Modified: \(readList.lastModifiedDate.formattedMediumDate)",
               systemImage: "clock",
               backgroundColor: Color.purple.opacity(0.2),
               foregroundColor: .purple
@@ -67,12 +67,5 @@ struct ReadListDetailContentView: View {
         }
       }
     }
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
   }
 }

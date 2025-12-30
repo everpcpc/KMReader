@@ -100,7 +100,7 @@ struct OneShotDetailContentView: View {
             }
 
             InfoChip(
-              labelKey: "Last Read: \(formatDate(readProgress.readDate))",
+              labelKey: "Last Read: \(readProgress.readDate.formattedMediumDate)",
               systemImage: "book.closed",
               backgroundColor: Color.teal.opacity(0.2),
               foregroundColor: .teal
@@ -211,13 +211,13 @@ struct OneShotDetailContentView: View {
       // Created and last modified dates
       HStack(spacing: 6) {
         InfoChip(
-          labelKey: "Created: \(formatDate(book.created))",
+          labelKey: "Created: \(book.created.formattedMediumDate)",
           systemImage: "calendar.badge.plus",
           backgroundColor: Color.blue.opacity(0.2),
           foregroundColor: .blue
         )
         InfoChip(
-          labelKey: "Modified: \(formatDate(book.lastModified))",
+          labelKey: "Modified: \(book.lastModified.formattedMediumDate)",
           systemImage: "clock",
           backgroundColor: Color.purple.opacity(0.2),
           foregroundColor: .purple
@@ -400,12 +400,5 @@ struct OneShotDetailContentView: View {
         ExpandableSummaryView(summary: summary)
       }
     }
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
   }
 }

@@ -306,13 +306,6 @@ extension SeriesDetailView {
     }
   }
 
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
-  }
-
   @ViewBuilder
   private var seriesToolbarContent: some View {
     HStack(spacing: PlatformHelper.buttonSpacing) {

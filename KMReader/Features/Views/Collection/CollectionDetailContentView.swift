@@ -43,13 +43,13 @@ struct CollectionDetailContentView: View {
               }
             }
             InfoChip(
-              labelKey: "Created: \(formatDate(collection.createdDate))",
+              labelKey: "Created: \(collection.createdDate.formattedMediumDate)",
               systemImage: "calendar.badge.plus",
               backgroundColor: Color.blue.opacity(0.2),
               foregroundColor: .blue
             )
             InfoChip(
-              labelKey: "Modified: \(formatDate(collection.lastModifiedDate))",
+              labelKey: "Modified: \(collection.lastModifiedDate.formattedMediumDate)",
               systemImage: "clock",
               backgroundColor: Color.purple.opacity(0.2),
               foregroundColor: .purple
@@ -58,12 +58,5 @@ struct CollectionDetailContentView: View {
         }
       }
     }
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
   }
 }

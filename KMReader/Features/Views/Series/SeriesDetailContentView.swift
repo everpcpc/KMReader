@@ -181,13 +181,13 @@ struct SeriesDetailContentView: View {
 
       HStack(spacing: 6) {
         InfoChip(
-          labelKey: "Created: \(formatDate(series.created))",
+          labelKey: "Created: \(series.created.formattedMediumDate)",
           systemImage: "calendar.badge.plus",
           backgroundColor: Color.blue.opacity(0.2),
           foregroundColor: .blue
         )
         InfoChip(
-          labelKey: "Modified: \(formatDate(series.lastModified))",
+          labelKey: "Modified: \(series.lastModified.formattedMediumDate)",
           systemImage: "clock",
           backgroundColor: Color.purple.opacity(0.2),
           foregroundColor: .purple
@@ -314,12 +314,5 @@ struct SeriesDetailContentView: View {
       return true
     }
     return false
-  }
-
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
   }
 }
