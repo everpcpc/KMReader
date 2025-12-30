@@ -18604,13 +18604,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅未读（自动删除已读）"
+            "value" : "仅未读+自动清理"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅未讀（自動刪除已讀）"
+            "value" : "僅未讀+自動清理"
           }
         }
       }

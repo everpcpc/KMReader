@@ -125,7 +125,7 @@ struct SettingsTasksView: View {
                 HStack {
                   Label(taskType, systemImage: "gearshape")
                   Spacer()
-                  Text(formatNumber(count))
+                  Text("\(Int(count))")
                     .foregroundColor(.secondary)
                 }
                 .tvFocusableHighlight()
@@ -313,13 +313,6 @@ struct SettingsTasksView: View {
     }
 
     return (countByType, totalTimeByType, errors)
-  }
-
-  private func formatNumber(_ value: Double) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .decimal
-    formatter.maximumFractionDigits = 0
-    return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
   }
 }
 

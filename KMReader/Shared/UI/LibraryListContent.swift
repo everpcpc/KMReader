@@ -321,16 +321,9 @@ struct LibraryListContent: View {
       || library.sidecarsCount != nil
   }
 
-  private func formatNumber(_ value: Double) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .decimal
-    formatter.maximumFractionDigits = 0
-    return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
-  }
-
   private func formatMetricCount(key: String, defaultValue: String, value: Double) -> Text {
     let format = Bundle.main.localizedString(forKey: key, value: defaultValue, table: nil)
-    return Text(String.localizedStringWithFormat(format, formatNumber(value)))
+    return Text(String.localizedStringWithFormat(format, Int(value)))
   }
 
   private func joinText(_ parts: [Text], separator: String) -> Text? {
