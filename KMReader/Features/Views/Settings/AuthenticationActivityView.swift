@@ -88,11 +88,11 @@ struct AuthenticationActivityView: View {
         if let apiKeyComment = activity.apiKeyComment {
           HStack(spacing: 4) {
             Image(systemName: "key")
+              .font(.caption)
             Text(apiKeyComment)
               .font(.footnote)
-              .foregroundColor(.secondary)
               .lineLimit(1)
-          }
+          }.foregroundColor(.secondary)
         }
         Spacer()
         Text(activity.dateTime.formattedMediumDateTime)

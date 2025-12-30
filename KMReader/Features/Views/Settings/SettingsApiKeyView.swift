@@ -45,6 +45,7 @@ struct SettingsApiKeyView: View {
             VStack(alignment: .leading) {
               HStack {
                 Image(systemName: "key")
+                  .font(.footnote)
                 Text(apiKey.comment.isEmpty ? "No comment" : apiKey.comment)
                   .font(.headline)
               }
