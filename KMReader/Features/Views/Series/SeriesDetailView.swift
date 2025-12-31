@@ -139,19 +139,12 @@ struct SeriesDetailView: View {
     .task {
       await refreshSeriesData()
     }
-    .onGeometryChange(for: CGSize.self) { geometry in
-      geometry.size
-    } action: { newSize in
-      let newContentWidth = max(0, newSize.width)
-      // Skip anomalous widths during app transitions
-      guard PlatformHelper.isValidWidth(newContentWidth) else { return }
-      if abs(containerWidth - newSize.width) > 1 {
-        containerWidth = newSize.width
-        layoutHelper = BrowseLayoutHelper(
-          width: newContentWidth,
-          browseColumns: browseColumns
-        )
-      }
+    .onContainerWidthChange { newWidth in
+      containerWidth = newWidth
+      layoutHelper = BrowseLayoutHelper(
+        width: newWidth,
+        browseColumns: browseColumns
+      )
     }
     .onChange(of: browseColumns) { _, _ in
       if containerWidth > 0 {

@@ -105,19 +105,12 @@ struct BrowseView: View {
         }
       }
     }
-    .onGeometryChange(for: CGSize.self) { geometry in
-      geometry.size
-    } action: { newSize in
-      let newContentWidth = max(0, newSize.width)
-      // Skip anomalous widths during app transitions
-      guard PlatformHelper.isValidWidth(newContentWidth) else { return }
-      if abs(contentWidth - newContentWidth) > 1 {
-        contentWidth = newContentWidth
-        layoutHelper = BrowseLayoutHelper(
-          width: newContentWidth,
-          browseColumns: browseColumns
-        )
-      }
+    .onContainerWidthChange { newWidth in
+      contentWidth = newWidth
+      layoutHelper = BrowseLayoutHelper(
+        width: newWidth,
+        browseColumns: browseColumns
+      )
     }
     .inlineNavigationBarTitle(title)
     .animation(.default, value: library)

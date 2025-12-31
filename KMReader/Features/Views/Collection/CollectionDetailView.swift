@@ -103,19 +103,12 @@ struct CollectionDetailView: View {
     .task {
       await loadCollectionDetails()
     }
-    .onGeometryChange(for: CGSize.self) { geometry in
-      geometry.size
-    } action: { newSize in
-      let newContentWidth = max(0, newSize.width)
-      // Skip anomalous widths during app transitions
-      guard PlatformHelper.isValidWidth(newContentWidth) else { return }
-      if abs(containerWidth - newContentWidth) > 1 {
-        containerWidth = newContentWidth
-        layoutHelper = BrowseLayoutHelper(
-          width: newContentWidth,
-          browseColumns: browseColumns
-        )
-      }
+    .onContainerWidthChange { newWidth in
+      containerWidth = newWidth
+      layoutHelper = BrowseLayoutHelper(
+        width: newWidth,
+        browseColumns: browseColumns
+      )
     }
     .onChange(of: browseColumns) { _, _ in
       if containerWidth > 0 {

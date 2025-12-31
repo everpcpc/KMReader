@@ -58,7 +58,6 @@ import SwiftUI
           #endif
         }
         .listStyle(.sidebar)
-        .navigationTitle("KMReader")
       } detail: {
         if let nav {
           nav.content
