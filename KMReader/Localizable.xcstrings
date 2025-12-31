@@ -23722,322 +23722,202 @@
         }
       }
     },
-    "settings.appearance.dashboardCardWidth.caption" : {
+    "settings.appearance.gridDensity.caption" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Width of cards in the dashboard and grid browse layouts"
+            "value" : "Adjust the size and spacing of cards in the grid"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Largeur des cartes dans le tableau de bord et les affichages en grille"
+            "value" : "Ajustez la taille et l'espacement des cartes dans la grille"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダッシュボードとグリッド表示のカード幅"
+            "value" : "グリッド内のカードのサイズと間隔を調整します"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "대시보드 및 그리드 탐색 레이아웃의 카드 너비"
+            "value" : "그리드 내 카드의 크기와 간격을 조정합니다"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "首页和网格浏览布局中的卡片宽度"
+            "value" : "调整网格中卡片的大小和间距"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "首頁和網格瀏覽布局中的卡片寬度"
+            "value" : "調整網格中卡片的大小和間距"
           }
         }
       }
     },
-    "settings.appearance.dashboardCardWidth.label" : {
+    "settings.appearance.gridDensity.compact" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dashboard Card Width"
+            "value" : "Compact"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Largeur des cartes du tableau de bord"
+            "value" : "Compact"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダッシュボードのカード幅"
+            "value" : "コンパクト"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "대시보드 카드 너비"
+            "value" : "컴팩트"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "首页卡片宽度"
+            "value" : "紧凑"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "首頁卡片寬度"
+            "value" : "緊湊"
           }
         }
       }
     },
-    "settings.appearance.landscapeColumns.caption" : {
+    "settings.appearance.gridDensity.cozy" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Number of columns in landscape orientation for grid browse layout"
+            "value" : "Cozy"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nombre de colonnes en orientation paysage pour l'affichage en grille"
+            "value" : "Confortable"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "グリッド表示（横向き）の列数"
+            "value" : "ゆったり"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "그리드 탐색 레이아웃의 가로 방향 열 수"
+            "value" : "여유롭게"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "横屏网格浏览时的列数"
+            "value" : "宽松"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "橫向瀏覽時的網格欄數"
+            "value" : "寬鬆"
           }
         }
       }
     },
-    "settings.appearance.landscapeColumns.label" : {
+    "settings.appearance.gridDensity.label" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Landscape Columns"
+            "value" : "Grid Density"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Colonnes en paysage"
+            "value" : "Densité de la grille"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "横向きの列数"
+            "value" : "グリッド密度"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "가로 열"
+            "value" : "그리드 밀도"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "横屏列数"
+            "value" : "网格密度"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "橫向欄數"
+            "value" : "網格密度"
           }
         }
       }
     },
-    "settings.appearance.numberOfColumns.caption" : {
+    "settings.appearance.gridDensity.standard" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Number of columns for grid browse layout"
+            "value" : "Standard"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nombre de colonnes pour l'affichage en grille"
+            "value" : "Standard"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "グリッド表示の列数"
+            "value" : "標準"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "그리드 탐색 레이아웃의 열 수"
+            "value" : "표준"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "网格浏览的列数"
+            "value" : "标准"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "網格瀏覽的欄數"
-          }
-        }
-      }
-    },
-    "settings.appearance.numberOfColumns.label" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Number of Columns"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre de colonnes"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "列数"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "열 수"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "列数"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "欄數"
-          }
-        }
-      }
-    },
-    "settings.appearance.portraitColumns.caption" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Number of columns in portrait orientation for grid browse layout"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre de colonnes en orientation portrait pour l'affichage en grille"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "グリッド表示（縦向き）の列数"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "그리드 탐색 레이아웃의 세로 방향 열 수"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "竖屏网格浏览时的列数"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "直向瀏覽時的網格欄數"
-          }
-        }
-      }
-    },
-    "settings.appearance.portraitColumns.label" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Portrait Columns"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Colonnes en portrait"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "縦向きの列数"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "세로 열"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "竖屏列数"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "直向欄數"
+            "value" : "標準"
           }
         }
       }
