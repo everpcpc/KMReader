@@ -25,6 +25,12 @@ struct BookRowView: View {
     return progressCompleted
   }
 
+  private var progress: Double {
+    guard let progressPage = komgaBook.progressPage else { return 0 }
+    guard komgaBook.mediaPagesCount > 0 else { return 0 }
+    return Double(progressPage) / Double(komgaBook.mediaPagesCount)
+  }
+
   private var isInProgress: Bool {
     guard let progressCompleted = komgaBook.progressCompleted else { return false }
     return !progressCompleted
@@ -95,7 +101,12 @@ struct BookRowView: View {
                   Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                 } else {
+                  Image(systemName: "circle.righthalf.filled")
+                    .foregroundColor(.blue)
                   Text("Page \(progressPage + 1)")
+                    .foregroundColor(.blue)
+                  Text("•")
+                  Text("\(progress * 100, specifier: "%.0f")%")
                     .foregroundColor(.blue)
                 }
               }

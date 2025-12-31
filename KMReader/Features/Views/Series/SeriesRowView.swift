@@ -32,6 +32,12 @@ struct SeriesRowView: View {
     }
   }
 
+  var progress: Double {
+    guard komgaSeries.booksCount > 0 else { return 0 }
+    guard komgaSeries.booksReadCount > 0 else { return 0 }
+    return Double(komgaSeries.booksReadCount) / Double(komgaSeries.booksCount)
+  }
+
   var body: some View {
     HStack(spacing: 12) {
       NavigationLink(value: navDestination) {
@@ -68,28 +74,26 @@ struct SeriesRowView: View {
               } else if series.oneshot {
                 Text("Oneshot")
                   .foregroundColor(.blue)
-                if series.booksReadCount > 0 {
-                  Text("•")
-                    .foregroundColor(.secondary)
-                  Label("readStatus.read", systemImage: "checkmark.circle.fill")
-                    .foregroundColor(series.readStatusColor)
-                }
               } else {
-                HStack {
+                HStack(spacing: 4) {
                   Label("\(series.booksCount) books", systemImage: "book")
-                    .foregroundColor(.secondary)
                   Text("•")
-                    .foregroundColor(.secondary)
                   if series.booksUnreadCount > 0 {
-                    Label("\(series.booksUnreadCount) unread", systemImage: "circlebadge")
+                    Image(systemName: "circle.righthalf.filled")
                       .foregroundColor(series.readStatusColor)
+                    Text("\(series.booksUnreadCount) unread")
+                      .foregroundColor(series.readStatusColor)
+                    Text("•")
+                    Text("\(progress * 100, specifier: "%.0f")%")
                   } else {
                     Label("All read", systemImage: "checkmark.circle.fill")
                       .foregroundColor(series.readStatusColor)
                   }
                 }
               }
-            }.font(.footnote)
+            }
+            .font(.footnote)
+            .foregroundColor(.secondary)
           }
 
           Spacer()

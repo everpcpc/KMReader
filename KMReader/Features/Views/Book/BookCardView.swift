@@ -117,6 +117,10 @@ struct BookCardView: View {
               Text(komgaBook.media.status.label)
                 .foregroundColor(komgaBook.media.status.color)
             } else {
+              if isInProgress {
+                Text("\(progress * 100, specifier: "%.0f")%")
+                Text("•")
+              }
               Text("\(komgaBook.mediaPagesCount) pages")
                 .lineLimit(1)
             }

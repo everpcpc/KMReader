@@ -28,6 +28,11 @@ struct SeriesCardView: View {
     }
   }
 
+  var progress: Double {
+    guard komgaSeries.booksCount > 0 else { return 0 }
+    return Double(komgaSeries.booksReadCount) / Double(komgaSeries.booksCount)
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       NavigationLink(value: navDestination) {
@@ -76,7 +81,12 @@ struct SeriesCardView: View {
               Text("Oneshot")
                 .foregroundColor(.blue)
             } else {
+              if progress > 0 {
+                Text("\(progress * 100, specifier: "%.0f")%")
+                Text("•")
+              }
               Text("\(komgaSeries.booksCount) books")
+                .lineLimit(1)
             }
             if komgaSeries.downloadStatus != .notDownloaded {
               Spacer()

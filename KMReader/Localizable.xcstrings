@@ -201,6 +201,9 @@
         }
       }
     },
+    "%.0f%%" : {
+      "shouldTranslate" : false
+    },
     "%.1f%%" : {
       "localizations" : {
         "en" : {
