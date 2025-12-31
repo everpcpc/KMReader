@@ -25,6 +25,10 @@ struct DashboardSectionDetailView: View {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
 
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
+
   var body: some View {
     GeometryReader { geometry in
       ScrollView {
@@ -37,7 +41,7 @@ struct DashboardSectionDetailView: View {
         .padding()
 
         contentView
-          .padding(.horizontal, LayoutConfig.spacing)
+          .padding(.horizontal)
       }
     }
     .animation(.default, value: browseLayout)
@@ -63,7 +67,7 @@ struct DashboardSectionDetailView: View {
   private var bookContentView: some View {
     switch browseLayout {
     case .grid:
-      LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
+      LazyVGrid(columns: columns, spacing: spacing) {
         ForEach(pagination.items) { book in
           BookQueryItemView(
             bookId: book.id,
@@ -109,7 +113,7 @@ struct DashboardSectionDetailView: View {
   private var seriesContentView: some View {
     switch browseLayout {
     case .grid:
-      LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
+      LazyVGrid(columns: columns, spacing: spacing) {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,

@@ -28,8 +28,7 @@ struct BooksBrowseView: View {
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         layoutMode: $browseLayout
-      )
-      .padding(LayoutConfig.spacing)
+      ).padding()
 
       BooksQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,

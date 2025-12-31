@@ -28,8 +28,7 @@ struct SeriesBrowseView: View {
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         layoutMode: $browseLayout
-      )
-      .padding(LayoutConfig.spacing)
+      ).padding()
 
       SeriesQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty)

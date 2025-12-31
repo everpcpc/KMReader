@@ -25,10 +25,14 @@ struct ReadListsBrowseView: View {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
 
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
+
   var body: some View {
     VStack(spacing: 0) {
       ReadListSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
-        .padding(LayoutConfig.spacing)
+        .padding()
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
@@ -44,7 +48,7 @@ struct ReadListsBrowseView: View {
       ) {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
+          LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(viewModel.pagination.items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
@@ -64,7 +68,7 @@ struct ReadListsBrowseView: View {
               }
             }
           }
-          .padding(.horizontal, LayoutConfig.spacing)
+          .padding(.horizontal)
         case .list:
           LazyVStack {
             ForEach(viewModel.pagination.items) { readList in

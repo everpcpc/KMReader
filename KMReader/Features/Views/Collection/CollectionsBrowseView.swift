@@ -25,6 +25,10 @@ struct CollectionsBrowseView: View {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
 
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
+
   var body: some View {
     VStack(spacing: 0) {
       CollectionSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
@@ -44,7 +48,7 @@ struct CollectionsBrowseView: View {
       ) {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
+          LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id,
@@ -64,7 +68,7 @@ struct CollectionsBrowseView: View {
               }
             }
           }
-          .padding(.horizontal, LayoutConfig.spacing)
+          .padding(.horizontal)
         case .list:
           LazyVStack {
             ForEach(viewModel.pagination.items) { collection in

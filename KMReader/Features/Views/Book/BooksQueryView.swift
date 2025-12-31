@@ -20,6 +20,10 @@ struct BooksQueryView: View {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
 
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
+
   var body: some View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
@@ -35,7 +39,7 @@ struct BooksQueryView: View {
     ) {
       switch browseLayout {
       case .grid:
-        LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
+        LazyVGrid(columns: columns, spacing: spacing) {
           ForEach(viewModel.pagination.items) { book in
             BookQueryItemView(
               bookId: book.id,
@@ -56,7 +60,7 @@ struct BooksQueryView: View {
             }
           }
         }
-        .padding(.horizontal, LayoutConfig.spacing)
+        .padding(.horizontal)
       case .list:
         LazyVStack {
           ForEach(viewModel.pagination.items) { book in

@@ -22,7 +22,6 @@ struct LayoutConfig {
     #elseif os(macOS)
       return 140
     #else
-      // iOS
       if UIDevice.current.userInterfaceIdiom == .pad {
         return 120
       } else {
@@ -37,19 +36,29 @@ struct LayoutConfig {
   }
 
   /// Default spacing between cards
-  static var spacing: CGFloat {
+  static var defaultSpacing: CGFloat {
     #if os(tvOS)
       return 40
     #elseif os(macOS)
       return 24
     #else
-      return 16
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return 16
+      } else {
+        return 12
+      }
     #endif
+  }
+
+  /// Calculate spacing based on density multiplier
+  static func spacing(for density: Double) -> CGFloat {
+    defaultSpacing * CGFloat(density)
   }
 
   /// Generate adaptive grid columns based on density
   static func adaptiveColumns(for density: Double) -> [GridItem] {
     let minWidth = cardWidth(for: density)
+    let spacing = spacing(for: density)
     return [GridItem(.adaptive(minimum: minWidth, maximum: .infinity), spacing: spacing)]
   }
 }

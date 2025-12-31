@@ -25,6 +25,10 @@ struct ReadListBooksQueryView: View {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
 
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
+
   var body: some View {
     Group {
       if bookViewModel.isLoading && bookViewModel.pagination.isEmpty {
@@ -34,7 +38,7 @@ struct ReadListBooksQueryView: View {
       } else {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
+          LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(bookViewModel.pagination.items) { book in
               Group {
                 if isSelectionMode && isAdmin {
@@ -62,7 +66,7 @@ struct ReadListBooksQueryView: View {
               }
             }
           }
-          .padding(.horizontal, LayoutConfig.spacing)
+          .padding(.horizontal)
         case .list:
           LazyVStack {
             ForEach(bookViewModel.pagination.items) { book in

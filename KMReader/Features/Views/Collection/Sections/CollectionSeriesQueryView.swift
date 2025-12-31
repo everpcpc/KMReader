@@ -25,6 +25,10 @@ struct CollectionSeriesQueryView: View {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
 
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
+
   var body: some View {
     Group {
       if seriesViewModel.isLoading && seriesViewModel.pagination.isEmpty {
@@ -34,7 +38,7 @@ struct CollectionSeriesQueryView: View {
       } else {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
+          LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(seriesViewModel.pagination.items) { series in
               Group {
                 if isSelectionMode && isAdmin {
@@ -60,7 +64,7 @@ struct CollectionSeriesQueryView: View {
               }
             }
           }
-          .padding(.horizontal, LayoutConfig.spacing)
+          .padding(.horizontal)
         case .list:
           LazyVStack {
             ForEach(seriesViewModel.pagination.items) { series in
