@@ -19,7 +19,6 @@ struct ReadListBooksQueryView: View {
   let isAdmin: Bool
   let refreshBooks: () -> Void
 
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @Environment(\.modelContext) private var modelContext
 
   var body: some View {
@@ -106,7 +105,6 @@ struct ReadListBooksQueryView: View {
       context: modelContext,
       readListId: readListId,
       browseOpts: browseOpts,
-      libraryIds: dashboard.libraryIds,
       refresh: refresh
     )
   }

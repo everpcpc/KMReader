@@ -152,10 +152,7 @@ struct CollectionSeriesListView: View {
       refresh: true
     )
   }
-}
 
-extension CollectionSeriesListView {
-  @MainActor
   private func deleteSelectedSeries() async {
     guard !selectedSeriesIds.isEmpty else { return }
     guard !isDeleting else { return }

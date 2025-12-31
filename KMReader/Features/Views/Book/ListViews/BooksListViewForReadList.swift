@@ -17,7 +17,6 @@ struct BooksListViewForReadList: View {
   @AppStorage("readListDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("readListBookBrowseOptions") private var browseOpts: ReadListBookBrowseOptions =
     ReadListBookBrowseOptions()
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @State private var bookViewModel = BookViewModel()
@@ -160,14 +159,10 @@ struct BooksListViewForReadList: View {
       context: modelContext,
       readListId: readListId,
       browseOpts: browseOpts,
-      libraryIds: dashboard.libraryIds,
       refresh: true
     )
   }
-}
 
-extension BooksListViewForReadList {
-  @MainActor
   private func deleteSelectedBooks() async {
     guard !selectedBookIds.isEmpty else { return }
     guard !isDeleting else { return }

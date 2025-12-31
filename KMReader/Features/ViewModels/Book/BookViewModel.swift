@@ -25,7 +25,6 @@ class BookViewModel {
     context: ModelContext,
     seriesId: String,
     browseOpts: BookBrowseOptions,
-    libraryIds: [String]? = nil,
     refresh: Bool = true
   ) async {
     let shouldReset = refresh || currentSeriesId != seriesId
@@ -68,8 +67,7 @@ class BookViewModel {
           seriesId: seriesId,
           page: pagination.currentPage,
           size: pagination.pageSize,
-          browseOpts: browseOpts,
-          libraryIds: libraryIds
+          browseOpts: browseOpts
         )
 
         guard loadID == pagination.loadID else { return }

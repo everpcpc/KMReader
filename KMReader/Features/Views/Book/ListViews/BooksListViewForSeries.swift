@@ -18,7 +18,6 @@ struct BooksListViewForSeries: View {
   @AppStorage("seriesDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("seriesBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @Environment(\.modelContext) private var modelContext
 
   var body: some View {
@@ -72,13 +71,13 @@ struct BooksListViewForSeries: View {
       }
     }
   }
-}
 
-extension BooksListViewForSeries {
-  fileprivate func refreshBooks(refresh: Bool) async {
+  private func refreshBooks(refresh: Bool) async {
     await bookViewModel.loadSeriesBooks(
       context: modelContext,
-      seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds, refresh: refresh
+      seriesId: seriesId,
+      browseOpts: browseOpts,
+      refresh: refresh
     )
   }
 }
