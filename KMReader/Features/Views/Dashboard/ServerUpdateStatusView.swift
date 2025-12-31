@@ -22,23 +22,25 @@ struct ServerUpdateStatusView: View {
         Image(systemName: "wifi.slash")
           .foregroundColor(.orange)
         Text(String(localized: "settings.offline"))
-          .font(.caption)
           .foregroundColor(.orange)
       } else {
         Image(systemName: "antenna.radiowaves.left.and.right")
           .foregroundColor(.secondary)
         lastServerEventText
-          .font(.caption)
           .foregroundColor(.secondary)
         if taskStatus.count > 0 {
           Text("•")
             .foregroundColor(.secondary)
-          Text("Running Tasks: \(taskStatus.count)")
-            .font(.caption)
-            .foregroundColor(.secondary)
+          NavigationLink(value: NavDestination.settingsTasks) {
+            HStack(spacing: 4) {
+              Text("Running Tasks: \(taskStatus.count)")
+              Image(systemName: "chevron.right")
+            }
+          }
         }
       }
     }
+    .font(.footnote)
     .monospacedDigit()
   }
 
