@@ -36,7 +36,7 @@ struct ServerUpdateStatusView: View {
               Text("Running Tasks: \(taskStatus.count)")
               Image(systemName: "chevron.right")
             }
-          }
+          }.adaptiveButtonStyle(.plain)
         }
       }
     }
