@@ -107,7 +107,6 @@ struct BookRowView: View {
                     .foregroundColor(.blue)
                   Text("•")
                   Text("\(progress * 100, specifier: "%.0f")%")
-                    .foregroundColor(.blue)
                 }
               }
             }
