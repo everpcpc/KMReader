@@ -18,7 +18,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let alignment: Alignment
   let overlay: (() -> Overlay)?
 
-  let ratio: CGFloat = 1.413
+  let ratio: CGFloat = 1.414
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @Environment(\.readerZoomNamespace) private var zoomNamespace

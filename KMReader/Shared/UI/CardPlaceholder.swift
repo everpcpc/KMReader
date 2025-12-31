@@ -14,7 +14,7 @@ struct CardPlaceholder: View {
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
 
-  private let ratio: CGFloat = 1.413
+  private let ratio: CGFloat = 1.414
 
   var body: some View {
     switch layout {
