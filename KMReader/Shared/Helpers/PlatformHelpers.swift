@@ -169,6 +169,26 @@ struct PlatformHelper {
     }
   #endif
 
+  /// Get the maximum dimension of the screen to validate geometry values
+  static var maxScreenDimension: CGFloat {
+    #if os(iOS) || os(tvOS)
+      let bounds = UIScreen.main.bounds
+      return max(bounds.width, bounds.height)
+    #elseif os(macOS)
+      if let screen = NSScreen.main {
+        return max(screen.frame.width, screen.frame.height)
+      }
+      return 3000
+    #else
+      return 3000
+    #endif
+  }
+
+  /// Check if a width value is valid (not anomalously large during app transitions)
+  static func isValidWidth(_ width: CGFloat) -> Bool {
+    return width <= maxScreenDimension * 1.2
+  }
+
   /// Convert SwiftUI Color to CGColor
   /// - Parameter color: SwiftUI Color to convert
   /// - Returns: CGColor representation of the color

@@ -239,7 +239,6 @@ struct OneshotEditSheet: View {
         HStack {
           VStack(alignment: .leading) {
             Text(authors[index].name)
-              .font(.body)
             Text(authors[index].role.displayName)
               .font(.caption)
               .foregroundColor(.secondary)
@@ -421,7 +420,6 @@ struct OneshotEditSheet: View {
         VStack(alignment: .leading) {
           HStack {
             Text(links[index].label)
-              .font(.body)
             Spacer()
             Button(role: .destructive) {
               let indexToRemove = index

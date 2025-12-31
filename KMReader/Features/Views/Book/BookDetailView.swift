@@ -19,6 +19,7 @@ struct BookDetailView: View {
   @Query private var komgaBooks: [KomgaBook]
 
   @State private var isLoading = true
+  @State private var hasError = false
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
@@ -62,10 +63,7 @@ struct BookDetailView: View {
             bookReadLists: bookReadLists,
             thumbnailRefreshTrigger: $thumbnailRefreshTrigger
           )
-        } else if isLoading {
-          ProgressView()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
+        } else if hasError {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
               .font(.largeTitle)
@@ -74,6 +72,9 @@ struct BookDetailView: View {
               .font(.headline)
           }
           .frame(maxWidth: .infinity)
+        } else {
+          ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
       }
       .padding()
@@ -245,6 +246,7 @@ struct BookDetailView: View {
       } else {
         isLoading = false
         if komgaBook == nil {
+          hasError = true
           ErrorManager.shared.alert(error: error)
         }
       }
