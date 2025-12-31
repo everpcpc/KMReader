@@ -13,7 +13,7 @@ struct BrowseView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
-  let library: KomgaLibrary?
+  let library: LibrarySelection?
 
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
@@ -25,7 +25,7 @@ struct BrowseView: View {
   @State private var showFilterSheet = false
   @State private var libraryIds: [String] = []
 
-  init(library: KomgaLibrary? = nil) {
+  init(library: LibrarySelection? = nil) {
     self.library = library
   }
 

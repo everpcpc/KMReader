@@ -42,7 +42,7 @@ import SwiftUI
           if !libraries.isEmpty {
             Section(String(localized: "Libraries")) {
               ForEach(libraries) { library in
-                NavigationLink(value: NavDestination.browseLibrary(library: library)) {
+                NavigationLink(value: NavDestination.browseLibrary(selection: LibrarySelection(library: library))) {
                   SidebarLibraryLabel(library: library)
                 }
               }

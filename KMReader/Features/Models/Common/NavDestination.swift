@@ -13,7 +13,7 @@ enum NavDestination: Hashable {
   case browse
   case settings
 
-  case browseLibrary(library: KomgaLibrary)
+  case browseLibrary(selection: LibrarySelection)
 
   case seriesDetail(seriesId: String)
   case bookDetail(bookId: String)
@@ -51,8 +51,8 @@ enum NavDestination: Hashable {
     case .settings:
       SettingsView()
 
-    case .browseLibrary(let library):
-      BrowseView(library: library)
+    case .browseLibrary(let selection):
+      BrowseView(library: selection)
 
     case .seriesDetail(let seriesId):
       SeriesDetailView(seriesId: seriesId)
