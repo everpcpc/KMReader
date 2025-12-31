@@ -9,7 +9,6 @@ import SwiftUI
 
 struct CollectionCardView: View {
   @Bindable var komgaCollection: KomgaCollection
-  let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -22,7 +21,7 @@ struct CollectionCardView: View {
         value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
       ) {
         ThumbnailImage(
-          id: komgaCollection.collectionId, type: .collection, shadowStyle: .platform, width: width,
+          id: komgaCollection.collectionId, type: .collection, shadowStyle: .platform,
           alignment: .bottom
         )
       }
@@ -53,7 +52,7 @@ struct CollectionCardView: View {
         }.font(.footnote)
       }
     }
-    .frame(width: width, alignment: .leading)
+    .frame(maxWidth: .infinity, alignment: .leading)
     .frame(maxHeight: .infinity, alignment: .top)
     .alert("Delete Collection", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}

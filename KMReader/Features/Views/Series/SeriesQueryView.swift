@@ -10,10 +10,15 @@ import SwiftUI
 
 struct SeriesQueryView: View {
   let browseOpts: SeriesBrowseOptions
-  let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let viewModel: SeriesViewModel
   let loadMore: (Bool) async -> Void
+
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+
+  private var columns: [GridItem] {
+    LayoutConfig.adaptiveColumns(for: gridDensity)
+  }
 
   var body: some View {
     BrowseStateView(
@@ -30,11 +35,10 @@ struct SeriesQueryView: View {
     ) {
       switch browseLayout {
       case .grid:
-        LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+        LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onActionCompleted: {
                 Task {
@@ -52,13 +56,12 @@ struct SeriesQueryView: View {
             }
           }
         }
-        .padding(.horizontal, layoutHelper.spacing)
+        .padding(.horizontal, LayoutConfig.spacing)
       case .list:
         LazyVStack {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onActionCompleted: {
                 Task {

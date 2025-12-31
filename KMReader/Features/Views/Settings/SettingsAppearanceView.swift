@@ -10,35 +10,11 @@ import SwiftUI
 
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-  @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
-  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
-    PlatformHelper.defaultDashboardCardWidth)
-
-  private var portraitColumnsBinding: Binding<Int> {
-    Binding(
-      get: { browseColumns.portrait },
-      set: { newValue in
-        var updated = browseColumns
-        updated.portrait = newValue
-        browseColumns = updated
-      }
-    )
-  }
-
-  private var landscapeColumnsBinding: Binding<Int> {
-    Binding(
-      get: { browseColumns.landscape },
-      set: { newValue in
-        var updated = browseColumns
-        updated.landscape = newValue
-        browseColumns = updated
-      }
-    )
-  }
 
   private var themeColorBinding: Binding<Color> {
     Binding(
@@ -49,14 +25,11 @@ struct SettingsAppearanceView: View {
     )
   }
 
+  private var selectedDensity: GridDensity {
+    GridDensity.closest(to: gridDensity)
+  }
+
   #if os(tvOS)
-    private enum AppearanceFocus: Hashable {
-      case columnMinus
-      case columnPlus
-      case dashboardWidthMinus
-      case dashboardWidthPlus
-    }
-    @FocusState private var appearanceFocusedButton: AppearanceFocus?
     @FocusState private var colorFocusedButton: ThemeColor?
   #endif
 
@@ -104,87 +77,23 @@ struct SettingsAppearanceView: View {
       #endif
 
       Section(header: Text(String(localized: "settings.appearance.browse"))) {
-        #if os(iOS)
-          VStack(alignment: .leading, spacing: 8) {
-            Stepper(
-              value: portraitColumnsBinding,
-              in: 1...8,
-              step: 1
-            ) {
-              HStack {
-                Text(String(localized: "settings.appearance.portraitColumns.label"))
-                Text("\(browseColumns.portrait)")
-                  .foregroundColor(.secondary)
-              }
-            }
-            Text(String(localized: "settings.appearance.portraitColumns.caption"))
+        Picker(
+          selection: Binding(
+            get: { selectedDensity },
+            set: { gridDensity = $0.rawValue }
+          )
+        ) {
+          ForEach(GridDensity.allCases, id: \.self) { density in
+            Text(density.label).tag(density)
+          }
+        } label: {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.gridDensity.label"))
+            Text(String(localized: "settings.appearance.gridDensity.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
-          VStack(alignment: .leading, spacing: 8) {
-            Stepper(
-              value: landscapeColumnsBinding,
-              in: 2...16,
-              step: 1
-            ) {
-              HStack {
-                Text(String(localized: "settings.appearance.landscapeColumns.label"))
-                Text("\(browseColumns.landscape)")
-                  .foregroundColor(.secondary)
-              }
-            }
-            Text(String(localized: "settings.appearance.landscapeColumns.caption"))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        #elseif os(macOS)
-          VStack(alignment: .leading, spacing: 8) {
-            Stepper(
-              value: landscapeColumnsBinding,
-              in: 1...16,
-              step: 1
-            ) {
-              HStack {
-                Text(String(localized: "settings.appearance.numberOfColumns.label"))
-                Text("\(browseColumns.landscape)")
-                  .foregroundColor(.secondary)
-              }
-            }
-            Text(String(localized: "settings.appearance.numberOfColumns.caption"))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        #elseif os(tvOS)
-          HStack {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(String(localized: "settings.appearance.numberOfColumns.label"))
-              Text(String(localized: "settings.appearance.numberOfColumns.caption"))
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-            Spacer()
-            HStack(spacing: 36) {
-              Button {
-                landscapeColumnsBinding.wrappedValue = max(
-                  1, landscapeColumnsBinding.wrappedValue - 1)
-              } label: {
-                Image(systemName: "minus.circle.fill")
-              }
-              .focused($appearanceFocusedButton, equals: .columnMinus)
-              .adaptiveButtonStyle(.plain)
-              Text("\(browseColumns.landscape)")
-                .frame(minWidth: 30)
-              Button {
-                landscapeColumnsBinding.wrappedValue = min(
-                  16, landscapeColumnsBinding.wrappedValue + 1)
-              } label: {
-                Image(systemName: "plus.circle.fill")
-              }
-              .focused($appearanceFocusedButton, equals: .columnPlus)
-              .adaptiveButtonStyle(.plain)
-            }
-          }
-        #endif
+        }
 
         Toggle(isOn: $searchIgnoreFilters) {
           VStack(alignment: .leading, spacing: 4) {
@@ -226,55 +135,6 @@ struct SettingsAppearanceView: View {
             .foregroundColor(.secondary)
           }
         }
-
-        #if os(tvOS)
-          HStack {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(String(localized: "settings.appearance.dashboardCardWidth.label"))
-              Text(String(localized: "settings.appearance.dashboardCardWidth.caption"))
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-            Spacer()
-            HStack(spacing: 36) {
-              Button {
-                dashboardCardWidth = max(80, dashboardCardWidth - 20)
-              } label: {
-                Image(systemName: "minus.circle.fill")
-              }
-              .focused($appearanceFocusedButton, equals: .dashboardWidthMinus)
-              .adaptiveButtonStyle(.plain)
-
-              Text("\(Int(dashboardCardWidth))")
-                .frame(minWidth: 50)
-
-              Button {
-                dashboardCardWidth = min(320, dashboardCardWidth + 20)
-              } label: {
-                Image(systemName: "plus.circle.fill")
-              }
-              .focused($appearanceFocusedButton, equals: .dashboardWidthPlus)
-              .adaptiveButtonStyle(.plain)
-            }
-          }
-        #else
-          VStack(alignment: .leading, spacing: 8) {
-            Stepper(
-              value: $dashboardCardWidth,
-              in: 80...320,
-              step: 20
-            ) {
-              HStack {
-                Text(String(localized: "settings.appearance.dashboardCardWidth.label"))
-                Text("\(Int(dashboardCardWidth))")
-                  .foregroundColor(.secondary)
-              }
-            }
-            Text(String(localized: "settings.appearance.dashboardCardWidth.caption"))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        #endif
       }
     }
     .formStyle(.grouped)

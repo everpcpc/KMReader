@@ -11,7 +11,6 @@ import SwiftUI
 /// View for series selection mode that accepts only seriesId and uses @Query to fetch the series.
 struct SeriesSelectionItemView: View {
   let seriesId: String
-  let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   @Binding var selectedSeriesIds: Set<String>
   var onActionCompleted: (() -> Void)? = nil
@@ -20,13 +19,11 @@ struct SeriesSelectionItemView: View {
 
   init(
     seriesId: String,
-    cardWidth: CGFloat,
     layout: BrowseLayoutMode,
     selectedSeriesIds: Binding<Set<String>>,
     onActionCompleted: (() -> Void)? = nil
   ) {
     self.seriesId = seriesId
-    self.cardWidth = cardWidth
     self.layout = layout
     self._selectedSeriesIds = selectedSeriesIds
     self.onActionCompleted = onActionCompleted
@@ -50,7 +47,6 @@ struct SeriesSelectionItemView: View {
       case .grid:
         SeriesCardView(
           komgaSeries: series,
-          cardWidth: cardWidth,
           onActionCompleted: onActionCompleted
         )
         .focusPadding()

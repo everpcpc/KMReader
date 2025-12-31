@@ -12,14 +12,18 @@ struct CollectionSeriesQueryView: View {
   let collectionId: String
   @Bindable var seriesViewModel: SeriesViewModel
   let browseOpts: CollectionSeriesBrowseOptions
-  let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let isSelectionMode: Bool
   @Binding var selectedSeriesIds: Set<String>
   let isAdmin: Bool
   let refreshSeries: () -> Void
 
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @Environment(\.modelContext) private var modelContext
+
+  private var columns: [GridItem] {
+    LayoutConfig.adaptiveColumns(for: gridDensity)
+  }
 
   var body: some View {
     Group {
@@ -30,13 +34,12 @@ struct CollectionSeriesQueryView: View {
       } else {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+          LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
             ForEach(seriesViewModel.pagination.items) { series in
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
                     seriesId: series.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     selectedSeriesIds: $selectedSeriesIds,
                     onActionCompleted: refreshSeries
@@ -44,7 +47,6 @@ struct CollectionSeriesQueryView: View {
                 } else {
                   SeriesQueryItemView(
                     seriesId: series.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     onActionCompleted: refreshSeries
                   )
@@ -58,7 +60,7 @@ struct CollectionSeriesQueryView: View {
               }
             }
           }
-          .padding(.horizontal, layoutHelper.spacing)
+          .padding(.horizontal, LayoutConfig.spacing)
         case .list:
           LazyVStack {
             ForEach(seriesViewModel.pagination.items) { series in
@@ -66,7 +68,6 @@ struct CollectionSeriesQueryView: View {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
                     seriesId: series.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     selectedSeriesIds: $selectedSeriesIds,
                     onActionCompleted: refreshSeries
@@ -74,7 +75,6 @@ struct CollectionSeriesQueryView: View {
                 } else {
                   SeriesQueryItemView(
                     seriesId: series.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     onActionCompleted: refreshSeries
                   )

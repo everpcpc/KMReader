@@ -12,7 +12,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let id: String
   let type: ThumbnailType
   let shadowStyle: ShadowStyle
-  let width: CGFloat
+  let width: CGFloat?
   let cornerRadius: CGFloat
   let refreshTrigger: Int
   let alignment: Alignment
@@ -28,7 +28,7 @@ struct ThumbnailImage<Overlay: View>: View {
     id: String,
     type: ThumbnailType = .book,
     shadowStyle: ShadowStyle = .basic,
-    width: CGFloat,
+    width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
     refreshTrigger: Int = 0,
     alignment: Alignment = .center,
@@ -53,35 +53,42 @@ struct ThumbnailImage<Overlay: View>: View {
   }
 
   var body: some View {
-    Group {
-      if let platformImage = loadedImage {
-        Image(platformImage: platformImage)
-          .resizable()
-          .aspectRatio(contentMode: contentMode)
-          .overlay {
-            if thumbnailPreserveAspectRatio, let overlay = overlay {
-              overlay()
+    ZStack(alignment: alignment) {
+      // Background placeholder to define the container size
+      Color.clear
+
+      // Actual image content
+      Group {
+        if let platformImage = loadedImage {
+          Image(platformImage: platformImage)
+            .resizable()
+            .aspectRatio(contentMode: contentMode)
+            .overlay {
+              if thumbnailPreserveAspectRatio, let overlay = overlay {
+                overlay()
+              }
             }
-          }
-          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-          #if os(iOS)
-            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
-          #endif
-          .ifLet(zoomNamespace) { view, namespace in
-            view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
-          }
-      } else {
-        RoundedRectangle(cornerRadius: cornerRadius)
-          .fill(Color.gray.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            #if os(iOS)
+              .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+            #endif
+            .ifLet(zoomNamespace) { view, namespace in
+              view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
+            }
+        } else {
+          RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(Color.gray.opacity(0.3))
+        }
       }
-    }
-    .frame(width: width, height: width * ratio, alignment: alignment)
-    .overlay {
-      if !thumbnailPreserveAspectRatio, let overlay = overlay {
-        overlay()
+      .overlay {
+        if !thumbnailPreserveAspectRatio, let overlay = overlay {
+          overlay()
+        }
       }
+      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
-    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    .aspectRatio(1 / ratio, contentMode: .fit)
+    .frame(width: width)
     .shadowStyle(shadowStyle)
     .task(id: "\(id)_\(refreshTrigger)") {
       let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
@@ -106,7 +113,7 @@ extension ThumbnailImage where Overlay == EmptyView {
     id: String,
     type: ThumbnailType = .book,
     shadowStyle: ShadowStyle = .basic,
-    width: CGFloat,
+    width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
     refreshTrigger: Int = 0,
     alignment: Alignment = .center
@@ -125,10 +132,10 @@ extension ThumbnailImage where Overlay == EmptyView {
       id: "1",
       type: .book,
       shadowStyle: .platform,
-      width: 200,
       cornerRadius: 8,
       refreshTrigger: 0,
-      alignment: .center
+      alignment: .bottom
     )
+    .frame(width: 200)
   }
 }

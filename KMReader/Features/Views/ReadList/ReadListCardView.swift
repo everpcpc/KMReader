@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ReadListCardView: View {
   @Bindable var komgaReadList: KomgaReadList
-  let width: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -20,7 +19,7 @@ struct ReadListCardView: View {
     VStack(alignment: .leading, spacing: 12) {
       NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
         ThumbnailImage(
-          id: komgaReadList.readListId, type: .readlist, shadowStyle: .platform, width: width,
+          id: komgaReadList.readListId, type: .readlist, shadowStyle: .platform,
           alignment: .bottom
         )
       }
@@ -51,7 +50,7 @@ struct ReadListCardView: View {
         }.font(.footnote)
       }
     }
-    .frame(width: width, alignment: .leading)
+    .frame(maxWidth: .infinity, alignment: .leading)
     .frame(maxHeight: .infinity, alignment: .top)
     .alert("Delete Read List", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}

@@ -10,7 +10,6 @@ import SwiftUI
 
 struct SeriesCardView: View {
   @Bindable var komgaSeries: KomgaSeries
-  let cardWidth: CGFloat
   var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -36,8 +35,7 @@ struct SeriesCardView: View {
     VStack(alignment: .leading, spacing: 12) {
       NavigationLink(value: navDestination) {
         ThumbnailImage(
-          id: komgaSeries.seriesId, type: .series, shadowStyle: .platform, width: cardWidth,
-          alignment: .bottom
+          id: komgaSeries.seriesId, type: .series, shadowStyle: .platform, alignment: .bottom
         ) {
           ZStack {
             if komgaSeries.booksUnreadCount > 0 {
@@ -98,7 +96,7 @@ struct SeriesCardView: View {
         }.font(.footnote)
       }
     }
-    .frame(width: cardWidth, alignment: .leading)
+    .frame(maxWidth: .infinity, alignment: .leading)
     .frame(maxHeight: .infinity, alignment: .top)
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}

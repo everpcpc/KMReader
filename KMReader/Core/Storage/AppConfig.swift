@@ -172,15 +172,15 @@ enum AppConfig {
 
   // MARK: - Dashboard
 
-  static var dashboardCardWidth: CGFloat {
+  static var gridDensity: Double {
     get {
-      if UserDefaults.standard.object(forKey: "dashboardCardWidth") != nil {
-        return CGFloat(UserDefaults.standard.double(forKey: "dashboardCardWidth"))
+      if UserDefaults.standard.object(forKey: "gridDensity") != nil {
+        return UserDefaults.standard.double(forKey: "gridDensity")
       }
-      return PlatformHelper.defaultDashboardCardWidth
+      return GridDensity.standard.rawValue
     }
     set {
-      UserDefaults.standard.set(Double(newValue), forKey: "dashboardCardWidth")
+      UserDefaults.standard.set(newValue, forKey: "gridDensity")
     }
   }
 
@@ -324,20 +324,6 @@ enum AppConfig {
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "readListDetailLayout")
-    }
-  }
-
-  static var browseColumns: BrowseColumns {
-    get {
-      if let stored = UserDefaults.standard.string(forKey: "browseColumns"),
-        let columns = BrowseColumns(rawValue: stored)
-      {
-        return columns
-      }
-      return BrowseColumns()
-    }
-    set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "browseColumns")
     }
   }
 

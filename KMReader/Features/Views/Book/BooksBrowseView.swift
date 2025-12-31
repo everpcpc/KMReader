@@ -10,7 +10,6 @@ import SwiftUI
 
 struct BooksBrowseView: View {
   let libraryIds: [String]
-  let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
@@ -30,11 +29,10 @@ struct BooksBrowseView: View {
         showFilterSheet: $showFilterSheet,
         layoutMode: $browseLayout
       )
-      .padding(layoutHelper.spacing)
+      .padding(LayoutConfig.spacing)
 
       BooksQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
-        layoutHelper: layoutHelper,
         browseLayout: browseLayout,
         viewModel: viewModel,
         loadMore: loadBooks

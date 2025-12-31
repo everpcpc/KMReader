@@ -14,13 +14,16 @@ struct DashboardSectionDetailView: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardSectionDetailLayout") private var browseLayout: BrowseLayoutMode = .grid
-  @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
-  @State private var layoutHelper = BrowseLayoutHelper()
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   @State private var isLoading = false
 
   @Environment(\.modelContext) private var modelContext
+
+  private var columns: [GridItem] {
+    LayoutConfig.adaptiveColumns(for: gridDensity)
+  }
 
   var body: some View {
     GeometryReader { geometry in
@@ -34,10 +37,7 @@ struct DashboardSectionDetailView: View {
         .padding()
 
         contentView
-          .padding(.horizontal, layoutHelper.spacing)
-      }
-      .onChange(of: geometry.size.width, initial: true) { _, newWidth in
-        updateLayoutHelper(width: newWidth)
+          .padding(.horizontal, LayoutConfig.spacing)
       }
     }
     .animation(.default, value: browseLayout)
@@ -63,11 +63,10 @@ struct DashboardSectionDetailView: View {
   private var bookContentView: some View {
     switch browseLayout {
     case .grid:
-      LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+      LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
         ForEach(pagination.items) { book in
           BookQueryItemView(
             bookId: book.id,
-            cardWidth: layoutHelper.cardWidth,
             layout: .grid,
             onBookUpdated: {
               Task { await loadItems(refresh: true) }
@@ -87,7 +86,6 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { book in
           BookQueryItemView(
             bookId: book.id,
-            cardWidth: layoutHelper.cardWidth,
             layout: .list,
             onBookUpdated: {
               Task { await loadItems(refresh: true) }
@@ -111,11 +109,10 @@ struct DashboardSectionDetailView: View {
   private var seriesContentView: some View {
     switch browseLayout {
     case .grid:
-      LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+      LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            cardWidth: layoutHelper.cardWidth,
             layout: .grid,
             onActionCompleted: {
               Task { await loadItems(refresh: true) }
@@ -134,7 +131,6 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            cardWidth: layoutHelper.cardWidth,
             layout: .list,
             onActionCompleted: {
               Task { await loadItems(refresh: true) }
@@ -153,28 +149,17 @@ struct DashboardSectionDetailView: View {
     }
   }
 
-  private func updateLayoutHelper(width: CGFloat) {
-    #if os(tvOS)
-      layoutHelper = BrowseLayoutHelper(
-        width: width, spacing: BrowseLayoutHelper.defaultSpacing,
-        browseColumns: BrowseColumns())
-    #else
-      layoutHelper = BrowseLayoutHelper(
-        width: width, spacing: BrowseLayoutHelper.defaultSpacing,
-        browseColumns: browseColumns)
-    #endif
-  }
-
-  private func loadItems(refresh: Bool) async {
+  func loadItems(refresh: Bool) async {
     guard !isLoading else { return }
+    guard refresh || pagination.hasMorePages else { return }
+
+    isLoading = true
     if refresh {
       pagination.reset()
     }
-    guard pagination.hasMorePages else { return }
-
-    isLoading = true
 
     let libraryIds = dashboard.libraryIds
+
     if AppConfig.isOffline {
       let ids: [String]
       if section.isBookSection {
@@ -219,7 +204,9 @@ struct DashboardSectionDetailView: View {
       }
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func applyPage(ids: [String], moreAvailable: Bool) {

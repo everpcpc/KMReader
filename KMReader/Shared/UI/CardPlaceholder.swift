@@ -9,7 +9,6 @@ import SwiftUI
 
 /// Placeholder skeleton view for cards while data is loading
 struct CardPlaceholder: View {
-  let cardWidth: CGFloat
   let layout: BrowseLayoutMode
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -22,7 +21,7 @@ struct CardPlaceholder: View {
       VStack(alignment: .leading, spacing: 12) {
         RoundedRectangle(cornerRadius: 8)
           .fill(Color.gray.opacity(0.2))
-          .frame(width: cardWidth, height: cardWidth * ratio)
+          .aspectRatio(1 / ratio, contentMode: .fit)
         if !coverOnlyCards {
           VStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 8)
@@ -30,11 +29,12 @@ struct CardPlaceholder: View {
               .frame(height: 14)
             RoundedRectangle(cornerRadius: 8)
               .fill(Color.gray.opacity(0.15))
-              .frame(width: cardWidth * 0.6, height: 12)
+              .frame(height: 12)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .scaleEffect(x: 0.6, anchor: .leading)
           }
         }
       }
-      .frame(width: cardWidth)
     case .list:
       RoundedRectangle(cornerRadius: 8)
         .fill(Color.gray.opacity(0.2))

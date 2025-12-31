@@ -10,7 +10,6 @@ import SwiftUI
 
 struct ReadListsBrowseView: View {
   let libraryIds: [String]
-  let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
@@ -18,13 +17,18 @@ struct ReadListsBrowseView: View {
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var viewModel = ReadListViewModel()
   @Environment(\.modelContext) private var modelContext
+
+  private var columns: [GridItem] {
+    LayoutConfig.adaptiveColumns(for: gridDensity)
+  }
 
   var body: some View {
     VStack(spacing: 0) {
       ReadListSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
-        .padding(layoutHelper.spacing)
+        .padding(LayoutConfig.spacing)
 
       BrowseStateView(
         isLoading: viewModel.isLoading,
@@ -40,11 +44,10 @@ struct ReadListsBrowseView: View {
       ) {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+          LazyVGrid(columns: columns, spacing: LayoutConfig.spacing) {
             ForEach(viewModel.pagination.items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
-                width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
                     await loadReadLists(refresh: true)
@@ -61,7 +64,7 @@ struct ReadListsBrowseView: View {
               }
             }
           }
-          .padding(.horizontal, layoutHelper.spacing)
+          .padding(.horizontal, LayoutConfig.spacing)
         case .list:
           LazyVStack {
             ForEach(viewModel.pagination.items) { readList in

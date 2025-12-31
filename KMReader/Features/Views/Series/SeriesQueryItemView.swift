@@ -11,7 +11,6 @@ import SwiftUI
 /// Wrapper view that accepts only seriesId and uses @Query to fetch the series reactively.
 struct SeriesQueryItemView: View {
   let seriesId: String
-  let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   var onActionCompleted: (() -> Void)? = nil
 
@@ -20,12 +19,10 @@ struct SeriesQueryItemView: View {
 
   init(
     seriesId: String,
-    cardWidth: CGFloat,
     layout: BrowseLayoutMode,
     onActionCompleted: (() -> Void)? = nil
   ) {
     self.seriesId = seriesId
-    self.cardWidth = cardWidth
     self.layout = layout
     self.onActionCompleted = onActionCompleted
 
@@ -44,7 +41,6 @@ struct SeriesQueryItemView: View {
       case .grid:
         SeriesCardView(
           komgaSeries: series,
-          cardWidth: cardWidth,
           onActionCompleted: onActionCompleted
         )
       case .list:
@@ -54,7 +50,7 @@ struct SeriesQueryItemView: View {
         )
       }
     } else {
-      CardPlaceholder(cardWidth: cardWidth, layout: layout)
+      CardPlaceholder(layout: layout)
     }
   }
 }
