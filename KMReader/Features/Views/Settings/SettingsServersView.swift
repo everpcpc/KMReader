@@ -23,13 +23,11 @@ struct SettingsServersView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
-  @Environment(\.colorScheme) private var colorScheme
   @Query(sort: [
     SortDescriptor(\KomgaInstance.lastUsedAt, order: .reverse),
     SortDescriptor(\KomgaInstance.name, order: .forward),
   ]) private var instances: [KomgaInstance]
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   @State private var instancePendingDeletion: KomgaInstance?

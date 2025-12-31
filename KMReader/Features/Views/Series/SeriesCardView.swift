@@ -14,7 +14,6 @@ struct SeriesCardView: View {
   var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
-  @Environment(\.colorScheme) private var colorScheme
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false

@@ -17,7 +17,6 @@
     private let onClose: (() -> Void)?
 
     @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -231,7 +230,7 @@
           }
           .padding(.horizontal, 16)
           .padding(.vertical, 8)
-          .background(themeColor.color.opacity(0.9))
+          .background(Color.accentColor.opacity(0.9))
           .cornerRadius(12)
         }
 

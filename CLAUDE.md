@@ -156,7 +156,7 @@ KMReader/
   - iOS 18.0+, macOS 15.0+, tvOS 18.0+: `MainTabView` (modern tab navigation)
   - Earlier versions: `OldTabView` (compatibility fallback)
   - Shows `SplashView` during initialization (`InstanceInitializer`)
-- Reacts to `@AppStorage` flags (`isLoggedIn`, `enableSSE`, `themeColorHex`, `isOffline`)
+- Reacts to `@AppStorage` flags (`isLoggedIn`, `enableSSE`, `isOffline`)
 - Reader presentation: `.fullScreenCover` on iOS/tvOS, `ReaderWindowManager` for separate windows on macOS
 - On startup: loads current user, checks server reachability, sets offline mode, connects SSE if enabled
 

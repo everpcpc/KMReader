@@ -9,6 +9,7 @@ import SwiftUI
 
 struct LandingView: View {
   @State private var showGetStarted = false
+  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
   var body: some View {
     VStack(spacing: 40) {
@@ -55,6 +56,8 @@ struct LandingView: View {
         NavigationStack {
           SettingsServersView(mode: .onboarding)
         }
+        .tint(themeColor.color)
+        .accentColor(themeColor.color)
       }
     #else
       .sheet(isPresented: $showGetStarted) {

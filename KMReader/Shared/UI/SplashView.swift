@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct SplashView: View {
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @State private var isVisible = false
   @State private var loadingMessageIndex = 0
   @State private var pulseProgress = 1.0
@@ -72,7 +71,6 @@ struct SplashView: View {
           VStack(spacing: 8) {
             ProgressView(value: initializationProgress)
               .progressViewStyle(.linear)
-              .tint(themeColor.color)
               .frame(maxWidth: 280)
               .opacity(isVisible ? 1.0 : 0.0)
 
@@ -90,7 +88,6 @@ struct SplashView: View {
           // Indeterminate spinner when not initializing
           ProgressView()
             .controlSize(.large)
-            .tint(themeColor.color)
             .scaleEffect(pulseProgress)
             .opacity(isVisible ? 1.0 : 0.0)
 

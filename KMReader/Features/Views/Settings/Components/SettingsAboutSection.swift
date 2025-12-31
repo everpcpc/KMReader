@@ -43,7 +43,10 @@ struct SettingsAboutSection: View {
             .foregroundColor(.secondary)
         }
       }
-      Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+      Link(
+        destination: URL(
+          string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+      ) {
         HStack {
           Label(String(localized: "Terms of Use"), systemImage: "doc.text")
           Spacer()

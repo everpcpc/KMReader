@@ -10,7 +10,6 @@ struct ServerRowView: View {
   @Bindable var instance: KomgaInstance
   @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.colorScheme) private var colorScheme
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   let isSwitching: Bool
@@ -68,7 +67,7 @@ struct ServerRowView: View {
     }
     .animation(.easeInOut(duration: 0.25), value: isActive)
     .adaptiveButtonStyle(.plain)
-    .disabled(isActive || authViewModel.isSwitching)
+    .allowsHitTesting(!(isActive || authViewModel.isSwitching))
     #if os(iOS) || os(macOS)
       .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
       .listRowSeparator(.hidden)
@@ -114,8 +113,8 @@ struct ServerRowView: View {
         .scaleEffect(0.85)
     } else if isActive {
       infoTag(
-        icon: "checkmark.seal.fill", text: LocalizedStringKey("Active"), tint: themeColor.color,
-        textColor: themeColor.color)
+        icon: "checkmark.seal.fill", text: LocalizedStringKey("Active"), tint: Color.accentColor,
+        textColor: Color.accentColor)
     } else {
       Image(systemName: "chevron.right")
         .font(.body.weight(.semibold))
@@ -162,8 +161,8 @@ struct ServerRowView: View {
     let gradientColors: [Color]
     if isActive {
       gradientColors = [
-        themeColor.color.opacity(0.85),
-        themeColor.color.opacity(0.55),
+        Color.accentColor.opacity(0.85),
+        Color.accentColor.opacity(0.55),
       ]
     } else if colorScheme == .dark {
       gradientColors = [
@@ -211,8 +210,8 @@ struct ServerRowView: View {
     let colors =
       isActive
       ? [
-        themeColor.color.opacity(0.45),
-        themeColor.color.opacity(0.2),
+        Color.accentColor.opacity(0.45),
+        Color.accentColor.opacity(0.2),
       ]
       : [
         inactiveTop,
@@ -230,7 +229,7 @@ struct ServerRowView: View {
       .overlay(
         RoundedRectangle(cornerRadius: 22, style: .continuous)
           .strokeBorder(
-            isActive ? themeColor.color.opacity(0.6) : Color.primary.opacity(0.05),
+            isActive ? Color.accentColor.opacity(0.6) : Color.primary.opacity(0.05),
             lineWidth: isActive ? 2 : 1
           )
       )

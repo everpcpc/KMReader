@@ -14,8 +14,6 @@
     let currentLink: ReadiumShared.Link?
     let goToChapter: (ReadiumShared.Link) -> Void
 
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
     var body: some View {
       SheetView(title: String(localized: "title.chapters"), size: .large, applyFormStyle: true) {
         ScrollViewReader { proxy in
@@ -32,7 +30,7 @@
                   currentLink.href == link.href
                 {
                   Image(systemName: "bookmark.fill")
-                    .foregroundColor(themeColor.color)
+                    .foregroundColor(Color.accentColor)
                 }
               }
             }

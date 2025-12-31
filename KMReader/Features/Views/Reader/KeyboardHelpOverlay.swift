@@ -17,8 +17,6 @@ import SwiftUI
     let hasNextBook: Bool
     let onDismiss: () -> Void
 
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
     var body: some View {
       ZStack {
         // Semi-transparent background
@@ -89,7 +87,7 @@ import SwiftUI
               .foregroundColor(.white)
               .padding(.horizontal, 24)
               .padding(.vertical, 8)
-              .background(themeColor.color.opacity(0.9))
+              .background(Color.accentColor.opacity(0.9))
               .cornerRadius(8)
           }
           .adaptiveButtonStyle(.plain)

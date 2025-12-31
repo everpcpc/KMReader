@@ -57,8 +57,7 @@ struct SeriesDetailContentView: View {
                   )
                 }
 
-                if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount
-                {
+                if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount {
                   InfoChip(
                     labelKey: "\(series.booksUnreadCount) unread",
                     systemImage: "circle",

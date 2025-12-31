@@ -22,6 +22,7 @@ extension EnvironmentValues {
   struct ReaderOverlay: View {
     let namespace: Namespace.ID
     @Environment(ReaderPresentationManager.self) private var readerPresentation
+    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
     var body: some View {
       // iOS 18+: Use fullScreenCover for zoom transition
@@ -41,6 +42,8 @@ extension EnvironmentValues {
                   sourceID: readerPresentation.sourceBookId ?? "",
                   in: namespace
                 )
+                .tint(themeColor.color)
+                .accentColor(themeColor.color)
             #else
               ReaderContentView()
                 .navigationTransitionZoomIfAvailable(
@@ -59,6 +62,7 @@ extension EnvironmentValues {
   /// Fallback overlay for iOS 17 and earlier
   private struct ReaderOverlayFallback: View {
     @Environment(ReaderPresentationManager.self) private var readerPresentation
+    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
     private var isPresented: Bool {
       readerPresentation.readerState != nil && !readerPresentation.isDismissing
@@ -72,6 +76,10 @@ extension EnvironmentValues {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .readerIgnoresSafeArea()
+      #if os(iOS)
+        .tint(themeColor.color)
+        .accentColor(themeColor.color)
+      #endif
       .opacity(isPresented ? 1 : 0)
       .scaleEffect(isPresented ? 1 : 0.5, anchor: .center)
       .allowsHitTesting(isPresented)

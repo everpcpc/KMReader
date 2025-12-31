@@ -11,8 +11,6 @@ struct UnreadCountBadge: View {
   let count: Int
   let size: CGFloat
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
   #if os(tvOS)
     static let defaultSize: CGFloat = 24
     private let padding: CGFloat = 8
@@ -32,7 +30,7 @@ struct UnreadCountBadge: View {
       .foregroundColor(.white)
       .padding(.horizontal, padding * 2)
       .padding(.vertical, padding)
-      .background(themeColor.color)
+      .background(Color.accentColor)
       .clipShape(Capsule())
       .shadow(color: .black.opacity(0.5), radius: 3, x: 0, y: 1)
       .padding(padding)
@@ -54,11 +52,9 @@ struct UnreadIndicator: View {
     self.size = size
   }
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
   var body: some View {
     Circle()
-      .fill(themeColor.color)
+      .fill(Color.accentColor)
       .frame(width: size, height: size)
       .shadow(color: .black.opacity(0.5), radius: 3, x: 0, y: 1)
       .padding(padding)

@@ -10,8 +10,6 @@ import SwiftUI
 struct ReadingProgressBar: View {
   let progress: Double
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
   private var progressBarHeight: CGFloat {
     PlatformHelper.progressBarHeight
   }
@@ -28,7 +26,7 @@ struct ReadingProgressBar: View {
           .frame(height: progressBarHeight)
 
         Capsule()
-          .fill(themeColor.color)
+          .fill(Color.accentColor)
           .frame(
             width: max(geometry.size.width * progress, progress > 0 ? 4 : 0),
             height: progressBarHeight

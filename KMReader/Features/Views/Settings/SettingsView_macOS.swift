@@ -12,7 +12,6 @@ import SwiftUI
     @Environment(AuthViewModel.self) private var authViewModel
     @AppStorage("isAdmin") private var isAdmin: Bool = false
     @AppStorage("serverDisplayName") private var serverDisplayName: String = ""
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
     @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
     @State private var selectedSection: SettingsSection? = .appearance
@@ -43,7 +42,7 @@ import SwiftUI
               SettingsSectionRow(
                 section: .tasks,
                 badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
-                badgeColor: themeColor.color
+                badgeColor: Color.accentColor
               )
             }
           }

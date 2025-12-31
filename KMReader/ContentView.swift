@@ -12,7 +12,6 @@ struct ContentView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.scenePhase) private var scenePhase
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false

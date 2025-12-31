@@ -77,6 +77,7 @@ struct MainApp: App {
         #endif
         #if os(iOS)
           .tint(themeColor.color)
+          .accentColor(themeColor.color)
         #endif
         .environment(authViewModel)
         .environment(readerPresentation)

@@ -45,7 +45,6 @@ struct ArcEffectShape: Shape {
 struct ArcEffectView: View {
   let progress: CGFloat
   let readingDirection: ReadingDirection
-  let themeColor: Color
 
   private let maxArcWidth: CGFloat = 80
 
@@ -56,7 +55,6 @@ struct ArcEffectView: View {
   private var isVertical: Bool {
     readingDirection == .vertical || readingDirection == .webtoon
   }
-
 
   private var currentArcWidth: CGFloat {
     maxArcWidth * progress
@@ -78,29 +76,29 @@ struct ArcEffectView: View {
             .fill(
               LinearGradient(
                 gradient: Gradient(colors: [
-                  themeColor.opacity(0.6),
-                  themeColor.opacity(0.3),
-                  themeColor.opacity(0.0),
+                  Color.accentColor.opacity(0.6),
+                  Color.accentColor.opacity(0.3),
+                  Color.accentColor.opacity(0.0),
                 ]),
                 startPoint: .bottom,
                 endPoint: .top
               )
             )
-            .shadow(color: themeColor.opacity(0.4), radius: 20, x: 0, y: 0)
+            .shadow(color: Color.accentColor.opacity(0.4), radius: 20, x: 0, y: 0)
         } else {
           ArcEffectShape(progress: progress, isLeading: isLeading)
             .fill(
               LinearGradient(
                 gradient: Gradient(colors: [
-                  themeColor.opacity(0.6),
-                  themeColor.opacity(0.3),
-                  themeColor.opacity(0.0),
+                  Color.accentColor.opacity(0.6),
+                  Color.accentColor.opacity(0.3),
+                  Color.accentColor.opacity(0.0),
                 ]),
                 startPoint: isLeading ? .leading : .trailing,
                 endPoint: isLeading ? .trailing : .leading
               )
             )
-            .shadow(color: themeColor.opacity(0.4), radius: 20, x: 0, y: 0)
+            .shadow(color: Color.accentColor.opacity(0.4), radius: 20, x: 0, y: 0)
         }
 
         if showArrow {

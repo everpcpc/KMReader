@@ -9,7 +9,6 @@ import SwiftUI
 
 // Simple page preview card for native scroll
 private struct PagePreviewCard: View {
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
   let bookId: String
   let page: Int
@@ -41,7 +40,7 @@ private struct PagePreviewCard: View {
       .clipShape(RoundedRectangle(cornerRadius: 8))
       .overlay(
         RoundedRectangle(cornerRadius: 8)
-          .stroke(isSelected ? themeColor.color : Color.clear, lineWidth: 3)
+          .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 3)
       )
       .shadow(
         color: Color.black.opacity(isSelected ? 0.3 : 0.15),
@@ -53,7 +52,7 @@ private struct PagePreviewCard: View {
       Text("\(page)")
         .font(.caption)
         .fontWeight(isSelected ? .semibold : .regular)
-        .foregroundStyle(isSelected ? themeColor.color : .secondary)
+        .foregroundStyle(isSelected ? Color.accentColor : .secondary)
     }
     .task(id: page) {
       if let url = try? await ThumbnailCache.shared.ensureThumbnail(

@@ -124,6 +124,7 @@ import SwiftUI
   // The actual notification content view
   struct NotificationContentView: View {
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+
     @State private var errorManager = ErrorManager.shared
 
     var body: some View {
@@ -185,6 +186,7 @@ import SwiftUI
   // macOS uses regular overlay approach since sheets behave differently
   struct NotificationOverlay: View {
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+
     @State private var errorManager = ErrorManager.shared
 
     var body: some View {

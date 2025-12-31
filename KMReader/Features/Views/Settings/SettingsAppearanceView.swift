@@ -62,44 +62,46 @@ struct SettingsAppearanceView: View {
 
   var body: some View {
     Form {
-      Section(header: Text(String(localized: "settings.appearance.theme"))) {
-        #if os(iOS) || os(macOS)
-          ColorPicker(
-            String(localized: "settings.appearance.color"),
-            selection: themeColorBinding,
-            supportsOpacity: false)
-        #elseif os(tvOS)
-          VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "settings.appearance.color"))
-              .font(.headline)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 12) {
-              ForEach(ThemeColor.presetColors, id: \.name) { preset in
-                Button {
-                  themeColor = preset.themeColor
-                } label: {
-                  ZStack {
-                    Circle()
-                      .fill(preset.color)
-                      .frame(width: 50, height: 50)
-                    if preset.themeColor == themeColor {
+      #if os(iOS) || os(tvOS)
+        Section(header: Text(String(localized: "settings.appearance.theme"))) {
+          #if os(iOS)
+            ColorPicker(
+              String(localized: "settings.appearance.color"),
+              selection: themeColorBinding,
+              supportsOpacity: false)
+          #elseif os(tvOS)
+            VStack(alignment: .leading, spacing: 12) {
+              Text(String(localized: "settings.appearance.color"))
+                .font(.headline)
+              LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 12) {
+                ForEach(ThemeColor.presetColors, id: \.name) { preset in
+                  Button {
+                    themeColor = preset.themeColor
+                  } label: {
+                    ZStack {
                       Circle()
-                        .stroke(Color.primary, lineWidth: 3)
+                        .fill(preset.color)
                         .frame(width: 50, height: 50)
-                      Image(systemName: "checkmark")
-                        .foregroundColor(.primary)
-                        .font(.system(size: 16, weight: .bold))
+                      if preset.themeColor == themeColor {
+                        Circle()
+                          .stroke(Color.primary, lineWidth: 3)
+                          .frame(width: 50, height: 50)
+                        Image(systemName: "checkmark")
+                          .foregroundColor(.primary)
+                          .font(.system(size: 16, weight: .bold))
+                      }
                     }
                   }
+                  .focused($colorFocusedButton, equals: preset.themeColor)
+                  .adaptiveButtonStyle(.plain)
+                  .focusPadding()
                 }
-                .focused($colorFocusedButton, equals: preset.themeColor)
-                .adaptiveButtonStyle(.plain)
-                .focusPadding()
               }
+              .focusSection()
             }
-            .focusSection()
-          }
-        #endif
-      }
+          #endif
+        }
+      #endif
 
       Section(header: Text(String(localized: "settings.appearance.browse"))) {
         #if os(iOS)

@@ -11,8 +11,6 @@ struct NextBookInfoView: View {
   let nextBook: Book?
   let readList: ReadList?
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
   private var bookNumber: String {
     guard let book = nextBook else { return "" }
     return "#\(book.metadata.number)"
@@ -64,7 +62,7 @@ struct NextBookInfoView: View {
         .padding(.vertical, 8)
         .background(
           RoundedRectangle(cornerRadius: 12)
-            .fill(themeColor.color.opacity(0.8))
+            .fill(Color.accentColor.opacity(0.8))
         )
       } else {
         HStack(spacing: 8) {
@@ -76,7 +74,7 @@ struct NextBookInfoView: View {
         .padding(.vertical, 8)
         .background(
           RoundedRectangle(cornerRadius: 12)
-            .fill(themeColor.color.opacity(0.8))
+            .fill(Color.accentColor.opacity(0.8))
         )
       }
     }

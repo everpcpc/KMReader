@@ -10,7 +10,6 @@ import SwiftUI
 
 struct SettingsOfflineTasksRow: View {
   @AppStorage("offlinePaused") private var offlinePaused: Bool = false
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
   @Query private var books: [KomgaBook]
 
@@ -64,7 +63,7 @@ struct SettingsOfflineTasksRow: View {
             }
             .font(.caption)
             .fontWeight(.semibold)
-            .foregroundColor(themeColor.color)
+            .foregroundColor(Color.accentColor)
           }
 
           if pendingCount > 0 {

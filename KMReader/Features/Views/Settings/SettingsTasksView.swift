@@ -9,7 +9,6 @@ import SwiftUI
 
 struct SettingsTasksView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
   @State private var isLoading = false
@@ -71,7 +70,7 @@ struct SettingsTasksView: View {
                 Text("\(taskQueueStatus.count)")
                   .font(.title2)
                   .fontWeight(.bold)
-                  .foregroundColor(taskQueueStatus.count > 0 ? themeColor.color : .secondary)
+                  .foregroundColor(taskQueueStatus.count > 0 ? Color.accentColor : .secondary)
                   .contentTransition(.numericText())
               }
               .padding(.vertical, 4)
@@ -88,7 +87,7 @@ struct SettingsTasksView: View {
                       Spacer()
                       Text("\(count)")
                         .fontWeight(.semibold)
-                        .foregroundColor(count > 0 ? themeColor.color : .secondary)
+                        .foregroundColor(count > 0 ? Color.accentColor : .secondary)
                         .contentTransition(.numericText())
                     }
                     .padding(.vertical, 2)
@@ -105,7 +104,7 @@ struct SettingsTasksView: View {
               Spacer()
               if taskQueueStatus.count > 0 {
                 Circle()
-                  .fill(themeColor.color)
+                  .fill(Color.accentColor)
                   .frame(width: 8, height: 8)
                   .opacity(1.0)
               }

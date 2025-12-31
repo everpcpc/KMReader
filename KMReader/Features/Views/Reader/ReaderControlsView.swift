@@ -26,8 +26,6 @@ struct ReaderControlsView: View {
   let onPreviousBook: ((String) -> Void)?
   let onNextBook: ((String) -> Void)?
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
   @State private var saveImageResult: SaveImageResult?
   @State private var showSaveAlert = false
   @State private var showDocumentPicker = false
@@ -159,7 +157,7 @@ struct ReaderControlsView: View {
           }
           .padding(.vertical, buttonPadding)
           .padding(.horizontal, buttonMargin)
-          .background(themeColor.color.opacity(0.9))
+          .background(Color.accentColor.opacity(0.9))
           .cornerRadius(12)
         }
 

@@ -18,7 +18,6 @@ struct EndPageView: View {
   var onExternalPanUpdate: ((@escaping (CGFloat) -> Void) -> Void)?
   var onExternalPanEnd: ((@escaping (CGFloat) -> Void) -> Void)?
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @Environment(\.readerBackgroundPreference) private var readerBackground
 
   #if os(iOS)
@@ -103,7 +102,6 @@ struct EndPageView: View {
           ArcEffectView(
             progress: dragProgress,
             readingDirection: readingDirection,
-            themeColor: themeColor.color
           )
           .environment(\.layoutDirection, .leftToRight)
           .allowsHitTesting(false)
