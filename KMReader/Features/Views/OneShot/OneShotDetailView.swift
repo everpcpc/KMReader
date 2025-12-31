@@ -19,6 +19,7 @@ struct OneshotDetailView: View {
   @Query private var komgaBookList: [KomgaBook]
 
   @State private var isLoading = true
+  @State private var hasError = false
   @State private var isLoadingCollections = false
   @State private var isLoadingReadLists = false
   @State private var thumbnailRefreshTrigger = 0
@@ -77,16 +78,16 @@ struct OneshotDetailView: View {
             bookReadLists: bookReadLists,
             thumbnailRefreshTrigger: $thumbnailRefreshTrigger
           )
-        } else if isLoading {
-          VStack(spacing: 16) {
-            ProgressView()
-          }
-          .frame(maxWidth: .infinity)
-        } else {
+        } else if hasError {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
               .font(.largeTitle)
               .foregroundColor(.secondary)
+          }
+          .frame(maxWidth: .infinity)
+        } else {
+          VStack(spacing: 16) {
+            ProgressView()
           }
           .frame(maxWidth: .infinity)
         }
@@ -174,6 +175,7 @@ struct OneshotDetailView: View {
       if case APIError.notFound = error {
         dismiss()
       } else if komgaSeries == nil || komgaBook == nil {
+        hasError = true
         ErrorManager.shared.alert(error: error)
       }
       isLoading = false
