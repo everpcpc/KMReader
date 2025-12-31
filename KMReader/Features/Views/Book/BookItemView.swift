@@ -9,7 +9,6 @@ import SwiftUI
 
 struct BookItemView: View {
   @Bindable var book: KomgaBook
-  let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   let onReadBook: (Bool) -> Void
   let onBookUpdated: (() -> Void)?
@@ -21,7 +20,6 @@ struct BookItemView: View {
     case .grid:
       BookCardView(
         komgaBook: book,
-        cardWidth: cardWidth,
         onReadBook: onReadBook,
         onBookUpdated: onBookUpdated,
         showSeriesTitle: showSeriesTitle,

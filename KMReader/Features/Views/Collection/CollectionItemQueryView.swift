@@ -10,16 +10,8 @@ import SwiftUI
 
 struct CollectionItemQueryView: View {
   @Bindable var collection: KomgaCollection
-  var width: CGFloat?
   var layout: BrowseLayoutMode = .grid
   var onActionCompleted: (() -> Void)?
-
-  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
-    PlatformHelper.defaultDashboardCardWidth)
-
-  private var cardWidth: CGFloat {
-    width ?? CGFloat(dashboardCardWidth)
-  }
 
   var body: some View {
     NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.collectionId)) {
@@ -27,7 +19,6 @@ struct CollectionItemQueryView: View {
       case .grid:
         CollectionCardView(
           komgaCollection: collection,
-          width: cardWidth,
           onActionCompleted: onActionCompleted
         )
       case .list:

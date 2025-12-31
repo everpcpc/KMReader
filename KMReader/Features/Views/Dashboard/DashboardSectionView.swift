@@ -26,8 +26,7 @@ struct DashboardSectionView: View {
   var onUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("dashboardCardWidth") private var dashboardCardWidth: Double = Double(
-    PlatformHelper.defaultDashboardCardWidth)
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("dashboardSectionCache") private var sectionCache: DashboardSectionCache =
     DashboardSectionCache()
   @Environment(\.modelContext) private var modelContext
@@ -71,6 +70,7 @@ struct DashboardSectionView: View {
         LazyHStack(alignment: .top, spacing: 16) {
           ForEach(pagination.items) { item in
             itemView(for: item.id)
+              .frame(width: LayoutConfig.cardWidth(for: gridDensity))
               .onAppear {
                 if pagination.shouldLoadMore(after: item) {
                   Task {
@@ -118,7 +118,6 @@ struct DashboardSectionView: View {
     if section.isBookSection {
       BookQueryItemView(
         bookId: itemId,
-        cardWidth: CGFloat(dashboardCardWidth),
         layout: .grid,
         onBookUpdated: onUpdated,
         showSeriesTitle: true
@@ -126,7 +125,6 @@ struct DashboardSectionView: View {
     } else {
       SeriesQueryItemView(
         seriesId: itemId,
-        cardWidth: CGFloat(dashboardCardWidth),
         layout: .grid,
         onActionCompleted: onUpdated
       )

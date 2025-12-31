@@ -11,7 +11,6 @@ import SwiftUI
 // Series list view for collection
 struct CollectionSeriesListView: View {
   let collectionId: String
-  let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
   @AppStorage("collectionDetailLayout") private var layoutMode: BrowseLayoutMode = .list
@@ -34,11 +33,9 @@ struct CollectionSeriesListView: View {
 
   init(
     collectionId: String,
-    layoutHelper: BrowseLayoutHelper,
     showFilterSheet: Binding<Bool>
   ) {
     self.collectionId = collectionId
-    self.layoutHelper = layoutHelper
     self._showFilterSheet = showFilterSheet
 
     let instanceId = AppConfig.currentInstanceId
@@ -117,7 +114,6 @@ struct CollectionSeriesListView: View {
           collectionId: collectionId,
           seriesViewModel: seriesViewModel,
           browseOpts: browseOpts,
-          layoutHelper: layoutHelper,
           browseLayout: layoutMode,
           isSelectionMode: isSelectionMode,
           selectedSeriesIds: $selectedSeriesIds,

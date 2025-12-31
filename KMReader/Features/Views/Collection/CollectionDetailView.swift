@@ -11,7 +11,6 @@ import SwiftUI
 struct CollectionDetailView: View {
   let collectionId: String
 
-  @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
@@ -22,8 +21,7 @@ struct CollectionDetailView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
-  @State private var containerWidth: CGFloat = 0
-  @State private var layoutHelper = BrowseLayoutHelper()
+
   @State private var thumbnailRefreshTrigger = 0
 
   init(collectionId: String) {
@@ -59,10 +57,9 @@ struct CollectionDetailView: View {
           ).padding(.horizontal)
 
           // Series list
-          if containerWidth > 0 {
+          if komgaCollection != nil {
             CollectionSeriesListView(
               collectionId: collectionId,
-              layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )
           }
@@ -102,21 +99,6 @@ struct CollectionDetailView: View {
     }
     .task {
       await loadCollectionDetails()
-    }
-    .onContainerWidthChange { newWidth in
-      containerWidth = newWidth
-      layoutHelper = BrowseLayoutHelper(
-        width: newWidth,
-        browseColumns: browseColumns
-      )
-    }
-    .onChange(of: browseColumns) { _, _ in
-      if containerWidth > 0 {
-        layoutHelper = BrowseLayoutHelper(
-          width: containerWidth,
-          browseColumns: browseColumns
-        )
-      }
     }
   }
 }

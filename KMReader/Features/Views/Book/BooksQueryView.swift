@@ -10,10 +10,19 @@ import SwiftUI
 
 struct BooksQueryView: View {
   let browseOpts: BookBrowseOptions
-  let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let viewModel: BookViewModel
   let loadMore: (Bool) async -> Void
+
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+
+  private var columns: [GridItem] {
+    LayoutConfig.adaptiveColumns(for: gridDensity)
+  }
+
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
 
   var body: some View {
     BrowseStateView(
@@ -30,11 +39,10 @@ struct BooksQueryView: View {
     ) {
       switch browseLayout {
       case .grid:
-        LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+        LazyVGrid(columns: columns, spacing: spacing) {
           ForEach(viewModel.pagination.items) { book in
             BookQueryItemView(
               bookId: book.id,
-              cardWidth: layoutHelper.cardWidth,
               layout: .grid,
               onBookUpdated: {
                 Task {
@@ -52,13 +60,12 @@ struct BooksQueryView: View {
             }
           }
         }
-        .padding(.horizontal, layoutHelper.spacing)
+        .padding(.horizontal)
       case .list:
         LazyVStack {
           ForEach(viewModel.pagination.items) { book in
             BookQueryItemView(
               bookId: book.id,
-              cardWidth: layoutHelper.cardWidth,
               layout: .list,
               onBookUpdated: {
                 Task {

@@ -11,7 +11,6 @@ import SwiftUI
 // Books list view for read list
 struct BooksListViewForReadList: View {
   let readListId: String
-  let layoutHelper: BrowseLayoutHelper
   @Binding var showFilterSheet: Bool
 
   @AppStorage("readListDetailLayout") private var layoutMode: BrowseLayoutMode = .list
@@ -33,11 +32,9 @@ struct BooksListViewForReadList: View {
 
   init(
     readListId: String,
-    layoutHelper: BrowseLayoutHelper,
     showFilterSheet: Binding<Bool>
   ) {
     self.readListId = readListId
-    self.layoutHelper = layoutHelper
     self._showFilterSheet = showFilterSheet
 
     let instanceId = AppConfig.currentInstanceId
@@ -127,7 +124,6 @@ struct BooksListViewForReadList: View {
           readListId: readListId,
           bookViewModel: bookViewModel,
           browseOpts: browseOpts,
-          layoutHelper: layoutHelper,
           browseLayout: layoutMode,
           isSelectionMode: isSelectionMode,
           selectedBookIds: $selectedBookIds,

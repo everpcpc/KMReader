@@ -9,7 +9,6 @@ import SwiftUI
 
 struct SeriesItemView: View {
   @Bindable var series: KomgaSeries
-  let cardWidth: CGFloat
   let layout: BrowseLayoutMode
   var onActionCompleted: (() -> Void)? = nil
 
@@ -18,7 +17,6 @@ struct SeriesItemView: View {
     case .grid:
       SeriesCardView(
         komgaSeries: series,
-        cardWidth: cardWidth,
         onActionCompleted: onActionCompleted
       )
     case .list:

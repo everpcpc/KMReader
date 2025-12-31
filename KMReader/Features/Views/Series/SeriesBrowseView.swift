@@ -10,7 +10,6 @@ import SwiftUI
 
 struct SeriesBrowseView: View {
   let libraryIds: [String]
-  let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
@@ -29,13 +28,11 @@ struct SeriesBrowseView: View {
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         layoutMode: $browseLayout
-      )
-      .padding(layoutHelper.spacing)
+      ).padding()
 
       SeriesQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
           ? SeriesBrowseOptions() : browseOpts,
-        layoutHelper: layoutHelper,
         browseLayout: browseLayout,
         viewModel: viewModel,
         loadMore: loadSeries

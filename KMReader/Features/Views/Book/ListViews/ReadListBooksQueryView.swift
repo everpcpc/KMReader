@@ -12,14 +12,22 @@ struct ReadListBooksQueryView: View {
   let readListId: String
   @Bindable var bookViewModel: BookViewModel
   let browseOpts: ReadListBookBrowseOptions
-  let layoutHelper: BrowseLayoutHelper
   let browseLayout: BrowseLayoutMode
   let isSelectionMode: Bool
   @Binding var selectedBookIds: Set<String>
   let isAdmin: Bool
   let refreshBooks: () -> Void
 
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @Environment(\.modelContext) private var modelContext
+
+  private var columns: [GridItem] {
+    LayoutConfig.adaptiveColumns(for: gridDensity)
+  }
+
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
 
   var body: some View {
     Group {
@@ -30,13 +38,12 @@ struct ReadListBooksQueryView: View {
       } else {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+          LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(bookViewModel.pagination.items) { book in
               Group {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(
                     bookId: book.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     selectedBookIds: $selectedBookIds,
                     refreshBooks: refreshBooks,
@@ -45,7 +52,6 @@ struct ReadListBooksQueryView: View {
                 } else {
                   BookQueryItemView(
                     bookId: book.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .grid,
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true
@@ -60,7 +66,7 @@ struct ReadListBooksQueryView: View {
               }
             }
           }
-          .padding(.horizontal, layoutHelper.spacing)
+          .padding(.horizontal)
         case .list:
           LazyVStack {
             ForEach(bookViewModel.pagination.items) { book in
@@ -68,7 +74,6 @@ struct ReadListBooksQueryView: View {
                 if isSelectionMode && isAdmin {
                   BookSelectionItemView(
                     bookId: book.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     selectedBookIds: $selectedBookIds,
                     refreshBooks: refreshBooks,
@@ -77,7 +82,6 @@ struct ReadListBooksQueryView: View {
                 } else {
                   BookQueryItemView(
                     bookId: book.id,
-                    cardWidth: layoutHelper.cardWidth,
                     layout: .list,
                     onBookUpdated: refreshBooks,
                     showSeriesTitle: true

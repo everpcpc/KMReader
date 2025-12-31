@@ -9,7 +9,6 @@ import SwiftUI
 
 struct BrowseView: View {
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
-  @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
@@ -19,8 +18,6 @@ struct BrowseView: View {
   @State private var isRefreshDisabled = false
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
-  @State private var contentWidth: CGFloat = 0
-  @State private var layoutHelper = BrowseLayoutHelper()
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var libraryIds: [String] = []
@@ -100,17 +97,8 @@ struct BrowseView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
 
-        if contentWidth > 0 {
-          contentView()
-        }
+        contentView()
       }
-    }
-    .onContainerWidthChange { newWidth in
-      contentWidth = newWidth
-      layoutHelper = BrowseLayoutHelper(
-        width: newWidth,
-        browseColumns: browseColumns
-      )
     }
     .inlineNavigationBarTitle(title)
     .animation(.default, value: library)
@@ -146,14 +134,6 @@ struct BrowseView: View {
         activeSearchText = ""
       }
     }
-    .onChange(of: browseColumns) { _, _ in
-      if contentWidth > 0 {
-        layoutHelper = BrowseLayoutHelper(
-          width: contentWidth,
-          browseColumns: browseColumns
-        )
-      }
-    }
     .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
       guard library == nil else { return }
       // Refresh when server switch completes to avoid race condition
@@ -186,7 +166,6 @@ struct BrowseView: View {
     case .series:
       SeriesBrowseView(
         libraryIds: libraryIds,
-        layoutHelper: layoutHelper,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         showFilterSheet: $showFilterSheet
@@ -194,7 +173,6 @@ struct BrowseView: View {
     case .books:
       BooksBrowseView(
         libraryIds: libraryIds,
-        layoutHelper: layoutHelper,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         showFilterSheet: $showFilterSheet
@@ -202,7 +180,6 @@ struct BrowseView: View {
     case .collections:
       CollectionsBrowseView(
         libraryIds: libraryIds,
-        layoutHelper: layoutHelper,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         showFilterSheet: $showFilterSheet
@@ -210,7 +187,6 @@ struct BrowseView: View {
     case .readlists:
       ReadListsBrowseView(
         libraryIds: libraryIds,
-        layoutHelper: layoutHelper,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         showFilterSheet: $showFilterSheet

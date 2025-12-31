@@ -11,7 +11,6 @@ import SwiftUI
 struct ReadListDetailView: View {
   let readListId: String
 
-  @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
@@ -22,8 +21,7 @@ struct ReadListDetailView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
-  @State private var containerWidth: CGFloat = 0
-  @State private var layoutHelper = BrowseLayoutHelper()
+
   @State private var thumbnailRefreshTrigger = 0
 
   init(readListId: String) {
@@ -61,10 +59,9 @@ struct ReadListDetailView: View {
           .padding(.horizontal)
 
           // Books list
-          if containerWidth > 0 {
+          if komgaReadList != nil {
             BooksListViewForReadList(
               readListId: readListId,
-              layoutHelper: layoutHelper,
               showFilterSheet: $showFilterSheet
             )
           }
@@ -104,21 +101,6 @@ struct ReadListDetailView: View {
     }
     .task {
       await loadReadListDetails()
-    }
-    .onContainerWidthChange { newWidth in
-      containerWidth = newWidth
-      layoutHelper = BrowseLayoutHelper(
-        width: newWidth,
-        browseColumns: browseColumns
-      )
-    }
-    .onChange(of: browseColumns) { _, _ in
-      if containerWidth > 0 {
-        layoutHelper = BrowseLayoutHelper(
-          width: containerWidth,
-          browseColumns: browseColumns
-        )
-      }
     }
   }
 }

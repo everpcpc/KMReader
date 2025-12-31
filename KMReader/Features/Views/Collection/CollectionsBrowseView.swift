@@ -10,7 +10,6 @@ import SwiftUI
 
 struct CollectionsBrowseView: View {
   let libraryIds: [String]
-  let layoutHelper: BrowseLayoutHelper
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
@@ -18,8 +17,17 @@ struct CollectionsBrowseView: View {
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var viewModel = CollectionViewModel()
   @Environment(\.modelContext) private var modelContext
+
+  private var columns: [GridItem] {
+    LayoutConfig.adaptiveColumns(for: gridDensity)
+  }
+
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -40,11 +48,10 @@ struct CollectionsBrowseView: View {
       ) {
         switch browseLayout {
         case .grid:
-          LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
+          LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id,
-                width: layoutHelper.cardWidth,
                 onActionCompleted: {
                   Task {
                     await loadCollections(refresh: true)
@@ -61,7 +68,7 @@ struct CollectionsBrowseView: View {
               }
             }
           }
-          .padding(.horizontal, layoutHelper.spacing)
+          .padding(.horizontal)
         case .list:
           LazyVStack {
             ForEach(viewModel.pagination.items) { collection in

@@ -10,7 +10,6 @@ import SwiftUI
 
 struct BookCardView: View {
   @Bindable var komgaBook: KomgaBook
-  let cardWidth: CGFloat
   var onReadBook: ((Bool) -> Void)? = nil
   var onBookUpdated: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
@@ -54,8 +53,7 @@ struct BookCardView: View {
         onReadBook?(false)
       } label: {
         ThumbnailImage(
-          id: komgaBook.bookId, type: .book, shadowStyle: .platform, width: cardWidth,
-          alignment: .bottom
+          id: komgaBook.bookId, type: .book, shadowStyle: .platform, alignment: .bottom
         ) {
           ZStack {
             if let progressCompleted = komgaBook.progressCompleted {
@@ -134,7 +132,6 @@ struct BookCardView: View {
         }.font(.footnote)
       }
     }
-    .frame(width: cardWidth)
     .frame(maxHeight: .infinity, alignment: .top)
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
