@@ -65,10 +65,10 @@ struct ThumbnailImage<Overlay: View>: View {
                 }
               }
               .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-              .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
               #if os(iOS)
                 .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
               #endif
+              .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
               .ifLet(zoomNamespace) { view, namespace in
                 view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
               }
@@ -81,10 +81,10 @@ struct ThumbnailImage<Overlay: View>: View {
                 .clipped()
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
             #if os(iOS)
               .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
             #endif
+            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
             .ifLet(zoomNamespace) { view, namespace in
               view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
             }
@@ -92,15 +92,14 @@ struct ThumbnailImage<Overlay: View>: View {
         } else {
           RoundedRectangle(cornerRadius: cornerRadius)
             .fill(Color.gray.opacity(0.3))
-            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
         }
       }
       .overlay {
         if !thumbnailPreserveAspectRatio, let overlay = overlay {
           overlay()
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         }
       }
-      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
