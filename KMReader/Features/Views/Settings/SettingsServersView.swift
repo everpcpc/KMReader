@@ -156,6 +156,7 @@ struct SettingsServersView: View {
       Button(String(localized: "Cancel"), role: .cancel) {}
       Button(String(localized: "Logout"), role: .destructive) {
         authViewModel.logout()
+        ErrorManager.shared.notify(message: String(localized: "notification.auth.loggedOut"))
       }
     } message: {
       Text(String(localized: "Are you sure you want to logout?"))

@@ -160,6 +160,9 @@ struct SettingsApiKeyView: View {
         if let index = apiKeys.firstIndex(where: { $0.id == apiKey.id }) {
           apiKeys.remove(at: index)
         }
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.apiKey.deleted"))
+        }
       } catch {
         ErrorManager.shared.alert(error: error)
       }

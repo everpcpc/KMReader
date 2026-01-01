@@ -170,8 +170,18 @@ struct SettingsOfflineTasksView: View {
           switch action {
           case .retryAll:
             await OfflineManager.shared.retryFailedDownloads(instanceId: instanceId)
+            await MainActor.run {
+              ErrorManager.shared.notify(
+                message: String(localized: "notification.offline.retryAllFailed")
+              )
+            }
           case .cancelAll:
             await OfflineManager.shared.cancelFailedDownloads(instanceId: instanceId)
+            await MainActor.run {
+              ErrorManager.shared.notify(
+                message: String(localized: "notification.offline.cancelAllFailed")
+              )
+            }
           }
         }
       } label: {
@@ -207,6 +217,9 @@ struct SettingsOfflineTasksView: View {
       Button(String(localized: "common.confirm"), role: .destructive) {
         autoDeleteRead = true
         isPaused = true
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.offline.autoDeleteReadEnabled")
+        )
       }
     } message: {
       Text(String(localized: "settings.offline.auto_delete_read.message"))

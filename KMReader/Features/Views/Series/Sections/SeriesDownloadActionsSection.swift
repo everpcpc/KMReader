@@ -164,6 +164,11 @@ struct SeriesDownloadActionsSection: View {
         seriesId: series.id, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineDownloadQueued")
+        )
+      }
     }
   }
 
@@ -173,6 +178,11 @@ struct SeriesDownloadActionsSection: View {
         seriesId: series.id, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineRemoved")
+        )
+      }
     }
   }
 }
