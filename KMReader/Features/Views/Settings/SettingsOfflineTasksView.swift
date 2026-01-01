@@ -12,7 +12,9 @@ struct SettingsOfflineTasksView: View {
   @Environment(\.modelContext) private var modelContext
   @AppStorage("currentInstanceId") private var instanceId: String = ""
   @AppStorage("offlinePaused") private var isPaused: Bool = false
+  @AppStorage("offlineAutoDeleteRead") private var autoDeleteRead: Bool = false
   @State private var showingBulkAlert = false
+  @State private var showingAutoDeleteAlert = false
   @State private var pendingBulkAction: BulkAction?
 
   enum BulkAction {
@@ -73,6 +75,23 @@ struct SettingsOfflineTasksView: View {
             .foregroundColor(currentStatus.color)
         }
 
+        Toggle(
+          isOn: Binding(
+            get: { autoDeleteRead },
+            set: { newValue in
+              if newValue {
+                showingAutoDeleteAlert = true
+              } else {
+                autoDeleteRead = false
+              }
+            }
+          )
+        ) {
+          Label(
+            String(localized: "settings.offline.auto_delete_read"),
+            systemImage: autoDeleteRead ? "checkmark.circle" : "circle"
+          )
+        }
       }
 
       if !downloadingBooks.isEmpty {
@@ -179,6 +198,18 @@ struct SettingsOfflineTasksView: View {
     }
     .task {
       OfflineManager.shared.triggerSync(instanceId: instanceId)
+    }
+    .alert(
+      String(localized: "settings.offline.auto_delete_read"),
+      isPresented: $showingAutoDeleteAlert
+    ) {
+      Button(String(localized: "common.cancel"), role: .cancel) {}
+      Button(String(localized: "common.confirm"), role: .destructive) {
+        autoDeleteRead = true
+        isPaused = true
+      }
+    } message: {
+      Text(String(localized: "settings.offline.auto_delete_read.message"))
     }
   }
 }
