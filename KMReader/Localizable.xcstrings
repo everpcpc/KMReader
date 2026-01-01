@@ -24154,6 +24154,86 @@
         }
       }
     },
+    "settings.appearance.thumbnailShowShadow.caption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable shadows to improve performance on older devices"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivez les ombres pour améliorer les performances sur les anciens appareils"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "古いデバイスでパフォーマンスを向上させるにはシャドウを無効にしてください"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오래된 기기에서 성능을 향상시키려면 그림자를 비활성화하세요"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭阴影可提升旧设备性能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉陰影可提升舊設備性能"
+          }
+        }
+      }
+    },
+    "settings.appearance.thumbnailShowShadow.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Thumbnail Shadows"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les ombres des miniatures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サムネイルのシャドウを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "썸네일 그림자 표시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示缩略图阴影"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示縮圖陰影"
+          }
+        }
+      }
+    },
     "settings.appearance.searchIgnoreFilters.caption" : {
       "localizations" : {
         "en" : {
