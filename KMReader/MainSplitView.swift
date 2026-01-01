@@ -18,7 +18,11 @@ import SwiftUI
       [KomgaLibrary]
 
     @State private var nav: NavDestination? = .home
-    @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
+    #if os(macOS)
+      @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    #else
+      @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
+    #endif
 
     private var libraries: [KomgaLibrary] {
       guard !currentInstanceId.isEmpty else { return [] }

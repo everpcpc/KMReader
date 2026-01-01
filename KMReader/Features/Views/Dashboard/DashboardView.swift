@@ -46,7 +46,7 @@ struct DashboardView: View {
     logger.debug("Dashboard partial refresh: \(reason)")
     refreshTrigger = DashboardRefreshTrigger(
       id: UUID(),
-      source: .auto,
+      source: .manual,
       sectionsToRefresh: sections
     )
   }
