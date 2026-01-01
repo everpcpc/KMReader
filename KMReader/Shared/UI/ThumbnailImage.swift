@@ -29,6 +29,14 @@ struct ThumbnailImage<Overlay: View>: View {
     thumbnailShowShadow ? shadowStyle : .none
   }
 
+  @ViewBuilder
+  private var borderOverlay: some View {
+    if !thumbnailShowShadow {
+      RoundedRectangle(cornerRadius: cornerRadius)
+        .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
+    }
+  }
+
   init(
     id: String,
     type: ThumbnailType = .book,
@@ -69,6 +77,7 @@ struct ThumbnailImage<Overlay: View>: View {
                 .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
               #endif
               .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+              .overlay { borderOverlay }
               .ifLet(zoomNamespace) { view, namespace in
                 view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
               }
@@ -85,6 +94,7 @@ struct ThumbnailImage<Overlay: View>: View {
               .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
             #endif
             .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+            .overlay { borderOverlay }
             .ifLet(zoomNamespace) { view, namespace in
               view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
             }
