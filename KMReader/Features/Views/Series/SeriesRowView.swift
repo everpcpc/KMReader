@@ -119,6 +119,7 @@ struct SeriesRowView: View {
                     showEditSheet = true
                   }
                 )
+                .id(komgaSeries.seriesId)
               } label: {
                 Image(systemName: "ellipsis")
                   .foregroundColor(.secondary)

@@ -64,6 +64,7 @@ struct ReadListRowView: View {
                     showEditSheet = true
                   }
                 )
+                .id(komgaReadList.readListId)
               } label: {
                 Image(systemName: "ellipsis")
                   .foregroundColor(.secondary)

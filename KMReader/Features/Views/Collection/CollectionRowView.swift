@@ -61,6 +61,7 @@ struct CollectionRowView: View {
                     showEditSheet = true
                   }
                 )
+                .id(komgaCollection.collectionId)
               } label: {
                 Image(systemName: "ellipsis")
                   .foregroundColor(.secondary)
