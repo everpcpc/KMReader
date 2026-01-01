@@ -18,7 +18,8 @@ struct ReadListRowView: View {
     HStack(spacing: 12) {
       NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
         ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 60)
-      }.adaptiveButtonStyle(.plain)
+      }
+      .adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {

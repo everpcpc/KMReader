@@ -22,7 +22,7 @@ struct ThumbnailImage<Overlay: View>: View {
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
-  @Environment(\.readerZoomNamespace) private var zoomNamespace
+  @Environment(\.zoomNamespace) private var zoomNamespace
   @State private var loadedImage: PlatformImage?
 
   private var effectiveShadowStyle: ShadowStyle {

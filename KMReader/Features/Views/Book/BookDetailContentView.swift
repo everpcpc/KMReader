@@ -14,8 +14,6 @@ struct BookDetailContentView: View {
   let bookReadLists: [ReadList]
   @Binding var thumbnailRefreshTrigger: Int
 
-  @Environment(\.readerZoomNamespace) private var zoomNamespace
-
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
   }
@@ -37,9 +35,6 @@ struct BookDetailContentView: View {
           refreshTrigger: thumbnailRefreshTrigger
         )
         .thumbnailFocus()
-        .ifLet(zoomNamespace) { view, namespace in
-          view.matchedTransitionSourceIfAvailable(id: book.id, in: namespace)
-        }
 
         VStack(alignment: .leading) {
           HStack(spacing: 6) {

@@ -17,7 +17,7 @@ struct ContentView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   #if os(iOS) || os(tvOS)
-    @Namespace private var readerZoomNamespace
+    @Namespace private var zoomNamespace
     @Environment(ReaderPresentationManager.self) private var readerPresentation
   #endif
 
@@ -100,9 +100,9 @@ struct ContentView: View {
       }
     }
     #if os(iOS) || os(tvOS)
-      .environment(\.readerZoomNamespace, readerZoomNamespace)
+      .environment(\.zoomNamespace, zoomNamespace)
       .overlay {
-        ReaderOverlay(namespace: readerZoomNamespace)
+        ReaderOverlay(namespace: zoomNamespace)
       }
       .setupNotificationWindow()
     #endif

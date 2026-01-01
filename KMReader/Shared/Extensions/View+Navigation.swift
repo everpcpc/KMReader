@@ -34,9 +34,20 @@ extension View {
   }
 
   func handleNavigation() -> some View {
-    self
+    self.modifier(NavigationHandlingModifier())
+  }
+}
+
+private struct NavigationHandlingModifier: ViewModifier {
+  @Environment(\.zoomNamespace) private var zoomNamespace
+
+  func body(content: Content) -> some View {
+    content
       .navigationDestination(for: NavDestination.self) { destination in
         destination.content
+          .ifLet(destination.zoomSourceID) { view, sourceID in
+            view.navigationTransitionZoomIfAvailable(sourceID: sourceID, in: zoomNamespace)
+          }
       }
   }
 }

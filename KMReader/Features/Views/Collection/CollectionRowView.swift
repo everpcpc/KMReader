@@ -20,7 +20,8 @@ struct CollectionRowView: View {
         value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
       ) {
         ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
-      }.adaptiveButtonStyle(.plain)
+      }
+      .adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(
