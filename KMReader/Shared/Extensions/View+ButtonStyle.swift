@@ -26,7 +26,7 @@ extension View {
       case .borderless:
         self.buttonStyle(.glass)
       case .plain:
-        self.buttonStyle(.plain)
+        self.buttonStyle(.squish)
       }
     } else {
       #if os(tvOS)
@@ -40,7 +40,7 @@ extension View {
         case .borderless:
           self.buttonStyle(.borderless)
         case .plain:
-          self.buttonStyle(.plain)
+          self.buttonStyle(.squish)
         }
       #endif
     }
