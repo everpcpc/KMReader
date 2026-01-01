@@ -170,6 +170,11 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "offlinePaused") }
   }
 
+  static nonisolated var offlineAutoDeleteRead: Bool {
+    get { UserDefaults.standard.bool(forKey: "offlineAutoDeleteRead") }
+    set { UserDefaults.standard.set(newValue, forKey: "offlineAutoDeleteRead") }
+  }
+
   // MARK: - Dashboard
 
   static var gridDensity: Double {

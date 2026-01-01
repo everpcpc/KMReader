@@ -396,6 +396,11 @@ actor OfflineManager {
     isProcessingQueue = true
     defer { isProcessingQueue = false }
 
+    // Auto-delete read books if enabled
+    if AppConfig.offlineAutoDeleteRead {
+      await deleteReadBooks()
+    }
+
     let pending = await DatabaseOperator.shared.fetchPendingBooks(limit: 1)
 
     guard let nextBook = pending.first else { return }
