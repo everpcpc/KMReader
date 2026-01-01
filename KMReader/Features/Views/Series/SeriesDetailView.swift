@@ -13,6 +13,7 @@ struct SeriesDetailView: View {
   let seriesId: String
 
   @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -285,13 +286,14 @@ extension SeriesDetailView {
 
   @ViewBuilder
   private var seriesToolbarContent: some View {
-    HStack(spacing: PlatformHelper.buttonSpacing) {
+    HStack {
+      LayoutModePicker(selection: $seriesDetailLayout)
+
       Button {
         showFilterSheet = true
       } label: {
         Image(systemName: "line.3.horizontal.decrease.circle")
       }
-      .toolbarButtonStyle()
 
       Menu {
         if isAdmin {
@@ -356,7 +358,6 @@ extension SeriesDetailView {
       } label: {
         Image(systemName: "ellipsis.circle")
       }
-      .toolbarButtonStyle()
-    }
+    }.toolbarButtonStyle()
   }
 }

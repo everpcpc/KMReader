@@ -12,6 +12,7 @@ struct CollectionDetailView: View {
   let collectionId: String
 
   @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("collectionDetailLayout") private var collectionDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
 
@@ -142,16 +143,17 @@ extension CollectionDetailView {
 
   @ViewBuilder
   private var collectionToolbarContent: some View {
-    HStack(spacing: PlatformHelper.buttonSpacing) {
+    HStack {
+      LayoutModePicker(selection: $collectionDetailLayout)
+
       Button {
         showFilterSheet = true
       } label: {
         Image(systemName: "line.3.horizontal.decrease.circle")
       }
-      .toolbarButtonStyle()
-
+      
       actionsMenu
-    }
+    }.toolbarButtonStyle()
   }
 
   @ViewBuilder
@@ -175,6 +177,5 @@ extension CollectionDetailView {
     } label: {
       Image(systemName: "ellipsis.circle")
     }
-    .toolbarButtonStyle()
   }
 }

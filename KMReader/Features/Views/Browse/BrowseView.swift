@@ -12,6 +12,12 @@ struct BrowseView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
+  // Layout mode storage for each content type
+  @AppStorage("seriesBrowseLayout") private var seriesBrowseLayout: BrowseLayoutMode = .grid
+  @AppStorage("bookBrowseLayout") private var bookBrowseLayout: BrowseLayoutMode = .grid
+  @AppStorage("collectionBrowseLayout") private var collectionBrowseLayout: BrowseLayoutMode = .grid
+  @AppStorage("readListBrowseLayout") private var readListBrowseLayout: BrowseLayoutMode = .grid
+
   let library: LibrarySelection?
 
   @State private var refreshTrigger = UUID()
@@ -21,6 +27,20 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var libraryIds: [String] = []
+
+  // Computed binding that routes to the correct layout mode based on content type
+  private var layoutModeBinding: Binding<BrowseLayoutMode> {
+    switch browseContent {
+    case .series:
+      return $seriesBrowseLayout
+    case .books:
+      return $bookBrowseLayout
+    case .collections:
+      return $collectionBrowseLayout
+    case .readlists:
+      return $readListBrowseLayout
+    }
+  }
 
   init(library: LibrarySelection? = nil) {
     self.library = library
@@ -115,10 +135,13 @@ struct BrowseView: View {
           }
         }
         ToolbarItem(placement: .confirmationAction) {
-          Button {
-            showFilterSheet = true
-          } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
+          HStack {
+            LayoutModePicker(selection: layoutModeBinding)
+            Button {
+              showFilterSheet = true
+            } label: {
+              Image(systemName: "line.3.horizontal.decrease.circle")
+            }
           }
         }
       }

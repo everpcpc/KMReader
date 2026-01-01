@@ -11,7 +11,6 @@ struct ReadListSortView: View {
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @Binding var showFilterSheet: Bool
-  @Binding var layoutMode: BrowseLayoutMode
 
   var sortString: String {
     return
@@ -19,27 +18,21 @@ struct ReadListSortView: View {
   }
 
   var body: some View {
-    HStack(spacing: 8) {
-      LayoutModePicker(selection: $layoutMode)
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 6) {
+        Image(systemName: "arrow.up.arrow.down.circle")
+          .padding(.leading, 4)
+          .foregroundColor(.secondary)
 
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 6) {
-          Image(systemName: "arrow.up.arrow.down.circle")
-            .padding(.leading, 4)
-            .foregroundColor(.secondary)
-
-          FilterChip(
-            label: sortString,
-            systemImage: "arrow.up.arrow.down",
-            openSheet: $showFilterSheet
-          )
-        }
-        .padding(4)
+        FilterChip(
+          label: sortString,
+          systemImage: "arrow.up.arrow.down",
+          openSheet: $showFilterSheet
+        )
       }
-      .scrollClipDisabled()
-
-      Spacer()
+      .padding(4)
     }
+    .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
       SimpleSortOptionsSheet(sortOpts: $sortOpts)
     }

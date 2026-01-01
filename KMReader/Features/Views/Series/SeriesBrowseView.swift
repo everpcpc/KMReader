@@ -26,9 +26,10 @@ struct SeriesBrowseView: View {
     VStack(spacing: 0) {
       SeriesFilterView(
         browseOpts: $browseOpts,
-        showFilterSheet: $showFilterSheet,
-        layoutMode: $browseLayout
-      ).padding()
+        showFilterSheet: $showFilterSheet
+      )
+      .padding(.horizontal)
+      .padding(.vertical, 4)
 
       SeriesQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty)

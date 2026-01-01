@@ -10,7 +10,6 @@ import SwiftUI
 struct SeriesFilterView: View {
   @Binding var browseOpts: SeriesBrowseOptions
   @Binding var showFilterSheet: Bool
-  @Binding var layoutMode: BrowseLayoutMode
 
   var sortString: String {
     return
@@ -18,66 +17,62 @@ struct SeriesFilterView: View {
   }
 
   var body: some View {
-    HStack(spacing: 8) {
-      LayoutModePicker(selection: $layoutMode)
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 6) {
+        Image(systemName: "line.3.horizontal.decrease.circle")
+          .padding(.leading, 4)
+          .foregroundColor(.secondary)
 
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 6) {
-          Image(systemName: "line.3.horizontal.decrease.circle")
-            .padding(.leading, 4)
-            .foregroundColor(.secondary)
+        FilterChip(
+          label: sortString,
+          systemImage: "arrow.up.arrow.down",
+          openSheet: $showFilterSheet
+        )
 
+        if let readLabel = readStatusLabel() {
           FilterChip(
-            label: sortString,
-            systemImage: "arrow.up.arrow.down",
+            label: readLabel,
+            systemImage: "eye",
+            variant: readLabel.contains("≠") ? .negative : .normal,
             openSheet: $showFilterSheet
           )
-
-          if let readLabel = readStatusLabel() {
-            FilterChip(
-              label: readLabel,
-              systemImage: "eye",
-              variant: readLabel.contains("≠") ? .negative : .normal,
-              openSheet: $showFilterSheet
-            )
-          }
-
-          if let statusLabel = seriesStatusLabel() {
-            FilterChip(
-              label: statusLabel.label,
-              systemImage: "chart.bar",
-              variant: statusLabel.variant,
-              openSheet: $showFilterSheet
-            )
-          }
-
-          if browseOpts.oneshotFilter.isActive,
-            let label = browseOpts.oneshotFilter.displayLabel(using: { _ in FilterStrings.oneshot })
-          {
-            FilterChip(
-              label: label,
-              systemImage: "dot.circle",
-              variant: browseOpts.oneshotFilter.state == .exclude ? .negative : .normal,
-              openSheet: $showFilterSheet
-            )
-          }
-
-          if browseOpts.deletedFilter.isActive,
-            let label = browseOpts.deletedFilter.displayLabel(using: { _ in FilterStrings.deleted })
-          {
-            FilterChip(
-              label: label,
-              systemImage: "trash",
-              variant: browseOpts.deletedFilter.state == .exclude ? .negative : .normal,
-              openSheet: $showFilterSheet
-            )
-          }
-
         }
-        .padding(4)
+
+        if let statusLabel = seriesStatusLabel() {
+          FilterChip(
+            label: statusLabel.label,
+            systemImage: "chart.bar",
+            variant: statusLabel.variant,
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if browseOpts.oneshotFilter.isActive,
+          let label = browseOpts.oneshotFilter.displayLabel(using: { _ in FilterStrings.oneshot })
+        {
+          FilterChip(
+            label: label,
+            systemImage: "dot.circle",
+            variant: browseOpts.oneshotFilter.state == .exclude ? .negative : .normal,
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if browseOpts.deletedFilter.isActive,
+          let label = browseOpts.deletedFilter.displayLabel(using: { _ in FilterStrings.deleted })
+        {
+          FilterChip(
+            label: label,
+            systemImage: "trash",
+            variant: browseOpts.deletedFilter.state == .exclude ? .negative : .normal,
+            openSheet: $showFilterSheet
+          )
+        }
+
       }
-      .scrollClipDisabled()
+      .padding(4)
     }
+    .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
       SeriesBrowseOptionsSheet(browseOpts: $browseOpts)
     }

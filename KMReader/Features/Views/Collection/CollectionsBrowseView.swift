@@ -31,8 +31,9 @@ struct CollectionsBrowseView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      CollectionSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
-        .padding()
+      CollectionSortView(showFilterSheet: $showFilterSheet)
+        .padding(.vertical, 4)
+        .padding(.horizontal)
 
       BrowseStateView(
         isLoading: viewModel.isLoading,

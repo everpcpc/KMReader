@@ -22,13 +22,15 @@ struct LayoutModePicker: View {
   }
 
   var body: some View {
-    Picker("Layout Mode", selection: animatedSelection) {
-      ForEach(BrowseLayoutMode.allCases) { mode in
-        Image(systemName: mode.iconName)
-          .tag(mode)
-      }
+    Menu {
+      Picker("Layout Mode", selection: animatedSelection) {
+        ForEach(BrowseLayoutMode.allCases) { mode in
+          Label(mode.displayName, systemImage: mode.iconName)
+            .tag(mode)
+        }
+      }.pickerStyle(.inline)
+    } label: {
+      Image(systemName: selection.iconName)
     }
-    .pickerStyle(.segmented)
-    .optimizedControlSize()
   }
 }

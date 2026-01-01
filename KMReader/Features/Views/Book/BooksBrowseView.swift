@@ -26,9 +26,10 @@ struct BooksBrowseView: View {
     VStack(spacing: 0) {
       BookFilterView(
         browseOpts: $browseOpts,
-        showFilterSheet: $showFilterSheet,
-        layoutMode: $browseLayout
-      ).padding()
+        showFilterSheet: $showFilterSheet
+      )
+      .padding(.horizontal)
+      .padding(.vertical, 4)
 
       BooksQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,

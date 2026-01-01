@@ -16,6 +16,7 @@ extension View {
     #if os(tvOS)
       self
         .font(.title2)
+        .adaptiveButtonStyle(.bordered)
         .frame(minWidth: 60, minHeight: 60)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
