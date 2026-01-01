@@ -111,7 +111,7 @@ struct SettingsOfflineTasksView: View {
               .adaptiveButtonStyle(.bordered)
               .tint(.blue)
               .buttonBorderShape(.capsule)
-              .controlSize(.mini)
+              .optimizedControlSize()
 
               Button {
                 pendingBulkAction = .cancelAll
@@ -123,7 +123,7 @@ struct SettingsOfflineTasksView: View {
               .adaptiveButtonStyle(.bordered)
               .tint(.red)
               .buttonBorderShape(.capsule)
-              .controlSize(.mini)
+              .optimizedControlSize()
             }
           }
         }

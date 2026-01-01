@@ -28,7 +28,7 @@ struct FilterChip: View {
     }
     .fixedSize()
     .adaptiveButtonStyle(.bordered)
-    .controlSize(.mini)
+    .optimizedControlSize()
     .tint(variant == .negative ? .red : .accentColor)
   }
 }

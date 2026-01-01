@@ -180,7 +180,7 @@ struct SettingsOfflineBooksView: View {
                         deleteBook(book)
                       } label: {
                         Label(String(localized: "Delete"), systemImage: "trash")
-                      }.controlSize(.small)
+                      }.optimizedControlSize()
                     }
                   }
                 } label: {
@@ -197,7 +197,7 @@ struct SettingsOfflineBooksView: View {
                     deleteSeries(sGroup.books)
                   } label: {
                     Label(String(localized: "Delete All"), systemImage: "trash")
-                  }.controlSize(.small)
+                  }.optimizedControlSize()
                 }
               #endif
             }
@@ -253,7 +253,7 @@ struct SettingsOfflineBooksView: View {
                         deleteBook(book)
                       } label: {
                         Label(String(localized: "Delete"), systemImage: "trash")
-                      }.controlSize(.small)
+                      }.optimizedControlSize()
                     }
                   }
                 } label: {
@@ -270,7 +270,7 @@ struct SettingsOfflineBooksView: View {
                     deleteSeries(lGroup.oneshotBooks)
                   } label: {
                     Label(String(localized: "Delete All"), systemImage: "trash")
-                  }.controlSize(.small)
+                  }.optimizedControlSize()
                 }
               #endif
             }

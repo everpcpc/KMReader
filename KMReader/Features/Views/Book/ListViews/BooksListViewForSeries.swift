@@ -34,7 +34,7 @@ struct BooksListViewForSeries: View {
         }
         .disabled(bookViewModel.isLoading)
         .adaptiveButtonStyle(.bordered)
-        .controlSize(.mini)
+        .optimizedControlSize()
 
         Spacer()
 

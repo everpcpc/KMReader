@@ -232,6 +232,7 @@
           .padding(.vertical, 8)
           .background(Color.accentColor.opacity(0.9))
           .cornerRadius(12)
+          .optimizedControlSize()
         }
 
         Spacer()
