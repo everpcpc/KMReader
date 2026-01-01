@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ShadowModifier: ViewModifier {
   let style: ShadowStyle
+  let cornerRadius: CGFloat
 
   @Environment(\.colorScheme) private var colorScheme
 
@@ -35,17 +36,41 @@ struct ShadowModifier: ViewModifier {
       content
     case .basic:
       content
-        .shadow(color: shadowColorNear, radius: 2)
+        .background(
+          ShadowPathView(
+            color: shadowColorNear,
+            radius: 2,
+            x: 0,
+            y: 0,
+            cornerRadius: cornerRadius
+          )
+        )
     case .platform:
       content
-        .shadow(color: shadowColorFar, radius: 16, x: 0, y: 8)
-        .shadow(color: shadowColorNear, radius: 4, x: 0, y: 4)
+        .background(
+          ShadowPathView(
+            color: shadowColorFar,
+            radius: 16,
+            x: 0,
+            y: 8,
+            cornerRadius: cornerRadius
+          )
+        )
+        .background(
+          ShadowPathView(
+            color: shadowColorNear,
+            radius: 4,
+            x: 0,
+            y: 4,
+            cornerRadius: cornerRadius
+          )
+        )
     }
   }
 }
 
 extension View {
-  func shadowStyle(_ style: ShadowStyle) -> some View {
-    modifier(ShadowModifier(style: style))
+  func shadowStyle(_ style: ShadowStyle, cornerRadius: CGFloat = 0) -> some View {
+    modifier(ShadowModifier(style: style, cornerRadius: cornerRadius))
   }
 }

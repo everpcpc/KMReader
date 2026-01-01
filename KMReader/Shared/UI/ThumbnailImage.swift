@@ -65,6 +65,7 @@ struct ThumbnailImage<Overlay: View>: View {
                 }
               }
               .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+              .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
               #if os(iOS)
                 .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
               #endif
@@ -80,6 +81,7 @@ struct ThumbnailImage<Overlay: View>: View {
                 .clipped()
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
             #if os(iOS)
               .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
             #endif
@@ -98,10 +100,10 @@ struct ThumbnailImage<Overlay: View>: View {
         }
       }
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+      .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
     }
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
-    .shadowStyle(effectiveShadowStyle)
     .task(id: "\(id)_\(refreshTrigger)") {
       let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
 
