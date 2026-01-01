@@ -194,8 +194,12 @@
       }
 
       func requestInitialScroll(_ pageIndex: Int, delay: TimeInterval) {
-        initialScrollRetrier.schedule(after: delay, using: DispatchQueue.main.asyncAfter) {
-          [weak self] in
+        initialScrollRetrier.schedule(
+          after: delay,
+          using: { delay, action in
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: action)
+          }
+        ) { [weak self] in
           guard let self = self, !self.hasScrolledToInitialPage,
             self.pages.count > 0, self.isValidPageIndex(pageIndex)
           else { return }
