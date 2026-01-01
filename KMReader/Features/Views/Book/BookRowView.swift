@@ -155,6 +155,7 @@ struct BookRowView: View {
                   },
                   showSeriesNavigation: showSeriesNavigation
                 )
+                .id(komgaBook.bookId)
               } label: {
                 Image(systemName: "ellipsis")
                   .foregroundColor(.secondary)

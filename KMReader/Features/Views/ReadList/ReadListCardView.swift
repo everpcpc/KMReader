@@ -36,6 +36,7 @@ struct ReadListCardView: View {
             showEditSheet = true
           }
         )
+        .id(komgaReadList.readListId)
       }
 
       if !coverOnlyCards {

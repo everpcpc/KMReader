@@ -38,6 +38,7 @@ struct CollectionCardView: View {
             showEditSheet = true
           }
         )
+        .id(komgaCollection.collectionId)
       }
 
       if !coverOnlyCards {
