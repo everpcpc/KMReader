@@ -357,12 +357,22 @@ struct SettingsOfflineBooksView: View {
   private func removeAllBooks() {
     Task {
       await OfflineManager.shared.deleteAllDownloadedBooks()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.offline.booksRemovedAll")
+        )
+      }
     }
   }
 
   private func removeReadBooks() {
     Task {
       await OfflineManager.shared.deleteReadBooks()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.offline.booksRemovedRead")
+        )
+      }
     }
   }
 }

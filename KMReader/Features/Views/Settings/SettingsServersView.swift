@@ -156,6 +156,7 @@ struct SettingsServersView: View {
       Button(String(localized: "Cancel"), role: .cancel) {}
       Button(String(localized: "Logout"), role: .destructive) {
         authViewModel.logout()
+        ErrorManager.shared.notify(message: String(localized: "notification.auth.loggedOut"))
       }
     } message: {
       Text(String(localized: "Are you sure you want to logout?"))
@@ -246,6 +247,7 @@ struct SettingsServersView: View {
     LibraryManager.shared.removeLibraries(for: instanceId)
     modelContext.delete(instance)
     saveChanges()
+    ErrorManager.shared.notify(message: String(localized: "notification.server.deleted"))
     instancePendingDeletion = nil
 
     // Clear SwiftData entities and offline data (async)

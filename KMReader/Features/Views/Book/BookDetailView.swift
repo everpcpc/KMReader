@@ -214,6 +214,9 @@ struct BookDetailView: View {
   private func clearCache() {
     Task {
       await CacheManager.clearCache(forBookId: bookId)
+      await MainActor.run {
+        ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
+      }
     }
   }
 

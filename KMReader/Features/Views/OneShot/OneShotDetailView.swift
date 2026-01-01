@@ -230,6 +230,9 @@ struct OneshotDetailView: View {
     guard let book = book else { return }
     Task {
       await CacheManager.clearCache(forBookId: book.id)
+      await MainActor.run {
+        ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
+      }
     }
   }
 
