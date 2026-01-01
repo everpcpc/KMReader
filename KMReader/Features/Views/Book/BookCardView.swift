@@ -114,9 +114,14 @@ struct BookCardView: View {
               Text(komgaBook.media.status.label)
                 .foregroundColor(komgaBook.media.status.color)
             } else {
-              if isInProgress {
+              if progress > 0 && progress < 1 {
                 Text("\(progress * 100, specifier: "%.0f")%")
                 Text("•")
+              }
+              if progress == 1 {
+                Image(systemName: "checkmark.circle.fill")
+                  .foregroundColor(.secondary)
+                  .font(.caption2)
               }
               Text("\(komgaBook.mediaPagesCount) pages")
                 .lineLimit(1)
@@ -125,6 +130,7 @@ struct BookCardView: View {
               Spacer()
               Image(systemName: komgaBook.downloadStatus.displayIcon)
                 .foregroundColor(komgaBook.downloadStatus.displayColor)
+                .font(.caption2)
             }
           }
           .font(.caption)

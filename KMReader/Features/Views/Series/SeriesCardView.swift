@@ -78,9 +78,14 @@ struct SeriesCardView: View {
               Text("Oneshot")
                 .foregroundColor(.blue)
             } else {
-              if progress > 0 {
+              if progress > 0 && progress < 1 {
                 Text("\(progress * 100, specifier: "%.0f")%")
                 Text("•")
+              }
+              if progress == 1 {
+                Image(systemName: "checkmark.circle.fill")
+                  .foregroundColor(.secondary)
+                  .font(.caption2)
               }
               Text("\(komgaSeries.booksCount) books")
                 .lineLimit(1)
@@ -89,6 +94,7 @@ struct SeriesCardView: View {
               Spacer()
               Image(systemName: komgaSeries.downloadStatus.icon)
                 .foregroundColor(komgaSeries.downloadStatus.color)
+                .font(.caption2)
             }
           }
           .font(.caption)
