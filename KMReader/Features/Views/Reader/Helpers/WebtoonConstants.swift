@@ -9,8 +9,9 @@ import Foundation
 
 enum WebtoonConstants {
   static let initialScrollDelay: TimeInterval = 0.3
+  static let initialScrollRetryDelay: TimeInterval = 0.15
+  static let initialScrollMaxRetries: Int = 8
   static let layoutReadyDelay: TimeInterval = 0.2
-  static let preloadThrottleInterval: TimeInterval = 0.3
   static let bottomThreshold: CGFloat = 60
   static let footerHeight: CGFloat = 480
   static let footerPadding: CGFloat = 120

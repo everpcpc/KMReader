@@ -57,6 +57,7 @@ class ReaderViewModel {
   /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
   private var lastProgressUpdateTime: Date?
+  private var lastPreloadRequestTime: Date?
 
   var currentPage: BookPage? {
     guard currentPageIndex >= 0 else { return nil }
@@ -245,6 +246,13 @@ class ReaderViewModel {
   /// Preload pages around the current page for smoother scrolling
   /// Preloads 2 pages before and 4 pages after the current page
   func preloadPages() async {
+    let now = Date()
+    if let last = lastPreloadRequestTime,
+      now.timeIntervalSince(last) < 0.5
+    {
+      return
+    }
+    lastPreloadRequestTime = now
     guard !bookId.isEmpty else { return }
     let preloadBefore = max(0, currentPageIndex - 2)
     let preloadAfter = min(currentPageIndex + 4, pages.count)

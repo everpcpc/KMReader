@@ -394,9 +394,7 @@ struct DivinaReaderView: View {
         // Update progress and preload pages in background without blocking UI
         Task(priority: .userInitiated) {
           await viewModel.updateProgress()
-          if readingDirection != .webtoon {
-            await viewModel.preloadPages()
-          }
+          await viewModel.preloadPages()
         }
       }
     } else if viewModel.isLoading {
