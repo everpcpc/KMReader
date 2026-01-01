@@ -44,6 +44,11 @@ struct BrowseView: View {
 
   init(library: LibrarySelection? = nil) {
     self.library = library
+    if let library = library {
+      _libraryIds = State(initialValue: [library.libraryId])
+    } else {
+      _libraryIds = State(initialValue: AppConfig.dashboard.libraryIds)
+    }
   }
 
   var title: String {
