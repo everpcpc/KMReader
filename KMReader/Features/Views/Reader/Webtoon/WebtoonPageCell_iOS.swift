@@ -79,9 +79,7 @@
     func setImage(_ image: UIImage) {
       loadingIndicator.stopAnimating()
       imageView.image = image
-      UIView.animate(withDuration: 0.2) {
-        self.imageView.alpha = 1.0
-      }
+      imageView.alpha = 1.0
     }
 
     /// Load image from URL and return its size (fallback for non-preloaded images)

@@ -7,7 +7,6 @@
 
 #if os(macOS)
   import AppKit
-  import ImageIO
   import SwiftUI
 
   struct WebtoonReaderView: NSViewRepresentable {
@@ -251,7 +250,9 @@
         let currentPage = viewModel.currentPageIndex
 
         if lastPagesCount != pages.count || abs(lastPageWidth - pageWidth) > 0.1 {
-          if lastPagesCount != pages.count { pageHeights.removeAll() }
+          if lastPagesCount != pages.count {
+            pageHeights.removeAll()
+          }
           applyMetadataHeights()
           lastPagesCount = pages.count
           lastPageWidth = pageWidth
@@ -344,13 +345,26 @@
             for: indexPath) as! WebtoonPageCell
         cell.readerBackground = readerBackground
         let pageIndex = indexPath.item
+        let page = pages[pageIndex]
+        let preloadedImage = viewModel?.preloadedImages[page.number]
 
-        cell.configure(pageIndex: pageIndex, image: nil) { [weak self] idx in
-          Task { @MainActor in await self?.loadImageForPage(idx) }
+        cell.configure(pageIndex: pageIndex, image: preloadedImage) { [weak self] idx in
+          guard let self = self else { return }
+          if let image = self.viewModel?.preloadedImages[self.pages[idx].number] {
+            if let cv = self.collectionView,
+              let cell = cv.item(at: IndexPath(item: idx, section: 0)) as? WebtoonPageCell
+            {
+              cell.setImage(image)
+            }
+            return
+          }
+          Task { @MainActor in await self.loadImageForPage(idx) }
         }
 
-        Task { @MainActor [weak self] in
-          await self?.loadImageForPage(pageIndex)
+        if preloadedImage == nil {
+          Task { @MainActor [weak self] in
+            await self?.loadImageForPage(pageIndex)
+          }
         }
 
         return cell
@@ -381,6 +395,7 @@
         isUserScrolling = false
         checkIfAtBottom(sv)
         updateCurrentPage()
+        viewModel?.cleanupDistantImagesAroundCurrentPage()
         preloadNearbyPages()
       }
 
@@ -434,37 +449,17 @@
           {
             cell.setImage(preloadedImage)
           }
-
-          if let rep = preloadedImage.representations.first {
-            let size = CGSize(width: CGFloat(rep.pixelsWide), height: CGFloat(rep.pixelsHigh))
-            let h = pageWidth * size.height / size.width
-            let old = pageHeights[pageIndex] ?? pageWidth
-            pageHeights[pageIndex] = h
-            if abs(h - old) > 1 {
-              layout?.invalidateLayout()
-            }
-          }
           return
         }
 
         // Fall back to loading from file
         guard let url = await vm.getPageImageFileURL(page: page) else { return }
 
-        // Load image and get size in one operation
-        var imageSize: CGSize?
+        // Load image
         if let cv = collectionView,
           let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell
         {
-          imageSize = await cell.loadImageFromURL(url)
-        }
-
-        if let size = imageSize {
-          let h = pageWidth * size.height / size.width
-          let old = pageHeights[pageIndex] ?? pageWidth
-          pageHeights[pageIndex] = h
-          if abs(h - old) > 1 {
-            layout?.invalidateLayout()
-          }
+          _ = await cell.loadImageFromURL(url)
         }
       }
 
@@ -475,25 +470,41 @@
         let indices = visible.map { $0.item }
         let minV = indices.min() ?? 0
         let maxV = indices.max() ?? pages.count - 1
+        let startIndex = max(0, minV - 2)
+        let endIndex = min(pages.count - 1, maxV + 4)
+        guard startIndex <= endIndex else { return }
 
-        Task { @MainActor [weak self] in
-          guard let self = self, let vm = self.viewModel else { return }
-          for i in max(0, minV - 2)...min(self.pages.count - 1, maxV + 2) {
-            let page = self.pages[i]
-            // Skip if already preloaded
-            if vm.preloadedImages[page.number] != nil {
+        let pagesToPreload: [BookPage] = (startIndex...endIndex)
+          .compactMap { index in
+            guard index < pages.count else { return nil }
+            return pages[index]
+          }
+        guard let viewModel = viewModel else { return }
+        let preloadedNumbers = Set(viewModel.preloadedImages.keys)
+
+        Task.detached(priority: .utility) { [weak viewModel] in
+          guard let viewModel = viewModel else { return }
+          for page in pagesToPreload where !preloadedNumbers.contains(page.number) {
+            guard let fileURL = await viewModel.getPageImageFileURL(page: page) else {
               continue
             }
-            if let fileURL = await vm.getPageImageFileURL(page: page) {
-              // Load and decode image
-              if let data = try? Data(contentsOf: fileURL) {
-                if let image = NSImage(data: data) {
-                  vm.preloadedImages[page.number] = image
-                }
+            guard let image = await Self.decodeImageFromFile(fileURL) else {
+              continue
+            }
+            await MainActor.run {
+              if viewModel.preloadedImages[page.number] == nil {
+                viewModel.preloadedImages[page.number] = image
               }
             }
           }
         }
+      }
+
+      private static func decodeImageFromFile(_ fileURL: URL) async -> NSImage? {
+        return await Task.detached(priority: .utility) {
+          guard let data = try? Data(contentsOf: fileURL) else { return nil }
+          return NSImage(data: data)
+        }.value
       }
 
       // MARK: - Click

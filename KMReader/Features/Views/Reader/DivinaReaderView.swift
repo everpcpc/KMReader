@@ -271,6 +271,7 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
+      viewModel.preloadedImages.removeAll()
     }
     .onChange(of: showingControls) { _, newValue in
       // Don't change status bar during dismissal to avoid geometry changes
@@ -393,7 +394,9 @@ struct DivinaReaderView: View {
         // Update progress and preload pages in background without blocking UI
         Task(priority: .userInitiated) {
           await viewModel.updateProgress()
-          await viewModel.preloadPages()
+          if readingDirection != .webtoon {
+            await viewModel.preloadPages()
+          }
         }
       }
     } else if viewModel.isLoading {
