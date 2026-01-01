@@ -198,6 +198,7 @@ struct SettingsLogsView: View {
       NSPasteboard.general.clearContents()
       NSPasteboard.general.setString(text, forType: .string)
     #endif
+    ErrorManager.shared.notify(message: String(localized: "notification.copied"))
   }
 }
 

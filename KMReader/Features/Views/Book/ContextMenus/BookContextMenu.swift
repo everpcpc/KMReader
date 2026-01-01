@@ -88,8 +88,16 @@ struct BookContextMenu: View {
 
       Button {
         Task {
+          let previousStatus = downloadStatus
           await OfflineManager.shared.toggleDownload(
             instanceId: currentInstanceId, info: book.downloadInfo)
+          await MainActor.run {
+            ErrorManager.shared.notify(
+              message: String(
+                localized: String.LocalizationValue(downloadNotificationKey(for: previousStatus))
+              )
+            )
+          }
         }
       } label: {
         Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
@@ -98,6 +106,9 @@ struct BookContextMenu: View {
       Button(role: .destructive) {
         Task {
           await CacheManager.clearCache(forBookId: book.id)
+          await MainActor.run {
+            ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
+          }
         }
       } label: {
         Label("Clear Cache", systemImage: "xmark.circle")
@@ -190,6 +201,17 @@ struct BookContextMenu: View {
           ErrorManager.shared.alert(error: error)
         }
       }
+    }
+  }
+
+  private func downloadNotificationKey(for status: DownloadStatus) -> String {
+    switch status {
+    case .downloaded:
+      return "notification.book.offlineRemoved"
+    case .pending:
+      return "notification.book.downloadCancelled"
+    case .notDownloaded, .failed:
+      return "notification.book.downloadQueued"
     }
   }
 

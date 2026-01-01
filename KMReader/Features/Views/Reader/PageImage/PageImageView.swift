@@ -91,6 +91,13 @@ struct PageImageView: View {
               try? FileManager.default.removeItem(at: tempURL)
             }
             fileToSave = nil
+            switch result {
+            case .success:
+              ErrorManager.shared.notify(
+                message: String(localized: "notification.reader.imageSavedToFiles"))
+            case .failure(let error):
+              ErrorManager.shared.alert(error: error)
+            }
           }
         #endif
       } else if let error = loadError {

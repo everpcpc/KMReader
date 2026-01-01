@@ -246,6 +246,7 @@ struct SettingsServersView: View {
     LibraryManager.shared.removeLibraries(for: instanceId)
     modelContext.delete(instance)
     saveChanges()
+    ErrorManager.shared.notify(message: String(localized: "notification.server.deleted"))
     instancePendingDeletion = nil
 
     // Clear SwiftData entities and offline data (async)

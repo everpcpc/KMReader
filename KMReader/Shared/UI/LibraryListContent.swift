@@ -284,7 +284,9 @@ struct LibraryListContent: View {
   @ViewBuilder
   private func allLibrariesContextMenu() -> some View {
     Button {
-      performGlobalAction {
+      performGlobalAction(
+        notificationMessage: String(localized: "library.list.notify.scanAllStarted")
+      ) {
         try await scanAllLibraries(deep: false)
       }
     } label: {
@@ -293,7 +295,9 @@ struct LibraryListContent: View {
     .disabled(isPerformingGlobalAction)
 
     Button {
-      performGlobalAction {
+      performGlobalAction(
+        notificationMessage: String(localized: "library.list.notify.scanAllDeepStarted")
+      ) {
         try await scanAllLibraries(deep: true)
       }
     } label: {
@@ -305,7 +309,9 @@ struct LibraryListContent: View {
     .disabled(isPerformingGlobalAction)
 
     Button {
-      performGlobalAction {
+      performGlobalAction(
+        notificationMessage: String(localized: "library.list.notify.trashAllEmptied")
+      ) {
         try await emptyTrashAllLibraries()
       }
     } label: {
@@ -521,12 +527,20 @@ struct LibraryListContent: View {
     }
   }
 
-  private func performGlobalAction(_ action: @escaping () async throws -> Void) {
+  private func performGlobalAction(
+    notificationMessage: String? = nil,
+    _ action: @escaping () async throws -> Void
+  ) {
     guard !isPerformingGlobalAction else { return }
     isPerformingGlobalAction = true
     Task {
       do {
         try await action()
+        if let notificationMessage {
+          await MainActor.run {
+            ErrorManager.shared.notify(message: notificationMessage)
+          }
+        }
       } catch {
         _ = await MainActor.run {
           ErrorManager.shared.alert(error: error)
