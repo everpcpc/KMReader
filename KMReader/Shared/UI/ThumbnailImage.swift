@@ -5,7 +5,50 @@
 //  Created by Komga iOS Client
 //
 
+import Observation
 import SwiftUI
+
+@MainActor
+@Observable
+final class ThumbnailImageLoader {
+  var image: PlatformImage?
+  private var currentBaseKey: String?
+  private var currentTaskKey: String?
+
+  func load(id: String, type: ThumbnailType, refreshTrigger: Int) async {
+    let baseKey = "\(id)#\(type.rawValue)"
+    let taskKey = "\(baseKey)#\(refreshTrigger)"
+
+    if currentTaskKey == taskKey, image != nil {
+      return
+    }
+
+    if currentBaseKey != baseKey {
+      image = nil
+    }
+
+    currentBaseKey = baseKey
+    currentTaskKey = taskKey
+
+    let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
+    var targetURL: URL?
+    if FileManager.default.fileExists(atPath: fileURL.path), refreshTrigger == 0 {
+      targetURL = fileURL
+    } else {
+      targetURL = try? await ThumbnailCache.shared.ensureThumbnail(
+        id: id, type: type, force: refreshTrigger > 0)
+    }
+
+    guard !Task.isCancelled else { return }
+
+    if let url = targetURL {
+      let loaded = PlatformImage(contentsOfFile: url.path)
+      if currentBaseKey == baseKey {
+        image = loaded
+      }
+    }
+  }
+}
 
 /// A reusable thumbnail image component using native image loading
 struct ThumbnailImage<Overlay: View>: View {
@@ -23,7 +66,7 @@ struct ThumbnailImage<Overlay: View>: View {
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @Environment(\.zoomNamespace) private var zoomNamespace
-  @State private var loadedImage: PlatformImage?
+  @State private var imageLoader = ThumbnailImageLoader()
 
   private var effectiveShadowStyle: ShadowStyle {
     thumbnailShowShadow ? shadowStyle : .none
@@ -62,7 +105,7 @@ struct ThumbnailImage<Overlay: View>: View {
       Color.clear
 
       Group {
-        if let platformImage = loadedImage {
+        if let platformImage = imageLoader.image {
           if thumbnailPreserveAspectRatio {
             Image(platformImage: platformImage)
               .resizable()
@@ -114,19 +157,7 @@ struct ThumbnailImage<Overlay: View>: View {
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
     .task(id: "\(id)_\(refreshTrigger)") {
-      let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
-
-      var targetURL: URL?
-      if FileManager.default.fileExists(atPath: fileURL.path) && refreshTrigger == 0 {
-        targetURL = fileURL
-      } else {
-        targetURL = try? await ThumbnailCache.shared.ensureThumbnail(
-          id: id, type: type, force: refreshTrigger > 0)
-      }
-
-      if let url = targetURL {
-        loadedImage = PlatformImage(contentsOfFile: url.path)
-      }
+      await imageLoader.load(id: id, type: type, refreshTrigger: refreshTrigger)
     }
   }
 }
