@@ -75,7 +75,7 @@ struct CollectionSeriesListView: View {
               Image(systemName: "square.and.pencil.circle")
             }
             .adaptiveButtonStyle(.bordered)
-            .controlSize(.small)
+            .optimizedControlSize()
             .transition(.opacity.combined(with: .scale))
           }
         }

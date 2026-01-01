@@ -152,13 +152,13 @@ struct ReaderControlsView: View {
               .font(.caption)
               .foregroundColor(.white)
             Text("#\(book.metadata.number) - \(book.metadata.title)")
-              .font(.footnote)
               .foregroundColor(.white)
           }
           .padding(.vertical, buttonPadding)
           .padding(.horizontal, buttonMargin)
           .background(Color.accentColor.opacity(0.9))
           .cornerRadius(12)
+          .optimizedControlSize()
         }
 
         Spacer()
@@ -205,10 +205,9 @@ struct ReaderControlsView: View {
             HStack(spacing: 4) {
               Image(systemName: "chevron.left")
               Text(leftButtonLabel)
-            }.font(.footnote)
+            }
           }
           .contentShape(Rectangle())
-          .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           .opacity((readingDirection == .rtl ? nextBook : previousBook) != nil ? 1.0 : 0.0)
@@ -229,10 +228,9 @@ struct ReaderControlsView: View {
               Image(systemName: "bookmark")
               Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
                 .monospacedDigit()
-            }.font(.footnote)
+            }
           }
           .contentShape(Rectangle())
-          .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
@@ -248,7 +246,6 @@ struct ReaderControlsView: View {
                 .padding(2)
             }
             .contentShape(Rectangle())
-            .controlSize(.mini)
             .adaptiveButtonStyle(.borderedProminent)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             #if os(tvOS)
@@ -273,10 +270,9 @@ struct ReaderControlsView: View {
             HStack(spacing: 4) {
               Text(rightButtonLabel)
               Image(systemName: "chevron.right")
-            }.font(.footnote)
+            }
           }
           .contentShape(Rectangle())
-          .controlSize(.mini)
           .adaptiveButtonStyle(.borderedProminent)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           .opacity((readingDirection == .rtl ? previousBook : nextBook) != nil ? 1.0 : 0.0)
@@ -286,6 +282,7 @@ struct ReaderControlsView: View {
               $focusedControl, equals: readingDirection == .rtl ? .previousBook : .nextBook)
           #endif
         }
+        .optimizedControlSize()
         .allowsHitTesting(true)
 
         // Bottom slider

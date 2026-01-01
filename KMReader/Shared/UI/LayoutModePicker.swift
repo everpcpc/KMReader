@@ -29,8 +29,6 @@ struct LayoutModePicker: View {
       }
     }
     .pickerStyle(.segmented)
-    .scaleEffect(0.8)
-    .frame(width: 80, height: 28)
-    .clipped()
+    .optimizedControlSize()
   }
 }
