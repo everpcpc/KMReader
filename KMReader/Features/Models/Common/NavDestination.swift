@@ -102,4 +102,21 @@ enum NavDestination: Hashable {
       AuthenticationActivityView()
     }
   }
+
+  var zoomSourceID: String? {
+    switch self {
+    case .seriesDetail(let seriesId):
+      return seriesId
+    case .bookDetail(let bookId):
+      return bookId
+    case .oneshotDetail(let seriesId):
+      return seriesId
+    case .collectionDetail(let collectionId):
+      return collectionId
+    case .readListDetail(let readListId):
+      return readListId
+    default:
+      return nil
+    }
+  }
 }
