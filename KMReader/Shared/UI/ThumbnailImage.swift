@@ -21,8 +21,13 @@ struct ThumbnailImage<Overlay: View>: View {
   let ratio: CGFloat = 1.414
 
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
+  @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @Environment(\.readerZoomNamespace) private var zoomNamespace
   @State private var loadedImage: PlatformImage?
+
+  private var effectiveShadowStyle: ShadowStyle {
+    thumbnailShowShadow ? shadowStyle : .none
+  }
 
   init(
     id: String,
@@ -96,7 +101,7 @@ struct ThumbnailImage<Overlay: View>: View {
     }
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
-    .shadowStyle(shadowStyle)
+    .shadowStyle(effectiveShadowStyle)
     .task(id: "\(id)_\(refreshTrigger)") {
       let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
 

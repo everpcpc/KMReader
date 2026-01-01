@@ -14,6 +14,7 @@ struct SettingsAppearanceView: View {
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
+  @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   private var themeColorBinding: Binding<Color> {
@@ -133,6 +134,15 @@ struct SettingsAppearanceView: View {
             )
             .font(.caption)
             .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $thumbnailShowShadow) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.thumbnailShowShadow.title"))
+            Text(String(localized: "settings.appearance.thumbnailShowShadow.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
         }
       }
