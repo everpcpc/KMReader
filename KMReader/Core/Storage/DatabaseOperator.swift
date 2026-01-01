@@ -1075,6 +1075,19 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchDownloadedBooks(instanceId: String) -> [Book] {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded" }
+    )
+
+    do {
+      let results = try modelContext.fetch(descriptor)
+      return results.map { $0.toBook() }
+    } catch {
+      return []
+    }
+  }
+
   func fetchFailedBooksCount(instanceId: String) -> Int {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }

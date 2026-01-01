@@ -222,6 +222,63 @@ actor OfflineManager {
     await DatabaseOperator.shared.commit()
   }
 
+  /// Delete all downloaded books for the current instance.
+  func deleteAllDownloadedBooks() async {
+    let instanceId = AppConfig.currentInstanceId
+    let books = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
+
+    // Group by series to update policies
+    let seriesIds = Set(books.map { $0.seriesId })
+    for seriesId in seriesIds {
+      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+        seriesId: seriesId,
+        instanceId: instanceId,
+        policy: .manual,
+        syncSeriesStatus: false
+      )
+    }
+
+    for book in books {
+      await deleteBook(
+        instanceId: instanceId, bookId: book.id, commit: false, syncSeriesStatus: false)
+    }
+
+    for seriesId in seriesIds {
+      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+        seriesId: seriesId, instanceId: instanceId)
+    }
+    await DatabaseOperator.shared.commit()
+  }
+
+  /// Delete all read (completed) downloaded books for the current instance.
+  func deleteReadBooks() async {
+    let instanceId = AppConfig.currentInstanceId
+    let books = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
+    let readBooks = books.filter { $0.readProgress?.completed == true }
+
+    // Group by series to update policies
+    let seriesIds = Set(readBooks.map { $0.seriesId })
+    for seriesId in seriesIds {
+      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+        seriesId: seriesId,
+        instanceId: instanceId,
+        policy: .manual,
+        syncSeriesStatus: false
+      )
+    }
+
+    for book in readBooks {
+      await deleteBook(
+        instanceId: instanceId, bookId: book.id, commit: false, syncSeriesStatus: false)
+    }
+
+    for seriesId in seriesIds {
+      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+        seriesId: seriesId, instanceId: instanceId)
+    }
+    await DatabaseOperator.shared.commit()
+  }
+
   func cancelDownload(
     bookId: String, instanceId: String? = nil, commit: Bool = true, syncSeriesStatus: Bool = true
   ) async {

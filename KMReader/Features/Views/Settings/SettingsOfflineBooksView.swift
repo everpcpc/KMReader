@@ -13,6 +13,9 @@ struct SettingsOfflineBooksView: View {
   @Query var downloadedBooks: [KomgaBook]
   @Query var libraries: [KomgaLibrary]
 
+  @State private var showRemoveAllAlert = false
+  @State private var showRemoveReadAlert = false
+
   struct SeriesGroup: Identifiable {
     let id: String
     let series: KomgaSeries?
@@ -101,6 +104,10 @@ struct SettingsOfflineBooksView: View {
     downloadedBooks.reduce(0) { $0 + $1.downloadedSize }
   }
 
+  private var hasReadBooks: Bool {
+    downloadedBooks.contains { $0.readProgress?.completed == true }
+  }
+
   var body: some View {
     Form {
       if downloadedBooks.isEmpty {
@@ -118,6 +125,21 @@ struct SettingsOfflineBooksView: View {
             Text(formatter.string(fromByteCount: totalDownloadedSize))
               .foregroundColor(.accentColor)
           }
+        } header: {
+          HStack {
+            Button(role: .destructive) {
+              showRemoveAllAlert = true
+            } label: {
+              Label(String(localized: "settings.offline_books.remove_all"), systemImage: "trash")
+            }
+            Spacer()
+            Button(role: .destructive) {
+              showRemoveReadAlert = true
+            } label: {
+              Label(String(localized: "settings.offline_books.remove_read"), systemImage: "checkmark.circle")
+            }
+            .disabled(!hasReadBooks)
+          }.adaptiveButtonStyle(.bordered)
         }
 
         ForEach(groupedBooks) { lGroup in
@@ -280,6 +302,28 @@ struct SettingsOfflineBooksView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.offlineBooks.title)
+    .alert(
+      String(localized: "settings.offline_books.remove_all"),
+      isPresented: $showRemoveAllAlert
+    ) {
+      Button(String(localized: "common.cancel"), role: .cancel) {}
+      Button(String(localized: "common.delete"), role: .destructive) {
+        removeAllBooks()
+      }
+    } message: {
+      Text(String(localized: "settings.offline_books.remove_all.message"))
+    }
+    .alert(
+      String(localized: "settings.offline_books.remove_read"),
+      isPresented: $showRemoveReadAlert
+    ) {
+      Button(String(localized: "common.cancel"), role: .cancel) {}
+      Button(String(localized: "common.delete"), role: .destructive) {
+        removeReadBooks()
+      }
+    } message: {
+      Text(String(localized: "settings.offline_books.remove_read.message"))
+    }
   }
 
   private func seriesSize(for books: [KomgaBook]) -> Int64 {
@@ -307,6 +351,18 @@ struct SettingsOfflineBooksView: View {
         instanceId: firstBook.instanceId,
         bookIds: books.map { $0.bookId }
       )
+    }
+  }
+
+  private func removeAllBooks() {
+    Task {
+      await OfflineManager.shared.deleteAllDownloadedBooks()
+    }
+  }
+
+  private func removeReadBooks() {
+    Task {
+      await OfflineManager.shared.deleteReadBooks()
     }
   }
 }
