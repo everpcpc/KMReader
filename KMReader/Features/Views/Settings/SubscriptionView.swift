@@ -23,7 +23,7 @@ struct SubscriptionView: View {
           } else {
             headerSection
 
-            if StoreManager.shared.isLoading {
+            if StoreManager.shared.isLoadingProducts {
               VStack(spacing: 12) {
                 ProgressView()
                 Text(String(localized: "Brewing..."))
@@ -206,13 +206,22 @@ struct SubscriptionView: View {
     Button {
       Task {
         await StoreManager.shared.restorePurchases()
+        if let error = StoreManager.shared.errorMessage {
+          errorMessage = error
+          showError = true
+        }
       }
     } label: {
-      Text(String(localized: "Restore Purchases"))
-        .font(.caption)
-        .foregroundColor(.secondary)
+      HStack(spacing: 8) {
+        if StoreManager.shared.isRestoring {
+          ProgressView()
+        }
+        Text(String(localized: "Restore Purchases"))
+          .font(.caption)
+          .foregroundColor(.secondary)
+      }
     }
-    .disabled(StoreManager.shared.isLoading)
+    .disabled(StoreManager.shared.isRestoring)
     .padding(.top, 16)
   }
 

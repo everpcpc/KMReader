@@ -18,7 +18,8 @@ final class StoreManager {
 
   private(set) var products: [Product] = []
   private(set) var purchasedProductIDs: Set<String> = []
-  private(set) var isLoading = false
+  private(set) var isLoadingProducts = false
+  private(set) var isRestoring = false
   private(set) var errorMessage: String?
 
   var hasActiveSubscription: Bool {
@@ -34,6 +35,7 @@ final class StoreManager {
   }
 
   private var updateListenerTask: Task<Void, Error>?
+  private static let restoreTimeoutSeconds: Double = 20
 
   private init() {
     updateListenerTask = listenForTransactions()
@@ -44,7 +46,7 @@ final class StoreManager {
   }
 
   func loadProducts() async {
-    isLoading = true
+    isLoadingProducts = true
     errorMessage = nil
 
     do {
@@ -56,7 +58,7 @@ final class StoreManager {
       errorMessage = error.localizedDescription
     }
 
-    isLoading = false
+    isLoadingProducts = false
   }
 
   func purchase(_ product: Product) async throws -> Transaction? {
@@ -94,14 +96,26 @@ final class StoreManager {
   }
 
   func restorePurchases() async {
-    isLoading = true
+    isRestoring = true
+    errorMessage = nil
     do {
-      try await AppStore.sync()
+      try await withThrowingTaskGroup(of: Void.self) { group in
+        group.addTask {
+          try await AppStore.sync()
+        }
+        group.addTask {
+          try await Task.sleep(for: .seconds(Self.restoreTimeoutSeconds))
+          throw StoreError.restoreTimeout
+        }
+
+        _ = try await group.next()
+        group.cancelAll()
+      }
       await updatePurchasedProducts()
     } catch {
       errorMessage = error.localizedDescription
     }
-    isLoading = false
+    isRestoring = false
   }
 
   private func updatePurchasedProducts() async {
@@ -142,6 +156,7 @@ final class StoreManager {
 enum StoreError: LocalizedError {
   case verificationFailed
   case purchaseTimeout
+  case restoreTimeout
 
   var errorDescription: String? {
     switch self {
@@ -149,6 +164,8 @@ enum StoreError: LocalizedError {
       return String(localized: "Transaction verification failed")
     case .purchaseTimeout:
       return String(localized: "Purchase request timed out. Please try again.")
+    case .restoreTimeout:
+      return String(localized: "Restore request timed out. Please try again.")
     }
   }
 }

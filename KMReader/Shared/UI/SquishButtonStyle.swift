@@ -10,7 +10,7 @@ import SwiftUI
 /// A button style that provides a soft, squishy press effect
 struct SquishButtonStyle: ButtonStyle {
   var scale: CGFloat = 0.95
-  
+
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .scaleEffect(configuration.isPressed ? scale : 1.0)
@@ -20,7 +20,7 @@ struct SquishButtonStyle: ButtonStyle {
 
 extension ButtonStyle where Self == SquishButtonStyle {
   static var squish: SquishButtonStyle { SquishButtonStyle() }
-  
+
   static func squish(scale: CGFloat) -> SquishButtonStyle {
     SquishButtonStyle(scale: scale)
   }
