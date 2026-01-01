@@ -56,6 +56,8 @@ class ReaderViewModel {
 
   /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
+  private var lastProgressUpdateTime: Date?
+  private var lastPreloadRequestTime: Date?
 
   var currentPage: BookPage? {
     guard currentPageIndex >= 0 else { return nil }
@@ -244,6 +246,13 @@ class ReaderViewModel {
   /// Preload pages around the current page for smoother scrolling
   /// Preloads 2 pages before and 4 pages after the current page
   func preloadPages() async {
+    let now = Date()
+    if let last = lastPreloadRequestTime,
+      now.timeIntervalSince(last) < 0.5
+    {
+      return
+    }
+    lastPreloadRequestTime = now
     guard !bookId.isEmpty else { return }
     let preloadBefore = max(0, currentPageIndex - 2)
     let preloadAfter = min(currentPageIndex + 4, pages.count)
@@ -284,11 +293,11 @@ class ReaderViewModel {
 
     // Clean up images too far from current page to release memory
     // Keep a window of -4 to +6 pages around current position
-    cleanupDistantImages()
+    cleanupDistantImagesAroundCurrentPage()
   }
 
   /// Remove preloaded images that are too far from current page to release memory
-  private func cleanupDistantImages() {
+  func cleanupDistantImagesAroundCurrentPage() {
     guard !pages.isEmpty else { return }
     let currentPageNumber = currentPage?.number ?? 1
     let keepRange = (currentPageNumber - 4)...(currentPageNumber + 6)
@@ -325,6 +334,14 @@ class ReaderViewModel {
     let activeBookId = bookId
     let currentPageNumber = currentPage.number
     let completed = currentPageIndex >= pages.count - 1
+
+    let now = Date()
+    if let last = lastProgressUpdateTime,
+      now.timeIntervalSince(last) < 0.6
+    {
+      return
+    }
+    lastProgressUpdateTime = now
 
     Task.detached(priority: .utility) {
       do {

@@ -7,7 +7,6 @@
 
 #if os(macOS)
   import AppKit
-  import ImageIO
   import SwiftUI
 
   struct WebtoonReaderView: NSViewRepresentable {
@@ -129,14 +128,15 @@
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
       var hasScrolledToInitialPage: Bool = false
-      var lastPreloadTime: Date?
+      var initialScrollRetrier = InitialScrollRetrier(
+        maxRetries: WebtoonConstants.initialScrollMaxRetries
+      )
       var pageWidth: CGFloat = 0
-      var lastPageWidth: CGFloat = 0
       var isAtBottom: Bool = false
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var disableTapToTurnPage: Bool = false
-      var pageHeights: [Int: CGFloat] = [:]
+      var heightCache = WebtoonPageHeightCache()
       var keyMonitor: Any?
 
       init(_ parent: WebtoonReaderView) {
@@ -149,7 +149,7 @@
         self.onScrollToBottom = parent.onScrollToBottom
         self.lastPagesCount = parent.pages.count
         self.pageWidth = parent.pageWidth
-        self.lastPageWidth = parent.pageWidth
+        self.heightCache.lastPageWidth = parent.pageWidth
         self.readerBackground = parent.readerBackground
         self.disableTapToTurnPage = parent.disableTapToTurnPage
       }
@@ -188,45 +188,23 @@
         index >= 0 && index < pages.count
       }
 
-      func placeholderHeight(for index: Int) -> CGFloat {
-        guard pageWidth > 0 else { return 0 }
-        if let cached = pageHeights[index] { return cached }
-        if index < pages.count,
-          let w = pages[index].width, let h = pages[index].height, w > 0
-        {
-          let ratio = CGFloat(h) / CGFloat(w)
-          if ratio.isFinite && ratio > 0 { return pageWidth * ratio }
-        }
-        return pageWidth * 3
-      }
-
-      func applyMetadataHeights() {
-        guard pageWidth > 0 else { return }
-        for (i, page) in pages.enumerated() {
-          guard let w = page.width, let h = page.height, w > 0 else { continue }
-          let ratio = CGFloat(h) / CGFloat(w)
-          if ratio.isFinite && ratio > 0 && pageHeights[i] == nil {
-            pageHeights[i] = pageWidth * ratio
-          }
-        }
-      }
-
       func scheduleInitialScroll() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + WebtoonConstants.initialScrollDelay) {
-          [weak self] in
-          guard let self = self, !self.hasScrolledToInitialPage,
-            self.pages.count > 0, self.isValidPageIndex(self.currentPage)
-          else { return }
-          self.scrollToInitialPage(self.currentPage)
-        }
+        initialScrollRetrier.reset()
+        requestInitialScroll(currentPage, delay: WebtoonConstants.initialScrollDelay)
       }
 
-      func calculateOffsetToPage(_ pageIndex: Int) -> CGFloat {
-        var offset: CGFloat = 0
-        for i in 0..<pageIndex {
-          offset += pageHeights[i] ?? placeholderHeight(for: i)
+      func requestInitialScroll(_ pageIndex: Int, delay: TimeInterval) {
+        initialScrollRetrier.schedule(
+          after: delay,
+          using: { delay, action in
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: action)
+          }
+        ) { [weak self] in
+          guard let self = self, !self.hasScrolledToInitialPage,
+            self.pages.count > 0, self.isValidPageIndex(pageIndex)
+          else { return }
+          self.scrollToInitialPage(pageIndex)
         }
-        return offset
       }
 
       func update(
@@ -246,16 +224,17 @@
         self.onScrollToBottom = onScrollToBottom
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
-        applyMetadataHeights()
 
         let currentPage = viewModel.currentPageIndex
 
-        if lastPagesCount != pages.count || abs(lastPageWidth - pageWidth) > 0.1 {
-          if lastPagesCount != pages.count { pageHeights.removeAll() }
-          applyMetadataHeights()
+        if lastPagesCount != pages.count || abs(heightCache.lastPageWidth - pageWidth) > 0.1 {
+          if lastPagesCount != pages.count {
+            heightCache.reset()
+          }
           lastPagesCount = pages.count
-          lastPageWidth = pageWidth
           hasScrolledToInitialPage = false
+          initialScrollRetrier.reset()
+          heightCache.rescaleIfNeeded(newWidth: pageWidth)
           collectionView.reloadData()
         }
 
@@ -308,9 +287,7 @@
           let cv = collectionView, isValidPageIndex(pageIndex),
           cv.bounds.width > 0
         else {
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.scrollToInitialPage(pageIndex)
-          }
+          requestInitialScroll(pageIndex, delay: WebtoonConstants.initialScrollRetryDelay)
           return
         }
         let ip = IndexPath(item: pageIndex, section: 0)
@@ -344,13 +321,26 @@
             for: indexPath) as! WebtoonPageCell
         cell.readerBackground = readerBackground
         let pageIndex = indexPath.item
+        let page = pages[pageIndex]
+        let preloadedImage = viewModel?.preloadedImages[page.number]
 
-        cell.configure(pageIndex: pageIndex, image: nil) { [weak self] idx in
-          Task { @MainActor in await self?.loadImageForPage(idx) }
+        cell.configure(pageIndex: pageIndex, image: preloadedImage) { [weak self] idx in
+          guard let self = self else { return }
+          if let image = self.viewModel?.preloadedImages[self.pages[idx].number] {
+            if let cv = self.collectionView,
+              let cell = cv.item(at: IndexPath(item: idx, section: 0)) as? WebtoonPageCell
+            {
+              cell.setImage(image)
+            }
+            return
+          }
+          Task { @MainActor in await self.loadImageForPage(idx) }
         }
 
-        Task { @MainActor [weak self] in
-          await self?.loadImageForPage(pageIndex)
+        if preloadedImage == nil {
+          Task { @MainActor [weak self] in
+            await self?.loadImageForPage(pageIndex)
+          }
         }
 
         return cell
@@ -363,7 +353,9 @@
         if indexPath.item == pages.count {
           return NSSize(width: pageWidth, height: WebtoonConstants.footerHeight)
         }
-        return NSSize(width: pageWidth, height: placeholderHeight(for: indexPath.item))
+        let page = pages[indexPath.item]
+        let height = heightCache.height(for: indexPath.item, page: page, pageWidth: pageWidth)
+        return NSSize(width: pageWidth, height: height)
       }
 
       // MARK: - Scroll
@@ -373,7 +365,6 @@
         isUserScrolling = true
         checkIfAtBottom(sv)
         updateCurrentPage()
-        throttlePreload()
       }
 
       @objc func scrollViewDidEndScroll(_ notification: Notification) {
@@ -381,17 +372,7 @@
         isUserScrolling = false
         checkIfAtBottom(sv)
         updateCurrentPage()
-        preloadNearbyPages()
-      }
-
-      private func throttlePreload() {
-        let now = Date()
-        if lastPreloadTime == nil
-          || now.timeIntervalSince(lastPreloadTime!) > WebtoonConstants.preloadThrottleInterval
-        {
-          lastPreloadTime = now
-          preloadNearbyPages()
-        }
+        viewModel?.cleanupDistantImagesAroundCurrentPage()
       }
 
       private func checkIfAtBottom(_ scrollView: NSScrollView) {
@@ -434,65 +415,17 @@
           {
             cell.setImage(preloadedImage)
           }
-
-          if let rep = preloadedImage.representations.first {
-            let size = CGSize(width: CGFloat(rep.pixelsWide), height: CGFloat(rep.pixelsHigh))
-            let h = pageWidth * size.height / size.width
-            let old = pageHeights[pageIndex] ?? pageWidth
-            pageHeights[pageIndex] = h
-            if abs(h - old) > 1 {
-              layout?.invalidateLayout()
-            }
-          }
           return
         }
 
         // Fall back to loading from file
         guard let url = await vm.getPageImageFileURL(page: page) else { return }
 
-        // Load image and get size in one operation
-        var imageSize: CGSize?
+        // Load image
         if let cv = collectionView,
           let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell
         {
-          imageSize = await cell.loadImageFromURL(url)
-        }
-
-        if let size = imageSize {
-          let h = pageWidth * size.height / size.width
-          let old = pageHeights[pageIndex] ?? pageWidth
-          pageHeights[pageIndex] = h
-          if abs(h - old) > 1 {
-            layout?.invalidateLayout()
-          }
-        }
-      }
-
-      func preloadNearbyPages() {
-        guard let cv = collectionView else { return }
-        let visible = cv.indexPathsForVisibleItems()
-        guard !visible.isEmpty else { return }
-        let indices = visible.map { $0.item }
-        let minV = indices.min() ?? 0
-        let maxV = indices.max() ?? pages.count - 1
-
-        Task { @MainActor [weak self] in
-          guard let self = self, let vm = self.viewModel else { return }
-          for i in max(0, minV - 2)...min(self.pages.count - 1, maxV + 2) {
-            let page = self.pages[i]
-            // Skip if already preloaded
-            if vm.preloadedImages[page.number] != nil {
-              continue
-            }
-            if let fileURL = await vm.getPageImageFileURL(page: page) {
-              // Load and decode image
-              if let data = try? Data(contentsOf: fileURL) {
-                if let image = NSImage(data: data) {
-                  vm.preloadedImages[page.number] = image
-                }
-              }
-            }
-          }
+          _ = await cell.loadImageFromURL(url)
         }
       }
 

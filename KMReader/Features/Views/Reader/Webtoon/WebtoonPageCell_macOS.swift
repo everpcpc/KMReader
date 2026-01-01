@@ -83,10 +83,7 @@
     func setImage(_ image: NSImage) {
       loadingIndicator.stopAnimation(nil)
       pageImageView.image = image
-      NSAnimationContext.runAnimationGroup { context in
-        context.duration = 0.2
-        self.pageImageView.animator().alphaValue = 1.0
-      }
+      pageImageView.alphaValue = 1.0
     }
 
     /// Load image from URL and return its size (fallback for non-preloaded images)
