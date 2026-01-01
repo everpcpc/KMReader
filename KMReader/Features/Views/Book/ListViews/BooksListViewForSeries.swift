@@ -40,8 +40,7 @@ struct BooksListViewForSeries: View {
 
         BookFilterView(
           browseOpts: $browseOpts,
-          showFilterSheet: $showFilterSheet,
-          layoutMode: $layoutMode
+          showFilterSheet: $showFilterSheet
         )
       }
       .padding(.horizontal)

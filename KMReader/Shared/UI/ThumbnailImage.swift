@@ -92,6 +92,7 @@ struct ThumbnailImage<Overlay: View>: View {
         } else {
           RoundedRectangle(cornerRadius: cornerRadius)
             .fill(Color.gray.opacity(0.3))
+            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
         }
       }
       .overlay {
@@ -100,7 +101,6 @@ struct ThumbnailImage<Overlay: View>: View {
         }
       }
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-      .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
     }
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)

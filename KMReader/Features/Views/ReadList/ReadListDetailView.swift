@@ -12,6 +12,7 @@ struct ReadListDetailView: View {
   let readListId: String
 
   @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("readListDetailLayout") private var readListDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
 
@@ -144,13 +145,14 @@ extension ReadListDetailView {
 
   @ViewBuilder
   private var readListToolbarContent: some View {
-    HStack(spacing: PlatformHelper.buttonSpacing) {
+    HStack {
+      LayoutModePicker(selection: $readListDetailLayout)
+
       Button {
         showFilterSheet = true
       } label: {
         Image(systemName: "line.3.horizontal.decrease.circle")
       }
-      .toolbarButtonStyle()
 
       Menu {
         if isAdmin {
@@ -171,7 +173,6 @@ extension ReadListDetailView {
       } label: {
         Image(systemName: "ellipsis.circle")
       }
-      .toolbarButtonStyle()
-    }
+    }.toolbarButtonStyle()
   }
 }

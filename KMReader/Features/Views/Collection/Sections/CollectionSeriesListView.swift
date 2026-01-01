@@ -62,8 +62,7 @@ struct CollectionSeriesListView: View {
         HStack(spacing: 8) {
           CollectionSeriesFilterView(
             browseOpts: $browseOpts,
-            showFilterSheet: $showFilterSheet,
-            layoutMode: $layoutMode
+            showFilterSheet: $showFilterSheet
           )
 
           if supportsSelectionMode && !isSelectionMode && isAdmin {
