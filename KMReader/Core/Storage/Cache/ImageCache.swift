@@ -149,6 +149,19 @@ actor ImageCache {
     await cacheSizeActor.invalidate()
   }
 
+  /// Clear disk cache for the current instance only
+  static func clearCurrentInstanceDiskCache() async {
+    let fileManager = FileManager.default
+    let diskCacheURL = await namespacedDiskCacheURL()
+
+    await Task.detached(priority: .userInitiated) {
+      try? fileManager.removeItem(at: diskCacheURL)
+      try? fileManager.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
+    }.value
+
+    await cacheSizeActor.set(size: 0, count: 0)
+  }
+
   /// Clear all disk cache (static method for use from anywhere)
   static func clearAllDiskCache() async {
     let fileManager = FileManager.default
@@ -332,9 +345,8 @@ actor ImageCache {
     page: BookPage,
     ensureDirectory: Bool
   ) -> URL {
-    // Note: This matches the implementation used in imageFileURL but allows folder creation
-    // We construct path manually to be safe for non-isolated access
-    let diskCacheURL = CacheNamespace.baseDirectory(for: "KomgaImageCache")
+    // Use the instance's diskCacheURL which includes the namespace
+    let diskCacheURL = self.diskCacheURL
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
     let pageDirectory =
       bookCacheDir

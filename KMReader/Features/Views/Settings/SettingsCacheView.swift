@@ -11,8 +11,11 @@ struct SettingsCacheView: View {
   @AppStorage("maxPageCacheSize") private var maxPageCacheSize: Int = 8
   @AppStorage("maxThumbnailCacheSize") private var maxThumbnailCacheSize: Int = 1
   @State private var showClearImageCacheConfirmation = false
+  @State private var showClearAllImageCacheConfirmation = false
   @State private var showClearBookFileCacheConfirmation = false
+  @State private var showClearAllBookFileCacheConfirmation = false
   @State private var showClearThumbnailCacheConfirmation = false
+  @State private var showClearAllThumbnailCacheConfirmation = false
   @State private var imageCacheSize: Int64 = 0
   @State private var imageCacheCount: Int = 0
   @State private var bookFileCacheSize: Int64 = 0
@@ -137,15 +140,21 @@ struct SettingsCacheView: View {
         }
         .tvFocusableHighlight()
 
-        Button(role: .destructive) {
-          showClearImageCacheConfirmation = true
-        } label: {
-          HStack {
-            Spacer()
-            Text("Clear")
-            Spacer()
+        HStack {
+          Button(role: .destructive) {
+            showClearImageCacheConfirmation = true
+          } label: {
+            Text("Clear Current")
+              .frame(maxWidth: .infinity)
+          }
+          Button(role: .destructive) {
+            showClearAllImageCacheConfirmation = true
+          } label: {
+            Text("Clear All")
+              .frame(maxWidth: .infinity)
           }
         }
+        .buttonStyle(.bordered)
       }
 
       Section(header: Text("Thumbnail")) {
@@ -214,15 +223,21 @@ struct SettingsCacheView: View {
         }
         .tvFocusableHighlight()
 
-        Button(role: .destructive) {
-          showClearThumbnailCacheConfirmation = true
-        } label: {
-          HStack {
-            Spacer()
-            Text("Clear")
-            Spacer()
+        HStack {
+          Button(role: .destructive) {
+            showClearThumbnailCacheConfirmation = true
+          } label: {
+            Text("Clear Current")
+              .frame(maxWidth: .infinity)
+          }
+          Button(role: .destructive) {
+            showClearAllThumbnailCacheConfirmation = true
+          } label: {
+            Text("Clear All")
+              .frame(maxWidth: .infinity)
           }
         }
+        .buttonStyle(.bordered)
       }
 
       Section(header: Text("Book File")) {
@@ -252,20 +267,39 @@ struct SettingsCacheView: View {
         }
         .tvFocusableHighlight()
 
-        Button(role: .destructive) {
-          showClearBookFileCacheConfirmation = true
-        } label: {
-          HStack {
-            Spacer()
-            Text("Clear")
-            Spacer()
+        HStack {
+          Button(role: .destructive) {
+            showClearBookFileCacheConfirmation = true
+          } label: {
+            Text("Clear Current")
+              .frame(maxWidth: .infinity)
+          }
+          Button(role: .destructive) {
+            showClearAllBookFileCacheConfirmation = true
+          } label: {
+            Text("Clear All")
+              .frame(maxWidth: .infinity)
           }
         }
+        .buttonStyle(.bordered)
       }
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.cache.title)
-    .alert("Clear Page", isPresented: $showClearImageCacheConfirmation) {
+    .alert("Clear Page (Current Server)", isPresented: $showClearImageCacheConfirmation) {
+      Button("Clear", role: .destructive) {
+        Task {
+          await ImageCache.clearCurrentInstanceDiskCache()
+          await loadCacheSize()
+        }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text(
+        "This will remove cached page images for the current server. Images will be re-downloaded when needed."
+      )
+    }
+    .alert("Clear Page (All Servers)", isPresented: $showClearAllImageCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {
           await ImageCache.clearAllDiskCache()
@@ -275,10 +309,23 @@ struct SettingsCacheView: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       Text(
-        "This will remove all cached page images from disk. Images will be re-downloaded when needed."
+        "This will remove all cached page images for all servers. Images will be re-downloaded when needed."
       )
     }
-    .alert("Clear Book File", isPresented: $showClearBookFileCacheConfirmation) {
+    .alert("Clear Book File (Current Server)", isPresented: $showClearBookFileCacheConfirmation) {
+      Button("Clear", role: .destructive) {
+        Task {
+          await BookFileCache.clearCurrentInstanceDiskCache()
+          await loadCacheSize()
+        }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text(
+        "This will remove cached EPUB files for the current server. Files will be re-downloaded when needed."
+      )
+    }
+    .alert("Clear Book File (All Servers)", isPresented: $showClearAllBookFileCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {
           await BookFileCache.clearAllDiskCache()
@@ -288,10 +335,23 @@ struct SettingsCacheView: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       Text(
-        "This will remove all cached EPUB files from disk. Files will be re-downloaded when needed."
+        "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed."
       )
     }
-    .alert("Clear Thumbnail", isPresented: $showClearThumbnailCacheConfirmation) {
+    .alert("Clear Thumbnail (Current Server)", isPresented: $showClearThumbnailCacheConfirmation) {
+      Button("Clear", role: .destructive) {
+        Task {
+          await ThumbnailCache.clearCurrentInstanceDiskCache()
+          await loadCacheSize()
+        }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text(
+        "This will remove cached thumbnails for the current server. Thumbnails will be re-downloaded when needed."
+      )
+    }
+    .alert("Clear Thumbnail (All Servers)", isPresented: $showClearAllThumbnailCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {
           await ThumbnailCache.clearAllDiskCache()
@@ -301,7 +361,7 @@ struct SettingsCacheView: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       Text(
-        "This will remove all cached thumbnails from memory and disk. Thumbnails will be re-downloaded when needed."
+        "This will remove all cached thumbnails for all servers. Thumbnails will be re-downloaded when needed."
       )
     }
     .task {

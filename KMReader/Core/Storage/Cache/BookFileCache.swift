@@ -174,6 +174,19 @@ actor BookFileCache {
     CacheNamespace.baseDirectory(for: "KomgaBookFileCache")
   }
 
+  /// Clear disk cache for the current instance only
+  static func clearCurrentInstanceDiskCache() async {
+    let fileManager = FileManager.default
+    let diskCacheURL = await namespacedDiskCacheURL()
+
+    await Task.detached(priority: .userInitiated) {
+      try? fileManager.removeItem(at: diskCacheURL)
+      try? fileManager.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
+    }.value
+
+    await cacheSizeActor.set(size: 0, count: 0)
+  }
+
   static func clearAllDiskCache() async {
     let fileManager = FileManager.default
     let diskCacheURL = baseDiskCacheURL()

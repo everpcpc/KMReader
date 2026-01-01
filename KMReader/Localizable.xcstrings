@@ -5262,42 +5262,104 @@
         }
       }
     },
-    "Clear Book File" : {
+    "Clear All" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Book File"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer le fichier du livre"
+            "value" : "Tout effacer"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "書籍ファイルを削除"
+            "value" : "すべて削除"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "책 파일 지우기"
+            "value" : "모두 지우기"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除书籍文件"
+            "value" : "清除全部"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除書籍檔案"
+            "value" : "清除全部"
+          }
+        }
+      }
+    },
+    "Clear Book File (All Servers)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer fichiers (Tous les serveurs)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書籍ファイルを削除 (全サーバー)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책 파일 지우기 (모든 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除书籍文件 (所有服务器)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除書籍檔案 (所有伺服器)"
+          }
+        }
+      }
+    },
+    "Clear Book File (Current Server)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer fichiers (Serveur actuel)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書籍ファイルを削除 (現在のサーバー)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책 파일 지우기 (현재 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除书籍文件 (当前服务器)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除書籍檔案 (當前伺服器)"
           }
         }
       }
@@ -5342,82 +5404,172 @@
         }
       }
     },
-    "Clear Page" : {
+    "Clear Current" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Page"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Effacer la page"
+            "value" : "Effacer actuel"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ページをクリア"
+            "value" : "現在を削除"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "페이지 지우기"
+            "value" : "현재 서버 지우기"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除页面"
+            "value" : "清除当前"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除頁面"
+            "value" : "清除當前"
           }
         }
       }
     },
-    "Clear Thumbnail" : {
+    "Clear Page (All Servers)" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Thumbnail"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Effacer la miniature"
+            "value" : "Effacer les pages (Tous les serveurs)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイルをクリア"
+            "value" : "ページを削除 (全サーバー)"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일 지우기"
+            "value" : "페이지 지우기 (모든 서버)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除缩略图"
+            "value" : "清除页面 (所有服务器)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "清除縮圖"
+            "value" : "清除頁面 (所有伺服器)"
+          }
+        }
+      }
+    },
+    "Clear Page (Current Server)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer les pages (Serveur actuel)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページを削除 (現在のサーバー)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 지우기 (현재 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除页面 (当前服务器)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除頁面 (當前伺服器)"
+          }
+        }
+      }
+    },
+    "Clear Thumbnail (All Servers)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer les miniatures (Tous les serveurs)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サムネイルを削除 (全サーバー)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "썸네일 지우기 (모든 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除缩略图 (所有服务器)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除縮圖 (所有伺服器)"
+          }
+        }
+      }
+    },
+    "Clear Thumbnail (Current Server)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer les miniatures (Serveur actuel)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サムネイルを削除 (現在のサーバー)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "썸네일 지우기 (현재 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除缩略图 (当前服务器)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除縮圖 (當前伺服器)"
           }
         }
       }
@@ -27430,122 +27582,206 @@
         }
       }
     },
-    "This will remove all cached EPUB files from disk. Files will be re-downloaded when needed." : {
+    "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will remove all cached EPUB files from disk. Files will be re-downloaded when needed."
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela supprimera tous les fichiers EPUB en cache du disque. Les fichiers seront retéléchargés si nécessaire."
+            "value" : "Cela supprimera tous les fichiers EPUB en cache de tous les serveurs. Les fichiers seront retéléchargés si nécessaire."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ディスク上のキャッシュ EPUB ファイルをすべて削除します。必要に応じ再ダウンロードされます。"
+            "value" : "全サーバーのキャッシュ EPUB ファイルをすべて削除します。必要に応じ再ダウンロードされます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이렇게 하면 디스크에서 캐시된 모든 EPUB 파일이 제거됩니다. 필요할 때 파일이 다시 다운로드됩니다."
+            "value" : "모든 서버에서 캐시된 모든 EPUB 파일이 제거됩니다. 필요할 때 파일이 다시 다운로드됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将从磁盘移除所有缓存 EPUB 文件，需时会重新下载。"
+            "value" : "将移除所有服务器的缓存 EPUB 文件，需时会重新下载。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將從磁碟移除所有快取 EPUB 檔案，需要時會重新下載。"
+            "value" : "將移除所有伺服器的快取 EPUB 檔案，需要時會重新下載。"
           }
         }
       }
     },
-    "This will remove all cached page images from disk. Images will be re-downloaded when needed." : {
+    "This will remove all cached page images for all servers. Images will be re-downloaded when needed." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will remove all cached page images from disk. Images will be re-downloaded when needed."
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela supprimera toutes les images de page en cache du disque. Les images seront retéléchargées si nécessaire."
+            "value" : "Cela supprimera toutes les images de page en cache de tous les serveurs. Les images seront retéléchargées si nécessaire."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ディスク上のページ画像キャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
+            "value" : "全サーバーのページ画像キャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이렇게 하면 디스크에서 캐시된 모든 페이지 이미지가 제거됩니다. 필요할 때 이미지가 다시 다운로드됩니다."
+            "value" : "모든 서버에서 캐시된 모든 페이지 이미지가 제거됩니다. 필요할 때 이미지가 다시 다운로드됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将移除所有缓存页面图片，需时重新下载。"
+            "value" : "将移除所有服务器的缓存页面图片，需时会重新下载。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將移除所有快取頁面圖片，需要時重新下載。"
+            "value" : "將移除所有伺服器的快取頁面圖片，需要時會重新下載。"
           }
         }
       }
     },
-    "This will remove all cached thumbnails from memory and disk. Thumbnails will be re-downloaded when needed." : {
+    "This will remove all cached thumbnails for all servers. Thumbnails will be re-downloaded when needed." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will remove all cached thumbnails from memory and disk. Thumbnails will be re-downloaded when needed."
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela supprimera toutes les miniatures en cache de la mémoire et du disque. Les miniatures seront retéléchargées si nécessaire."
+            "value" : "Cela supprimera toutes les miniatures en cache de tous les serveurs. Les miniatures seront retéléchargées si nécessaire."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メモリとディスクのサムネイルキャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
+            "value" : "全サーバーのサムネイルキャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이렇게 하면 메모리 및 디스크에서 캐시된 모든 썸네일이 제거됩니다. 필요할 때 썸네일이 다시 다운로드됩니다."
+            "value" : "모든 서버에서 캐시된 모든 썸네일이 제거됩니다. 필요할 때 썸네일이 다시 다운로드됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将移除所有缩略图缓存，需时重新下载。"
+            "value" : "将移除所有服务器的缓存缩略图，需时会重新下载。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將移除所有縮圖快取，需要時重新下載。"
+            "value" : "將移除所有伺服器的快取縮圖，需要時會重新下載。"
+          }
+        }
+      }
+    },
+    "This will remove cached EPUB files for the current server. Files will be re-downloaded when needed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cela supprimera les fichiers EPUB en cache du serveur actuel. Les fichiers seront retéléchargés si nécessaire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のサーバーのキャッシュ EPUB ファイルを削除します。必要に応じ再ダウンロードされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 서버에서 캐시된 EPUB 파일이 제거됩니다. 필요할 때 파일이 다시 다운로드됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将移除当前服务器的缓存 EPUB 文件，需时会重新下载。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將移除當前伺服器的快取 EPUB 檔案，需要時會重新下載。"
+          }
+        }
+      }
+    },
+    "This will remove cached page images for the current server. Images will be re-downloaded when needed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cela supprimera les images de page en cache du serveur actuel. Les images seront retéléchargées si nécessaire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のサーバーのページ画像キャッシュを削除します。必要に応じ再ダウンロードされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 서버에서 캐시된 페이지 이미지가 제거됩니다. 필요할 때 이미지가 다시 다운로드됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将移除当前服务器的缓存页面图片，需时会重新下载。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將移除當前伺服器的快取頁面圖片，需要時會重新下載。"
+          }
+        }
+      }
+    },
+    "This will remove cached thumbnails for the current server. Thumbnails will be re-downloaded when needed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cela supprimera les miniatures en cache du serveur actuel. Les miniatures seront retéléchargées si nécessaire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のサーバーのサムネイルキャッシュを削除します。必要に応じ再ダウンロードされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 서버에서 캐시된 썸네일이 제거됩니다. 필요할 때 썸네일이 다시 다운로드됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将移除当前服务器的缓存缩略图，需时会重新下载。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將移除當前伺服器的快取縮圖，需要時會重新下載。"
           }
         }
       }
