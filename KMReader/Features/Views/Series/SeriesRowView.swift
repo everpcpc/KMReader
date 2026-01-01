@@ -42,7 +42,8 @@ struct SeriesRowView: View {
     HStack(spacing: 12) {
       NavigationLink(value: navDestination) {
         ThumbnailImage(id: series.id, type: .series, width: 80)
-      }.adaptiveButtonStyle(.plain)
+      }
+      .adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(value: navDestination) {

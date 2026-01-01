@@ -5,17 +5,6 @@
 
 import SwiftUI
 
-// Environment key for sharing zoom transition namespace
-private struct ReaderZoomNamespaceKey: EnvironmentKey {
-  static let defaultValue: Namespace.ID? = nil
-}
-
-extension EnvironmentValues {
-  var readerZoomNamespace: Namespace.ID? {
-    get { self[ReaderZoomNamespaceKey.self] }
-    set { self[ReaderZoomNamespaceKey.self] = newValue }
-  }
-}
 
 #if os(iOS) || os(tvOS)
   /// Reader overlay that handles presentation with zoom transition on iOS 18+
@@ -38,18 +27,22 @@ extension EnvironmentValues {
             #if os(iOS)
               ReaderContentView()
                 .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
-                .navigationTransitionZoomIfAvailable(
-                  sourceID: readerPresentation.sourceBookId ?? "",
-                  in: namespace
-                )
+                .ifLet(readerPresentation.sourceBookId) { view, sourceID in
+                  view.navigationTransitionZoomIfAvailable(
+                    sourceID: sourceID,
+                    in: namespace
+                  )
+                }
                 .tint(themeColor.color)
                 .accentColor(themeColor.color)
             #else
               ReaderContentView()
-                .navigationTransitionZoomIfAvailable(
-                  sourceID: readerPresentation.sourceBookId ?? "",
-                  in: namespace
-                )
+                .ifLet(readerPresentation.sourceBookId) { view, sourceID in
+                  view.navigationTransitionZoomIfAvailable(
+                    sourceID: sourceID,
+                    in: namespace
+                  )
+                }
             #endif
           }
       } else {
