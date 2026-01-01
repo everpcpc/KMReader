@@ -37,6 +37,7 @@ struct DashboardSectionView: View {
   @State private var isLoading = false
   @State private var hasLoadedInitial = false
   @State private var didSeedFromCache = false
+  @State private var isHoveringScrollArea = false
 
   private var backgroundColors: [Color] {
     if colorScheme == .dark {
@@ -66,23 +67,33 @@ struct DashboardSectionView: View {
       .buttonStyle(.plain)
       .padding(.horizontal)
 
-      ScrollView(.horizontal, showsIndicators: false) {
-        LazyHStack(alignment: .top, spacing: 16) {
-          ForEach(pagination.items) { item in
-            itemView(for: item.id)
-              .frame(width: LayoutConfig.cardWidth(for: gridDensity))
-              .onAppear {
-                if pagination.shouldLoadMore(after: item) {
-                  Task {
-                    await loadMore()
+      ScrollViewReader { proxy in
+        ScrollView(.horizontal, showsIndicators: false) {
+          LazyHStack(alignment: .top, spacing: 16) {
+            ForEach(pagination.items) { item in
+              itemView(for: item.id)
+                .id(item.id)
+                .frame(width: LayoutConfig.cardWidth(for: gridDensity))
+                .onAppear {
+                  if pagination.shouldLoadMore(after: item) {
+                    Task {
+                      await loadMore()
+                    }
                   }
                 }
-              }
+            }
           }
+          .padding()
         }
-        .padding()
+        .scrollClipDisabled()
+        .overlay {
+          HorizontalScrollButtons(
+            scrollProxy: proxy,
+            itemIds: pagination.items.map(\.id),
+            isVisible: isHoveringScrollArea
+          )
+        }
       }
-      .scrollClipDisabled()
     }
     .padding(.vertical, 16)
     #if os(iOS) || os(macOS)
@@ -92,6 +103,20 @@ struct DashboardSectionView: View {
           startPoint: .top,
           endPoint: .bottom
         )
+      }
+    #endif
+    #if os(macOS)
+      .onContinuousHover { phase in
+        switch phase {
+        case .active:
+          withAnimation {
+            isHoveringScrollArea = true
+          }
+        case .ended:
+          withAnimation {
+            isHoveringScrollArea = false
+          }
+        }
       }
     #endif
     .opacity(pagination.isEmpty ? 0 : 1)
