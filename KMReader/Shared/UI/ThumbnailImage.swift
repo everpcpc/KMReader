@@ -44,14 +44,6 @@ struct ThumbnailImage<Overlay: View>: View {
     self.overlay = overlay
   }
 
-  private var contentMode: ContentMode {
-    if thumbnailPreserveAspectRatio {
-      return .fit
-    } else {
-      return .fill
-    }
-  }
-
   var body: some View {
     ZStack(alignment: alignment) {
       Color.clear
