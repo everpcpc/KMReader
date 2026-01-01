@@ -44,29 +44,35 @@ struct ThumbnailImage<Overlay: View>: View {
     self.overlay = overlay
   }
 
-  private var contentMode: ContentMode {
-    if thumbnailPreserveAspectRatio {
-      return .fit
-    } else {
-      return .fill
-    }
-  }
-
   var body: some View {
     ZStack(alignment: alignment) {
-      // Background placeholder to define the container size
       Color.clear
 
-      // Actual image content
       Group {
         if let platformImage = loadedImage {
-          Image(platformImage: platformImage)
-            .resizable()
-            .aspectRatio(contentMode: contentMode)
-            .overlay {
-              if thumbnailPreserveAspectRatio, let overlay = overlay {
-                overlay()
+          if thumbnailPreserveAspectRatio {
+            Image(platformImage: platformImage)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .overlay {
+                if let overlay = overlay {
+                  overlay()
+                }
               }
+              .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+              #if os(iOS)
+                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+              #endif
+              .ifLet(zoomNamespace) { view, namespace in
+                view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
+              }
+          } else {
+            GeometryReader { proxy in
+              Image(platformImage: platformImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             #if os(iOS)
@@ -75,6 +81,7 @@ struct ThumbnailImage<Overlay: View>: View {
             .ifLet(zoomNamespace) { view, namespace in
               view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
             }
+          }
         } else {
           RoundedRectangle(cornerRadius: cornerRadius)
             .fill(Color.gray.opacity(0.3))
