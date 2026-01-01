@@ -53,6 +53,14 @@ struct DashboardSectionView: View {
     }
   }
 
+  private var cardWidth: CGFloat {
+    LayoutConfig.cardWidth(for: gridDensity)
+  }
+
+  private var spacing: CGFloat {
+    LayoutConfig.spacing(for: gridDensity)
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
@@ -69,11 +77,11 @@ struct DashboardSectionView: View {
 
       ScrollViewReader { proxy in
         ScrollView(.horizontal, showsIndicators: false) {
-          LazyHStack(alignment: .top, spacing: 16) {
+          LazyHStack(alignment: .top, spacing: spacing) {
             ForEach(pagination.items) { item in
               itemView(for: item.id)
                 .id(item.id)
-                .frame(width: LayoutConfig.cardWidth(for: gridDensity))
+                .frame(width: cardWidth)
                 .onAppear {
                   if pagination.shouldLoadMore(after: item) {
                     Task {
@@ -83,8 +91,9 @@ struct DashboardSectionView: View {
                 }
             }
           }
-          .padding()
+          .padding(.vertical)
         }
+        .contentMargins(.horizontal, spacing, for: .scrollContent)
         .scrollClipDisabled()
         .overlay {
           HorizontalScrollButtons(
