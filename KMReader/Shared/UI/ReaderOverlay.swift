@@ -5,7 +5,6 @@
 
 import SwiftUI
 
-
 #if os(iOS) || os(tvOS)
   /// Reader overlay that handles presentation with zoom transition on iOS 18+
   struct ReaderOverlay: View {

@@ -88,8 +88,8 @@ struct HorizontalScrollButtons<ID: Hashable>: View {
   }
 }
 
-private extension Array {
-  subscript(safe index: Int) -> Element? {
+extension Array {
+  fileprivate subscript(safe index: Int) -> Element? {
     indices.contains(index) ? self[index] : nil
   }
 }

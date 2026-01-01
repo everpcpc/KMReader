@@ -264,7 +264,8 @@
         if collectionView.contentSize.height > 0 {
           collectionView.scrollToItem(at: indexPath, at: .top, animated: animated)
         } else {
-          requestScrollToPage(pageIndex, animated: animated, delay: WebtoonConstants.layoutReadyDelay)
+          requestScrollToPage(
+            pageIndex, animated: animated, delay: WebtoonConstants.layoutReadyDelay)
         }
       }
 
@@ -550,7 +551,6 @@
           cell.showError()
         }
       }
-
 
       // MARK: - Tap Gesture Handling
 

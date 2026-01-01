@@ -116,14 +116,15 @@ struct ThumbnailImage<Overlay: View>: View {
                 }
               }
               .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-              #if os(iOS)
-                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
-              #endif
-              .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-              .overlay { borderOverlay }
               .ifLet(zoomNamespace) { view, namespace in
                 view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
               }
+              #if os(iOS)
+                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+              #endif
+              .overlay { borderOverlay }
+
+              .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
           } else {
             GeometryReader { proxy in
               Image(platformImage: platformImage)
@@ -133,14 +134,14 @@ struct ThumbnailImage<Overlay: View>: View {
                 .clipped()
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            #if os(iOS)
-              .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
-            #endif
-            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-            .overlay { borderOverlay }
             .ifLet(zoomNamespace) { view, namespace in
               view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
             }
+            #if os(iOS)
+              .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+            #endif
+            .overlay { borderOverlay }
+            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
           }
         } else {
           RoundedRectangle(cornerRadius: cornerRadius)

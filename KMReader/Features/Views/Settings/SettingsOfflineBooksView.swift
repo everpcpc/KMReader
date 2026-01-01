@@ -136,7 +136,9 @@ struct SettingsOfflineBooksView: View {
             Button(role: .destructive) {
               showRemoveReadAlert = true
             } label: {
-              Label(String(localized: "settings.offline_books.remove_read"), systemImage: "checkmark.circle")
+              Label(
+                String(localized: "settings.offline_books.remove_read"),
+                systemImage: "checkmark.circle")
             }
             .disabled(!hasReadBooks)
           }.adaptiveButtonStyle(.bordered)

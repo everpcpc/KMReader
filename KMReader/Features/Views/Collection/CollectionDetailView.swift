@@ -151,7 +151,7 @@ extension CollectionDetailView {
       } label: {
         Image(systemName: "line.3.horizontal.decrease.circle")
       }
-      
+
       actionsMenu
     }.toolbarButtonStyle()
   }
