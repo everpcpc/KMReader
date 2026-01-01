@@ -63,6 +63,7 @@ struct SeriesCardView: View {
             showEditSheet = true
           }
         )
+        .id(komgaSeries.seriesId)
       }
 
       if !coverOnlyCards {

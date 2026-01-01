@@ -87,6 +87,7 @@ struct BookCardView: View {
           },
           showSeriesNavigation: showSeriesNavigation
         )
+        .id(komgaBook.bookId)
       }
 
       if !coverOnlyCards {
