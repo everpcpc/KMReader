@@ -6,81 +6,40 @@
 import SwiftUI
 
 #if os(iOS) || os(tvOS)
-  /// Reader overlay that handles presentation with zoom transition on iOS 18+
+  /// Reader overlay that handles presentation with fullScreenCover
   struct ReaderOverlay: View {
     let namespace: Namespace.ID
     @Environment(ReaderPresentationManager.self) private var readerPresentation
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
     var body: some View {
-      // iOS 18+: Use fullScreenCover for zoom transition
-      if #available(iOS 18.0, tvOS 18.0, *) {
-        Color.clear
-          .frame(width: 0, height: 0)
-          .fullScreenCover(
-            isPresented: Binding(
-              get: { readerPresentation.readerState != nil },
-              set: { if !$0 { readerPresentation.closeReader() } }
-            )
-          ) {
-            #if os(iOS)
-              ReaderContentView()
-                .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
-                .ifLet(readerPresentation.sourceBookId) { view, sourceID in
-                  view.navigationTransitionZoomIfAvailable(
-                    sourceID: sourceID,
-                    in: namespace
-                  )
-                }
-                .tint(themeColor.color)
-                .accentColor(themeColor.color)
-            #else
-              ReaderContentView()
-                .ifLet(readerPresentation.sourceBookId) { view, sourceID in
-                  view.navigationTransitionZoomIfAvailable(
-                    sourceID: sourceID,
-                    in: namespace
-                  )
-                }
-            #endif
-          }
-      } else {
-        // iOS 17 and earlier: Use overlay with opacity/scale animation
-        ReaderOverlayFallback()
-      }
-    }
-  }
-
-  /// Fallback overlay for iOS 17 and earlier
-  private struct ReaderOverlayFallback: View {
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
-    private var isPresented: Bool {
-      readerPresentation.readerState != nil && !readerPresentation.isDismissing
-    }
-
-    var body: some View {
-      Group {
-        if readerPresentation.readerState != nil {
+      Color.clear
+        .frame(width: 0, height: 0)
+        .fullScreenCover(
+          isPresented: Binding(
+            get: { readerPresentation.readerState != nil },
+            set: { if !$0 { readerPresentation.closeReader() } }
+          )
+        ) {
           ReaderContentView()
+            #if os(iOS)
+              .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
+            #endif
+            .ifLet(readerPresentation.sourceBookId) { view, sourceID in
+              view.navigationTransitionZoomIfAvailable(
+                sourceID: sourceID,
+                in: namespace
+              )
+            }
+            #if os(iOS)
+              .tint(themeColor.color)
+              .accentColor(themeColor.color)
+            #endif
         }
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .readerIgnoresSafeArea()
-      #if os(iOS)
-        .tint(themeColor.color)
-        .accentColor(themeColor.color)
-      #endif
-      .opacity(isPresented ? 1 : 0)
-      .scaleEffect(isPresented ? 1 : 0.5, anchor: .center)
-      .allowsHitTesting(isPresented)
-      .animation(
-        isPresented ? .easeInOut(duration: 0.1) : .easeInOut(duration: 0.2), value: isPresented)
     }
   }
 
-  /// Reader content extracted to be used in both fullScreenCover and overlay
+  /// Reader content extracted to be used in fullScreenCover
   private struct ReaderContentView: View {
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 

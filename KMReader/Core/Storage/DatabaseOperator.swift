@@ -833,6 +833,28 @@ actor DatabaseOperator {
     }
   }
 
+  func deleteLibrary(libraryId: String, instanceId: String) {
+    // Delete the library entry
+    let descriptor = FetchDescriptor<KomgaLibrary>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.libraryId == libraryId }
+    )
+    if let existing = try? modelContext.fetch(descriptor).first {
+      modelContext.delete(existing)
+    }
+
+    // Delete all books in this library
+    try? modelContext.delete(
+      model: KomgaBook.self,
+      where: #Predicate { $0.instanceId == instanceId && $0.libraryId == libraryId }
+    )
+
+    // Delete all series in this library
+    try? modelContext.delete(
+      model: KomgaSeries.self,
+      where: #Predicate { $0.instanceId == instanceId && $0.libraryId == libraryId }
+    )
+  }
+
   func deleteLibraries(instanceId: String?) throws {
     let descriptor: FetchDescriptor<KomgaLibrary>
     if let instanceId {

@@ -108,7 +108,7 @@ extension ReadListDetailView {
   private func loadReadListDetails() async {
     do {
       // Sync from network to SwiftData (readList property will update reactively)
-      try await SyncService.shared.syncReadList(id: readListId)
+      _ = try await SyncService.shared.syncReadList(id: readListId)
     } catch {
       if case APIError.notFound = error {
         dismiss()

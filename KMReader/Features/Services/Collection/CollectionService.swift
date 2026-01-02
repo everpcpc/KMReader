@@ -117,6 +117,10 @@ class CollectionService {
       path: "/api/v1/collections/\(collectionId)",
       method: "DELETE"
     )
+    // Delete from local SwiftData
+    let instanceId = AppConfig.currentInstanceId
+    await DatabaseOperator.shared.deleteCollection(id: collectionId, instanceId: instanceId)
+    await DatabaseOperator.shared.commit()
   }
 
   func removeSeriesFromCollection(collectionId: String, seriesIds: [String]) async throws {

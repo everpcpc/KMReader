@@ -106,7 +106,7 @@ extension CollectionDetailView {
   private func loadCollectionDetails() async {
     do {
       // Sync from network to SwiftData (collection property will update reactively)
-      try await SyncService.shared.syncCollection(id: collectionId)
+      _ = try await SyncService.shared.syncCollection(id: collectionId)
     } catch {
       if case APIError.notFound = error {
         dismiss()

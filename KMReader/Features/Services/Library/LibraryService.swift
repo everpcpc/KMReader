@@ -60,5 +60,9 @@ class LibraryService {
       path: "/api/v1/libraries/\(id)",
       method: "DELETE"
     )
+    // Delete from local SwiftData (also removes related books and series)
+    let instanceId = AppConfig.currentInstanceId
+    await DatabaseOperator.shared.deleteLibrary(libraryId: id, instanceId: instanceId)
+    await DatabaseOperator.shared.commit()
   }
 }
