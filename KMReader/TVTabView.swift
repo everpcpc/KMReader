@@ -33,32 +33,8 @@ import SwiftUI
           }
         }
 
-        Tab(
-          TabItem.collections.title,
-          systemImage: TabItem.collections.icon,
-          value: TabItem.collections
-        ) {
-          NavigationStack {
-            TabItem.collections.content
-              .handleNavigation()
-          }
-        }
-
-        Tab(
-          TabItem.readLists.title,
-          systemImage: TabItem.readLists.icon,
-          value: TabItem.readLists
-        ) {
-          NavigationStack {
-            TabItem.readLists.content
-              .handleNavigation()
-          }
-        }
-
         TabSection(String(localized: "Settings")) {
-          Tab(
-            TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings
-          ) {
+          Tab(TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings) {
             NavigationStack {
               TabItem.settings.content
                 .handleNavigation()
@@ -66,8 +42,6 @@ import SwiftUI
           }
         }
       }
-      .tabBarMinimizeBehaviorIfAvailable()
-      .tabViewStyle(.sidebarAdaptable)
     }
   }
 #endif
