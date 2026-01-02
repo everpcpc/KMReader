@@ -37,7 +37,7 @@ struct DivinaReaderView: View {
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
-  @State private var cachedScreenKey: String = ""
+
   #if os(tvOS)
     @State private var isEndPageButtonFocused = false
     private enum ReaderFocusAnchor: Hashable {
@@ -122,8 +122,6 @@ struct DivinaReaderView: View {
     GeometryReader { geometry in
       let currentSize = geometry.size
       let screenKey = "\(Int(currentSize.width))x\(Int(currentSize.height))"
-      // Use cached screenKey during dismissal to prevent view recreation from scale animation
-      let stableScreenKey = readerPresentation.isDismissing ? cachedScreenKey : screenKey
       let useDualPage = shouldUseDualPage(screenSize: currentSize)
 
       ZStack {
@@ -141,7 +139,7 @@ struct DivinaReaderView: View {
         readerContent(
           currentSize: currentSize,
           useDualPage: useDualPage,
-          stableScreenKey: stableScreenKey
+          screenKey: screenKey
         )
 
         helperOverlay(screenKey: screenKey)
@@ -252,8 +250,6 @@ struct DivinaReaderView: View {
       viewModel.updatePageLayout(newValue)
     }
     .task(id: currentBookId) {
-      // Don't reload book during dismissal
-      guard !readerPresentation.isDismissing else { return }
       if !preserveReaderOptions {
         resetReaderPreferencesForCurrentBook()
       }
@@ -274,8 +270,6 @@ struct DivinaReaderView: View {
       viewModel.preloadedImages.removeAll()
     }
     .onChange(of: showingControls) { _, newValue in
-      // Don't change status bar during dismissal to avoid geometry changes
-      guard !readerPresentation.isDismissing else { return }
       applyStatusBarVisibility(controlsHidden: !newValue)
     }
     #if os(iOS)
@@ -325,7 +319,7 @@ struct DivinaReaderView: View {
   private func readerContent(
     currentSize: CGSize,
     useDualPage: Bool,
-    stableScreenKey: String
+    screenKey: String
   ) -> some View {
     if !viewModel.pages.isEmpty {
       Group {
@@ -389,7 +383,7 @@ struct DivinaReaderView: View {
           .readerIgnoresSafeArea()
         }
       }
-      .id("\(currentBookId)-\(stableScreenKey)-\(readingDirection)")
+      .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
       .onChange(of: viewModel.currentPageIndex) {
         // Update progress and preload pages in background without blocking UI
         Task(priority: .userInitiated) {
@@ -421,18 +415,8 @@ struct DivinaReaderView: View {
       }
       .readerIgnoresSafeArea()
       .onChange(of: screenKey) {
-        // Don't trigger overlay during dismissal
-        guard !readerPresentation.isDismissing else { return }
-        // Cache the screen key for use during dismissal
-        cachedScreenKey = screenKey
         // Show helper overlay when screen orientation changes
         triggerTapZoneOverlay(timeout: 1)
-      }
-      .onAppear {
-        if cachedScreenKey != screenKey {
-          // Initialize cached screen key
-          cachedScreenKey = screenKey
-        }
       }
     #else
       EmptyView()

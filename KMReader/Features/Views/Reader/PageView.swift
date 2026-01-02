@@ -296,7 +296,6 @@ struct PageView: View {
   // MARK: - Scroll Synchronization
 
   private func synchronizeInitialScrollIfNeeded(proxy: ScrollViewProxy) {
-    guard !readerPresentation.isDismissing else { return }
     guard !hasSyncedInitialScroll else { return }
     guard viewModel.currentPageIndex >= 0 else { return }
     guard !viewModel.pages.isEmpty else { return }
@@ -319,7 +318,6 @@ struct PageView: View {
   }
 
   private func handleTargetPageChange(_ newTarget: Int?, proxy: ScrollViewProxy) {
-    guard !readerPresentation.isDismissing else { return }
     guard let newTarget = newTarget else { return }
     guard hasSyncedInitialScroll else { return }
     guard newTarget >= 0 else { return }
@@ -352,7 +350,6 @@ struct PageView: View {
   }
 
   private func handleScrollPositionChange(_ target: Int?) {
-    guard !readerPresentation.isDismissing else { return }
     guard hasSyncedInitialScroll, let target else { return }
 
     let newPageIndex: Int
