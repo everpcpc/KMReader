@@ -16,6 +16,7 @@ struct ThumbnailImage<Overlay: View>: View {
   let cornerRadius: CGFloat
   let alignment: Alignment
   let overlay: (() -> Overlay)?
+  let isTransitionSource: Bool
 
   let ratio: CGFloat = 1.414
 
@@ -44,6 +45,7 @@ struct ThumbnailImage<Overlay: View>: View {
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
     alignment: Alignment = .center,
+    isTransitionSource: Bool = true,
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {
     self.id = id
@@ -53,6 +55,7 @@ struct ThumbnailImage<Overlay: View>: View {
     self.cornerRadius = cornerRadius
     self.alignment = alignment
     self.overlay = overlay
+    self.isTransitionSource = isTransitionSource
   }
 
   private var baseKey: String {
@@ -90,7 +93,7 @@ struct ThumbnailImage<Overlay: View>: View {
                 }
               }
               .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-              .ifLet(zoomNamespace) { view, namespace in
+              .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
                 view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
               }
               #if os(iOS)
@@ -108,7 +111,7 @@ struct ThumbnailImage<Overlay: View>: View {
                 .clipped()
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .ifLet(zoomNamespace) { view, namespace in
+            .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
               view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
             }
             #if os(iOS)
@@ -151,12 +154,14 @@ extension ThumbnailImage where Overlay == EmptyView {
     shadowStyle: ShadowStyle = .basic,
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
-    alignment: Alignment = .center
+    alignment: Alignment = .center,
+    isTransitionSource: Bool = true
   ) {
     self.init(
       id: id, type: type, shadowStyle: shadowStyle,
       width: width, cornerRadius: cornerRadius,
-      alignment: alignment
+      alignment: alignment,
+      isTransitionSource: isTransitionSource
     ) {}
   }
 }

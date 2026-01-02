@@ -18,8 +18,10 @@ struct CollectionDetailContentView: View {
 
       HStack(alignment: .top) {
         ThumbnailImage(
-          id: collection.id, type: .collection,
-          width: PlatformHelper.detailThumbnailWidth
+          id: collection.id,
+          type: .collection,
+          width: PlatformHelper.detailThumbnailWidth,
+          isTransitionSource: false
         )
         .id(thumbnailRefreshKey)
         .contextMenu {
