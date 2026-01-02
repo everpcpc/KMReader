@@ -157,13 +157,23 @@ struct DashboardView: View {
           }.padding()
 
           ForEach(dashboard.sections, id: \.id) { section in
-            DashboardSectionView(
-              section: section,
-              refreshTrigger: refreshTrigger,
-              onUpdated: {
-                refreshDashboard(reason: "Section action completed")
-              }
-            )
+            if section.isLocalSection {
+              DashboardLocalSectionView(
+                section: section,
+                refreshTrigger: refreshTrigger,
+                onUpdated: {
+                  refreshDashboard(reason: "Section action completed")
+                }
+              )
+            } else {
+              DashboardSectionView(
+                section: section,
+                refreshTrigger: refreshTrigger,
+                onUpdated: {
+                  refreshDashboard(reason: "Section action completed")
+                }
+              )
+            }
           }
         }
         .padding(.vertical)
