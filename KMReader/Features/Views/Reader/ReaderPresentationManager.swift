@@ -89,7 +89,7 @@ final class ReaderPresentationManager {
     if syncVisited && !visitedBookIds.isEmpty {
       let bookIds = visitedBookIds
       let seriesIds = visitedSeriesIds
-      Task {
+      Task(priority: .utility) {
         await SyncService.shared.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
       }
     }
