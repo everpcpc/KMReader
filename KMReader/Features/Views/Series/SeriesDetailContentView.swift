@@ -11,6 +11,7 @@ import SwiftUI
 struct SeriesDetailContentView: View {
   let series: Series
   let containingCollections: [SeriesCollection]
+  @State private var thumbnailRefreshKey = UUID()
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -29,6 +30,32 @@ struct SeriesDetailContentView: View {
           type: .series,
           width: PlatformHelper.detailThumbnailWidth
         )
+        .id(thumbnailRefreshKey)
+        .contextMenu {
+          Button {
+            Task {
+              do {
+                _ = try await ThumbnailCache.shared.ensureThumbnail(
+                  id: series.id,
+                  type: .series,
+                  force: true
+                )
+                await MainActor.run {
+                  thumbnailRefreshKey = UUID()
+                  ErrorManager.shared.notify(
+                    message: String(localized: "notification.cover.refreshed"))
+                }
+              } catch {
+                await MainActor.run {
+                  ErrorManager.shared.notify(
+                    message: String(localized: "notification.cover.refreshFailed"))
+                }
+              }
+            }
+          } label: {
+            Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
+          }
+        }
         .thumbnailFocus()
 
         VStack(alignment: .leading) {

@@ -154,9 +154,9 @@ struct OneshotDetailView: View {
   private func refreshOneshotData() async {
     isLoading = true
     do {
-      try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
+      let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       let fetchedBooks = try await SyncService.shared.syncBooks(
-        seriesId: seriesId,
+        seriesId: fetchedSeries.id,
         page: 0,
         size: 1,
       )
