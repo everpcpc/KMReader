@@ -132,10 +132,8 @@ import SwiftUI
           }
 
           #if os(iOS)
-            Section(String(localized: "Settings")) {
-              NavigationLink(value: NavDestination.settings) {
-                TabItem.settings.label
-              }
+            NavigationLink(value: NavDestination.settings) {
+              TabItem.settings.label
             }
           #endif
         }
