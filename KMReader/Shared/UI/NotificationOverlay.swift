@@ -135,11 +135,13 @@ import SwiftUI
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
             .foregroundStyle(.white)
-            .background(themeColor.color)
+            .background(Color.accentColor)
             .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
       }
+      .tint(Color.accentColor)
+      .accentColor(Color.accentColor)
       .animation(.default, value: errorManager.notifications)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .padding(.horizontal, 8)
@@ -185,8 +187,6 @@ import SwiftUI
 #elseif os(macOS)
   // macOS uses regular overlay approach since sheets behave differently
   struct NotificationOverlay: View {
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
     @State private var errorManager = ErrorManager.shared
 
     var body: some View {
@@ -197,7 +197,7 @@ import SwiftUI
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
             .foregroundStyle(.white)
-            .background(themeColor.color)
+            .background(Color.accentColor)
             .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
