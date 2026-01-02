@@ -146,7 +146,9 @@ private struct DashboardReadListsSection: View {
 
 // MARK: - Generic Content View
 
-private struct DashboardLocalSectionContent<Item: DashboardLocalItem & Identifiable, ItemView: View>: View {
+private struct DashboardLocalSectionContent<
+  Item: DashboardLocalItem & Identifiable, ItemView: View
+>: View {
   let section: DashboardSection
   let refreshTrigger: DashboardRefreshTrigger
   let items: [Item]
