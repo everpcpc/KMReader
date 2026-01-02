@@ -33,7 +33,7 @@ class SyncService {
 
   func syncLibraries(instanceId: String) async {
     do {
-      let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
+      let libraries = try await LibraryService.shared.getLibraries()
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await db.replaceLibraries(libraryInfos, for: instanceId)
       await db.commit()
@@ -63,8 +63,15 @@ class SyncService {
 
   func syncReadLists(instanceId: String) async {
     do {
-      let readLists: [ReadList] = try await api.request(path: "/api/v1/readlists")
-      await db.upsertReadLists(readLists, instanceId: instanceId)
+      var page = 0
+      var hasMore = true
+      while hasMore {
+        let result: Page<ReadList> = try await ReadListService.shared.getReadLists(
+          page: page, size: 500)
+        await db.upsertReadLists(result.content, instanceId: instanceId)
+        hasMore = !result.last
+        page += 1
+      }
       await db.commit()
       logger.info("📖 Synced readlists")
     } catch {

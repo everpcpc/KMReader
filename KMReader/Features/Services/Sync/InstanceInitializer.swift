@@ -141,7 +141,7 @@ final class InstanceInitializer {
   private func syncLibraries(instanceId: String) async {
     updateProgress(phase: .libraries, phaseProgress: 0.0)
     do {
-      let libraries: [Library] = try await api.request(path: "/api/v1/libraries")
+      let libraries = try await LibraryService.shared.getLibraries()
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await db.replaceLibraries(libraryInfos, for: instanceId)
       await db.commit()
