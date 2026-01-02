@@ -42,8 +42,6 @@ import SwiftUI
           }
         }
       }
-      .tabBarMinimizeBehaviorIfAvailable()
-      .tabViewStyle(.sidebarAdaptable)
     }
   }
 #endif
