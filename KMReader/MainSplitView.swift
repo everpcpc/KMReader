@@ -28,6 +28,7 @@ import SwiftUI
     @AppStorage("sidebarReadListsExpanded") private var readListsExpanded: Bool = true
 
     @State private var nav: NavDestination? = .home
+    @State private var isRefreshing: Bool = false
     #if os(macOS)
       @State private var columnVisibility: NavigationSplitViewVisibility = .all
     #else
@@ -49,6 +50,19 @@ import SwiftUI
     private var readLists: [KomgaReadList] {
       guard !currentInstanceId.isEmpty else { return [] }
       return allReadLists.filter { $0.instanceId == currentInstanceId }
+    }
+
+    private func refreshSidebar() async {
+      guard !currentInstanceId.isEmpty, !isRefreshing else { return }
+      isRefreshing = true
+      ErrorManager.shared.notify(message: String(localized: "notification.refreshing"))
+      defer {
+        isRefreshing = false
+        ErrorManager.shared.notify(message: String(localized: "notification.refresh_completed"))
+      }
+      await SyncService.shared.syncLibraries(instanceId: currentInstanceId)
+      await SyncService.shared.syncCollections(instanceId: currentInstanceId)
+      await SyncService.shared.syncReadLists(instanceId: currentInstanceId)
     }
 
     var body: some View {
@@ -80,7 +94,6 @@ import SwiftUI
               }
             } header: {
               Label(String(localized: "Libraries"), systemImage: "books.vertical")
-                .foregroundStyle(.secondary)
             }
           }
 
@@ -98,7 +111,6 @@ import SwiftUI
               }
             } header: {
               Label(String(localized: "Collections"), systemImage: "square.stack.3d.down.right")
-                .foregroundStyle(.secondary)
             }
           }
 
@@ -116,7 +128,6 @@ import SwiftUI
               }
             } header: {
               Label(String(localized: "Read Lists"), systemImage: "list.bullet.rectangle")
-                .foregroundStyle(.secondary)
             }
           }
 
@@ -129,6 +140,39 @@ import SwiftUI
           #endif
         }
         .listStyle(.sidebar)
+        .animation(.default, value: nav)
+        .animation(.default, value: libraries)
+        .animation(.default, value: collections)
+        .animation(.default, value: readLists)
+        #if os(iOS)
+          .refreshable {
+            await refreshSidebar()
+          }
+        #endif
+        #if os(macOS)
+          .safeAreaInset(edge: .bottom) {
+            Button {
+              Task { await refreshSidebar() }
+            } label: {
+              HStack {
+                if isRefreshing {
+                  ProgressView().controlSize(.small)
+                  Text(String(localized: "notification.refreshing"))
+                } else {
+                  Image(systemName: "arrow.clockwise")
+                  Text(String(localized: "Refresh"))
+                }
+              }
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .contentShape(Rectangle())
+            }
+            .disabled(isRefreshing)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(.ultraThinMaterial)
+          }
+        #endif
       } detail: {
         if let nav {
           nav.content
