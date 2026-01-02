@@ -279,6 +279,57 @@ actor OfflineManager {
     await DatabaseOperator.shared.commit()
   }
 
+  /// Cleanup orphaned offline files that no longer have corresponding SwiftData entries.
+  /// Returns the number of orphaned directories deleted and total bytes freed.
+  func cleanupOrphanedFiles() async -> (deletedCount: Int, bytesFreed: Int64) {
+    let instanceId = AppConfig.currentInstanceId
+    let offlineDir = Self.offlineDirectory(for: instanceId)
+    let fm = FileManager.default
+
+    guard let contents = try? fm.contentsOfDirectory(atPath: offlineDir.path) else {
+      return (0, 0)
+    }
+
+    // Get all downloaded book IDs from SwiftData
+    let downloadedBooks = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
+    let downloadedBookIds = Set(downloadedBooks.map { $0.id })
+
+    var deletedCount = 0
+    var bytesFreed: Int64 = 0
+
+    for bookId in contents {
+      let bookDir = offlineDir.appendingPathComponent(bookId)
+
+      // Skip if not a directory
+      var isDir: ObjCBool = false
+      guard fm.fileExists(atPath: bookDir.path, isDirectory: &isDir), isDir.boolValue else {
+        continue
+      }
+
+      // Check if this book is still in downloaded state in SwiftData
+      if !downloadedBookIds.contains(bookId) {
+        // Orphaned directory - calculate size and delete
+        if let size = try? calculateDirectorySize(bookDir) {
+          bytesFreed += size
+        }
+
+        do {
+          try fm.removeItem(at: bookDir)
+          deletedCount += 1
+          logger.info("🗑️ Cleaned up orphaned offline directory: \(bookId)")
+        } catch {
+          logger.error("❌ Failed to cleanup orphaned directory \(bookId): \(error)")
+        }
+      }
+    }
+
+    if deletedCount > 0 {
+      logger.info("✅ Cleanup complete: \(deletedCount) orphaned directories, \(bytesFreed) bytes freed")
+    }
+
+    return (deletedCount, bytesFreed)
+  }
+
   func cancelDownload(
     bookId: String, instanceId: String? = nil, commit: Bool = true, syncSeriesStatus: Bool = true
   ) async {

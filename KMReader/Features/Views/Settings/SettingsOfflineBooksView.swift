@@ -15,6 +15,9 @@ struct SettingsOfflineBooksView: View {
 
   @State private var showRemoveAllAlert = false
   @State private var showRemoveReadAlert = false
+  @State private var showCleanupAlert = false
+  @State private var isScanning = false
+  @State private var cleanupResult: (deletedCount: Int, bytesFreed: Int64)?
 
   struct SeriesGroup: Identifiable {
     let id: String
@@ -125,6 +128,28 @@ struct SettingsOfflineBooksView: View {
             Text(formatter.string(fromByteCount: totalDownloadedSize))
               .foregroundColor(.accentColor)
           }
+
+          Button {
+            Task {
+              isScanning = true
+              let result = await OfflineManager.shared.cleanupOrphanedFiles()
+              cleanupResult = result
+              isScanning = false
+              showCleanupAlert = true
+            }
+          } label: {
+            HStack {
+              Label(
+                String(localized: "settings.offline_books.cleanup_orphaned"),
+                systemImage: "arrow.3.trianglepath"
+              )
+              Spacer()
+              if isScanning {
+                ProgressView()
+              }
+            }
+          }
+          .disabled(isScanning)
         } header: {
           HStack {
             Button(role: .destructive) {
@@ -325,6 +350,23 @@ struct SettingsOfflineBooksView: View {
       }
     } message: {
       Text(String(localized: "settings.offline_books.remove_read.message"))
+    }
+    .alert(
+      String(localized: "settings.offline_books.cleanup_orphaned"),
+      isPresented: $showCleanupAlert
+    ) {
+      Button(String(localized: "common.ok"), role: .cancel) {}
+    } message: {
+      if let result = cleanupResult {
+        if result.deletedCount > 0 {
+          Text(
+            String(
+              localized: "settings.offline_books.cleanup_orphaned.result \(result.deletedCount) \(formatter.string(fromByteCount: result.bytesFreed))"
+            ))
+        } else {
+          Text(String(localized: "settings.offline_books.cleanup_orphaned.no_orphaned"))
+        }
+      }
     }
   }
 
