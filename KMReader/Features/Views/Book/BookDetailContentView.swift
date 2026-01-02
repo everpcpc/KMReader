@@ -12,7 +12,6 @@ struct BookDetailContentView: View {
   let book: Book
   let downloadStatus: DownloadStatus?
   let bookReadLists: [ReadList]
-  @Binding var thumbnailRefreshTrigger: Int
 
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
@@ -31,8 +30,7 @@ struct BookDetailContentView: View {
 
       HStack(alignment: .top) {
         ThumbnailImage(
-          id: book.id, type: .book, width: PlatformHelper.detailThumbnailWidth,
-          refreshTrigger: thumbnailRefreshTrigger
+          id: book.id, type: .book, width: PlatformHelper.detailThumbnailWidth
         )
         .thumbnailFocus()
 

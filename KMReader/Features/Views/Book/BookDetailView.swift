@@ -25,7 +25,6 @@ struct BookDetailView: View {
   @State private var showEditSheet = false
   @State private var bookReadLists: [ReadList] = []
   @State private var isLoadingRelations = false
-  @State private var thumbnailRefreshTrigger = 0
 
   init(bookId: String) {
     self.bookId = bookId
@@ -60,8 +59,7 @@ struct BookDetailView: View {
           BookDetailContentView(
             book: book,
             downloadStatus: downloadStatus,
-            bookReadLists: bookReadLists,
-            thumbnailRefreshTrigger: $thumbnailRefreshTrigger
+            bookReadLists: bookReadLists
           )
         } else if hasError {
           VStack(spacing: 16) {
@@ -220,11 +218,6 @@ struct BookDetailView: View {
     }
   }
 
-  private func reloadThumbnail() {
-    guard !AppConfig.isOffline else { return }
-    thumbnailRefreshTrigger += 1
-  }
-
   @MainActor
   private func loadBook() async {
     // Only show loading if we don't have cached data
@@ -232,16 +225,12 @@ struct BookDetailView: View {
 
     do {
       // Sync from network to SwiftData (book property will update reactively)
-      let previousLastModified = komgaBook?.lastModified
       let fetchedBook = try await SyncService.shared.syncBook(bookId: bookId)
       isLoading = false
       isLoadingRelations = true
       bookReadLists = []
       Task {
         await loadBookRelations(for: fetchedBook)
-      }
-      if previousLastModified != fetchedBook.lastModified {
-        reloadThumbnail()
       }
     } catch {
       if case APIError.notFound = error {

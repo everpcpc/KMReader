@@ -5,50 +5,7 @@
 //  Created by Komga iOS Client
 //
 
-import Observation
 import SwiftUI
-
-@MainActor
-@Observable
-final class ThumbnailImageLoader {
-  var image: PlatformImage?
-  private var currentBaseKey: String?
-  private var currentTaskKey: String?
-
-  func load(id: String, type: ThumbnailType, refreshTrigger: Int) async {
-    let baseKey = "\(id)#\(type.rawValue)"
-    let taskKey = "\(baseKey)#\(refreshTrigger)"
-
-    if currentTaskKey == taskKey, image != nil {
-      return
-    }
-
-    if currentBaseKey != baseKey {
-      image = nil
-    }
-
-    currentBaseKey = baseKey
-    currentTaskKey = taskKey
-
-    let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
-    var targetURL: URL?
-    if FileManager.default.fileExists(atPath: fileURL.path), refreshTrigger == 0 {
-      targetURL = fileURL
-    } else {
-      targetURL = try? await ThumbnailCache.shared.ensureThumbnail(
-        id: id, type: type, force: refreshTrigger > 0)
-    }
-
-    guard !Task.isCancelled else { return }
-
-    if let url = targetURL {
-      let loaded = PlatformImage(contentsOfFile: url.path)
-      if currentBaseKey == baseKey {
-        image = loaded
-      }
-    }
-  }
-}
 
 /// A reusable thumbnail image component using native image loading
 struct ThumbnailImage<Overlay: View>: View {
@@ -57,7 +14,6 @@ struct ThumbnailImage<Overlay: View>: View {
   let shadowStyle: ShadowStyle
   let width: CGFloat?
   let cornerRadius: CGFloat
-  let refreshTrigger: Int
   let alignment: Alignment
   let overlay: (() -> Overlay)?
 
@@ -66,7 +22,8 @@ struct ThumbnailImage<Overlay: View>: View {
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @Environment(\.zoomNamespace) private var zoomNamespace
-  @State private var imageLoader = ThumbnailImageLoader()
+  @State private var image: PlatformImage?
+  @State private var currentBaseKey: String?
 
   private var effectiveShadowStyle: ShadowStyle {
     thumbnailShowShadow ? shadowStyle : .none
@@ -86,7 +43,6 @@ struct ThumbnailImage<Overlay: View>: View {
     shadowStyle: ShadowStyle = .basic,
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
-    refreshTrigger: Int = 0,
     alignment: Alignment = .center,
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {
@@ -95,9 +51,27 @@ struct ThumbnailImage<Overlay: View>: View {
     self.shadowStyle = shadowStyle
     self.width = width
     self.cornerRadius = cornerRadius
-    self.refreshTrigger = refreshTrigger
     self.alignment = alignment
     self.overlay = overlay
+  }
+
+  private var baseKey: String {
+    "\(id)#\(type.rawValue)"
+  }
+
+  private func loadThumbnail(id: String, type: ThumbnailType) async -> PlatformImage? {
+    await Task.detached(priority: .userInitiated) {
+      let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
+      let targetURL: URL?
+      if FileManager.default.fileExists(atPath: fileURL.path) {
+        targetURL = fileURL
+      } else {
+        targetURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
+      }
+
+      guard !Task.isCancelled, let url = targetURL else { return nil }
+      return PlatformImage(contentsOfFile: url.path)
+    }.value
   }
 
   var body: some View {
@@ -105,7 +79,7 @@ struct ThumbnailImage<Overlay: View>: View {
       Color.clear
 
       Group {
-        if let platformImage = imageLoader.image {
+        if let platformImage = image {
           if thumbnailPreserveAspectRatio {
             Image(platformImage: platformImage)
               .resizable()
@@ -157,8 +131,15 @@ struct ThumbnailImage<Overlay: View>: View {
     }
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
-    .task(id: "\(id)_\(refreshTrigger)") {
-      await imageLoader.load(id: id, type: type, refreshTrigger: refreshTrigger)
+    .task(id: baseKey) {
+      if currentBaseKey != baseKey {
+        currentBaseKey = baseKey
+        image = nil
+      }
+
+      let loaded = await loadThumbnail(id: id, type: type)
+      guard !Task.isCancelled, currentBaseKey == baseKey else { return }
+      image = loaded
     }
   }
 }
@@ -170,12 +151,11 @@ extension ThumbnailImage where Overlay == EmptyView {
     shadowStyle: ShadowStyle = .basic,
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
-    refreshTrigger: Int = 0,
     alignment: Alignment = .center
   ) {
     self.init(
       id: id, type: type, shadowStyle: shadowStyle,
-      width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger,
+      width: width, cornerRadius: cornerRadius,
       alignment: alignment
     ) {}
   }
@@ -188,7 +168,6 @@ extension ThumbnailImage where Overlay == EmptyView {
       type: .book,
       shadowStyle: .platform,
       cornerRadius: 8,
-      refreshTrigger: 0,
       alignment: .bottom
     )
     .frame(width: 200)

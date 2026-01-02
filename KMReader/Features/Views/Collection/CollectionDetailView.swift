@@ -23,8 +23,6 @@ struct CollectionDetailView: View {
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
 
-  @State private var thumbnailRefreshTrigger = 0
-
   init(collectionId: String) {
     self.collectionId = collectionId
     let instanceId = AppConfig.currentInstanceId
@@ -53,8 +51,7 @@ struct CollectionDetailView: View {
           #endif
 
           CollectionDetailContentView(
-            collection: collection,
-            thumbnailRefreshTrigger: $thumbnailRefreshTrigger
+            collection: collection
           ).padding(.horizontal)
 
           // Series list
@@ -109,11 +106,7 @@ extension CollectionDetailView {
   private func loadCollectionDetails() async {
     do {
       // Sync from network to SwiftData (collection property will update reactively)
-      let previousLastModified = komgaCollection?.lastModifiedDate
-      let fetchedCollection = try await SyncService.shared.syncCollection(id: collectionId)
-      if previousLastModified != fetchedCollection.lastModifiedDate {
-        reloadThumbnail()
-      }
+      try await SyncService.shared.syncCollection(id: collectionId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -134,11 +127,6 @@ extension CollectionDetailView {
     } catch {
       ErrorManager.shared.alert(error: error)
     }
-  }
-
-  private func reloadThumbnail() {
-    guard !AppConfig.isOffline else { return }
-    thumbnailRefreshTrigger += 1
   }
 
   @ViewBuilder

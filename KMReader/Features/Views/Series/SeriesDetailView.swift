@@ -29,8 +29,6 @@ struct SeriesDetailView: View {
   @State private var containingCollections: [SeriesCollection] = []
   @State private var isLoadingCollections = false
 
-  @State private var thumbnailRefreshTrigger = 0
-
   init(seriesId: String) {
     self.seriesId = seriesId
     let instanceId = AppConfig.currentInstanceId
@@ -70,8 +68,7 @@ struct SeriesDetailView: View {
 
             SeriesDetailContentView(
               series: series,
-              containingCollections: containingCollections,
-              thumbnailRefreshTrigger: $thumbnailRefreshTrigger
+              containingCollections: containingCollections
             )
 
             Divider()
@@ -144,12 +141,8 @@ extension SeriesDetailView {
   private func refreshSeriesData() async {
     do {
       // Sync from network to SwiftData (series property will update reactively)
-      let previousLastModified = komgaSeries?.lastModified
       let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await loadSeriesCollections(seriesId: fetchedSeries.id)
-      if previousLastModified != fetchedSeries.lastModified {
-        reloadThumbnail()
-      }
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -255,11 +248,6 @@ extension SeriesDetailView {
         }
       }
     }
-  }
-
-  private func reloadThumbnail() {
-    guard !AppConfig.isOffline else { return }
-    thumbnailRefreshTrigger += 1
   }
 
   private func addToCollection(collectionId: String) {

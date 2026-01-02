@@ -11,7 +11,6 @@ import SwiftUI
 struct SeriesDetailContentView: View {
   let series: Series
   let containingCollections: [SeriesCollection]
-  @Binding var thumbnailRefreshTrigger: Int
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -28,8 +27,7 @@ struct SeriesDetailContentView: View {
         ThumbnailImage(
           id: series.id,
           type: .series,
-          width: PlatformHelper.detailThumbnailWidth,
-          refreshTrigger: thumbnailRefreshTrigger
+          width: PlatformHelper.detailThumbnailWidth
         )
         .thumbnailFocus()
 

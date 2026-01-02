@@ -23,8 +23,6 @@ struct ReadListDetailView: View {
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
 
-  @State private var thumbnailRefreshTrigger = 0
-
   init(readListId: String) {
     self.readListId = readListId
     let instanceId = AppConfig.currentInstanceId
@@ -48,8 +46,7 @@ struct ReadListDetailView: View {
         if let readList = readList {
           VStack(alignment: .leading) {
             ReadListDetailContentView(
-              readList: readList,
-              thumbnailRefreshTrigger: $thumbnailRefreshTrigger
+              readList: readList
             )
 
             #if os(tvOS)
@@ -111,11 +108,7 @@ extension ReadListDetailView {
   private func loadReadListDetails() async {
     do {
       // Sync from network to SwiftData (readList property will update reactively)
-      let previousLastModified = komgaReadList?.lastModifiedDate
-      let fetchedReadList = try await SyncService.shared.syncReadList(id: readListId)
-      if previousLastModified != fetchedReadList.lastModifiedDate {
-        reloadThumbnail()
-      }
+      try await SyncService.shared.syncReadList(id: readListId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -136,11 +129,6 @@ extension ReadListDetailView {
     } catch {
       ErrorManager.shared.alert(error: error)
     }
-  }
-
-  private func reloadThumbnail() {
-    guard !AppConfig.isOffline else { return }
-    thumbnailRefreshTrigger += 1
   }
 
   @ViewBuilder

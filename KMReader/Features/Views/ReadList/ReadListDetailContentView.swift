@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ReadListDetailContentView: View {
   let readList: ReadList
-  @Binding var thumbnailRefreshTrigger: Int
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -19,8 +18,7 @@ struct ReadListDetailContentView: View {
       HStack(alignment: .top) {
         ThumbnailImage(
           id: readList.id, type: .readlist,
-          width: PlatformHelper.detailThumbnailWidth,
-          refreshTrigger: thumbnailRefreshTrigger
+          width: PlatformHelper.detailThumbnailWidth
         )
         .thumbnailFocus()
 

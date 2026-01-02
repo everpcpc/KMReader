@@ -22,7 +22,6 @@ struct OneshotDetailView: View {
   @State private var hasError = false
   @State private var isLoadingCollections = false
   @State private var isLoadingReadLists = false
-  @State private var thumbnailRefreshTrigger = 0
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showCollectionPicker = false
@@ -75,8 +74,7 @@ struct OneshotDetailView: View {
             series: series,
             downloadStatus: downloadStatus,
             containingCollections: containingCollections,
-            bookReadLists: bookReadLists,
-            thumbnailRefreshTrigger: $thumbnailRefreshTrigger
+            bookReadLists: bookReadLists
           )
         } else if hasError {
           VStack(spacing: 16) {
@@ -156,11 +154,7 @@ struct OneshotDetailView: View {
   private func refreshOneshotData() async {
     isLoading = true
     do {
-      let previousLastModified = komgaSeries?.lastModified
-      let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
-      if previousLastModified != fetchedSeries.lastModified {
-        reloadThumbnail()
-      }
+      try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       let fetchedBooks = try await SyncService.shared.syncBooks(
         seriesId: seriesId,
         page: 0,
@@ -219,11 +213,6 @@ struct OneshotDetailView: View {
     if self.book?.id == targetBookId {
       isLoadingReadLists = false
     }
-  }
-
-  private func reloadThumbnail() {
-    guard !AppConfig.isOffline else { return }
-    thumbnailRefreshTrigger += 1
   }
 
   private func clearCache() {
