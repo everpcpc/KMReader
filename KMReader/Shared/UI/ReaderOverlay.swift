@@ -24,14 +24,12 @@ import SwiftUI
           ReaderContentView()
             #if os(iOS)
               .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
-            #endif
-            .ifLet(readerPresentation.sourceBookId) { view, sourceID in
-              view.navigationTransitionZoomIfAvailable(
-                sourceID: sourceID,
-                in: namespace
-              )
-            }
-            #if os(iOS)
+              .ifLet(readerPresentation.sourceBookId) { view, sourceID in
+                view.navigationTransitionZoomIfAvailable(
+                  sourceID: sourceID,
+                  in: namespace
+                )
+              }
               .tint(themeColor.color)
               .accentColor(themeColor.color)
             #endif
