@@ -19,9 +19,16 @@ import SwiftUI
           }
         }
 
-        Tab(TabItem.browse.title, systemImage: TabItem.browse.icon, value: TabItem.browse) {
+        Tab(TabItem.series.title, systemImage: TabItem.series.icon, value: TabItem.series) {
           NavigationStack {
-            TabItem.browse.content
+            TabItem.series.content
+              .handleNavigation()
+          }
+        }
+
+        Tab(TabItem.books.title, systemImage: TabItem.books.icon, value: TabItem.books) {
+          NavigationStack {
+            TabItem.books.content
               .handleNavigation()
           }
         }

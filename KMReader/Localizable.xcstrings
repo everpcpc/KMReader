@@ -9315,13 +9315,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modifier {book}"
+            "value" : "Modifier le livre"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{book} を編集"
+            "value" : "本を編集"
           }
         },
         "ko" : {
@@ -9475,13 +9475,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modifier {series}"
+            "value" : "Modifier série"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{series} を編集"
+            "value" : "シリーズを編集"
           }
         },
         "ko" : {
@@ -28274,42 +28274,42 @@
         }
       }
     },
-    "tab.browse" : {
+    "tab.books" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Browse"
+            "value" : "Books"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Parcourir"
+            "value" : "Livres"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ブラウズ"
+            "value" : "本"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "찾아보기"
+            "value" : "도서"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "浏览"
+            "value" : "书籍"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "瀏覽"
+            "value" : "書籍"
           }
         }
       }
@@ -28350,6 +28350,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "主頁"
+          }
+        }
+      }
+    },
+    "tab.series" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Séries"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시리즈"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系列"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系列"
           }
         }
       }

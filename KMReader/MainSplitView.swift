@@ -44,12 +44,6 @@ import SwiftUI
             NavigationLink(value: NavDestination.browseBooks) {
               TabItem.books.label
             }
-            NavigationLink(value: NavDestination.browseCollections) {
-              TabItem.collections.label
-            }
-            NavigationLink(value: NavDestination.browseReadLists) {
-              TabItem.readLists.label
-            }
           }
 
           if !libraries.isEmpty {
