@@ -135,13 +135,11 @@ import SwiftUI
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
             .foregroundStyle(.white)
-            .background(Color.accentColor)
+            .background(themeColor.color)
             .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
       }
-      .tint(Color.accentColor)
-      .accentColor(Color.accentColor)
       .animation(.default, value: errorManager.notifications)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .padding(.horizontal, 8)
@@ -163,6 +161,7 @@ import SwiftUI
           Text(String(localized: "error.unknown"))
         }
       }
+      .tint(themeColor.color)
     }
   }
 
