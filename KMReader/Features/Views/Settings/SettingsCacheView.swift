@@ -142,15 +142,15 @@ struct SettingsCacheView: View {
 
         HStack {
           Button(role: .destructive) {
-            showClearImageCacheConfirmation = true
-          } label: {
-            Text("Clear Current")
-              .frame(maxWidth: .infinity)
-          }
-          Button(role: .destructive) {
             showClearAllImageCacheConfirmation = true
           } label: {
             Text("Clear All")
+              .frame(maxWidth: .infinity)
+          }
+          Button(role: .destructive) {
+            showClearImageCacheConfirmation = true
+          } label: {
+            Text("Clear Current")
               .frame(maxWidth: .infinity)
           }
         }
@@ -225,15 +225,15 @@ struct SettingsCacheView: View {
 
         HStack {
           Button(role: .destructive) {
-            showClearThumbnailCacheConfirmation = true
-          } label: {
-            Text("Clear Current")
-              .frame(maxWidth: .infinity)
-          }
-          Button(role: .destructive) {
             showClearAllThumbnailCacheConfirmation = true
           } label: {
             Text("Clear All")
+              .frame(maxWidth: .infinity)
+          }
+          Button(role: .destructive) {
+            showClearThumbnailCacheConfirmation = true
+          } label: {
+            Text("Clear Current")
               .frame(maxWidth: .infinity)
           }
         }
@@ -269,15 +269,15 @@ struct SettingsCacheView: View {
 
         HStack {
           Button(role: .destructive) {
-            showClearBookFileCacheConfirmation = true
-          } label: {
-            Text("Clear Current")
-              .frame(maxWidth: .infinity)
-          }
-          Button(role: .destructive) {
             showClearAllBookFileCacheConfirmation = true
           } label: {
             Text("Clear All")
+              .frame(maxWidth: .infinity)
+          }
+          Button(role: .destructive) {
+            showClearBookFileCacheConfirmation = true
+          } label: {
+            Text("Clear Current")
               .frame(maxWidth: .infinity)
           }
         }
