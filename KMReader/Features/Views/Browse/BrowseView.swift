@@ -19,6 +19,7 @@ struct BrowseView: View {
   @AppStorage("readListBrowseLayout") private var readListBrowseLayout: BrowseLayoutMode = .grid
 
   let library: LibrarySelection?
+  let fixedContent: BrowseContentType?
 
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
@@ -28,9 +29,13 @@ struct BrowseView: View {
   @State private var showFilterSheet = false
   @State private var libraryIds: [String] = []
 
+  private var effectiveContent: BrowseContentType {
+    fixedContent ?? browseContent
+  }
+
   // Computed binding that routes to the correct layout mode based on content type
   private var layoutModeBinding: Binding<BrowseLayoutMode> {
-    switch browseContent {
+    switch effectiveContent {
     case .series:
       return $seriesBrowseLayout
     case .books:
@@ -42,8 +47,9 @@ struct BrowseView: View {
     }
   }
 
-  init(library: LibrarySelection? = nil) {
+  init(library: LibrarySelection? = nil, fixedContent: BrowseContentType? = nil) {
     self.library = library
+    self.fixedContent = fixedContent
     if let library = library {
       _libraryIds = State(initialValue: [library.libraryId])
     } else {
@@ -54,6 +60,8 @@ struct BrowseView: View {
   var title: String {
     if let library = library {
       return library.name
+    } else if let fixedContent {
+      return fixedContent.displayName
     } else {
       return String(localized: "title.browse")
     }
@@ -108,19 +116,21 @@ struct BrowseView: View {
           }.padding()
         }
 
-        HStack {
-          Spacer()
-          Picker("", selection: $browseContent) {
-            ForEach(BrowseContentType.allCases) { type in
-              Text(sectionTitle(browseContent: type)).tag(type)
+        if fixedContent == nil {
+          HStack {
+            Spacer()
+            Picker("", selection: $browseContent) {
+              ForEach(BrowseContentType.allCases) { type in
+                Text(sectionTitle(browseContent: type)).tag(type)
+              }
             }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            Spacer()
           }
-          .pickerStyle(.segmented)
-          .labelsHidden()
-          Spacer()
+          .padding(.horizontal)
+          .padding(.vertical, 8)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
 
         contentView()
       }
@@ -190,7 +200,7 @@ struct BrowseView: View {
 
   @ViewBuilder
   private func contentView() -> some View {
-    switch browseContent {
+    switch effectiveContent {
     case .series:
       SeriesBrowseView(
         libraryIds: libraryIds,

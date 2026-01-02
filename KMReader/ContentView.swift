@@ -40,15 +40,15 @@ struct ContentView: View {
               if PlatformHelper.isPad {
                 MainSplitView()
               } else {
-                if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
-                  MainTabView()
+                if #available(iOS 18.0, *) {
+                  PhoneTabView()
                 } else {
                   OldTabView()
                 }
               }
             #elseif os(tvOS)
-              if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
-                MainTabView()
+              if #available(tvOS 18.0, *) {
+                TVTabView()
               } else {
                 OldTabView()
               }

@@ -38,8 +38,17 @@ import SwiftUI
             NavigationLink(value: NavDestination.home) {
               TabItem.home.label
             }
-            NavigationLink(value: NavDestination.browse) {
-              TabItem.browse.label
+            NavigationLink(value: NavDestination.browseSeries) {
+              TabItem.series.label
+            }
+            NavigationLink(value: NavDestination.browseBooks) {
+              TabItem.books.label
+            }
+            NavigationLink(value: NavDestination.browseCollections) {
+              TabItem.collections.label
+            }
+            NavigationLink(value: NavDestination.browseReadLists) {
+              TabItem.readLists.label
             }
           }
 

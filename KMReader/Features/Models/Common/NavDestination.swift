@@ -10,7 +10,10 @@ import SwiftUI
 
 enum NavDestination: Hashable {
   case home
-  case browse
+  case browseSeries
+  case browseBooks
+  case browseCollections
+  case browseReadLists
   case settings
 
   case browseLibrary(selection: LibrarySelection)
@@ -46,8 +49,14 @@ enum NavDestination: Hashable {
     switch self {
     case .home:
       DashboardView()
-    case .browse:
-      BrowseView()
+    case .browseSeries:
+      BrowseView(fixedContent: .series)
+    case .browseBooks:
+      BrowseView(fixedContent: .books)
+    case .browseCollections:
+      BrowseView(fixedContent: .collections)
+    case .browseReadLists:
+      BrowseView(fixedContent: .readlists)
     case .settings:
       SettingsView()
 
