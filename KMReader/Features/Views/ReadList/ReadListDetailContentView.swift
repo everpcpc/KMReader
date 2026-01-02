@@ -18,8 +18,10 @@ struct ReadListDetailContentView: View {
 
       HStack(alignment: .top) {
         ThumbnailImage(
-          id: readList.id, type: .readlist,
-          width: PlatformHelper.detailThumbnailWidth
+          id: readList.id,
+          type: .readlist,
+          width: PlatformHelper.detailThumbnailWidth,
+          isTransitionSource: false
         )
         .id(thumbnailRefreshKey)
         .contextMenu {

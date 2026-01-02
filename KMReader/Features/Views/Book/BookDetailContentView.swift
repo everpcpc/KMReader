@@ -31,7 +31,10 @@ struct BookDetailContentView: View {
 
       HStack(alignment: .top) {
         ThumbnailImage(
-          id: book.id, type: .book, width: PlatformHelper.detailThumbnailWidth
+          id: book.id,
+          type: .book,
+          width: PlatformHelper.detailThumbnailWidth,
+          isTransitionSource: false
         )
         .id(thumbnailRefreshKey)
         .contextMenu {

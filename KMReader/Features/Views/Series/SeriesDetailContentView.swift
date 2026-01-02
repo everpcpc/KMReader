@@ -28,7 +28,8 @@ struct SeriesDetailContentView: View {
         ThumbnailImage(
           id: series.id,
           type: .series,
-          width: PlatformHelper.detailThumbnailWidth
+          width: PlatformHelper.detailThumbnailWidth,
+          isTransitionSource: false
         )
         .id(thumbnailRefreshKey)
         .contextMenu {
