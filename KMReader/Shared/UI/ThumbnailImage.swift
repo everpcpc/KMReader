@@ -25,6 +25,7 @@ struct ThumbnailImage<Overlay: View>: View {
   @Environment(\.zoomNamespace) private var zoomNamespace
   @State private var image: PlatformImage?
   @State private var currentBaseKey: String?
+  @State private var loadedImageSize: CGSize?
 
   private var effectiveShadowStyle: ShadowStyle {
     thumbnailShowShadow ? shadowStyle : .none
@@ -62,6 +63,13 @@ struct ThumbnailImage<Overlay: View>: View {
     "\(id)#\(type.rawValue)"
   }
 
+  private var isAbnormalSize: Bool {
+    guard let loadedImageSize = loadedImageSize else { return false }
+    guard thumbnailPreserveAspectRatio else { return false }
+    let realRatio = loadedImageSize.height / loadedImageSize.width
+    return realRatio < 0.35 || realRatio > 2.828
+  }
+
   private func loadThumbnail(id: String, type: ThumbnailType) async -> PlatformImage? {
     await Task.detached(priority: .userInitiated) {
       let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
@@ -82,58 +90,35 @@ struct ThumbnailImage<Overlay: View>: View {
       Color.clear
 
       Group {
-        if let platformImage = image {
-          if thumbnailPreserveAspectRatio {
-            Image(platformImage: platformImage)
-              .resizable()
-              .aspectRatio(contentMode: .fit)
-              .overlay {
-                if let overlay = overlay {
-                  overlay()
-                }
-              }
-              .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-              .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
-                view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
-              }
-              #if os(iOS)
-                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
-              #endif
-              .overlay { borderOverlay }
-
-              .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-          } else {
-            GeometryReader { proxy in
-              Image(platformImage: platformImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: proxy.size.width, height: proxy.size.height)
-                .clipped()
-            }
+        if image != nil {
+          imageContent
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay { borderOverlay }
             .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
               view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
             }
             #if os(iOS)
               .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
             #endif
-            .overlay { borderOverlay }
             .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-          }
         } else {
           RoundedRectangle(cornerRadius: cornerRadius)
             .fill(Color.gray.opacity(0.3))
         }
       }
       .overlay {
-        if !thumbnailPreserveAspectRatio, let overlay = overlay {
+        if !isAbnormalSize, let overlay = overlay {
           overlay()
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         }
       }
     }
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
+    .overlay {
+      if isAbnormalSize, let overlay = overlay {
+        overlay()
+      }
+    }
     .task(id: baseKey) {
       if currentBaseKey != baseKey {
         currentBaseKey = baseKey
@@ -142,7 +127,29 @@ struct ThumbnailImage<Overlay: View>: View {
 
       let loaded = await loadThumbnail(id: id, type: type)
       guard !Task.isCancelled, currentBaseKey == baseKey else { return }
+      if let loaded = loaded {
+        loadedImageSize = loaded.size
+      }
       image = loaded
+    }
+  }
+
+  @ViewBuilder
+  var imageContent: some View {
+    if let platformImage = image {
+      if thumbnailPreserveAspectRatio {
+        Image(platformImage: platformImage)
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+      } else {
+        GeometryReader { proxy in
+          Image(platformImage: platformImage)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+        }
+      }
     }
   }
 }
