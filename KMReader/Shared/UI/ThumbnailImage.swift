@@ -93,13 +93,13 @@ struct ThumbnailImage<Overlay: View>: View {
         if image != nil {
           imageContent
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay { borderOverlay }
             .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
               view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
             }
             #if os(iOS)
               .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
             #endif
-            .overlay { borderOverlay }
             .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
         } else {
           RoundedRectangle(cornerRadius: cornerRadius)
