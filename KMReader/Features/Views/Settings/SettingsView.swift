@@ -67,6 +67,9 @@ struct SettingsView: View {
                 badgeColor: Color.accentColor
               )
             }
+            NavigationLink(value: NavDestination.settingsHistory) {
+              SettingsSectionRow(section: .history)
+            }
           }
         }
 

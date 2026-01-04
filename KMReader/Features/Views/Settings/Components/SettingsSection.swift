@@ -22,6 +22,7 @@ enum SettingsSection: String, CaseIterable {
   case libraries
   case serverInfo
   case tasks
+  case history
 
   case servers
   case apiKeys
@@ -55,6 +56,8 @@ enum SettingsSection: String, CaseIterable {
       return "server.rack"
     case .tasks:
       return "list.bullet.clipboard"
+    case .history:
+      return "clock.arrow.circlepath"
 
     case .servers:
       return "list.bullet.rectangle"
@@ -94,6 +97,8 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Server Info")
     case .tasks:
       return String(localized: "Tasks")
+    case .history:
+      return String(localized: "History")
 
     case .servers:
       return String(localized: "Servers")
