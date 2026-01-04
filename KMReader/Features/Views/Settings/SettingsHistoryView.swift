@@ -218,6 +218,9 @@ struct SettingsHistoryView: View {
       }
       await updateLocalReferences(for: pagination.items)
     } catch {
+      await MainActor.run {
+        lastTriggeredItemId = nil
+      }
       ErrorManager.shared.alert(error: error)
     }
 
