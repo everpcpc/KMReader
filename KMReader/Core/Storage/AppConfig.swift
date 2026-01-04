@@ -109,14 +109,14 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "maxPageCacheSize") }
   }
 
-  static nonisolated var maxThumbnailCacheSize: Int {
+  static nonisolated var maxCoverCacheSize: Int {
     get {
-      if UserDefaults.standard.object(forKey: "maxThumbnailCacheSize") != nil {
-        return UserDefaults.standard.integer(forKey: "maxThumbnailCacheSize")
+      if UserDefaults.standard.object(forKey: "maxCoverCacheSize") != nil {
+        return UserDefaults.standard.integer(forKey: "maxCoverCacheSize")
       }
-      return 1  // Default 1 GB
+      return 512  // Default 512 MB
     }
-    set { UserDefaults.standard.set(newValue, forKey: "maxThumbnailCacheSize") }
+    set { UserDefaults.standard.set(newValue, forKey: "maxCoverCacheSize") }
   }
 
   // MARK: - SSE (Server-Sent Events)

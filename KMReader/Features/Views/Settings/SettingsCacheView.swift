@@ -9,13 +9,13 @@ import SwiftUI
 
 struct SettingsCacheView: View {
   @AppStorage("maxPageCacheSize") private var maxPageCacheSize: Int = 8
-  @AppStorage("maxThumbnailCacheSize") private var maxThumbnailCacheSize: Int = 1
+  @AppStorage("maxCoverCacheSize") private var maxCoverCacheSize: Int = 512
   @State private var showClearImageCacheConfirmation = false
   @State private var showClearAllImageCacheConfirmation = false
   @State private var showClearBookFileCacheConfirmation = false
   @State private var showClearAllBookFileCacheConfirmation = false
-  @State private var showClearThumbnailCacheConfirmation = false
-  @State private var showClearAllThumbnailCacheConfirmation = false
+  @State private var showClearCoverCacheConfirmation = false
+  @State private var showClearAllCoverCacheConfirmation = false
   @State private var imageCacheSize: Int64 = 0
   @State private var imageCacheCount: Int = 0
   @State private var bookFileCacheSize: Int64 = 0
@@ -26,7 +26,7 @@ struct SettingsCacheView: View {
 
   #if os(iOS) || os(macOS)
     @State private var isEditingPageCacheSlider = false
-    @State private var isEditingThumbnailCacheSlider = false
+    @State private var isEditingCoverCacheSlider = false
 
     private var maxCacheSizeBinding: Binding<Double> {
       Binding(
@@ -35,15 +35,15 @@ struct SettingsCacheView: View {
       )
     }
 
-    private var maxThumbnailCacheSizeBinding: Binding<Double> {
+    private var maxCoverCacheSizeBinding: Binding<Double> {
       Binding(
-        get: { Double(maxThumbnailCacheSize) },
-        set: { maxThumbnailCacheSize = Int($0) }
+        get: { Double(maxCoverCacheSize) },
+        set: { maxCoverCacheSize = Int($0) }
       )
     }
   #else
     @State private var cacheSizeText: String = ""
-    @State private var thumbnailCacheSizeText: String = ""
+    @State private var coverCacheSizeText: String = ""
 
     private var cacheSizeTextFieldBinding: Binding<String> {
       Binding(
@@ -57,15 +57,15 @@ struct SettingsCacheView: View {
       )
     }
 
-    private var thumbnailCacheSizeTextFieldBinding: Binding<String> {
+    private var coverCacheSizeTextFieldBinding: Binding<String> {
       Binding(
         get: {
-          thumbnailCacheSizeText.isEmpty ? "\(maxThumbnailCacheSize)" : thumbnailCacheSizeText
+          coverCacheSizeText.isEmpty ? "\(maxCoverCacheSize)" : coverCacheSizeText
         },
         set: { newValue in
-          thumbnailCacheSizeText = newValue
-          if let value = Int(newValue), value >= 1, value <= 8 {
-            maxThumbnailCacheSize = value
+          coverCacheSizeText = newValue
+          if let value = Int(newValue), value >= 128, value <= 2048 {
+            maxCoverCacheSize = value
           }
         }
       )
@@ -163,29 +163,29 @@ struct SettingsCacheView: View {
             HStack {
               Text("Maximum Size")
               Spacer()
-              Text("\(maxThumbnailCacheSize) GB")
+              Text("\(maxCoverCacheSize) MB")
                 .foregroundColor(.secondary)
             }
             Slider(
-              value: maxThumbnailCacheSizeBinding,
-              in: 1...8,
-              step: 1
+              value: maxCoverCacheSizeBinding,
+              in: 128...2048,
+              step: 128
             ) { editing in
-              isEditingThumbnailCacheSlider = editing
+              isEditingCoverCacheSlider = editing
             }
           #else
             HStack {
-              Text("Maximum Size (GB)")
+              Text("Maximum Size (MB)")
               Spacer()
-              TextField("GB", text: thumbnailCacheSizeTextFieldBinding)
+              TextField("MB", text: coverCacheSizeTextFieldBinding)
                 .frame(maxWidth: 240)
                 .multilineTextAlignment(.trailing)
                 .onAppear {
-                  thumbnailCacheSizeText = "\(maxThumbnailCacheSize)"
+                  coverCacheSizeText = "\(maxCoverCacheSize)"
                 }
-                .onChange(of: maxThumbnailCacheSize) { _, newValue in
-                  if thumbnailCacheSizeText != "\(newValue)" {
-                    thumbnailCacheSizeText = "\(newValue)"
+                .onChange(of: maxCoverCacheSize) { _, newValue in
+                  if coverCacheSizeText != "\(newValue)" {
+                    coverCacheSizeText = "\(newValue)"
                   }
                 }
             }
@@ -225,13 +225,13 @@ struct SettingsCacheView: View {
 
         HStack {
           Button(role: .destructive) {
-            showClearAllThumbnailCacheConfirmation = true
+            showClearAllCoverCacheConfirmation = true
           } label: {
             Text("Clear All")
               .frame(maxWidth: .infinity)
           }
           Button(role: .destructive) {
-            showClearThumbnailCacheConfirmation = true
+            showClearCoverCacheConfirmation = true
           } label: {
             Text("Clear Current")
               .frame(maxWidth: .infinity)
@@ -358,7 +358,10 @@ struct SettingsCacheView: View {
         "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed."
       )
     }
-    .alert(String(localized: "Clear Cover (Current Server)"), isPresented: $showClearThumbnailCacheConfirmation) {
+    .alert(
+      String(localized: "Clear Cover (Current Server)"),
+      isPresented: $showClearCoverCacheConfirmation
+    ) {
       Button("Clear", role: .destructive) {
         Task {
           await ThumbnailCache.clearCurrentInstanceDiskCache()
@@ -376,7 +379,10 @@ struct SettingsCacheView: View {
         "This will remove cached covers for the current server. Covers will be re-downloaded when needed."
       )
     }
-    .alert(String(localized: "Clear Cover (All Servers)"), isPresented: $showClearAllThumbnailCacheConfirmation) {
+    .alert(
+      String(localized: "Clear Cover (All Servers)"),
+      isPresented: $showClearAllCoverCacheConfirmation
+    ) {
       Button("Clear", role: .destructive) {
         Task {
           await ThumbnailCache.clearAllDiskCache()
@@ -407,10 +413,10 @@ struct SettingsCacheView: View {
         await loadCacheSize()
       }
     }
-    .onChange(of: maxThumbnailCacheSize) {
+    .onChange(of: maxCoverCacheSize) {
       // Only trigger cache cleanup after slider dragging ends
       #if os(iOS) || os(macOS)
-        guard !isEditingThumbnailCacheSlider else { return }
+        guard !isEditingCoverCacheSlider else { return }
       #endif
       Task {
         await ThumbnailCache.cleanupDiskCacheIfNeeded()

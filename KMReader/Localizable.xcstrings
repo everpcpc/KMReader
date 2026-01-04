@@ -673,6 +673,9 @@
         }
       }
     },
+    "%lld MB" : {
+      "shouldTranslate" : false
+    },
     "%lld pages" : {
       "localizations" : {
         "en" : {

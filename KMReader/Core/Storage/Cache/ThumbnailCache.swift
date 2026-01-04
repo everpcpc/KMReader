@@ -41,7 +41,7 @@ actor ThumbnailCache {
   private static let cacheSizeActor = CacheSizeActor()
 
   private static func getMaxDiskCacheSize() -> Int {
-    AppConfig.maxThumbnailCacheSize
+    AppConfig.maxCoverCacheSize
   }
 
   private init() {}
@@ -395,7 +395,7 @@ actor ThumbnailCache {
     fileManager: FileManager,
     maxCacheSize: Int
   ) async {
-    let maxSize = Int64(maxCacheSize) * 1024 * 1024 * 1024
+    let maxSize = Int64(maxCacheSize) * 1024 * 1024
     let (_, fileInfo, totalSize) = collectFileInfo(
       at: diskCacheURL,
       fileManager: fileManager,
