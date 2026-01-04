@@ -174,7 +174,17 @@ class APIClient {
     }
 
     let decoder = JSONDecoder()
-    decoder.dateDecodingStrategy = .iso8601
+    decoder.dateDecodingStrategy = .custom { decoder in
+      let container = try decoder.singleValueContainer()
+      let value = try container.decode(String.self)
+      if let date = APIClientDateParser.parse(value) {
+        return date
+      }
+      throw DecodingError.dataCorruptedError(
+        in: container,
+        debugDescription: "Invalid date format: \(value)"
+      )
+    }
 
     do {
       return try decoder.decode(T.self, from: data)
@@ -710,5 +720,48 @@ class APIClient {
     }
 
     return nil
+  }
+}
+
+private enum APIClientDateParser {
+  static func parse(_ value: String) -> Date? {
+    if let date = makeISO8601WithFractional().date(from: value) {
+      return date
+    }
+    if let date = makeISO8601Basic().date(from: value) {
+      return date
+    }
+    if let date = makeLocalFormatterWithFractional().date(from: value) {
+      return date
+    }
+    return makeLocalFormatter().date(from: value)
+  }
+
+  private static func makeISO8601WithFractional() -> ISO8601DateFormatter {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+  }
+
+  private static func makeISO8601Basic() -> ISO8601DateFormatter {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter
+  }
+
+  private static func makeLocalFormatterWithFractional() -> DateFormatter {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = .current
+    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    return formatter
+  }
+
+  private static func makeLocalFormatter() -> DateFormatter {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = .current
+    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    return formatter
   }
 }

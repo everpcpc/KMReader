@@ -39,6 +39,7 @@ enum NavDestination: Hashable {
   case settingsLibraries
   case settingsServerInfo
   case settingsTasks
+  case settingsHistory
 
   case settingsServers
   case settingsApiKey
@@ -102,6 +103,8 @@ enum NavDestination: Hashable {
       SettingsServerInfoView()
     case .settingsTasks:
       SettingsTasksView()
+    case .settingsHistory:
+      SettingsHistoryView()
 
     case .settingsServers:
       SettingsServersView()

@@ -8,7 +8,7 @@
 import Foundation
 
 // Helper type to encode/decode Any JSON value
-enum JSONAny: Codable {
+enum JSONAny: Codable, Equatable {
   case string(String)
   case int(Int)
   case double(Double)

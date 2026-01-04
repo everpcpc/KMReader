@@ -44,6 +44,7 @@ import SwiftUI
                 badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
                 badgeColor: Color.accentColor
               )
+              SettingsSectionRow(section: .history)
             }
           }
 
@@ -106,6 +107,8 @@ import SwiftUI
               SettingsServerInfoView()
             case .tasks:
               SettingsTasksView()
+            case .history:
+              SettingsHistoryView()
 
             case .servers:
               SettingsServersView()
