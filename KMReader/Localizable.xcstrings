@@ -1720,6 +1720,46 @@
         }
       }
     },
+    "Adjust the maximum size of the cover cache. Cache will be cleaned automatically when exceeded." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust the maximum size of the cover cache. Cache will be cleaned automatically when exceeded."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustez la taille maximale du cache des couvertures. Le cache sera nettoyé automatiquement en cas de dépassement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーキャッシュの最大サイズを調整します。超過時は自動でクリーンされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 캐시의 최대 크기를 조정합니다. 초과하면 자동으로 정리됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调节封面缓存上限，超出将自动清理。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調節封面快取上限，超出將自動清理。"
+          }
+        }
+      }
+    },
     "Adjust the maximum size of the page cache. Cache will be cleaned automatically when exceeded." : {
       "localizations" : {
         "en" : {
@@ -1756,46 +1796,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "調節頁面快取上限，超出將自動清理。"
-          }
-        }
-      }
-    },
-    "Adjust the maximum size of the thumbnail cache. Cache will be cleaned automatically when exceeded." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adjust the maximum size of the cover cache. Cache will be cleaned automatically when exceeded."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ajustez la taille maximale du cache des couvertures. Le cache sera nettoyé automatiquement en cas de dépassement."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバーキャッシュの最大サイズを調整します。超過時は自動でクリーンされます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버 캐시의 최대 크기를 조정합니다. 초과하면 자동으로 정리됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "调节封面缓存上限，超出将自动清理。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "調節封面快取上限，超出將自動清理。"
           }
         }
       }
@@ -4862,6 +4862,46 @@
         }
       }
     },
+    "Cached Covers" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached Covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couvertures en cache"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュされたカバー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캐시된 커버"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已缓存封面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已快取封面"
+          }
+        }
+      }
+    },
     "Cached Files" : {
       "localizations" : {
         "en" : {
@@ -4978,46 +5018,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "快取大小"
-          }
-        }
-      }
-    },
-    "Cached Thumbnails" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cached Thumbnails"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vignettes en cache"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サムネイルキャッシュ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "썸네일 캐시"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "缩略图缓存"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "縮圖快取"
           }
         }
       }
@@ -5444,6 +5444,86 @@
         }
       }
     },
+    "Clear Cover (All Servers)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Cover (All Servers)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer les couvertures (tous les serveurs)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーを削除（すべてのサーバー）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 삭제(모든 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除封面（所有服务器）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除封面（所有伺服器）"
+          }
+        }
+      }
+    },
+    "Clear Cover (Current Server)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Cover (Current Server)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer les couvertures (serveur actuel)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーを削除（現在のサーバー）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 삭제(현재 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除封面（当前服务器）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除封面（目前伺服器）"
+          }
+        }
+      }
+    },
     "Clear Current" : {
       "localizations" : {
         "fr" : {
@@ -5582,74 +5662,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除頁面 (當前伺服器)"
-          }
-        }
-      }
-    },
-    "Clear Thumbnail (All Servers)" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effacer les miniatures (Tous les serveurs)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サムネイルを削除 (全サーバー)"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "썸네일 지우기 (모든 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除缩略图 (所有服务器)"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除縮圖 (所有伺服器)"
-          }
-        }
-      }
-    },
-    "Clear Thumbnail (Current Server)" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effacer les miniatures (Serveur actuel)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サムネイルを削除 (現在のサーバー)"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "썸네일 지우기 (현재 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除缩略图 (当前服务器)"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除縮圖 (當前伺服器)"
           }
         }
       }
@@ -6684,6 +6696,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "複製到剪貼簿"
+          }
+        }
+      }
+    },
+    "Cover" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cover"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couverture"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "封面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "封面"
           }
         }
       }
@@ -17016,6 +17068,86 @@
         }
       }
     },
+    "notification.cache.coverClearedAll" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cover cache cleared (all servers)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache des couvertures effacé (tous les serveurs)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーキャッシュを削除しました（すべてのサーバー）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 캐시 삭제됨(모든 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已清除封面缓存（所有服务器）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已清除封面快取（所有伺服器）"
+          }
+        }
+      }
+    },
+    "notification.cache.coverClearedCurrent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cover cache cleared (current server)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache des couvertures effacé (serveur actuel)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーキャッシュを削除しました（現在のサーバー）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 캐시 삭제됨(현재 서버)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已清除封面缓存（当前服务器）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已清除封面快取（目前伺服器）"
+          }
+        }
+      }
+    },
     "notification.cache.pageClearedAll" : {
       "localizations" : {
         "en" : {
@@ -17092,86 +17224,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已清除頁面快取（目前伺服器）"
-          }
-        }
-      }
-    },
-    "notification.cache.thumbnailClearedAll" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cover cache cleared (all servers)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache des couvertures effacé (tous les serveurs)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバーキャッシュを削除しました（すべてのサーバー）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버 캐시 삭제됨(모든 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除封面缓存（所有服务器）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除封面快取（所有伺服器）"
-          }
-        }
-      }
-    },
-    "notification.cache.thumbnailClearedCurrent" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cover cache cleared (current server)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache des couvertures effacé (serveur actuel)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバーキャッシュを削除しました（現在のサーバー）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버 캐시 삭제됨(현재 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除封面缓存（当前服务器）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除封面快取（目前伺服器）"
           }
         }
       }
@@ -25554,6 +25606,246 @@
         }
       }
     },
+    "settings.appearance.coverShowProgressBar.caption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display the reading progress bar on book covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la barre de progression de lecture sur les couvertures de livres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書籍のカバーに読書進捗バーを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책 커버에 읽기 진행률 표시줄을 표시합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在书籍封面上显示阅读进度条"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在書籍封面上顯示閱讀進度條"
+          }
+        }
+      }
+    },
+    "settings.appearance.coverShowProgressBar.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Reading Progress on Covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la progression de lecture sur les couvertures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーに読書進捗を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 읽기 진행률 표시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示封面阅读进度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示封面閱讀進度"
+          }
+        }
+      }
+    },
+    "settings.appearance.coverShowShadow.caption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable cover shadows to improve performance on older devices"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivez les ombres des couvertures pour améliorer les performances sur les anciens appareils"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "古いデバイスでパフォーマンスを向上させるにはカバーのシャドウを無効にしてください"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오래된 기기에서 성능을 향상시키려면 커버 그림자를 비활성화하세요"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭封面阴影可提升旧设备性能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉封面陰影可提升舊設備性能"
+          }
+        }
+      }
+    },
+    "settings.appearance.coverShowShadow.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Cover Shadows"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les ombres des couvertures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーのシャドウを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 그림자 표시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示封面阴影"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示封面陰影"
+          }
+        }
+      }
+    },
+    "settings.appearance.coverShowUnreadIndicator.caption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display unread indicators on book and series covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les indicateurs non lus sur les couvertures de livres et de séries"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書籍とシリーズのカバーに未読表示を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책과 시리즈 커버에 미읽음 표시를 표시합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在书籍与系列封面上显示未读标识"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在書籍與系列封面上顯示未讀標識"
+          }
+        }
+      }
+    },
+    "settings.appearance.coverShowUnreadIndicator.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Unread Indicators on Covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les indicateurs non lus sur les couvertures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーの未読表示を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 미읽음 표시 보기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示封面未读标识"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示封面未讀標識"
+          }
+        }
+      }
+    },
     "settings.appearance.gridDensity.caption" : {
       "localizations" : {
         "en" : {
@@ -25754,7 +26046,7 @@
         }
       }
     },
-    "settings.appearance.preserveThumbnailAspectRatio.caption" : {
+    "settings.appearance.preserveCoverAspectRatio.caption" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -25794,7 +26086,7 @@
         }
       }
     },
-    "settings.appearance.preserveThumbnailAspectRatio.title" : {
+    "settings.appearance.preserveCoverAspectRatio.title" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -26030,246 +26322,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "主題"
-          }
-        }
-      }
-    },
-    "settings.appearance.thumbnailShowShadow.caption" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disable cover shadows to improve performance on older devices"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Désactivez les ombres des couvertures pour améliorer les performances sur les anciens appareils"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "古いデバイスでパフォーマンスを向上させるにはカバーのシャドウを無効にしてください"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "오래된 기기에서 성능을 향상시키려면 커버 그림자를 비활성화하세요"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭封面阴影可提升旧设备性能"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉封面陰影可提升舊設備性能"
-          }
-        }
-      }
-    },
-    "settings.appearance.thumbnailShowShadow.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Cover Shadows"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher les ombres des couvertures"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバーのシャドウを表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버 그림자 표시"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示封面阴影"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "顯示封面陰影"
-          }
-        }
-      }
-    },
-    "settings.appearance.thumbnailShowUnreadIndicator.caption" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display unread indicators on book and series covers"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher les indicateurs non lus sur les couvertures de livres et de séries"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書籍とシリーズのカバーに未読表示を表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "책과 시리즈 커버에 미읽음 표시를 표시합니다"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在书籍与系列封面上显示未读标识"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在書籍與系列封面上顯示未讀標識"
-          }
-        }
-      }
-    },
-    "settings.appearance.thumbnailShowUnreadIndicator.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Unread Indicators on Covers"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher les indicateurs non lus sur les couvertures"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバーの未読表示を表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버 미읽음 표시 보기"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示封面未读标识"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "顯示封面未讀標識"
-          }
-        }
-      }
-    },
-    "settings.appearance.thumbnailShowProgressBar.caption" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display the reading progress bar on book covers"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher la barre de progression de lecture sur les couvertures de livres"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書籍のカバーに読書進捗バーを表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "책 커버에 읽기 진행률 표시줄을 표시합니다"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在书籍封面上显示阅读进度条"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在書籍封面上顯示閱讀進度條"
-          }
-        }
-      }
-    },
-    "settings.appearance.thumbnailShowProgressBar.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Reading Progress on Covers"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher la progression de lecture sur les couvertures"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバーに読書進捗を表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버 읽기 진행률 표시"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示封面阅读进度"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "顯示封面閱讀進度"
           }
         }
       }
@@ -29902,6 +29954,46 @@
         }
       }
     },
+    "This will remove all cached covers for all servers. Covers will be re-downloaded when needed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will remove all cached covers for all servers. Covers will be re-downloaded when needed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cela supprimera toutes les couvertures en cache de tous les serveurs. Les couvertures seront retéléchargées si nécessaire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全サーバーのカバーキャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 서버에서 캐시된 모든 커버가 제거됩니다. 필요할 때 커버가 다시 다운로드됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将移除所有服务器的缓存封面，需时会重新下载。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將移除所有伺服器的快取封面，需要時會重新下載。"
+          }
+        }
+      }
+    },
     "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed." : {
       "localizations" : {
         "fr" : {
@@ -29970,42 +30062,42 @@
         }
       }
     },
-    "This will remove all cached thumbnails for all servers. Thumbnails will be re-downloaded when needed." : {
+    "This will remove cached covers for the current server. Covers will be re-downloaded when needed." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This will remove all cached covers for all servers. Covers will be re-downloaded when needed."
+            "value" : "This will remove cached covers for the current server. Covers will be re-downloaded when needed."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela supprimera toutes les couvertures en cache de tous les serveurs. Les couvertures seront retéléchargées si nécessaire."
+            "value" : "Cela supprimera les couvertures en cache du serveur actuel. Les couvertures seront retéléchargées si nécessaire."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "全サーバーのカバーキャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
+            "value" : "現在のサーバーのカバーキャッシュを削除します。必要に応じ再ダウンロードされます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 서버에서 캐시된 모든 커버가 제거됩니다. 필요할 때 커버가 다시 다운로드됩니다."
+            "value" : "현재 서버에서 캐시된 커버가 제거됩니다. 필요할 때 커버가 다시 다운로드됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将移除所有服务器的缓存封面，需时会重新下载。"
+            "value" : "将移除当前服务器的缓存封面，需时会重新下载。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將移除所有伺服器的快取封面，需要時會重新下載。"
+            "value" : "將移除當前伺服器的快取封面，需要時會重新下載。"
           }
         }
       }
@@ -30074,86 +30166,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "將移除當前伺服器的快取頁面圖片，需要時會重新下載。"
-          }
-        }
-      }
-    },
-    "This will remove cached thumbnails for the current server. Thumbnails will be re-downloaded when needed." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will remove cached covers for the current server. Covers will be re-downloaded when needed."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cela supprimera les couvertures en cache du serveur actuel. Les couvertures seront retéléchargées si nécessaire."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在のサーバーのカバーキャッシュを削除します。必要に応じ再ダウンロードされます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "현재 서버에서 캐시된 커버가 제거됩니다. 필요할 때 커버가 다시 다운로드됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将移除当前服务器的缓存封面，需时会重新下载。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "將移除當前伺服器的快取封面，需要時會重新下載。"
-          }
-        }
-      }
-    },
-    "Thumbnail" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cover"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couverture"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバー"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "封面"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "封面"
           }
         }
       }

@@ -157,7 +157,7 @@ struct SettingsCacheView: View {
         .buttonStyle(.bordered)
       }
 
-      Section(header: Text("Thumbnail")) {
+      Section(header: Text(String(localized: "Cover"))) {
         VStack(alignment: .leading, spacing: 8) {
           #if os(iOS) || os(macOS)
             HStack {
@@ -191,7 +191,7 @@ struct SettingsCacheView: View {
             }
           #endif
           Text(
-            "Adjust the maximum size of the thumbnail cache. Cache will be cleaned automatically when exceeded."
+            "Adjust the maximum size of the cover cache. Cache will be cleaned automatically when exceeded."
           )
           .font(.caption)
           .foregroundColor(.secondary)
@@ -211,7 +211,7 @@ struct SettingsCacheView: View {
         .tvFocusableHighlight()
 
         HStack {
-          Text("Cached Thumbnails")
+          Text(String(localized: "Cached Covers"))
           Spacer()
           if isLoadingCacheSize {
             ProgressView()
@@ -358,13 +358,13 @@ struct SettingsCacheView: View {
         "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed."
       )
     }
-    .alert("Clear Thumbnail (Current Server)", isPresented: $showClearThumbnailCacheConfirmation) {
+    .alert(String(localized: "Clear Cover (Current Server)"), isPresented: $showClearThumbnailCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {
           await ThumbnailCache.clearCurrentInstanceDiskCache()
           await MainActor.run {
             ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.thumbnailClearedCurrent")
+              message: String(localized: "notification.cache.coverClearedCurrent")
             )
           }
           await loadCacheSize()
@@ -373,16 +373,16 @@ struct SettingsCacheView: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       Text(
-        "This will remove cached thumbnails for the current server. Thumbnails will be re-downloaded when needed."
+        "This will remove cached covers for the current server. Covers will be re-downloaded when needed."
       )
     }
-    .alert("Clear Thumbnail (All Servers)", isPresented: $showClearAllThumbnailCacheConfirmation) {
+    .alert(String(localized: "Clear Cover (All Servers)"), isPresented: $showClearAllThumbnailCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {
           await ThumbnailCache.clearAllDiskCache()
           await MainActor.run {
             ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.thumbnailClearedAll")
+              message: String(localized: "notification.cache.coverClearedAll")
             )
           }
           await loadCacheSize()
@@ -391,7 +391,7 @@ struct SettingsCacheView: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       Text(
-        "This will remove all cached thumbnails for all servers. Thumbnails will be re-downloaded when needed."
+        "This will remove all cached covers for all servers. Covers will be re-downloaded when needed."
       )
     }
     .task {
