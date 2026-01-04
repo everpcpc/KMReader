@@ -13,6 +13,7 @@ struct SeriesCardView: View {
   var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
@@ -38,7 +39,7 @@ struct SeriesCardView: View {
           id: komgaSeries.seriesId, type: .series, shadowStyle: .platform, alignment: .bottom
         ) {
           ZStack {
-            if komgaSeries.booksUnreadCount > 0 {
+            if thumbnailShowUnreadIndicator && komgaSeries.booksUnreadCount > 0 {
               VStack(alignment: .trailing) {
                 UnreadCountBadge(count: komgaSeries.booksUnreadCount)
                   .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)

@@ -17,6 +17,8 @@ struct BookCardView: View {
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
+  @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -58,13 +60,17 @@ struct BookCardView: View {
           ZStack {
             if let progressCompleted = komgaBook.progressCompleted {
               if !progressCompleted {
-                ReadingProgressBar(progress: progress)
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                  .padding(2)
+                if thumbnailShowProgressBar {
+                  ReadingProgressBar(progress: progress)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(2)
+                }
               }
             } else {
-              UnreadIndicator()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+              if thumbnailShowUnreadIndicator {
+                UnreadIndicator()
+                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+              }
             }
           }
         }

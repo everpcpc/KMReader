@@ -64,15 +64,6 @@ struct SettingsAboutSection: View {
             .foregroundColor(.secondary)
         }
       }
-      Link(destination: URL(string: "https://testflight.apple.com/join/kHXDCdjv")!) {
-        HStack {
-          Label(String(localized: "Join Beta"), systemImage: "sparkles")
-          Spacer()
-          Image(systemName: "arrow.up.right.square")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-      }
       Link(destination: URL(string: "https://github.com/everpcpc/KMReader")!) {
         HStack {
           Label(

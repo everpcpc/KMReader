@@ -1765,37 +1765,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adjust the maximum size of the thumbnail cache. Cache will be cleaned automatically when exceeded."
+            "value" : "Adjust the maximum size of the cover cache. Cache will be cleaned automatically when exceeded."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajustez la taille maximale du cache des vignettes. Le cache sera nettoyé automatiquement en cas de dépassement."
+            "value" : "Ajustez la taille maximale du cache des couvertures. Le cache sera nettoyé automatiquement en cas de dépassement."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイルキャッシュの最大サイズを調整します。超過時は自動でクリーンされます。"
+            "value" : "カバーキャッシュの最大サイズを調整します。超過時は自動でクリーンされます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일 캐시의 최대 크기를 조정합니다. 초과하면 자동으로 정리됩니다."
+            "value" : "커버 캐시의 최대 크기를 조정합니다. 초과하면 자동으로 정리됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "调节缩略图缓存上限，超出将自动清理。"
+            "value" : "调节封面缓存上限，超出将自动清理。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "調節縮圖快取上限，超出將自動清理。"
+            "value" : "調節封面快取上限，超出將自動清理。"
           }
         }
       }
@@ -13086,46 +13086,6 @@
         }
       }
     },
-    "Join Beta" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Join Beta"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rejoindre la bêta"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ベータに参加"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "베타 참여"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加入 Beta 测试"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加入 Beta 測試"
-          }
-        }
-      }
-    },
     "Jump" : {
       "localizations" : {
         "en" : {
@@ -17141,37 +17101,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thumbnail cache cleared (all servers)"
+            "value" : "Cover cache cleared (all servers)"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cache des vignettes effacé (tous les serveurs)"
+            "value" : "Cache des couvertures effacé (tous les serveurs)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイルキャッシュを削除しました（すべてのサーバー）"
+            "value" : "カバーキャッシュを削除しました（すべてのサーバー）"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일 캐시 삭제됨(모든 서버)"
+            "value" : "커버 캐시 삭제됨(모든 서버)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已清除缩略图缓存（所有服务器）"
+            "value" : "已清除封面缓存（所有服务器）"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已清除縮圖快取（所有伺服器）"
+            "value" : "已清除封面快取（所有伺服器）"
           }
         }
       }
@@ -17181,37 +17141,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thumbnail cache cleared (current server)"
+            "value" : "Cover cache cleared (current server)"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cache des vignettes effacé (serveur actuel)"
+            "value" : "Cache des couvertures effacé (serveur actuel)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイルキャッシュを削除しました（現在のサーバー）"
+            "value" : "カバーキャッシュを削除しました（現在のサーバー）"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일 캐시 삭제됨(현재 서버)"
+            "value" : "커버 캐시 삭제됨(현재 서버)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已清除缩略图缓存（当前服务器）"
+            "value" : "已清除封面缓存（当前服务器）"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已清除縮圖快取（目前伺服器）"
+            "value" : "已清除封面快取（目前伺服器）"
           }
         }
       }
@@ -25519,37 +25479,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only show cover thumbnails, hide all text below cards"
+            "value" : "Only show covers, hide all text below cards"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher uniquement les vignettes, masquer tout le texte sous les cartes"
+            "value" : "Afficher uniquement les couvertures, masquer tout le texte sous les cartes"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カバーサムネイルのみ表示、カード下のテキストを非表示"
+            "value" : "カバーのみ表示、カード下のテキストを非表示"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "커버 썸네일만 표시, 카드 아래의 모든 텍스트 숨기기"
+            "value" : "커버만 표시, 카드 아래의 모든 텍스트 숨기기"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅显示封面缩略图，隐藏卡片下方所有文字"
+            "value" : "仅显示封面，隐藏卡片下方所有文字"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅顯示封面縮圖，隱藏卡片下方所有文字"
+            "value" : "僅顯示封面，隱藏卡片下方所有文字"
           }
         }
       }
@@ -25799,37 +25759,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preserve aspect ratio for thumbnail images"
+            "value" : "Preserve aspect ratio for cover images"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conserver le ratio d'aspect des images miniatures"
+            "value" : "Conserver le ratio d'aspect des images de couverture"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイル画像の縦横比を維持"
+            "value" : "カバー画像の縦横比を維持"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일 이미지의 가로세로 비율 유지"
+            "value" : "커버 이미지의 가로세로 비율 유지"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保持缩略图长宽比"
+            "value" : "保持封面长宽比"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保持縮圖長寬比"
+            "value" : "保持封面長寬比"
           }
         }
       }
@@ -25839,37 +25799,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preserve Thumbnail Aspect Ratio"
+            "value" : "Preserve Cover Aspect Ratio"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conserver le ratio des miniatures"
+            "value" : "Conserver le ratio des couvertures"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイルの縦横比を保持"
+            "value" : "カバーの縦横比を保持"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일 가로세로 비율 유지"
+            "value" : "커버 가로세로 비율 유지"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保持缩略图比例"
+            "value" : "保持封面比例"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保持縮圖比例"
+            "value" : "保持封面比例"
           }
         }
       }
@@ -26079,37 +26039,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disable shadows to improve performance on older devices"
+            "value" : "Disable cover shadows to improve performance on older devices"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Désactivez les ombres pour améliorer les performances sur les anciens appareils"
+            "value" : "Désactivez les ombres des couvertures pour améliorer les performances sur les anciens appareils"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "古いデバイスでパフォーマンスを向上させるにはシャドウを無効にしてください"
+            "value" : "古いデバイスでパフォーマンスを向上させるにはカバーのシャドウを無効にしてください"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오래된 기기에서 성능을 향상시키려면 그림자를 비활성화하세요"
+            "value" : "오래된 기기에서 성능을 향상시키려면 커버 그림자를 비활성화하세요"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关闭阴影可提升旧设备性能"
+            "value" : "关闭封面阴影可提升旧设备性能"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "關閉陰影可提升舊設備性能"
+            "value" : "關閉封面陰影可提升舊設備性能"
           }
         }
       }
@@ -26119,37 +26079,197 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show Thumbnail Shadows"
+            "value" : "Show Cover Shadows"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher les ombres des miniatures"
+            "value" : "Afficher les ombres des couvertures"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイルのシャドウを表示"
+            "value" : "カバーのシャドウを表示"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일 그림자 표시"
+            "value" : "커버 그림자 표시"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示缩略图阴影"
+            "value" : "显示封面阴影"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "顯示縮圖陰影"
+            "value" : "顯示封面陰影"
+          }
+        }
+      }
+    },
+    "settings.appearance.thumbnailShowUnreadIndicator.caption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display unread indicators on book and series covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les indicateurs non lus sur les couvertures de livres et de séries"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書籍とシリーズのカバーに未読表示を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책과 시리즈 커버에 미읽음 표시를 표시합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在书籍与系列封面上显示未读标识"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在書籍與系列封面上顯示未讀標識"
+          }
+        }
+      }
+    },
+    "settings.appearance.thumbnailShowUnreadIndicator.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Unread Indicators on Covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les indicateurs non lus sur les couvertures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーの未読表示を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 미읽음 표시 보기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示封面未读标识"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示封面未讀標識"
+          }
+        }
+      }
+    },
+    "settings.appearance.thumbnailShowProgressBar.caption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display the reading progress bar on book covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la barre de progression de lecture sur les couvertures de livres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書籍のカバーに読書進捗バーを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책 커버에 읽기 진행률 표시줄을 표시합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在书籍封面上显示阅读进度条"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在書籍封面上顯示閱讀進度條"
+          }
+        }
+      }
+    },
+    "settings.appearance.thumbnailShowProgressBar.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Reading Progress on Covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la progression de lecture sur les couvertures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーに読書進捗を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 읽기 진행률 표시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示封面阅读进度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示封面閱讀進度"
           }
         }
       }
@@ -29852,34 +29972,40 @@
     },
     "This will remove all cached thumbnails for all servers. Thumbnails will be re-downloaded when needed." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will remove all cached covers for all servers. Covers will be re-downloaded when needed."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela supprimera toutes les miniatures en cache de tous les serveurs. Les miniatures seront retéléchargées si nécessaire."
+            "value" : "Cela supprimera toutes les couvertures en cache de tous les serveurs. Les couvertures seront retéléchargées si nécessaire."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "全サーバーのサムネイルキャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
+            "value" : "全サーバーのカバーキャッシュをすべて削除します。必要に応じ再ダウンロードされます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 서버에서 캐시된 모든 썸네일이 제거됩니다. 필요할 때 썸네일이 다시 다운로드됩니다."
+            "value" : "모든 서버에서 캐시된 모든 커버가 제거됩니다. 필요할 때 커버가 다시 다운로드됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将移除所有服务器的缓存缩略图，需时会重新下载。"
+            "value" : "将移除所有服务器的缓存封面，需时会重新下载。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將移除所有伺服器的快取縮圖，需要時會重新下載。"
+            "value" : "將移除所有伺服器的快取封面，需要時會重新下載。"
           }
         }
       }
@@ -29954,34 +30080,40 @@
     },
     "This will remove cached thumbnails for the current server. Thumbnails will be re-downloaded when needed." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will remove cached covers for the current server. Covers will be re-downloaded when needed."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela supprimera les miniatures en cache du serveur actuel. Les miniatures seront retéléchargées si nécessaire."
+            "value" : "Cela supprimera les couvertures en cache du serveur actuel. Les couvertures seront retéléchargées si nécessaire."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現在のサーバーのサムネイルキャッシュを削除します。必要に応じ再ダウンロードされます。"
+            "value" : "現在のサーバーのカバーキャッシュを削除します。必要に応じ再ダウンロードされます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "현재 서버에서 캐시된 썸네일이 제거됩니다. 필요할 때 썸네일이 다시 다운로드됩니다."
+            "value" : "현재 서버에서 캐시된 커버가 제거됩니다. 필요할 때 커버가 다시 다운로드됩니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将移除当前服务器的缓存缩略图，需时会重新下载。"
+            "value" : "将移除当前服务器的缓存封面，需时会重新下载。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將移除當前伺服器的快取縮圖，需要時會重新下載。"
+            "value" : "將移除當前伺服器的快取封面，需要時會重新下載。"
           }
         }
       }
@@ -29991,37 +30123,37 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thumbnail"
+            "value" : "Cover"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Taille de vignette"
+            "value" : "Couverture"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サムネイルサイズ"
+            "value" : "カバー"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "썸네일"
+            "value" : "커버"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "缩略图"
+            "value" : "封面"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "縮圖"
+            "value" : "封面"
           }
         }
       }
