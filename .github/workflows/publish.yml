@@ -31,7 +31,28 @@ jobs:
             echo "project.pbxproj not found at $FILE" >&2
             exit 1
           fi
-          MARKETING=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            if git rev-parse "${HEAD}^" >/dev/null 2>&1; then
+              BASE="$(git rev-parse "${HEAD}^")"
+            else
+              BASE=""
+            fi
+          fi
+
+          if [ -n "$BASE" ] && git cat-file -e "$BASE"^{commit} 2>/dev/null; then
+            PREV_FILE_CONTENT=$(git show "$BASE:$FILE" 2>/dev/null || true)
+          else
+            PREV_FILE_CONTENT=""
+          fi
+
+          if [ -n "$PREV_FILE_CONTENT" ]; then
+            MARKETING=$(printf "%s" "$PREV_FILE_CONTENT" | awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}')
+          else
+            MARKETING=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          fi
+
           BUILD=$(awk 'match($0,/CURRENT_PROJECT_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
           if [ -z "$MARKETING" ]; then
             echo "MARKETING_VERSION not found in $FILE" >&2
