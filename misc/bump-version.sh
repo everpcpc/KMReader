@@ -45,9 +45,14 @@ echo -e "${GREEN}Bumping $VERSION_TYPE version...${NC}"
 
 # Extract current version
 CURRENT_VERSION=$(grep -m 1 "MARKETING_VERSION = " "$PROJECT" | sed -n 's/.*MARKETING_VERSION = \([^;]*\);/\1/p' | tr -d '"')
+CURRENT_BUILD=$(grep -m 1 "CURRENT_PROJECT_VERSION = " "$PROJECT" | sed -n 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);/\1/p' | tr -d '"')
 
 if [ -z "$CURRENT_VERSION" ]; then
 	echo -e "${YELLOW}Error: Could not find MARKETING_VERSION${NC}"
+	exit 1
+fi
+if [ -z "$CURRENT_BUILD" ]; then
+	echo -e "${YELLOW}Error: Could not find CURRENT_PROJECT_VERSION${NC}"
 	exit 1
 fi
 
@@ -65,11 +70,14 @@ elif [ "$VERSION_TYPE" == "minor" ]; then
 fi
 
 NEXT_VERSION="$MAJOR.$MINOR"
+NEXT_BUILD=$((CURRENT_BUILD + 1))
 
 echo -e "${GREEN}Current version: $CURRENT_VERSION -> Next version: $NEXT_VERSION${NC}"
+echo -e "${GREEN}Current build: $CURRENT_BUILD -> Next build: $NEXT_BUILD${NC}"
 
 # Update all occurrences of MARKETING_VERSION
 sed -i '' "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $NEXT_VERSION;/g" "$PROJECT"
+sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = $NEXT_BUILD;/g" "$PROJECT"
 
 echo -e "${GREEN}Version bumped successfully!${NC}"
 
