@@ -725,43 +725,43 @@ class APIClient {
 
 private enum APIClientDateParser {
   static func parse(_ value: String) -> Date? {
-    if let date = iso8601WithFractional.date(from: value) {
+    if let date = makeISO8601WithFractional().date(from: value) {
       return date
     }
-    if let date = iso8601Basic.date(from: value) {
+    if let date = makeISO8601Basic().date(from: value) {
       return date
     }
-    if let date = localFormatterWithFractional.date(from: value) {
+    if let date = makeLocalFormatterWithFractional().date(from: value) {
       return date
     }
-    return localFormatter.date(from: value)
+    return makeLocalFormatter().date(from: value)
   }
 
-  private static let iso8601WithFractional: ISO8601DateFormatter = {
+  private static func makeISO8601WithFractional() -> ISO8601DateFormatter {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return formatter
-  }()
+  }
 
-  private static let iso8601Basic: ISO8601DateFormatter = {
+  private static func makeISO8601Basic() -> ISO8601DateFormatter {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime]
     return formatter
-  }()
+  }
 
-  private static let localFormatterWithFractional: DateFormatter = {
+  private static func makeLocalFormatterWithFractional() -> DateFormatter {
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.timeZone = .current
     formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
     return formatter
-  }()
+  }
 
-  private static let localFormatter: DateFormatter = {
+  private static func makeLocalFormatter() -> DateFormatter {
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.timeZone = .current
     formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
     return formatter
-  }()
+  }
 }
