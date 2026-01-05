@@ -324,7 +324,8 @@ actor OfflineManager {
     }
 
     if deletedCount > 0 {
-      logger.info("✅ Cleanup complete: \(deletedCount) orphaned directories, \(bytesFreed) bytes freed")
+      logger.info(
+        "✅ Cleanup complete: \(deletedCount) orphaned directories, \(bytesFreed) bytes freed")
     }
 
     return (deletedCount, bytesFreed)

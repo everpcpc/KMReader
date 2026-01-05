@@ -103,10 +103,8 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          if readingDirection != .webtoon {
-            Toggle(isOn: $showPageNumber) {
-              Text("Always Show Page Number")
-            }
+          Toggle(isOn: $showPageNumber) {
+            Text("Always Show Page Number")
           }
 
           #if os(iOS) || os(macOS)

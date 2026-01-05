@@ -361,7 +361,8 @@ struct SettingsOfflineBooksView: View {
         if result.deletedCount > 0 {
           Text(
             String(
-              localized: "settings.offline_books.cleanup_orphaned.result \(result.deletedCount) \(formatter.string(fromByteCount: result.bytesFreed))"
+              localized:
+                "settings.offline_books.cleanup_orphaned.result \(result.deletedCount) \(formatter.string(fromByteCount: result.bytesFreed))"
             ))
         } else {
           Text(String(localized: "settings.offline_books.cleanup_orphaned.no_orphaned"))

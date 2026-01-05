@@ -12,6 +12,8 @@
   class WebtoonPageCell: NSCollectionViewItem {
     private let pageImageView = NSImageView()
     private let loadingIndicator = NSProgressIndicator()
+    private let pageMarkerContainer = NSView()
+    private let pageMarkerLabel = NSTextField(labelWithString: "")
     private var pageIndex: Int = -1
     private var loadImage: ((Int) async -> Void)?
 
@@ -35,6 +37,23 @@
       pageImageView.frame = view.bounds
       view.addSubview(pageImageView)
 
+      pageMarkerContainer.wantsLayer = true
+      pageMarkerContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
+      pageMarkerContainer.layer?.cornerRadius = 8
+      pageMarkerContainer.translatesAutoresizingMaskIntoConstraints = false
+      view.addSubview(pageMarkerContainer)
+
+      let baseFont = NSFont.systemFont(ofSize: 16, weight: .semibold)
+      if let descriptor = baseFont.fontDescriptor.withDesign(.rounded) {
+        pageMarkerLabel.font = NSFont(descriptor: descriptor, size: 16)
+      } else {
+        pageMarkerLabel.font = baseFont
+      }
+      pageMarkerLabel.textColor = .white
+      pageMarkerLabel.alignment = .center
+      pageMarkerLabel.translatesAutoresizingMaskIntoConstraints = false
+      pageMarkerContainer.addSubview(pageMarkerLabel)
+
       loadingIndicator.style = .spinning
       loadingIndicator.controlSize = .small
       loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -42,6 +61,15 @@
       view.addSubview(loadingIndicator)
 
       NSLayoutConstraint.activate([
+        pageMarkerContainer.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
+        pageMarkerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+        pageMarkerLabel.topAnchor.constraint(equalTo: pageMarkerContainer.topAnchor, constant: 6),
+        pageMarkerLabel.bottomAnchor.constraint(
+          equalTo: pageMarkerContainer.bottomAnchor, constant: -6),
+        pageMarkerLabel.leadingAnchor.constraint(
+          equalTo: pageMarkerContainer.leadingAnchor, constant: 12),
+        pageMarkerLabel.trailingAnchor.constraint(
+          equalTo: pageMarkerContainer.trailingAnchor, constant: -12),
         loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
       ])
@@ -66,6 +94,8 @@
     ) {
       self.pageIndex = pageIndex
       self.loadImage = loadImage
+      pageMarkerLabel.stringValue = "\(pageIndex + 1)"
+      pageMarkerContainer.isHidden = !AppConfig.showPageNumber
 
       if let image = image {
         // Instant display if image is provided
@@ -119,6 +149,7 @@
       loadingIndicator.stopAnimation(nil)
       pageIndex = -1
       loadImage = nil
+      pageMarkerContainer.isHidden = true
     }
   }
 #endif

@@ -16,5 +16,10 @@
       minimumInteritemSpacing = 0
       sectionInset = .zero
     }
+
+    override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
+      guard let collectionView = collectionView else { return true }
+      return collectionView.bounds.size != newBounds.size
+    }
   }
 #endif

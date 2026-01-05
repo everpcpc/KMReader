@@ -418,14 +418,12 @@
           return
         }
 
-        // Fall back to loading from file
-        guard let url = await vm.getPageImageFileURL(page: page) else { return }
-
-        // Load image
-        if let cv = collectionView,
-          let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell
-        {
-          _ = await cell.loadImageFromURL(url)
+        if let image = await vm.preloadImageForPage(page) {
+          if let cv = collectionView,
+            let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell
+          {
+            cell.setImage(image)
+          }
         }
       }
 
@@ -472,6 +470,8 @@
         let currentOrigin = clipView.bounds.origin
         let scrollAmount = screenHeight * CGFloat(AppConfig.webtoonTapScrollPercentage / 100.0)
         let targetY = max(currentOrigin.y - scrollAmount, 0)
+        preheatPages(at: targetY)
+        collectionView?.layoutSubtreeIfNeeded()
 
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0.3
@@ -489,6 +489,8 @@
         let scrollAmount = screenHeight * CGFloat(AppConfig.webtoonTapScrollPercentage / 100.0)
         let maxY = max(contentH - screenHeight, 0)
         let targetY = min(currentOrigin.y + scrollAmount, maxY)
+        preheatPages(at: targetY)
+        collectionView?.layoutSubtreeIfNeeded()
 
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0.3
@@ -496,6 +498,24 @@
           clipView.animator().setBoundsOrigin(NSPoint(x: 0, y: targetY))
         }
         sv.reflectScrolledClipView(clipView)
+      }
+
+      private func preheatPages(at targetOffset: CGFloat) {
+        guard let cv = collectionView, let sv = scrollView else { return }
+        let centerY = targetOffset + sv.contentView.bounds.height / 2
+        let centerPoint = NSPoint(x: cv.bounds.width / 2, y: centerY)
+        guard let indexPath = cv.indexPathForItem(at: centerPoint),
+          isValidPageIndex(indexPath.item)
+        else { return }
+        let targetIndex = indexPath.item
+        let indices = [
+          targetIndex - 2, targetIndex - 1, targetIndex, targetIndex + 1, targetIndex + 2,
+        ]
+        Task { @MainActor [weak self] in
+          for index in indices where self?.isValidPageIndex(index) == true {
+            await self?.loadImageForPage(index)
+          }
+        }
       }
     }
   }
