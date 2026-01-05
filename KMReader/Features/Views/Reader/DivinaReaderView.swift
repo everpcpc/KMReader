@@ -105,12 +105,6 @@ struct DivinaReaderView: View {
     readingDirection = AppConfig.defaultReadingDirection
   }
 
-  private func screenSize(size: CGSize, safeAreaInsets: EdgeInsets) -> CGSize {
-    let width = size.width + safeAreaInsets.leading + safeAreaInsets.trailing
-    let height = size.height + safeAreaInsets.top + safeAreaInsets.bottom
-    return CGSize(width: width, height: height)
-  }
-
   private func screenKey(screenSize: CGSize) -> String {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
