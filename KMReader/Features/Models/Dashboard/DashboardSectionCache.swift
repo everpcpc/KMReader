@@ -23,6 +23,14 @@ struct DashboardSectionCache: Equatable, RawRepresentable {
     sectionIds[section] = ids
   }
 
+  mutating func updateIfChanged(section: DashboardSection, ids: [String]) -> Bool {
+    if sectionIds[section] == ids {
+      return false
+    }
+    sectionIds[section] = ids
+    return true
+  }
+
   var rawValue: String {
     // Convert to a simple dictionary with section rawValue as key
     let dict = sectionIds.reduce(into: [String: [String]]()) { result, pair in

@@ -184,7 +184,10 @@ struct DashboardSectionView: View {
     let isFirstPage = pagination.currentPage == 0
 
     if !AppConfig.isOffline {
-      await seedFromCacheIfNeeded(isFirstPage: isFirstPage, libraryIds: libraryIds)
+      await seedFromCacheIfNeeded(
+        isFirstPage: isFirstPage,
+        libraryIds: libraryIds
+      )
     }
 
     if AppConfig.isOffline {
@@ -215,7 +218,7 @@ struct DashboardSectionView: View {
           ) {
             let ids = page.content.map { $0.id }
             if isFirstPage {
-              sectionCache.update(section: section, ids: ids)
+              _ = sectionCache.updateIfChanged(section: section, ids: ids)
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
@@ -227,7 +230,7 @@ struct DashboardSectionView: View {
           ) {
             let ids = page.content.map { $0.id }
             if isFirstPage {
-              sectionCache.update(section: section, ids: ids)
+              _ = sectionCache.updateIfChanged(section: section, ids: ids)
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
@@ -248,7 +251,7 @@ struct DashboardSectionView: View {
 
     let cachedIds = sectionCache.ids(for: section)
     guard !cachedIds.isEmpty else { return }
-    withAnimation {
+    withAnimation(.easeInOut(duration: 0.18)) {
       pagination.items = cachedIds.map(IdentifiedString.init)
     }
   }

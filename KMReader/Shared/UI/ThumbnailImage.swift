@@ -81,37 +81,37 @@ struct ThumbnailImage<Overlay: View>: View {
       }
 
       guard !Task.isCancelled, let url = targetURL else { return nil }
-      return PlatformImage(contentsOfFile: url.path)
+      guard let image = PlatformImage(contentsOfFile: url.path) else { return nil }
+      return ImageDecodeHelper.decodeForDisplay(image)
     }.value
   }
 
   var body: some View {
     ZStack(alignment: alignment) {
-      Color.clear
+      RoundedRectangle(cornerRadius: cornerRadius)
+        .fill(Color.gray.opacity(0.1))
+        .opacity(image == nil ? 1 : 0)
 
-      Group {
-        if image != nil {
-          imageContent
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .overlay { borderOverlay }
-            .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
-              view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
+      if image != nil {
+        imageContent
+          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+          .overlay { borderOverlay }
+          .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
+            view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
+          }
+          #if os(iOS)
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+          #endif
+          .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+          .transition(.opacity)
+          .overlay {
+            if !isAbnormalSize, let overlay = overlay {
+              overlay()
             }
-            #if os(iOS)
-              .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
-            #endif
-            .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-        } else {
-          RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(Color.gray.opacity(0.3))
-        }
-      }
-      .overlay {
-        if !isAbnormalSize, let overlay = overlay {
-          overlay()
-        }
+          }
       }
     }
+    .animation(.easeInOut(duration: 0.18), value: image != nil)
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
     .overlay {
@@ -129,8 +129,8 @@ struct ThumbnailImage<Overlay: View>: View {
       guard !Task.isCancelled, currentBaseKey == baseKey else { return }
       if let loaded = loaded {
         loadedImageSize = loaded.size
+        image = loaded
       }
-      image = loaded
     }
   }
 
