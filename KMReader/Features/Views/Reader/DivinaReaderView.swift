@@ -175,8 +175,6 @@ struct DivinaReaderView: View {
             return
           }
 
-          let useDualPage = shouldUseDualPage(screenSize: currentSize)
-
           // Execute page navigation
           switch readingDirection {
           case .ltr, .rtl:
