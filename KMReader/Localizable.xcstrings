@@ -3603,6 +3603,46 @@
         }
       }
     },
+    "Auto Full Screen on Open" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Full Screen on Open"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plein écran automatique à l'ouverture"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開くと自動でフルスクリーン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "열 때 자동으로 전체 화면"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开时自动全屏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟時自動全螢幕"
+          }
+        }
+      }
+    },
     "Auto-refresh" : {
       "localizations" : {
         "en" : {
@@ -3679,6 +3719,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自動刷新主頁"
+          }
+        }
+      }
+    },
+    "Automatically enter full screen when opening the reader" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically enter full screen when opening the reader"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer automatiquement en plein écran lors de l'ouverture du lecteur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リーダーを開くと自動的にフルスクリーンに切り替えます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "리더를 열 때 자동으로 전체 화면으로 전환합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开阅读器时自动进入全屏模式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟閱讀器時自動進入全螢幕模式"
           }
         }
       }

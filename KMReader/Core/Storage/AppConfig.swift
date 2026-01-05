@@ -417,6 +417,18 @@ enum AppConfig {
     }
   }
 
+  static var autoFullscreenOnOpen: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "autoFullscreenOnOpen") != nil {
+        return UserDefaults.standard.bool(forKey: "autoFullscreenOnOpen")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "autoFullscreenOnOpen")
+    }
+  }
+
   static var readerBackground: ReaderBackground {
     get {
       if let stored = UserDefaults.standard.string(forKey: "readerBackground"),

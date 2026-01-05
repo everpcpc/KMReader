@@ -12,6 +12,8 @@
   struct ReaderWindowView: View {
     @Environment(\.dismissWindow) private var dismissWindow
     @State private var readerState: BookReaderState?
+    @State private var didRequestFullscreen: Bool = false
+    @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
 
     var body: some View {
       Group {
@@ -24,15 +26,28 @@
           )
           .id("\(book.id)-\(state.incognito)")
           .background(WindowTitleUpdater(book: book))
+          .background(
+            WindowFullscreenUpdater(
+              shouldEnterFullScreen: autoFullscreenOnOpen,
+              didRequestFullscreen: $didRequestFullscreen
+            )
+          )
         } else {
           ProgressView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(WindowTitleUpdater(book: nil))
+            .background(
+              WindowFullscreenUpdater(
+                shouldEnterFullScreen: autoFullscreenOnOpen,
+                didRequestFullscreen: $didRequestFullscreen
+              )
+            )
         }
       }
       .onAppear {
         // Get reader state from shared manager when view appears
         readerState = ReaderWindowManager.shared.currentState
+        didRequestFullscreen = false
 
         // If state is nil (e.g., app restarted and window was restored), close the window immediately
         if ReaderWindowManager.shared.currentState == nil {
@@ -99,6 +114,39 @@
         } else {
           window.title = "Reader"
         }
+      }
+    }
+  }
+
+  private struct WindowFullscreenUpdater: NSViewRepresentable {
+    let shouldEnterFullScreen: Bool
+    @Binding var didRequestFullscreen: Bool
+
+    func makeNSView(context: Context) -> NSView {
+      NSView()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+      guard shouldEnterFullScreen, !didRequestFullscreen else { return }
+      updateWindowFullScreen(nsView: nsView)
+    }
+
+    private func updateWindowFullScreen(nsView: NSView) {
+      DispatchQueue.main.async {
+        guard let window = nsView.window else {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            updateWindowFullScreen(nsView: nsView)
+          }
+          return
+        }
+
+        if window.styleMask.contains(.fullScreen) {
+          didRequestFullscreen = true
+          return
+        }
+
+        window.toggleFullScreen(nil)
+        didRequestFullscreen = true
       }
     }
   }

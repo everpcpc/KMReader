@@ -11,6 +11,7 @@ struct SettingsReaderView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
+  @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
   @AppStorage("dualPageNoCover") private var dualPageNoCover: Bool = false
@@ -82,6 +83,17 @@ struct SettingsReaderView: View {
             Text("Adjust the width of webtoon pages as a percentage of screen width")
               .font(.caption)
               .foregroundColor(.secondary)
+          }
+        #endif
+
+        #if os(macOS)
+          Toggle(isOn: $autoFullscreenOnOpen) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Auto Full Screen on Open")
+              Text("Automatically enter full screen when opening the reader")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
         #endif
       }

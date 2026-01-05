@@ -25,6 +25,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
+  @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
 
   var body: some View {
     SheetView(
@@ -122,6 +123,12 @@ struct ReaderSettingsSheet: View {
                   step: 5
                 )
               }
+            }
+          #endif
+
+          #if os(macOS)
+            Toggle(isOn: $autoFullscreenOnOpen) {
+              Text("Auto Full Screen on Open")
             }
           #endif
         }
