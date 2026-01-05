@@ -247,7 +247,8 @@
         }
 
         let safeInsets = collectionView.safeAreaInsets
-        let newInsets = UIEdgeInsets(top: safeInsets.top, left: 0, bottom: safeInsets.bottom, right: 0)
+        let newInsets = UIEdgeInsets(
+          top: safeInsets.top, left: 0, bottom: safeInsets.bottom, right: 0)
 
         if collectionView.contentInset != newInsets {
           collectionView.contentInset = newInsets

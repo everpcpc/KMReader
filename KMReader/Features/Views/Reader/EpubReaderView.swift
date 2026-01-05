@@ -118,7 +118,6 @@
           chapterStatusOverlay
         }
       }
-      .readerIgnoresSafeArea()
       .onAppear {
         if .ltr != readerPresentation.readingDirection {
           readerPresentation.readingDirection = .ltr
@@ -169,53 +168,50 @@
     private var controlsOverlay: some View {
       VStack {
         // Top bar
-        VStack(spacing: 12) {
-          HStack {
+        HStack {
+          Button {
+            closeReader()
+          } label: {
+            Image(systemName: "xmark")
+          }
+          .controlSize(.large)
+          .adaptiveButtonStyle(.borderedProminent)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+
+          Spacer()
+
+          // Progress indicator
+          if let currentLocator = viewModel.currentLocator, !viewModel.tableOfContents.isEmpty {
             Button {
-              closeReader()
+              showingChapterSheet = true
             } label: {
-              Image(systemName: "xmark")
-            }
-            .controlSize(.large)
-            .adaptiveButtonStyle(.borderedProminent)
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-
-            Spacer()
-
-            // Progress indicator
-            if let currentLocator = viewModel.currentLocator, !viewModel.tableOfContents.isEmpty {
-              Button {
-                showingChapterSheet = true
-              } label: {
-                HStack(spacing: 4) {
-                  // Total progress
-                  if let totalProgression = currentLocator.locations.totalProgression {
-                    HStack(spacing: 6) {
-                      Image(systemName: "book.fill")
-                      Text("\(totalProgression * 100, specifier: "%.1f")%")
-                        .monospacedDigit()
-                    }
+              HStack(spacing: 4) {
+                // Total progress
+                if let totalProgression = currentLocator.locations.totalProgression {
+                  HStack(spacing: 6) {
+                    Image(systemName: "book.fill")
+                    Text("\(totalProgression * 100, specifier: "%.1f")%")
+                      .monospacedDigit()
                   }
                 }
               }
-              .controlSize(.regular)
-              .adaptiveButtonStyle(.borderedProminent)
-              .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             }
-
-            Spacer()
-
-            Button {
-              showingPreferencesSheet = true
-            } label: {
-              Image(systemName: "gearshape")
-            }
-            .controlSize(.large)
+            .controlSize(.regular)
             .adaptiveButtonStyle(.borderedProminent)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
+
+          Spacer()
+
+          Button {
+            showingPreferencesSheet = true
+          } label: {
+            Image(systemName: "gearshape")
+          }
+          .controlSize(.large)
+          .adaptiveButtonStyle(.borderedProminent)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
-        .padding()
         .allowsHitTesting(true)
 
         // Series and book title
@@ -228,8 +224,8 @@
               .font(.subheadline)
               .foregroundColor(.white)
           }
-          .padding(.horizontal, 16)
-          .padding(.vertical, 8)
+          .padding(.vertical, 4)
+          .padding(.horizontal, 8)
           .background(Color.accentColor.opacity(0.9))
           .cornerRadius(12)
           .optimizedControlSize()
@@ -237,9 +233,8 @@
 
         Spacer()
       }
-      .padding(.vertical, 24)
-      .padding(.horizontal, 8)
-      .readerIgnoresSafeArea()
+      .iPadIgnoresSafeArea(paddingTop: 24)
+      .padding(.horizontal)
       .opacity(shouldShowControls ? 1.0 : 0.0)
       .allowsHitTesting(shouldShowControls)
       .transition(.opacity)
@@ -318,12 +313,9 @@
               ReadingProgressBar(progress: totalProgression)
                 .opacity(shouldShowControls ? 1.0 : 0.0)
             }
-          }
-          .padding(.horizontal, 16)
-          .padding(.bottom, 24)
+          }.padding(.horizontal, 16)
         }
       }
-      .readerIgnoresSafeArea()
       .allowsHitTesting(false)
     }
 

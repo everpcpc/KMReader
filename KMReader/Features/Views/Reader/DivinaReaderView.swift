@@ -105,6 +105,10 @@ struct DivinaReaderView: View {
     readingDirection = AppConfig.defaultReadingDirection
   }
 
+  private func screenKey(screenSize: CGSize) -> String {
+    return "\(Int(screenSize.width))x\(Int(screenSize.height))"
+  }
+
   #if os(tvOS)
     private var endPageFocusChangeHandler: ((Bool) -> Void) {
       { isFocused in
@@ -120,9 +124,9 @@ struct DivinaReaderView: View {
 
   var body: some View {
     GeometryReader { geometry in
-      let currentSize = geometry.size
-      let screenKey = "\(Int(currentSize.width))x\(Int(currentSize.height))"
-      let useDualPage = shouldUseDualPage(screenSize: currentSize)
+      let screenSize = geometry.size
+      let screenKey = screenKey(screenSize: screenSize)
+      let useDualPage = shouldUseDualPage(screenSize: screenSize)
 
       ZStack {
         readerBackground.color.readerIgnoresSafeArea()
@@ -137,7 +141,7 @@ struct DivinaReaderView: View {
         #endif
 
         readerContent(
-          currentSize: currentSize,
+          screenSize: screenSize,
           useDualPage: useDualPage,
           screenKey: screenKey
         )
@@ -170,8 +174,6 @@ struct DivinaReaderView: View {
           if isEndPageButtonFocused {
             return
           }
-
-          let useDualPage = shouldUseDualPage(screenSize: currentSize)
 
           // Execute page navigation
           switch readingDirection {
@@ -219,6 +221,7 @@ struct DivinaReaderView: View {
         }
       #endif
     }
+    .iPadIgnoresSafeArea()
     #if os(macOS)
       .background(
         // Window-level keyboard event handler for keyboard help
@@ -236,7 +239,6 @@ struct DivinaReaderView: View {
         )
       )
     #endif
-    .readerIgnoresSafeArea()
     .onAppear {
       viewModel.updateDualPageSettings(noCover: dualPageNoCover)
       #if os(tvOS)
@@ -317,7 +319,7 @@ struct DivinaReaderView: View {
 
   @ViewBuilder
   private func readerContent(
-    currentSize: CGSize,
+    screenSize: CGSize,
     useDualPage: Bool,
     screenKey: String
   ) -> some View {
@@ -333,11 +335,10 @@ struct DivinaReaderView: View {
               onDismiss: { closeReader() },
               onNextBook: { openNextBook(nextBookId: $0) },
               toggleControls: { toggleControls() },
-              screenSize: currentSize,
+              screenSize: screenSize,
               pageWidthPercentage: webtoonPageWidthPercentage,
               readerBackground: readerBackground
-            )
-            .readerIgnoresSafeArea()
+            ).readerIgnoresSafeArea()
           #else
             PageView(
               mode: .vertical,
@@ -350,7 +351,7 @@ struct DivinaReaderView: View {
               goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
               goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
               toggleControls: { toggleControls() },
-              screenSize: currentSize,
+              screenSize: screenSize,
               onEndPageFocusChange: endPageFocusChangeHandler,
               onScrollActivityChange: { isScrolling in
                 if isScrolling {
@@ -358,7 +359,6 @@ struct DivinaReaderView: View {
                 }
               }
             )
-            .readerIgnoresSafeArea()
           #endif
         } else {
           PageView(
@@ -372,7 +372,7 @@ struct DivinaReaderView: View {
             goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
             goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
             toggleControls: { toggleControls() },
-            screenSize: currentSize,
+            screenSize: screenSize,
             onEndPageFocusChange: endPageFocusChangeHandler,
             onScrollActivityChange: { isScrolling in
               if isScrolling {
@@ -380,7 +380,6 @@ struct DivinaReaderView: View {
               }
             }
           )
-          .readerIgnoresSafeArea()
         }
       }
       .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
@@ -442,9 +441,6 @@ struct DivinaReaderView: View {
       onPreviousBook: { openPreviousBook(previousBookId: $0) },
       onNextBook: { openNextBook(nextBookId: $0) }
     )
-    .padding(.vertical, 24)
-    .padding(.horizontal, 8)
-    .readerIgnoresSafeArea()
     .opacity(shouldShowControls ? 1.0 : 0.0)
     .allowsHitTesting(shouldShowControls)
     .animation(.default, value: shouldShowControls)

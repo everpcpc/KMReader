@@ -61,7 +61,6 @@ import SwiftUI
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .readerIgnoresSafeArea()
       #if os(iOS)
         .statusBarHidden(readerPresentation.hideStatusBar)
       #endif
