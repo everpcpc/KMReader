@@ -64,6 +64,16 @@ struct SettingsAboutSection: View {
             .foregroundColor(.secondary)
         }
       }
+      Link(destination: URL(string: "https://apps.apple.com/app/id6755198424?action=write-review")!)
+      {
+        HStack {
+          Label(String(localized: "Rate This App"), systemImage: "star")
+          Spacer()
+          Image(systemName: "arrow.up.right.square")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
       Link(destination: URL(string: "https://github.com/everpcpc/KMReader")!) {
         HStack {
           Label(

@@ -251,9 +251,7 @@ struct DashboardSectionView: View {
 
     let cachedIds = sectionCache.ids(for: section)
     guard !cachedIds.isEmpty else { return }
-    withAnimation(.easeInOut(duration: 0.18)) {
-      pagination.items = cachedIds.map(IdentifiedString.init)
-    }
+    pagination.items = cachedIds.map(IdentifiedString.init)
   }
 
   private func applyPage(ids: [String], moreAvailable: Bool) {
