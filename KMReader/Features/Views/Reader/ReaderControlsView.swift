@@ -66,6 +66,10 @@ struct ReaderControlsView: View {
     #endif
   }
 
+  private var buttonStyle: AdaptiveButtonStyleType {
+    return .borderedProminent
+  }
+
   private var progress: Double {
     guard viewModel.pages.count > 0 else { return 0 }
     return Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count))
@@ -108,22 +112,6 @@ struct ReaderControlsView: View {
       ? String(localized: "reader.previousBook") : String(localized: "reader.nextBook")
   }
 
-  private var topPadding: CGFloat {
-    #if os(iOS)
-      UIDevice.current.userInterfaceIdiom == .phone ? 60 : 24
-    #else
-      24
-    #endif
-  }
-
-  private var bottomPadding: CGFloat {
-    #if os(iOS)
-      UIDevice.current.userInterfaceIdiom == .phone ? 30 : 16
-    #else
-      16
-    #endif
-  }
-
   var body: some View {
     VStack {
 
@@ -136,7 +124,7 @@ struct ReaderControlsView: View {
           Image(systemName: "xmark")
         }
         .controlSize(.large)
-        .adaptiveButtonStyle(.borderedProminent)
+        .adaptiveButtonStyle(buttonStyle)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         #if os(tvOS)
           .focused($focusedControl, equals: .close)
@@ -172,17 +160,14 @@ struct ReaderControlsView: View {
             Image(systemName: "gearshape")
           }
           .controlSize(.large)
-          .adaptiveButtonStyle(.borderedProminent)
+          .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
             .focused($focusedControl, equals: .settings)
           #endif
         }
 
-      }
-      .padding(.horizontal, buttonMargin)
-      .padding(.vertical, buttonPadding)
-      .allowsHitTesting(true)
+      }.allowsHitTesting(true)
 
       Spacer()
 
@@ -208,7 +193,7 @@ struct ReaderControlsView: View {
             }
           }
           .contentShape(Rectangle())
-          .adaptiveButtonStyle(.borderedProminent)
+          .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           .opacity((readingDirection == .rtl ? nextBook : previousBook) != nil ? 1.0 : 0.0)
           .disabled((readingDirection == .rtl ? nextBook : previousBook) == nil)
@@ -231,7 +216,7 @@ struct ReaderControlsView: View {
             }
           }
           .contentShape(Rectangle())
-          .adaptiveButtonStyle(.borderedProminent)
+          .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
             .focused($focusedControl, equals: .pageNumber)
@@ -246,7 +231,7 @@ struct ReaderControlsView: View {
                 .padding(2)
             }
             .contentShape(Rectangle())
-            .adaptiveButtonStyle(.borderedProminent)
+            .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             #if os(tvOS)
               .focused($focusedControl, equals: .toc)
@@ -273,7 +258,7 @@ struct ReaderControlsView: View {
             }
           }
           .contentShape(Rectangle())
-          .adaptiveButtonStyle(.borderedProminent)
+          .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           .opacity((readingDirection == .rtl ? previousBook : nextBook) != nil ? 1.0 : 0.0)
           .disabled((readingDirection == .rtl ? previousBook : nextBook) == nil)
@@ -290,10 +275,9 @@ struct ReaderControlsView: View {
           .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
       }
-      .padding()
     }
-    .padding(.top, topPadding)
-    .padding(.bottom, bottomPadding)
+    .iPadIgnoresSafeArea(paddingTop: 24)
+    .padding(.horizontal)
     .transition(.opacity)
     #if os(tvOS)
       .onAppear {
