@@ -21,12 +21,12 @@ Key features:
 ### Build Commands
 
 ```bash
-# Build for specific platforms
+# Build for specific platforms (local builds)
 make build-ios          # Build for iOS device
 make build-macos        # Build for macOS
 make build-tvos         # Build for tvOS device
 
-# CI-friendly builds (no code signing, simulator targets)
+# CI-friendly builds (no code signing, simulator targets) (CI workflow only)
 make build-ios-ci       # iOS simulator
 make build-macos-ci     # macOS without signing
 make build-tvos-ci      # tvOS simulator
