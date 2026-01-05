@@ -189,6 +189,7 @@
         readerBackground: ReaderBackground,
         disableTapToTurnPage: Bool
       ) {
+        applySafeAreaInsetsIfNeeded(for: collectionView)
         self.pages = pages
         self.viewModel = viewModel
         self.onPageChange = onPageChange
@@ -233,6 +234,24 @@
           if self.currentPage != currentPage {
             self.currentPage = currentPage
           }
+        }
+      }
+
+      private func applySafeAreaInsetsIfNeeded(for collectionView: UICollectionView) {
+        guard collectionView.traitCollection.userInterfaceIdiom == .phone else {
+          if collectionView.contentInset != .zero {
+            collectionView.contentInset = .zero
+            collectionView.scrollIndicatorInsets = .zero
+          }
+          return
+        }
+
+        let safeInsets = collectionView.safeAreaInsets
+        let newInsets = UIEdgeInsets(top: safeInsets.top, left: 0, bottom: safeInsets.bottom, right: 0)
+
+        if collectionView.contentInset != newInsets {
+          collectionView.contentInset = newInsets
+          collectionView.scrollIndicatorInsets = newInsets
         }
       }
 
