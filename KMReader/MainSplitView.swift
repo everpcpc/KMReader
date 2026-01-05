@@ -24,8 +24,8 @@ import SwiftUI
       [KomgaReadList]
 
     @AppStorage("sidebarLibrariesExpanded") private var librariesExpanded: Bool = true
-    @AppStorage("sidebarCollectionsExpanded") private var collectionsExpanded: Bool = true
-    @AppStorage("sidebarReadListsExpanded") private var readListsExpanded: Bool = true
+    @AppStorage("sidebarCollectionsExpanded") private var collectionsExpanded: Bool = false
+    @AppStorage("sidebarReadListsExpanded") private var readListsExpanded: Bool = false
 
     @State private var nav: NavDestination? = .home
     @State private var isRefreshing: Bool = false
@@ -142,6 +142,9 @@ import SwiftUI
         .animation(.default, value: libraries)
         .animation(.default, value: collections)
         .animation(.default, value: readLists)
+        .animation(.default, value: librariesExpanded)
+        .animation(.default, value: collectionsExpanded)
+        .animation(.default, value: readListsExpanded)
         #if os(iOS)
           .refreshable {
             await refreshSidebar()
