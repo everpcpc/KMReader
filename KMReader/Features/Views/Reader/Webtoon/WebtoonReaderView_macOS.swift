@@ -471,14 +471,16 @@
         let scrollAmount = screenHeight * CGFloat(AppConfig.webtoonTapScrollPercentage / 100.0)
         let targetY = max(currentOrigin.y - scrollAmount, 0)
         preheatPages(at: targetY)
-        collectionView?.layoutSubtreeIfNeeded()
 
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0.3
           context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-          clipView.animator().setBoundsOrigin(NSPoint(x: 0, y: targetY))
+          context.allowsImplicitAnimation = true
+          clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
+        } completionHandler: { [weak sv] in
+          guard let sv = sv else { return }
+          sv.reflectScrolledClipView(clipView)
         }
-        sv.reflectScrolledClipView(clipView)
       }
 
       private func scrollDown(_ screenHeight: CGFloat) {
@@ -490,14 +492,16 @@
         let maxY = max(contentH - screenHeight, 0)
         let targetY = min(currentOrigin.y + scrollAmount, maxY)
         preheatPages(at: targetY)
-        collectionView?.layoutSubtreeIfNeeded()
 
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0.3
           context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-          clipView.animator().setBoundsOrigin(NSPoint(x: 0, y: targetY))
+          context.allowsImplicitAnimation = true
+          clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
+        } completionHandler: { [weak sv] in
+          guard let sv = sv else { return }
+          sv.reflectScrolledClipView(clipView)
         }
-        sv.reflectScrolledClipView(clipView)
       }
 
       private func preheatPages(at targetOffset: CGFloat) {
