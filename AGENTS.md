@@ -237,6 +237,7 @@ Additional patterns:
 - New API endpoints belong in appropriate service; keep request-building out of views
 - Dashboard/library selections stored via `LibraryManager` and related managers
 - All logging goes through `AppLogger` with OSLog subsystems and categories
+- Xcode project uses folder references (not groups); adding/removing files does not require editing `project.pbxproj`
 - Lint is not stable for swift, run `make build-ios` before to ensure there's really a problem.
 - Translation all supported languages, refer to ../komga/komga-webui/src/locales/ if available.
 
