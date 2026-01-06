@@ -143,6 +143,12 @@ actor OfflineManager {
     case .pending:
       await cancelDownload(bookId: info.bookId, instanceId: instanceId)
     case .notDownloaded, .failed:
+      if AppConfig.offlineAutoDeleteRead,
+        await DatabaseOperator.shared.isBookReadCompleted(
+          bookId: info.bookId, instanceId: instanceId)
+      {
+        return
+      }
       await DatabaseOperator.shared.updateBookDownloadStatus(
         bookId: info.bookId,
         instanceId: instanceId,
@@ -155,6 +161,12 @@ actor OfflineManager {
   }
 
   func retryDownload(instanceId: String, bookId: String) async {
+    if AppConfig.offlineAutoDeleteRead,
+      await DatabaseOperator.shared.isBookReadCompleted(
+        bookId: bookId, instanceId: instanceId)
+    {
+      return
+    }
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId,
       instanceId: instanceId,
@@ -219,6 +231,9 @@ actor OfflineManager {
     }
     await DatabaseOperator.shared.syncSeriesDownloadStatus(
       seriesId: seriesId, instanceId: instanceId)
+    // Also sync readlists containing these books
+    await DatabaseOperator.shared.syncReadListsContainingBooks(
+      bookIds: bookIds, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
   }
 
@@ -247,6 +262,9 @@ actor OfflineManager {
       await DatabaseOperator.shared.syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
     }
+    // Also sync readlists containing these books
+    await DatabaseOperator.shared.syncReadListsContainingBooks(
+      bookIds: books.map { $0.id }, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
   }
 
@@ -276,6 +294,9 @@ actor OfflineManager {
       await DatabaseOperator.shared.syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
     }
+    // Also sync readlists containing these books
+    await DatabaseOperator.shared.syncReadListsContainingBooks(
+      bookIds: readBooks.map { $0.id }, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
   }
 
@@ -453,11 +474,24 @@ actor OfflineManager {
       await deleteReadBooks()
     }
 
-    let pending = await DatabaseOperator.shared.fetchPendingBooks(limit: 1)
+    while true {
+      let pending = await DatabaseOperator.shared.fetchPendingBooks(limit: 1)
 
-    guard let nextBook = pending.first else { return }
+      guard let nextBook = pending.first else { return }
 
-    await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
+      if AppConfig.offlineAutoDeleteRead, nextBook.readProgress?.completed == true {
+        await DatabaseOperator.shared.updateBookDownloadStatus(
+          bookId: nextBook.id,
+          instanceId: instanceId,
+          status: .notDownloaded
+        )
+        await DatabaseOperator.shared.commit()
+        continue
+      }
+
+      await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
+      return
+    }
   }
 
   private func startDownload(instanceId: String, info: DownloadInfo) async {
@@ -769,18 +803,6 @@ actor OfflineManager {
       return toc
     }
     throw APIError.offline
-  }
-
-  func getNextBook(bookId: String, readListId: String? = nil) async -> Book? {
-    let instanceId = AppConfig.currentInstanceId
-    return await DatabaseOperator.shared.getNextBook(
-      instanceId: instanceId, bookId: bookId, readListId: readListId)
-  }
-
-  func getPreviousBook(bookId: String, readListId: String? = nil) async -> Book? {
-    let instanceId = AppConfig.currentInstanceId
-    return await DatabaseOperator.shared.getPreviousBook(
-      instanceId: instanceId, bookId: bookId, readListId: readListId)
   }
 
   func updateLocalProgress(bookId: String, page: Int, completed: Bool) async {

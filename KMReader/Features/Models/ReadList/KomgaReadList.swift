@@ -24,6 +24,35 @@ final class KomgaReadList {
 
   var bookIds: [String] = []
 
+  // Track offline download status (managed locally, manual only)
+  var downloadStatusRaw: String = "notDownloaded"
+  var downloadError: String?
+  var downloadAt: Date?
+  var downloadedSize: Int64 = 0
+  var downloadedBooks: Int = 0
+  var pendingBooks: Int = 0
+
+  /// Computed property for download status.
+  var downloadStatus: SeriesDownloadStatus {
+    let downloaded = downloadedBooks
+    let pending = pendingBooks
+    let total = bookIds.count
+
+    if downloadStatusRaw == "downloaded" || (downloaded == total && total > 0) {
+      return .downloaded
+    }
+
+    if pending > 0 {
+      return .pending(downloaded: downloaded, pending: pending, total: total)
+    }
+
+    if downloaded > 0 {
+      return .partiallyDownloaded(downloaded: downloaded, total: total)
+    }
+
+    return .notDownloaded
+  }
+
   init(
     id: String? = nil,
     readListId: String,
@@ -34,7 +63,10 @@ final class KomgaReadList {
     createdDate: Date,
     lastModifiedDate: Date,
     filtered: Bool,
-    bookIds: [String] = []
+    bookIds: [String] = [],
+    downloadedBooks: Int = 0,
+    pendingBooks: Int = 0,
+    downloadedSize: Int64 = 0
   ) {
     self.id = id ?? "\(instanceId)_\(readListId)"
     self.readListId = readListId
@@ -46,6 +78,9 @@ final class KomgaReadList {
     self.lastModifiedDate = lastModifiedDate
     self.filtered = filtered
     self.bookIds = bookIds
+    self.downloadedBooks = downloadedBooks
+    self.pendingBooks = pendingBooks
+    self.downloadedSize = downloadedSize
   }
 
   func toReadList() -> ReadList {

@@ -53,6 +53,12 @@ struct ReadListDetailView: View {
               readListToolbarContent
                 .padding(.vertical, 8)
             #endif
+
+            Divider()
+            if let komgaReadList = komgaReadList {
+              ReadListDownloadActionsSection(komgaReadList: komgaReadList)
+            }
+            Divider()
           }
           .padding(.horizontal)
 

@@ -56,7 +56,7 @@ struct ReadListRowView: View {
             .overlay(
               Menu {
                 ReadListContextMenu(
-                  readList: komgaReadList.toReadList(),
+                  komgaReadList: komgaReadList,
                   onActionCompleted: onActionCompleted,
                   onDeleteRequested: {
                     showDeleteConfirmation = true

@@ -1,30 +1,22 @@
 //
-//  SeriesDownloadActionsSection.swift
+//  ReadListDownloadActionsSection.swift
 //  KMReader
 //
 
 import SwiftData
 import SwiftUI
 
-struct SeriesDownloadActionsSection: View {
-  @Bindable var komgaSeries: KomgaSeries
+struct ReadListDownloadActionsSection: View {
+  @Bindable var komgaReadList: KomgaReadList
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
-  private var series: Series {
-    komgaSeries.toSeries()
+  private var readList: ReadList {
+    komgaReadList.toReadList()
   }
 
   private var status: SeriesDownloadStatus {
-    komgaSeries.downloadStatus
-  }
-
-  private var policy: SeriesOfflinePolicy {
-    komgaSeries.offlinePolicy
-  }
-
-  private var policyLabel: Text {
-    Text("Offline Policy") + Text(" : ") + Text(policy.label)
+    komgaReadList.downloadStatus
   }
 
   @State private var pendingAction: SeriesDownloadAction?
@@ -40,31 +32,6 @@ struct SeriesDownloadActionsSection: View {
         )
 
         Spacer()
-
-        Menu {
-          Picker(
-            "",
-            selection: Binding(
-              get: { policy },
-              set: { updatePolicy($0) }
-            )
-          ) {
-            ForEach(SeriesOfflinePolicy.allCases, id: \.self) { p in
-              Label(p.label, systemImage: p.icon)
-                .tag(p)
-            }
-          }
-          .pickerStyle(.inline)
-        } label: {
-          Label {
-            policyLabel.lineLimit(1)
-          } icon: {
-            Image(systemName: policy.icon)
-              .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-          }
-        }
-        .font(.caption)
-        .adaptiveButtonStyle(.bordered)
 
         let actions = SeriesDownloadAction.availableActions(for: status)
         if actions.count > 1 {
@@ -89,7 +56,6 @@ struct SeriesDownloadActionsSection: View {
       }
     }
     .animation(.easeInOut(duration: 0.2), value: status)
-    .animation(.easeInOut(duration: 0.2), value: policy)
     .padding(.vertical, 4)
     .alert(
       pendingAction?.label(for: status) ?? "",
@@ -140,19 +106,6 @@ struct SeriesDownloadActionsSection: View {
     }
   }
 
-  private func updatePolicy(_ newPolicy: SeriesOfflinePolicy) {
-    Task {
-      // Sync books first if policy is not manual
-      if newPolicy != .manual {
-        try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
-      }
-      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
-        seriesId: series.id, instanceId: currentInstanceId, policy: newPolicy
-      )
-      await DatabaseOperator.shared.commit()
-    }
-  }
-
   private func performAction(_ action: SeriesDownloadAction) {
     switch action {
     case .download:
@@ -165,14 +118,14 @@ struct SeriesDownloadActionsSection: View {
   private func downloadAll() {
     Task {
       // Sync books first
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
-      await DatabaseOperator.shared.downloadSeriesOffline(
-        seriesId: series.id, instanceId: currentInstanceId
+      try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
+      await DatabaseOperator.shared.downloadReadListOffline(
+        readListId: readList.id, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
         ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineDownloadQueued")
+          message: String(localized: "notification.readList.offlineDownloadQueued")
         )
       }
     }
@@ -180,13 +133,13 @@ struct SeriesDownloadActionsSection: View {
 
   private func removeAll() {
     Task {
-      await DatabaseOperator.shared.removeSeriesOffline(
-        seriesId: series.id, instanceId: currentInstanceId
+      await DatabaseOperator.shared.removeReadListOffline(
+        readListId: readList.id, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
         ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineRemoved")
+          message: String(localized: "notification.readList.offlineRemoved")
         )
       }
     }

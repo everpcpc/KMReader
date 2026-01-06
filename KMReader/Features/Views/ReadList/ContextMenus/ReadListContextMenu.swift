@@ -5,17 +5,23 @@
 //  Created by Komga iOS Client
 //
 
-import Foundation
+import SwiftData
 import SwiftUI
 
 @MainActor
 struct ReadListContextMenu: View {
-  let readList: ReadList
+  @Bindable var komgaReadList: KomgaReadList
+
   var onActionCompleted: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @AppStorage("isOffline") private var isOffline: Bool = false
+
+  private var readList: ReadList {
+    komgaReadList.toReadList()
+  }
 
   var body: some View {
     Group {

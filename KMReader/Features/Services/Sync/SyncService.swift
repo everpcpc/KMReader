@@ -252,6 +252,49 @@ class SyncService {
     return result
   }
 
+  /// Sync all books for a series (all pages) - used before offline policy operations
+  func syncAllSeriesBooks(seriesId: String) async throws {
+    let instanceId = AppConfig.currentInstanceId
+    var page = 0
+    var hasMore = true
+
+    while hasMore {
+      let result = try await BookService.shared.getBooks(
+        seriesId: seriesId,
+        page: page,
+        size: 100,
+        browseOpts: BookBrowseOptions()
+      )
+      await db.upsertBooks(result.content, instanceId: instanceId)
+      hasMore = !result.last
+      page += 1
+    }
+    await db.commit()
+    logger.info("📚 Synced all books for series \(seriesId)")
+  }
+
+  /// Sync all books for a readlist (all pages) - used before offline policy operations
+  func syncAllReadListBooks(readListId: String) async throws {
+    let instanceId = AppConfig.currentInstanceId
+    var page = 0
+    var hasMore = true
+
+    while hasMore {
+      let result = try await ReadListService.shared.getReadListBooks(
+        readListId: readListId,
+        page: page,
+        size: 100,
+        browseOpts: ReadListBookBrowseOptions(),
+        libraryIds: nil
+      )
+      await db.upsertBooks(result.content, instanceId: instanceId)
+      hasMore = !result.last
+      page += 1
+    }
+    await db.commit()
+    logger.info("📖 Synced all books for readlist \(readListId)")
+  }
+
   func syncBook(bookId: String) async throws -> Book {
     do {
       let book = try await BookService.shared.getBook(id: bookId)

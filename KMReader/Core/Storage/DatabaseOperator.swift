@@ -576,6 +576,16 @@ actor DatabaseOperator {
       if let series = try? modelContext.fetch(seriesDescriptor).first {
         syncSeriesDownloadStatus(series: series)
       }
+
+      // Also sync readlists that contain this book
+      let readListDescriptor = FetchDescriptor<KomgaReadList>(
+        predicate: #Predicate { $0.instanceId == instanceId }
+      )
+      if let readLists = try? modelContext.fetch(readListDescriptor) {
+        for readList in readLists where readList.bookIds.contains(bookId) {
+          syncReadListDownloadStatus(readList: readList)
+        }
+      }
     }
   }
 
@@ -650,7 +660,7 @@ actor DatabaseOperator {
       let isPending = book.downloadStatusRaw == "pending"
       let isFailed = book.downloadStatusRaw == "failed"
 
-      let shouldBeOffline: Bool
+      var shouldBeOffline: Bool
       switch policy {
       case .manual:
         shouldBeOffline = (isDownloaded || isPending)
@@ -658,6 +668,10 @@ actor DatabaseOperator {
         shouldBeOffline = !isRead
       case .all:
         shouldBeOffline = true
+      }
+
+      if AppConfig.offlineAutoDeleteRead && isRead {
+        shouldBeOffline = false
       }
 
       if shouldBeOffline {
@@ -669,7 +683,10 @@ actor DatabaseOperator {
         }
       } else {
         if (isDownloaded || isPending) && policy == .unreadOnlyAndCleanupRead {
-          booksToDelete.append(book)
+          // Check if any other policy wants to keep this book
+          if !shouldKeepBookDueToOtherPolicies(book: book, excludeSeriesId: series.seriesId) {
+            booksToDelete.append(book)
+          }
         }
       }
     }
@@ -712,6 +729,9 @@ actor DatabaseOperator {
     let now = Date.now
 
     for (index, book) in sortedBooks.enumerated() {
+      if AppConfig.offlineAutoDeleteRead && book.progressCompleted == true {
+        continue
+      }
       if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
         book.downloadStatusRaw = "pending"
         // Add a small increment to ensure stable sorting by downloadAt
@@ -787,6 +807,184 @@ actor DatabaseOperator {
 
     if syncSeriesStatus {
       self.syncSeriesDownloadStatus(series: series)
+    }
+  }
+
+  // MARK: - ReadList Download Status Operations
+
+  func syncReadListDownloadStatus(readList: KomgaReadList) {
+    let instanceId = readList.instanceId
+    let bookIds = readList.bookIds
+    guard !bookIds.isEmpty else {
+      readList.downloadedBooks = 0
+      readList.pendingBooks = 0
+      readList.downloadedSize = 0
+      readList.downloadAt = nil
+      readList.downloadStatusRaw = "notDownloaded"
+      return
+    }
+
+    // Fetch only the books that belong to this readlist
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { book in
+        book.instanceId == instanceId && bookIds.contains(book.bookId)
+      }
+    )
+    let books = (try? modelContext.fetch(descriptor)) ?? []
+
+    var downloadedCount = 0
+    var pendingCount = 0
+    var totalSize: Int64 = 0
+    var latestDownloadAt: Date?
+
+    for book in books {
+      if book.downloadStatusRaw == "downloaded" {
+        downloadedCount += 1
+        totalSize += book.downloadedSize
+        if let downloadAt = book.downloadAt {
+          if latestDownloadAt == nil || downloadAt > latestDownloadAt! {
+            latestDownloadAt = downloadAt
+          }
+        }
+      } else if book.downloadStatusRaw == "pending" {
+        pendingCount += 1
+      }
+    }
+
+    let totalCount = bookIds.count
+    readList.downloadedBooks = downloadedCount
+    readList.pendingBooks = pendingCount
+    readList.downloadedSize = totalSize
+    readList.downloadAt = latestDownloadAt
+
+    if downloadedCount == totalCount && totalCount > 0 {
+      readList.downloadStatusRaw = "downloaded"
+    } else if pendingCount > 0 {
+      readList.downloadStatusRaw = "pending"
+    } else if downloadedCount > 0 {
+      readList.downloadStatusRaw = "partiallyDownloaded"
+    } else {
+      readList.downloadStatusRaw = "notDownloaded"
+    }
+  }
+
+  func syncReadListDownloadStatus(readListId: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(readListId)"
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let readList = try? modelContext.fetch(descriptor).first else { return }
+    syncReadListDownloadStatus(readList: readList)
+  }
+
+  /// Sync download status for all readlists that contain any of the given book IDs.
+  func syncReadListsContainingBooks(bookIds: [String], instanceId: String) {
+    guard !bookIds.isEmpty else { return }
+    let bookIdSet = Set(bookIds)
+
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    guard let readLists = try? modelContext.fetch(descriptor) else { return }
+
+    for readList in readLists {
+      // Check if this readlist contains any of the books
+      let hasBook = readList.bookIds.contains { bookIdSet.contains($0) }
+      if hasBook {
+        syncReadListDownloadStatus(readList: readList)
+      }
+    }
+  }
+
+  /// Check if a book should be kept due to series policy.
+  /// Used for conflict resolution when cleanup would be triggered but series wants to keep.
+  private func shouldKeepBookDueToOtherPolicies(
+    book: KomgaBook,
+    excludeSeriesId: String? = nil
+  ) -> Bool {
+    let instanceId = book.instanceId
+
+    // Check series policy (if not excluded)
+    if book.seriesId != excludeSeriesId {
+      let compositeSeriesId = "\(instanceId)_\(book.seriesId)"
+      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { $0.id == compositeSeriesId }
+      )
+      if let series = try? modelContext.fetch(seriesDescriptor).first {
+        let policy = series.offlinePolicy
+        // If series wants to keep (all or unreadOnly without cleanup), keep it
+        if policy == .all || policy == .unreadOnly {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
+
+  func downloadReadListOffline(readListId: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(readListId)"
+    let readListDescriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+
+    let bookIds = readList.bookIds
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
+    let books = allBooks.filter { bookIds.contains($0.bookId) }
+
+    let now = Date.now
+    for (index, book) in books.enumerated() {
+      if AppConfig.offlineAutoDeleteRead && book.progressCompleted == true {
+        continue
+      }
+      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
+        book.downloadStatusRaw = "pending"
+        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+      }
+    }
+
+    OfflineManager.shared.triggerSync(instanceId: instanceId)
+    syncReadListDownloadStatus(readList: readList)
+  }
+
+  func removeReadListOffline(readListId: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(readListId)"
+    let readListDescriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+
+    let bookIds = readList.bookIds
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
+    let books = allBooks.filter { bookIds.contains($0.bookId) }
+
+    // Only remove books that are not protected by other policies
+    var bookIdsToRemove: [String] = []
+    for book in books {
+      if !shouldKeepBookDueToOtherPolicies(book: book) {
+        book.downloadStatusRaw = "notDownloaded"
+        book.downloadError = nil
+        book.downloadAt = nil
+        book.downloadedSize = 0
+        bookIdsToRemove.append(book.bookId)
+      }
+    }
+
+    Task {
+      for bookId in bookIdsToRemove {
+        await OfflineManager.shared.deleteBook(
+          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+      }
+      await DatabaseOperator.shared.syncReadListDownloadStatus(
+        readListId: readListId, instanceId: instanceId)
+      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -1075,6 +1273,15 @@ actor DatabaseOperator {
 
     guard let book = try? modelContext.fetch(descriptor).first else { return .notDownloaded }
     return book.downloadStatus
+  }
+
+  func isBookReadCompleted(bookId: String, instanceId: String) -> Bool {
+    let compositeId = "\(instanceId)_\(bookId)"
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let book = try? modelContext.fetch(descriptor).first else { return false }
+    return book.progressCompleted == true
   }
 
   func fetchPendingBooks(limit: Int? = nil) -> [Book] {

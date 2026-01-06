@@ -64,6 +64,27 @@ struct SeriesContextMenu: View {
 
         Divider()
 
+        // Offline Policy Menu
+        Menu {
+          Picker(
+            "",
+            selection: Binding(
+              get: { komgaSeries.offlinePolicy },
+              set: { updatePolicy($0) }
+            )
+          ) {
+            ForEach(SeriesOfflinePolicy.allCases, id: \.self) { p in
+              Label(p.label, systemImage: p.icon)
+                .tag(p)
+            }
+          }
+          .pickerStyle(.inline)
+        } label: {
+          Label("Offline Policy", systemImage: komgaSeries.offlinePolicy.icon)
+        }
+
+        Divider()
+
         if canMarkAsRead {
           Button {
             markSeriesAsRead()
@@ -171,6 +192,10 @@ struct SeriesContextMenu: View {
 
   private func updatePolicy(_ policy: SeriesOfflinePolicy) {
     Task {
+      // Sync books first if policy is not manual
+      if policy != .manual {
+        try? await SyncService.shared.syncAllSeriesBooks(seriesId: komgaSeries.seriesId)
+      }
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: policy
       )

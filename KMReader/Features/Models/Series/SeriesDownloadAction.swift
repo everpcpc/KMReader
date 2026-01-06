@@ -57,9 +57,9 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
   func confirmationMessage(for status: SeriesDownloadStatus) -> String {
     switch self {
     case .download:
-      return String(localized: "Are you sure you want to download all books in this series?")
+      return String(localized: "confirm.download_all_books")
     case .remove:
-      return String(localized: "Are you sure you want to remove all offline books in this series?")
+      return String(localized: "confirm.remove_all_offline_books")
     case .cancel:
       return ""
     }

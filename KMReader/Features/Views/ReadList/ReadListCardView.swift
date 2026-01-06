@@ -27,7 +27,7 @@ struct ReadListCardView: View {
       .adaptiveButtonStyle(.plain)
       .contextMenu {
         ReadListContextMenu(
-          readList: komgaReadList.toReadList(),
+          komgaReadList: komgaReadList,
           onActionCompleted: onActionCompleted,
           onDeleteRequested: {
             showDeleteConfirmation = true
