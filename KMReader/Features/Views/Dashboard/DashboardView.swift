@@ -122,148 +122,145 @@ struct DashboardView: View {
   }
 
   var body: some View {
-    NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 0) {
-          HStack {
-            if enableSSE {
-              #if os(tvOS)
-                if isOffline {
-                  Button {
-                    Task {
-                      await tryReconnect()
-                    }
-                  } label: {
-                    if isCheckingConnection {
-                      ProgressView()
-                    } else {
-                      Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
-                        .foregroundStyle(.orange)
-                    }
+    ScrollView {
+      VStack(alignment: .leading, spacing: 0) {
+        HStack {
+          if enableSSE {
+            #if os(tvOS)
+              if isOffline {
+                Button {
+                  Task {
+                    await tryReconnect()
                   }
-                  .disabled(isCheckingConnection)
-                } else {
-                  Button {
-                    refreshDashboard(reason: "Manual tvOS button")
-                  } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise.circle")
+                } label: {
+                  if isCheckingConnection {
+                    ProgressView()
+                  } else {
+                    Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
+                      .foregroundStyle(.orange)
                   }
-                  .disabled(isRefreshDisabled)
                 }
-              #endif
-              ServerUpdateStatusView()
-            }
-            Spacer()
-          }.padding()
+                .disabled(isCheckingConnection)
+              } else {
+                Button {
+                  refreshDashboard(reason: "Manual tvOS button")
+                } label: {
+                  Label("Refresh", systemImage: "arrow.clockwise.circle")
+                }
+                .disabled(isRefreshDisabled)
+              }
+            #endif
+            ServerUpdateStatusView()
+          }
+          Spacer()
+        }.padding()
 
-          ForEach(dashboard.sections, id: \.id) { section in
-            if section.isLocalSection {
-              DashboardLocalSectionView(
-                section: section,
-                refreshTrigger: refreshTrigger,
-                onUpdated: {
-                  refreshDashboard(reason: "Section action completed")
-                }
-              )
-            } else {
-              DashboardSectionView(
-                section: section,
-                refreshTrigger: refreshTrigger,
-                onUpdated: {
-                  refreshDashboard(reason: "Section action completed")
-                }
-              )
-            }
+        ForEach(dashboard.sections, id: \.id) { section in
+          if section.isLocalSection {
+            DashboardLocalSectionView(
+              section: section,
+              refreshTrigger: refreshTrigger,
+              onUpdated: {
+                refreshDashboard(reason: "Section action completed")
+              }
+            )
+          } else {
+            DashboardSectionView(
+              section: section,
+              refreshTrigger: refreshTrigger,
+              onUpdated: {
+                refreshDashboard(reason: "Section action completed")
+              }
+            )
           }
         }
-        .padding(.vertical)
       }
-      .handleNavigation()
-      .inlineNavigationBarTitle(String(localized: "title.dashboard"))
-      .animation(.default, value: dashboard)
-      .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
-        // Refresh when server switch completes (transitions from switching to not switching)
-        // This avoids race condition where refresh happens after logout but before new auth is ready
-        if oldValue && !newValue {
-          refreshDashboard(reason: "Server switch completed")
-        }
+      .padding(.vertical)
+    }
+    .inlineNavigationBarTitle(String(localized: "title.dashboard"))
+    .animation(.default, value: dashboard)
+    .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
+      // Refresh when server switch completes (transitions from switching to not switching)
+      // This avoids race condition where refresh happens after logout but before new auth is ready
+      if oldValue && !newValue {
+        refreshDashboard(reason: "Server switch completed")
       }
-      .onChange(of: dashboard.libraryIds) { _, _ in
-        // Bypass auto-refresh setting for configuration changes
-        refreshDashboard(reason: "Library filter changed")
-      }
-      .onAppear {
-        setupSSEHandlers()
-      }
-      .onDisappear {
-        cleanupSSEHandlers()
-        // Cancel any pending refresh when view disappears
+    }
+    .onChange(of: dashboard.libraryIds) { _, _ in
+      // Bypass auto-refresh setting for configuration changes
+      refreshDashboard(reason: "Library filter changed")
+    }
+    .onAppear {
+      setupSSEHandlers()
+    }
+    .onDisappear {
+      cleanupSSEHandlers()
+      // Cancel any pending refresh when view disappears
+      pendingRefreshTask?.cancel()
+      pendingRefreshTask = nil
+    }
+    .onChange(of: enableSSEAutoRefresh) { _, newValue in
+      // Cancel any pending refresh when auto-refresh is disabled
+      if !newValue {
         pendingRefreshTask?.cancel()
         pendingRefreshTask = nil
       }
-      .onChange(of: enableSSEAutoRefresh) { _, newValue in
-        // Cancel any pending refresh when auto-refresh is disabled
-        if !newValue {
-          pendingRefreshTask?.cancel()
-          pendingRefreshTask = nil
-        }
-      }
-      .onChange(of: readerPresentation.readerState) { _, newState in
-        if newState != nil {
-          // Reader opened - cancel any pending dashboard refresh
-          pendingRefreshTask?.cancel()
-          pendingRefreshTask = nil
-        } else if shouldRefreshAfterReading {
-          // Check if there's a pending refresh
-          shouldRefreshAfterReading = false
-          refreshDashboard(reason: "Deferred after reader closed")
-        } else {
-          // Refresh sections when reader is closed otherwise
-          refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
-        }
-      }
-      #if !os(tvOS)
-        .toolbar {
-          ToolbarItem(placement: .cancellationAction) {
-            Button {
-              showLibraryPicker = true
-            } label: {
-              Image(systemName: "books.vertical.circle")
-            }
-          }
-          ToolbarItem(placement: .confirmationAction) {
-            if isOffline {
-              Button {
-                Task {
-                  await tryReconnect()
-                }
-              } label: {
-                if isCheckingConnection {
-                  ProgressView()
-                } else {
-                  Image(systemName: "wifi.slash")
-                  .foregroundStyle(.red)
-                }
-              }
-              .disabled(isCheckingConnection)
-            } else {
-              Button {
-                refreshDashboard(reason: "Manual toolbar button")
-              } label: {
-                Image(systemName: "arrow.clockwise.circle")
-              }
-              .disabled(isRefreshDisabled)
-            }
-          }
-        }
-        .refreshable {
-          refreshDashboard(reason: "Pull to refresh")
-        }
-        .sheet(isPresented: $showLibraryPicker) {
-          LibraryPickerSheet()
-        }
-      #endif
     }
+    .onChange(of: readerPresentation.readerState) { _, newState in
+      if newState != nil {
+        // Reader opened - cancel any pending dashboard refresh
+        pendingRefreshTask?.cancel()
+        pendingRefreshTask = nil
+      } else if shouldRefreshAfterReading {
+        // Check if there's a pending refresh
+        shouldRefreshAfterReading = false
+        refreshDashboard(reason: "Deferred after reader closed")
+      } else {
+        // Refresh sections when reader is closed otherwise
+        refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
+      }
+    }
+    #if !os(tvOS)
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) {
+          Button {
+            showLibraryPicker = true
+          } label: {
+            Image(systemName: "books.vertical.circle")
+          }
+        }
+        ToolbarItem(placement: .confirmationAction) {
+          if isOffline {
+            Button {
+              Task {
+                await tryReconnect()
+              }
+            } label: {
+              if isCheckingConnection {
+                ProgressView()
+              } else {
+                Image(systemName: "wifi.slash")
+                .foregroundStyle(.red)
+              }
+            }
+            .disabled(isCheckingConnection)
+          } else {
+            Button {
+              refreshDashboard(reason: "Manual toolbar button")
+            } label: {
+              Image(systemName: "arrow.clockwise.circle")
+            }
+            .disabled(isRefreshDisabled)
+          }
+        }
+      }
+      .refreshable {
+        refreshDashboard(reason: "Pull to refresh")
+      }
+      .sheet(isPresented: $showLibraryPicker) {
+        LibraryPickerSheet()
+      }
+    #endif
   }
 
   private func setupSSEHandlers() {

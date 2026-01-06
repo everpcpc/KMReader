@@ -280,7 +280,7 @@ struct OneShotDetailContentView: View {
                 .padding()
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(16)
-              }
+              }.adaptiveButtonStyle(.plain)
             }
           }
         }
@@ -310,7 +310,7 @@ struct OneShotDetailContentView: View {
                 .padding()
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(16)
-              }
+              }.adaptiveButtonStyle(.plain)
             }
           }
         }

@@ -18,18 +18,11 @@ struct OldTabView: View {
       .tag(TabItem.home)
 
       NavigationStack {
-        TabItem.series.content
+        TabItem.browse.content
           .handleNavigation()
       }
-      .tabItem { TabItem.series.label }
-      .tag(TabItem.series)
-
-      NavigationStack {
-        TabItem.books.content
-          .handleNavigation()
-      }
-      .tabItem { TabItem.books.label }
-      .tag(TabItem.books)
+      .tabItem { TabItem.browse.label }
+      .tag(TabItem.browse)
 
       NavigationStack {
         TabItem.settings.content

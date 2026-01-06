@@ -123,10 +123,6 @@ enum NavDestination: Hashable {
       return bookId
     case .oneshotDetail(let seriesId):
       return seriesId
-    case .collectionDetail(let collectionId):
-      return collectionId
-    case .readListDetail(let readListId):
-      return readListId
     default:
       return nil
     }
