@@ -502,14 +502,19 @@ struct DivinaReaderView: View {
       }
 
       if let series = series {
-        let rawReadingDirection = series.metadata.readingDirection?
-          .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
         let preferredDirection: ReadingDirection
-        if let rawReadingDirection, !rawReadingDirection.isEmpty {
-          preferredDirection = ReadingDirection.fromString(rawReadingDirection)
-        } else {
+        if AppConfig.forceDefaultReadingDirection {
           preferredDirection = AppConfig.defaultReadingDirection
+        } else {
+          let rawReadingDirection = series.metadata.readingDirection?
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+          if let rawReadingDirection, !rawReadingDirection.isEmpty {
+            preferredDirection = ReadingDirection.fromString(rawReadingDirection)
+          } else {
+            preferredDirection = AppConfig.defaultReadingDirection
+          }
         }
+
         if !preserveReaderOptions {
           readingDirection = preferredDirection.isSupported ? preferredDirection : .vertical
         }

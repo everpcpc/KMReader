@@ -18,6 +18,7 @@ struct SettingsReaderView: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
+  @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
@@ -195,6 +196,15 @@ struct SettingsReaderView: View {
           Text("Used when a book or series doesn't specify a reading direction")
             .font(.caption)
             .foregroundColor(.secondary)
+        }
+
+        Toggle(isOn: $forceDefaultReadingDirection) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Force Default Reading Direction")
+            Text("Ignore book and series metadata and always use the preferred direction")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
         }
 
         VStack(alignment: .leading, spacing: 8) {
