@@ -63,6 +63,7 @@ import UniformTypeIdentifiers
 struct PageImageView: View {
   var viewModel: ReaderViewModel
   let pageIndex: Int
+  var alignment: HorizontalAlignment = .center
 
   /// Cached image from memory for display
   @State private var displayImage: PlatformImage?
@@ -77,6 +78,21 @@ struct PageImageView: View {
       return nil
     }
     return viewModel.pages[pageIndex]
+  }
+
+  private var imageAlignment: Alignment {
+    Alignment(horizontal: alignment, vertical: .center)
+  }
+
+  private var pageNumberAlignment: Alignment {
+    switch alignment {
+    case .leading:
+      return .topTrailing
+    case .trailing:
+      return .topLeading
+    default:
+      return .top
+    }
   }
 
   #if os(iOS) || os(macOS)
@@ -102,7 +118,7 @@ struct PageImageView: View {
   var body: some View {
     Group {
       if let displayImage = displayImage {
-        ZStack(alignment: .center) {
+        ZStack(alignment: imageAlignment) {
           #if os(iOS) || os(macOS)
             if isLiveTextActive, ImageAnalyzer.isSupported {
               LiveTextImageView(image: displayImage)
@@ -124,7 +140,7 @@ struct PageImageView: View {
               Image(platformImage: displayImage)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .overlay(alignment: .top) {
+                .overlay(alignment: pageNumberAlignment) {
                   if showPageNumber {
                     pageNumberOverlay
                   }
@@ -134,7 +150,7 @@ struct PageImageView: View {
             Image(platformImage: displayImage)
               .resizable()
               .aspectRatio(contentMode: .fit)
-              .overlay(alignment: .top) {
+              .overlay(alignment: pageNumberAlignment) {
                 if showPageNumber {
                   pageNumberOverlay
                 }
