@@ -27,8 +27,7 @@ struct DashboardSectionView: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @AppStorage("dashboardSectionCache") private var sectionCache: DashboardSectionCache =
-    DashboardSectionCache()
+  @Environment(DashboardSectionCacheStore.self) private var sectionCacheStore
   @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -218,7 +217,7 @@ struct DashboardSectionView: View {
           ) {
             let ids = page.content.map { $0.id }
             if isFirstPage {
-              _ = sectionCache.updateIfChanged(section: section, ids: ids)
+              _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
@@ -230,7 +229,7 @@ struct DashboardSectionView: View {
           ) {
             let ids = page.content.map { $0.id }
             if isFirstPage {
-              _ = sectionCache.updateIfChanged(section: section, ids: ids)
+              _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
@@ -249,7 +248,7 @@ struct DashboardSectionView: View {
     guard isFirstPage, !didSeedFromCache, pagination.isEmpty else { return }
     didSeedFromCache = true
 
-    let cachedIds = sectionCache.ids(for: section)
+    let cachedIds = sectionCacheStore.ids(for: section)
     guard !cachedIds.isEmpty else { return }
     pagination.items = cachedIds.map(IdentifiedString.init)
   }
