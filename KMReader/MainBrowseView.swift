@@ -15,6 +15,8 @@ struct MainBrowseView: View {
 
   @Environment(\.sidebarSelection) private var sidebarSelection
 
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
     [KomgaLibrary]
@@ -151,11 +153,13 @@ struct MainBrowseView: View {
               count: library.booksCount.map { Int($0) }
             )
             .contextMenu {
-              ForEach(LibraryAction.allCases, id: \.self) { action in
-                Button {
-                  action.perform(for: library.libraryId)
-                } label: {
-                  action.label
+              if isAdmin && !isOffline {
+                ForEach(LibraryAction.allCases, id: \.self) { action in
+                  Button {
+                    action.perform(for: library.libraryId)
+                  } label: {
+                    action.label
+                  }
                 }
               }
             }

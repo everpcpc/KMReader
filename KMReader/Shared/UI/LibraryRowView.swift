@@ -8,9 +8,9 @@ import SwiftUI
 
 struct LibraryRowView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @Bindable var library: KomgaLibrary
   let isSelected: Bool
-  let isAdmin: Bool
   let showDeleteAction: Bool
   let onSelect: () -> Void
   let onAction: (LibraryAction) -> Void
@@ -49,7 +49,7 @@ struct LibraryRowView: View {
     }
     .contentShape(Rectangle())
     .contextMenu {
-      if isAdmin {
+      if isAdmin && !isOffline {
         ForEach(LibraryAction.allCases, id: \.self) { action in
           Button {
             onAction(action)

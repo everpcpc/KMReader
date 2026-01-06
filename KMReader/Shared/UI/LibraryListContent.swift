@@ -117,7 +117,6 @@ struct LibraryListContent: View {
             LibraryRowView(
               library: library,
               isSelected: selectedLibraryIds.contains(library.libraryId),
-              isAdmin: isAdmin,
               showDeleteAction: showDeleteAction,
               onSelect: {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -174,7 +173,7 @@ struct LibraryListContent: View {
   }
 
   private func triggerMetricsUpdate(force: Bool) async {
-    guard loadMetrics, isAdmin, !currentInstanceId.isEmpty else { return }
+    guard loadMetrics, isAdmin && !isOffline, !currentInstanceId.isEmpty else { return }
 
     let shouldLoad = await MainActor.run {
       force || alwaysRefreshMetrics || needsMetricsReload()
