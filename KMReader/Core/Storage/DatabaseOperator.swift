@@ -649,9 +649,15 @@ actor DatabaseOperator {
 
     var needsSyncQueue = false
     var booksToDelete: [KomgaBook] = []
+    let policyLimit = max(0, series.offlinePolicyLimit)
 
     // Sort books to ensure they are processed in order
     let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    var allowedUnreadIds = Set<String>()
+    if policyLimit > 0, policy.supportsLimit {
+      let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
+      allowedUnreadIds = Set(unreadBooks.prefix(policyLimit).map { $0.bookId })
+    }
     let now = Date.now
 
     for (index, book) in sortedBooks.enumerated() {
@@ -665,7 +671,13 @@ actor DatabaseOperator {
       case .manual:
         shouldBeOffline = (isDownloaded || isPending)
       case .unreadOnly, .unreadOnlyAndCleanupRead:
-        shouldBeOffline = !isRead
+        if isRead {
+          shouldBeOffline = false
+        } else if policyLimit > 0 {
+          shouldBeOffline = allowedUnreadIds.contains(book.bookId)
+        } else {
+          shouldBeOffline = true
+        }
       case .all:
         shouldBeOffline = true
       }
@@ -681,12 +693,10 @@ actor DatabaseOperator {
           book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
           needsSyncQueue = true
         }
-      } else {
-        if (isDownloaded || isPending) && policy == .unreadOnlyAndCleanupRead {
-          // Check if any other policy wants to keep this book
-          if !shouldKeepBookDueToOtherPolicies(book: book, excludeSeriesId: series.seriesId) {
-            booksToDelete.append(book)
-          }
+      } else if (isDownloaded || isPending) && policy == .unreadOnlyAndCleanupRead && isRead {
+        // Check if any other policy wants to keep this book
+        if !shouldKeepBookDueToOtherPolicies(book: book, excludeSeriesId: series.seriesId) {
+          booksToDelete.append(book)
         }
       }
     }
@@ -795,6 +805,7 @@ actor DatabaseOperator {
     seriesId: String,
     instanceId: String,
     policy: SeriesOfflinePolicy,
+    limit: Int? = nil,
     syncSeriesStatus: Bool = true
   ) {
     let compositeId = "\(instanceId)_\(seriesId)"
@@ -804,6 +815,9 @@ actor DatabaseOperator {
     guard let series = try? modelContext.fetch(descriptor).first else { return }
 
     series.offlinePolicy = policy
+    if let limit {
+      series.offlinePolicyLimit = max(0, limit)
+    }
 
     if syncSeriesStatus {
       self.syncSeriesDownloadStatus(series: series)

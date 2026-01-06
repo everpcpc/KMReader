@@ -33,6 +33,10 @@ struct SeriesContextMenu: View {
     (series.booksReadCount + series.booksInProgressCount) > 0
   }
 
+  private var limitPresets: [Int] {
+    [1, 3, 5, 10, 25, 50, 0]
+  }
+
   var body: some View {
     Group {
       if !isOffline {
@@ -64,21 +68,42 @@ struct SeriesContextMenu: View {
 
         Divider()
 
-        // Offline Policy Menu
         Menu {
-          Picker(
-            "",
-            selection: Binding(
-              get: { komgaSeries.offlinePolicy },
-              set: { updatePolicy($0) }
-            )
-          ) {
-            ForEach(SeriesOfflinePolicy.allCases, id: \.self) { p in
-              Label(p.label, systemImage: p.icon)
-                .tag(p)
-            }
+          Button {
+            updatePolicy(.manual)
+          } label: {
+            offlinePolicyLabel(.manual)
           }
-          .pickerStyle(.inline)
+
+          Menu {
+            ForEach(limitPresets, id: \.self) { value in
+              Button {
+                updatePolicyAndLimit(.unreadOnly, limit: value)
+              } label: {
+                limitOptionLabel(policy: .unreadOnly, limit: value)
+              }
+            }
+          } label: {
+            offlinePolicyLabel(.unreadOnly)
+          }
+
+          Menu {
+            ForEach(limitPresets, id: \.self) { value in
+              Button {
+                updatePolicyAndLimit(.unreadOnlyAndCleanupRead, limit: value)
+              } label: {
+                limitOptionLabel(policy: .unreadOnlyAndCleanupRead, limit: value)
+              }
+            }
+          } label: {
+            offlinePolicyLabel(.unreadOnlyAndCleanupRead)
+          }
+
+          Button {
+            updatePolicy(.all)
+          } label: {
+            offlinePolicyLabel(.all)
+          }
         } label: {
           Label("Offline Policy", systemImage: komgaSeries.offlinePolicy.icon)
         }
@@ -205,4 +230,55 @@ struct SeriesContextMenu: View {
       }
     }
   }
+
+  private func updatePolicyAndLimit(_ policy: SeriesOfflinePolicy, limit: Int) {
+    Task {
+      try? await SyncService.shared.syncAllSeriesBooks(seriesId: komgaSeries.seriesId)
+      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+        seriesId: komgaSeries.seriesId,
+        instanceId: currentInstanceId,
+        policy: policy,
+        limit: limit
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        onActionCompleted?()
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func offlinePolicyLabel(_ policy: SeriesOfflinePolicy) -> some View {
+    let title = policyLabelTitle(policy)
+    if policy == komgaSeries.offlinePolicy {
+      Label(title, systemImage: "checkmark")
+    } else {
+      Label(title, systemImage: policy.icon)
+    }
+  }
+
+  private func policyLabelTitle(_ policy: SeriesOfflinePolicy) -> String {
+    if policy.supportsLimit {
+      return "\(policy.label) (\(limitTitle(komgaSeries.offlinePolicyLimit)))"
+    }
+    return policy.label
+  }
+
+  @ViewBuilder
+  private func limitOptionLabel(policy: SeriesOfflinePolicy, limit: Int) -> some View {
+    let title = limitTitle(limit)
+    if komgaSeries.offlinePolicy == policy && komgaSeries.offlinePolicyLimit == limit {
+      Label(title, systemImage: "checkmark")
+    } else {
+      Text(title)
+    }
+  }
+
+  private func limitTitle(_ value: Int) -> String {
+    if value <= 0 {
+      return "∞"
+    }
+    return "\(value)"
+  }
+
 }

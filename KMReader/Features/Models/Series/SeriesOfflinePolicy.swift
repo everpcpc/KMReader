@@ -43,4 +43,13 @@ enum SeriesOfflinePolicy: String, Codable, CaseIterable, Sendable {
       return "infinity"
     }
   }
+
+  var supportsLimit: Bool {
+    switch self {
+    case .unreadOnly, .unreadOnlyAndCleanupRead:
+      return true
+    case .manual, .all:
+      return false
+    }
+  }
 }

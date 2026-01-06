@@ -78,6 +78,7 @@ final class KomgaSeries {
   var downloadedBooks: Int = 0
   var pendingBooks: Int = 0
   var offlinePolicyRaw: String = "manual"
+  var offlinePolicyLimit: Int = 0
 
   /// Computed property for download status.
   var downloadStatus: SeriesDownloadStatus {
@@ -131,7 +132,8 @@ final class KomgaSeries {
     downloadedBooks: Int = 0,
     pendingBooks: Int = 0,
     downloadedSize: Int64 = 0,
-    offlinePolicy: SeriesOfflinePolicy = .manual
+    offlinePolicy: SeriesOfflinePolicy = .manual,
+    offlinePolicyLimit: Int = 0
   ) {
     self.id = id ?? "\(instanceId)_\(seriesId)"
     self.seriesId = seriesId
@@ -193,6 +195,7 @@ final class KomgaSeries {
     self.pendingBooks = pendingBooks
     self.downloadedSize = downloadedSize
     self.offlinePolicyRaw = offlinePolicy.rawValue
+    self.offlinePolicyLimit = offlinePolicyLimit
   }
 
   var metadata: SeriesMetadata {
