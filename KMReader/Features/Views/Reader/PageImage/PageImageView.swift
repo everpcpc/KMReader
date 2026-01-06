@@ -146,6 +146,7 @@ struct PageImageView: View {
                     pageNumberOverlay
                   }
                 }
+                .contentShape(.contextMenuPreview, Rectangle())
             }
           #else
             Image(platformImage: displayImage)
@@ -156,6 +157,7 @@ struct PageImageView: View {
                   pageNumberOverlay
                 }
               }
+              .contentShape(.contextMenuPreview, Rectangle())
           #endif
         }
         #if os(iOS) || os(macOS)
