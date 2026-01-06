@@ -141,7 +141,6 @@ struct DivinaReaderView: View {
         #endif
 
         readerContent(
-          screenSize: screenSize,
           useDualPage: useDualPage,
           screenKey: screenKey
         )
@@ -319,12 +318,12 @@ struct DivinaReaderView: View {
 
   @ViewBuilder
   private func readerContent(
-    screenSize: CGSize,
     useDualPage: Bool,
     screenKey: String
   ) -> some View {
     if !viewModel.pages.isEmpty {
-      Group {
+      GeometryReader { geometry in
+        let screenSize = geometry.size
         if readingDirection == .webtoon {
           #if os(iOS) || os(macOS)
             WebtoonPageView(
@@ -382,6 +381,7 @@ struct DivinaReaderView: View {
           )
         }
       }
+      .readerIgnoresSafeArea()
       .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
       .onChange(of: viewModel.currentPageIndex) {
         // Update progress and preload pages in background without blocking UI
