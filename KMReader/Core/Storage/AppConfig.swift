@@ -460,6 +460,18 @@ enum AppConfig {
     }
   }
 
+  static var forceDefaultReadingDirection: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "forceDefaultReadingDirection") != nil {
+        return UserDefaults.standard.bool(forKey: "forceDefaultReadingDirection")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "forceDefaultReadingDirection")
+    }
+  }
+
   static var defaultReadingDirection: ReadingDirection {
     get {
       if let stored = UserDefaults.standard.string(forKey: "defaultReadingDirection"),
