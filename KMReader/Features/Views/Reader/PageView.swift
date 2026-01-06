@@ -95,7 +95,7 @@ struct PageView: View {
         .scrollTargetBehavior(.paging)
         .scrollIndicators(.hidden)
         .scrollPosition(id: $scrollPosition)
-        .scrollDisabled(isZoomed)
+        .scrollDisabled(isZoomed || viewModel.liveTextActivePageIndex != nil)
         #if os(tvOS)
           .focusable(false)
         #endif
@@ -152,6 +152,7 @@ struct PageView: View {
         size: screenSize,
         readingDirection: readingDirection,
         isZoomed: isZoomed,
+        liveTextActive: viewModel.liveTextActivePageIndex != nil,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
@@ -178,6 +179,7 @@ struct PageView: View {
       size: screenSize,
       readingDirection: readingDirection,
       isZoomed: isZoomed,
+      liveTextActive: viewModel.liveTextActivePageIndex != nil,
       onNextPage: goToNextPage,
       onPreviousPage: goToPreviousPage,
       onToggleControls: toggleControls
@@ -210,6 +212,7 @@ struct PageView: View {
         size: screenSize,
         readingDirection: readingDirection,
         isZoomed: isZoomed,
+        liveTextActive: viewModel.liveTextActivePageIndex != nil,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls
@@ -235,6 +238,7 @@ struct PageView: View {
       size: screenSize,
       readingDirection: readingDirection,
       isZoomed: isZoomed,
+      liveTextActive: viewModel.liveTextActivePageIndex != nil,
       onNextPage: goToNextPage,
       onPreviousPage: goToPreviousPage,
       onToggleControls: toggleControls
@@ -284,6 +288,7 @@ struct PageView: View {
         size: screenSize,
         readingDirection: readingDirection,
         isZoomed: isZoomed,
+        liveTextActive: viewModel.liveTextActivePageIndex != nil,
         onNextPage: goToNextPage,
         onPreviousPage: goToPreviousPage,
         onToggleControls: toggleControls

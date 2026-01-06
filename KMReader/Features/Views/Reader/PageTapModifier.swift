@@ -11,15 +11,12 @@ struct PageTapModifier: ViewModifier {
   let size: CGSize
   let readingDirection: ReadingDirection
   let isZoomed: Bool
+  let liveTextActive: Bool
   let onNextPage: () -> Void
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
 
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
-
-  private var shouldDisablePageTurn: Bool {
-    disableTapToTurnPage || isZoomed
-  }
 
   func body(content: Content) -> some View {
     #if os(iOS) || os(macOS)
@@ -28,6 +25,10 @@ struct PageTapModifier: ViewModifier {
         .simultaneousGesture(
           SpatialTapGesture()
             .onEnded { value in
+              // Disable all taps when zoomed
+              guard !isZoomed else { return }
+              // Disable all taps when Live Text mode is active
+              guard !liveTextActive else { return }
               handleTap(at: value.location)
             }
         )
@@ -50,7 +51,7 @@ struct PageTapModifier: ViewModifier {
 
     if normalizedX < 0.3 {
       // Left tap
-      if !shouldDisablePageTurn {
+      if !disableTapToTurnPage {
         if readingDirection == .rtl {
           onNextPage()
         } else {
@@ -59,7 +60,7 @@ struct PageTapModifier: ViewModifier {
       }
     } else if normalizedX > 0.7 {
       // Right tap
-      if !shouldDisablePageTurn {
+      if !disableTapToTurnPage {
         if readingDirection == .rtl {
           onPreviousPage()
         } else {
@@ -77,12 +78,12 @@ struct PageTapModifier: ViewModifier {
 
     if normalizedY < 0.3 {
       // Top tap
-      if !shouldDisablePageTurn {
+      if !disableTapToTurnPage {
         onPreviousPage()
       }
     } else if normalizedY > 0.7 {
       // Bottom tap
-      if !shouldDisablePageTurn {
+      if !disableTapToTurnPage {
         onNextPage()
       }
     } else {
@@ -96,6 +97,7 @@ extension View {
     size: CGSize,
     readingDirection: ReadingDirection,
     isZoomed: Bool = false,
+    liveTextActive: Bool = false,
     onNextPage: @escaping () -> Void,
     onPreviousPage: @escaping () -> Void,
     onToggleControls: @escaping () -> Void
@@ -105,6 +107,7 @@ extension View {
         size: size,
         readingDirection: readingDirection,
         isZoomed: isZoomed,
+        liveTextActive: liveTextActive,
         onNextPage: onNextPage,
         onPreviousPage: onPreviousPage,
         onToggleControls: onToggleControls

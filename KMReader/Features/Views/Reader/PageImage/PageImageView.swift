@@ -9,11 +9,61 @@ import Photos
 import SwiftUI
 import UniformTypeIdentifiers
 
+#if os(iOS) || os(macOS)
+  import VisionKit
+
+  // View modifier that adds context menu with Live Text toggle (only when Live Text is not active)
+  private struct PageContextMenu: ViewModifier {
+    let page: BookPage?
+    let pageIndex: Int
+    let isSaving: Bool
+    let isLiveTextActive: Bool
+    let saveToPhotos: (BookPage) -> Void
+    let saveToFiles: (BookPage) -> Void
+    let toggleLiveText: () -> Void
+
+    func body(content: Content) -> some View {
+      // Don't show context menu when Live Text is active to avoid blocking text selection
+      if isLiveTextActive {
+        content
+      } else if let page = page {
+        content.contextMenu {
+          if ImageAnalyzer.isSupported {
+            Button {
+              toggleLiveText()
+            } label: {
+              Label("Show Live Text", systemImage: "text.viewfinder")
+            }
+
+            Divider()
+          }
+
+          Button {
+            saveToPhotos(page)
+          } label: {
+            Label("Save to Photos", systemImage: "square.and.arrow.down")
+          }
+          .disabled(isSaving)
+
+          Button {
+            saveToFiles(page)
+          } label: {
+            Label("Save to Files", systemImage: "folder")
+          }
+          .disabled(isSaving)
+        }
+      } else {
+        content
+      }
+    }
+  }
+#endif
+
 // Pure image display component without zoom/pan logic
 struct PageImageView: View {
   var viewModel: ReaderViewModel
   let pageIndex: Int
-  var pageNumberAlignment: Alignment = .top
+  var pageNumberAlignment: Alignment = .center
 
   /// Cached image from memory for display
   @State private var displayImage: PlatformImage?
@@ -29,6 +79,12 @@ struct PageImageView: View {
     }
     return viewModel.pages[pageIndex]
   }
+
+  #if os(iOS) || os(macOS)
+    private var isLiveTextActive: Bool {
+      viewModel.liveTextActivePageIndex == pageIndex
+    }
+  #endif
 
   private var pageNumberOverlay: some View {
     Text("\(pageIndex + 1)")
@@ -48,37 +104,80 @@ struct PageImageView: View {
     Group {
       if let displayImage = displayImage {
         ZStack(alignment: pageNumberAlignment) {
-          Image(platformImage: displayImage)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-
-          if showPageNumber {
-            pageNumberOverlay
-          }
-        }
-        .contextMenu {
-          if let page = currentPage {
-            Button {
-              Task {
-                await saveImageToPhotos(page: page)
-              }
-            } label: {
-              Label("Save to Photos", systemImage: "square.and.arrow.down")
+          #if os(iOS) || os(macOS)
+            if isLiveTextActive, ImageAnalyzer.isSupported {
+              LiveTextImageView(image: displayImage)
+                .overlay {
+                  ZStack(alignment: .top) {
+                    RoundedRectangle(cornerRadius: 8)
+                      .stroke(Color.accentColor, lineWidth: 1)
+                    Button {
+                      viewModel.liveTextActivePageIndex = nil
+                    } label: {
+                      Label(String(localized: "Live Text"), systemImage: "xmark")
+                    }
+                    .optimizedControlSize()
+                    .adaptiveButtonStyle(.borderedProminent)
+                    .padding(4)
+                  }
+                }
+            } else {
+              Image(platformImage: displayImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .overlay(alignment: .top) {
+                  if showPageNumber {
+                    pageNumberOverlay
+                  }
+                }
             }
-            .disabled(isSaving)
-
-            #if os(iOS) || os(macOS)
+          #else
+            Image(platformImage: displayImage)
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .overlay(alignment: .top) {
+                if showPageNumber {
+                  pageNumberOverlay
+                }
+              }
+          #endif
+        }
+        #if os(iOS) || os(macOS)
+          .modifier(
+            PageContextMenu(
+              page: currentPage,
+              pageIndex: pageIndex,
+              isSaving: isSaving,
+              isLiveTextActive: isLiveTextActive,
+              saveToPhotos: { page in
+                Task { await saveImageToPhotos(page: page) }
+              },
+              saveToFiles: { page in
+                Task { await prepareSaveToFile(page: page) }
+              },
+              toggleLiveText: {
+                if viewModel.liveTextActivePageIndex == pageIndex {
+                  viewModel.liveTextActivePageIndex = nil
+                } else {
+                  viewModel.liveTextActivePageIndex = pageIndex
+                }
+              }
+            )
+          )
+        #else
+          .contextMenu {
+            if let page = currentPage {
               Button {
                 Task {
-                  await prepareSaveToFile(page: page)
+                  await saveImageToPhotos(page: page)
                 }
               } label: {
-                Label("Save to Files", systemImage: "folder")
+                Label("Save to Photos", systemImage: "square.and.arrow.down")
               }
               .disabled(isSaving)
-            #endif
+            }
           }
-        }
+        #endif
         #if os(iOS) || os(macOS)
           .fileExporter(
             isPresented: $showDocumentPicker,

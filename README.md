@@ -69,30 +69,6 @@ Build helpers (optional):
 
 ---
 
-## 🛠️ Debugging
-
-- Verbose API logging is available in Xcode Console or Console.app (process `Komga`, subsystem `Komga`, category `API`).
-- Sample entry:
-  ```
-  📡 GET https://your-server.com/api/v2/users/me
-  ✅ 200 GET https://your-server.com/api/v2/users/me (45.67ms)
-  ```
-
----
-
-## 🛣️ Roadmap
-
-- Handoff support
-- Live Text / automatic page translation
-
----
-
-## 📄 License
-
-Released under the terms of the [LICENSE](LICENSE) file.
-
----
-
 ## 💬 Discuss
 
 Join the discussion on [Discord](https://discord.gg/komga-678794935368941569).
@@ -102,6 +78,7 @@ Join the discussion on [Discord](https://discord.gg/komga-678794935368941569).
 <div align="center">
 
 **Made with ❤️ for the Komga community**
+
 ⭐ Star this repo if it helps you keep your library in sync!
 
 </div>

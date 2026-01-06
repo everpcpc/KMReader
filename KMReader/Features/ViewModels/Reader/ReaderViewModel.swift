@@ -47,6 +47,8 @@ class ReaderViewModel {
   var tableOfContents: [ReaderTOCEntry] = []
   /// Cache of preloaded images keyed by page number for instant display
   var preloadedImages: [Int: PlatformImage] = [:]
+  /// Page index with Live Text mode active (nil = no Live Text active)
+  var liveTextActivePageIndex: Int? = nil
   private var dualPageNoCoverEnabled: Bool
   private var forceDualPagePairs: Bool
 
