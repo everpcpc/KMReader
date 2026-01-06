@@ -249,7 +249,7 @@ struct SeriesContextMenu: View {
 
   @ViewBuilder
   private func offlinePolicyLabel(_ policy: SeriesOfflinePolicy) -> some View {
-    let title = policyLabelTitle(policy)
+    let title = policy.title(limit: komgaSeries.offlinePolicyLimit)
     if policy == komgaSeries.offlinePolicy {
       Label(title, systemImage: "checkmark")
     } else {
@@ -257,28 +257,14 @@ struct SeriesContextMenu: View {
     }
   }
 
-  private func policyLabelTitle(_ policy: SeriesOfflinePolicy) -> String {
-    if policy.supportsLimit {
-      return "\(policy.label) (\(limitTitle(komgaSeries.offlinePolicyLimit)))"
-    }
-    return policy.label
-  }
-
   @ViewBuilder
   private func limitOptionLabel(policy: SeriesOfflinePolicy, limit: Int) -> some View {
-    let title = limitTitle(limit)
+    let title = SeriesOfflinePolicy.limitTitle(limit)
     if komgaSeries.offlinePolicy == policy && komgaSeries.offlinePolicyLimit == limit {
       Label(title, systemImage: "checkmark")
     } else {
       Text(title)
     }
-  }
-
-  private func limitTitle(_ value: Int) -> String {
-    if value <= 0 {
-      return "∞"
-    }
-    return "\(value)"
   }
 
 }

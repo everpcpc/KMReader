@@ -650,11 +650,12 @@ actor DatabaseOperator {
     var needsSyncQueue = false
     var booksToDelete: [KomgaBook] = []
     let policyLimit = max(0, series.offlinePolicyLimit)
+    let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
 
     // Sort books to ensure they are processed in order
     let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
     var allowedUnreadIds = Set<String>()
-    if policyLimit > 0, policy.supportsLimit {
+    if policyLimit > 0, policySupportsLimit {
       let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
       allowedUnreadIds = Set(unreadBooks.prefix(policyLimit).map { $0.bookId })
     }

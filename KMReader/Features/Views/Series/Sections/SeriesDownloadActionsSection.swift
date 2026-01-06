@@ -28,10 +28,7 @@ struct SeriesDownloadActionsSection: View {
   }
 
   private var policyLabel: Text {
-    if policy.supportsLimit {
-      return Text("Offline Policy") + Text(" : ") + Text("\(policy.label) (\(limitTitle(komgaSeries.offlinePolicyLimit)))")
-    }
-    return Text("Offline Policy") + Text(" : ") + Text(policy.label)
+    Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: komgaSeries.offlinePolicyLimit))
   }
 
   @State private var pendingAction: SeriesDownloadAction?
@@ -197,7 +194,7 @@ struct SeriesDownloadActionsSection: View {
 
   @ViewBuilder
   private func offlinePolicyLabel(_ value: SeriesOfflinePolicy) -> some View {
-    let title = policyLabelTitle(value)
+    let title = value.title(limit: komgaSeries.offlinePolicyLimit)
     if value == policy {
       Label(title, systemImage: "checkmark")
     } else {
@@ -205,28 +202,14 @@ struct SeriesDownloadActionsSection: View {
     }
   }
 
-  private func policyLabelTitle(_ value: SeriesOfflinePolicy) -> String {
-    if value.supportsLimit {
-      return "\(value.label) (\(limitTitle(komgaSeries.offlinePolicyLimit)))"
-    }
-    return value.label
-  }
-
   @ViewBuilder
   private func limitOptionLabel(policy: SeriesOfflinePolicy, limit: Int) -> some View {
-    let title = limitTitle(limit)
+    let title = SeriesOfflinePolicy.limitTitle(limit)
     if komgaSeries.offlinePolicy == policy && komgaSeries.offlinePolicyLimit == limit {
       Label(title, systemImage: "checkmark")
     } else {
       Text(title)
     }
-  }
-
-  private func limitTitle(_ value: Int) -> String {
-    if value <= 0 {
-      return "∞"
-    }
-    return "\(value)"
   }
 
   private func performAction(_ action: SeriesDownloadAction) {
