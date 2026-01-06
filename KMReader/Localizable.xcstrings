@@ -12181,6 +12181,40 @@
         }
       }
     },
+    "Force Default Reading Direction" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forcer la direction de lecture par défaut"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルトの読書方向を強制する"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기본 읽기 방향 강제"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制默认阅读方向"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制預設閱讀方向"
+          }
+        }
+      }
+    },
     "From: %@" : {
       "localizations" : {
         "en" : {
@@ -12731,6 +12765,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果你喜歡這個 App，請我喝杯咖啡吧！"
+          }
+        }
+      }
+    },
+    "Ignore book and series metadata and always use the preferred direction" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignorer les métadonnées du livre et de la série et toujours utiliser la direction préférée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本やシリーズのメタデータを無視し、常に優先される方向を使用します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "책 및 시리즈 메타데이터를 무시하고 항상 기본 읽기 방향을 사용합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "忽略书籍和系列的元数据，始终使用首选方向"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "忽略書籍和系列的元數據，始終使用首選方向"
           }
         }
       }
