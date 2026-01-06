@@ -35,6 +35,7 @@ struct MainApp: App {
   private let modelContainer: ModelContainer
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
+  @State private var dashboardSectionCacheStore = DashboardSectionCacheStore.shared
 
   init() {
     do {
@@ -81,6 +82,7 @@ struct MainApp: App {
         #endif
         .environment(authViewModel)
         .environment(readerPresentation)
+        .environment(dashboardSectionCacheStore)
         .modelContainer(modelContainer)
     }
     #if os(macOS)

@@ -587,6 +587,6 @@ enum AppConfig {
     currentInstanceId = ""
     serverLastUpdate = nil
     dashboard.libraryIds = []
-    dashboardSectionCache = DashboardSectionCache()
+    DashboardSectionCacheStore.shared.reset()
   }
 }

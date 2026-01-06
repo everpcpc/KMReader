@@ -19,10 +19,6 @@ struct DashboardSectionCache: Equatable, RawRepresentable {
     sectionIds[section] ?? []
   }
 
-  mutating func update(section: DashboardSection, ids: [String]) {
-    sectionIds[section] = ids
-  }
-
   mutating func updateIfChanged(section: DashboardSection, ids: [String]) -> Bool {
     if sectionIds[section] == ids {
       return false
