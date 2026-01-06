@@ -277,7 +277,7 @@ struct ReaderControlsView: View {
       }
     }
     .iPadIgnoresSafeArea(paddingTop: 24)
-    .padding(.horizontal)
+    .padding()
     .transition(.opacity)
     #if os(tvOS)
       .onAppear {

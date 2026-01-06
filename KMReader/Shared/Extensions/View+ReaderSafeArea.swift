@@ -12,7 +12,7 @@ extension View {
   /// On macOS, the view respects safe area.
   /// - Returns: View with ignoresSafeArea applied on iOS, unchanged on other platforms
   func readerIgnoresSafeArea() -> some View {
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
       return self.ignoresSafeArea()
     #else
       return self

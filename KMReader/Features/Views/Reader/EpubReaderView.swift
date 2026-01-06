@@ -234,7 +234,7 @@
         Spacer()
       }
       .iPadIgnoresSafeArea(paddingTop: 24)
-      .padding(.horizontal)
+      .padding()
       .opacity(shouldShowControls ? 1.0 : 0.0)
       .allowsHitTesting(shouldShowControls)
       .transition(.opacity)
