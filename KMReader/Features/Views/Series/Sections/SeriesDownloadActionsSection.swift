@@ -31,6 +31,10 @@ struct SeriesDownloadActionsSection: View {
     Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: komgaSeries.offlinePolicyLimit))
   }
 
+  private var actions: [SeriesDownloadAction] {
+    SeriesDownloadAction.availableActions(for: status)
+  }
+
   @State private var pendingAction: SeriesDownloadAction?
   @State private var pendingUnreadLimit: Int?
 
@@ -93,18 +97,13 @@ struct SeriesDownloadActionsSection: View {
         .font(.caption)
         .adaptiveButtonStyle(.bordered)
 
-        let actions = SeriesDownloadAction.availableActions(for: status)
-        if actions.count > 1 {
-          Menu {
-            actionsView(actions: actions)
-          } label: {
-            statusButtonLabel
-          }
-          .font(.caption)
-          .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
-        } else if let action = actions.first {
-          singleActionView(action: action)
+        Menu {
+          actionsView(actions: actions)
+        } label: {
+          statusButtonLabel
         }
+        .font(.caption)
+        .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
       }
     }
     .animation(.easeInOut(duration: 0.2), value: status)
@@ -138,7 +137,7 @@ struct SeriesDownloadActionsSection: View {
   @ViewBuilder
   private var statusButtonLabel: some View {
     Label {
-      Text(status.menuLabel)
+      Text(String(localized: "Download"))
     } icon: {
       Image(systemName: status.menuIcon)
         .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
@@ -149,28 +148,6 @@ struct SeriesDownloadActionsSection: View {
   private func actionsView(actions: [SeriesDownloadAction]) -> some View {
     ForEach(actions) { action in
       actionMenuItem(action: action)
-    }
-  }
-
-  @ViewBuilder
-  private func singleActionView(action: SeriesDownloadAction) -> some View {
-    switch action {
-    case .downloadUnread:
-      Menu {
-        downloadUnreadLimitOptions()
-      } label: {
-        statusButtonLabel
-      }
-      .font(.caption)
-      .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
-    default:
-      Button(role: action.isDestructive ? .destructive : .none) {
-        handleActionTap(action)
-      } label: {
-        statusButtonLabel
-      }
-      .font(.caption)
-      .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
     }
   }
 
@@ -241,7 +218,7 @@ struct SeriesDownloadActionsSection: View {
     if value == policy {
       Label(title, systemImage: "checkmark")
     } else {
-      Label(title, systemImage: value.icon)
+      Label(value.label, systemImage: value.icon)
     }
   }
 
@@ -324,18 +301,8 @@ struct SeriesDownloadActionsSection: View {
       Button {
         handleDownloadUnreadTap(limit: value)
       } label: {
-        limitMenuLabel(limit: value)
+        Text(SeriesOfflinePolicy.limitTitle(value))
       }
-    }
-  }
-
-  @ViewBuilder
-  private func limitMenuLabel(limit: Int) -> some View {
-    let title = SeriesOfflinePolicy.limitTitle(limit)
-    if komgaSeries.offlinePolicyLimit == limit {
-      Label(title, systemImage: "checkmark")
-    } else {
-      Text(title)
     }
   }
 

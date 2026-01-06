@@ -117,7 +117,7 @@ struct SeriesContextMenu: View {
         Menu {
           actionsView(actions: SeriesDownloadAction.availableActions(for: status))
         } label: {
-          Label("Offline", systemImage: status.icon)
+          Label("Download", systemImage: status.icon)
         }
 
         Divider()
@@ -298,7 +298,7 @@ struct SeriesContextMenu: View {
     if policy == komgaSeries.offlinePolicy {
       Label(title, systemImage: "checkmark")
     } else {
-      Label(title, systemImage: policy.icon)
+      Label(policy.label, systemImage: policy.icon)
     }
   }
 

@@ -64,19 +64,6 @@ enum SeriesDownloadStatus: Equatable, Sendable {
     return false
   }
 
-  var menuLabel: String {
-    switch self {
-    case .notDownloaded:
-      return String(localized: "Make Offline")
-    case .partiallyDownloaded:
-      return String(localized: "Actions")
-    case .downloaded:
-      return String(localized: "Remove Offline")
-    case .pending:
-      return String(localized: "Cancel Download")
-    }
-  }
-
   var menuIcon: String {
     switch self {
     case .notDownloaded, .partiallyDownloaded:
