@@ -73,17 +73,19 @@ struct MainBrowseView: View {
 
   var body: some View {
     Group {
-    if isSidebar, let sidebarSelection {
-      List(selection: sidebarSelection) {
-        listContent
-      }
+      if isSidebar, let sidebarSelection {
+        List(selection: sidebarSelection) {
+          listContent
+        }
       } else {
         List {
           listContent
         }
       }
     }
-    .listStyle(.sidebar)
+    #if os(iOS)
+      .listStyle(.sidebar)
+    #endif
     .inlineNavigationBarTitle(String(localized: "title.browse"))
     .animation(.default, value: libraries)
     .animation(.default, value: collections)
