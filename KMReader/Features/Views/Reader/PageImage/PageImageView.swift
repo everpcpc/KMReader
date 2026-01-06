@@ -80,10 +80,6 @@ struct PageImageView: View {
     return viewModel.pages[pageIndex]
   }
 
-  private var imageAlignment: Alignment {
-    Alignment(horizontal: alignment, vertical: .center)
-  }
-
   private var pageNumberAlignment: Alignment {
     switch alignment {
     case .leading:
@@ -118,8 +114,8 @@ struct PageImageView: View {
   var body: some View {
     Group {
       if let displayImage = displayImage {
-        ZStack(alignment: imageAlignment) {
-          Color.clear
+        Group {
+          // Color.clear
           #if os(iOS) || os(macOS)
             if isLiveTextActive, ImageAnalyzer.isSupported {
               LiveTextImageView(image: displayImage)
@@ -146,7 +142,6 @@ struct PageImageView: View {
                     pageNumberOverlay
                   }
                 }
-                .contentShape(.contextMenuPreview, Rectangle())
             }
           #else
             Image(platformImage: displayImage)
@@ -157,7 +152,6 @@ struct PageImageView: View {
                   pageNumberOverlay
                 }
               }
-              .contentShape(.contextMenuPreview, Rectangle())
           #endif
         }
         #if os(iOS) || os(macOS)

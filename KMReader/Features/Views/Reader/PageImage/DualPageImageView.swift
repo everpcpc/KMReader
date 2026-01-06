@@ -68,12 +68,13 @@ struct DualPageImageView: View {
     index: Int,
     alignment: HorizontalAlignment
   ) -> some View {
+    let frameAlignment = Alignment(horizontal: alignment, vertical: .center)
     PageImageView(
       viewModel: viewModel,
       pageIndex: index,
       alignment: alignment,
     )
-    .frame(width: imageWidth, height: imageHeight)
+    .frame(width: imageWidth, height: imageHeight, alignment: frameAlignment)
     .clipped()
   }
 }
