@@ -119,6 +119,7 @@ struct PageImageView: View {
     Group {
       if let displayImage = displayImage {
         ZStack(alignment: imageAlignment) {
+          Color.clear
           #if os(iOS) || os(macOS)
             if isLiveTextActive, ImageAnalyzer.isSupported {
               LiveTextImageView(image: displayImage)
