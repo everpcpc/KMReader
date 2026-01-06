@@ -63,7 +63,6 @@ import UniformTypeIdentifiers
 struct PageImageView: View {
   var viewModel: ReaderViewModel
   let pageIndex: Int
-  var pageNumberAlignment: Alignment = .center
 
   /// Cached image from memory for display
   @State private var displayImage: PlatformImage?
@@ -103,7 +102,7 @@ struct PageImageView: View {
   var body: some View {
     Group {
       if let displayImage = displayImage {
-        ZStack(alignment: pageNumberAlignment) {
+        ZStack(alignment: .center) {
           #if os(iOS) || os(macOS)
             if isLiveTextActive, ImageAnalyzer.isSupported {
               LiveTextImageView(image: displayImage)
