@@ -159,6 +159,7 @@ private struct DashboardLocalSectionContent<
   @Environment(\.colorScheme) private var colorScheme
 
   @State private var isHoveringScrollArea = false
+  @State private var hasLoadedInitial = false
 
   private let cardWidth: CGFloat = 240
 
@@ -192,74 +193,79 @@ private struct DashboardLocalSectionContent<
   }
 
   var body: some View {
-    if !items.isEmpty {
-      VStack(alignment: .leading, spacing: 4) {
-        NavigationLink(value: destination) {
-          HStack {
-            Text(section.displayName)
-              .font(.appSerifDesign(size: 22, weight: .bold))
-            Image(systemName: "chevron.right")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-          }
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal)
-
-        ScrollViewReader { proxy in
-          ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: spacing) {
-              ForEach(items) { item in
-                itemView(item)
-                  .id(item.itemId)
-                  .frame(width: cardWidth)
-              }
-            }
-            .padding(.vertical)
-          }
-          .contentMargins(.horizontal, spacing, for: .scrollContent)
-          .scrollClipDisabled()
-          .overlay {
-            HorizontalScrollButtons(
-              scrollProxy: proxy,
-              itemIds: items.map(\.itemId),
-              isVisible: isHoveringScrollArea
-            )
-          }
+    VStack(alignment: .leading, spacing: 4) {
+      NavigationLink(value: destination) {
+        HStack {
+          Text(section.displayName)
+            .font(.appSerifDesign(size: 22, weight: .bold))
+          Image(systemName: "chevron.right")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
         }
       }
-      .padding(.vertical, 16)
-      #if os(iOS) || os(macOS)
-        .background {
-          LinearGradient(
-            colors: backgroundColors,
-            startPoint: .top,
-            endPoint: .bottom
+      .buttonStyle(.plain)
+      .padding(.horizontal)
+
+      ScrollViewReader { proxy in
+        ScrollView(.horizontal, showsIndicators: false) {
+          LazyHStack(alignment: .top, spacing: spacing) {
+            ForEach(items) { item in
+              itemView(item)
+                .id(item.itemId)
+                .frame(width: cardWidth)
+            }
+          }
+          .padding(.vertical)
+        }
+        .contentMargins(.horizontal, spacing, for: .scrollContent)
+        .scrollClipDisabled()
+        .overlay {
+          HorizontalScrollButtons(
+            scrollProxy: proxy,
+            itemIds: items.map(\.itemId),
+            isVisible: isHoveringScrollArea
           )
         }
-      #endif
-      #if os(macOS)
-        .onContinuousHover { phase in
-          switch phase {
-          case .active:
-            withAnimation {
-              isHoveringScrollArea = true
-            }
-          case .ended:
-            withAnimation {
-              isHoveringScrollArea = false
-            }
+      }
+    }
+    .padding(.vertical, 16)
+    #if os(iOS) || os(macOS)
+      .background {
+        LinearGradient(
+          colors: backgroundColors,
+          startPoint: .top,
+          endPoint: .bottom
+        )
+      }
+    #endif
+    #if os(macOS)
+      .onContinuousHover { phase in
+        switch phase {
+        case .active:
+          withAnimation {
+            isHoveringScrollArea = true
+          }
+        case .ended:
+          withAnimation {
+            isHoveringScrollArea = false
           }
         }
-      #endif
-      .onChange(of: refreshTrigger) {
-        if let sections = refreshTrigger.sectionsToRefresh, !sections.contains(section) {
-          return
-        }
-        Task {
-          await onRefresh()
-        }
       }
+    #endif
+    .opacity(items.isEmpty ? 0 : 1)
+    .frame(height: items.isEmpty ? 0 : nil)
+    .onChange(of: refreshTrigger) {
+      if let sections = refreshTrigger.sectionsToRefresh, !sections.contains(section) {
+        return
+      }
+      Task {
+        await onRefresh()
+      }
+    }
+    .task {
+      guard !hasLoadedInitial else { return }
+      hasLoadedInitial = true
+      await onRefresh()
     }
   }
 }
