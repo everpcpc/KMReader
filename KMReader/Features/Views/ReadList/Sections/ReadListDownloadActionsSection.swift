@@ -20,6 +20,11 @@ struct ReadListDownloadActionsSection: View {
   }
 
   @State private var pendingAction: SeriesDownloadAction?
+  @State private var pendingUnreadLimit: Int?
+
+  private var limitPresets: [Int] {
+    [1, 3, 5, 10, 25, 50, 0]
+  }
 
   var body: some View {
     VStack(spacing: 12) {
@@ -42,16 +47,8 @@ struct ReadListDownloadActionsSection: View {
           }
           .font(.caption)
           .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
-          .tint(status.menuColor)
         } else if let action = actions.first {
-          Button(role: action.isDestructive ? .destructive : .none) {
-            handleActionTap(action)
-          } label: {
-            statusButtonLabel
-          }
-          .font(.caption)
-          .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
-          .tint(status.menuColor)
+          singleActionView(action: action)
         }
       }
     }
@@ -61,7 +58,12 @@ struct ReadListDownloadActionsSection: View {
       pendingAction?.label(for: status) ?? "",
       isPresented: Binding(
         get: { pendingAction != nil },
-        set: { if !$0 { pendingAction = nil } }
+        set: {
+          if !$0 {
+            pendingAction = nil
+            pendingUnreadLimit = nil
+          }
+        }
       ),
       presenting: pendingAction
     ) { action in
@@ -90,6 +92,42 @@ struct ReadListDownloadActionsSection: View {
   @ViewBuilder
   private func actionsView(actions: [SeriesDownloadAction]) -> some View {
     ForEach(actions) { action in
+      actionMenuItem(action: action)
+    }
+  }
+
+  @ViewBuilder
+  private func singleActionView(action: SeriesDownloadAction) -> some View {
+    switch action {
+    case .downloadUnread:
+      Menu {
+        downloadUnreadLimitOptions()
+      } label: {
+        statusButtonLabel
+      }
+      .font(.caption)
+      .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+    default:
+      Button(role: action.isDestructive ? .destructive : .none) {
+        handleActionTap(action)
+      } label: {
+        statusButtonLabel
+      }
+      .font(.caption)
+      .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+    }
+  }
+
+  @ViewBuilder
+  private func actionMenuItem(action: SeriesDownloadAction) -> some View {
+    switch action {
+    case .downloadUnread:
+      Menu {
+        downloadUnreadLimitOptions()
+      } label: {
+        Label(action.label(for: status), systemImage: action.icon(for: status))
+      }
+    default:
       Button(role: action.isDestructive ? .destructive : .none) {
         handleActionTap(action)
       } label: {
@@ -106,10 +144,25 @@ struct ReadListDownloadActionsSection: View {
     }
   }
 
+  private func handleDownloadUnreadTap(limit: Int) {
+    if SeriesDownloadAction.downloadUnread.requiresConfirmation {
+      pendingUnreadLimit = limit
+      pendingAction = .downloadUnread
+    } else {
+      downloadUnread(limit: limit)
+    }
+  }
+
   private func performAction(_ action: SeriesDownloadAction) {
     switch action {
     case .download:
       downloadAll()
+    case .downloadUnread:
+      let limit = pendingUnreadLimit ?? 0
+      pendingUnreadLimit = nil
+      downloadUnread(limit: limit)
+    case .removeRead:
+      removeRead()
     case .remove, .cancel:
       removeAll()
     }
@@ -127,6 +180,49 @@ struct ReadListDownloadActionsSection: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.readList.offlineDownloadQueued")
         )
+      }
+    }
+  }
+
+  private func downloadUnread(limit: Int) {
+    Task {
+      try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
+      await DatabaseOperator.shared.downloadReadListUnreadOffline(
+        readListId: readList.id,
+        instanceId: currentInstanceId,
+        limit: limit
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.readList.offlineDownloadQueued")
+        )
+      }
+    }
+  }
+
+  private func removeRead() {
+    Task {
+      await DatabaseOperator.shared.removeReadListReadOffline(
+        readListId: readList.id,
+        instanceId: currentInstanceId
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.readList.offlineRemoved")
+        )
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func downloadUnreadLimitOptions() -> some View {
+    ForEach(limitPresets, id: \.self) { value in
+      Button {
+        handleDownloadUnreadTap(limit: value)
+      } label: {
+        Text(SeriesOfflinePolicy.limitTitle(value))
       }
     }
   }

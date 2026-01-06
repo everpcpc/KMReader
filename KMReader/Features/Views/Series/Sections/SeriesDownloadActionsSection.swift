@@ -32,6 +32,7 @@ struct SeriesDownloadActionsSection: View {
   }
 
   @State private var pendingAction: SeriesDownloadAction?
+  @State private var pendingUnreadLimit: Int?
 
   var body: some View {
     VStack(spacing: 12) {
@@ -101,16 +102,8 @@ struct SeriesDownloadActionsSection: View {
           }
           .font(.caption)
           .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
-          .tint(status.menuColor)
         } else if let action = actions.first {
-          Button(role: action.isDestructive ? .destructive : .none) {
-            handleActionTap(action)
-          } label: {
-            statusButtonLabel
-          }
-          .font(.caption)
-          .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
-          .tint(status.menuColor)
+          singleActionView(action: action)
         }
       }
     }
@@ -121,7 +114,12 @@ struct SeriesDownloadActionsSection: View {
       pendingAction?.label(for: status) ?? "",
       isPresented: Binding(
         get: { pendingAction != nil },
-        set: { if !$0 { pendingAction = nil } }
+        set: {
+          if !$0 {
+            pendingAction = nil
+            pendingUnreadLimit = nil
+          }
+        }
       ),
       presenting: pendingAction
     ) { action in
@@ -150,6 +148,42 @@ struct SeriesDownloadActionsSection: View {
   @ViewBuilder
   private func actionsView(actions: [SeriesDownloadAction]) -> some View {
     ForEach(actions) { action in
+      actionMenuItem(action: action)
+    }
+  }
+
+  @ViewBuilder
+  private func singleActionView(action: SeriesDownloadAction) -> some View {
+    switch action {
+    case .downloadUnread:
+      Menu {
+        downloadUnreadLimitOptions()
+      } label: {
+        statusButtonLabel
+      }
+      .font(.caption)
+      .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+    default:
+      Button(role: action.isDestructive ? .destructive : .none) {
+        handleActionTap(action)
+      } label: {
+        statusButtonLabel
+      }
+      .font(.caption)
+      .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+    }
+  }
+
+  @ViewBuilder
+  private func actionMenuItem(action: SeriesDownloadAction) -> some View {
+    switch action {
+    case .downloadUnread:
+      Menu {
+        downloadUnreadLimitOptions()
+      } label: {
+        Label(action.label(for: status), systemImage: action.icon(for: status))
+      }
+    default:
       Button(role: action.isDestructive ? .destructive : .none) {
         handleActionTap(action)
       } label: {
@@ -163,6 +197,15 @@ struct SeriesDownloadActionsSection: View {
       pendingAction = action
     } else {
       performAction(action)
+    }
+  }
+
+  private func handleDownloadUnreadTap(limit: Int) {
+    if SeriesDownloadAction.downloadUnread.requiresConfirmation {
+      pendingUnreadLimit = limit
+      pendingAction = .downloadUnread
+    } else {
+      downloadUnread(limit: limit)
     }
   }
 
@@ -216,6 +259,12 @@ struct SeriesDownloadActionsSection: View {
     switch action {
     case .download:
       downloadAll()
+    case .downloadUnread:
+      let limit = pendingUnreadLimit ?? komgaSeries.offlinePolicyLimit
+      pendingUnreadLimit = nil
+      downloadUnread(limit: limit)
+    case .removeRead:
+      removeRead()
     case .remove, .cancel:
       removeAll()
     }
@@ -234,6 +283,59 @@ struct SeriesDownloadActionsSection: View {
           message: String(localized: "notification.series.offlineDownloadQueued")
         )
       }
+    }
+  }
+
+  private func downloadUnread(limit: Int) {
+    Task {
+      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      await DatabaseOperator.shared.downloadSeriesUnreadOffline(
+        seriesId: series.id,
+        instanceId: currentInstanceId,
+        limit: limit
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineDownloadQueued")
+        )
+      }
+    }
+  }
+
+  private func removeRead() {
+    Task {
+      await DatabaseOperator.shared.removeSeriesReadOffline(
+        seriesId: series.id,
+        instanceId: currentInstanceId
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineRemoved")
+        )
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func downloadUnreadLimitOptions() -> some View {
+    ForEach(limitPresets, id: \.self) { value in
+      Button {
+        handleDownloadUnreadTap(limit: value)
+      } label: {
+        limitMenuLabel(limit: value)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func limitMenuLabel(limit: Int) -> some View {
+    let title = SeriesOfflinePolicy.limitTitle(limit)
+    if komgaSeries.offlinePolicyLimit == limit {
+      Label(title, systemImage: "checkmark")
+    } else {
+      Text(title)
     }
   }
 

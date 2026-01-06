@@ -25,6 +25,10 @@ struct SeriesContextMenu: View {
     komgaSeries.toSeries()
   }
 
+  private var status: SeriesDownloadStatus {
+    komgaSeries.downloadStatus
+  }
+
   private var canMarkAsRead: Bool {
     series.booksUnreadCount > 0
   }
@@ -106,6 +110,14 @@ struct SeriesContextMenu: View {
           }
         } label: {
           Label("Offline Policy", systemImage: komgaSeries.offlinePolicy.icon)
+        }
+
+        Divider()
+
+        Menu {
+          actionsView(actions: SeriesDownloadAction.availableActions(for: status))
+        } label: {
+          Label("Offline", systemImage: status.icon)
         }
 
         Divider()
@@ -248,12 +260,133 @@ struct SeriesContextMenu: View {
   }
 
   @ViewBuilder
+  private func actionsView(actions: [SeriesDownloadAction]) -> some View {
+    ForEach(actions) { action in
+      actionMenuItem(action: action)
+    }
+  }
+
+  @ViewBuilder
+  private func actionMenuItem(action: SeriesDownloadAction) -> some View {
+    switch action {
+    case .downloadUnread:
+      Menu {
+        downloadUnreadLimitOptions()
+      } label: {
+        Label(action.label(for: status), systemImage: action.icon(for: status))
+      }
+    default:
+      Button(role: action.isDestructive ? .destructive : .none) {
+        handleActionTap(action)
+      } label: {
+        Label(action.label(for: status), systemImage: action.icon(for: status))
+      }
+    }
+  }
+
+  private func handleActionTap(_ action: SeriesDownloadAction) {
+    performAction(action)
+  }
+
+  private func handleDownloadUnreadTap(limit: Int) {
+    downloadUnread(limit: limit)
+  }
+
+  @ViewBuilder
   private func offlinePolicyLabel(_ policy: SeriesOfflinePolicy) -> some View {
     let title = policy.title(limit: komgaSeries.offlinePolicyLimit)
     if policy == komgaSeries.offlinePolicy {
       Label(title, systemImage: "checkmark")
     } else {
       Label(title, systemImage: policy.icon)
+    }
+  }
+
+  @ViewBuilder
+  private func downloadUnreadLimitOptions() -> some View {
+    ForEach(limitPresets, id: \.self) { value in
+      Button {
+        handleDownloadUnreadTap(limit: value)
+      } label: {
+        Text(SeriesOfflinePolicy.limitTitle(value))
+      }
+    }
+  }
+
+  private func performAction(_ action: SeriesDownloadAction) {
+    switch action {
+    case .download:
+      downloadAll()
+    case .downloadUnread:
+      downloadUnread(limit: komgaSeries.offlinePolicyLimit)
+    case .removeRead:
+      removeRead()
+    case .remove, .cancel:
+      removeAll()
+    }
+  }
+
+  private func downloadAll() {
+    Task {
+      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      await DatabaseOperator.shared.downloadSeriesOffline(
+        seriesId: series.id, instanceId: currentInstanceId
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineDownloadQueued")
+        )
+        onActionCompleted?()
+      }
+    }
+  }
+
+  private func downloadUnread(limit: Int) {
+    Task {
+      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      await DatabaseOperator.shared.downloadSeriesUnreadOffline(
+        seriesId: series.id,
+        instanceId: currentInstanceId,
+        limit: limit
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineDownloadQueued")
+        )
+        onActionCompleted?()
+      }
+    }
+  }
+
+  private func removeRead() {
+    Task {
+      await DatabaseOperator.shared.removeSeriesReadOffline(
+        seriesId: series.id, instanceId: currentInstanceId
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineRemoved")
+        )
+        onActionCompleted?()
+      }
+    }
+  }
+
+  private func removeAll() {
+    Task {
+      await DatabaseOperator.shared.removeSeriesOffline(
+        seriesId: series.id, instanceId: currentInstanceId
+      )
+      await DatabaseOperator.shared.commit()
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.offlineRemoved")
+        )
+        onActionCompleted?()
+      }
     }
   }
 

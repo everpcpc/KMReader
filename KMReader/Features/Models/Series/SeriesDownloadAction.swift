@@ -7,6 +7,8 @@ import Foundation
 
 enum SeriesDownloadAction: String, Identifiable, CaseIterable {
   case download
+  case downloadUnread
+  case removeRead
   case remove
   case cancel
 
@@ -17,6 +19,10 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
     case .download:
       return status == .notDownloaded
         ? String(localized: "Make Offline") : String(localized: "Download All")
+    case .downloadUnread:
+      return String(localized: "Download Unread")
+    case .removeRead:
+      return String(localized: "settings.offline_books.remove_read")
     case .remove:
       return status == .downloaded
         ? String(localized: "Remove Offline") : String(localized: "Remove All")
@@ -29,6 +35,10 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
     switch self {
     case .download:
       return "icloud.and.arrow.down"
+    case .downloadUnread:
+      return "book.circle"
+    case .removeRead:
+      return "trash.circle"
     case .remove:
       return "trash"
     case .cancel:
@@ -38,7 +48,7 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
 
   var isDestructive: Bool {
     switch self {
-    case .remove, .cancel:
+    case .remove, .removeRead, .cancel:
       return true
     default:
       return false
@@ -47,7 +57,7 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
 
   var requiresConfirmation: Bool {
     switch self {
-    case .download, .remove:
+    case .download, .downloadUnread, .removeRead, .remove:
       return true
     case .cancel:
       return false
@@ -58,6 +68,10 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
     switch self {
     case .download:
       return String(localized: "confirm.download_all_books")
+    case .downloadUnread:
+      return String(localized: "confirm.download_unread_books")
+    case .removeRead:
+      return String(localized: "confirm.remove_read_offline_books")
     case .remove:
       return String(localized: "confirm.remove_all_offline_books")
     case .cancel:
@@ -68,13 +82,14 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
   static func availableActions(for status: SeriesDownloadStatus) -> [SeriesDownloadAction] {
     switch status {
     case .notDownloaded:
-      return [.download]
+      return [.download, .downloadUnread]
     case .partiallyDownloaded:
-      return [.download, .remove]
+      return [.download, .downloadUnread, .removeRead, .remove]
     case .downloaded:
-      return [.remove]
+      return [.removeRead, .remove]
     case .pending:
       return [.cancel]
     }
   }
+
 }

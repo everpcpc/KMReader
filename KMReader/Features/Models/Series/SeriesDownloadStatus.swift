@@ -88,19 +88,6 @@ enum SeriesDownloadStatus: Equatable, Sendable {
     }
   }
 
-  var menuColor: Color {
-    switch self {
-    case .notDownloaded:
-      return .blue
-    case .partiallyDownloaded:
-      return .orange
-    case .downloaded:
-      return .red
-    case .pending:
-      return .secondary
-    }
-  }
-
   var isProminent: Bool {
     switch self {
     case .notDownloaded:

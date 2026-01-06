@@ -754,6 +754,38 @@ actor DatabaseOperator {
     syncSeriesDownloadStatus(series: series)
   }
 
+  func downloadSeriesUnreadOffline(seriesId: String, instanceId: String, limit: Int) {
+    let compositeId = "\(instanceId)_\(seriesId)"
+    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+
+    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
+    )
+    let books = (try? modelContext.fetch(descriptor)) ?? []
+
+    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
+
+    let limitValue = max(0, limit)
+    let targetBooks = limitValue > 0 ? Array(unreadBooks.prefix(limitValue)) : unreadBooks
+
+    let now = Date.now
+    for (index, book) in targetBooks.enumerated() {
+      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
+        book.downloadStatusRaw = "pending"
+        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+      }
+    }
+
+    OfflineManager.shared.triggerSync(instanceId: instanceId)
+    syncSeriesDownloadStatus(series: series)
+  }
+
   func removeSeriesOffline(seriesId: String, instanceId: String) {
     let compositeId = "\(instanceId)_\(seriesId)"
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
@@ -775,6 +807,40 @@ actor DatabaseOperator {
     }
 
     let bookIds = books.map { $0.bookId }
+    Task {
+      for bookId in bookIds {
+        await OfflineManager.shared.deleteBook(
+          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+      }
+      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+        seriesId: seriesId, instanceId: instanceId)
+      await DatabaseOperator.shared.commit()
+    }
+  }
+
+  func removeSeriesReadOffline(seriesId: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(seriesId)"
+    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+
+    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
+    )
+    let books = (try? modelContext.fetch(descriptor)) ?? []
+
+    var bookIds: [String] = []
+    for book in books where book.progressCompleted == true {
+      book.downloadStatusRaw = "notDownloaded"
+      book.downloadError = nil
+      book.downloadAt = nil
+      book.downloadedSize = 0
+      bookIds.append(book.bookId)
+    }
+
     Task {
       for bookId in bookIds {
         await OfflineManager.shared.deleteBook(
@@ -966,6 +1032,37 @@ actor DatabaseOperator {
     syncReadListDownloadStatus(readList: readList)
   }
 
+  func downloadReadListUnreadOffline(readListId: String, instanceId: String, limit: Int) {
+    let compositeId = "\(instanceId)_\(readListId)"
+    let readListDescriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+
+    let bookIds = readList.bookIds
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
+    let books = allBooks.filter { bookIds.contains($0.bookId) }
+
+    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
+    let limitValue = max(0, limit)
+    let targetBooks = limitValue > 0 ? Array(unreadBooks.prefix(limitValue)) : unreadBooks
+
+    let now = Date.now
+    for (index, book) in targetBooks.enumerated() {
+      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
+        book.downloadStatusRaw = "pending"
+        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+      }
+    }
+
+    OfflineManager.shared.triggerSync(instanceId: instanceId)
+    syncReadListDownloadStatus(readList: readList)
+  }
+
   func removeReadListOffline(readListId: String, instanceId: String) {
     let compositeId = "\(instanceId)_\(readListId)"
     let readListDescriptor = FetchDescriptor<KomgaReadList>(
@@ -990,6 +1087,43 @@ actor DatabaseOperator {
         book.downloadedSize = 0
         bookIdsToRemove.append(book.bookId)
       }
+    }
+
+    Task {
+      for bookId in bookIdsToRemove {
+        await OfflineManager.shared.deleteBook(
+          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+      }
+      await DatabaseOperator.shared.syncReadListDownloadStatus(
+        readListId: readListId, instanceId: instanceId)
+      await DatabaseOperator.shared.commit()
+    }
+  }
+
+  func removeReadListReadOffline(readListId: String, instanceId: String) {
+    let compositeId = "\(instanceId)_\(readListId)"
+    let readListDescriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+
+    let bookIds = readList.bookIds
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
+    let books = allBooks.filter { bookIds.contains($0.bookId) }
+
+    var bookIdsToRemove: [String] = []
+    for book in books where book.progressCompleted == true {
+      if shouldKeepBookDueToOtherPolicies(book: book) {
+        continue
+      }
+      book.downloadStatusRaw = "notDownloaded"
+      book.downloadError = nil
+      book.downloadAt = nil
+      book.downloadedSize = 0
+      bookIdsToRemove.append(book.bookId)
     }
 
     Task {
