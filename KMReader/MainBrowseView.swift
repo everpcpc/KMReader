@@ -81,12 +81,12 @@ struct MainBrowseView: View {
         List {
           listContent
         }
+        .inlineNavigationBarTitle(String(localized: "title.browse"))
       }
     }
     #if os(iOS)
       .listStyle(.sidebar)
     #endif
-    .inlineNavigationBarTitle(String(localized: "title.browse"))
     .animation(.default, value: libraries)
     .animation(.default, value: collections)
     .animation(.default, value: readLists)
@@ -150,6 +150,15 @@ struct MainBrowseView: View {
               title: library.name,
               count: library.booksCount.map { Int($0) }
             )
+            .contextMenu {
+              ForEach(LibraryAction.allCases, id: \.self) { action in
+                Button {
+                  action.perform(for: library.libraryId)
+                } label: {
+                  action.label
+                }
+              }
+            }
           }
         }
       } header: {

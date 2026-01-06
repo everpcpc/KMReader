@@ -15,8 +15,6 @@ struct LibraryListContent: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
     [KomgaLibrary]
-  @State private var performingLibraryIds: Set<String> = []
-  @State private var isPerformingGlobalAction = false
   @State private var isLoading = false
   @State private var isLoadingMetrics = false
   @State private var selectedLibraryIds: [String]
@@ -118,7 +116,6 @@ struct LibraryListContent: View {
           ForEach(libraries, id: \.libraryId) { library in
             LibraryRowView(
               library: library,
-              isPerforming: performingLibraryIds.contains(library.libraryId),
               isSelected: selectedLibraryIds.contains(library.libraryId),
               isAdmin: isAdmin,
               showDeleteAction: showDeleteAction,
@@ -139,13 +136,7 @@ struct LibraryListContent: View {
                 }
               },
               onAction: { action in
-                switch action {
-                case .scan: scanLibrary(library)
-                case .scanDeep: scanLibraryDeep(library)
-                case .analyze: analyzeLibrary(library)
-                case .refreshMetadata: refreshMetadata(library)
-                case .emptyTrash: emptyTrash(library)
-                }
+                action.perform(for: library.libraryId)
               },
               onDelete: {
                 onDeleteLibrary?(library)
@@ -292,7 +283,6 @@ struct LibraryListContent: View {
     } label: {
       Label(String(localized: "Scan All Libraries"), systemImage: "arrow.clockwise")
     }
-    .disabled(isPerformingGlobalAction)
 
     Button {
       performGlobalAction(
@@ -306,7 +296,6 @@ struct LibraryListContent: View {
         systemImage: "arrow.triangle.2.circlepath"
       )
     }
-    .disabled(isPerformingGlobalAction)
 
     Button {
       performGlobalAction(
@@ -317,7 +306,6 @@ struct LibraryListContent: View {
     } label: {
       Label(String(localized: "Empty Trash for All Libraries"), systemImage: "trash.slash")
     }
-    .disabled(isPerformingGlobalAction)
   }
 
   // MARK: - Helper Functions
@@ -411,110 +399,6 @@ struct LibraryListContent: View {
 
   // MARK: - Library Actions
 
-  private func scanLibrary(_ library: KomgaLibrary) {
-    guard !performingLibraryIds.contains(library.libraryId) else { return }
-    performingLibraryIds.insert(library.libraryId)
-    Task {
-      do {
-        try await libraryService.scanLibrary(id: library.libraryId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "library.list.notify.scanStarted"))
-        }
-      } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-      _ = await MainActor.run {
-        performingLibraryIds.remove(library.libraryId)
-      }
-    }
-  }
-
-  private func scanLibraryDeep(_ library: KomgaLibrary) {
-    guard !performingLibraryIds.contains(library.libraryId) else { return }
-    performingLibraryIds.insert(library.libraryId)
-    Task {
-      do {
-        try await libraryService.scanLibrary(id: library.libraryId, deep: true)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "library.list.notify.scanStarted"))
-        }
-      } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-      _ = await MainActor.run {
-        performingLibraryIds.remove(library.libraryId)
-      }
-    }
-  }
-
-  private func analyzeLibrary(_ library: KomgaLibrary) {
-    guard !performingLibraryIds.contains(library.libraryId) else { return }
-    performingLibraryIds.insert(library.libraryId)
-    Task {
-      do {
-        try await libraryService.analyzeLibrary(id: library.libraryId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "library.list.notify.analysisStarted")
-          )
-        }
-      } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-      _ = await MainActor.run {
-        performingLibraryIds.remove(library.libraryId)
-      }
-    }
-  }
-
-  private func refreshMetadata(_ library: KomgaLibrary) {
-    guard !performingLibraryIds.contains(library.libraryId) else { return }
-    performingLibraryIds.insert(library.libraryId)
-    Task {
-      do {
-        try await libraryService.refreshMetadata(id: library.libraryId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "library.list.notify.metadataRefreshStarted")
-          )
-        }
-      } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-      _ = await MainActor.run {
-        performingLibraryIds.remove(library.libraryId)
-      }
-    }
-  }
-
-  private func emptyTrash(_ library: KomgaLibrary) {
-    guard !performingLibraryIds.contains(library.libraryId) else { return }
-    performingLibraryIds.insert(library.libraryId)
-    Task {
-      do {
-        try await libraryService.emptyTrash(id: library.libraryId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "library.list.notify.trashEmptied"))
-        }
-      } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-      _ = await MainActor.run {
-        performingLibraryIds.remove(library.libraryId)
-      }
-    }
-  }
-
   private func scanAllLibraries(deep: Bool) async throws {
     for library in libraries {
       try await libraryService.scanLibrary(id: library.libraryId, deep: deep)
@@ -531,8 +415,6 @@ struct LibraryListContent: View {
     notificationMessage: String? = nil,
     _ action: @escaping () async throws -> Void
   ) {
-    guard !isPerformingGlobalAction else { return }
-    isPerformingGlobalAction = true
     Task {
       do {
         try await action()
@@ -545,9 +427,6 @@ struct LibraryListContent: View {
         _ = await MainActor.run {
           ErrorManager.shared.alert(error: error)
         }
-      }
-      _ = await MainActor.run {
-        isPerformingGlobalAction = false
       }
     }
   }

@@ -9,21 +9,12 @@ import SwiftUI
 struct LibraryRowView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
   @Bindable var library: KomgaLibrary
-  let isPerforming: Bool
   let isSelected: Bool
   let isAdmin: Bool
   let showDeleteAction: Bool
   let onSelect: () -> Void
   let onAction: (LibraryAction) -> Void
   let onDelete: () -> Void
-
-  enum LibraryAction {
-    case scan
-    case scanDeep
-    case analyze
-    case refreshMetadata
-    case emptyTrash
-  }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -47,60 +38,25 @@ struct LibraryRowView: View {
 
       Spacer()
 
-      if isPerforming {
-        ProgressView()
-          .progressViewStyle(.circular)
-      } else {
-        Toggle(
-          "",
-          isOn: Binding(
-            get: { isSelected },
-            set: { _ in onSelect() }
-          )
+      Toggle(
+        "",
+        isOn: Binding(
+          get: { isSelected },
+          set: { _ in onSelect() }
         )
-        .labelsHidden()
-      }
+      )
+      .labelsHidden()
     }
     .contentShape(Rectangle())
     .contextMenu {
       if isAdmin {
-        Button {
-          onAction(.scan)
-        } label: {
-          Label(String(localized: "Scan Library Files"), systemImage: "arrow.clockwise")
+        ForEach(LibraryAction.allCases, id: \.self) { action in
+          Button {
+            onAction(action)
+          } label: {
+            action.label
+          }
         }
-        .disabled(isPerforming)
-
-        Button {
-          onAction(.scanDeep)
-        } label: {
-          Label(
-            String(localized: "Scan Library Files (Deep)"),
-            systemImage: "arrow.triangle.2.circlepath"
-          )
-        }
-        .disabled(isPerforming)
-
-        Button {
-          onAction(.analyze)
-        } label: {
-          Label(String(localized: "Analyze"), systemImage: "waveform.path.ecg")
-        }
-        .disabled(isPerforming)
-
-        Button {
-          onAction(.refreshMetadata)
-        } label: {
-          Label(String(localized: "Refresh Metadata"), systemImage: "arrow.triangle.branch")
-        }
-        .disabled(isPerforming)
-
-        Button {
-          onAction(.emptyTrash)
-        } label: {
-          Label(String(localized: "Empty Trash"), systemImage: "trash.slash")
-        }
-        .disabled(isPerforming)
 
         if showDeleteAction {
           Divider()
@@ -110,7 +66,6 @@ struct LibraryRowView: View {
           } label: {
             Label(String(localized: "Delete Library"), systemImage: "trash")
           }
-          .disabled(isPerforming)
         }
       }
     }
