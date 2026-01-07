@@ -94,7 +94,7 @@ struct BookDetailView: View {
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
-        bookIds: [bookId],
+        bookId: bookId,
         onSelect: { readListId in
           addToReadList(readListId: readListId)
         }

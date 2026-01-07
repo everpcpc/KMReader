@@ -114,7 +114,7 @@ struct SeriesCardView: View {
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
-        seriesIds: [komgaSeries.seriesId],
+        seriesId: komgaSeries.seriesId,
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
         }

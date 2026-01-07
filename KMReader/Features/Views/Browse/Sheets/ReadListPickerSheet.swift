@@ -8,13 +8,16 @@
 import SwiftData
 import SwiftUI
 
+private struct ReadListItem: Identifiable {
+  let id: String
+  let name: String
+  let alreadyIn: Bool
+}
+
 struct ReadListPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
-  @State private var readListViewModel = ReadListViewModel()
   @State private var selectedReadListId: String?
   @State private var isLoading = false
   @State private var searchText: String = ""
@@ -23,14 +26,14 @@ struct ReadListPickerSheet: View {
 
   @Query private var komgaReadLists: [KomgaReadList]
 
-  let bookIds: [String]
+  let bookId: String
   let onSelect: (String) -> Void
 
   init(
-    bookIds: [String] = [],
+    bookId: String,
     onSelect: @escaping (String) -> Void
   ) {
-    self.bookIds = bookIds
+    self.bookId = bookId
     self.onSelect = onSelect
 
     let instanceId = AppConfig.currentInstanceId
@@ -40,30 +43,62 @@ struct ReadListPickerSheet: View {
     )
   }
 
-  private var readLists: [ReadList] {
-    let ids = Set(readListViewModel.pagination.items.map(\.id))
-    return
-      komgaReadLists
-      .filter { ids.contains($0.readListId) }
-      .map { $0.toReadList() }
+  private var filteredReadLists: [KomgaReadList] {
+    if searchText.isEmpty {
+      return Array(komgaReadLists)
+    }
+    return komgaReadLists.filter {
+      $0.name.localizedCaseInsensitiveContains(searchText)
+    }
+  }
+
+  private func isAlreadyInReadList(_ readList: KomgaReadList) -> Bool {
+    return readList.bookIds.contains(bookId)
+  }
+
+  private var readListItems: [ReadListItem] {
+    filteredReadLists.map { readList in
+      ReadListItem(
+        id: readList.readListId,
+        name: readList.name,
+        alreadyIn: readList.bookIds.contains(bookId)
+      )
+    }
   }
 
   var body: some View {
     SheetView(title: String(localized: "Select Read List"), size: .large, applyFormStyle: true) {
       Form {
-        if isLoading && readLists.isEmpty {
+        if isLoading && komgaReadLists.isEmpty {
           ProgressView()
             .frame(maxWidth: .infinity)
-        } else if readLists.isEmpty && searchText.isEmpty {
+        } else if filteredReadLists.isEmpty && searchText.isEmpty {
           Text("No read lists found")
             .foregroundColor(.secondary)
         } else {
-          Picker("Read List", selection: $selectedReadListId) {
-            ForEach(readLists) { readList in
-              Label(readList.name, systemImage: "list.bullet").tag(readList.id as String?)
+          Section {
+            ForEach(readListItems) { item in
+              Button {
+                if !item.alreadyIn {
+                  selectedReadListId = item.id
+                }
+              } label: {
+                HStack {
+                  Label(item.name, systemImage: "list.bullet")
+                  Spacer()
+                  if item.alreadyIn {
+                    Image(systemName: "checkmark.circle.fill")
+                      .foregroundStyle(.green)
+                  } else if selectedReadListId == item.id {
+                    Image(systemName: "checkmark")
+                      .foregroundStyle(.tint)
+                  }
+                }
+                .foregroundStyle(item.alreadyIn ? .secondary : .primary)
+              }
+              .disabled(item.alreadyIn)
             }
           }
-          .pickerStyle(.inline)
         }
       }
     } controls: {
@@ -83,17 +118,12 @@ struct ReadListPickerSheet: View {
     }
     .searchable(text: $searchText)
     .task {
-      await loadReadLists()
-    }
-    .onChange(of: searchText) { _, newValue in
-      Task {
-        await loadReadLists(searchText: newValue)
-      }
+      await syncReadLists()
     }
     .sheet(isPresented: $showCreateSheet) {
       CreateReadListSheet(
         isCreating: $isCreating,
-        bookIds: bookIds,
+        bookId: bookId,
         onCreate: { _ in
           dismiss()
         }
@@ -101,17 +131,10 @@ struct ReadListPickerSheet: View {
     }
   }
 
-  private func loadReadLists(searchText: String = "") async {
+  private func syncReadLists() async {
+    guard !AppConfig.isOffline else { return }
     isLoading = true
-
-    await readListViewModel.loadReadLists(
-      context: modelContext,
-      libraryIds: dashboard.libraryIds,
-      sort: "name,asc",
-      searchText: searchText,
-      refresh: true
-    )
-
+    await SyncService.shared.syncReadLists(instanceId: AppConfig.currentInstanceId)
     isLoading = false
   }
 
@@ -126,7 +149,7 @@ struct ReadListPickerSheet: View {
 struct CreateReadListSheet: View {
   @Environment(\.dismiss) private var dismiss
   @Binding var isCreating: Bool
-  let bookIds: [String]
+  let bookId: String
   let onCreate: (String) -> Void
 
   @State private var name: String = ""
@@ -163,7 +186,7 @@ struct CreateReadListSheet: View {
         let readList = try await ReadListService.shared.createReadList(
           name: name,
           summary: summary,
-          bookIds: bookIds
+          bookIds: [bookId]
         )
         // Sync the readlist to update its bookIds in local SwiftData
         _ = try? await SyncService.shared.syncReadList(id: readList.id)

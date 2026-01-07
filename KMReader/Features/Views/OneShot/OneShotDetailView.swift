@@ -112,7 +112,7 @@ struct OneshotDetailView: View {
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
-        seriesIds: [seriesId],
+        seriesId: seriesId,
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
         }
@@ -121,7 +121,7 @@ struct OneshotDetailView: View {
     .sheet(isPresented: $showReadListPicker) {
       if let book = book {
         ReadListPickerSheet(
-          bookIds: [book.id],
+          bookId: book.id,
           onSelect: { readListId in
             addToReadList(readListId: readListId, bookId: book.id)
           }

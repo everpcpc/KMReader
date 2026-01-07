@@ -8,13 +8,16 @@
 import SwiftData
 import SwiftUI
 
+private struct CollectionItem: Identifiable {
+  let id: String
+  let name: String
+  let alreadyIn: Bool
+}
+
 struct CollectionPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
-  @State private var collectionViewModel = CollectionViewModel()
   @State private var selectedCollectionId: String?
   @State private var isLoading = false
   @State private var searchText: String = ""
@@ -23,14 +26,14 @@ struct CollectionPickerSheet: View {
 
   @Query private var komgaCollections: [KomgaCollection]
 
-  let seriesIds: [String]
+  let seriesId: String
   let onSelect: (String) -> Void
 
   init(
-    seriesIds: [String] = [],
+    seriesId: String,
     onSelect: @escaping (String) -> Void
   ) {
-    self.seriesIds = seriesIds
+    self.seriesId = seriesId
     self.onSelect = onSelect
 
     let instanceId = AppConfig.currentInstanceId
@@ -40,30 +43,58 @@ struct CollectionPickerSheet: View {
     )
   }
 
-  private var collections: [SeriesCollection] {
-    let ids = Set(collectionViewModel.pagination.items.map(\.id))
-    return
-      komgaCollections
-      .filter { ids.contains($0.collectionId) }
-      .map { $0.toCollection() }
+  private var filteredCollections: [KomgaCollection] {
+    if searchText.isEmpty {
+      return Array(komgaCollections)
+    }
+    return komgaCollections.filter {
+      $0.name.localizedCaseInsensitiveContains(searchText)
+    }
+  }
+
+  private var collectionItems: [CollectionItem] {
+    filteredCollections.map { collection in
+      CollectionItem(
+        id: collection.collectionId,
+        name: collection.name,
+        alreadyIn: collection.seriesIds.contains(seriesId)
+      )
+    }
   }
 
   var body: some View {
     SheetView(title: String(localized: "Select Collection"), size: .large, applyFormStyle: true) {
       Form {
-        if isLoading && collections.isEmpty {
+        if isLoading && komgaCollections.isEmpty {
           ProgressView()
             .frame(maxWidth: .infinity)
-        } else if collections.isEmpty && searchText.isEmpty {
+        } else if filteredCollections.isEmpty && searchText.isEmpty {
           Text("No collections found")
             .foregroundColor(.secondary)
         } else {
-          Picker("Collection", selection: $selectedCollectionId) {
-            ForEach(collections) { collection in
-              Label(collection.name, systemImage: "square.grid.2x2").tag(collection.id as String?)
+          Section {
+            ForEach(collectionItems) { item in
+              Button {
+                if !item.alreadyIn {
+                  selectedCollectionId = item.id
+                }
+              } label: {
+                HStack {
+                  Label(item.name, systemImage: "square.grid.2x2")
+                  Spacer()
+                  if item.alreadyIn {
+                    Image(systemName: "checkmark.circle.fill")
+                      .foregroundStyle(.green)
+                  } else if selectedCollectionId == item.id {
+                    Image(systemName: "checkmark")
+                      .foregroundStyle(.tint)
+                  }
+                }
+                .foregroundStyle(item.alreadyIn ? .secondary : .primary)
+              }
+              .disabled(item.alreadyIn)
             }
           }
-          .pickerStyle(.inline)
         }
       }
     } controls: {
@@ -83,17 +114,12 @@ struct CollectionPickerSheet: View {
     }
     .searchable(text: $searchText)
     .task {
-      await loadCollections()
-    }
-    .onChange(of: searchText) { _, newValue in
-      Task {
-        await loadCollections(searchText: newValue)
-      }
+      await syncCollections()
     }
     .sheet(isPresented: $showCreateSheet) {
       CreateCollectionSheet(
         isCreating: $isCreating,
-        seriesIds: seriesIds,
+        seriesId: seriesId,
         onCreate: { _ in
           dismiss()
         }
@@ -101,17 +127,10 @@ struct CollectionPickerSheet: View {
     }
   }
 
-  private func loadCollections(searchText: String = "") async {
+  private func syncCollections() async {
+    guard !AppConfig.isOffline else { return }
     isLoading = true
-
-    await collectionViewModel.loadCollections(
-      context: modelContext,
-      libraryIds: dashboard.libraryIds,
-      sort: "name,asc",
-      searchText: searchText,
-      refresh: true
-    )
-
+    await SyncService.shared.syncCollections(instanceId: AppConfig.currentInstanceId)
     isLoading = false
   }
 
@@ -126,7 +145,7 @@ struct CollectionPickerSheet: View {
 struct CreateCollectionSheet: View {
   @Environment(\.dismiss) private var dismiss
   @Binding var isCreating: Bool
-  let seriesIds: [String]
+  let seriesId: String
   let onCreate: (String) -> Void
 
   @State private var name: String = ""
@@ -159,7 +178,7 @@ struct CreateCollectionSheet: View {
       do {
         let collection = try await CollectionService.shared.createCollection(
           name: name,
-          seriesIds: seriesIds
+          seriesIds: [seriesId]
         )
         // Sync the collection to update its seriesIds in local SwiftData
         _ = try? await SyncService.shared.syncCollection(id: collection.id)

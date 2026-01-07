@@ -131,20 +131,17 @@ struct SettingsHistoryView: View {
     HStack(alignment: .top, spacing: 12) {
       Image(systemName: iconName(for: event.type))
         .foregroundColor(.secondary)
-        .font(.headline)
         .frame(width: 24)
 
       VStack(alignment: .leading, spacing: 6) {
         Text(event.type)
-          .font(.headline)
-          .lineLimit(2)
+          .lineLimit(1)
 
         if let seriesId = event.seriesId, !seriesId.isEmpty {
           HStack(spacing: 6) {
             Image(systemName: "rectangle.stack")
               .font(.caption)
             Text(seriesNameById[seriesId] ?? seriesId)
-              .font(.subheadline)
               .foregroundColor(.secondary)
               .lineLimit(1)
           }
@@ -155,7 +152,6 @@ struct SettingsHistoryView: View {
             Image(systemName: "book")
               .font(.caption)
             Text(bookNameById[bookId] ?? bookId)
-              .font(.subheadline)
               .foregroundColor(.secondary)
               .lineLimit(1)
           }

@@ -5800,6 +5800,7 @@
       }
     },
     "Collection" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -21134,6 +21135,7 @@
       }
     },
     "Read List" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

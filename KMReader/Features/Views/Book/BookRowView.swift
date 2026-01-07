@@ -170,7 +170,7 @@ struct BookRowView: View {
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
-        bookIds: [komgaBook.bookId],
+        bookId: komgaBook.bookId,
         onSelect: { readListId in
           addToReadList(readListId: readListId)
         }
