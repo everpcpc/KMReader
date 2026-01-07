@@ -30,6 +30,10 @@ struct DashboardView: View {
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
   private let logger = AppLogger(.dashboard)
 
+  private var isReaderActive: Bool {
+    readerPresentation.readerState != nil
+  }
+
   private func performRefresh(reason: String, source: DashboardRefreshSource) {
     logger.debug("Dashboard refresh start: \(reason)")
 
@@ -115,10 +119,6 @@ struct DashboardView: View {
     // If dashboard shows all libraries (empty array), refresh for any library
     // Otherwise, only refresh if the library matches
     return dashboard.libraryIds.isEmpty || dashboard.libraryIds.contains(libraryId)
-  }
-
-  private var isReaderActive: Bool {
-    readerPresentation.readerState != nil
   }
 
   var body: some View {
