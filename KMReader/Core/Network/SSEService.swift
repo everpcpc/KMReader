@@ -266,6 +266,7 @@ final class SSEService {
   }
 
   private func handleSSEEvent(type: String, data: String) async {
+    logger.debug("SSE event received: \(type), data: \(data)")
     recordServerUpdate()
 
     switch type {
