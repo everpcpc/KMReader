@@ -16,15 +16,14 @@ struct ReadListCardView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
-        ThumbnailImage(
-          id: komgaReadList.readListId, type: .readlist, shadowStyle: .platform,
-          alignment: .bottom
-        )
-      }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
-      .contextMenu {
+      ThumbnailImage(
+        id: komgaReadList.readListId,
+        type: .readlist,
+        shadowStyle: .platform,
+        alignment: .bottom,
+        navigationLink: NavDestination.readListDetail(readListId: komgaReadList.readListId)
+      ) {
+      } menu: {
         ReadListContextMenu(
           komgaReadList: komgaReadList,
           onDeleteRequested: {
@@ -34,7 +33,6 @@ struct ReadListCardView: View {
             showEditSheet = true
           }
         )
-        .id(komgaReadList.readListId)
       }
 
       if !coverOnlyCards {

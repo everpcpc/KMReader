@@ -8,15 +8,18 @@
 import SwiftUI
 
 /// A reusable thumbnail image component using native image loading
-struct ThumbnailImage<Overlay: View>: View {
+struct ThumbnailImage<Overlay: View, Menu: View>: View {
   let id: String
   let type: ThumbnailType
   let shadowStyle: ShadowStyle
   let width: CGFloat?
   let cornerRadius: CGFloat
   let alignment: Alignment
-  let overlay: (() -> Overlay)?
   let isTransitionSource: Bool
+  let navigationLink: NavDestination?
+  let onAction: (() -> Void)?
+  let overlay: (() -> Overlay)?
+  let menu: (() -> Menu)?
 
   let ratio: CGFloat = 1.414
 
@@ -47,7 +50,10 @@ struct ThumbnailImage<Overlay: View>: View {
     cornerRadius: CGFloat = 8,
     alignment: Alignment = .center,
     isTransitionSource: Bool = true,
-    @ViewBuilder overlay: @escaping () -> Overlay
+    navigationLink: NavDestination? = nil,
+    onAction: (() -> Void)? = nil,
+    @ViewBuilder overlay: @escaping () -> Overlay,
+    @ViewBuilder menu: @escaping () -> Menu,
   ) {
     self.id = id
     self.type = type
@@ -55,8 +61,11 @@ struct ThumbnailImage<Overlay: View>: View {
     self.width = width
     self.cornerRadius = cornerRadius
     self.alignment = alignment
-    self.overlay = overlay
     self.isTransitionSource = isTransitionSource
+    self.navigationLink = navigationLink
+    self.onAction = onAction
+    self.overlay = overlay
+    self.menu = menu
   }
 
   private var baseKey: String {
@@ -96,19 +105,26 @@ struct ThumbnailImage<Overlay: View>: View {
         imageContent
           .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
           .overlay { borderOverlay }
+          .overlay {
+            if !isAbnormalSize, let overlay = overlay {
+              overlay()
+            }
+          }
           .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
             view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
           }
           #if os(iOS)
             .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
           #endif
-          .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-          .transition(.opacity)
-          .overlay {
-            if !isAbnormalSize, let overlay = overlay {
-              overlay()
+          .withNavigationLink(navigationLink)
+          .withButtonAction(onAction)
+          .contextMenu {
+            if let menu = menu {
+              menu()
             }
           }
+          .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+          .transition(.opacity)
       }
     }
     .animation(.easeInOut(duration: 0.18), value: image != nil)
@@ -154,7 +170,7 @@ struct ThumbnailImage<Overlay: View>: View {
   }
 }
 
-extension ThumbnailImage where Overlay == EmptyView {
+extension ThumbnailImage where Overlay == EmptyView, Menu == EmptyView {
   init(
     id: String,
     type: ThumbnailType = .book,
@@ -162,14 +178,75 @@ extension ThumbnailImage where Overlay == EmptyView {
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
     alignment: Alignment = .center,
-    isTransitionSource: Bool = true
+    isTransitionSource: Bool = true,
+    navigationLink: NavDestination? = nil,
+    onAction: (() -> Void)? = nil,
   ) {
     self.init(
       id: id, type: type, shadowStyle: shadowStyle,
       width: width, cornerRadius: cornerRadius,
       alignment: alignment,
-      isTransitionSource: isTransitionSource
-    ) {}
+      isTransitionSource: isTransitionSource,
+      navigationLink: navigationLink,
+      onAction: onAction
+    ) {
+    } menu: {
+    }
+  }
+}
+
+extension ThumbnailImage where Menu == EmptyView {
+  init(
+    id: String,
+    type: ThumbnailType = .book,
+    shadowStyle: ShadowStyle = .basic,
+    width: CGFloat? = nil,
+    cornerRadius: CGFloat = 8,
+    alignment: Alignment = .center,
+    isTransitionSource: Bool = true,
+    navigationLink: NavDestination? = nil,
+    onAction: (() -> Void)? = nil,
+    @ViewBuilder overlay: @escaping () -> Overlay
+  ) {
+    self.init(
+      id: id, type: type, shadowStyle: shadowStyle,
+      width: width, cornerRadius: cornerRadius,
+      alignment: alignment,
+      isTransitionSource: isTransitionSource,
+      navigationLink: navigationLink,
+      onAction: onAction
+    ) {
+      overlay()
+    } menu: {
+    }
+  }
+}
+
+extension View {
+  @ViewBuilder
+  func withButtonAction(_ onAction: (() -> Void)?) -> some View {
+    if let onAction = onAction {
+      Button(action: onAction) {
+        self
+      }
+      .adaptiveButtonStyle(.plain)
+      .focusPadding()
+    } else {
+      self
+    }
+  }
+
+  @ViewBuilder
+  func withNavigationLink(_ navigationLink: NavDestination?) -> some View {
+    if let navigationLink = navigationLink {
+      NavigationLink(value: navigationLink) {
+        self
+      }
+      .adaptiveButtonStyle(.plain)
+      .focusPadding()
+    } else {
+      self
+    }
   }
 }
 

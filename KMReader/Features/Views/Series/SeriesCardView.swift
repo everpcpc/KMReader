@@ -33,23 +33,22 @@ struct SeriesCardView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      NavigationLink(value: navDestination) {
-        ThumbnailImage(
-          id: komgaSeries.seriesId, type: .series, shadowStyle: .platform, alignment: .bottom
-        ) {
-          ZStack {
-            if thumbnailShowUnreadIndicator && komgaSeries.booksUnreadCount > 0 {
-              VStack(alignment: .trailing) {
-                UnreadCountBadge(count: komgaSeries.booksUnreadCount)
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-              }
+      ThumbnailImage(
+        id: komgaSeries.seriesId,
+        type: .series,
+        shadowStyle: .platform,
+        alignment: .bottom,
+        navigationLink: navDestination
+      ) {
+        ZStack {
+          if thumbnailShowUnreadIndicator && komgaSeries.booksUnreadCount > 0 {
+            VStack(alignment: .trailing) {
+              UnreadCountBadge(count: komgaSeries.booksUnreadCount)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
         }
-      }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
-      .contextMenu {
+      } menu: {
         SeriesContextMenu(
           komgaSeries: komgaSeries,
           onShowCollectionPicker: {
@@ -62,7 +61,6 @@ struct SeriesCardView: View {
             showEditSheet = true
           }
         )
-        .id(komgaSeries.seriesId)
       }
 
       if !coverOnlyCards {

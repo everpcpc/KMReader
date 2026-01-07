@@ -58,32 +58,31 @@ struct BookContextMenu: View {
           }
         }
         Divider()
-      }
 
-      if !isOffline && isAdmin {
-        Menu {
-          Button {
-            onEditRequested?()
+        if isAdmin {
+          Menu {
+            Button {
+              onEditRequested?()
+            } label: {
+              Label("Edit", systemImage: "pencil")
+            }
+            Button {
+              analyzeBook(bookId: book.id)
+            } label: {
+              Label("Analyze", systemImage: "waveform.path.ecg")
+            }
+            Button {
+              refreshMetadata(bookId: book.id)
+            } label: {
+              Label("Refresh Metadata", systemImage: "arrow.clockwise")
+            }
+            Divider()
           } label: {
-            Label("Edit", systemImage: "pencil")
-          }
-          Button {
-            analyzeBook(bookId: book.id)
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-          Button {
-            refreshMetadata(bookId: book.id)
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+            Label("Manage", systemImage: "gearshape")
           }
           Divider()
-        } label: {
-          Label("Manage", systemImage: "gearshape")
         }
       }
-
-      Divider()
 
       Button {
         Task {

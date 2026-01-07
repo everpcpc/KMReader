@@ -50,33 +50,30 @@ struct BookCardView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Button {
-        onReadBook?(false)
-      } label: {
-        ThumbnailImage(
-          id: komgaBook.bookId, type: .book, shadowStyle: .platform, alignment: .bottom
-        ) {
-          ZStack {
-            if let progressCompleted = komgaBook.progressCompleted {
-              if !progressCompleted {
-                if thumbnailShowProgressBar {
-                  ReadingProgressBar(progress: progress)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(2)
-                }
+      ThumbnailImage(
+        id: komgaBook.bookId,
+        type: .book,
+        shadowStyle: .platform,
+        alignment: .bottom,
+        onAction: { onReadBook?(false) }
+      ) {
+        ZStack {
+          if let progressCompleted = komgaBook.progressCompleted {
+            if !progressCompleted {
+              if thumbnailShowProgressBar {
+                ReadingProgressBar(progress: progress)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                  .padding(2)
               }
-            } else {
-              if thumbnailShowUnreadIndicator {
-                UnreadIndicator()
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-              }
+            }
+          } else {
+            if thumbnailShowUnreadIndicator {
+              UnreadIndicator()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
         }
-      }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
-      .contextMenu {
+      } menu: {
         BookContextMenu(
           komgaBook: komgaBook,
           onReadBook: onReadBook,
@@ -91,7 +88,6 @@ struct BookCardView: View {
           },
           showSeriesNavigation: showSeriesNavigation
         )
-        .id(komgaBook.bookId)
       }
 
       if !coverOnlyCards {

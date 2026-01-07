@@ -22,9 +22,8 @@ struct ReadListDetailContentView: View {
           type: .readlist,
           width: PlatformHelper.detailThumbnailWidth,
           isTransitionSource: false
-        )
-        .id(thumbnailRefreshKey)
-        .contextMenu {
+        ) {
+        } menu: {
           Button {
             Task {
               do {
@@ -49,6 +48,7 @@ struct ReadListDetailContentView: View {
             Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
           }
         }
+        .id(thumbnailRefreshKey)
         .thumbnailFocus()
 
         VStack(alignment: .leading) {

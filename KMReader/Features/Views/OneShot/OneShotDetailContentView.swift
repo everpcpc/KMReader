@@ -47,9 +47,8 @@ struct OneShotDetailContentView: View {
           type: .book,
           width: PlatformHelper.detailThumbnailWidth,
           isTransitionSource: false
-        )
-        .id(thumbnailRefreshKey)
-        .contextMenu {
+        ) {
+        } menu: {
           Button {
             Task {
               do {
@@ -74,6 +73,7 @@ struct OneShotDetailContentView: View {
             Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
           }
         }
+        .id(thumbnailRefreshKey)
         .thumbnailFocus()
 
         VStack(alignment: .leading) {

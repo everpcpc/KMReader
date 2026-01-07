@@ -43,83 +43,11 @@ struct SeriesContextMenu: View {
   var body: some View {
     Group {
       if !isOffline {
-
-        if isAdmin {
-          Button {
-            onEditRequested?()
-          } label: {
-            Label("Edit", systemImage: "pencil")
-          }
-          Button {
-            analyzeSeries()
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-          Button {
-            refreshMetadata()
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
-          }
-          Divider()
-        }
-
         Button {
           onShowCollectionPicker?()
         } label: {
           Label("Add to Collection", systemImage: "square.grid.2x2")
         }
-
-        Divider()
-
-        Menu {
-          Button {
-            updatePolicy(.manual)
-          } label: {
-            offlinePolicyLabel(.manual)
-          }
-
-          Menu {
-            ForEach(limitPresets, id: \.self) { value in
-              Button {
-                updatePolicyAndLimit(.unreadOnly, limit: value)
-              } label: {
-                limitOptionLabel(policy: .unreadOnly, limit: value)
-              }
-            }
-          } label: {
-            offlinePolicyLabel(.unreadOnly)
-          }
-
-          Menu {
-            ForEach(limitPresets, id: \.self) { value in
-              Button {
-                updatePolicyAndLimit(.unreadOnlyAndCleanupRead, limit: value)
-              } label: {
-                limitOptionLabel(policy: .unreadOnlyAndCleanupRead, limit: value)
-              }
-            }
-          } label: {
-            offlinePolicyLabel(.unreadOnlyAndCleanupRead)
-          }
-
-          Button {
-            updatePolicy(.all)
-          } label: {
-            offlinePolicyLabel(.all)
-          }
-        } label: {
-          Label("Offline Policy", systemImage: komgaSeries.offlinePolicy.icon)
-        }
-
-        Divider()
-
-        Menu {
-          actionsView(actions: SeriesDownloadAction.availableActions(for: status))
-        } label: {
-          Label("Download", systemImage: status.icon)
-        }
-
-        Divider()
 
         if canMarkAsRead {
           Button {
@@ -136,6 +64,79 @@ struct SeriesContextMenu: View {
             Label("Mark as Unread", systemImage: "circle")
           }
         }
+
+        Divider()
+
+        if isAdmin {
+          Menu {
+            Button {
+              onEditRequested?()
+            } label: {
+              Label("Edit", systemImage: "pencil")
+            }
+            Button {
+              analyzeSeries()
+            } label: {
+              Label("Analyze", systemImage: "waveform.path.ecg")
+            }
+            Button {
+              refreshMetadata()
+            } label: {
+              Label("Refresh Metadata", systemImage: "arrow.clockwise")
+            }
+          } label: {
+            Label("Manage", systemImage: "gearshape")
+          }
+          Divider()
+        }
+      }
+
+      Menu {
+        Button {
+          updatePolicy(.manual)
+        } label: {
+          offlinePolicyLabel(.manual)
+        }
+
+        Menu {
+          ForEach(limitPresets, id: \.self) { value in
+            Button {
+              updatePolicyAndLimit(.unreadOnly, limit: value)
+            } label: {
+              limitOptionLabel(policy: .unreadOnly, limit: value)
+            }
+          }
+        } label: {
+          offlinePolicyLabel(.unreadOnly)
+        }
+
+        Menu {
+          ForEach(limitPresets, id: \.self) { value in
+            Button {
+              updatePolicyAndLimit(.unreadOnlyAndCleanupRead, limit: value)
+            } label: {
+              limitOptionLabel(policy: .unreadOnlyAndCleanupRead, limit: value)
+            }
+          }
+        } label: {
+          offlinePolicyLabel(.unreadOnlyAndCleanupRead)
+        }
+
+        Button {
+          updatePolicy(.all)
+        } label: {
+          offlinePolicyLabel(.all)
+        }
+      } label: {
+        Label("Offline Policy", systemImage: komgaSeries.offlinePolicy.icon)
+      }
+
+      Divider()
+
+      Menu {
+        actionsView(actions: SeriesDownloadAction.availableActions(for: status))
+      } label: {
+        Label("Download", systemImage: status.icon)
       }
     }
   }

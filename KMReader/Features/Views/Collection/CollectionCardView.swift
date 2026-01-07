@@ -16,17 +16,14 @@ struct CollectionCardView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      NavigationLink(
-        value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+      ThumbnailImage(
+        id: komgaCollection.collectionId,
+        type: .collection,
+        shadowStyle: .platform,
+        alignment: .bottom,
+        navigationLink: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
       ) {
-        ThumbnailImage(
-          id: komgaCollection.collectionId, type: .collection, shadowStyle: .platform,
-          alignment: .bottom
-        )
-      }
-      .focusPadding()
-      .adaptiveButtonStyle(.plain)
-      .contextMenu {
+      } menu: {
         CollectionContextMenu(
           collection: komgaCollection.toCollection(),
           onDeleteRequested: {
@@ -36,7 +33,6 @@ struct CollectionCardView: View {
             showEditSheet = true
           }
         )
-        .id(komgaCollection.collectionId)
       }
 
       if !coverOnlyCards {
