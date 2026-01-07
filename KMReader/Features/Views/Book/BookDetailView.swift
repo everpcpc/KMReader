@@ -15,16 +15,12 @@ struct BookDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
-  // SwiftData query for reactive download status
   @Query private var komgaBooks: [KomgaBook]
 
-  @State private var isLoading = true
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
-  @State private var bookReadLists: [ReadList] = []
-  @State private var isLoadingRelations = false
 
   init(bookId: String) {
     self.bookId = bookId
@@ -49,7 +45,7 @@ struct BookDetailView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading) {
+      LazyVStack(alignment: .leading) {
         if let book {
           #if os(tvOS)
             bookToolbarContent
@@ -58,9 +54,12 @@ struct BookDetailView: View {
 
           BookDetailContentView(
             book: book,
-            downloadStatus: downloadStatus,
-            bookReadLists: bookReadLists
+            downloadStatus: downloadStatus
           )
+
+          if let komgaBook = komgaBook {
+            BookReadListsSection(readListIds: komgaBook.readListIds)
+          }
         } else if hasError {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
@@ -214,53 +213,19 @@ struct BookDetailView: View {
 
   @MainActor
   private func loadBook() async {
-    // Only show loading if we don't have cached data
-    isLoading = komgaBook == nil
-
     do {
       // Sync from network to SwiftData (book property will update reactively)
-      let fetchedBook = try await SyncService.shared.syncBook(bookId: bookId)
-      isLoading = false
-      isLoadingRelations = true
-      bookReadLists = []
-      Task {
-        await loadBookRelations(for: fetchedBook)
-      }
+      _ = try await SyncService.shared.syncBook(bookId: bookId)
+      await SyncService.shared.syncBookReadLists(bookId: bookId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
       } else {
-        isLoading = false
         if komgaBook == nil {
           hasError = true
           ErrorManager.shared.alert(error: error)
         }
       }
-    }
-  }
-
-  @MainActor
-  private func loadBookRelations(for book: Book) async {
-    isLoadingRelations = true
-    let targetBookId = book.id
-    bookReadLists = []
-
-    do {
-      let readLists = try await BookService.shared.getReadListsForBook(bookId: book.id)
-      if self.book?.id == targetBookId {
-        withAnimation {
-          bookReadLists = readLists
-        }
-      }
-    } catch {
-      if self.book?.id == targetBookId {
-        bookReadLists = []
-      }
-      ErrorManager.shared.alert(error: error)
-    }
-
-    if self.book?.id == targetBookId {
-      isLoadingRelations = false
     }
   }
 

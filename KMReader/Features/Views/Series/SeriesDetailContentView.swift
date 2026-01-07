@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SeriesDetailContentView: View {
   let series: Series
-  let containingCollections: [SeriesCollection]
+
   @State private var thumbnailRefreshKey = UUID()
 
   var body: some View {
@@ -217,37 +217,6 @@ struct SeriesDetailContentView: View {
           backgroundColor: Color.purple.opacity(0.2),
           foregroundColor: .purple
         )
-      }
-
-      if !containingCollections.isEmpty {
-        VStack(alignment: .leading, spacing: 8) {
-          HStack(spacing: 4) {
-            Text("Collections")
-              .font(.headline)
-          }
-          .foregroundColor(.secondary)
-
-          VStack(alignment: .leading, spacing: 8) {
-            ForEach(containingCollections) { collection in
-              NavigationLink(
-                value: NavDestination.collectionDetail(collectionId: collection.id)
-              ) {
-                HStack {
-                  Label(collection.name, systemImage: "square.grid.2x2")
-                    .foregroundColor(.primary)
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(16)
-              }.adaptiveButtonStyle(.plain)
-            }
-          }
-        }
-        .padding(.vertical)
       }
 
       if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {

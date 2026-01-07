@@ -11,7 +11,7 @@ import SwiftUI
 struct BookDetailContentView: View {
   let book: Book
   let downloadStatus: DownloadStatus?
-  let bookReadLists: [ReadList]
+
   @State private var thumbnailRefreshKey = UUID()
 
   private var isCompleted: Bool {
@@ -205,36 +205,6 @@ struct BookDetailContentView: View {
         seriesLink: true
       )
       Divider()
-
-      if !bookReadLists.isEmpty {
-        VStack(alignment: .leading, spacing: 6) {
-          HStack(spacing: 4) {
-            Image(systemName: "list.bullet")
-              .font(.caption)
-            Text("Read Lists")
-              .font(.headline)
-          }
-          .foregroundColor(.secondary)
-
-          VStack(alignment: .leading, spacing: 8) {
-            ForEach(bookReadLists) { readList in
-              NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
-                HStack {
-                  Label(readList.name, systemImage: "list.bullet")
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(16)
-              }.adaptiveButtonStyle(.plain)
-            }
-          }
-        }
-        .padding(.vertical)
-      }
 
       // book media info
       VStack(alignment: .leading, spacing: 8) {

@@ -77,6 +77,9 @@ final class KomgaBook {
   var downloadAt: Date?
   var downloadedSize: Int64 = 0
 
+  // Cached read list IDs containing this book
+  var readListIds: [String] = []
+
   /// Computed property for download status.
   var downloadStatus: DownloadStatus {
     get {

@@ -427,6 +427,26 @@ actor DatabaseOperator {
     await KomgaSeriesStore.fetchOne(context: modelContext, seriesId: id)
   }
 
+  func updateSeriesCollectionIds(seriesId: String, collectionIds: [String], instanceId: String) {
+    let compositeId = "\(instanceId)_\(seriesId)"
+    let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
+    if let existing = try? modelContext.fetch(descriptor).first {
+      if existing.collectionIds != collectionIds {
+        existing.collectionIds = collectionIds
+      }
+    }
+  }
+
+  func updateBookReadListIds(bookId: String, readListIds: [String], instanceId: String) {
+    let compositeId = "\(instanceId)_\(bookId)"
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let existing = try? modelContext.fetch(descriptor).first {
+      if existing.readListIds != readListIds {
+        existing.readListIds = readListIds
+      }
+    }
+  }
+
   // MARK: - Collection Operations
 
   func upsertCollection(dto: SeriesCollection, instanceId: String) {

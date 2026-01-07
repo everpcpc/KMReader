@@ -20,14 +20,10 @@ struct OneshotDetailView: View {
 
   @State private var isLoading = true
   @State private var hasError = false
-  @State private var isLoadingCollections = false
-  @State private var isLoadingReadLists = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showCollectionPicker = false
   @State private var showReadListPicker = false
-  @State private var containingCollections: [SeriesCollection] = []
-  @State private var bookReadLists: [ReadList] = []
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -62,7 +58,7 @@ struct OneshotDetailView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading) {
+      LazyVStack(alignment: .leading) {
         if let book, let series {
           #if os(tvOS)
             oneshotToolbarContent
@@ -72,10 +68,16 @@ struct OneshotDetailView: View {
           OneShotDetailContentView(
             book: book,
             series: series,
-            downloadStatus: downloadStatus,
-            containingCollections: containingCollections,
-            bookReadLists: bookReadLists
+            downloadStatus: downloadStatus
           )
+
+          if let komgaSeries = komgaSeries {
+            SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+          }
+
+          if let komgaBook = komgaBook {
+            BookReadListsSection(readListIds: komgaBook.readListIds)
+          }
         } else if hasError {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
@@ -144,16 +146,16 @@ struct OneshotDetailView: View {
   private func refreshOneshotData() async {
     isLoading = true
     do {
-      let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
+      _ = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       let fetchedBooks = try await SyncService.shared.syncBooks(
-        seriesId: fetchedSeries.id,
+        seriesId: seriesId,
         page: 0,
-        size: 1,
+        size: 1
       )
       isLoading = false
-      await loadOneshotCollections(seriesId: seriesId)
+      await SyncService.shared.syncSeriesCollections(seriesId: seriesId)
       if let fetchedBook = fetchedBooks.content.first {
-        await loadBookReadLists(for: fetchedBook)
+        await SyncService.shared.syncBookReadLists(bookId: fetchedBook.id)
       }
     } catch {
       if case APIError.notFound = error {
@@ -163,45 +165,6 @@ struct OneshotDetailView: View {
         ErrorManager.shared.alert(error: error)
       }
       isLoading = false
-    }
-  }
-
-  private func loadOneshotCollections(seriesId: String) async {
-    isLoadingCollections = true
-    containingCollections = []
-    do {
-      let collections = try await SeriesService.shared.getSeriesCollections(seriesId: seriesId)
-      withAnimation {
-        containingCollections = collections
-      }
-    } catch {
-      containingCollections = []
-      ErrorManager.shared.alert(error: error)
-    }
-    isLoadingCollections = false
-  }
-
-  private func loadBookReadLists(for book: Book) async {
-    isLoadingReadLists = true
-    let targetBookId = book.id
-    bookReadLists = []
-
-    do {
-      let readLists = try await BookService.shared.getReadListsForBook(bookId: book.id)
-      if self.book?.id == targetBookId {
-        withAnimation {
-          bookReadLists = readLists
-        }
-      }
-    } catch {
-      if self.book?.id == targetBookId {
-        bookReadLists = []
-      }
-      ErrorManager.shared.alert(error: error)
-    }
-
-    if self.book?.id == targetBookId {
-      isLoadingReadLists = false
     }
   }
 

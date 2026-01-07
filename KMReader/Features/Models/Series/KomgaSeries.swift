@@ -80,6 +80,9 @@ final class KomgaSeries {
   var offlinePolicyRaw: String = "manual"
   var offlinePolicyLimit: Int = 0
 
+  // Cached collection IDs containing this series
+  var collectionIds: [String] = []
+
   /// Computed property for download status.
   var downloadStatus: SeriesDownloadStatus {
     let raw = downloadStatusRaw

@@ -422,6 +422,21 @@ class SyncService {
     }
   }
 
+  func syncSeriesCollections(seriesId: String) async {
+    do {
+      let collections = try await SeriesService.shared.getSeriesCollections(seriesId: seriesId)
+      let instanceId = AppConfig.currentInstanceId
+      await db.upsertCollections(collections, instanceId: instanceId)
+      // Update the series' cached collectionIds
+      let collectionIds = collections.map { $0.id }
+      await db.updateSeriesCollectionIds(
+        seriesId: seriesId, collectionIds: collectionIds, instanceId: instanceId)
+      await db.commit()
+    } catch {
+      logger.error("❌ Failed to sync series collections: \(error)")
+    }
+  }
+
   func syncCollectionSeries(
     collectionId: String,
     page: Int,
@@ -495,6 +510,21 @@ class SyncService {
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
     return result
+  }
+
+  func syncBookReadLists(bookId: String) async {
+    do {
+      let readLists = try await BookService.shared.getReadListsForBook(bookId: bookId)
+      let instanceId = AppConfig.currentInstanceId
+      await db.upsertReadLists(readLists, instanceId: instanceId)
+      // Update the book's cached readListIds
+      let readListIds = readLists.map { $0.id }
+      await db.updateBookReadListIds(
+        bookId: bookId, readListIds: readListIds, instanceId: instanceId)
+      await db.commit()
+    } catch {
+      logger.error("❌ Failed to sync book read lists: \(error)")
+    }
   }
 
   func syncDashboard(instanceId: String) async {

@@ -18,7 +18,6 @@ struct SeriesDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
-  // SwiftData query for reactive updates
   @Query private var komgaSeriesList: [KomgaSeries]
 
   @State private var bookViewModel = BookViewModel()
@@ -26,8 +25,6 @@ struct SeriesDetailView: View {
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
-  @State private var containingCollections: [SeriesCollection] = []
-  @State private var isLoadingCollections = false
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -58,7 +55,7 @@ struct SeriesDetailView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading) {
+      LazyVStack(alignment: .leading) {
         if let series = series {
           VStack(alignment: .leading) {
             #if os(tvOS)
@@ -66,10 +63,11 @@ struct SeriesDetailView: View {
                 .padding(.vertical, 8)
             #endif
 
-            SeriesDetailContentView(
-              series: series,
-              containingCollections: containingCollections
-            )
+            SeriesDetailContentView(series: series)
+
+            if let komgaSeries = komgaSeries {
+              SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+            }
 
             Divider()
             if let komgaSeries = komgaSeries {
@@ -136,8 +134,8 @@ extension SeriesDetailView {
   private func refreshSeriesData() async {
     do {
       // Sync from network to SwiftData (series property will update reactively)
-      let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
-      await loadSeriesCollections(seriesId: fetchedSeries.id)
+      _ = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
+      await SyncService.shared.syncSeriesCollections(seriesId: seriesId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -145,22 +143,6 @@ extension SeriesDetailView {
         ErrorManager.shared.alert(error: error)
       }
     }
-  }
-
-  @MainActor
-  private func loadSeriesCollections(seriesId: String) async {
-    isLoadingCollections = true
-    containingCollections = []
-    do {
-      let collections = try await SeriesService.shared.getSeriesCollections(seriesId: seriesId)
-      withAnimation {
-        containingCollections = collections
-      }
-    } catch {
-      containingCollections = []
-      ErrorManager.shared.alert(error: error)
-    }
-    isLoadingCollections = false
   }
 
   private func analyzeSeries() {

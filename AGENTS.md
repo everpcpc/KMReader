@@ -21,12 +21,14 @@ Key features:
 ### Build Commands
 
 ```bash
-# Build for specific platforms (local builds)
+# Build for specific platforms
+# Used for local builds
 make build-ios          # Build for iOS device
 make build-macos        # Build for macOS
 make build-tvos         # Build for tvOS device
 
-# CI-friendly builds (no code signing, simulator targets) (CI workflow only)
+# CI-friendly builds (no code signing, simulator targets)
+# Used by the CI workflow, do not use for local builds.
 make build-ios-ci       # iOS simulator
 make build-macos-ci     # macOS without signing
 make build-tvos-ci      # tvOS simulator
@@ -238,7 +240,7 @@ Additional patterns:
 - Dashboard/library selections stored via `LibraryManager` and related managers
 - All logging goes through `AppLogger` with OSLog subsystems and categories
 - Xcode project uses folder references (not groups); adding/removing files does not require editing `project.pbxproj`
-- Lint is not stable for swift, run `make build-ios` before to ensure there's really a problem.
+- Do not use xcodebuild directly, use the Makefile instead.
 - Translation all supported languages, refer to ../komga/komga-webui/src/locales/ if available.
 
 ## Important Files
