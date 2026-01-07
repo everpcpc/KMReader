@@ -55,7 +55,9 @@ struct ReadListRowView: View {
             .overlay(
               Menu {
                 ReadListContextMenu(
-                  komgaReadList: komgaReadList,
+                  readListId: komgaReadList.readListId,
+                  menuTitle: komgaReadList.name,
+                  downloadStatus: komgaReadList.downloadStatus,
                   onDeleteRequested: {
                     showDeleteConfirmation = true
                   },

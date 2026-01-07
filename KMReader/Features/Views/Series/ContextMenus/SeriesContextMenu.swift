@@ -5,12 +5,17 @@
 //  Created by Komga iOS Client
 //
 
-import SwiftData
 import SwiftUI
 
-@MainActor
 struct SeriesContextMenu: View {
-  @Bindable var komgaSeries: KomgaSeries
+  let seriesId: String
+  let menuTitle: String
+  let downloadStatus: SeriesDownloadStatus
+  let offlinePolicy: SeriesOfflinePolicy
+  let offlinePolicyLimit: Int
+  let booksUnreadCount: Int
+  let booksReadCount: Int
+  let booksInProgressCount: Int
 
   var onShowCollectionPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
@@ -20,20 +25,16 @@ struct SeriesContextMenu: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  private var series: Series {
-    komgaSeries.toSeries()
-  }
-
   private var status: SeriesDownloadStatus {
-    komgaSeries.downloadStatus
+    downloadStatus
   }
 
   private var canMarkAsRead: Bool {
-    series.booksUnreadCount > 0
+    booksUnreadCount > 0
   }
 
   private var canMarkAsUnread: Bool {
-    (series.booksReadCount + series.booksInProgressCount) > 0
+    (booksReadCount + booksInProgressCount) > 0
   }
 
   private var limitPresets: [Int] {
@@ -42,6 +43,15 @@ struct SeriesContextMenu: View {
 
   var body: some View {
     Group {
+      Button(action: {}) {
+        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
+      }
+      .disabled(true)
+      Divider()
+
       if !isOffline {
         Button {
           onShowCollectionPicker?()
@@ -128,7 +138,7 @@ struct SeriesContextMenu: View {
           offlinePolicyLabel(.all)
         }
       } label: {
-        Label("Offline Policy", systemImage: komgaSeries.offlinePolicy.icon)
+        Label("Offline Policy", systemImage: offlinePolicy.icon)
       }
 
       Divider()
@@ -144,7 +154,7 @@ struct SeriesContextMenu: View {
   private func analyzeSeries() {
     Task {
       do {
-        try await SeriesService.shared.analyzeSeries(seriesId: series.id)
+        try await SeriesService.shared.analyzeSeries(seriesId: seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.series.analysisStarted"))
@@ -160,7 +170,7 @@ struct SeriesContextMenu: View {
   private func refreshMetadata() {
     Task {
       do {
-        try await SeriesService.shared.refreshMetadata(seriesId: series.id)
+        try await SeriesService.shared.refreshMetadata(seriesId: seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.series.metadataRefreshed"))
@@ -176,7 +186,7 @@ struct SeriesContextMenu: View {
   private func markSeriesAsRead() {
     Task {
       do {
-        try await SeriesService.shared.markAsRead(seriesId: series.id)
+        try await SeriesService.shared.markAsRead(seriesId: seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
         }
@@ -191,7 +201,7 @@ struct SeriesContextMenu: View {
   private func markSeriesAsUnread() {
     Task {
       do {
-        try await SeriesService.shared.markAsUnread(seriesId: series.id)
+        try await SeriesService.shared.markAsUnread(seriesId: seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
         }
@@ -208,7 +218,7 @@ struct SeriesContextMenu: View {
       do {
         try await CollectionService.shared.addSeriesToCollection(
           collectionId: collectionId,
-          seriesIds: [series.id]
+          seriesIds: [seriesId]
         )
         await MainActor.run {
           ErrorManager.shared.notify(
@@ -226,10 +236,10 @@ struct SeriesContextMenu: View {
     Task {
       // Sync books first if policy is not manual
       if policy != .manual {
-        try? await SyncService.shared.syncAllSeriesBooks(seriesId: komgaSeries.seriesId)
+        try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       }
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
-        seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: policy
+        seriesId: seriesId, instanceId: currentInstanceId, policy: policy
       )
       await DatabaseOperator.shared.commit()
     }
@@ -237,9 +247,9 @@ struct SeriesContextMenu: View {
 
   private func updatePolicyAndLimit(_ policy: SeriesOfflinePolicy, limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: komgaSeries.seriesId)
+      try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
-        seriesId: komgaSeries.seriesId,
+        seriesId: seriesId,
         instanceId: currentInstanceId,
         policy: policy,
         limit: limit
@@ -283,8 +293,8 @@ struct SeriesContextMenu: View {
 
   @ViewBuilder
   private func offlinePolicyLabel(_ policy: SeriesOfflinePolicy) -> some View {
-    let title = policy.title(limit: komgaSeries.offlinePolicyLimit)
-    if policy == komgaSeries.offlinePolicy {
+    let title = policy.title(limit: offlinePolicyLimit)
+    if policy == offlinePolicy {
       Label(title, systemImage: "checkmark")
     } else {
       Label(policy.label, systemImage: policy.icon)
@@ -307,7 +317,7 @@ struct SeriesContextMenu: View {
     case .download:
       downloadAll()
     case .downloadUnread:
-      downloadUnread(limit: komgaSeries.offlinePolicyLimit)
+      downloadUnread(limit: offlinePolicyLimit)
     case .removeRead:
       removeRead()
     case .remove, .cancel:
@@ -317,9 +327,9 @@ struct SeriesContextMenu: View {
 
   private func downloadAll() {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       await DatabaseOperator.shared.downloadSeriesOffline(
-        seriesId: series.id, instanceId: currentInstanceId
+        seriesId: seriesId, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -332,9 +342,9 @@ struct SeriesContextMenu: View {
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       await DatabaseOperator.shared.downloadSeriesUnreadOffline(
-        seriesId: series.id,
+        seriesId: seriesId,
         instanceId: currentInstanceId,
         limit: limit
       )
@@ -350,7 +360,7 @@ struct SeriesContextMenu: View {
   private func removeRead() {
     Task {
       await DatabaseOperator.shared.removeSeriesReadOffline(
-        seriesId: series.id, instanceId: currentInstanceId
+        seriesId: seriesId, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -364,7 +374,7 @@ struct SeriesContextMenu: View {
   private func removeAll() {
     Task {
       await DatabaseOperator.shared.removeSeriesOffline(
-        seriesId: series.id, instanceId: currentInstanceId
+        seriesId: seriesId, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -378,7 +388,7 @@ struct SeriesContextMenu: View {
   @ViewBuilder
   private func limitOptionLabel(policy: SeriesOfflinePolicy, limit: Int) -> some View {
     let title = SeriesOfflinePolicy.limitTitle(limit)
-    if komgaSeries.offlinePolicy == policy && komgaSeries.offlinePolicyLimit == limit {
+    if offlinePolicy == policy && offlinePolicyLimit == limit {
       Label(title, systemImage: "checkmark")
     } else {
       Text(title)

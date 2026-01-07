@@ -25,7 +25,9 @@ struct ReadListCardView: View {
       ) {
       } menu: {
         ReadListContextMenu(
-          komgaReadList: komgaReadList,
+          readListId: komgaReadList.readListId,
+          menuTitle: komgaReadList.name,
+          downloadStatus: komgaReadList.downloadStatus,
           onDeleteRequested: {
             showDeleteConfirmation = true
           },

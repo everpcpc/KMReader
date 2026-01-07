@@ -107,7 +107,14 @@ struct SeriesRowView: View {
             .overlay(
               Menu {
                 SeriesContextMenu(
-                  komgaSeries: komgaSeries,
+                  seriesId: komgaSeries.seriesId,
+                  menuTitle: komgaSeries.metaTitle,
+                  downloadStatus: komgaSeries.downloadStatus,
+                  offlinePolicy: komgaSeries.offlinePolicy,
+                  offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
+                  booksUnreadCount: komgaSeries.booksUnreadCount,
+                  booksReadCount: komgaSeries.booksReadCount,
+                  booksInProgressCount: komgaSeries.booksInProgressCount,
                   onShowCollectionPicker: {
                     showCollectionPicker = true
                   },

@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-@MainActor
 struct BookContextMenu: View {
-  @Bindable var komgaBook: KomgaBook
+  let book: Book
+  let downloadStatus: DownloadStatus
 
   var onReadBook: ((Bool) -> Void)?
   var onShowReadListPicker: (() -> Void)? = nil
@@ -21,20 +21,32 @@ struct BookContextMenu: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  private var book: Book {
-    komgaBook.toBook()
-  }
-
-  private var downloadStatus: DownloadStatus {
-    komgaBook.downloadStatus
-  }
-
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
   }
 
+  private var menuTitle: String {
+    if book.oneshot {
+      return book.metadata.title
+    }
+    let number = book.metadata.number
+    if number.isEmpty {
+      return book.metadata.title
+    }
+    return "#\(number) - \(book.metadata.title)"
+  }
+
   var body: some View {
     Group {
+      Button(action: {}) {
+        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
+      }
+      .disabled(true)
+      Divider()
+
       detailsSection
 
       if !isOffline {
@@ -212,7 +224,7 @@ struct BookContextMenu: View {
   private var detailsSection: some View {
     #if os(iOS)
       ControlGroup {
-        if komgaBook.oneshot {
+        if book.oneshot {
           NavigationLink(value: NavDestination.oneshotDetail(seriesId: book.seriesId)) {
             Label("Details", systemImage: "info.circle")
           }
@@ -230,7 +242,7 @@ struct BookContextMenu: View {
           }
         }
 
-        if showSeriesNavigation && !komgaBook.oneshot {
+        if showSeriesNavigation && !book.oneshot {
           NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
             Label("Series", systemImage: "book")
           }
@@ -245,7 +257,7 @@ struct BookContextMenu: View {
         }
         Divider()
       }
-      if komgaBook.oneshot {
+      if book.oneshot {
         NavigationLink(value: NavDestination.oneshotDetail(seriesId: book.seriesId)) {
           Label("Details", systemImage: "info.circle")
         }
@@ -254,7 +266,7 @@ struct BookContextMenu: View {
           Label("Details", systemImage: "info.circle")
         }
       }
-      if showSeriesNavigation && !komgaBook.oneshot {
+      if showSeriesNavigation && !book.oneshot {
         NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
           Label("Series", systemImage: "book")
         }

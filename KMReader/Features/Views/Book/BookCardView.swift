@@ -75,7 +75,8 @@ struct BookCardView: View {
         }
       } menu: {
         BookContextMenu(
-          komgaBook: komgaBook,
+          book: komgaBook.toBook(),
+          downloadStatus: komgaBook.downloadStatus,
           onReadBook: onReadBook,
           onShowReadListPicker: {
             showReadListPicker = true

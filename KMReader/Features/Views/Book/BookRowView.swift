@@ -136,7 +136,8 @@ struct BookRowView: View {
             .overlay(
               Menu {
                 BookContextMenu(
-                  komgaBook: komgaBook,
+                  book: komgaBook.toBook(),
+                  downloadStatus: komgaBook.downloadStatus,
                   onReadBook: onReadBook,
                   onShowReadListPicker: {
                     showReadListPicker = true

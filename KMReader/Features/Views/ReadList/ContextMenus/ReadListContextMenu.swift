@@ -5,12 +5,12 @@
 //  Created by Komga iOS Client
 //
 
-import SwiftData
 import SwiftUI
 
-@MainActor
 struct ReadListContextMenu: View {
-  @Bindable var komgaReadList: KomgaReadList
+  let readListId: String
+  let menuTitle: String
+  let downloadStatus: SeriesDownloadStatus
 
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
@@ -19,12 +19,8 @@ struct ReadListContextMenu: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  private var readList: ReadList {
-    komgaReadList.toReadList()
-  }
-
   private var status: SeriesDownloadStatus {
-    komgaReadList.downloadStatus
+    downloadStatus
   }
 
   private var limitPresets: [Int] {
@@ -33,7 +29,16 @@ struct ReadListContextMenu: View {
 
   var body: some View {
     Group {
-      NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
+      Button(action: {}) {
+        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
+      }
+      .disabled(true)
+      Divider()
+
+      NavigationLink(value: NavDestination.readListDetail(readListId: readListId)) {
         Label("View Details", systemImage: "info.circle")
       }
 
@@ -112,9 +117,9 @@ struct ReadListContextMenu: View {
 
   private func downloadAll() {
     Task {
-      try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
+      try? await SyncService.shared.syncAllReadListBooks(readListId: readListId)
       await DatabaseOperator.shared.downloadReadListOffline(
-        readListId: readList.id, instanceId: currentInstanceId
+        readListId: readListId, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -127,9 +132,9 @@ struct ReadListContextMenu: View {
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
+      try? await SyncService.shared.syncAllReadListBooks(readListId: readListId)
       await DatabaseOperator.shared.downloadReadListUnreadOffline(
-        readListId: readList.id,
+        readListId: readListId,
         instanceId: currentInstanceId,
         limit: limit
       )
@@ -145,7 +150,7 @@ struct ReadListContextMenu: View {
   private func removeRead() {
     Task {
       await DatabaseOperator.shared.removeReadListReadOffline(
-        readListId: readList.id,
+        readListId: readListId,
         instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
@@ -160,7 +165,7 @@ struct ReadListContextMenu: View {
   private func removeAll() {
     Task {
       await DatabaseOperator.shared.removeReadListOffline(
-        readListId: readList.id, instanceId: currentInstanceId
+        readListId: readListId, instanceId: currentInstanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {

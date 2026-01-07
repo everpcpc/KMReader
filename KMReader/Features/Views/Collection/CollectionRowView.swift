@@ -52,7 +52,8 @@ struct CollectionRowView: View {
             .overlay(
               Menu {
                 CollectionContextMenu(
-                  collection: komgaCollection.toCollection(),
+                  collectionId: komgaCollection.collectionId,
+                  menuTitle: komgaCollection.name,
                   onDeleteRequested: {
                     showDeleteConfirmation = true
                   },
