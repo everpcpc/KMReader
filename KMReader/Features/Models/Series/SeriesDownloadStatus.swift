@@ -64,17 +64,6 @@ enum SeriesDownloadStatus: Equatable, Sendable {
     return false
   }
 
-  var menuIcon: String {
-    switch self {
-    case .notDownloaded, .partiallyDownloaded:
-      return "icloud.and.arrow.down"
-    case .downloaded:
-      return "trash"
-    case .pending:
-      return "xmark.circle"
-    }
-  }
-
   var isProminent: Bool {
     switch self {
     case .notDownloaded:

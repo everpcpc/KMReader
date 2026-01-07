@@ -91,7 +91,6 @@ struct SeriesDownloadActionsSection: View {
             policyLabel.lineLimit(1)
           } icon: {
             Image(systemName: policy.icon)
-              .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
           }
         }
         .font(.caption)
@@ -100,7 +99,7 @@ struct SeriesDownloadActionsSection: View {
         Menu {
           actionsView(actions: actions)
         } label: {
-          statusButtonLabel
+          Text(String(localized: "Download"))
         }
         .font(.caption)
         .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
@@ -131,16 +130,6 @@ struct SeriesDownloadActionsSection: View {
       if !message.isEmpty {
         Text(message)
       }
-    }
-  }
-
-  @ViewBuilder
-  private var statusButtonLabel: some View {
-    Label {
-      Text(String(localized: "Download"))
-    } icon: {
-      Image(systemName: status.menuIcon)
-        .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
     }
   }
 
