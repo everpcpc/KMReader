@@ -12,7 +12,6 @@ import SwiftUI
 struct BookQueryItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
-  let onBookUpdated: (() -> Void)?
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
 
@@ -23,13 +22,11 @@ struct BookQueryItemView: View {
   init(
     bookId: String,
     layout: BrowseLayoutMode,
-    onBookUpdated: (() -> Void)?,
     showSeriesTitle: Bool = true,
     showSeriesNavigation: Bool = true
   ) {
     self.bookId = bookId
     self.layout = layout
-    self.onBookUpdated = onBookUpdated
     self.showSeriesTitle = showSeriesTitle
     self.showSeriesNavigation = showSeriesNavigation
 
@@ -51,7 +48,6 @@ struct BookQueryItemView: View {
           onReadBook: { incognito in
             readerPresentation.present(book: book.toBook(), incognito: incognito)
           },
-          onBookUpdated: onBookUpdated,
           showSeriesTitle: showSeriesTitle,
           showSeriesNavigation: showSeriesNavigation
         )
@@ -62,7 +58,6 @@ struct BookQueryItemView: View {
           onReadBook: { incognito in
             readerPresentation.present(book: book.toBook(), incognito: incognito)
           },
-          onBookUpdated: onBookUpdated,
           showSeriesTitle: showSeriesTitle,
           showSeriesNavigation: showSeriesNavigation
         )

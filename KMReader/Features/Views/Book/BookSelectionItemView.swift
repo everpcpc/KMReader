@@ -51,7 +51,6 @@ struct BookSelectionItemView: View {
         BookCardView(
           komgaBook: book,
           onReadBook: { _ in },
-          onBookUpdated: refreshBooks,
           showSeriesTitle: showSeriesTitle
         )
         .focusPadding()
@@ -79,7 +78,6 @@ struct BookSelectionItemView: View {
         BookRowView(
           komgaBook: book,
           onReadBook: { _ in },
-          onBookUpdated: refreshBooks,
           showSeriesTitle: showSeriesTitle
         )
         .allowsHitTesting(false)

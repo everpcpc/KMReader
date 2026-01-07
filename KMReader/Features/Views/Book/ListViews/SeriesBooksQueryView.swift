@@ -39,7 +39,6 @@ struct SeriesBooksQueryView: View {
               BookQueryItemView(
                 bookId: book.id,
                 layout: .grid,
-                onBookUpdated: refreshBooks,
                 showSeriesTitle: false,
                 showSeriesNavigation: false
               )
@@ -58,7 +57,6 @@ struct SeriesBooksQueryView: View {
               BookQueryItemView(
                 bookId: book.id,
                 layout: .list,
-                onBookUpdated: refreshBooks,
                 showSeriesTitle: false,
                 showSeriesNavigation: false
               )

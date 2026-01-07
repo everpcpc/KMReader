@@ -44,11 +44,6 @@ struct BooksQueryView: View {
             BookQueryItemView(
               bookId: book.id,
               layout: .grid,
-              onBookUpdated: {
-                Task {
-                  await loadMore(true)
-                }
-              }
             )
             .padding(.bottom)
             .onAppear {
@@ -67,11 +62,6 @@ struct BooksQueryView: View {
             BookQueryItemView(
               bookId: book.id,
               layout: .list,
-              onBookUpdated: {
-                Task {
-                  await loadMore(true)
-                }
-              }
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: book) {

@@ -11,7 +11,6 @@ import SwiftUI
 struct BookCardView: View {
   @Bindable var komgaBook: KomgaBook
   var onReadBook: ((Bool) -> Void)? = nil
-  var onBookUpdated: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
 
@@ -163,9 +162,6 @@ struct BookCardView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       BookEditSheet(book: komgaBook.toBook())
-        .onDisappear {
-          onBookUpdated?()
-        }
     }
 
   }
@@ -180,7 +176,6 @@ struct BookCardView: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.book.booksAddedToReadList"))
-          onBookUpdated?()
         }
       } catch {
         await MainActor.run {
@@ -197,7 +192,6 @@ struct BookCardView: View {
         await CacheManager.clearCache(forBookId: komgaBook.bookId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
-          onBookUpdated?()
         }
       } catch {
         await MainActor.run {

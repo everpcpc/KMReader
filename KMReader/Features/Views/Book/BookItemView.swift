@@ -11,7 +11,6 @@ struct BookItemView: View {
   @Bindable var book: KomgaBook
   let layout: BrowseLayoutMode
   let onReadBook: (Bool) -> Void
-  let onBookUpdated: (() -> Void)?
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
 
@@ -21,7 +20,6 @@ struct BookItemView: View {
       BookCardView(
         komgaBook: book,
         onReadBook: onReadBook,
-        onBookUpdated: onBookUpdated,
         showSeriesTitle: showSeriesTitle,
         showSeriesNavigation: showSeriesNavigation
       )
@@ -30,7 +28,6 @@ struct BookItemView: View {
       BookRowView(
         komgaBook: book,
         onReadBook: onReadBook,
-        onBookUpdated: onBookUpdated,
         showSeriesTitle: showSeriesTitle,
         showSeriesNavigation: showSeriesNavigation
       )
