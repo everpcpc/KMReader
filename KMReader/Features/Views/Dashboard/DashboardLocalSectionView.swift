@@ -233,13 +233,9 @@ private struct DashboardLocalSectionContent<
       .onContinuousHover { phase in
         switch phase {
         case .active:
-          withAnimation {
-            isHoveringScrollArea = true
-          }
+          isHoveringScrollArea = true
         case .ended:
-          withAnimation {
-            isHoveringScrollArea = false
-          }
+          isHoveringScrollArea = false
         }
       }
     #endif

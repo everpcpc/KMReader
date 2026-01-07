@@ -32,7 +32,6 @@ struct HorizontalScrollButtons<ID: Hashable>: View {
         scrollButton(direction: .right)
       }
       .opacity(isVisible ? 1 : 0)
-      .animation(.easeInOut(duration: 0.2), value: isVisible)
       .allowsHitTesting(isVisible)
     #else
       EmptyView()
@@ -57,7 +56,7 @@ struct HorizontalScrollButtons<ID: Hashable>: View {
 
     Button {
       withAnimation(.easeInOut(duration: 0.3)) {
-        let step = 3  // scroll by 3 items at a time
+        let step = 5  // scroll by 5 items at a time
         switch direction {
         case .left:
           currentIndex = max(0, currentIndex - step)
@@ -71,19 +70,18 @@ struct HorizontalScrollButtons<ID: Hashable>: View {
     } label: {
       ZStack {
         Circle()
-          .fill(.ultraThinMaterial)
+          .fill(.thinMaterial)
           .frame(width: 44, height: 44)
-          .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
+          .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 2)
 
         Image(systemName: direction.systemImage)
           .font(.system(size: 16, weight: .semibold))
-          .foregroundStyle(.primary)
+          .foregroundStyle(canScroll ? .primary : .secondary)
       }
       .padding(12)
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
-    .opacity(canScroll ? 1 : 0.3)
+    .adaptiveButtonStyle(.plain)
     .disabled(!canScroll)
   }
 }
