@@ -17,17 +17,15 @@ struct OneshotDetailView: View {
 
   @Query private var komgaSeriesList: [KomgaSeries]
   @Query private var komgaBookList: [KomgaBook]
+  @Query private var komgaCollections: [KomgaCollection]
+  @Query private var komgaReadLists: [KomgaReadList]
 
   @State private var isLoading = true
   @State private var hasError = false
-  @State private var isLoadingCollections = false
-  @State private var isLoadingReadLists = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showCollectionPicker = false
   @State private var showReadListPicker = false
-  @State private var containingCollections: [SeriesCollection] = []
-  @State private var bookReadLists: [ReadList] = []
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -36,6 +34,11 @@ struct OneshotDetailView: View {
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == seriesCompositeId })
     _komgaBookList = Query(
       filter: #Predicate<KomgaBook> { $0.instanceId == instanceId && $0.seriesId == seriesId })
+    _komgaCollections = Query(
+      filter: #Predicate<KomgaCollection> {
+        $0.instanceId == instanceId && $0.seriesIds.contains(seriesId)
+      })
+    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.instanceId == instanceId })
   }
 
   /// The KomgaSeries from SwiftData (reactive).
@@ -58,6 +61,19 @@ struct OneshotDetailView: View {
 
   private var downloadStatus: DownloadStatus {
     komgaBook?.downloadStatus ?? .notDownloaded
+  }
+
+  /// Collections containing this series (computed from query).
+  private var containingCollections: [SeriesCollection] {
+    komgaCollections.map { $0.toCollection() }
+  }
+
+  /// Read lists containing this book (computed from query).
+  private var bookReadLists: [ReadList] {
+    guard let bookId = komgaBook?.bookId else { return [] }
+    return komgaReadLists
+      .filter { $0.bookIds.contains(bookId) }
+      .map { $0.toReadList() }
   }
 
   var body: some View {
@@ -144,16 +160,16 @@ struct OneshotDetailView: View {
   private func refreshOneshotData() async {
     isLoading = true
     do {
-      let fetchedSeries = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
+      _ = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       let fetchedBooks = try await SyncService.shared.syncBooks(
-        seriesId: fetchedSeries.id,
+        seriesId: seriesId,
         page: 0,
-        size: 1,
+        size: 1
       )
       isLoading = false
-      await loadOneshotCollections(seriesId: seriesId)
+      await SyncService.shared.syncSeriesCollections(seriesId: seriesId)
       if let fetchedBook = fetchedBooks.content.first {
-        await loadBookReadLists(for: fetchedBook)
+        await SyncService.shared.syncBookReadLists(bookId: fetchedBook.id)
       }
     } catch {
       if case APIError.notFound = error {
@@ -163,45 +179,6 @@ struct OneshotDetailView: View {
         ErrorManager.shared.alert(error: error)
       }
       isLoading = false
-    }
-  }
-
-  private func loadOneshotCollections(seriesId: String) async {
-    isLoadingCollections = true
-    containingCollections = []
-    do {
-      let collections = try await SeriesService.shared.getSeriesCollections(seriesId: seriesId)
-      withAnimation {
-        containingCollections = collections
-      }
-    } catch {
-      containingCollections = []
-      ErrorManager.shared.alert(error: error)
-    }
-    isLoadingCollections = false
-  }
-
-  private func loadBookReadLists(for book: Book) async {
-    isLoadingReadLists = true
-    let targetBookId = book.id
-    bookReadLists = []
-
-    do {
-      let readLists = try await BookService.shared.getReadListsForBook(bookId: book.id)
-      if self.book?.id == targetBookId {
-        withAnimation {
-          bookReadLists = readLists
-        }
-      }
-    } catch {
-      if self.book?.id == targetBookId {
-        bookReadLists = []
-      }
-      ErrorManager.shared.alert(error: error)
-    }
-
-    if self.book?.id == targetBookId {
-      isLoadingReadLists = false
     }
   }
 
