@@ -18,6 +18,7 @@
 
     @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
+    @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -330,8 +331,9 @@
 
     private func handleTap(location: CGPoint, in size: CGSize) {
       let width = size.width
-      let leftZone = width * 0.3
-      let rightZone = width * 0.7
+      let zoneThreshold = tapZoneSize.value
+      let leftZone = width * zoneThreshold
+      let rightZone = width * (1.0 - zoneThreshold)
 
       if showingControls {
         toggleControls()

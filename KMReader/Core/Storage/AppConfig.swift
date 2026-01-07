@@ -405,6 +405,20 @@ enum AppConfig {
     }
   }
 
+  static var tapZoneSize: TapZoneSize {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "tapZoneSize"),
+        let size = TapZoneSize(rawValue: stored)
+      {
+        return size
+      }
+      return .large
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneSize")
+    }
+  }
+
   static var showKeyboardHelpOverlay: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showKeyboardHelpOverlay") != nil {

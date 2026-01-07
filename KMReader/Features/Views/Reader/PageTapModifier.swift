@@ -17,6 +17,7 @@ struct PageTapModifier: ViewModifier {
   let onToggleControls: () -> Void
 
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
 
   func body(content: Content) -> some View {
     #if os(iOS) || os(macOS)
@@ -48,8 +49,9 @@ struct PageTapModifier: ViewModifier {
   private func handleHorizontalTap(at location: CGPoint) {
     guard size.width > 0 else { return }
     let normalizedX = max(0, min(1, location.x / size.width))
+    let zoneThreshold = tapZoneSize.value
 
-    if normalizedX < 0.3 {
+    if normalizedX < zoneThreshold {
       // Left tap
       if !disableTapToTurnPage {
         if readingDirection == .rtl {
@@ -58,7 +60,7 @@ struct PageTapModifier: ViewModifier {
           onPreviousPage()
         }
       }
-    } else if normalizedX > 0.7 {
+    } else if normalizedX > (1.0 - zoneThreshold) {
       // Right tap
       if !disableTapToTurnPage {
         if readingDirection == .rtl {
@@ -75,13 +77,14 @@ struct PageTapModifier: ViewModifier {
   private func handleVerticalTap(at location: CGPoint) {
     guard size.height > 0 else { return }
     let normalizedY = max(0, min(1, location.y / size.height))
+    let zoneThreshold = tapZoneSize.value
 
-    if normalizedY < 0.3 {
+    if normalizedY < zoneThreshold {
       // Top tap
       if !disableTapToTurnPage {
         onPreviousPage()
       }
-    } else if normalizedY > 0.7 {
+    } else if normalizedY > (1.0 - zoneThreshold) {
       // Bottom tap
       if !disableTapToTurnPage {
         onNextPage()

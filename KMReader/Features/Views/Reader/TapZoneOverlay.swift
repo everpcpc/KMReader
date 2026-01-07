@@ -11,22 +11,23 @@ import SwiftUI
 struct ComicTapZoneOverlay: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @Binding var isVisible: Bool
 
   var body: some View {
     GeometryReader { geometry in
       HStack(spacing: 0) {
-        // Left zone (25%) - Previous page
+        // Left zone - Previous page
         Rectangle()
           .fill(Color.red.opacity(0.3))
-          .frame(width: geometry.size.width * 0.3)
+          .frame(width: geometry.size.width * tapZoneSize.value)
 
         Spacer()
 
-        // Right zone (35%) - Next page
+        // Right zone - Next page
         Rectangle()
           .fill(Color.green.opacity(0.3))
-          .frame(width: geometry.size.width * 0.3)
+          .frame(width: geometry.size.width * tapZoneSize.value)
       }
       .opacity(isVisible && showTapZoneHints && !disableTapToTurnPage ? 1.0 : 0.0)
       .allowsHitTesting(false)
@@ -43,22 +44,23 @@ struct ComicTapZoneOverlay: View {
 struct MangaTapZoneOverlay: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @Binding var isVisible: Bool
 
   var body: some View {
     GeometryReader { geometry in
       HStack(spacing: 0) {
-        // Left zone (35%) - Next page
+        // Left zone - Next page
         Rectangle()
           .fill(Color.green.opacity(0.3))
-          .frame(width: geometry.size.width * 0.3)
+          .frame(width: geometry.size.width * tapZoneSize.value)
 
         Spacer()
 
-        // Right zone (25%) - Previous page
+        // Right zone - Previous page
         Rectangle()
           .fill(Color.red.opacity(0.3))
-          .frame(width: geometry.size.width * 0.3)
+          .frame(width: geometry.size.width * tapZoneSize.value)
       }
       .opacity(isVisible && showTapZoneHints && !disableTapToTurnPage ? 1.0 : 0.0)
       .allowsHitTesting(false)
@@ -75,22 +77,23 @@ struct MangaTapZoneOverlay: View {
 struct VerticalTapZoneOverlay: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @Binding var isVisible: Bool
 
   var body: some View {
     GeometryReader { geometry in
       VStack(spacing: 0) {
-        // Previous page zone (top 25%)
+        // Previous page zone (top)
         Rectangle()
           .fill(Color.red.opacity(0.3))
-          .frame(height: geometry.size.height * 0.3)
+          .frame(height: geometry.size.height * tapZoneSize.value)
 
         Spacer()
 
-        // Next page zone (bottom 35%)
+        // Next page zone (bottom)
         Rectangle()
           .fill(Color.green.opacity(0.3))
-          .frame(height: geometry.size.height * 0.3)
+          .frame(height: geometry.size.height * tapZoneSize.value)
       }
       .opacity(isVisible && showTapZoneHints && !disableTapToTurnPage ? 1.0 : 0.0)
       .allowsHitTesting(false)
@@ -108,13 +111,13 @@ struct VerticalTapZoneOverlay: View {
   struct WebtoonTapZoneOverlay: View {
     @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
     @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+    @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @Binding var isVisible: Bool
 
-    // Match the thresholds from WebtoonReaderView.swift Constants
-    private let topAreaThreshold: CGFloat = 0.3
-    private let bottomAreaThreshold: CGFloat = 0.7
-    private let centerAreaMin: CGFloat = 0.3
-    private let centerAreaMax: CGFloat = 0.7
+    private var topAreaThreshold: CGFloat { tapZoneSize.value }
+    private var bottomAreaThreshold: CGFloat { 1.0 - tapZoneSize.value }
+    private var centerAreaMin: CGFloat { tapZoneSize.value }
+    private var centerAreaMax: CGFloat { 1.0 - tapZoneSize.value }
 
     var body: some View {
       GeometryReader { geometry in

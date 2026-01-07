@@ -23,6 +23,7 @@ struct ReaderSettingsSheet: View {
     ScrollPageTransitionStyle = .default
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
@@ -164,6 +165,22 @@ struct ReaderSettingsSheet: View {
             if !disableTapToTurnPage {
               Toggle(isOn: $showTapZoneHints) {
                 Text("Show Tap Zone Hints")
+              }
+
+              VStack(alignment: .leading, spacing: 8) {
+                Picker("Tap Zone Size", selection: $tapZoneSize) {
+                  ForEach(TapZoneSize.allCases, id: \.self) { size in
+                    Text(size.displayName).tag(size)
+                  }
+                }
+                .pickerStyle(.menu)
+
+                TapZonePreview(size: tapZoneSize, direction: readingDirection)
+                  .frame(height: 60)
+
+                Text("Size of tap zones for page navigation")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
               }
 
               if readingDirection == .webtoon {

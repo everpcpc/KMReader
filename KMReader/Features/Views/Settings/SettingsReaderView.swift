@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsReaderView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
@@ -141,6 +142,27 @@ struct SettingsReaderView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Tap Zone Size", selection: $tapZoneSize) {
+                ForEach(TapZoneSize.allCases, id: \.self) { size in
+                  Text(size.displayName).tag(size)
+                }
+              }
+              .pickerStyle(.menu)
+
+              HStack(spacing: 12) {
+                TapZonePreview(size: tapZoneSize, direction: .ltr)
+                TapZonePreview(size: tapZoneSize, direction: .rtl)
+                TapZonePreview(size: tapZoneSize, direction: .vertical)
+                TapZonePreview(size: tapZoneSize, direction: .webtoon)
+              }
+              .frame(height: 80)
+
+              Text("Size of tap zones for page navigation")
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
 
             VStack(alignment: .leading, spacing: 8) {
