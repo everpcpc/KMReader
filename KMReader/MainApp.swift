@@ -60,6 +60,7 @@ struct MainApp: App {
     }
     CustomFontStore.shared.configure(with: modelContainer)
     DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
+    _ = OfflineManager.shared
     _authViewModel = State(initialValue: AuthViewModel())
   }
 

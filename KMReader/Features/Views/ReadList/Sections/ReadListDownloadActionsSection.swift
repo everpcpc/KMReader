@@ -45,7 +45,7 @@ struct ReadListDownloadActionsSection: View {
         Menu {
           actionsView(actions: actions)
         } label: {
-          statusButtonLabel
+          Text(String(localized: "Download"))
         }
         .font(.caption)
         .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
@@ -75,16 +75,6 @@ struct ReadListDownloadActionsSection: View {
       if !message.isEmpty {
         Text(message)
       }
-    }
-  }
-
-  @ViewBuilder
-  private var statusButtonLabel: some View {
-    Label {
-      Text(String(localized: "Download"))
-    } icon: {
-      Image(systemName: status.menuIcon)
-        .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
     }
   }
 

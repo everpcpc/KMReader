@@ -330,7 +330,7 @@ actor OfflineManager {
       // Check if this book is still in downloaded state in SwiftData
       if !downloadedBookIds.contains(bookId) {
         // Orphaned directory - calculate size and delete
-        if let size = try? calculateDirectorySize(bookDir) {
+        if let size = try? Self.calculateDirectorySize(bookDir) {
           bytesFreed += size
         }
 
@@ -475,7 +475,7 @@ actor OfflineManager {
     }
 
     while true {
-      let pending = await DatabaseOperator.shared.fetchPendingBooks(limit: 1)
+      let pending = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
 
       guard let nextBook = pending.first else { return }
 
@@ -497,6 +497,7 @@ actor OfflineManager {
   private func startDownload(instanceId: String, info: DownloadInfo) async {
     guard activeTasks[info.bookId] == nil else { return }
 
+    logger.info("📥 Enqueue download: \(info.bookId)")
     // Initialize progress (status stays as pending during download)
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 0.0)
@@ -506,12 +507,10 @@ actor OfflineManager {
 
     #if os(iOS)
       // Use background downloads on iOS
-      await startBackgroundDownload(
-        instanceId: instanceId, info: info, bookDir: bookDir)
+      await startBackgroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
     #else
       // Use in-process downloads on macOS/tvOS
-      await startForegroundDownload(
-        instanceId: instanceId, info: info, bookDir: bookDir)
+      await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
     #endif
   }
 
@@ -523,7 +522,7 @@ actor OfflineManager {
 
       do {
         // Get pending count and failed count for Live Activity
-        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
+        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
         let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
           instanceId: instanceId)
 
@@ -553,16 +552,12 @@ actor OfflineManager {
           let destination = bookDir.appendingPathComponent("book.epub")
           if await copyCachedEpubIfAvailable(bookId: info.bookId, destination: destination) {
             logger.info("✅ Using cached EPUB for book: \(info.bookId)")
-            let totalSize = (try? calculateDirectorySize(bookDir)) ?? 0
-            await DatabaseOperator.shared.updateBookDownloadStatus(
-              bookId: info.bookId,
+            await finalizeDownload(
               instanceId: instanceId,
-              status: .downloaded,
-              downloadedSize: totalSize
+              bookId: info.bookId,
+              bookDir: bookDir,
+              isEpub: true
             )
-            await DatabaseOperator.shared.commit()
-            await clearCachesAfterDownload(bookId: info.bookId, isEpub: true)
-            removeActiveTask(info.bookId)
             await syncDownloadQueue(instanceId: instanceId)
             return
           }
@@ -642,17 +637,13 @@ actor OfflineManager {
           // If all pages already exist, mark as complete
           if pagesToDownload.isEmpty {
             logger.info("✅ All pages already downloaded for book: \(info.bookId)")
-            let totalSize = (try? calculateDirectorySize(bookDir)) ?? 0
-            await DatabaseOperator.shared.updateBookDownloadStatus(
-              bookId: info.bookId,
+            await finalizeDownload(
               instanceId: instanceId,
-              status: .downloaded,
-              downloadedSize: totalSize
+              bookId: info.bookId,
+              bookDir: bookDir,
+              isEpub: false
             )
-            await DatabaseOperator.shared.commit()
-            await clearCachesAfterDownload(bookId: info.bookId, isEpub: false)
             backgroundDownloadInfo.removeValue(forKey: info.bookId)
-            removeActiveTask(info.bookId)
             await syncDownloadQueue(instanceId: instanceId)
             return
           }
@@ -713,14 +704,12 @@ actor OfflineManager {
         }
 
         // Mark complete in SwiftData
-        let totalSize = try await self.calculateDirectorySize(bookDir)
-        await DatabaseOperator.shared.updateBookDownloadStatus(
-          bookId: info.bookId, instanceId: instanceId, status: .downloaded,
-          downloadedSize: totalSize
+        await finalizeDownload(
+          instanceId: instanceId,
+          bookId: info.bookId,
+          bookDir: bookDir,
+          isEpub: isEpub
         )
-        await DatabaseOperator.shared.commit()
-        await clearCachesAfterDownload(bookId: info.bookId, isEpub: isEpub)
-        await removeActiveTask(info.bookId)
         logger.info("✅ Download complete for book: \(info.bookId)")
 
         // Trigger next download
@@ -811,7 +800,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.commit()
   }
 
-  private func calculateDirectorySize(_ url: URL) throws -> Int64 {
+  private nonisolated static func calculateDirectorySize(_ url: URL) throws -> Int64 {
     let contents = try FileManager.default.contentsOfDirectory(
       at: url, includingPropertiesForKeys: [.fileSizeKey])
     var total: Int64 = 0
@@ -827,6 +816,7 @@ actor OfflineManager {
   private func removeActiveTask(_ bookId: String) {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
+    logger.info("🧹 Cleared active task for book: \(bookId)")
     Task { @MainActor in
       DownloadProgressTracker.shared.clearProgress(bookId: bookId)
     }
@@ -884,7 +874,9 @@ actor OfflineManager {
         // Update progress
         let completed = info.totalPages - (pendingBackgroundPages[bookId]?.count ?? 0)
         let progress = Double(completed) / Double(info.totalPages)
-        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
+        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
+          instanceId: info.instanceId
+        )
         let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
           instanceId: info.instanceId)
 
@@ -939,7 +931,9 @@ actor OfflineManager {
       removeActiveTask(bookId)
 
       // Update Live Activity or end if no more pending
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
+      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
+        instanceId: info.instanceId
+      )
       let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
         instanceId: info.instanceId)
 
@@ -973,30 +967,24 @@ actor OfflineManager {
     private func handleAllBackgroundDownloadsComplete(bookId: String) async {
       guard let info = backgroundDownloadInfo[bookId] else { return }
 
+      logger.info("✅ Background downloads finished for book: \(bookId)")
       let bookDir = bookDirectory(instanceId: info.instanceId, bookId: bookId)
 
-      do {
-        let totalSize = try calculateDirectorySize(bookDir)
-        await DatabaseOperator.shared.updateBookDownloadStatus(
-          bookId: bookId,
-          instanceId: info.instanceId,
-          status: .downloaded,
-          downloadedSize: totalSize
-        )
-        await DatabaseOperator.shared.commit()
-        await clearCachesAfterDownload(bookId: bookId, isEpub: info.isEpub)
-        logger.info("✅ All background downloads complete for book: \(bookId)")
-      } catch {
-        logger.error("❌ Failed to calculate size for book \(bookId): \(error)")
-      }
+      await finalizeDownload(
+        instanceId: info.instanceId,
+        bookId: bookId,
+        bookDir: bookDir,
+        isEpub: info.isEpub
+      )
+      logger.info("✅ All background downloads complete for book: \(bookId)")
 
       // Cleanup tracking
       pendingBackgroundPages.removeValue(forKey: bookId)
       backgroundDownloadInfo.removeValue(forKey: bookId)
-      removeActiveTask(bookId)
-
       // Clear progress notification if no more pending downloads
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks()
+      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
+        instanceId: info.instanceId
+      )
       if pendingBooks.isEmpty {
         let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
           instanceId: info.instanceId)
@@ -1188,6 +1176,40 @@ actor OfflineManager {
     await ImageCache.clearDiskCache(forBookId: bookId)
     if isEpub {
       await BookFileCache.clearDiskCache(forBookId: bookId)
+    }
+  }
+
+  private func finalizeDownload(
+    instanceId: String,
+    bookId: String,
+    bookDir: URL,
+    isEpub: Bool
+  ) async {
+    await DatabaseOperator.shared.updateBookDownloadStatus(
+      bookId: bookId,
+      instanceId: instanceId,
+      status: .downloaded
+    )
+    await DatabaseOperator.shared.commit()
+    await clearCachesAfterDownload(bookId: bookId, isEpub: isEpub)
+    removeActiveTask(bookId)
+    scheduleDownloadedSizeUpdate(instanceId: instanceId, bookId: bookId, bookDir: bookDir)
+  }
+
+  private func scheduleDownloadedSizeUpdate(
+    instanceId: String,
+    bookId: String,
+    bookDir: URL
+  ) {
+    Task.detached {
+      guard let size = try? Self.calculateDirectorySize(bookDir) else { return }
+      await DatabaseOperator.shared.updateBookDownloadStatus(
+        bookId: bookId,
+        instanceId: instanceId,
+        status: .downloaded,
+        downloadedSize: size
+      )
+      await DatabaseOperator.shared.commit()
     }
   }
 }

@@ -1453,9 +1453,7 @@ actor DatabaseOperator {
     return book.progressCompleted == true
   }
 
-  func fetchPendingBooks(limit: Int? = nil) -> [Book] {
-    let instanceId = AppConfig.currentInstanceId
-
+  func fetchPendingBooks(instanceId: String, limit: Int? = nil) -> [Book] {
     var descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "pending" },
       sortBy: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
