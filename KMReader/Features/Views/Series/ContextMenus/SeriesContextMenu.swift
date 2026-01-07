@@ -12,7 +12,6 @@ import SwiftUI
 struct SeriesContextMenu: View {
   @Bindable var komgaSeries: KomgaSeries
 
-  var onActionCompleted: (() -> Void)?
   var onShowCollectionPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
@@ -148,7 +147,6 @@ struct SeriesContextMenu: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.series.analysisStarted"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -165,7 +163,6 @@ struct SeriesContextMenu: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.series.metadataRefreshed"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -181,7 +178,6 @@ struct SeriesContextMenu: View {
         try await SeriesService.shared.markAsRead(seriesId: series.id)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -197,7 +193,6 @@ struct SeriesContextMenu: View {
         try await SeriesService.shared.markAsUnread(seriesId: series.id)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -217,7 +212,6 @@ struct SeriesContextMenu: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.series.addedToCollection"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -237,9 +231,6 @@ struct SeriesContextMenu: View {
         seriesId: komgaSeries.seriesId, instanceId: currentInstanceId, policy: policy
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        onActionCompleted?()
-      }
     }
   }
 
@@ -253,9 +244,6 @@ struct SeriesContextMenu: View {
         limit: limit
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        onActionCompleted?()
-      }
     }
   }
 
@@ -337,7 +325,6 @@ struct SeriesContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.offlineDownloadQueued")
         )
-        onActionCompleted?()
       }
     }
   }
@@ -355,7 +342,6 @@ struct SeriesContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.offlineDownloadQueued")
         )
-        onActionCompleted?()
       }
     }
   }
@@ -370,7 +356,6 @@ struct SeriesContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.offlineRemoved")
         )
-        onActionCompleted?()
       }
     }
   }
@@ -385,7 +370,6 @@ struct SeriesContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.offlineRemoved")
         )
-        onActionCompleted?()
       }
     }
   }

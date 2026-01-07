@@ -16,7 +16,6 @@ struct CollectionSeriesQueryView: View {
   let isSelectionMode: Bool
   @Binding var selectedSeriesIds: Set<String>
   let isAdmin: Bool
-  let refreshSeries: () -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @Environment(\.modelContext) private var modelContext
@@ -45,14 +44,12 @@ struct CollectionSeriesQueryView: View {
                   SeriesSelectionItemView(
                     seriesId: series.id,
                     layout: .grid,
-                    selectedSeriesIds: $selectedSeriesIds,
-                    onActionCompleted: refreshSeries
+                    selectedSeriesIds: $selectedSeriesIds
                   )
                 } else {
                   SeriesQueryItemView(
                     seriesId: series.id,
-                    layout: .grid,
-                    onActionCompleted: refreshSeries
+                    layout: .grid
                   )
                 }
               }
@@ -73,14 +70,12 @@ struct CollectionSeriesQueryView: View {
                   SeriesSelectionItemView(
                     seriesId: series.id,
                     layout: .list,
-                    selectedSeriesIds: $selectedSeriesIds,
-                    onActionCompleted: refreshSeries
+                    selectedSeriesIds: $selectedSeriesIds
                   )
                 } else {
                   SeriesQueryItemView(
                     seriesId: series.id,
-                    layout: .list,
-                    onActionCompleted: refreshSeries
+                    layout: .list
                   )
                 }
               }

@@ -12,18 +12,15 @@ import SwiftUI
 struct ReadListQueryItemView: View {
   let readListId: String
   var layout: BrowseLayoutMode = .grid
-  var onActionCompleted: (() -> Void)?
 
   @Query private var komgaReadLists: [KomgaReadList]
 
   init(
     readListId: String,
-    layout: BrowseLayoutMode = .grid,
-    onActionCompleted: (() -> Void)? = nil
+    layout: BrowseLayoutMode = .grid
   ) {
     self.readListId = readListId
     self.layout = layout
-    self.onActionCompleted = onActionCompleted
 
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(readListId)"
@@ -39,13 +36,11 @@ struct ReadListQueryItemView: View {
       switch layout {
       case .grid:
         ReadListCardView(
-          komgaReadList: readList,
-          onActionCompleted: onActionCompleted
+          komgaReadList: readList
         )
       case .list:
         ReadListRowView(
-          komgaReadList: readList,
-          onActionCompleted: onActionCompleted
+          komgaReadList: readList
         )
       }
     } else {

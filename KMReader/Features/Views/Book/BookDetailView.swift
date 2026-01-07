@@ -98,12 +98,6 @@ struct BookDetailView: View {
         bookIds: [bookId],
         onSelect: { readListId in
           addToReadList(readListId: readListId)
-        },
-        onComplete: {
-          // Create already adds book, just refresh
-          Task {
-            await loadBook()
-          }
         }
       )
     }

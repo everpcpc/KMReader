@@ -10,7 +10,6 @@ import SwiftUI
 
 struct SeriesCardView: View {
   @Bindable var komgaSeries: KomgaSeries
-  var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
@@ -53,7 +52,6 @@ struct SeriesCardView: View {
       .contextMenu {
         SeriesContextMenu(
           komgaSeries: komgaSeries,
-          onActionCompleted: onActionCompleted,
           onShowCollectionPicker: {
             showCollectionPicker = true
           },
@@ -119,18 +117,11 @@ struct SeriesCardView: View {
         seriesIds: [komgaSeries.seriesId],
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
-        },
-        onComplete: {
-          // Create already adds series, just refresh
-          onActionCompleted?()
         }
       )
     }
     .sheet(isPresented: $showEditSheet) {
       SeriesEditSheet(series: komgaSeries.toSeries())
-        .onDisappear {
-          onActionCompleted?()
-        }
     }
   }
 
@@ -144,7 +135,6 @@ struct SeriesCardView: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.series.addedToCollection"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -160,7 +150,6 @@ struct SeriesCardView: View {
         try await SeriesService.shared.deleteSeries(seriesId: komgaSeries.seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {

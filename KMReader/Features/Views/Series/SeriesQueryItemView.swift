@@ -12,19 +12,16 @@ import SwiftUI
 struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
-  var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @Query private var komgaSeriesList: [KomgaSeries]
 
   init(
     seriesId: String,
-    layout: BrowseLayoutMode,
-    onActionCompleted: (() -> Void)? = nil
+    layout: BrowseLayoutMode
   ) {
     self.seriesId = seriesId
     self.layout = layout
-    self.onActionCompleted = onActionCompleted
 
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(seriesId)"
@@ -40,13 +37,11 @@ struct SeriesQueryItemView: View {
       switch layout {
       case .grid:
         SeriesCardView(
-          komgaSeries: series,
-          onActionCompleted: onActionCompleted
+          komgaSeries: series
         )
       case .list:
         SeriesRowView(
-          komgaSeries: series,
-          onActionCompleted: onActionCompleted
+          komgaSeries: series
         )
       }
     } else {

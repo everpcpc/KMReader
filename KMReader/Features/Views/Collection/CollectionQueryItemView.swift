@@ -12,18 +12,15 @@ import SwiftUI
 struct CollectionQueryItemView: View {
   let collectionId: String
   var layout: BrowseLayoutMode = .grid
-  var onActionCompleted: (() -> Void)?
 
   @Query private var komgaCollections: [KomgaCollection]
 
   init(
     collectionId: String,
-    layout: BrowseLayoutMode = .grid,
-    onActionCompleted: (() -> Void)? = nil
+    layout: BrowseLayoutMode = .grid
   ) {
     self.collectionId = collectionId
     self.layout = layout
-    self.onActionCompleted = onActionCompleted
 
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(collectionId)"
@@ -39,13 +36,11 @@ struct CollectionQueryItemView: View {
       switch layout {
       case .grid:
         CollectionCardView(
-          komgaCollection: collection,
-          onActionCompleted: onActionCompleted
+          komgaCollection: collection
         )
       case .list:
         CollectionRowView(
-          komgaCollection: collection,
-          onActionCompleted: onActionCompleted
+          komgaCollection: collection
         )
       }
     } else {

@@ -53,11 +53,7 @@ struct ReadListsBrowseView: View {
             ForEach(viewModel.pagination.items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
-                onActionCompleted: {
-                  Task {
-                    await loadReadLists(refresh: true)
-                  }
-                }
+                layout: .grid
               )
               .padding(.bottom)
               .onAppear {
@@ -75,12 +71,7 @@ struct ReadListsBrowseView: View {
             ForEach(viewModel.pagination.items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
-                layout: .list,
-                onActionCompleted: {
-                  Task {
-                    await loadReadLists(refresh: true)
-                  }
-                }
+                layout: .list
               )
               .onAppear {
                 if viewModel.pagination.shouldLoadMore(after: readList) {

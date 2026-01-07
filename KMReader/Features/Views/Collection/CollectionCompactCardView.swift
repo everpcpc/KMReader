@@ -9,7 +9,6 @@ import SwiftUI
 
 struct CollectionCompactCardView: View {
   @Bindable var komgaCollection: KomgaCollection
-  var onActionCompleted: (() -> Void)? = nil
 
   var body: some View {
     NavigationLink(

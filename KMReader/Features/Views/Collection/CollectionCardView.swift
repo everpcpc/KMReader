@@ -9,7 +9,6 @@ import SwiftUI
 
 struct CollectionCardView: View {
   @Bindable var komgaCollection: KomgaCollection
-  var onActionCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @State private var showEditSheet = false
@@ -30,7 +29,6 @@ struct CollectionCardView: View {
       .contextMenu {
         CollectionContextMenu(
           collection: komgaCollection.toCollection(),
-          onActionCompleted: onActionCompleted,
           onDeleteRequested: {
             showDeleteConfirmation = true
           },
@@ -65,9 +63,6 @@ struct CollectionCardView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       CollectionEditSheet(collection: komgaCollection.toCollection())
-        .onDisappear {
-          onActionCompleted?()
-        }
     }
   }
 
@@ -78,7 +73,6 @@ struct CollectionCardView: View {
           collectionId: komgaCollection.collectionId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {

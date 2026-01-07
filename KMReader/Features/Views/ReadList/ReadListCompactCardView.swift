@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ReadListCompactCardView: View {
   @Bindable var komgaReadList: KomgaReadList
-  var onActionCompleted: (() -> Void)? = nil
 
   var body: some View {
     NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {

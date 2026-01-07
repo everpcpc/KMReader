@@ -116,12 +116,7 @@ struct CollectionSeriesListView: View {
           browseLayout: layoutMode,
           isSelectionMode: isSelectionMode,
           selectedSeriesIds: $selectedSeriesIds,
-          isAdmin: isAdmin,
-          refreshSeries: {
-            Task {
-              await refreshSeries()
-            }
-          }
+          isAdmin: isAdmin
         )
       } else if seriesViewModel.isLoading {
         ProgressView()

@@ -81,7 +81,6 @@ struct BookCardView: View {
         BookContextMenu(
           komgaBook: komgaBook,
           onReadBook: onReadBook,
-          onActionCompleted: onBookUpdated,
           onShowReadListPicker: {
             showReadListPicker = true
           },
@@ -159,10 +158,6 @@ struct BookCardView: View {
         bookIds: [komgaBook.bookId],
         onSelect: { readListId in
           addToReadList(readListId: readListId)
-        },
-        onComplete: {
-          // Create already adds book, just refresh
-          onBookUpdated?()
         }
       )
     }

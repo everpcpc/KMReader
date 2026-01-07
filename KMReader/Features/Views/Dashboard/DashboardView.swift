@@ -159,18 +159,12 @@ struct DashboardView: View {
           if section.isLocalSection {
             DashboardLocalSectionView(
               section: section,
-              refreshTrigger: refreshTrigger,
-              onUpdated: {
-                refreshDashboard(reason: "Section action completed")
-              }
+              refreshTrigger: refreshTrigger
             )
           } else {
             DashboardSectionView(
               section: section,
-              refreshTrigger: refreshTrigger,
-              onUpdated: {
-                refreshDashboard(reason: "Section action completed")
-              }
+              refreshTrigger: refreshTrigger
             )
           }
         }

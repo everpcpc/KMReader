@@ -113,11 +113,6 @@ struct SeriesDetailView: View {
         seriesIds: [seriesId],
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
-        },
-        onComplete: {
-          Task {
-            await refreshSeriesData()
-          }
         }
       )
     }

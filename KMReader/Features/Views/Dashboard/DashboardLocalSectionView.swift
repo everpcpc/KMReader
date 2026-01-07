@@ -36,19 +36,16 @@ extension KomgaReadList: DashboardLocalItem {
 struct DashboardLocalSectionView: View {
   let section: DashboardSection
   let refreshTrigger: DashboardRefreshTrigger
-  var onUpdated: (() -> Void)? = nil
 
   var body: some View {
     switch section {
     case .collections:
       DashboardCollectionsSection(
-        refreshTrigger: refreshTrigger,
-        onUpdated: onUpdated
+        refreshTrigger: refreshTrigger
       )
     case .readLists:
       DashboardReadListsSection(
-        refreshTrigger: refreshTrigger,
-        onUpdated: onUpdated
+        refreshTrigger: refreshTrigger
       )
     default:
       EmptyView()
@@ -60,16 +57,14 @@ struct DashboardLocalSectionView: View {
 
 private struct DashboardCollectionsSection: View {
   let refreshTrigger: DashboardRefreshTrigger
-  var onUpdated: (() -> Void)? = nil
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @Query private var items: [KomgaCollection]
 
   @State private var isLoading = false
 
-  init(refreshTrigger: DashboardRefreshTrigger, onUpdated: (() -> Void)? = nil) {
+  init(refreshTrigger: DashboardRefreshTrigger) {
     self.refreshTrigger = refreshTrigger
-    self.onUpdated = onUpdated
 
     let instanceId = AppConfig.currentInstanceId
     _items = Query(
@@ -86,8 +81,7 @@ private struct DashboardCollectionsSection: View {
       onRefresh: refresh
     ) { collection in
       CollectionCompactCardView(
-        komgaCollection: collection,
-        onActionCompleted: onUpdated
+        komgaCollection: collection
       )
     }
   }
@@ -104,16 +98,14 @@ private struct DashboardCollectionsSection: View {
 
 private struct DashboardReadListsSection: View {
   let refreshTrigger: DashboardRefreshTrigger
-  var onUpdated: (() -> Void)? = nil
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @Query private var items: [KomgaReadList]
 
   @State private var isLoading = false
 
-  init(refreshTrigger: DashboardRefreshTrigger, onUpdated: (() -> Void)? = nil) {
+  init(refreshTrigger: DashboardRefreshTrigger) {
     self.refreshTrigger = refreshTrigger
-    self.onUpdated = onUpdated
 
     let instanceId = AppConfig.currentInstanceId
     _items = Query(
@@ -130,8 +122,7 @@ private struct DashboardReadListsSection: View {
       onRefresh: refresh
     ) { readList in
       ReadListCompactCardView(
-        komgaReadList: readList,
-        onActionCompleted: onUpdated
+        komgaReadList: readList
       )
     }
   }

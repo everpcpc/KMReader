@@ -25,16 +25,13 @@ struct CollectionPickerSheet: View {
 
   let seriesIds: [String]
   let onSelect: (String) -> Void
-  let onComplete: (() -> Void)?
 
   init(
     seriesIds: [String] = [],
-    onSelect: @escaping (String) -> Void,
-    onComplete: (() -> Void)? = nil
+    onSelect: @escaping (String) -> Void
   ) {
     self.seriesIds = seriesIds
     self.onSelect = onSelect
-    self.onComplete = onComplete
 
     let instanceId = AppConfig.currentInstanceId
     _komgaCollections = Query(
@@ -98,7 +95,6 @@ struct CollectionPickerSheet: View {
         isCreating: $isCreating,
         seriesIds: seriesIds,
         onCreate: { _ in
-          onComplete?()
           dismiss()
         }
       )

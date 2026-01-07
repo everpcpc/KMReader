@@ -13,20 +13,17 @@ struct SeriesSelectionItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
   @Binding var selectedSeriesIds: Set<String>
-  var onActionCompleted: (() -> Void)? = nil
 
   @Query private var komgaSeriesList: [KomgaSeries]
 
   init(
     seriesId: String,
     layout: BrowseLayoutMode,
-    selectedSeriesIds: Binding<Set<String>>,
-    onActionCompleted: (() -> Void)? = nil
+    selectedSeriesIds: Binding<Set<String>>
   ) {
     self.seriesId = seriesId
     self.layout = layout
     self._selectedSeriesIds = selectedSeriesIds
-    self.onActionCompleted = onActionCompleted
 
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(seriesId)"
@@ -46,8 +43,7 @@ struct SeriesSelectionItemView: View {
       switch layout {
       case .grid:
         SeriesCardView(
-          komgaSeries: series,
-          onActionCompleted: onActionCompleted
+          komgaSeries: series
         )
         .focusPadding()
         .allowsHitTesting(false)
@@ -72,8 +68,7 @@ struct SeriesSelectionItemView: View {
         )
       case .list:
         SeriesRowView(
-          komgaSeries: series,
-          onActionCompleted: onActionCompleted
+          komgaSeries: series
         )
         .allowsHitTesting(false)
         .overlay(alignment: .trailing) {

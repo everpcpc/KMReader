@@ -9,7 +9,6 @@ import SwiftUI
 
 struct CollectionRowView: View {
   @Bindable var komgaCollection: KomgaCollection
-  var onActionCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
@@ -54,7 +53,6 @@ struct CollectionRowView: View {
               Menu {
                 CollectionContextMenu(
                   collection: komgaCollection.toCollection(),
-                  onActionCompleted: onActionCompleted,
                   onDeleteRequested: {
                     showDeleteConfirmation = true
                   },
@@ -83,9 +81,6 @@ struct CollectionRowView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       CollectionEditSheet(collection: komgaCollection.toCollection())
-        .onDisappear {
-          onActionCompleted?()
-        }
     }
   }
 
@@ -96,7 +91,6 @@ struct CollectionRowView: View {
           collectionId: komgaCollection.collectionId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {

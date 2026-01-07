@@ -25,16 +25,13 @@ struct ReadListPickerSheet: View {
 
   let bookIds: [String]
   let onSelect: (String) -> Void
-  let onComplete: (() -> Void)?
 
   init(
     bookIds: [String] = [],
-    onSelect: @escaping (String) -> Void,
-    onComplete: (() -> Void)? = nil
+    onSelect: @escaping (String) -> Void
   ) {
     self.bookIds = bookIds
     self.onSelect = onSelect
-    self.onComplete = onComplete
 
     let instanceId = AppConfig.currentInstanceId
     _komgaReadLists = Query(
@@ -98,7 +95,6 @@ struct ReadListPickerSheet: View {
         isCreating: $isCreating,
         bookIds: bookIds,
         onCreate: { _ in
-          onComplete?()
           dismiss()
         }
       )

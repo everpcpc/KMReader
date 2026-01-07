@@ -11,7 +11,6 @@ import SwiftUI
 @MainActor
 struct CollectionContextMenu: View {
   let collection: SeriesCollection
-  var onActionCompleted: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
   @AppStorage("isAdmin") private var isAdmin: Bool = false

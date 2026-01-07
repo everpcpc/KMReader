@@ -10,7 +10,6 @@ import SwiftUI
 
 struct SeriesRowView: View {
   @Bindable var komgaSeries: KomgaSeries
-  var onActionCompleted: (() -> Void)? = nil
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
@@ -109,7 +108,6 @@ struct SeriesRowView: View {
               Menu {
                 SeriesContextMenu(
                   komgaSeries: komgaSeries,
-                  onActionCompleted: onActionCompleted,
                   onShowCollectionPicker: {
                     showCollectionPicker = true
                   },
@@ -144,18 +142,11 @@ struct SeriesRowView: View {
         seriesIds: [series.id],
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
-        },
-        onComplete: {
-          // Create already adds series, just refresh
-          onActionCompleted?()
         }
       )
     }
     .sheet(isPresented: $showEditSheet) {
       SeriesEditSheet(series: series)
-        .onDisappear {
-          onActionCompleted?()
-        }
     }
   }
 
@@ -169,7 +160,6 @@ struct SeriesRowView: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.series.addedToCollection"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -185,7 +175,6 @@ struct SeriesRowView: View {
         try await SeriesService.shared.deleteSeries(seriesId: series.id)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {

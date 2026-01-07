@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ReadListRowView: View {
   @Bindable var komgaReadList: KomgaReadList
-  var onActionCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
@@ -57,7 +56,6 @@ struct ReadListRowView: View {
               Menu {
                 ReadListContextMenu(
                   komgaReadList: komgaReadList,
-                  onActionCompleted: onActionCompleted,
                   onDeleteRequested: {
                     showDeleteConfirmation = true
                   },
@@ -86,9 +84,6 @@ struct ReadListRowView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       ReadListEditSheet(readList: komgaReadList.toReadList())
-        .onDisappear {
-          onActionCompleted?()
-        }
     }
   }
 
@@ -98,7 +93,6 @@ struct ReadListRowView: View {
         try await ReadListService.shared.deleteReadList(readListId: komgaReadList.readListId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {

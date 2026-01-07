@@ -72,9 +72,6 @@ struct DashboardSectionDetailView: View {
           BookQueryItemView(
             bookId: book.id,
             layout: .grid,
-            onBookUpdated: {
-              Task { await loadItems(refresh: true) }
-            },
             showSeriesTitle: true
           )
           .padding(.bottom)
@@ -91,9 +88,6 @@ struct DashboardSectionDetailView: View {
           BookQueryItemView(
             bookId: book.id,
             layout: .list,
-            onBookUpdated: {
-              Task { await loadItems(refresh: true) }
-            },
             showSeriesTitle: true
           )
           .onAppear {
@@ -117,10 +111,7 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            layout: .grid,
-            onActionCompleted: {
-              Task { await loadItems(refresh: true) }
-            }
+            layout: .grid
           )
           .padding(.bottom)
           .onAppear {
@@ -135,10 +126,7 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            layout: .list,
-            onActionCompleted: {
-              Task { await loadItems(refresh: true) }
-            }
+            layout: .list
           )
           .onAppear {
             if pagination.shouldLoadMore(after: series) {

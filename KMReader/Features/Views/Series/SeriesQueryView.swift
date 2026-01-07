@@ -43,12 +43,7 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .grid,
-              onActionCompleted: {
-                Task {
-                  await loadMore(true)
-                }
-              }
+              layout: .grid
             )
             .padding(.bottom)
             .onAppear {
@@ -66,12 +61,7 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .list,
-              onActionCompleted: {
-                Task {
-                  await loadMore(true)
-                }
-              }
+              layout: .list
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: series) {

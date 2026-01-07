@@ -12,7 +12,6 @@ import SwiftUI
 struct ReadListContextMenu: View {
   @Bindable var komgaReadList: KomgaReadList
 
-  var onActionCompleted: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
 
@@ -122,7 +121,6 @@ struct ReadListContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.readList.offlineDownloadQueued")
         )
-        onActionCompleted?()
       }
     }
   }
@@ -140,7 +138,6 @@ struct ReadListContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.readList.offlineDownloadQueued")
         )
-        onActionCompleted?()
       }
     }
   }
@@ -156,7 +153,6 @@ struct ReadListContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.readList.offlineRemoved")
         )
-        onActionCompleted?()
       }
     }
   }
@@ -171,7 +167,6 @@ struct ReadListContextMenu: View {
         ErrorManager.shared.notify(
           message: String(localized: "notification.readList.offlineRemoved")
         )
-        onActionCompleted?()
       }
     }
   }

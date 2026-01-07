@@ -52,12 +52,7 @@ struct CollectionsBrowseView: View {
           LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
-                collectionId: collection.id,
-                onActionCompleted: {
-                  Task {
-                    await loadCollections(refresh: true)
-                  }
-                }
+                collectionId: collection.id
               )
               .padding(.bottom)
               .onAppear {
@@ -75,12 +70,7 @@ struct CollectionsBrowseView: View {
             ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id,
-                layout: .list,
-                onActionCompleted: {
-                  Task {
-                    await loadCollections(refresh: true)
-                  }
-                }
+                layout: .list
               )
               .onAppear {
                 if viewModel.pagination.shouldLoadMore(after: collection) {

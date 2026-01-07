@@ -23,7 +23,6 @@ struct DashboardRefreshTrigger: Equatable {
 struct DashboardSectionView: View {
   let section: DashboardSection
   let refreshTrigger: DashboardRefreshTrigger
-  var onUpdated: (() -> Void)? = nil
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
@@ -152,14 +151,12 @@ struct DashboardSectionView: View {
       BookQueryItemView(
         bookId: itemId,
         layout: .grid,
-        onBookUpdated: onUpdated,
         showSeriesTitle: true
       )
     } else {
       SeriesQueryItemView(
         seriesId: itemId,
-        layout: .grid,
-        onActionCompleted: onUpdated
+        layout: .grid
       )
     }
   }

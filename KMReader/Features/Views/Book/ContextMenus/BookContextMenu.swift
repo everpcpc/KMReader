@@ -12,7 +12,6 @@ struct BookContextMenu: View {
   @Bindable var komgaBook: KomgaBook
 
   var onReadBook: ((Bool) -> Void)?
-  var onActionCompleted: (() -> Void)? = nil
   var onShowReadListPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
@@ -123,7 +122,6 @@ struct BookContextMenu: View {
         _ = try await SyncService.shared.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -140,7 +138,6 @@ struct BookContextMenu: View {
         _ = try await SyncService.shared.syncBook(bookId: bookId)
         await MainActor.run {
           ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -157,7 +154,6 @@ struct BookContextMenu: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.book.analysisStarted"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -174,7 +170,6 @@ struct BookContextMenu: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.book.metadataRefreshed"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {
@@ -194,7 +189,6 @@ struct BookContextMenu: View {
         await MainActor.run {
           ErrorManager.shared.notify(
             message: String(localized: "notification.book.booksAddedToReadList"))
-          onActionCompleted?()
         }
       } catch {
         await MainActor.run {

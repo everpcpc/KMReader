@@ -113,11 +113,6 @@ struct OneshotDetailView: View {
         seriesIds: [seriesId],
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
-        },
-        onComplete: {
-          Task {
-            await refreshOneshotData()
-          }
         }
       )
     }
@@ -127,11 +122,6 @@ struct OneshotDetailView: View {
           bookIds: [book.id],
           onSelect: { readListId in
             addToReadList(readListId: readListId, bookId: book.id)
-          },
-          onComplete: {
-            Task {
-              await refreshOneshotData()
-            }
           }
         )
       }
