@@ -13,10 +13,19 @@ struct TapZonePreview: View {
 
   private var zoneValue: CGFloat { size.value }
 
+  private var aspectRatio: CGFloat {
+    switch direction {
+    case .vertical, .webtoon:
+      return 0.707
+    case .ltr, .rtl:
+      return 1.414
+    }
+  }
+
   var body: some View {
     VStack(spacing: 4) {
       previewContent
-        .aspectRatio(direction == .vertical || direction == .webtoon ? 9 / 16 : 16 / 9, contentMode: .fit)
+        .aspectRatio(aspectRatio, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(
           RoundedRectangle(cornerRadius: 4)
