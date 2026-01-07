@@ -12,8 +12,7 @@ struct OneShotDetailContentView: View {
   let book: Book
   let series: Series
   let downloadStatus: DownloadStatus?
-  let containingCollections: [SeriesCollection]
-  let bookReadLists: [ReadList]
+
   @State private var thumbnailRefreshKey = UUID()
 
   private var isCompleted: Bool {
@@ -255,67 +254,6 @@ struct OneShotDetailContentView: View {
         book: book,
         seriesLink: false
       )
-
-      if !containingCollections.isEmpty {
-        VStack(alignment: .leading, spacing: 8) {
-          HStack(spacing: 4) {
-            Text("Collections")
-              .font(.headline)
-          }
-          .foregroundColor(.secondary)
-
-          VStack(alignment: .leading, spacing: 8) {
-            ForEach(containingCollections) { collection in
-              NavigationLink(
-                value: NavDestination.collectionDetail(collectionId: collection.id)
-              ) {
-                HStack {
-                  Label(collection.name, systemImage: "square.grid.2x2")
-                    .foregroundColor(.primary)
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(16)
-              }.adaptiveButtonStyle(.plain)
-            }
-          }
-        }
-        .padding(.vertical)
-      }
-
-      if !bookReadLists.isEmpty {
-        VStack(alignment: .leading, spacing: 6) {
-          HStack(spacing: 4) {
-            Image(systemName: "list.bullet")
-              .font(.caption)
-            Text("Read Lists")
-              .font(.headline)
-          }
-          .foregroundColor(.secondary)
-
-          VStack(alignment: .leading, spacing: 8) {
-            ForEach(bookReadLists) { readList in
-              NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
-                HStack {
-                  Label(readList.name, systemImage: "list.bullet")
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(16)
-              }.adaptiveButtonStyle(.plain)
-            }
-          }
-        }
-        .padding(.vertical)
-      }
 
       if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
         VStack(alignment: .leading, spacing: 8) {

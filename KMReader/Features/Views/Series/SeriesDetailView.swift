@@ -19,7 +19,6 @@ struct SeriesDetailView: View {
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @Query private var komgaSeriesList: [KomgaSeries]
-  @Query private var komgaCollections: [KomgaCollection]
 
   @State private var bookViewModel = BookViewModel()
   @State private var showDeleteConfirmation = false
@@ -32,10 +31,6 @@ struct SeriesDetailView: View {
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(seriesId)"
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
-    _komgaCollections = Query(
-      filter: #Predicate<KomgaCollection> {
-        $0.instanceId == instanceId && $0.seriesIds.contains(seriesId)
-      })
   }
 
   /// The KomgaSeries from SwiftData (reactive).
@@ -46,11 +41,6 @@ struct SeriesDetailView: View {
   /// Convert to API Series type for compatibility with existing components.
   private var series: Series? {
     komgaSeries?.toSeries()
-  }
-
-  /// Collections containing this series (computed from query).
-  private var containingCollections: [SeriesCollection] {
-    komgaCollections.map { $0.toCollection() }
   }
 
   private var canMarkSeriesAsRead: Bool {
@@ -65,7 +55,7 @@ struct SeriesDetailView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading) {
+      LazyVStack(alignment: .leading) {
         if let series = series {
           VStack(alignment: .leading) {
             #if os(tvOS)
@@ -73,10 +63,11 @@ struct SeriesDetailView: View {
                 .padding(.vertical, 8)
             #endif
 
-            SeriesDetailContentView(
-              series: series,
-              containingCollections: containingCollections
-            )
+            SeriesDetailContentView(series: series)
+
+            if let komgaSeries = komgaSeries {
+              SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+            }
 
             Divider()
             if let komgaSeries = komgaSeries {

@@ -17,8 +17,6 @@ struct OneshotDetailView: View {
 
   @Query private var komgaSeriesList: [KomgaSeries]
   @Query private var komgaBookList: [KomgaBook]
-  @Query private var komgaCollections: [KomgaCollection]
-  @Query private var komgaReadLists: [KomgaReadList]
 
   @State private var isLoading = true
   @State private var hasError = false
@@ -34,11 +32,6 @@ struct OneshotDetailView: View {
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == seriesCompositeId })
     _komgaBookList = Query(
       filter: #Predicate<KomgaBook> { $0.instanceId == instanceId && $0.seriesId == seriesId })
-    _komgaCollections = Query(
-      filter: #Predicate<KomgaCollection> {
-        $0.instanceId == instanceId && $0.seriesIds.contains(seriesId)
-      })
-    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.instanceId == instanceId })
   }
 
   /// The KomgaSeries from SwiftData (reactive).
@@ -63,22 +56,9 @@ struct OneshotDetailView: View {
     komgaBook?.downloadStatus ?? .notDownloaded
   }
 
-  /// Collections containing this series (computed from query).
-  private var containingCollections: [SeriesCollection] {
-    komgaCollections.map { $0.toCollection() }
-  }
-
-  /// Read lists containing this book (computed from query).
-  private var bookReadLists: [ReadList] {
-    guard let bookId = komgaBook?.bookId else { return [] }
-    return komgaReadLists
-      .filter { $0.bookIds.contains(bookId) }
-      .map { $0.toReadList() }
-  }
-
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading) {
+      LazyVStack(alignment: .leading) {
         if let book, let series {
           #if os(tvOS)
             oneshotToolbarContent
@@ -88,10 +68,16 @@ struct OneshotDetailView: View {
           OneShotDetailContentView(
             book: book,
             series: series,
-            downloadStatus: downloadStatus,
-            containingCollections: containingCollections,
-            bookReadLists: bookReadLists
+            downloadStatus: downloadStatus
           )
+
+          if let komgaSeries = komgaSeries {
+            SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+          }
+
+          if let komgaBook = komgaBook {
+            BookReadListsSection(readListIds: komgaBook.readListIds)
+          }
         } else if hasError {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")

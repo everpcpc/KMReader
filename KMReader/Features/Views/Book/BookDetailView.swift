@@ -16,7 +16,6 @@ struct BookDetailView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Query private var komgaBooks: [KomgaBook]
-  @Query private var komgaReadLists: [KomgaReadList]
 
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
@@ -28,10 +27,6 @@ struct BookDetailView: View {
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(bookId)"
     _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
-    _komgaReadLists = Query(
-      filter: #Predicate<KomgaReadList> {
-        $0.instanceId == instanceId && $0.bookIds.contains(bookId)
-      })
   }
 
   /// The KomgaBook from SwiftData (reactive).
@@ -48,14 +43,9 @@ struct BookDetailView: View {
     komgaBook?.downloadStatus ?? .notDownloaded
   }
 
-  /// Read lists containing this book (computed from query).
-  private var bookReadLists: [ReadList] {
-    komgaReadLists.map { $0.toReadList() }
-  }
-
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading) {
+      LazyVStack(alignment: .leading) {
         if let book {
           #if os(tvOS)
             bookToolbarContent
@@ -64,9 +54,12 @@ struct BookDetailView: View {
 
           BookDetailContentView(
             book: book,
-            downloadStatus: downloadStatus,
-            bookReadLists: bookReadLists
+            downloadStatus: downloadStatus
           )
+
+          if let komgaBook = komgaBook {
+            BookReadListsSection(readListIds: komgaBook.readListIds)
+          }
         } else if hasError {
           VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
