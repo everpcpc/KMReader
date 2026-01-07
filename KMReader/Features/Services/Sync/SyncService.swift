@@ -519,7 +519,8 @@ class SyncService {
       await db.upsertReadLists(readLists, instanceId: instanceId)
       // Update the book's cached readListIds
       let readListIds = readLists.map { $0.id }
-      await db.updateBookReadListIds(bookId: bookId, readListIds: readListIds, instanceId: instanceId)
+      await db.updateBookReadListIds(
+        bookId: bookId, readListIds: readListIds, instanceId: instanceId)
       await db.commit()
     } catch {
       logger.error("❌ Failed to sync book read lists: \(error)")
