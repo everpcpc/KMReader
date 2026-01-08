@@ -217,14 +217,16 @@ struct BrowseView: View {
         libraryIds: libraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
-        showFilterSheet: $showFilterSheet
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters
       )
     case .books:
       BooksBrowseView(
         libraryIds: libraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
-        showFilterSheet: $showFilterSheet
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters
       )
     case .collections:
       CollectionsBrowseView(

@@ -21,7 +21,7 @@ struct SavedFiltersView: View {
     SheetView(
       title: String(localized: "Saved Filters"),
       size: .medium,
-      applyFormStyle: false
+      applyFormStyle: true
     ) {
       let displayFilters = savedFilters.filter { $0.filterType == filterType }
 
@@ -39,11 +39,6 @@ struct SavedFiltersView: View {
             }
           }
         }
-        .scrollContentBackground(.hidden)
-      }
-    } controls: {
-      Button(action: { dismiss() }) {
-        Label("Done", systemImage: "checkmark")
       }
     }
     .alert(
@@ -83,7 +78,7 @@ struct SavedFiltersView: View {
         applyFilterDirectly(filter)
         dismiss()
       } label: {
-        Image(systemName: "line.3.horizontal.decrease.circle")
+        Image(systemName: "line.3.horizontal.decrease.circle.fill")
           .foregroundColor(.accentColor)
       }
       .adaptiveButtonStyle(.plain)
@@ -110,7 +105,7 @@ struct SavedFiltersView: View {
         applyFilterDirectly(filter)
         dismiss()
       } label: {
-        Label("Apply Filter", systemImage: "line.3.horizontal.decrease.circle")
+        Label("Apply Filter", systemImage: "line.3.horizontal.decrease.circle.fill")
       }
 
       Button {

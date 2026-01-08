@@ -11,6 +11,7 @@ struct BooksBrowseView: View {
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -25,6 +26,7 @@ struct BooksBrowseView: View {
       BookFilterView(
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters,
         filterType: .books
       )
       .padding(.horizontal)

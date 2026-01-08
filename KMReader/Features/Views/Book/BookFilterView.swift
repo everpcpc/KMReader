@@ -10,15 +10,18 @@ import SwiftUI
 struct BookFilterView: View {
   @Binding var browseOpts: BookBrowseOptions
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
   let filterType: SavedFilterType
 
   init(
     browseOpts: Binding<BookBrowseOptions>,
     showFilterSheet: Binding<Bool>,
+    showSavedFilters: Binding<Bool>,
     filterType: SavedFilterType = .books
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
+    self._showSavedFilters = showSavedFilters
     self.filterType = filterType
   }
 
@@ -30,9 +33,12 @@ struct BookFilterView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 6) {
-        Image(systemName: "line.3.horizontal.decrease.circle")
-          .padding(.leading, 4)
-          .foregroundColor(.secondary)
+        FilterChip(
+          label: String(localized: "Presets"),
+          systemImage: "bookmark",
+          variant: .preset,
+          openSheet: $showSavedFilters
+        )
 
         FilterChip(
           label: sortString,

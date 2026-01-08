@@ -59,7 +59,8 @@ struct CollectionDetailView: View {
           if komgaCollection != nil {
             CollectionSeriesListView(
               collectionId: collectionId,
-              showFilterSheet: $showFilterSheet
+              showFilterSheet: $showFilterSheet,
+              showSavedFilters: $showSavedFilters
             )
           }
         } else {

@@ -82,7 +82,8 @@ struct SeriesDetailView: View {
             BooksListViewForSeries(
               seriesId: seriesId,
               bookViewModel: bookViewModel,
-              showFilterSheet: $showFilterSheet
+              showFilterSheet: $showFilterSheet,
+              showSavedFilters: $showSavedFilters
             )
           }
         } else {

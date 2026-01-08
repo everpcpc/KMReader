@@ -67,7 +67,8 @@ struct ReadListDetailView: View {
           if komgaReadList != nil {
             BooksListViewForReadList(
               readListId: readListId,
-              showFilterSheet: $showFilterSheet
+              showFilterSheet: $showFilterSheet,
+              showSavedFilters: $showSavedFilters
             )
           }
         } else {
