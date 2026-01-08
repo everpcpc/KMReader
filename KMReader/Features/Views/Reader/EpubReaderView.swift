@@ -31,6 +31,7 @@
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
+    @State private var showingBookDetailSheet = false
 
     init(
       bookId: String,
@@ -44,6 +45,7 @@
       self.onClose = onClose
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
     }
+
     private func closeReader() {
       if let onClose {
         onClose()
@@ -54,6 +56,10 @@
 
     var shouldShowControls: Bool {
       viewModel.isLoading || showingControls
+    }
+
+    private var buttonStyle: AdaptiveButtonStyleType {
+      return .borderedProminent
     }
 
     var body: some View {
@@ -176,29 +182,33 @@
             Image(systemName: "xmark")
           }
           .controlSize(.large)
-          .adaptiveButtonStyle(.borderedProminent)
+          .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
           Spacer()
 
-          // Progress indicator
-          if let currentLocator = viewModel.currentLocator, !viewModel.tableOfContents.isEmpty {
+          // Series and book title
+          if let book = currentBook {
             Button {
-              showingChapterSheet = true
+              showingBookDetailSheet = true
             } label: {
-              HStack(spacing: 4) {
-                // Total progress
-                if let totalProgression = currentLocator.locations.totalProgression {
-                  HStack(spacing: 6) {
-                    Image(systemName: "book.fill")
-                    Text("\(totalProgression * 100, specifier: "%.1f")%")
-                      .monospacedDigit()
-                  }
+              VStack(spacing: 4) {
+                if book.oneshot {
+                  Text(book.metadata.title)
+                    .lineLimit(2)
+                } else {
+                  Text(book.seriesTitle)
+                    .font(.caption)
+                    .lineLimit(1)
+                  Text("#\(book.metadata.number) - \(book.metadata.title)")
+                    .lineLimit(2)
                 }
               }
+              .padding(.vertical, 4)
+              .padding(.horizontal, 8)
             }
-            .controlSize(.regular)
-            .adaptiveButtonStyle(.borderedProminent)
+            .optimizedControlSize()
+            .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
 
@@ -210,26 +220,30 @@
             Image(systemName: "gearshape")
           }
           .controlSize(.large)
-          .adaptiveButtonStyle(.borderedProminent)
+          .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
         .allowsHitTesting(true)
 
-        // Series and book title
-        if let book = currentBook {
-          VStack(spacing: 4) {
-            Text(book.seriesTitle)
-              .font(.headline)
-              .foregroundColor(.white)
-            Text("#\(book.metadata.number) - \(book.metadata.title)")
-              .font(.subheadline)
-              .foregroundColor(.white)
+        if let currentLocator = viewModel.currentLocator {
+          Button {
+            showingChapterSheet = true
+          } label: {
+            HStack(spacing: 4) {
+              // Total progress
+              if let totalProgression = currentLocator.locations.totalProgression {
+                HStack(spacing: 6) {
+                  Image(systemName: "book.fill")
+                  Text("\(totalProgression * 100, specifier: "%.1f")%")
+                    .monospacedDigit()
+                }
+              }
+            }
           }
-          .padding(.vertical, 4)
-          .padding(.horizontal, 8)
-          .background(Color.accentColor.opacity(0.9))
-          .cornerRadius(12)
+          .adaptiveButtonStyle(buttonStyle)
           .optimizedControlSize()
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          .disabled(viewModel.tableOfContents.isEmpty)
         }
 
         Spacer()
@@ -255,6 +269,19 @@
           viewModel.applyPreferences(newPreferences, colorScheme: colorScheme)
         }
       }
+      .sheet(isPresented: $showingBookDetailSheet) {
+        if let book = currentBook {
+          SheetView(title: book.metadata.title, size: .large) {
+            ScrollView {
+              BookDetailContentView(
+                book: book,
+                downloadStatus: nil,
+                inSheet: true
+              ).padding(.horizontal)
+            }
+          }
+        }
+      }
     }
 
     private func toggleControls() {
@@ -276,46 +303,44 @@
     }
 
     private var chapterStatusOverlay: some View {
-      let hasTitle = (viewModel.currentLocator?.title?.isEmpty == false)
       let chapterProgression = viewModel.currentLocator?.locations.progression
       let totalProgression = viewModel.currentLocator?.locations.totalProgression
 
       return VStack {
         Spacer()
-        if hasTitle || chapterProgression != nil || totalProgression != nil {
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              if let chapterTitle = viewModel.currentLocator?.title, !chapterTitle.isEmpty {
-                HStack(spacing: 6) {
-                  Image(systemName: "list.bullet.rectangle")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                  Text(chapterTitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                }
-              }
-              Spacer()
-              if let chapterProgression {
-                HStack(spacing: 4) {
-                  Image(systemName: "doc.text.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                  Text("\(Int(chapterProgression * 100))%")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                }
+        VStack(alignment: .leading, spacing: 8) {
+          HStack {
+            if let chapterTitle = viewModel.currentLocator?.title, !chapterTitle.isEmpty {
+              HStack(spacing: 6) {
+                Image(systemName: "list.bullet.rectangle")
+                  .font(.caption2)
+                  .foregroundStyle(.secondary)
+                Text(chapterTitle)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                  .lineLimit(1)
               }
             }
+            Spacer()
+            if let chapterProgression {
+              HStack(spacing: 4) {
+                Image(systemName: "doc.text.fill")
+                  .font(.caption2)
+                  .foregroundStyle(.secondary)
+                Text("\(Int(chapterProgression * 100))%")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                  .monospacedDigit()
+              }
+            }
+          }
 
-            if let totalProgression {
-              ReadingProgressBar(progress: totalProgression)
-                .opacity(shouldShowControls ? 1.0 : 0.0)
-            }
-          }.padding(.horizontal, 16)
-        }
+          if let totalProgression {
+            ReadingProgressBar(progress: totalProgression)
+              .opacity(shouldShowControls ? 1.0 : 0.0)
+              .allowsHitTesting(false)
+          }
+        }.padding(.horizontal, 16)
       }
       .allowsHitTesting(false)
     }

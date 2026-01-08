@@ -11,6 +11,7 @@ import SwiftUI
 struct BookDetailContentView: View {
   let book: Book
   let downloadStatus: DownloadStatus?
+  let inSheet: Bool
 
   @State private var thumbnailRefreshKey = UUID()
 
@@ -199,11 +200,15 @@ struct BookDetailContentView: View {
         Divider()
         BookDownloadActionsSection(book: book, status: downloadStatus)
       }
-      Divider()
-      BookActionsSection(
-        book: book,
-        seriesLink: true
-      )
+
+      if !inSheet {
+        Divider()
+        BookActionsSection(
+          book: book,
+          seriesLink: true
+        )
+      }
+
       Divider()
 
       // book media info

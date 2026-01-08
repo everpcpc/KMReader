@@ -54,7 +54,8 @@ struct BookDetailView: View {
 
           BookDetailContentView(
             book: book,
-            downloadStatus: downloadStatus
+            downloadStatus: downloadStatus,
+            inSheet: false
           )
 
           if let komgaBook = komgaBook {

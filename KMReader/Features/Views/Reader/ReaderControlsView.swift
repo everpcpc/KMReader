@@ -33,6 +33,7 @@ struct ReaderControlsView: View {
   @State private var showingPageJumpSheet = false
   @State private var showingTOCSheet = false
   @State private var showingReaderSettingsSheet = false
+  @State private var showingBookDetailSheet = false
   #if os(tvOS)
     private enum ControlFocus: Hashable {
       case close
@@ -135,18 +136,27 @@ struct ReaderControlsView: View {
 
         // Series and book title
         if let book = currentBook {
-          VStack(spacing: 4) {
-            Text(book.seriesTitle)
-              .font(.caption)
-              .foregroundColor(.white)
-            Text("#\(book.metadata.number) - \(book.metadata.title)")
-              .foregroundColor(.white)
+          Button {
+            showingBookDetailSheet = true
+          } label: {
+            VStack(spacing: 4) {
+              if book.oneshot {
+                Text(book.metadata.title)
+                  .lineLimit(2)
+              } else {
+                Text(book.seriesTitle)
+                  .font(.caption)
+                  .lineLimit(1)
+                Text("#\(book.metadata.number) - \(book.metadata.title)")
+                  .lineLimit(2)
+              }
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
           }
-          .padding(.vertical, buttonPadding)
-          .padding(.horizontal, buttonMargin)
-          .background(Color.accentColor.opacity(0.9))
-          .cornerRadius(12)
           .optimizedControlSize()
+          .adaptiveButtonStyle(buttonStyle)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
 
         Spacer()
@@ -334,6 +344,19 @@ struct ReaderControlsView: View {
         pageLayout: $pageLayout,
         dualPageNoCover: $dualPageNoCover
       )
+    }
+    .sheet(isPresented: $showingBookDetailSheet) {
+      if let book = currentBook {
+        SheetView(title: book.metadata.title, size: .large) {
+          ScrollView {
+            BookDetailContentView(
+              book: book,
+              downloadStatus: nil,
+              inSheet: true,
+            ).padding(.horizontal)
+          }
+        }
+      }
     }
     .onChange(of: dualPageNoCover) { _, newValue in
       viewModel.updateDualPageSettings(noCover: newValue)
