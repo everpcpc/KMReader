@@ -13,39 +13,41 @@ struct LibraryListContent: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
-    [KomgaLibrary]
+
+  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)])
+  private var allLibraries: [KomgaLibrary]
+
   @State private var isLoading = false
   @State private var isLoadingMetrics = false
   @State private var selectedLibraryIds: [String]
 
-  let showDeleteAction: Bool
   let loadMetrics: Bool
   let alwaysRefreshMetrics: Bool
   let forceMetricsOnAppear: Bool
   let enablePullToRefresh: Bool
   let onLibrarySelected: ((String?) -> Void)?
-  let onDeleteLibrary: ((KomgaLibrary) -> Void)?
+  let onEditLibrary: ((String) -> Void)?
+  let onDeleteLibrary: ((LibrarySelection) -> Void)?
 
   private let libraryService = LibraryService.shared
   private let metricsLoader = LibraryMetricsLoader.shared
 
   init(
-    showDeleteAction: Bool = false,
     loadMetrics: Bool = true,
     alwaysRefreshMetrics: Bool = false,
     forceMetricsOnAppear: Bool = true,
     enablePullToRefresh: Bool = true,
     onLibrarySelected: ((String?) -> Void)? = nil,
-    onDeleteLibrary: ((KomgaLibrary) -> Void)? = nil
+    onEditLibrary: ((String) -> Void)? = nil,
+    onDeleteLibrary: ((LibrarySelection) -> Void)? = nil
   ) {
     let initialSelection = AppConfig.dashboard.libraryIds
-    self.showDeleteAction = showDeleteAction
     self.loadMetrics = loadMetrics
     self.alwaysRefreshMetrics = alwaysRefreshMetrics
     self.forceMetricsOnAppear = forceMetricsOnAppear
     self.enablePullToRefresh = enablePullToRefresh
     self.onLibrarySelected = onLibrarySelected
+    self.onEditLibrary = onEditLibrary
     self.onDeleteLibrary = onDeleteLibrary
     _selectedLibraryIds = State(initialValue: initialSelection)
   }
@@ -117,7 +119,6 @@ struct LibraryListContent: View {
             LibraryRowView(
               library: library,
               isSelected: selectedLibraryIds.contains(library.libraryId),
-              showDeleteAction: showDeleteAction,
               onSelect: {
                 withAnimation(.easeInOut(duration: 0.2)) {
                   var currentIds = selectedLibraryIds
@@ -137,14 +138,15 @@ struct LibraryListContent: View {
               onAction: { action in
                 action.perform(for: library.libraryId)
               },
-              onDelete: {
-                onDeleteLibrary?(library)
-              }
+              onEdit: onEditLibrary != nil ? { onEditLibrary?(library.libraryId) } : nil,
+              onDelete: onDeleteLibrary != nil
+                ? { onDeleteLibrary?(LibrarySelection(library: library)) } : nil
             )
           }
         }
       }
     }
+    .animation(.default, value: libraries)
     .formStyle(.grouped)
     .task {
       await refreshLibraries(forceMetrics: forceMetricsOnAppear)

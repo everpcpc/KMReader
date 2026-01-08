@@ -21,6 +21,23 @@ class LibraryService {
     return try await apiClient.request(path: "/api/v1/libraries/\(id)")
   }
 
+  func createLibrary(_ creation: LibraryCreation) async throws -> Library {
+    let bodyData = try JSONEncoder().encode(creation)
+    return try await apiClient.request(
+      path: "/api/v1/libraries",
+      method: "POST",
+      body: bodyData
+    )
+  }
+
+  func updateLibrary(id: String, update: LibraryUpdate) async throws {
+    let bodyData = try JSONEncoder().encode(update)
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v1/libraries/\(id)",
+      method: "PATCH",
+      body: bodyData
+    )
+  }
   func scanLibrary(id: String, deep: Bool = false) async throws {
     var queryItems: [URLQueryItem]? = nil
     if deep {

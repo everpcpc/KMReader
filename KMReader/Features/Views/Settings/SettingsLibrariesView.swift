@@ -5,12 +5,14 @@
 //  Created by Komga iOS Client
 //
 
-import SwiftData
 import SwiftUI
 
 struct SettingsLibrariesView: View {
-  @State private var libraryPendingDelete: KomgaLibrary?
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @State private var libraryPendingDelete: LibrarySelection?
   @State private var deleteConfirmationText: String = ""
+  @State private var showAddSheet = false
+  @State private var libraryToEdit: Library?
 
   private var isDeleteAlertPresented: Binding<Bool> {
     Binding(
@@ -24,17 +26,45 @@ struct SettingsLibrariesView: View {
     )
   }
 
+  private var isEditSheetPresented: Binding<Bool> {
+    Binding(
+      get: { libraryToEdit != nil },
+      set: { if !$0 { libraryToEdit = nil } }
+    )
+  }
+
   var body: some View {
     LibraryListContent(
-      showDeleteAction: true,
       alwaysRefreshMetrics: true,
       forceMetricsOnAppear: true,
+      onEditLibrary: { libraryId in
+        fetchAndEditLibrary(libraryId)
+      },
       onDeleteLibrary: { library in
         libraryPendingDelete = library
         deleteConfirmationText = ""
       }
     )
     .inlineNavigationBarTitle(SettingsSection.libraries.title)
+    .toolbar {
+      if isAdmin {
+        ToolbarItem(placement: .primaryAction) {
+          Button {
+            showAddSheet = true
+          } label: {
+            Image(systemName: "plus")
+          }
+        }
+      }
+    }
+    .sheet(isPresented: $showAddSheet) {
+      LibraryAddSheet()
+    }
+    .sheet(isPresented: isEditSheetPresented) {
+      if let library = libraryToEdit {
+        LibraryEditSheet(library: library)
+      }
+    }
     .alert(String(localized: "settings.libraries.alert.title"), isPresented: isDeleteAlertPresented)
     {
       if let libraryPendingDelete {
@@ -58,7 +88,22 @@ struct SettingsLibrariesView: View {
     }
   }
 
-  private func deleteConfirmedLibrary(_ library: KomgaLibrary) {
+  private func fetchAndEditLibrary(_ libraryId: String) {
+    Task {
+      do {
+        let library = try await LibraryService.shared.getLibrary(id: libraryId)
+        await MainActor.run {
+          libraryToEdit = library
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+  }
+
+  private func deleteConfirmedLibrary(_ library: LibrarySelection) {
     Task {
       do {
         try await LibraryService.shared.deleteLibrary(id: library.libraryId)
@@ -80,7 +125,7 @@ struct SettingsLibrariesView: View {
   }
 }
 
-private func deleteLibraryConfirmationMessage(for library: KomgaLibrary) -> String {
+private func deleteLibraryConfirmationMessage(for library: LibrarySelection) -> String {
   let format = String(
     localized: "settings.libraries.alert.message",
     defaultValue:

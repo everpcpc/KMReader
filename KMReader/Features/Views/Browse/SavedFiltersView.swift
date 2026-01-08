@@ -29,7 +29,9 @@ struct SavedFiltersView: View {
         ContentUnavailableView {
           Label("No Saved Filters", systemImage: "bookmark.slash")
         } description: {
-          Text("Save your frequently used \(filterType.displayName.lowercased()) filters for quick access")
+          Text(
+            "Save your frequently used \(filterType.displayName.lowercased()) filters for quick access"
+          )
         }
       } else {
         List {

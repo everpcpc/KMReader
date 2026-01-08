@@ -1168,13 +1168,11 @@ actor DatabaseOperator {
     var existingMap = Dictionary(
       uniqueKeysWithValues: existing.map { ($0.libraryId, $0) }
     )
-    var didChange = false
 
     for library in libraries {
       if let existingLibrary = existingMap[library.id] {
         if existingLibrary.name != library.name {
           existingLibrary.name = library.name
-          didChange = true
         }
         existingMap.removeValue(forKey: library.id)
       } else {
@@ -1184,7 +1182,6 @@ actor DatabaseOperator {
             libraryId: library.id,
             name: library.name
           ))
-        didChange = true
       }
     }
 
@@ -1192,11 +1189,7 @@ actor DatabaseOperator {
     for (_, library) in existingMap {
       if library.libraryId != allLibrariesId {
         modelContext.delete(library)
-        didChange = true
       }
-    }
-
-    if didChange {
     }
   }
 

@@ -11,10 +11,26 @@ struct LibraryRowView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @Bindable var library: KomgaLibrary
   let isSelected: Bool
-  let showDeleteAction: Bool
   let onSelect: () -> Void
   let onAction: (LibraryAction) -> Void
-  let onDelete: () -> Void
+  let onEdit: (() -> Void)?
+  let onDelete: (() -> Void)?
+
+  init(
+    library: KomgaLibrary,
+    isSelected: Bool,
+    onSelect: @escaping () -> Void,
+    onAction: @escaping (LibraryAction) -> Void,
+    onEdit: (() -> Void)? = nil,
+    onDelete: (() -> Void)? = nil
+  ) {
+    self.library = library
+    self.isSelected = isSelected
+    self.onSelect = onSelect
+    self.onAction = onAction
+    self.onEdit = onEdit
+    self.onDelete = onDelete
+  }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -50,6 +66,18 @@ struct LibraryRowView: View {
     .contentShape(Rectangle())
     .contextMenu {
       if isAdmin && !isOffline {
+        if let onEdit {
+          Button {
+            onEdit()
+          } label: {
+            Label(
+              String(localized: "library.action.edit", defaultValue: "Edit Library"),
+              systemImage: "pencil")
+          }
+
+          Divider()
+        }
+
         ForEach(LibraryAction.allCases, id: \.self) { action in
           Button {
             onAction(action)
@@ -58,7 +86,7 @@ struct LibraryRowView: View {
           }
         }
 
-        if showDeleteAction {
+        if let onDelete {
           Divider()
 
           Button(role: .destructive) {
