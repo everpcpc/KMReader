@@ -72,6 +72,9 @@ struct DashboardSectionView: View {
       }
       .buttonStyle(.plain)
       .padding(.horizontal)
+      #if os(macOS)
+        .padding(.leading, 16)
+      #endif
 
       ScrollViewReader { proxy in
         ScrollView(.horizontal, showsIndicators: false) {
@@ -90,16 +93,21 @@ struct DashboardSectionView: View {
             }
           }
           .padding(.vertical)
+          #if os(macOS)
+            .padding(.leading, 16)
+          #endif
         }
         .contentMargins(.horizontal, spacing, for: .scrollContent)
         .scrollClipDisabled()
-        .overlay {
-          HorizontalScrollButtons(
-            scrollProxy: proxy,
-            itemIds: pagination.items.map(\.id),
-            isVisible: isHoveringScrollArea
-          )
-        }
+        #if os(macOS)
+          .overlay {
+            HorizontalScrollButtons(
+              scrollProxy: proxy,
+              itemIds: pagination.items.map(\.id),
+              isVisible: isHoveringScrollArea
+            )
+          }
+        #endif
       }
     }
     .padding(.vertical, 16)
