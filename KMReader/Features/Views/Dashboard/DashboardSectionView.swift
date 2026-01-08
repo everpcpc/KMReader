@@ -129,7 +129,9 @@ struct DashboardSectionView: View {
           hoverShowDelayTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000)
             guard !Task.isCancelled else { return }
-            isHoveringScrollArea = true
+            withAnimation(.easeInOut(duration: 0.2)) {
+              isHoveringScrollArea = true
+            }
           }
         case .ended:
           hoverShowDelayTask?.cancel()
@@ -138,7 +140,9 @@ struct DashboardSectionView: View {
           hoverHideDelayTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000)
             guard !Task.isCancelled else { return }
-            isHoveringScrollArea = false
+            withAnimation(.easeInOut(duration: 0.2)) {
+              isHoveringScrollArea = false
+            }
           }
         }
       }
