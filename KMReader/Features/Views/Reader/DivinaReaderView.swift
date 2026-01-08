@@ -433,6 +433,7 @@ struct DivinaReaderView: View {
       currentBook: currentBook,
       bookId: currentBookId,
       dualPage: useDualPage,
+      incognito: incognito,
       onDismiss: { closeReader() },
       goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
       goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },

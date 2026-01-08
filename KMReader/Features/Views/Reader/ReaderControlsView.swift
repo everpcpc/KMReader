@@ -18,6 +18,7 @@ struct ReaderControlsView: View {
   let currentBook: Book?
   let bookId: String
   let dualPage: Bool
+  let incognito: Bool
   let onDismiss: () -> Void
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
@@ -123,16 +124,22 @@ struct ReaderControlsView: View {
           Button {
             showingBookDetailSheet = true
           } label: {
-            VStack(spacing: 4) {
-              if book.oneshot {
-                Text(book.metadata.title)
-                  .lineLimit(2)
-              } else {
-                Text(book.seriesTitle)
-                  .font(.caption)
-                  .lineLimit(1)
-                Text("#\(book.metadata.number) - \(book.metadata.title)")
-                  .lineLimit(1)
+            HStack {
+              if incognito {
+                Image(systemName: "eye.slash.fill")
+                  .font(.title3)
+              }
+              VStack(alignment: incognito ? .leading : .center, spacing: 4) {
+                if book.oneshot {
+                  Text(book.metadata.title)
+                    .lineLimit(2)
+                } else {
+                  Text(book.seriesTitle)
+                    .font(.caption)
+                    .lineLimit(1)
+                  Text("#\(book.metadata.number) - \(book.metadata.title)")
+                    .lineLimit(1)
+                }
               }
             }
             .padding(.vertical, 4)
