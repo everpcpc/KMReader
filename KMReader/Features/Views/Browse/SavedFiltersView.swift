@@ -129,23 +129,23 @@ struct SavedFiltersView: View {
     switch filter.filterType {
     case .series:
       if let options = filter.getSeriesBrowseOptions() {
-        UserDefaults.standard.set(options.rawValue, forKey: "seriesBrowseOptions")
+        AppConfig.seriesBrowseOptions = options.rawValue
       }
     case .books:
       if let options = filter.getBookBrowseOptions() {
-        UserDefaults.standard.set(options.rawValue, forKey: "bookBrowseOptions")
+        AppConfig.bookBrowseOptions = options.rawValue
       }
     case .collectionSeries:
       if let options = filter.getCollectionSeriesBrowseOptions() {
-        UserDefaults.standard.set(options.rawValue, forKey: "collectionSeriesBrowseOptions")
+        AppConfig.collectionSeriesBrowseOptions = options.rawValue
       }
     case .readListBooks:
       if let options = filter.getReadListBookBrowseOptions() {
-        UserDefaults.standard.set(options.rawValue, forKey: "readListBookBrowseOptions")
+        AppConfig.readListBookBrowseOptions = options.rawValue
       }
     case .seriesBooks:
       if let options = filter.getBookBrowseOptions() {
-        UserDefaults.standard.set(options.rawValue, forKey: "seriesBookBrowseOptions")
+        AppConfig.seriesBookBrowseOptions = options.rawValue
       }
     }
   }
