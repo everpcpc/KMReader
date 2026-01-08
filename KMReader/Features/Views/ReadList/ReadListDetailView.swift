@@ -22,6 +22,7 @@ struct ReadListDetailView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
+  @State private var showSavedFilters = false
 
   init(readListId: String) {
     self.readListId = readListId
@@ -103,6 +104,9 @@ struct ReadListDetailView: View {
           }
       }
     }
+    .sheet(isPresented: $showSavedFilters) {
+      SavedFiltersView(filterType: .readListBooks)
+    }
     .task {
       await loadReadListDetails()
     }
@@ -141,6 +145,12 @@ extension ReadListDetailView {
   private var readListToolbarContent: some View {
     HStack {
       LayoutModePicker(selection: $readListDetailLayout)
+
+      Button {
+        showSavedFilters = true
+      } label: {
+        Image(systemName: "bookmark.circle")
+      }
 
       Button {
         showFilterSheet = true

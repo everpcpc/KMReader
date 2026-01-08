@@ -25,6 +25,7 @@ struct SeriesDetailView: View {
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
+  @State private var showSavedFilters = false
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -123,6 +124,9 @@ struct SeriesDetailView: View {
             }
           }
       }
+    }
+    .sheet(isPresented: $showSavedFilters) {
+      SavedFiltersView(filterType: .seriesBooks)
     }
     .task {
       await refreshSeriesData()
@@ -253,6 +257,12 @@ extension SeriesDetailView {
   private var seriesToolbarContent: some View {
     HStack {
       LayoutModePicker(selection: $seriesDetailLayout)
+
+      Button {
+        showSavedFilters = true
+      } label: {
+        Image(systemName: "bookmark.circle")
+      }
 
       Button {
         showFilterSheet = true

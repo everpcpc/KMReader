@@ -2,8 +2,6 @@
 //  BooksBrowseView.swift
 //  Komga
 //
-//  Created by Komga iOS Client
-//
 
 import SwiftData
 import SwiftUI
@@ -26,7 +24,8 @@ struct BooksBrowseView: View {
     VStack(spacing: 0) {
       BookFilterView(
         browseOpts: $browseOpts,
-        showFilterSheet: $showFilterSheet
+        showFilterSheet: $showFilterSheet,
+        filterType: .books
       )
       .padding(.horizontal)
       .padding(.vertical, 4)

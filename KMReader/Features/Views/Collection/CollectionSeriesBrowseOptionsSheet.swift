@@ -11,6 +11,7 @@ struct CollectionSeriesBrowseOptionsSheet: View {
   @Binding var browseOpts: CollectionSeriesBrowseOptions
   @Environment(\.dismiss) private var dismiss
   @State private var tempOpts: CollectionSeriesBrowseOptions
+  @State private var showSaveFilterSheet = false
 
   init(browseOpts: Binding<CollectionSeriesBrowseOptions>) {
     self._browseOpts = browseOpts
@@ -110,9 +111,20 @@ struct CollectionSeriesBrowseOptionsSheet: View {
 
       }
     } controls: {
+      Button {
+        showSaveFilterSheet = true
+      } label: {
+        Label("Save Filter", systemImage: "bookmark")
+      }
       Button(action: applyChanges) {
         Label("Done", systemImage: "checkmark")
       }
+    }
+    .sheet(isPresented: $showSaveFilterSheet) {
+      SaveFilterSheet(
+        filterType: .collectionSeries,
+        collectionOptions: tempOpts
+      )
     }
   }
 

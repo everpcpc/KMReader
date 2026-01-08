@@ -11,6 +11,7 @@ struct ReadListBookBrowseOptionsSheet: View {
   @Binding var browseOpts: ReadListBookBrowseOptions
   @Environment(\.dismiss) private var dismiss
   @State private var tempOpts: ReadListBookBrowseOptions
+  @State private var showSaveFilterSheet = false
 
   init(browseOpts: Binding<ReadListBookBrowseOptions>) {
     self._browseOpts = browseOpts
@@ -74,9 +75,20 @@ struct ReadListBookBrowseOptionsSheet: View {
 
       }
     } controls: {
+      Button {
+        showSaveFilterSheet = true
+      } label: {
+        Label("Save Filter", systemImage: "bookmark")
+      }
       Button(action: applyChanges) {
         Label("Done", systemImage: "checkmark")
       }
+    }
+    .sheet(isPresented: $showSaveFilterSheet) {
+      SaveFilterSheet(
+        filterType: .readListBooks,
+        readListOptions: tempOpts
+      )
     }
   }
 

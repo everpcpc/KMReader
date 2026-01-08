@@ -10,8 +10,6 @@ import SwiftUI
 
 struct SubscriptionView: View {
   @State private var isPurchasing = false
-  @State private var showError = false
-  @State private var errorMessage = ""
   @State private var coffeeOffset: CGFloat = 0
 
   var body: some View {
@@ -43,11 +41,6 @@ struct SubscriptionView: View {
           }
         }
         .padding()
-      }
-      .alert(String(localized: "Oops!"), isPresented: $showError) {
-        Button(String(localized: "OK"), role: .cancel) {}
-      } message: {
-        Text(errorMessage)
       }
     }
   }
@@ -207,8 +200,7 @@ struct SubscriptionView: View {
       Task {
         await StoreManager.shared.restorePurchases()
         if let error = StoreManager.shared.errorMessage {
-          errorMessage = error
-          showError = true
+          ErrorManager.shared.alert(message: error)
         }
       }
     } label: {
@@ -256,8 +248,7 @@ struct SubscriptionView: View {
     do {
       _ = try await StoreManager.shared.purchase(product)
     } catch {
-      errorMessage = error.localizedDescription
-      showError = true
+      ErrorManager.shared.alert(error: error)
     }
   }
 }

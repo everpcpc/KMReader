@@ -10,6 +10,17 @@ import SwiftUI
 struct BookFilterView: View {
   @Binding var browseOpts: BookBrowseOptions
   @Binding var showFilterSheet: Bool
+  let filterType: SavedFilterType
+
+  init(
+    browseOpts: Binding<BookBrowseOptions>,
+    showFilterSheet: Binding<Bool>,
+    filterType: SavedFilterType = .books
+  ) {
+    self._browseOpts = browseOpts
+    self._showFilterSheet = showFilterSheet
+    self.filterType = filterType
+  }
 
   var sortString: String {
     return
@@ -67,7 +78,7 @@ struct BookFilterView: View {
     }
     .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
-      BookBrowseOptionsSheet(browseOpts: $browseOpts)
+      BookBrowseOptionsSheet(browseOpts: $browseOpts, filterType: filterType)
     }
   }
 }

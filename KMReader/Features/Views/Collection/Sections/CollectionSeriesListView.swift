@@ -39,7 +39,7 @@ struct CollectionSeriesListView: View {
     self._showFilterSheet = showFilterSheet
 
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(collectionId)"
+    let compositeId = "\(instanceId)_" + collectionId
     _collections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
   }
 
