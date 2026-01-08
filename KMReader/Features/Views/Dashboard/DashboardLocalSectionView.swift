@@ -149,8 +149,11 @@ private struct DashboardLocalSectionContent<
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @Environment(\.colorScheme) private var colorScheme
 
-  @State private var isHoveringScrollArea = false
   @State private var hasLoadedInitial = false
+
+  @State private var isHoveringScrollArea = false
+  @State private var hoverShowDelayTask: Task<Void, Never>?
+  @State private var hoverHideDelayTask: Task<Void, Never>?
 
   private let cardWidth: CGFloat = 240
 
@@ -195,7 +198,7 @@ private struct DashboardLocalSectionContent<
         }
       }
       .buttonStyle(.plain)
-      .padding(.horizontal)
+      .padding(.leading, 16)
 
       ScrollViewReader { proxy in
         ScrollView(.horizontal, showsIndicators: false) {
@@ -207,16 +210,21 @@ private struct DashboardLocalSectionContent<
             }
           }
           .padding(.vertical)
+          #if os(macOS)
+            .padding(.leading, 16)
+          #endif
         }
         .contentMargins(.horizontal, spacing, for: .scrollContent)
         .scrollClipDisabled()
-        .overlay {
-          HorizontalScrollButtons(
-            scrollProxy: proxy,
-            itemIds: items.map(\.itemId),
-            isVisible: isHoveringScrollArea
-          )
-        }
+        #if os(macOS)
+          .overlay {
+            HorizontalScrollButtons(
+              scrollProxy: proxy,
+              itemIds: items.map(\.itemId),
+              isVisible: isHoveringScrollArea
+            )
+          }
+        #endif
       }
     }
     .padding(.vertical, 16)
@@ -233,9 +241,23 @@ private struct DashboardLocalSectionContent<
       .onContinuousHover { phase in
         switch phase {
         case .active:
-          isHoveringScrollArea = true
+          hoverHideDelayTask?.cancel()
+          hoverHideDelayTask = nil
+          hoverShowDelayTask?.cancel()
+          hoverShowDelayTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            guard !Task.isCancelled else { return }
+            isHoveringScrollArea = true
+          }
         case .ended:
-          isHoveringScrollArea = false
+          hoverShowDelayTask?.cancel()
+          hoverShowDelayTask = nil
+          hoverHideDelayTask?.cancel()
+          hoverHideDelayTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            guard !Task.isCancelled else { return }
+            isHoveringScrollArea = false
+          }
         }
       }
     #endif
