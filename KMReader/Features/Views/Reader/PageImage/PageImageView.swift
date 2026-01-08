@@ -19,7 +19,7 @@ import UniformTypeIdentifiers
     let isSaving: Bool
     let isLiveTextActive: Bool
     let saveToPhotos: (BookPage) -> Void
-    let saveToFiles: (BookPage) -> Void
+    let imageFileURL: URL?
     let toggleLiveText: () -> Void
 
     func body(content: Content) -> some View {
@@ -45,12 +45,11 @@ import UniformTypeIdentifiers
           }
           .disabled(isSaving)
 
-          Button {
-            saveToFiles(page)
-          } label: {
-            Label("Save to Files", systemImage: "folder")
+          if let imageFileURL = imageFileURL {
+            ShareLink(item: imageFileURL, preview: SharePreview("Image", image: Image(systemName: "photo"))) {
+              Label("Share", systemImage: "square.and.arrow.up")
+            }
           }
-          .disabled(isSaving)
         }
       } else {
         content
@@ -69,8 +68,9 @@ struct PageImageView: View {
   @State private var displayImage: PlatformImage?
   @State private var loadError: String?
   @State private var isSaving = false
-  @State private var showDocumentPicker = false
-  @State private var fileToSave: URL?
+  #if os(iOS) || os(macOS)
+    @State private var imageFileURL: URL?
+  #endif
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
   private var currentPage: BookPage? {
@@ -164,9 +164,7 @@ struct PageImageView: View {
               saveToPhotos: { page in
                 Task { await saveImageToPhotos(page: page) }
               },
-              saveToFiles: { page in
-                Task { await prepareSaveToFile(page: page) }
-              },
+              imageFileURL: imageFileURL,
               toggleLiveText: {
                 if viewModel.liveTextActivePageIndex == pageIndex {
                   viewModel.liveTextActivePageIndex = nil
@@ -190,27 +188,7 @@ struct PageImageView: View {
             }
           }
         #endif
-        #if os(iOS) || os(macOS)
-          .fileExporter(
-            isPresented: $showDocumentPicker,
-            document: fileToSave.map { CachedFileDocument(url: $0) },
-            contentType: .item,
-            defaultFilename: fileToSave?.lastPathComponent ?? "page"
-          ) { result in
-            // Clean up temporary file after export
-            if let tempURL = fileToSave {
-              try? FileManager.default.removeItem(at: tempURL)
-            }
-            fileToSave = nil
-            switch result {
-            case .success:
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.reader.imageSavedToFiles"))
-            case .failure(let error):
-              ErrorManager.shared.alert(error: error)
-            }
-          }
-        #endif
+
       } else if let error = loadError {
         VStack(spacing: 16) {
           Image(systemName: "exclamationmark.triangle")
@@ -283,6 +261,9 @@ struct PageImageView: View {
         displayImage = image
         // Store for future access
         viewModel.preloadedImages[page.number] = image
+        #if os(iOS) || os(macOS)
+          imageFileURL = url
+        #endif
       } else {
         loadError = "Failed to decode image"
       }
@@ -317,50 +298,4 @@ struct PageImageView: View {
     }
   }
 
-  private func prepareSaveToFile(page: BookPage) async {
-    await MainActor.run {
-      isSaving = true
-    }
-
-    // Get page image info
-    guard let cachedFileURL = await viewModel.getCachedImageFileURL(page: page) else {
-      await MainActor.run {
-        isSaving = false
-        ErrorManager.shared.alert(message: String(localized: "alert.reader.imageUnavailable"))
-      }
-      return
-    }
-
-    // Create a temporary file in a location accessible to document picker
-    let tempDir = FileManager.default.temporaryDirectory
-    let timestamp = ISO8601DateFormatter().string(from: Date())
-      .replacingOccurrences(of: ":", with: "-")
-      .replacingOccurrences(of: ".", with: "-")
-    let originalName = page.fileName.isEmpty ? "page-\(page.number)" : page.fileName
-    let fileName = "\(timestamp)_\(originalName)"
-    let tempFileURL = tempDir.appendingPathComponent(fileName)
-
-    // Copy file to temp location with proper extension
-    do {
-      if FileManager.default.fileExists(atPath: tempFileURL.path) {
-        try FileManager.default.removeItem(at: tempFileURL)
-      }
-      try FileManager.default.copyItem(at: cachedFileURL, to: tempFileURL)
-
-      await MainActor.run {
-        isSaving = false
-        fileToSave = tempFileURL
-        showDocumentPicker = true
-      }
-    } catch {
-      await MainActor.run {
-        isSaving = false
-        let message = String.localizedStringWithFormat(
-          String(localized: "alert.reader.prepareFailed"),
-          error.localizedDescription
-        )
-        ErrorManager.shared.alert(message: message)
-      }
-    }
-  }
 }

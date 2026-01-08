@@ -73,29 +73,6 @@ actor BookFileCache {
     )
   }
 
-  func cachedOriginalFileURL(bookId: String, fileName: String) async -> URL? {
-    let sanitizedName = FileNameHelper.sanitizedFileName(
-      fileName, defaultBaseName: "book-\(bookId.prefix(8))")
-    return cachedFileURL(at: await originalFileURL(bookId: bookId, fileName: sanitizedName))
-  }
-
-  func ensureOriginalFile(
-    bookId: String,
-    fileName: String,
-    downloader: @escaping () async throws -> Data
-  ) async throws -> URL {
-    let sanitizedName = FileNameHelper.sanitizedFileName(
-      fileName, defaultBaseName: "book-\(bookId.prefix(8))")
-    let destination = await originalFileURL(bookId: bookId, fileName: sanitizedName)
-
-    return try await ensureFile(
-      bookId: bookId,
-      cacheKey: "original#\(bookId)#\(sanitizedName)",
-      destination: destination,
-      downloader: downloader
-    )
-  }
-
   private func cachedFileURL(at destination: URL) -> URL? {
     if fileManager.fileExists(atPath: destination.path) {
       return destination

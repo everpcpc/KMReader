@@ -51,22 +51,6 @@ struct ReaderControlsView: View {
     case failure(String)
   }
 
-  private var buttonPadding: CGFloat {
-    #if os(tvOS)
-      return 12
-    #else
-      return 6
-    #endif
-  }
-
-  private var buttonMargin: CGFloat {
-    #if os(tvOS)
-      return 36
-    #else
-      return 12
-    #endif
-  }
-
   private var buttonStyle: AdaptiveButtonStyleType {
     return .borderedProminent
   }
@@ -148,7 +132,7 @@ struct ReaderControlsView: View {
                   .font(.caption)
                   .lineLimit(1)
                 Text("#\(book.metadata.number) - \(book.metadata.title)")
-                  .lineLimit(2)
+                  .lineLimit(1)
               }
             }
             .padding(.vertical, 4)

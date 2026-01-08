@@ -137,7 +137,7 @@ KMReader/
 │   └── Views/                 # SwiftUI views by feature
 │       ├── Auth/              # LandingView
 │       ├── Dashboard/         # DashboardView, DashboardSectionView, DashboardSectionDetailView
-│       ├── Book/              # BookFilterView, BookEditSheet, BookDownloadSheet, BookBrowseOptionsSheet
+│       ├── Book/              # BookFilterView, BookEditSheet, BookBrowseOptionsSheet
 │       ├── Series/            # Series detail and filtering views
 │       ├── Collection/        # CollectionEditSheet, CollectionSeriesFilterView, CollectionSortView
 │       ├── ReadList/          # ReadListEditSheet, ReadListBookFilterView, ReadListSortView

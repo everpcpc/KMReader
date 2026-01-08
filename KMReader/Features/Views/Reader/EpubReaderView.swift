@@ -201,7 +201,7 @@
                     .font(.caption)
                     .lineLimit(1)
                   Text("#\(book.metadata.number) - \(book.metadata.title)")
-                    .lineLimit(2)
+                    .lineLimit(1)
                 }
               }
               .padding(.vertical, 4)
@@ -314,10 +314,10 @@
               HStack(spacing: 6) {
                 Image(systemName: "list.bullet.rectangle")
                   .font(.caption2)
-                  .foregroundStyle(.secondary)
+                  .foregroundStyle(.gray)
                 Text(chapterTitle)
                   .font(.caption)
-                  .foregroundStyle(.secondary)
+                  .foregroundStyle(.gray)
                   .lineLimit(1)
               }
             }
@@ -326,10 +326,10 @@
               HStack(spacing: 4) {
                 Image(systemName: "doc.text.fill")
                   .font(.caption2)
-                  .foregroundStyle(.secondary)
+                  .foregroundStyle(.gray)
                 Text("\(Int(chapterProgression * 100))%")
                   .font(.caption)
-                  .foregroundStyle(.secondary)
+                  .foregroundStyle(.gray)
                   .monospacedDigit()
               }
             }
