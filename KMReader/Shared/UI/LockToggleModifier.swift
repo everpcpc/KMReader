@@ -9,31 +9,30 @@ import SwiftUI
 
 struct LockToggleModifier: ViewModifier {
   @Binding var isLocked: Bool
-  let size: CGFloat
+  let alignment: VerticalAlignment
 
   func body(content: Content) -> some View {
-    HStack(spacing: 0) {
+    HStack(alignment: alignment, spacing: 4) {
       Button(action: { toggle() }) {
-        Image(systemName: isLocked ? "lock.fill" : "lock.slash")
+        Image(systemName: isLocked ? "lock.circle.fill" : "lock.circle.dotted")
+          .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
           .foregroundColor(isLocked ? .red : .secondary)
-          .frame(width: size, height: size)
+          .contentShape(Rectangle())
       }
-      .adaptiveButtonStyle(.plain)
-      .padding(.horizontal, 8)
+      .buttonStyle(.plain)
+      .padding(.horizontal, 4)
 
       content
     }
   }
 
   private func toggle() {
-    withAnimation {
-      isLocked.toggle()
-    }
+    isLocked.toggle()
   }
 }
 
 extension View {
-  func lockToggle(isLocked: Binding<Bool>, size: CGFloat = 14.0) -> some View {
-    modifier(LockToggleModifier(isLocked: isLocked, size: size))
+  func lockToggle(isLocked: Binding<Bool>, alignment: VerticalAlignment = .center) -> some View {
+    modifier(LockToggleModifier(isLocked: isLocked, alignment: alignment))
   }
 }

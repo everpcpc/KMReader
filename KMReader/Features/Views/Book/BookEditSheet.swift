@@ -155,7 +155,7 @@ struct BookEditSheet: View {
             .onChange(of: isbn) { isbnLock = true }
           TextField("Summary", text: $summary, axis: .vertical)
             .lineLimit(3...10)
-            .lockToggle(isLocked: $summaryLock)
+            .lockToggle(isLocked: $summaryLock, alignment: .top)
             .onChange(of: summary) { summaryLock = true }
         }
 
