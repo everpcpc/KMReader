@@ -10,6 +10,7 @@ import SwiftUI
 struct ReadListBookFilterView: View {
   @Binding var browseOpts: ReadListBookBrowseOptions
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   var emptyFilter: Bool {
     return browseOpts.includeReadStatuses.isEmpty && browseOpts.excludeReadStatuses.isEmpty
@@ -18,9 +19,12 @@ struct ReadListBookFilterView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 6) {
-        Image(systemName: "line.3.horizontal.decrease.circle")
-          .padding(.leading, 4)
-          .foregroundColor(.secondary)
+        FilterChip(
+          label: String(localized: "Presets"),
+          systemImage: "bookmark",
+          variant: .preset,
+          openSheet: $showSavedFilters
+        )
 
         if let label = readStatusLabel() {
           FilterChip(

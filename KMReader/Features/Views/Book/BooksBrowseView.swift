@@ -2,8 +2,6 @@
 //  BooksBrowseView.swift
 //  Komga
 //
-//  Created by Komga iOS Client
-//
 
 import SwiftData
 import SwiftUI
@@ -13,6 +11,7 @@ struct BooksBrowseView: View {
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -26,7 +25,9 @@ struct BooksBrowseView: View {
     VStack(spacing: 0) {
       BookFilterView(
         browseOpts: $browseOpts,
-        showFilterSheet: $showFilterSheet
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters,
+        filterType: .books
       )
       .padding(.horizontal)
       .padding(.vertical, 4)

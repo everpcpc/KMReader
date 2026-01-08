@@ -25,7 +25,6 @@ import OSLog
 
     private let logger = AppLogger(.offline)
     private let sessionIdentifier = "com.kmreader.offline.background"
-    private let taskInfoKey = "BackgroundDownloadTasks"
 
     /// Completion handler provided by iOS when app is woken for background events
     var backgroundCompletionHandler: (() -> Void)?
@@ -174,12 +173,12 @@ import OSLog
     private func saveTaskInfo() {
       let encoder = JSONEncoder()
       if let data = try? encoder.encode(activeTasks) {
-        UserDefaults.standard.set(data, forKey: taskInfoKey)
+        AppConfig.backgroundDownloadTasksData = data
       }
     }
 
     private func loadTaskInfo() {
-      guard let data = UserDefaults.standard.data(forKey: taskInfoKey),
+      guard let data = AppConfig.backgroundDownloadTasksData,
         let tasks = try? JSONDecoder().decode([Int: BackgroundDownloadTaskInfo].self, from: data)
       else {
         return

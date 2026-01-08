@@ -2,8 +2,6 @@
 //  BooksListViewForSeries.swift
 //  Komga
 //
-//  Created by Komga iOS Client
-//
 
 import SwiftData
 import SwiftUI
@@ -13,6 +11,7 @@ struct BooksListViewForSeries: View {
   let seriesId: String
   @Bindable var bookViewModel: BookViewModel
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   @AppStorage("seriesDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("seriesBookBrowseOptions") private var browseOpts: BookBrowseOptions =
@@ -40,7 +39,9 @@ struct BooksListViewForSeries: View {
 
         BookFilterView(
           browseOpts: $browseOpts,
-          showFilterSheet: $showFilterSheet
+          showFilterSheet: $showFilterSheet,
+          showSavedFilters: $showSavedFilters,
+          filterType: .seriesBooks
         )
       }
       .padding(.horizontal)

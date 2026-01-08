@@ -227,7 +227,7 @@ KMReader/
 5. **No confirmationDialog**: Do not use confirmationDialog
 6. **One type per file**: Every struct or class in a separate file
 7. **@Observable over ObservableObject**: Use @Observable pattern for view models
-8. **@AppStorage over UserDefaults**: In views use @AppStorage; elsewhere use AppConfig
+8. **@AppStorage over UserDefaults**: In views use @AppStorage; elsewhere use AppConfig, UserDefaults is forbidden in files except AppConfig.swift
 9. **Computed properties in view bodies**: Avoid stored variables in view bodies
 10. **Platform differences**: Use `PlatformHelper` and `#if os(...)` blocks
 

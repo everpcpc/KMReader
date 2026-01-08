@@ -14,6 +14,28 @@ struct FilterChip: View {
 
   @Binding var openSheet: Bool
 
+  private var buttonStyle: AdaptiveButtonStyleType {
+    switch variant {
+    case .normal:
+      return .bordered
+    case .preset:
+      return .borderedProminent
+    case .negative:
+      return .bordered
+    }
+  }
+
+  private var buttonColor: Color {
+    switch variant {
+    case .normal:
+      return .accentColor
+    case .preset:
+      return .accentColor
+    case .negative:
+      return .red
+    }
+  }
+
   var body: some View {
     Button {
       openSheet = true
@@ -27,13 +49,14 @@ struct FilterChip: View {
       }
     }
     .fixedSize()
-    .adaptiveButtonStyle(.bordered)
+    .adaptiveButtonStyle(buttonStyle)
     .optimizedControlSize()
-    .tint(variant == .negative ? .red : .accentColor)
+    .tint(buttonColor)
   }
 }
 
 enum FilterChipVariant {
   case normal
+  case preset
   case negative
 }

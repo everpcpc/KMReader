@@ -46,7 +46,9 @@ import UniformTypeIdentifiers
           .disabled(isSaving)
 
           if let imageFileURL = imageFileURL {
-            ShareLink(item: imageFileURL, preview: SharePreview("Image", image: Image(systemName: "photo"))) {
+            ShareLink(
+              item: imageFileURL, preview: SharePreview("Image", image: Image(systemName: "photo"))
+            ) {
               Label("Share", systemImage: "square.and.arrow.up")
             }
           }

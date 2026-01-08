@@ -175,6 +175,17 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "offlineAutoDeleteRead") }
   }
 
+  static nonisolated var backgroundDownloadTasksData: Data? {
+    get { UserDefaults.standard.data(forKey: "BackgroundDownloadTasks") }
+    set {
+      if let value = newValue {
+        UserDefaults.standard.set(value, forKey: "BackgroundDownloadTasks")
+      } else {
+        UserDefaults.standard.removeObject(forKey: "BackgroundDownloadTasks")
+      }
+    }
+  }
+
   // MARK: - Dashboard
 
   static var gridDensity: Double {
@@ -330,6 +341,32 @@ enum AppConfig {
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "readListDetailLayout")
     }
+  }
+
+  // MARK: - Browse Options Raw Values
+  static var seriesBrowseOptions: String {
+    get { UserDefaults.standard.string(forKey: "seriesBrowseOptions") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "seriesBrowseOptions") }
+  }
+
+  static var bookBrowseOptions: String {
+    get { UserDefaults.standard.string(forKey: "bookBrowseOptions") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "bookBrowseOptions") }
+  }
+
+  static var collectionSeriesBrowseOptions: String {
+    get { UserDefaults.standard.string(forKey: "collectionSeriesBrowseOptions") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "collectionSeriesBrowseOptions") }
+  }
+
+  static var readListBookBrowseOptions: String {
+    get { UserDefaults.standard.string(forKey: "readListBookBrowseOptions") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "readListBookBrowseOptions") }
+  }
+
+  static var seriesBookBrowseOptions: String {
+    get { UserDefaults.standard.string(forKey: "seriesBookBrowseOptions") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "seriesBookBrowseOptions") }
   }
 
   static var coverOnlyCards: Bool {

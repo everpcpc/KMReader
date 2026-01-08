@@ -27,6 +27,7 @@ struct BrowseView: View {
   @State private var activeSearchText: String = ""
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
+  @State private var showSavedFilters = false
   @State private var libraryIds: [String] = []
 
   private var effectiveContent: BrowseContentType {
@@ -152,6 +153,13 @@ struct BrowseView: View {
         ToolbarItem(placement: .confirmationAction) {
           HStack {
             LayoutModePicker(selection: layoutModeBinding)
+            if effectiveContent == .series || effectiveContent == .books {
+              Button {
+                showSavedFilters = true
+              } label: {
+                Image(systemName: "bookmark.circle")
+              }
+            }
             Button {
               showFilterSheet = true
             } label: {
@@ -162,6 +170,9 @@ struct BrowseView: View {
       }
       .sheet(isPresented: $showLibraryPicker) {
         LibraryPickerSheet()
+      }
+      .sheet(isPresented: $showSavedFilters) {
+        SavedFiltersView(filterType: effectiveContent == .series ? .series : .books)
       }
     #endif
     .onSubmit(of: .search) {
@@ -206,14 +217,16 @@ struct BrowseView: View {
         libraryIds: libraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
-        showFilterSheet: $showFilterSheet
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters
       )
     case .books:
       BooksBrowseView(
         libraryIds: libraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
-        showFilterSheet: $showFilterSheet
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters
       )
     case .collections:
       CollectionsBrowseView(

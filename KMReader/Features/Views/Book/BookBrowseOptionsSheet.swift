@@ -11,10 +11,13 @@ struct BookBrowseOptionsSheet: View {
   @Binding var browseOpts: BookBrowseOptions
   @Environment(\.dismiss) private var dismiss
   @State private var tempOpts: BookBrowseOptions
+  @State private var showSaveFilterSheet = false
+  let filterType: SavedFilterType
 
-  init(browseOpts: Binding<BookBrowseOptions>) {
+  init(browseOpts: Binding<BookBrowseOptions>, filterType: SavedFilterType = .books) {
     self._browseOpts = browseOpts
     self._tempOpts = State(initialValue: browseOpts.wrappedValue)
+    self.filterType = filterType
   }
 
   var body: some View {
@@ -80,9 +83,20 @@ struct BookBrowseOptionsSheet: View {
 
       }
     } controls: {
+      Button {
+        showSaveFilterSheet = true
+      } label: {
+        Label("Save Filter", systemImage: "bookmark")
+      }
       Button(action: applyChanges) {
         Label("Done", systemImage: "checkmark")
       }
+    }
+    .sheet(isPresented: $showSaveFilterSheet) {
+      SaveFilterSheet(
+        filterType: filterType,
+        bookOptions: tempOpts
+      )
     }
   }
 

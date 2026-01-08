@@ -12,6 +12,7 @@ import SwiftUI
 struct BooksListViewForReadList: View {
   let readListId: String
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   @AppStorage("readListDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("readListBookBrowseOptions") private var browseOpts: ReadListBookBrowseOptions =
@@ -32,10 +33,12 @@ struct BooksListViewForReadList: View {
 
   init(
     readListId: String,
-    showFilterSheet: Binding<Bool>
+    showFilterSheet: Binding<Bool>,
+    showSavedFilters: Binding<Bool>
   ) {
     self.readListId = readListId
     self._showFilterSheet = showFilterSheet
+    self._showSavedFilters = showSavedFilters
 
     let instanceId = AppConfig.currentInstanceId
     let compositeId = "\(instanceId)_\(readListId)"
@@ -72,7 +75,8 @@ struct BooksListViewForReadList: View {
         HStack(spacing: 8) {
           ReadListBookFilterView(
             browseOpts: $browseOpts,
-            showFilterSheet: $showFilterSheet
+            showFilterSheet: $showFilterSheet,
+            showSavedFilters: $showSavedFilters
           )
 
           if supportsSelectionMode && !isSelectionMode && isAdmin {

@@ -12,6 +12,7 @@ import SwiftUI
 struct CollectionSeriesListView: View {
   let collectionId: String
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   @AppStorage("collectionDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("collectionSeriesBrowseOptions") private var browseOpts:
@@ -33,13 +34,15 @@ struct CollectionSeriesListView: View {
 
   init(
     collectionId: String,
-    showFilterSheet: Binding<Bool>
+    showFilterSheet: Binding<Bool>,
+    showSavedFilters: Binding<Bool>
   ) {
     self.collectionId = collectionId
     self._showFilterSheet = showFilterSheet
+    self._showSavedFilters = showSavedFilters
 
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(collectionId)"
+    let compositeId = "\(instanceId)_" + collectionId
     _collections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
   }
 
@@ -62,7 +65,8 @@ struct CollectionSeriesListView: View {
         HStack(spacing: 8) {
           CollectionSeriesFilterView(
             browseOpts: $browseOpts,
-            showFilterSheet: $showFilterSheet
+            showFilterSheet: $showFilterSheet,
+            showSavedFilters: $showSavedFilters
           )
 
           if supportsSelectionMode && !isSelectionMode && isAdmin {

@@ -10,6 +10,7 @@ import SwiftUI
 struct CollectionSeriesFilterView: View {
   @Binding var browseOpts: CollectionSeriesBrowseOptions
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   var emptyFilter: Bool {
     return browseOpts.includeReadStatuses.isEmpty
@@ -23,9 +24,12 @@ struct CollectionSeriesFilterView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 6) {
-        Image(systemName: "line.3.horizontal.decrease.circle")
-          .padding(.leading, 4)
-          .foregroundColor(.secondary)
+        FilterChip(
+          label: String(localized: "Presets"),
+          systemImage: "bookmark",
+          variant: .preset,
+          openSheet: $showSavedFilters
+        )
 
         FilterChip(
           label: String(localized: "Filter"),

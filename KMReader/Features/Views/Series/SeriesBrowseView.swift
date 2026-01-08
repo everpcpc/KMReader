@@ -13,6 +13,7 @@ struct SeriesBrowseView: View {
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
+  @Binding var showSavedFilters: Bool
 
   @AppStorage("seriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
@@ -26,7 +27,8 @@ struct SeriesBrowseView: View {
     VStack(spacing: 0) {
       SeriesFilterView(
         browseOpts: $browseOpts,
-        showFilterSheet: $showFilterSheet
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters
       )
       .padding(.horizontal)
       .padding(.vertical, 4)

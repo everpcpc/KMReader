@@ -22,6 +22,7 @@ struct CollectionDetailView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
+  @State private var showSavedFilters = false
 
   init(collectionId: String) {
     self.collectionId = collectionId
@@ -58,7 +59,8 @@ struct CollectionDetailView: View {
           if komgaCollection != nil {
             CollectionSeriesListView(
               collectionId: collectionId,
-              showFilterSheet: $showFilterSheet
+              showFilterSheet: $showFilterSheet,
+              showSavedFilters: $showSavedFilters
             )
           }
         } else {
@@ -94,6 +96,9 @@ struct CollectionDetailView: View {
             }
           }
       }
+    }
+    .sheet(isPresented: $showSavedFilters) {
+      SavedFiltersView(filterType: .collectionSeries)
     }
     .task {
       await loadCollectionDetails()
@@ -133,6 +138,12 @@ extension CollectionDetailView {
   private var collectionToolbarContent: some View {
     HStack {
       LayoutModePicker(selection: $collectionDetailLayout)
+
+      Button {
+        showSavedFilters = true
+      } label: {
+        Image(systemName: "bookmark.circle")
+      }
 
       Button {
         showFilterSheet = true
