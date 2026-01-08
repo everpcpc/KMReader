@@ -61,6 +61,9 @@ import SwiftUI
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .onAppear {
+        readerPresentation.clearTransitionSource()
+      }
       #if os(iOS)
         .statusBarHidden(readerPresentation.hideStatusBar)
       #endif

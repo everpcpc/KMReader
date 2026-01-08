@@ -103,7 +103,7 @@ struct SeriesEditSheet: View {
             .onChange(of: totalBookCount) { totalBookCountLock = true }
           TextField("Summary", text: $summary, axis: .vertical)
             .lineLimit(3...10)
-            .lockToggle(isLocked: $summaryLock)
+            .lockToggle(isLocked: $summaryLock, alignment: .top)
             .onChange(of: summary) { summaryLock = true }
           Picker("Status", selection: $status) {
             ForEach(SeriesStatus.allCases, id: \.self) { status in
@@ -173,15 +173,8 @@ struct SeriesEditSheet: View {
             .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
           }
         } header: {
-          HStack {
-            Button(action: { alternateTitlesLock.toggle() }) {
-              Image(systemName: alternateTitlesLock ? "lock.fill" : "lock.open.fill")
-                .foregroundColor(alternateTitlesLock ? .secondary : .gray)
-            }
-            .adaptiveButtonStyle(.plain)
-            Text("Alternate Titles")
-            Spacer()
-          }
+          Text("Alternate Titles")
+            .lockToggle(isLocked: $alternateTitlesLock)
         }
 
         Section {
