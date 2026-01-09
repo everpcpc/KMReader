@@ -20,8 +20,10 @@ struct SeriesBrowseView: View {
   @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
-  @State private var viewModel = SeriesViewModel()
   @Environment(\.modelContext) private var modelContext
+
+  @State private var viewModel = SeriesViewModel()
+  @State private var hasInitialized = false
 
   var body: some View {
     VStack(spacing: 0) {
@@ -42,6 +44,8 @@ struct SeriesBrowseView: View {
       )
     }
     .task {
+      guard !hasInitialized else { return }
+      hasInitialized = true
       await loadSeries(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in

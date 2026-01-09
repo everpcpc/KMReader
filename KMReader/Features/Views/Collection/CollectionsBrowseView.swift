@@ -14,12 +14,13 @@ struct CollectionsBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
+  @Environment(\.modelContext) private var modelContext
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var viewModel = CollectionViewModel()
-  @Environment(\.modelContext) private var modelContext
+  @State private var hasInitialized = false
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -89,9 +90,9 @@ struct CollectionsBrowseView: View {
       }
     }
     .task {
-      if viewModel.pagination.isEmpty {
-        await loadCollections(refresh: true)
-      }
+      guard !hasInitialized else { return }
+      hasInitialized = true
+      await loadCollections(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in
       Task {

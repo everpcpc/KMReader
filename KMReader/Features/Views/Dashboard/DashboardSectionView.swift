@@ -33,11 +33,11 @@ struct DashboardSectionView: View {
 
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 20)
   @State private var isLoading = false
-  @State private var hasLoadedInitial = false
   @State private var didSeedFromCache = false
   @State private var isHoveringScrollArea = false
   @State private var hoverShowDelayTask: Task<Void, Never>?
   @State private var hoverHideDelayTask: Task<Void, Never>?
+  @State private var hasLoadedInitial = false
 
   private var backgroundColors: [Color] {
     if colorScheme == .dark {
@@ -162,7 +162,9 @@ struct DashboardSectionView: View {
       }
     }
     .task {
-      await loadInitial()
+      guard !hasLoadedInitial else { return }
+      hasLoadedInitial = true
+      await refresh()
     }
   }
 
@@ -182,15 +184,9 @@ struct DashboardSectionView: View {
     }
   }
 
-  private func loadInitial() async {
-    guard !hasLoadedInitial else { return }
-    await refresh()
-  }
-
   private func refresh() async {
     pagination.reset()
     await loadMore()
-    hasLoadedInitial = true
   }
 
   private func loadMore() async {

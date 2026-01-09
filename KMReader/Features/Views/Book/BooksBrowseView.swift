@@ -39,6 +39,8 @@ struct BooksBrowseView: View {
         loadMore: loadBooks
       )
       .task {
+        guard !hasInitialized else { return }
+        hasInitialized = true
         await loadBooks(refresh: true)
       }
       .onChange(of: refreshTrigger) { _, _ in

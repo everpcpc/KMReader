@@ -14,12 +14,13 @@ struct ReadListsBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
+  @Environment(\.modelContext) private var modelContext
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var viewModel = ReadListViewModel()
-  @Environment(\.modelContext) private var modelContext
+  @State private var hasInitialized = false
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -90,9 +91,9 @@ struct ReadListsBrowseView: View {
       }
     }
     .task {
-      if viewModel.pagination.isEmpty {
-        await loadReadLists(refresh: true)
-      }
+      guard !hasInitialized else { return }
+      hasInitialized = true
+      await loadReadLists(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in
       Task {
