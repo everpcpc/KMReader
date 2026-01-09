@@ -11,8 +11,7 @@ import SwiftUI
 struct LibraryPickerSheet: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
-    [KomgaLibrary]
+  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
   @State private var isRefreshing = false
 
   private let metricsLoader = LibraryMetricsLoader.shared

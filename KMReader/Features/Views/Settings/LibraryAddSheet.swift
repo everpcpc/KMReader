@@ -71,8 +71,7 @@ struct LibraryAddSheet: View {
   // MARK: - General Section
 
   private var generalSection: some View {
-    Section(header: Text(String(localized: "library.add.section.general", defaultValue: "General")))
-    {
+    Section(header: Text(String(localized: "library.add.section.general", defaultValue: "General"))) {
       TextField(
         String(localized: "library.add.field.name", defaultValue: "Name"),
         text: $libraryCreation.name
@@ -97,8 +96,7 @@ struct LibraryAddSheet: View {
   // MARK: - Scanner Section
 
   private var scannerSection: some View {
-    Section(header: Text(String(localized: "library.add.section.scanner", defaultValue: "Scanner")))
-    {
+    Section(header: Text(String(localized: "library.add.section.scanner", defaultValue: "Scanner"))) {
       Toggle(
         String(
           localized: "library.add.field.emptyTrashAfterScan", defaultValue: "Empty trash after scan"
@@ -185,8 +183,7 @@ struct LibraryAddSheet: View {
   // MARK: - Options Section
 
   private var optionsSection: some View {
-    Section(header: Text(String(localized: "library.add.section.options", defaultValue: "Options")))
-    {
+    Section(header: Text(String(localized: "library.add.section.options", defaultValue: "Options"))) {
       Group {
         Text(String(localized: "library.add.subsection.analysis", defaultValue: "Analysis"))
           .font(.subheadline)

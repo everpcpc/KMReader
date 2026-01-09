@@ -204,8 +204,7 @@ actor DatabaseOperator {
     return nil
   }
 
-  func getPreviousBook(instanceId: String, bookId: String, readListId: String? = nil) async -> Book?
-  {
+  func getPreviousBook(instanceId: String, bookId: String, readListId: String? = nil) async -> Book? {
     if let readListId = readListId {
       let books = await KomgaBookStore.fetchReadListBooks(
         context: modelContext, readListId: readListId, page: 0, size: 1000,

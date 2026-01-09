@@ -23,8 +23,7 @@ struct SettingsReaderView: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
-  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
-    ScrollPageTransitionStyle = .default
+  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
 
   var body: some View {

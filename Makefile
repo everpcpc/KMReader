@@ -1,4 +1,4 @@
-.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch format
 
 # Configuration
 SCHEME = KMReader
@@ -14,6 +14,9 @@ NC = \033[0m # No Color
 
 help: ## Show this help message
 	@echo "KMReader Build Commands"
+	@echo ""
+	@echo "Format commands:"
+	@echo "  make format           - Format Swift files with swift-format"
 	@echo ""
 	@echo "Build commands:"
 	@echo "  make build           - Build all platforms (iOS, macOS, tvOS)"
@@ -167,3 +170,7 @@ major: ## Increment major version (MARKETING_VERSION)
 
 minor: ## Increment minor version (MARKETING_VERSION)
 	@$(MISC_DIR)/bump-version.sh minor
+
+format: ## Format Swift files with swift-format
+	@echo "$(GREEN)Formatting Swift files...$(NC)"
+	@find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./.build/*" | xargs swift-format -i

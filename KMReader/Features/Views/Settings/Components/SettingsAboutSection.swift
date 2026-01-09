@@ -55,8 +55,7 @@ struct SettingsAboutSection: View {
             .foregroundColor(.secondary)
         }
       }
-      Link(destination: URL(string: "https://apps.apple.com/app/id6755198424?action=write-review")!)
-      {
+      Link(destination: URL(string: "https://apps.apple.com/app/id6755198424?action=write-review")!) {
         HStack {
           Label(String(localized: "Rate This App"), systemImage: "star")
           Spacer()

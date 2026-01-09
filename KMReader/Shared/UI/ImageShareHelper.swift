@@ -110,7 +110,8 @@ import SwiftUI
       let originalExt = (baseName as NSString).pathExtension.lowercased()
 
       // Use original extension if it's a supported image type, otherwise use PNG
-      let fileExtension = ["jpg", "jpeg", "png", "heic", "heif", "gif", "webp"].contains(originalExt)
+      let fileExtension =
+        ["jpg", "jpeg", "png", "heic", "heif", "gif", "webp"].contains(originalExt)
         ? originalExt : "png"
 
       let tempDir = FileManager.default.temporaryDirectory

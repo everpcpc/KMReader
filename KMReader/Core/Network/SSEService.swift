@@ -368,8 +368,7 @@ final class SSEService {
     }
   }
 
-  private func dispatchToMain<T: Decodable>(handler: ((T) -> Void)?, data: String, as type: T.Type)
-  {
+  private func dispatchToMain<T: Decodable>(handler: ((T) -> Void)?, data: String, as type: T.Type) {
     guard let handler else { return }
     guard let jsonData = data.data(using: .utf8),
       let dto = try? JSONDecoder().decode(type, from: jsonData)
@@ -388,8 +387,7 @@ final class SSEService {
 
   private func recordServerUpdate() {
     let now = Date()
-    if now.timeIntervalSince1970 - lastServerUpdateAt.timeIntervalSince1970 >= serverUpdateThrottle
-    {
+    if now.timeIntervalSince1970 - lastServerUpdateAt.timeIntervalSince1970 >= serverUpdateThrottle {
       lastServerUpdateAt = now
       AppConfig.serverLastUpdate = now
     }

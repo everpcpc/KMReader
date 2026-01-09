@@ -18,12 +18,10 @@ struct MainBrowseView: View {
   @AppStorage("isAdmin") private var isAdmin: Bool = false
   @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
-    [KomgaLibrary]
+  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
   @Query(sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]) private
     var allCollections: [KomgaCollection]
-  @Query(sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]) private var allReadLists:
-    [KomgaReadList]
+  @Query(sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]) private var allReadLists: [KomgaReadList]
 
   @AppStorage("sidebarLibrariesExpanded") private var librariesExpanded: Bool = true
   @AppStorage("sidebarCollectionsExpanded") private var collectionsExpanded: Bool = false
