@@ -190,16 +190,13 @@ struct BrowseView: View {
         refreshBrowse()
       }
     }
-    .onChange(of: library?.libraryId, initial: true) { oldValue, _ in
+    .onChange(of: library?.libraryId) { _, _ in
       if let library = library {
         libraryIds = [library.libraryId]
       } else {
         libraryIds = dashboard.libraryIds
       }
-      // Skip refresh on initial load (oldValue is nil), .task handles that
-      if oldValue != nil {
-        refreshBrowse()
-      }
+      refreshBrowse()
     }
     .onChange(of: dashboard.libraryIds) { _, newValue in
       guard library == nil else { return }
