@@ -65,8 +65,7 @@ struct SettingsLibrariesView: View {
         LibraryEditSheet(library: library)
       }
     }
-    .alert(String(localized: "settings.libraries.alert.title"), isPresented: isDeleteAlertPresented)
-    {
+    .alert(String(localized: "settings.libraries.alert.title"), isPresented: isDeleteAlertPresented) {
       if let libraryPendingDelete {
         TextField(
           String(localized: "settings.libraries.alert.placeholder"),

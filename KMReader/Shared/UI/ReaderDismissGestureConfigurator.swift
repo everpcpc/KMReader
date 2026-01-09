@@ -42,8 +42,8 @@
 
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
       var isVerticalReading: Bool
-      var configuredRecognizers:
-        [(recognizer: UIGestureRecognizer, originalDelegate: UIGestureRecognizerDelegate?)] = []
+      var configuredRecognizers: [(recognizer: UIGestureRecognizer, originalDelegate: UIGestureRecognizerDelegate?)] =
+        []
 
       init(isVerticalReading: Bool) {
         self.isVerticalReading = isVerticalReading

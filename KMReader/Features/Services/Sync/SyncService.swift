@@ -220,8 +220,7 @@ class SyncService {
     return result
   }
 
-  func syncRecentlyReadBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book>
-  {
+  func syncRecentlyReadBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
     let result = try await BookService.shared.getRecentlyReadBooks(
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.currentInstanceId
@@ -360,8 +359,7 @@ class SyncService {
 
   func syncNextBook(bookId: String, readListId: String? = nil) async -> Book? {
     do {
-      if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId)
-      {
+      if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId) {
         let instanceId = AppConfig.currentInstanceId
         await db.upsertBook(dto: book, instanceId: instanceId)
         await db.commit()

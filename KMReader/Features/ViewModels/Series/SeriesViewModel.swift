@@ -98,8 +98,7 @@ class SeriesViewModel {
     }
   }
 
-  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async
-  {
+  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
       _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)

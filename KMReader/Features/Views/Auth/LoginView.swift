@@ -233,8 +233,7 @@ struct LoginView: View {
     if let apiError = error as? APIError {
       return apiError.description
     }
-    if let localizedError = error as? LocalizedError, let message = localizedError.errorDescription
-    {
+    if let localizedError = error as? LocalizedError, let message = localizedError.errorDescription {
       return message
     }
     return error.localizedDescription

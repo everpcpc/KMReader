@@ -15,9 +15,8 @@ struct CollectionSeriesListView: View {
   @Binding var showSavedFilters: Bool
 
   @AppStorage("collectionDetailLayout") private var layoutMode: BrowseLayoutMode = .list
-  @AppStorage("collectionSeriesBrowseOptions") private var browseOpts:
-    CollectionSeriesBrowseOptions =
-      CollectionSeriesBrowseOptions()
+  @AppStorage("collectionSeriesBrowseOptions") private var browseOpts: CollectionSeriesBrowseOptions =
+    CollectionSeriesBrowseOptions()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @State private var seriesViewModel = SeriesViewModel()
