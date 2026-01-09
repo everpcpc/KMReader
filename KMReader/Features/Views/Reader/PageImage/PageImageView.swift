@@ -5,7 +5,6 @@
 //  Created by Komga iOS Client
 //
 
-import Photos
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -15,18 +14,15 @@ import UniformTypeIdentifiers
   // View modifier that adds context menu with Live Text toggle (only when Live Text is not active)
   private struct PageContextMenu: ViewModifier {
     let page: BookPage?
-    let pageIndex: Int
-    let isSaving: Bool
     let isLiveTextActive: Bool
-    let saveToPhotos: (BookPage) -> Void
-    let imageFileURL: URL?
+    let displayImage: PlatformImage?
     let toggleLiveText: () -> Void
 
     func body(content: Content) -> some View {
       // Don't show context menu when Live Text is active to avoid blocking text selection
       if isLiveTextActive {
         content
-      } else if let page = page {
+      } else if let page = page, let displayImage = displayImage {
         content.contextMenu {
           if ImageAnalyzer.isSupported {
             Button {
@@ -39,18 +35,15 @@ import UniformTypeIdentifiers
           }
 
           Button {
-            saveToPhotos(page)
+            ImageSaveHelper.saveToPhotos(image: displayImage)
           } label: {
             Label("Save to Photos", systemImage: "square.and.arrow.down")
           }
-          .disabled(isSaving)
 
-          if let imageFileURL = imageFileURL {
-            ShareLink(
-              item: imageFileURL, preview: SharePreview("Image", image: Image(systemName: "photo"))
-            ) {
-              Label("Share", systemImage: "square.and.arrow.up")
-            }
+          Button {
+            ImageShareHelper.share(image: displayImage, fileName: page.fileName)
+          } label: {
+            Label("Share", systemImage: "square.and.arrow.up")
           }
         }
       } else {
@@ -69,10 +62,6 @@ struct PageImageView: View {
   /// Cached image from memory for display
   @State private var displayImage: PlatformImage?
   @State private var loadError: String?
-  @State private var isSaving = false
-  #if os(iOS) || os(macOS)
-    @State private var imageFileURL: URL?
-  #endif
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
   private var currentPage: BookPage? {
@@ -117,7 +106,6 @@ struct PageImageView: View {
     Group {
       if let displayImage = displayImage {
         Group {
-          // Color.clear
           #if os(iOS) || os(macOS)
             if isLiveTextActive, ImageAnalyzer.isSupported {
               LiveTextImageView(image: displayImage)
@@ -160,13 +148,8 @@ struct PageImageView: View {
           .modifier(
             PageContextMenu(
               page: currentPage,
-              pageIndex: pageIndex,
-              isSaving: isSaving,
               isLiveTextActive: isLiveTextActive,
-              saveToPhotos: { page in
-                Task { await saveImageToPhotos(page: page) }
-              },
-              imageFileURL: imageFileURL,
+              displayImage: displayImage,
               toggleLiveText: {
                 if viewModel.liveTextActivePageIndex == pageIndex {
                   viewModel.liveTextActivePageIndex = nil
@@ -178,15 +161,12 @@ struct PageImageView: View {
           )
         #else
           .contextMenu {
-            if let page = currentPage {
+            if let displayImage = displayImage {
               Button {
-                Task {
-                  await saveImageToPhotos(page: page)
-                }
+                ImageSaveHelper.saveToPhotos(image: displayImage)
               } label: {
                 Label("Save to Photos", systemImage: "square.and.arrow.down")
               }
-              .disabled(isSaving)
             }
           }
         #endif
@@ -234,8 +214,9 @@ struct PageImageView: View {
     }
     .task(id: pageIndex) {
       // Async fallback for images not preloaded
-      guard displayImage == nil else { return }
-      await loadImage()
+      if displayImage == nil {
+        await loadImage()
+      }
     }
   }
 
@@ -263,9 +244,6 @@ struct PageImageView: View {
         displayImage = image
         // Store for future access
         viewModel.preloadedImages[page.number] = image
-        #if os(iOS) || os(macOS)
-          imageFileURL = url
-        #endif
       } else {
         loadError = "Failed to decode image"
       }
@@ -282,22 +260,4 @@ struct PageImageView: View {
       return PlatformImage(data: data)
     }.value
   }
-
-  private func saveImageToPhotos(page: BookPage) async {
-    await MainActor.run {
-      isSaving = true
-    }
-
-    let result = await viewModel.savePageImageToPhotos(page: page)
-    await MainActor.run {
-      isSaving = false
-    }
-    switch result {
-    case .success:
-      ErrorManager.shared.notify(message: String(localized: "notification.reader.imageSaved"))
-    case .failure(let error):
-      ErrorManager.shared.alert(error: error)
-    }
-  }
-
 }

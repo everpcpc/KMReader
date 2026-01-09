@@ -37,21 +37,21 @@ struct ZoomableImageContainer<Content: View>: View {
   }
 
   var body: some View {
-    #if os(iOS)
-      ZoomableScrollViewRepresentable(
-        resetID: resetID,
-        minScale: minScale,
-        maxScale: maxScale,
-        doubleTapScale: doubleTapScale,
-        isZoomed: $isZoomed,
-        content: content
-      )
+#if os(iOS)
+    ZoomableScrollViewRepresentable(
+      resetID: resetID,
+      minScale: minScale,
+      maxScale: maxScale,
+      doubleTapScale: doubleTapScale,
+      isZoomed: $isZoomed,
+      content: content
+    )
+    .frame(width: screenSize.width, height: screenSize.height)
+#else
+    // tvOS and macOS do not support zooming, so we just show the content
+    content()
       .frame(width: screenSize.width, height: screenSize.height)
-    #else
-      // tvOS and macOS do not support zooming, so we just show the content
-      content()
-        .frame(width: screenSize.width, height: screenSize.height)
-    #endif
+#endif
   }
 }
 

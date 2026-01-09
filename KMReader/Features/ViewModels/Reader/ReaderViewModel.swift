@@ -418,59 +418,6 @@ class ReaderViewModel {
     )
     dualPageIndices = generateDualPageIndices(pairs: pagePairs)
   }
-
-  /// Save page image to Photos from cache
-  /// - Parameter page: Book page to save
-  /// - Returns: Result indicating success or failure with error message
-  func savePageImageToPhotos(page: BookPage) async -> Result<Void, AppErrorType> {
-    guard !bookId.isEmpty else {
-      return .failure(.bookIdEmpty)
-    }
-
-    guard let fileURL = await getCachedImageFileURL(page: page) else {
-      return .failure(.imageNotCached)
-    }
-
-    // Check photo library authorization
-    let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-    guard status == .authorized || status == .limited else {
-      return .failure(.photoLibraryAccessDenied)
-    }
-
-    let supportedTypes: [UTType] = [.jpeg, .png, .heic, .heif]
-    let isSupported =
-      page.detectedUTType.map { type in supportedTypes.contains { type.conforms(to: $0) } } ?? false
-
-    if isSupported {
-      do {
-        try await PHPhotoLibrary.shared().performChanges {
-          PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: fileURL)
-        }
-        return .success(())
-      } catch {
-        return .failure(.saveImageError(error.localizedDescription))
-      }
-    }
-
-    // Unsupported type: convert to PNG in-memory and add via resource API
-    guard let image = await loadImageFromFile(fileURL: fileURL),
-      let pngData = PlatformHelper.pngData(from: image)
-    else {
-      return .failure(.failedToLoadImageData)
-    }
-
-    do {
-      try await PHPhotoLibrary.shared().performChanges {
-        let creationRequest = PHAssetCreationRequest.forAsset()
-        let options = PHAssetResourceCreationOptions()
-        options.uniformTypeIdentifier = UTType.png.identifier
-        creationRequest.addResource(with: .photo, data: pngData, options: options)
-      }
-      return .success(())
-    } catch {
-      return .failure(.saveImageError(error.localizedDescription))
-    }
-  }
 }
 
 private func generatePagePairs(
