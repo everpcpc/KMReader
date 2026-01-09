@@ -3579,6 +3579,46 @@
         }
       }
     },
+    "Auto Hide Controls" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Hide Controls"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquage automatique des contrôles"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コントロールを自動的に非表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컨트롤 자동 숨김"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动隐藏控件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動隱藏控制項"
+          }
+        }
+      }
+    },
     "Auto-refresh" : {
       "localizations" : {
         "en" : {
@@ -3695,6 +3735,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟閱讀器時自動進入全螢幕模式"
+          }
+        }
+      }
+    },
+    "Automatically hide reader controls after a short delay" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically hide reader controls after a short delay"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer automatiquement les contrôles du lecteur après un court délai"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短い待ち時間の後にリーダーのコントロールを自動的に非表示にします"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "짧은 지연 후 리더 컨트롤을 자동으로 숨깁니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短暂延迟后自动隐藏阅读器控件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短暫延遲後自動隱藏閱讀器控制項"
           }
         }
       }
@@ -9021,46 +9101,6 @@
         }
       }
     },
-    "Stop automatically hiding reader controls" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop automatically hiding reader controls"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arrêter le masquage automatique des contrôles du lecteur"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リーダーのコントロールの自動非表示を停止"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "리더 컨트롤 자동 숨김 중지"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "停止自动隐藏阅读器控件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "停止自動隱藏閱讀器控制項"
-          }
-        }
-      }
-    },
     "Disable Tap to Turn Page" : {
       "localizations" : {
         "en" : {
@@ -14089,46 +14129,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "JVM 版本"
-          }
-        }
-      }
-    },
-    "Disable Controls Auto Hide" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disable Controls Auto Hide"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Désactiver le masquage automatique des contrôles"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コントロールの自動非表示を無効にする"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "컨트롤 자동 숨김 비활성화"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "禁用控件自动隐藏"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "停用控制項自動隱藏"
           }
         }
       }

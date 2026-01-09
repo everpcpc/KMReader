@@ -21,7 +21,7 @@ struct SettingsReaderView: View {
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-  @AppStorage("disableControlsAutoHide") private var disableControlsAutoHide: Bool = false
+  @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
     ScrollPageTransitionStyle = .default
@@ -70,10 +70,10 @@ struct SettingsReaderView: View {
           }
         }
 
-        Toggle(isOn: $disableControlsAutoHide) {
+        Toggle(isOn: $controlsAutoHide) {
           VStack(alignment: .leading, spacing: 4) {
-            Text("Disable Controls Auto Hide")
-            Text("Stop automatically hiding reader controls")
+            Text("Auto Hide Controls")
+            Text("Automatically hide reader controls after a short delay")
               .font(.caption)
               .foregroundColor(.secondary)
           }
