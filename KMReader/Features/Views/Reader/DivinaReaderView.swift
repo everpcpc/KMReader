@@ -34,6 +34,7 @@ struct DivinaReaderView: View {
   @State private var tapZoneOverlayTimer: Timer?
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
+  @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
@@ -65,8 +66,7 @@ struct DivinaReaderView: View {
     // Always show controls when no pages are loaded or when explicitly shown
     #if os(tvOS)
       // On tvOS, don't force controls at endpage to allow navigation back
-      viewModel.pages.isEmpty || showingControls
-        || (readingDirection == .webtoon && isAtBottom)
+      viewModel.pages.isEmpty || showingControls || (readingDirection == .webtoon && isAtBottom)
     #else
       viewModel.pages.isEmpty || showingControls || isShowingEndPage
         || (readingDirection == .webtoon && isAtBottom)
@@ -272,6 +272,13 @@ struct DivinaReaderView: View {
     }
     .onChange(of: showingControls) { _, newValue in
       applyStatusBarVisibility(controlsHidden: !newValue)
+    }
+    .onChange(of: controlsAutoHide) { _, newValue in
+      if newValue {
+        resetControlsTimer(timeout: 3)
+      } else {
+        controlsTimer?.invalidate()
+      }
     }
     #if os(iOS)
       .onAppear {
@@ -681,6 +688,11 @@ struct DivinaReaderView: View {
     }
   #else
     private func resetControlsTimer(timeout: TimeInterval) {
+      // Don't start timer if auto-hide is disabled
+      if !controlsAutoHide {
+        return
+      }
+
       // Don't start timer when at end page or webtoon at bottom
       if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
         return

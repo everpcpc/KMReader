@@ -27,6 +27,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
+  @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
 
   var body: some View {
     SheetView(
@@ -132,6 +133,10 @@ struct ReaderSettingsSheet: View {
               Text("Auto Full Screen on Open")
             }
           #endif
+
+          Toggle(isOn: $controlsAutoHide) {
+            Text("Auto Hide Controls")
+          }
         }
 
         // MARK: - Page Turn Section

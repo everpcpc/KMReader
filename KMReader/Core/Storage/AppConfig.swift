@@ -9,7 +9,6 @@ import Foundation
 
 /// Centralized configuration management using UserDefaults
 enum AppConfig {
-
   // MARK: - Server & Auth
   static var serverURL: String {
     get { UserDefaults.standard.string(forKey: "serverURL") ?? "" }
