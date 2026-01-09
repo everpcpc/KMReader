@@ -38,6 +38,28 @@ struct SettingsAppearanceView: View {
 
   var body: some View {
     Form {
+      #if os(iOS)
+        Section(header: Text(String(localized: "settings.appearance.language"))) {
+          Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+              UIApplication.shared.open(url)
+            }
+          } label: {
+            HStack {
+              VStack(alignment: .leading, spacing: 4) {
+                Text(String(localized: "settings.appearance.language.change"))
+                Text(String(localized: "settings.appearance.language.caption"))
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+              Spacer()
+              Image(systemName: "arrow.up.forward.app")
+                .foregroundColor(.secondary)
+            }
+          }
+        }
+      #endif
+
       #if os(iOS) || os(tvOS)
         Section(header: Text(String(localized: "settings.appearance.theme"))) {
           #if os(iOS)
