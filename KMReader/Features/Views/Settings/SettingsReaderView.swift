@@ -21,6 +21,7 @@ struct SettingsReaderView: View {
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("disableControlsAutoHide") private var disableControlsAutoHide: Bool = false
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
     ScrollPageTransitionStyle = .default
@@ -64,6 +65,15 @@ struct SettingsReaderView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text("Always Show Page Number")
             Text("Display page number overlay on images while reading")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $disableControlsAutoHide) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Disable Controls Auto Hide")
+            Text("Stop automatically hiding reader controls")
               .font(.caption)
               .foregroundColor(.secondary)
           }
