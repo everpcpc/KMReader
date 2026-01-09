@@ -161,12 +161,10 @@ struct PageImageView: View {
           )
         #else
           .contextMenu {
-            if let displayImage = displayImage {
-              Button {
-                ImageSaveHelper.saveToPhotos(image: displayImage)
-              } label: {
-                Label("Save to Photos", systemImage: "square.and.arrow.down")
-              }
+            Button {
+              ImageSaveHelper.saveToPhotos(image: displayImage)
+            } label: {
+              Label("Save to Photos", systemImage: "square.and.arrow.down")
             }
           }
         #endif
