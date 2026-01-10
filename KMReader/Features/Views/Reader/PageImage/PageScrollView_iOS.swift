@@ -1,7 +1,10 @@
-#if os(iOS)
+#if os(iOS) || os(tvOS)
   import SwiftUI
   import UIKit
-  import VisionKit
+
+  #if !os(tvOS)
+    import VisionKit
+  #endif
 
   struct PageScrollView: UIViewRepresentable {
     let screenSize: CGSize
@@ -282,13 +285,15 @@
     private let pageNumberLabel = UILabel()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let errorLabel = UILabel()
-
-    private let analyzer = ImageAnalyzer()
-    private let interaction = ImageAnalysisInteraction()
     private var currentData: NativePageData?
-    private var analysisTask: Task<Void, Never>?
-    private var analyzedImage: UIImage?
-    private let logger = AppLogger(.reader)
+
+    #if !os(tvOS)
+      private let analyzer = ImageAnalyzer()
+      private let interaction = ImageAnalysisInteraction()
+      private var analysisTask: Task<Void, Never>?
+      private var analyzedImage: UIImage?
+      private let logger = AppLogger(.reader)
+    #endif
 
     private var aspectConstraint: NSLayoutConstraint?
     private var imageLeadingConstraint: NSLayoutConstraint?
@@ -381,20 +386,22 @@
 
       if data.isLoading { loadingIndicator.startAnimating() } else { loadingIndicator.stopAnimating() }
 
-      // Only analyze if enableLiveText is on AND the view is likely visible
-      if AppConfig.enableLiveText {
-        if window != nil && !isHidden {
-          if !imageView.interactions.contains(where: { $0 === interaction }) {
-            imageView.addInteraction(interaction)
+      #if !os(tvOS)
+        // Only analyze if enableLiveText is on AND the view is likely visible
+        if AppConfig.enableLiveText {
+          if window != nil && !isHidden {
+            if !imageView.interactions.contains(where: { $0 === interaction }) {
+              imageView.addInteraction(interaction)
+            }
+            analyzeImage()
           }
-          analyzeImage()
+        } else {
+          if imageView.interactions.contains(where: { $0 === interaction }) {
+            imageView.removeInteraction(interaction)
+          }
+          clearAnalysis()
         }
-      } else {
-        if imageView.interactions.contains(where: { $0 === interaction }) {
-          imageView.removeInteraction(interaction)
-        }
-        clearAnalysis()
-      }
+      #endif
 
       setNeedsLayout()
     }
@@ -427,61 +434,66 @@
       }
     }
 
-    private func analyzeImage() {
-      guard let image = imageView.image else { return }
+    #if !os(tvOS)
+      private func analyzeImage() {
+        guard let image = imageView.image else { return }
 
-      // Avoid redundant analysis if we are already analyzing or have finished analyzing this specific image
-      if image === analyzedImage && (interaction.analysis != nil || analysisTask != nil) {
-        return
-      }
+        // Avoid redundant analysis if we are already analyzing or have finished analyzing this specific image
+        if image === analyzedImage && (interaction.analysis != nil || analysisTask != nil) {
+          return
+        }
 
-      let pageNum = currentData?.pageNumber ?? -1
-      let bookId = currentData?.bookId ?? "unknown"
-      let startTime = Date()
-      logger.info("[LiveText] [\(bookId)] 🚀 Starting analysis for page \(pageNum + 1)")
+        let pageNum = currentData?.pageNumber ?? -1
+        let bookId = currentData?.bookId ?? "unknown"
+        let startTime = Date()
+        logger.info("[LiveText] [\(bookId)] 🚀 Starting analysis for page \(pageNum + 1)")
 
-      analyzedImage = image
-      analysisTask?.cancel()
-      analysisTask = Task {
-        let configuration = ImageAnalyzer.Configuration([.text, .machineReadableCode])
-        do {
-          let analysis = try await analyzer.analyze(image, configuration: configuration)
-          if !Task.isCancelled {
-            interaction.analysis = analysis
-            interaction.preferredInteractionTypes = .automatic
-            let duration = Date().timeIntervalSince(startTime)
-            logger.info(
-              String(format: "[LiveText] [\(bookId)] ✅ Finished analysis for page %d in %.2fs", pageNum + 1, duration))
-          }
-        } catch {
-          if !Task.isCancelled {
-            logger.error("[LiveText] [\(bookId)] ❌ Analysis failed for page \(pageNum + 1): \(error)")
+        analyzedImage = image
+        analysisTask?.cancel()
+        analysisTask = Task {
+          let configuration = ImageAnalyzer.Configuration([.text, .machineReadableCode])
+          do {
+            let analysis = try await analyzer.analyze(image, configuration: configuration)
+            if !Task.isCancelled {
+              interaction.analysis = analysis
+              interaction.preferredInteractionTypes = .automatic
+              let duration = Date().timeIntervalSince(startTime)
+              logger.info(
+                String(format: "[LiveText] [\(bookId)] ✅ Finished analysis for page %d in %.2fs", pageNum + 1, duration)
+              )
+            }
+          } catch {
+            if !Task.isCancelled {
+              logger.error("[LiveText] [\(bookId)] ❌ Analysis failed for page \(pageNum + 1): \(error)")
+            }
           }
         }
       }
-    }
 
-    private func clearAnalysis() {
-      analysisTask?.cancel()
-      analysisTask = nil
-      analyzedImage = nil
-      interaction.analysis = nil
-    }
+      private func clearAnalysis() {
+        analysisTask?.cancel()
+        analysisTask = nil
+        analyzedImage = nil
+        interaction.analysis = nil
+      }
+    #endif
 
     override func layoutSubviews() {
       super.layoutSubviews()
       updateOverlaysPosition()
 
-      // When layout happens (e.g. during scroll),
-      // check if we should start analysis if it hasn't been started yet
-      if AppConfig.enableLiveText, let data = currentData, data.image != nil,
-        window != nil, !isHidden, interaction.analysis == nil, analysisTask == nil
-      {
-        if !imageView.interactions.contains(where: { $0 === interaction }) {
-          imageView.addInteraction(interaction)
+      #if !os(tvOS)
+        // When layout happens (e.g. during scroll),
+        // check if we should start analysis if it hasn't been started yet
+        if AppConfig.enableLiveText, let data = currentData, data.image != nil,
+          window != nil, !isHidden, interaction.analysis == nil, analysisTask == nil
+        {
+          if !imageView.interactions.contains(where: { $0 === interaction }) {
+            imageView.addInteraction(interaction)
+          }
+          analyzeImage()
         }
-        analyzeImage()
-      }
+      #endif
     }
 
     private func updateOverlaysPosition() {

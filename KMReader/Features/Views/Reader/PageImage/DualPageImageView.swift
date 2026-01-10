@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import VisionKit
 
 // Dual page image view with synchronized zoom and pan
 struct DualPageImageView: View {

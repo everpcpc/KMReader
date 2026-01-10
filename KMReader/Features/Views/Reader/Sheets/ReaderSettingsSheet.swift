@@ -138,14 +138,16 @@ struct ReaderSettingsSheet: View {
             Text("Auto Hide Controls")
           }
 
-          Toggle(isOn: $enableLiveText) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Enable Live Text")
-              Text("Automatically enable Live Text for all images.")
-                .font(.caption)
-                .foregroundColor(.secondary)
+          #if !os(tvOS)
+            Toggle(isOn: $enableLiveText) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Enable Live Text")
+                Text("Automatically enable Live Text for all images.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
             }
-          }
+          #endif
         }
 
         // MARK: - Page Turn Section

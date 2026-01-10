@@ -91,30 +91,32 @@ struct ReaderControlsView: View {
     jumpToPage(page: entry.pageIndex + 1)
   }
 
-  private func shareCurrentPage() {
-    let indices: [Int]
-    if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
-      indices = [pair.first, pair.second].compactMap { $0 }
-    } else {
-      indices = [viewModel.currentPageIndex]
-    }
+  #if os(iOS) || os(macOS)
+    private func shareCurrentPage() {
+      let indices: [Int]
+      if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
+        indices = [pair.first, pair.second].compactMap { $0 }
+      } else {
+        indices = [viewModel.currentPageIndex]
+      }
 
-    var images: [PlatformImage] = []
-    var names: [String] = []
+      var images: [PlatformImage] = []
+      var names: [String] = []
 
-    for index in indices {
-      if index >= 0 && index < viewModel.pages.count {
-        let page = viewModel.pages[index]
-        if let image = viewModel.preloadedImages[page.number] {
-          images.append(image)
-          names.append(page.fileName)
+      for index in indices {
+        if index >= 0 && index < viewModel.pages.count {
+          let page = viewModel.pages[index]
+          if let image = viewModel.preloadedImages[page.number] {
+            images.append(image)
+            names.append(page.fileName)
+          }
         }
       }
-    }
 
-    guard !images.isEmpty else { return }
-    ImageShareHelper.shareMultiple(images: images, fileNames: names)
-  }
+      guard !images.isEmpty else { return }
+      ImageShareHelper.shareMultiple(images: images, fileNames: names)
+    }
+  #endif
 
   private var leftButtonLabel: String {
     readingDirection == .rtl
@@ -233,15 +235,17 @@ struct ReaderControlsView: View {
 
           Spacer()
 
-          // Share button
-          Button {
-            shareCurrentPage()
-          } label: {
-            Image(systemName: "square.and.arrow.up")
-          }
-          .contentShape(Rectangle())
-          .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          #if os(iOS) || os(macOS)
+            // Share button
+            Button {
+              shareCurrentPage()
+            } label: {
+              Image(systemName: "square.and.arrow.up")
+            }
+            .contentShape(Rectangle())
+            .adaptiveButtonStyle(buttonStyle)
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          #endif
 
           // Page info - tappable to open jump sheet
           Button {

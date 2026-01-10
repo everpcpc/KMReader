@@ -348,10 +348,10 @@
             {
               // DO NOT block if it's just a general overlay or background layer
               if !cn.contains("Overlay") && !cn.contains("Background") && !cn.contains("View") {
-                return false // Block paging only for real buttons
+                return false  // Block paging only for real buttons
               }
               if cn.contains("Button") {
-                return false // Specific block for anything named Button
+                return false  // Specific block for anything named Button
               }
             }
             if c is NativePageItemMacOS { break }

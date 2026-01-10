@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import VisionKit
 
 // Single page image view with zoom and pan support
 struct SinglePageImageView: View {

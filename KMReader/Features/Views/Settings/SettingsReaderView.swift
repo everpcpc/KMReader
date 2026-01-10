@@ -79,14 +79,16 @@ struct SettingsReaderView: View {
           }
         }
 
-        Toggle(isOn: $enableLiveText) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Enable Live Text")
-            Text("Automatically enable Live Text for all images.")
-              .font(.caption)
-              .foregroundColor(.secondary)
+        #if !os(tvOS)
+          Toggle(isOn: $enableLiveText) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Enable Live Text")
+              Text("Automatically enable Live Text for all images.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
-        }
+        #endif
 
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
