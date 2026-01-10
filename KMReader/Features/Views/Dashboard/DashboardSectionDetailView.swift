@@ -18,6 +18,7 @@ struct DashboardSectionDetailView: View {
 
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   @State private var isLoading = false
+  @State private var hasLoadedInitial = false
 
   @Environment(\.modelContext) private var modelContext
 
@@ -47,6 +48,8 @@ struct DashboardSectionDetailView: View {
     .animation(.default, value: browseLayout)
     .inlineNavigationBarTitle(section.displayName)
     .task {
+      guard !hasLoadedInitial else { return }
+      hasLoadedInitial = true
       await loadItems(refresh: true)
     }
     .refreshable {
