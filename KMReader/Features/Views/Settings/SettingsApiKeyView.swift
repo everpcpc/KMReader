@@ -47,28 +47,34 @@ struct SettingsApiKeyView: View {
                 Image(systemName: "key")
                   .font(.footnote)
                 Text(apiKey.comment.isEmpty ? "No comment" : apiKey.comment)
-                  .font(.headline)
+                  .bold()
               }
               HStack {
                 Image(systemName: "calendar")
-                Text("Created: \(formatTime(apiKey.createdDate))")
+                Text("Created")
+                  .foregroundColor(.secondary.opacity(0.6))
+                Text(formatTime(apiKey.createdDate))
+                  .monospacedDigit()
               }
-              .font(.caption2)
+              .font(.caption)
               .foregroundColor(.secondary)
 
               if let lastActivity = lastActivities[apiKey.id] {
                 HStack {
                   Image(systemName: "clock")
-                  Text("Recent activity: \(formatTime(lastActivity))")
+                  Text("Recent activity")
+                    .foregroundColor(.secondary.opacity(0.6))
+                  Text(lastActivity, style: .relative)
+                    .monospacedDigit()
                 }
-                .font(.caption2)
+                .font(.caption)
                 .foregroundColor(.secondary)
               } else {
                 HStack {
                   Image(systemName: "clock")
                   Text("No recent activity")
                 }
-                .font(.caption2)
+                .font(.caption)
                 .foregroundColor(.secondary)
               }
             }
