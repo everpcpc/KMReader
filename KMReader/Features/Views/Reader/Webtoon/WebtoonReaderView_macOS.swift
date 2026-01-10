@@ -391,13 +391,38 @@
 
       private func updateCurrentPage() {
         guard let cv = collectionView, let sv = scrollView else { return }
-        let centerY = sv.contentView.bounds.origin.y + sv.contentView.bounds.height / 2
-        let centerPt = NSPoint(x: cv.bounds.width / 2, y: centerY)
-        if let ip = cv.indexPathForItem(at: centerPt),
-          ip.item < pages.count, ip.item != currentPage
-        {
-          currentPage = ip.item
-          onPageChange?(ip.item)
+
+        // When at bottom (showing end page), set currentPage to pages.count to show "END"
+        if isAtBottom {
+          if currentPage != pages.count {
+            currentPage = pages.count
+            onPageChange?(pages.count)
+          }
+          return
+        }
+
+        let offset = sv.contentView.bounds.origin.y
+        let viewHeight = sv.contentView.bounds.height
+        let viewportBottom = offset + viewHeight
+
+        // Find the page whose bottom edge just passed the viewport bottom (with threshold)
+        var newCurrentPage = 0
+        for pageIndex in 0..<pages.count {
+          let indexPath = IndexPath(item: pageIndex, section: 0)
+          guard let frame = cv.layoutAttributesForItem(at: indexPath)?.frame else {
+            continue
+          }
+          // Page is considered "read" when its bottom passes the viewport bottom
+          if frame.maxY <= viewportBottom + WebtoonConstants.bottomThreshold {
+            newCurrentPage = pageIndex
+          } else {
+            break
+          }
+        }
+
+        if currentPage != newCurrentPage {
+          currentPage = newCurrentPage
+          onPageChange?(newCurrentPage)
         }
       }
 

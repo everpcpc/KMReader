@@ -15,7 +15,6 @@ enum WebtoonConstants {
   static let bottomThreshold: CGFloat = 60
   static let footerHeight: CGFloat = 480
   static let footerPadding: CGFloat = 120
-  static let scrollAmountMultiplier: CGFloat = 0.8
 
   static var topAreaThreshold: CGFloat { AppConfig.tapZoneSize.value }
   static var bottomAreaThreshold: CGFloat { 1.0 - AppConfig.tapZoneSize.value }
