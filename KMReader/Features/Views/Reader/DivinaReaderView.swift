@@ -502,10 +502,7 @@ struct DivinaReaderView: View {
   private func controlsOverlay(useDualPage: Bool) -> some View {
     ReaderControlsView(
       showingControls: $showingControls,
-      showingKeyboardHelp: $showKeyboardHelp,
       readingDirection: $readingDirection,
-      pageLayout: $pageLayout,
-      dualPageNoCover: $dualPageNoCover,
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
@@ -514,12 +511,9 @@ struct DivinaReaderView: View {
       viewModel: viewModel,
       currentBook: currentBook,
       currentSeries: currentSeries,
-      bookId: currentBookId,
       dualPage: useDualPage,
       incognito: incognito,
       onDismiss: { closeReader() },
-      goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-      goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
       previousBook: previousBook,
       nextBook: nextBook,
       onPreviousBook: { openPreviousBook(previousBookId: $0) },

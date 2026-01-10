@@ -10,10 +10,7 @@ import UniformTypeIdentifiers
 
 struct ReaderControlsView: View {
   @Binding var showingControls: Bool
-  @Binding var showingKeyboardHelp: Bool
   @Binding var readingDirection: ReadingDirection
-  @Binding var pageLayout: PageLayout
-  @Binding var dualPageNoCover: Bool
 
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
@@ -24,12 +21,9 @@ struct ReaderControlsView: View {
   let viewModel: ReaderViewModel
   let currentBook: Book?
   let currentSeries: Series?
-  let bookId: String
   let dualPage: Bool
   let incognito: Bool
   let onDismiss: () -> Void
-  let goToNextPage: () -> Void
-  let goToPreviousPage: () -> Void
   let previousBook: Book?
   let nextBook: Book?
   let onPreviousBook: ((String) -> Void)?
