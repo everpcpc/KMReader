@@ -11,40 +11,11 @@ struct OneshotEditSheet: View {
   let series: Series
   let book: Book
   @Environment(\.dismiss) private var dismiss
+  @State private var seriesMetadataUpdate: SeriesMetadataUpdate
+  @State private var bookMetadataUpdate: BookMetadataUpdate
   @State private var isSaving = false
 
-  // Book metadata fields
-  @State private var title: String
-  @State private var titleLock: Bool
-  @State private var summary: String
-  @State private var summaryLock: Bool
-  @State private var releaseDate: Date?
-  @State private var releaseDateString: String
-  @State private var releaseDateLock: Bool
-  @State private var isbn: String
-  @State private var isbnLock: Bool
-  @State private var authors: [Author]
-  @State private var authorsLock: Bool
-  @State private var bookTags: [String]
-  @State private var bookTagsLock: Bool
-  @State private var links: [WebLink]
-  @State private var linksLock: Bool
-
-  // Series metadata fields
-  @State private var titleSort: String
-  @State private var titleSortLock: Bool
-  @State private var readingDirection: ReadingDirection
-  @State private var readingDirectionLock: Bool
-  @State private var language: String
-  @State private var languageLock: Bool
-  @State private var publisher: String
-  @State private var publisherLock: Bool
-  @State private var ageRating: String
-  @State private var ageRatingLock: Bool
-  @State private var genres: [String]
-  @State private var genresLock: Bool
-  @State private var sharingLabels: [String]
-  @State private var sharingLabelsLock: Bool
+  @State private var selectedTab = 0
 
   // Input fields for adding new items
   @State private var newAuthorName: String = ""
@@ -59,62 +30,32 @@ struct OneshotEditSheet: View {
   init(series: Series, book: Book) {
     self.series = series
     self.book = book
-
-    // Book metadata
-    _title = State(initialValue: book.metadata.title)
-    _titleLock = State(initialValue: book.metadata.titleLock ?? false)
-    _summary = State(initialValue: book.metadata.summary ?? "")
-    _summaryLock = State(initialValue: book.metadata.summaryLock ?? false)
-
-    if let dateString = book.metadata.releaseDate, !dateString.isEmpty {
-      let formatter = ISO8601DateFormatter()
-      formatter.formatOptions = [.withFullDate]
-      _releaseDate = State(initialValue: formatter.date(from: dateString))
-      _releaseDateString = State(initialValue: dateString)
-    } else {
-      _releaseDate = State(initialValue: nil)
-      _releaseDateString = State(initialValue: "")
-    }
-    _releaseDateLock = State(initialValue: book.metadata.releaseDateLock ?? false)
-
-    _isbn = State(initialValue: book.metadata.isbn ?? "")
-    _isbnLock = State(initialValue: book.metadata.isbnLock ?? false)
-    _authors = State(initialValue: book.metadata.authors ?? [])
-    _authorsLock = State(initialValue: book.metadata.authorsLock ?? false)
-    _bookTags = State(initialValue: book.metadata.tags ?? [])
-    _bookTagsLock = State(initialValue: book.metadata.tagsLock ?? false)
-    _links = State(initialValue: book.metadata.links ?? [])
-    _linksLock = State(initialValue: book.metadata.linksLock ?? false)
-
-    // Series metadata
-    _titleSort = State(initialValue: series.metadata.titleSort)
-    _titleSortLock = State(initialValue: series.metadata.titleSortLock ?? false)
-    _readingDirection = State(
-      initialValue: ReadingDirection.fromString(series.metadata.readingDirection)
-    )
-    _readingDirectionLock = State(initialValue: series.metadata.readingDirectionLock ?? false)
-    _language = State(initialValue: series.metadata.language ?? "")
-    _languageLock = State(initialValue: series.metadata.languageLock ?? false)
-    _publisher = State(initialValue: series.metadata.publisher ?? "")
-    _publisherLock = State(initialValue: series.metadata.publisherLock ?? false)
-    _ageRating = State(initialValue: series.metadata.ageRating.map { String($0) } ?? "")
-    _ageRatingLock = State(initialValue: series.metadata.ageRatingLock ?? false)
-    _genres = State(initialValue: series.metadata.genres ?? [])
-    _genresLock = State(initialValue: series.metadata.genresLock ?? false)
-    _sharingLabels = State(initialValue: series.metadata.sharingLabels ?? [])
-    _sharingLabelsLock = State(initialValue: series.metadata.sharingLabelsLock ?? false)
+    _seriesMetadataUpdate = State(initialValue: SeriesMetadataUpdate.from(series))
+    _bookMetadataUpdate = State(initialValue: BookMetadataUpdate.from(book))
   }
 
   var body: some View {
     SheetView(title: String(localized: "Edit Oneshot"), size: .large, applyFormStyle: true) {
       Form {
-        basicInformationSection
-        readingSettingsSection
-        authorsSection
-        genresSection
-        bookTagsSection
-        sharingLabelsSection
-        linksSection
+        Picker("", selection: $selectedTab) {
+          Text(String(localized: "oneshot.edit.tab.general", defaultValue: "General")).tag(0)
+          Text(String(localized: "oneshot.edit.tab.authors", defaultValue: "Authors")).tag(1)
+          Text(String(localized: "oneshot.edit.tab.tags", defaultValue: "Tags")).tag(2)
+          Text(String(localized: "oneshot.edit.tab.links", defaultValue: "Links")).tag(3)
+          Text(String(localized: "oneshot.edit.tab.sharing", defaultValue: "Sharing")).tag(4)
+        }
+        .pickerStyle(.segmented)
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets())
+
+        switch selectedTab {
+        case 0: generalTab
+        case 1: authorsTab
+        case 2: tagsTab
+        case 3: linksTab
+        case 4: sharingTab
+        default: EmptyView()
+        }
       }
     } controls: {
       Button(action: saveChanges) {
@@ -128,37 +69,63 @@ struct OneshotEditSheet: View {
     }
   }
 
+  private var generalTab: some View {
+    Group {
+      basicInformationSection
+      readingSettingsSection
+    }
+  }
+
+  private var authorsTab: some View {
+    authorsSection
+  }
+
+  private var tagsTab: some View {
+    Group {
+      genresSection
+      bookTagsSection
+    }
+  }
+
+  private var linksTab: some View {
+    linksSection
+  }
+
+  private var sharingTab: some View {
+    sharingLabelsSection
+  }
+
   // MARK: - Sections
 
   private var basicInformationSection: some View {
     Section("Basic Information") {
-      TextField("Title", text: $title)
-        .lockToggle(isLocked: $titleLock)
-        .onChange(of: title) { titleLock = true }
-      TextField("Sort Title", text: $titleSort)
-        .lockToggle(isLocked: $titleSortLock)
-        .onChange(of: titleSort) { titleSortLock = true }
-      TextField("Summary", text: $summary, axis: .vertical)
+      TextField("Title", text: $bookMetadataUpdate.title)
+        .lockToggle(isLocked: $bookMetadataUpdate.titleLock)
+        .onChange(of: bookMetadataUpdate.title) { bookMetadataUpdate.titleLock = true }
+      TextField("Sort Title", text: $seriesMetadataUpdate.titleSort)
+        .lockToggle(isLocked: $seriesMetadataUpdate.titleSortLock)
+        .onChange(of: seriesMetadataUpdate.titleSort) { seriesMetadataUpdate.titleSortLock = true }
+      TextField("Summary", text: $bookMetadataUpdate.summary, axis: .vertical)
         .lineLimit(3...10)
-        .lockToggle(isLocked: $summaryLock, alignment: .top)
-        .onChange(of: summary) { summaryLock = true }
+        .lockToggle(isLocked: $bookMetadataUpdate.summaryLock, alignment: .top)
+        .onChange(of: bookMetadataUpdate.summary) { bookMetadataUpdate.summaryLock = true }
 
       #if os(tvOS)
         HStack {
-          TextField("Release Date (YYYY-MM-DD)", text: $releaseDateString)
-            .onChange(of: releaseDateString) { _, newValue in
+          TextField("Release Date (YYYY-MM-DD)", text: $bookMetadataUpdate.releaseDateString)
+            .onChange(of: bookMetadataUpdate.releaseDateString) { _, newValue in
               let formatter = ISO8601DateFormatter()
               formatter.formatOptions = [.withFullDate]
-              releaseDate = formatter.date(from: newValue)
-              releaseDateLock = true
+              bookMetadataUpdate.releaseDate = formatter.date(from: newValue)
+              bookMetadataUpdate.releaseDateLock = true
             }
 
-          if !releaseDateString.isEmpty {
+          if !bookMetadataUpdate.releaseDateString.isEmpty {
             Button(action: {
               withAnimation {
-                releaseDateString = ""
-                releaseDate = nil
-                releaseDateLock = true
+                bookMetadataUpdate.releaseDateString = ""
+                bookMetadataUpdate.releaseDate = nil
+                bookMetadataUpdate.releaseDateLock = true
               }
             }) {
               Image(systemName: "xmark.circle.fill")
@@ -167,27 +134,27 @@ struct OneshotEditSheet: View {
             .adaptiveButtonStyle(.plain)
           }
         }
-        .lockToggle(isLocked: $releaseDateLock)
+        .lockToggle(isLocked: $bookMetadataUpdate.releaseDateLock)
       #else
         HStack {
           DatePicker(
             "Release Date",
             selection: Binding(
-              get: { releaseDate ?? Date(timeIntervalSince1970: 0) },
+              get: { bookMetadataUpdate.releaseDate ?? Date(timeIntervalSince1970: 0) },
               set: {
-                releaseDate = $0
-                releaseDateLock = true
+                bookMetadataUpdate.releaseDate = $0
+                bookMetadataUpdate.releaseDateLock = true
               }
             ),
             displayedComponents: .date
           )
           .datePickerStyle(.compact)
 
-          if releaseDate != nil {
+          if bookMetadataUpdate.releaseDate != nil {
             Button(action: {
               withAnimation {
-                releaseDate = nil
-                releaseDateLock = true
+                bookMetadataUpdate.releaseDate = nil
+                bookMetadataUpdate.releaseDateLock = true
               }
             }) {
               Image(systemName: "xmark.circle.fill")
@@ -196,50 +163,50 @@ struct OneshotEditSheet: View {
             .adaptiveButtonStyle(.plain)
           }
         }
-        .lockToggle(isLocked: $releaseDateLock)
+        .lockToggle(isLocked: $bookMetadataUpdate.releaseDateLock)
       #endif
 
-      TextField("ISBN", text: $isbn)
+      TextField("ISBN", text: $bookMetadataUpdate.isbn)
         #if os(iOS) || os(tvOS)
           .keyboardType(.default)
         #endif
-        .lockToggle(isLocked: $isbnLock)
-        .onChange(of: isbn) { isbnLock = true }
-      TextField("Publisher", text: $publisher)
-        .lockToggle(isLocked: $publisherLock)
-        .onChange(of: publisher) { publisherLock = true }
-      TextField("Age Rating", text: $ageRating)
+        .lockToggle(isLocked: $bookMetadataUpdate.isbnLock)
+        .onChange(of: bookMetadataUpdate.isbn) { bookMetadataUpdate.isbnLock = true }
+      TextField("Publisher", text: $seriesMetadataUpdate.publisher)
+        .lockToggle(isLocked: $seriesMetadataUpdate.publisherLock)
+        .onChange(of: seriesMetadataUpdate.publisher) { seriesMetadataUpdate.publisherLock = true }
+      TextField("Age Rating", text: $seriesMetadataUpdate.ageRating)
         #if os(iOS) || os(tvOS)
           .keyboardType(.numberPad)
         #endif
-        .lockToggle(isLocked: $ageRatingLock)
-        .onChange(of: ageRating) { ageRatingLock = true }
+        .lockToggle(isLocked: $seriesMetadataUpdate.ageRatingLock)
+        .onChange(of: seriesMetadataUpdate.ageRating) { seriesMetadataUpdate.ageRatingLock = true }
     }
   }
 
   private var readingSettingsSection: some View {
     Section("Reading Settings") {
-      Picker("Reading Direction", selection: $readingDirection) {
+      Picker("Reading Direction", selection: $seriesMetadataUpdate.readingDirection) {
         ForEach(ReadingDirection.allCases, id: \.self) { direction in
           Text(direction.displayName).tag(direction)
         }
       }
-      .lockToggle(isLocked: $readingDirectionLock)
-      .onChange(of: readingDirection) { readingDirectionLock = true }
+      .lockToggle(isLocked: $seriesMetadataUpdate.readingDirectionLock)
+      .onChange(of: seriesMetadataUpdate.readingDirection) { seriesMetadataUpdate.readingDirectionLock = true }
 
-      LanguagePicker(selectedLanguage: $language)
-        .lockToggle(isLocked: $languageLock)
-        .onChange(of: language) { languageLock = true }
+      LanguagePicker(selectedLanguage: $seriesMetadataUpdate.language)
+        .lockToggle(isLocked: $seriesMetadataUpdate.languageLock)
+        .onChange(of: seriesMetadataUpdate.language) { seriesMetadataUpdate.languageLock = true }
     }
   }
 
   private var authorsSection: some View {
     Section {
-      ForEach(authors.indices, id: \.self) { index in
+      ForEach(bookMetadataUpdate.authors.indices, id: \.self) { index in
         HStack {
           VStack(alignment: .leading) {
-            Text(authors[index].name)
-            Text(authors[index].role.displayName)
+            Text(bookMetadataUpdate.authors[index].name)
+            Text(bookMetadataUpdate.authors[index].role.displayName)
               .font(.caption)
               .foregroundColor(.secondary)
           }
@@ -247,8 +214,8 @@ struct OneshotEditSheet: View {
           Button(role: .destructive) {
             let indexToRemove = index
             withAnimation {
-              authors.remove(at: indexToRemove)
-              authorsLock = true
+              bookMetadataUpdate.authors.remove(at: indexToRemove)
+              bookMetadataUpdate.authorsLock = true
             }
           } label: {
             Image(systemName: "trash")
@@ -282,11 +249,11 @@ struct OneshotEditSheet: View {
               finalRole = newAuthorRole
             }
             withAnimation {
-              authors.append(Author(name: newAuthorName, role: finalRole))
+              bookMetadataUpdate.authors.append(Author(name: newAuthorName, role: finalRole))
               newAuthorName = ""
               newAuthorRole = .writer
               customRoleName = ""
-              authorsLock = true
+              bookMetadataUpdate.authorsLock = true
             }
           }
         } label: {
@@ -296,21 +263,21 @@ struct OneshotEditSheet: View {
       }
     } header: {
       Text("Authors")
-        .lockToggle(isLocked: $authorsLock)
+        .lockToggle(isLocked: $bookMetadataUpdate.authorsLock)
     }
   }
 
   private var genresSection: some View {
     Section {
-      ForEach(genres.indices, id: \.self) { index in
+      ForEach(seriesMetadataUpdate.genres.indices, id: \.self) { index in
         HStack {
-          Text(genres[index])
+          Text(seriesMetadataUpdate.genres[index])
           Spacer()
           Button(role: .destructive) {
             let indexToRemove = index
             withAnimation {
-              genres.remove(at: indexToRemove)
-              genresLock = true
+              seriesMetadataUpdate.genres.remove(at: indexToRemove)
+              seriesMetadataUpdate.genresLock = true
             }
           } label: {
             Image(systemName: "trash")
@@ -320,11 +287,11 @@ struct OneshotEditSheet: View {
       HStack {
         TextField("Genre", text: $newGenre)
         Button {
-          if !newGenre.isEmpty && !genres.contains(newGenre) {
+          if !newGenre.isEmpty && !seriesMetadataUpdate.genres.contains(newGenre) {
             withAnimation {
-              genres.append(newGenre)
+              seriesMetadataUpdate.genres.append(newGenre)
               newGenre = ""
-              genresLock = true
+              seriesMetadataUpdate.genresLock = true
             }
           }
         } label: {
@@ -334,21 +301,21 @@ struct OneshotEditSheet: View {
       }
     } header: {
       Text("Genres")
-        .lockToggle(isLocked: $genresLock)
+        .lockToggle(isLocked: $seriesMetadataUpdate.genresLock)
     }
   }
 
   private var bookTagsSection: some View {
     Section {
-      ForEach(bookTags.indices, id: \.self) { index in
+      ForEach(bookMetadataUpdate.tags.indices, id: \.self) { index in
         HStack {
-          Text(bookTags[index])
+          Text(bookMetadataUpdate.tags[index])
           Spacer()
           Button(role: .destructive) {
             let indexToRemove = index
             withAnimation {
-              bookTags.remove(at: indexToRemove)
-              bookTagsLock = true
+              bookMetadataUpdate.tags.remove(at: indexToRemove)
+              bookMetadataUpdate.tagsLock = true
             }
           } label: {
             Image(systemName: "trash")
@@ -358,11 +325,11 @@ struct OneshotEditSheet: View {
       HStack {
         TextField("Tag", text: $newBookTag)
         Button {
-          if !newBookTag.isEmpty && !bookTags.contains(newBookTag) {
+          if !newBookTag.isEmpty && !bookMetadataUpdate.tags.contains(newBookTag) {
             withAnimation {
-              bookTags.append(newBookTag)
+              bookMetadataUpdate.tags.append(newBookTag)
               newBookTag = ""
-              bookTagsLock = true
+              bookMetadataUpdate.tagsLock = true
             }
           }
         } label: {
@@ -372,21 +339,21 @@ struct OneshotEditSheet: View {
       }
     } header: {
       Text("Tags")
-        .lockToggle(isLocked: $bookTagsLock)
+        .lockToggle(isLocked: $bookMetadataUpdate.tagsLock)
     }
   }
 
   private var sharingLabelsSection: some View {
     Section {
-      ForEach(sharingLabels.indices, id: \.self) { index in
+      ForEach(seriesMetadataUpdate.sharingLabels.indices, id: \.self) { index in
         HStack {
-          Text(sharingLabels[index])
+          Text(seriesMetadataUpdate.sharingLabels[index])
           Spacer()
           Button(role: .destructive) {
             let indexToRemove = index
             withAnimation {
-              sharingLabels.remove(at: indexToRemove)
-              sharingLabelsLock = true
+              seriesMetadataUpdate.sharingLabels.remove(at: indexToRemove)
+              seriesMetadataUpdate.sharingLabelsLock = true
             }
           } label: {
             Image(systemName: "trash")
@@ -396,11 +363,11 @@ struct OneshotEditSheet: View {
       HStack {
         TextField("Label", text: $newSharingLabel)
         Button {
-          if !newSharingLabel.isEmpty && !sharingLabels.contains(newSharingLabel) {
+          if !newSharingLabel.isEmpty && !seriesMetadataUpdate.sharingLabels.contains(newSharingLabel) {
             withAnimation {
-              sharingLabels.append(newSharingLabel)
+              seriesMetadataUpdate.sharingLabels.append(newSharingLabel)
               newSharingLabel = ""
-              sharingLabelsLock = true
+              seriesMetadataUpdate.sharingLabelsLock = true
             }
           }
         } label: {
@@ -410,28 +377,28 @@ struct OneshotEditSheet: View {
       }
     } header: {
       Text("Sharing Labels")
-        .lockToggle(isLocked: $sharingLabelsLock)
+        .lockToggle(isLocked: $seriesMetadataUpdate.sharingLabelsLock)
     }
   }
 
   private var linksSection: some View {
     Section {
-      ForEach(links.indices, id: \.self) { index in
+      ForEach(bookMetadataUpdate.links.indices, id: \.self) { index in
         VStack(alignment: .leading) {
           HStack {
-            Text(links[index].label)
+            Text(bookMetadataUpdate.links[index].label)
             Spacer()
             Button(role: .destructive) {
               let indexToRemove = index
               withAnimation {
-                links.remove(at: indexToRemove)
-                linksLock = true
+                bookMetadataUpdate.links.remove(at: indexToRemove)
+                bookMetadataUpdate.linksLock = true
               }
             } label: {
               Image(systemName: "trash")
             }
           }
-          Text(links[index].url)
+          Text(bookMetadataUpdate.links[index].url)
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -446,10 +413,10 @@ struct OneshotEditSheet: View {
         Button {
           if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
             withAnimation {
-              links.append(WebLink(label: newLinkLabel, url: newLinkURL))
+              bookMetadataUpdate.links.append(WebLink(label: newLinkLabel, url: newLinkURL))
               newLinkLabel = ""
               newLinkURL = ""
-              linksLock = true
+              bookMetadataUpdate.linksLock = true
             }
           }
         } label: {
@@ -459,7 +426,7 @@ struct OneshotEditSheet: View {
       }
     } header: {
       Text("Links")
-        .lockToggle(isLocked: $linksLock)
+        .lockToggle(isLocked: $bookMetadataUpdate.linksLock)
     }
   }
 
@@ -490,101 +457,14 @@ struct OneshotEditSheet: View {
   }
 
   private func saveBookMetadata() async throws {
-    var metadata: [String: Any] = [:]
-
-    if title != book.metadata.title {
-      metadata["title"] = title
-    }
-    metadata["titleLock"] = titleLock
-
-    if summary != (book.metadata.summary ?? "") {
-      metadata["summary"] = summary.isEmpty ? NSNull() : summary
-    }
-    metadata["summaryLock"] = summaryLock
-
-    if let date = releaseDate {
-      let formatter = ISO8601DateFormatter()
-      formatter.formatOptions = [.withFullDate]
-      let dateString = formatter.string(from: date)
-      if dateString != (book.metadata.releaseDate ?? "") {
-        metadata["releaseDate"] = dateString
-      }
-    } else if book.metadata.releaseDate != nil {
-      metadata["releaseDate"] = NSNull()
-    }
-    metadata["releaseDateLock"] = releaseDateLock
-
-    if isbn != (book.metadata.isbn ?? "") {
-      metadata["isbn"] = isbn.isEmpty ? NSNull() : isbn
-    }
-    metadata["isbnLock"] = isbnLock
-
-    let currentAuthors = book.metadata.authors ?? []
-    if authors != currentAuthors {
-      metadata["authors"] = authors.map { ["name": $0.name, "role": $0.role] }
-    }
-    metadata["authorsLock"] = authorsLock
-
-    let currentBookTags = book.metadata.tags ?? []
-    if bookTags != currentBookTags {
-      metadata["tags"] = bookTags
-    }
-    metadata["tagsLock"] = bookTagsLock
-
-    let currentLinks = book.metadata.links ?? []
-    if links != currentLinks {
-      metadata["links"] = links.map { ["label": $0.label, "url": $0.url] }
-    }
-    metadata["linksLock"] = linksLock
-
+    let metadata = bookMetadataUpdate.toAPIDict(against: book)
     if !metadata.isEmpty {
       try await BookService.shared.updateBookMetadata(bookId: book.id, metadata: metadata)
     }
   }
 
   private func saveSeriesMetadata() async throws {
-    var metadata: [String: Any] = [:]
-
-    if titleSort != series.metadata.titleSort {
-      metadata["titleSort"] = titleSort
-    }
-    metadata["titleSortLock"] = titleSortLock
-
-    let currentReadingDirection = ReadingDirection.fromString(series.metadata.readingDirection)
-    if readingDirection != currentReadingDirection {
-      metadata["readingDirection"] = readingDirection.rawValue
-    }
-    metadata["readingDirectionLock"] = readingDirectionLock
-
-    if language != (series.metadata.language ?? "") {
-      metadata["language"] = language.isEmpty ? NSNull() : language
-    }
-    metadata["languageLock"] = languageLock
-
-    if publisher != (series.metadata.publisher ?? "") {
-      metadata["publisher"] = publisher.isEmpty ? NSNull() : publisher
-    }
-    metadata["publisherLock"] = publisherLock
-
-    if let ageRatingInt = Int(ageRating), ageRatingInt != (series.metadata.ageRating ?? 0) {
-      metadata["ageRating"] = ageRating.isEmpty ? NSNull() : ageRatingInt
-    } else if ageRating.isEmpty && series.metadata.ageRating != nil {
-      metadata["ageRating"] = NSNull()
-    }
-    metadata["ageRatingLock"] = ageRatingLock
-
-    let currentGenres = series.metadata.genres ?? []
-    if genres != currentGenres {
-      metadata["genres"] = genres
-    }
-    metadata["genresLock"] = genresLock
-
-    let currentSharingLabels = series.metadata.sharingLabels ?? []
-    if sharingLabels != currentSharingLabels {
-      metadata["sharingLabels"] = sharingLabels
-    }
-    metadata["sharingLabelsLock"] = sharingLabelsLock
-
+    let metadata = seriesMetadataUpdate.toAPIDict(against: series)
     if !metadata.isEmpty {
       try await SeriesService.shared.updateSeriesMetadata(
         seriesId: series.id, metadata: metadata)

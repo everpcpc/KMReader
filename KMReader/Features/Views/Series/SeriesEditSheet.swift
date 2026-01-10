@@ -10,37 +10,10 @@ import SwiftUI
 struct SeriesEditSheet: View {
   let series: Series
   @Environment(\.dismiss) private var dismiss
+  @State private var metadataUpdate: SeriesMetadataUpdate
   @State private var isSaving = false
 
-  // Series metadata fields
-  @State private var title: String
-  @State private var titleLock: Bool
-  @State private var titleSort: String
-  @State private var titleSortLock: Bool
-  @State private var summary: String
-  @State private var summaryLock: Bool
-  @State private var publisher: String
-  @State private var publisherLock: Bool
-  @State private var ageRating: String
-  @State private var ageRatingLock: Bool
-  @State private var totalBookCount: String
-  @State private var totalBookCountLock: Bool
-  @State private var language: String
-  @State private var languageLock: Bool
-  @State private var readingDirection: ReadingDirection
-  @State private var readingDirectionLock: Bool
-  @State private var status: SeriesStatus
-  @State private var statusLock: Bool
-  @State private var genres: [String]
-  @State private var genresLock: Bool
-  @State private var tags: [String]
-  @State private var tagsLock: Bool
-  @State private var links: [WebLink]
-  @State private var linksLock: Bool
-  @State private var alternateTitles: [AlternateTitle]
-  @State private var alternateTitlesLock: Bool
-  @State private var sharingLabels: [String]
-  @State private var sharingLabelsLock: Bool
+  @State private var selectedTab = 0
 
   @State private var newGenre: String = ""
   @State private var newTag: String = ""
@@ -52,284 +25,30 @@ struct SeriesEditSheet: View {
 
   init(series: Series) {
     self.series = series
-    _title = State(initialValue: series.metadata.title)
-    _titleLock = State(initialValue: series.metadata.titleLock ?? false)
-    _titleSort = State(initialValue: series.metadata.titleSort)
-    _titleSortLock = State(initialValue: series.metadata.titleSortLock ?? false)
-    _summary = State(initialValue: series.metadata.summary ?? "")
-    _summaryLock = State(initialValue: series.metadata.summaryLock ?? false)
-    _publisher = State(initialValue: series.metadata.publisher ?? "")
-    _publisherLock = State(initialValue: series.metadata.publisherLock ?? false)
-    _ageRating = State(initialValue: series.metadata.ageRating.map { String($0) } ?? "")
-    _ageRatingLock = State(initialValue: series.metadata.ageRatingLock ?? false)
-    _totalBookCount = State(initialValue: series.metadata.totalBookCount.map { String($0) } ?? "")
-    _totalBookCountLock = State(initialValue: series.metadata.totalBookCountLock ?? false)
-    _language = State(initialValue: series.metadata.language ?? "")
-    _languageLock = State(initialValue: series.metadata.languageLock ?? false)
-    _readingDirection = State(
-      initialValue: ReadingDirection.fromString(series.metadata.readingDirection)
-    )
-    _readingDirectionLock = State(initialValue: series.metadata.readingDirectionLock ?? false)
-    _status = State(
-      initialValue: SeriesStatus.fromString(series.metadata.status))
-    _statusLock = State(initialValue: series.metadata.statusLock ?? false)
-    _genres = State(initialValue: series.metadata.genres ?? [])
-    _genresLock = State(initialValue: series.metadata.genresLock ?? false)
-    _tags = State(initialValue: series.metadata.tags ?? [])
-    _tagsLock = State(initialValue: series.metadata.tagsLock ?? false)
-    _links = State(initialValue: series.metadata.links ?? [])
-    _linksLock = State(initialValue: series.metadata.linksLock ?? false)
-    _alternateTitles = State(initialValue: series.metadata.alternateTitles ?? [])
-    _alternateTitlesLock = State(initialValue: series.metadata.alternateTitlesLock ?? false)
-    _sharingLabels = State(initialValue: series.metadata.sharingLabels ?? [])
-    _sharingLabelsLock = State(initialValue: series.metadata.sharingLabelsLock ?? false)
+    _metadataUpdate = State(initialValue: SeriesMetadataUpdate.from(series))
   }
 
   var body: some View {
     SheetView(title: String(localized: "Edit Series"), size: .large, applyFormStyle: true) {
       Form {
-        Section("Basic Information") {
-          TextField("Title", text: $title)
-            .lockToggle(isLocked: $titleLock)
-            .onChange(of: title) { titleLock = true }
-          TextField("Title Sort", text: $titleSort)
-            .lockToggle(isLocked: $titleSortLock)
-            .onChange(of: titleSort) { titleSortLock = true }
-          TextField("Total Book Count", text: $totalBookCount)
-            #if os(iOS) || os(tvOS)
-              .keyboardType(.numberPad)
-            #endif
-            .lockToggle(isLocked: $totalBookCountLock)
-            .onChange(of: totalBookCount) { totalBookCountLock = true }
-          TextField("Summary", text: $summary, axis: .vertical)
-            .lineLimit(3...10)
-            .lockToggle(isLocked: $summaryLock, alignment: .top)
-            .onChange(of: summary) { summaryLock = true }
-          Picker("Status", selection: $status) {
-            ForEach(SeriesStatus.allCases, id: \.self) { status in
-              Text(status.displayName).tag(status)
-            }
-          }
-          .lockToggle(isLocked: $statusLock)
-          .onChange(of: status) { statusLock = true }
-          LanguagePicker(selectedLanguage: $language)
-            .lockToggle(isLocked: $languageLock)
-            .onChange(of: language) { languageLock = true }
-          Picker("Reading Direction", selection: $readingDirection) {
-            ForEach(ReadingDirection.allCases, id: \.self) { direction in
-              Text(direction.displayName).tag(direction)
-            }
-          }
-          .lockToggle(isLocked: $readingDirectionLock)
-          .onChange(of: readingDirection) { readingDirectionLock = true }
-          TextField("Publisher", text: $publisher)
-            .lockToggle(isLocked: $publisherLock)
-            .onChange(of: publisher) { publisherLock = true }
-          TextField("Age Rating", text: $ageRating)
-            #if os(iOS) || os(tvOS)
-              .keyboardType(.numberPad)
-            #endif
-            .lockToggle(isLocked: $ageRatingLock)
-            .onChange(of: ageRating) { ageRatingLock = true }
+        Picker("", selection: $selectedTab) {
+          Text(String(localized: "series.edit.tab.general", defaultValue: "General")).tag(0)
+          Text(String(localized: "series.edit.tab.title", defaultValue: "Title")).tag(1)
+          Text(String(localized: "series.edit.tab.tags", defaultValue: "Tags")).tag(2)
+          Text(String(localized: "series.edit.tab.links", defaultValue: "Links")).tag(3)
+          Text(String(localized: "series.edit.tab.sharing", defaultValue: "Sharing")).tag(4)
         }
+        .pickerStyle(.segmented)
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets())
 
-        Section {
-          ForEach(alternateTitles.indices, id: \.self) { index in
-            VStack(alignment: .leading) {
-              HStack {
-                Text(alternateTitles[index].label)
-                Spacer()
-                Button(role: .destructive) {
-                  let indexToRemove = index
-                  withAnimation {
-                    alternateTitles.remove(at: indexToRemove)
-                    alternateTitlesLock = true
-                  }
-                } label: {
-                  Image(systemName: "trash")
-                }
-              }
-              Text(alternateTitles[index].title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-          VStack {
-            TextField("Label", text: $newAlternateTitleLabel)
-            TextField("Title", text: $newAlternateTitle)
-            Button {
-              if !newAlternateTitleLabel.isEmpty && !newAlternateTitle.isEmpty {
-                withAnimation {
-                  alternateTitles.append(
-                    AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
-                  newAlternateTitleLabel = ""
-                  newAlternateTitle = ""
-                  alternateTitlesLock = true
-                }
-              }
-            } label: {
-              Label("Add Alternate Title", systemImage: "plus.circle.fill")
-            }
-            .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
-          }
-        } header: {
-          Text("Alternate Titles")
-            .lockToggle(isLocked: $alternateTitlesLock)
-        }
-
-        Section {
-          ForEach(genres.indices, id: \.self) { index in
-            HStack {
-              Text(genres[index])
-              Spacer()
-              Button(role: .destructive) {
-                let indexToRemove = index
-                withAnimation {
-                  genres.remove(at: indexToRemove)
-                  genresLock = true
-                }
-              } label: {
-                Image(systemName: "trash")
-              }
-            }
-          }
-          HStack {
-            TextField("Genre", text: $newGenre)
-            Button {
-              if !newGenre.isEmpty && !genres.contains(newGenre) {
-                withAnimation {
-                  genres.append(newGenre)
-                  newGenre = ""
-                  genresLock = true
-                }
-              }
-            } label: {
-              Image(systemName: "plus.circle.fill")
-            }
-            .disabled(newGenre.isEmpty)
-          }
-        } header: {
-          Text("Genres")
-            .lockToggle(isLocked: $genresLock)
-        }
-
-        Section {
-          ForEach(tags.indices, id: \.self) { index in
-            HStack {
-              Text(tags[index])
-              Spacer()
-              Button(role: .destructive) {
-                let indexToRemove = index
-                withAnimation {
-                  tags.remove(at: indexToRemove)
-                  tagsLock = true
-                }
-              } label: {
-                Image(systemName: "trash")
-              }
-            }
-          }
-          HStack {
-            TextField("Tag", text: $newTag)
-            Button {
-              if !newTag.isEmpty && !tags.contains(newTag) {
-                withAnimation {
-                  tags.append(newTag)
-                  newTag = ""
-                  tagsLock = true
-                }
-              }
-            } label: {
-              Image(systemName: "plus.circle.fill")
-            }
-            .disabled(newTag.isEmpty)
-          }
-        } header: {
-          Text("Tags")
-            .lockToggle(isLocked: $tagsLock)
-        }
-
-        Section {
-          ForEach(links.indices, id: \.self) { index in
-            VStack(alignment: .leading) {
-              HStack {
-                Text(links[index].label)
-                Spacer()
-                Button(role: .destructive) {
-                  let indexToRemove = index
-                  withAnimation {
-                    links.remove(at: indexToRemove)
-                    linksLock = true
-                  }
-                } label: {
-                  Image(systemName: "trash")
-                }
-              }
-              Text(links[index].url)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-          VStack {
-            TextField("Label", text: $newLinkLabel)
-            TextField("URL", text: $newLinkURL)
-              #if os(iOS) || os(tvOS)
-                .keyboardType(.URL)
-                .autocapitalization(.none)
-              #endif
-            Button {
-              if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
-                withAnimation {
-                  links.append(WebLink(label: newLinkLabel, url: newLinkURL))
-                  newLinkLabel = ""
-                  newLinkURL = ""
-                  linksLock = true
-                }
-              }
-            } label: {
-              Label("Add Link", systemImage: "plus.circle.fill")
-            }
-            .disabled(newLinkLabel.isEmpty || newLinkURL.isEmpty)
-          }
-        } header: {
-          Text("Links")
-            .lockToggle(isLocked: $linksLock)
-        }
-
-        Section {
-          ForEach(sharingLabels.indices, id: \.self) { index in
-            HStack {
-              Text(sharingLabels[index])
-              Spacer()
-              Button(role: .destructive) {
-                let indexToRemove = index
-                withAnimation {
-                  sharingLabels.remove(at: indexToRemove)
-                  sharingLabelsLock = true
-                }
-              } label: {
-                Image(systemName: "trash")
-              }
-            }
-          }
-          HStack {
-            TextField("Label", text: $newSharingLabel)
-            Button {
-              if !newSharingLabel.isEmpty && !sharingLabels.contains(newSharingLabel) {
-                withAnimation {
-                  sharingLabels.append(newSharingLabel)
-                  newSharingLabel = ""
-                  sharingLabelsLock = true
-                }
-              }
-            } label: {
-              Image(systemName: "plus.circle.fill")
-            }
-            .disabled(newSharingLabel.isEmpty)
-          }
-        } header: {
-          Text("Sharing Labels")
-            .lockToggle(isLocked: $sharingLabelsLock)
+        switch selectedTab {
+        case 0: generalTab
+        case 1: titleTab
+        case 2: tagsTab
+        case 3: linksTab
+        case 4: sharingTab
+        default: EmptyView()
         }
       }
     } controls: {
@@ -344,96 +63,286 @@ struct SeriesEditSheet: View {
     }
   }
 
+  private var generalTab: some View {
+    Group {
+      Section("Summary") {
+        TextField("Summary", text: $metadataUpdate.summary, axis: .vertical)
+          .lineLimit(3...10)
+          .lockToggle(isLocked: $metadataUpdate.summaryLock, alignment: .top)
+          .onChange(of: metadataUpdate.summary) { metadataUpdate.summaryLock = true }
+      }
+
+      Section("Status") {
+        Picker("Status", selection: $metadataUpdate.status) {
+          ForEach(SeriesStatus.allCases, id: \.self) { status in
+            Text(status.displayName).tag(status)
+          }
+        }
+        .lockToggle(isLocked: $metadataUpdate.statusLock)
+        .onChange(of: metadataUpdate.status) { metadataUpdate.statusLock = true }
+      }
+
+      Section("Reading & Language") {
+        Picker("Reading Direction", selection: $metadataUpdate.readingDirection) {
+          ForEach(ReadingDirection.allCases, id: \.self) { direction in
+            Text(direction.displayName).tag(direction)
+          }
+        }
+        .lockToggle(isLocked: $metadataUpdate.readingDirectionLock)
+        .onChange(of: metadataUpdate.readingDirection) { metadataUpdate.readingDirectionLock = true }
+
+        LanguagePicker(selectedLanguage: $metadataUpdate.language)
+          .lockToggle(isLocked: $metadataUpdate.languageLock)
+          .onChange(of: metadataUpdate.language) { metadataUpdate.languageLock = true }
+      }
+
+      Section("Publication") {
+        TextField("Publisher", text: $metadataUpdate.publisher)
+          .lockToggle(isLocked: $metadataUpdate.publisherLock)
+          .onChange(of: metadataUpdate.publisher) { metadataUpdate.publisherLock = true }
+
+        TextField("Age Rating", text: $metadataUpdate.ageRating)
+          #if os(iOS) || os(tvOS)
+            .keyboardType(.numberPad)
+          #endif
+          .lockToggle(isLocked: $metadataUpdate.ageRatingLock)
+          .onChange(of: metadataUpdate.ageRating) { metadataUpdate.ageRatingLock = true }
+
+        TextField("Total Book Count", text: $metadataUpdate.totalBookCount)
+          #if os(iOS) || os(tvOS)
+            .keyboardType(.numberPad)
+          #endif
+          .lockToggle(isLocked: $metadataUpdate.totalBookCountLock)
+          .onChange(of: metadataUpdate.totalBookCount) { metadataUpdate.totalBookCountLock = true }
+      }
+    }
+  }
+
+  private var titleTab: some View {
+    Group {
+      Section("Titles") {
+        TextField("Title", text: $metadataUpdate.title)
+          .lockToggle(isLocked: $metadataUpdate.titleLock)
+          .onChange(of: metadataUpdate.title) { metadataUpdate.titleLock = true }
+        TextField("Title Sort", text: $metadataUpdate.titleSort)
+          .lockToggle(isLocked: $metadataUpdate.titleSortLock)
+          .onChange(of: metadataUpdate.titleSort) { metadataUpdate.titleSortLock = true }
+      }
+
+      Section {
+        ForEach(metadataUpdate.alternateTitles.indices, id: \.self) { index in
+          VStack(alignment: .leading) {
+            HStack {
+              Text(metadataUpdate.alternateTitles[index].label)
+              Spacer()
+              Button(role: .destructive) {
+                let indexToRemove = index
+                withAnimation {
+                  metadataUpdate.alternateTitles.remove(at: indexToRemove)
+                  metadataUpdate.alternateTitlesLock = true
+                }
+              } label: {
+                Image(systemName: "trash")
+              }
+            }
+            Text(metadataUpdate.alternateTitles[index].title)
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+        VStack {
+          TextField("Label", text: $newAlternateTitleLabel)
+          TextField("Title", text: $newAlternateTitle)
+          Button {
+            if !newAlternateTitleLabel.isEmpty && !newAlternateTitle.isEmpty {
+              withAnimation {
+                metadataUpdate.alternateTitles.append(
+                  AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
+                newAlternateTitleLabel = ""
+                newAlternateTitle = ""
+                metadataUpdate.alternateTitlesLock = true
+              }
+            }
+          } label: {
+            Label("Add Alternate Title", systemImage: "plus.circle.fill")
+          }
+          .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
+        }
+      } header: {
+        Text("Alternate Titles")
+          .lockToggle(isLocked: $metadataUpdate.alternateTitlesLock)
+      }
+    }
+  }
+
+  private var tagsTab: some View {
+    Group {
+      Section {
+        ForEach(metadataUpdate.genres.indices, id: \.self) { index in
+          HStack {
+            Text(metadataUpdate.genres[index])
+            Spacer()
+            Button(role: .destructive) {
+              let indexToRemove = index
+              withAnimation {
+                metadataUpdate.genres.remove(at: indexToRemove)
+                metadataUpdate.genresLock = true
+              }
+            } label: {
+              Image(systemName: "trash")
+            }
+          }
+        }
+        HStack {
+          TextField("Genre", text: $newGenre)
+          Button {
+            if !newGenre.isEmpty && !metadataUpdate.genres.contains(newGenre) {
+              withAnimation {
+                metadataUpdate.genres.append(newGenre)
+                newGenre = ""
+                metadataUpdate.genresLock = true
+              }
+            }
+          } label: {
+            Image(systemName: "plus.circle.fill")
+          }
+          .disabled(newGenre.isEmpty)
+        }
+      } header: {
+        Text("Genres")
+          .lockToggle(isLocked: $metadataUpdate.genresLock)
+      }
+
+      Section {
+        ForEach(metadataUpdate.tags.indices, id: \.self) { index in
+          HStack {
+            Text(metadataUpdate.tags[index])
+            Spacer()
+            Button(role: .destructive) {
+              let indexToRemove = index
+              withAnimation {
+                metadataUpdate.tags.remove(at: indexToRemove)
+                metadataUpdate.tagsLock = true
+              }
+            } label: {
+              Image(systemName: "trash")
+            }
+          }
+        }
+        HStack {
+          TextField("Tag", text: $newTag)
+          Button {
+            if !newTag.isEmpty && !metadataUpdate.tags.contains(newTag) {
+              withAnimation {
+                metadataUpdate.tags.append(newTag)
+                newTag = ""
+                metadataUpdate.tagsLock = true
+              }
+            }
+          } label: {
+            Image(systemName: "plus.circle.fill")
+          }
+          .disabled(newTag.isEmpty)
+        }
+      } header: {
+        Text("Tags")
+          .lockToggle(isLocked: $metadataUpdate.tagsLock)
+      }
+    }
+  }
+
+  private var linksTab: some View {
+    Section {
+      ForEach(metadataUpdate.links.indices, id: \.self) { index in
+        VStack(alignment: .leading) {
+          HStack {
+            Text(metadataUpdate.links[index].label)
+            Spacer()
+            Button(role: .destructive) {
+              let indexToRemove = index
+              withAnimation {
+                metadataUpdate.links.remove(at: indexToRemove)
+                metadataUpdate.linksLock = true
+              }
+            } label: {
+              Image(systemName: "trash")
+            }
+          }
+          Text(metadataUpdate.links[index].url)
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
+      VStack {
+        TextField("Label", text: $newLinkLabel)
+        TextField("URL", text: $newLinkURL)
+          #if os(iOS) || os(tvOS)
+            .keyboardType(.URL)
+            .autocapitalization(.none)
+          #endif
+        Button {
+          if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
+            withAnimation {
+              metadataUpdate.links.append(WebLink(label: newLinkLabel, url: newLinkURL))
+              newLinkLabel = ""
+              newLinkURL = ""
+              metadataUpdate.linksLock = true
+            }
+          }
+        } label: {
+          Label("Add Link", systemImage: "plus.circle.fill")
+        }
+        .disabled(newLinkLabel.isEmpty || newLinkURL.isEmpty)
+      }
+    } header: {
+      Text("Links")
+        .lockToggle(isLocked: $metadataUpdate.linksLock)
+    }
+  }
+
+  private var sharingTab: some View {
+    Section {
+      ForEach(metadataUpdate.sharingLabels.indices, id: \.self) { index in
+        HStack {
+          Text(metadataUpdate.sharingLabels[index])
+          Spacer()
+          Button(role: .destructive) {
+            let indexToRemove = index
+            withAnimation {
+              metadataUpdate.sharingLabels.remove(at: indexToRemove)
+              metadataUpdate.sharingLabelsLock = true
+            }
+          } label: {
+            Image(systemName: "trash")
+          }
+        }
+      }
+      HStack {
+        TextField("Label", text: $newSharingLabel)
+        Button {
+          if !newSharingLabel.isEmpty && !metadataUpdate.sharingLabels.contains(newSharingLabel) {
+            withAnimation {
+              metadataUpdate.sharingLabels.append(newSharingLabel)
+              newSharingLabel = ""
+              metadataUpdate.sharingLabelsLock = true
+            }
+          }
+        } label: {
+          Image(systemName: "plus.circle.fill")
+        }
+        .disabled(newSharingLabel.isEmpty)
+      }
+    } header: {
+      Text("Sharing Labels")
+        .lockToggle(isLocked: $metadataUpdate.sharingLabelsLock)
+    }
+  }
+
   private func saveChanges() {
     isSaving = true
     Task {
       do {
-        var metadata: [String: Any] = [:]
-
-        if title != series.metadata.title {
-          metadata["title"] = title
-        }
-        metadata["titleLock"] = titleLock
-
-        if titleSort != series.metadata.titleSort {
-          metadata["titleSort"] = titleSort
-        }
-        metadata["titleSortLock"] = titleSortLock
-
-        if summary != (series.metadata.summary ?? "") {
-          metadata["summary"] = summary.isEmpty ? NSNull() : summary
-        }
-        metadata["summaryLock"] = summaryLock
-
-        if publisher != (series.metadata.publisher ?? "") {
-          metadata["publisher"] = publisher.isEmpty ? NSNull() : publisher
-        }
-        metadata["publisherLock"] = publisherLock
-
-        if let ageRatingInt = Int(ageRating), ageRatingInt != (series.metadata.ageRating ?? 0) {
-          metadata["ageRating"] = ageRating.isEmpty ? NSNull() : ageRatingInt
-        } else if ageRating.isEmpty && series.metadata.ageRating != nil {
-          metadata["ageRating"] = NSNull()
-        }
-        metadata["ageRatingLock"] = ageRatingLock
-
-        if let totalBookCountInt = Int(totalBookCount),
-          totalBookCountInt != (series.metadata.totalBookCount ?? 0)
-        {
-          metadata["totalBookCount"] = totalBookCountInt
-        } else if totalBookCount.isEmpty && series.metadata.totalBookCount != nil {
-          metadata["totalBookCount"] = NSNull()
-        }
-        metadata["totalBookCountLock"] = totalBookCountLock
-
-        if language != (series.metadata.language ?? "") {
-          metadata["language"] = language.isEmpty ? NSNull() : language
-        }
-        metadata["languageLock"] = languageLock
-
-        let currentReadingDirection = ReadingDirection.fromString(series.metadata.readingDirection)
-        if readingDirection != currentReadingDirection {
-          metadata["readingDirection"] = readingDirection.rawValue
-        }
-        metadata["readingDirectionLock"] = readingDirectionLock
-
-        let currentStatus = SeriesStatus.fromString(series.metadata.status)
-        if status != currentStatus {
-          metadata["status"] = status.apiValue
-        }
-        metadata["statusLock"] = statusLock
-
-        let currentGenres = series.metadata.genres ?? []
-        if genres != currentGenres {
-          metadata["genres"] = genres
-        }
-        metadata["genresLock"] = genresLock
-
-        let currentTags = series.metadata.tags ?? []
-        if tags != currentTags {
-          metadata["tags"] = tags
-        }
-        metadata["tagsLock"] = tagsLock
-
-        let currentLinks = series.metadata.links ?? []
-        if links != currentLinks {
-          metadata["links"] = links.map { ["label": $0.label, "url": $0.url] }
-        }
-        metadata["linksLock"] = linksLock
-
-        let currentAlternateTitles = series.metadata.alternateTitles ?? []
-        if alternateTitles != currentAlternateTitles {
-          metadata["alternateTitles"] = alternateTitles.map {
-            ["label": $0.label, "title": $0.title]
-          }
-        }
-        metadata["alternateTitlesLock"] = alternateTitlesLock
-
-        let currentSharingLabels = series.metadata.sharingLabels ?? []
-        if sharingLabels != currentSharingLabels {
-          metadata["sharingLabels"] = sharingLabels
-        }
-        metadata["sharingLabelsLock"] = sharingLabelsLock
+        let metadata = metadataUpdate.toAPIDict(against: series)
 
         if !metadata.isEmpty {
           try await SeriesService.shared.updateSeriesMetadata(
