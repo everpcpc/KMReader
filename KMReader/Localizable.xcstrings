@@ -4004,6 +4004,12 @@
             "state" : "translated",
             "value" : "编作者"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auteurs"
+          }
         }
       }
     },
@@ -4038,6 +4044,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "常规"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Général"
           }
         }
       }
@@ -4074,6 +4086,12 @@
             "state" : "translated",
             "value" : "链接"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liens"
+          }
         }
       }
     },
@@ -4108,6 +4126,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标签"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étiquettes"
           }
         }
       }
@@ -21400,6 +21424,12 @@
             "state" : "translated",
             "value" : "编作者"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auteurs"
+          }
         }
       }
     },
@@ -21434,6 +21464,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "常规"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Général"
           }
         }
       }
@@ -21470,6 +21506,12 @@
             "state" : "translated",
             "value" : "链接"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liens"
+          }
         }
       }
     },
@@ -21505,6 +21547,12 @@
             "state" : "translated",
             "value" : "共享"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partage"
+          }
         }
       }
     },
@@ -21539,6 +21587,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标签"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étiquettes"
           }
         }
       }
@@ -22855,6 +22909,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "出版"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publication"
           }
         }
       }
@@ -24323,6 +24383,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "阅读与语言"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture et langue"
           }
         }
       }
@@ -26661,6 +26727,12 @@
             "state" : "translated",
             "value" : "常规"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Général"
+          }
         }
       }
     },
@@ -26695,6 +26767,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "链接"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liens"
           }
         }
       }
@@ -26731,6 +26809,12 @@
             "state" : "translated",
             "value" : "共享"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partage"
+          }
         }
       }
     },
@@ -26766,6 +26850,12 @@
             "state" : "translated",
             "value" : "标签"
           }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étiquettes"
+          }
         }
       }
     },
@@ -26800,6 +26890,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标题"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titre"
           }
         }
       }
@@ -33558,6 +33654,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标题"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titres"
           }
         }
       }
