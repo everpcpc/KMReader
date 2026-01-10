@@ -27,6 +27,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
 
   var body: some View {
     SheetView(
@@ -135,6 +136,15 @@ struct ReaderSettingsSheet: View {
 
           Toggle(isOn: $controlsAutoHide) {
             Text("Auto Hide Controls")
+          }
+
+          Toggle(isOn: $enableLiveText) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Enable Live Text")
+              Text("Automatically enable Live Text for all images.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
         }
 

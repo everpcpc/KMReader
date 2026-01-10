@@ -610,6 +610,18 @@ enum AppConfig {
     }
   }
 
+  static var enableLiveText: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableLiveText") != nil {
+        return UserDefaults.standard.bool(forKey: "enableLiveText")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enableLiveText")
+    }
+  }
+
   // MARK: - Dashboard
   static var dashboard: DashboardConfiguration {
     get {

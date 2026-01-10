@@ -14,6 +14,12 @@ struct ReaderControlsView: View {
   @Binding var readingDirection: ReadingDirection
   @Binding var pageLayout: PageLayout
   @Binding var dualPageNoCover: Bool
+
+  @Binding var showingPageJumpSheet: Bool
+  @Binding var showingTOCSheet: Bool
+  @Binding var showingReaderSettingsSheet: Bool
+  @Binding var showingBookDetailSheet: Bool
+
   let viewModel: ReaderViewModel
   let currentBook: Book?
   let bookId: String
@@ -31,10 +37,7 @@ struct ReaderControlsView: View {
   @State private var showSaveAlert = false
   @State private var showDocumentPicker = false
   @State private var fileToSave: URL?
-  @State private var showingPageJumpSheet = false
-  @State private var showingTOCSheet = false
-  @State private var showingReaderSettingsSheet = false
-  @State private var showingBookDetailSheet = false
+
   #if os(tvOS)
     private enum ControlFocus: Hashable {
       case close
@@ -86,6 +89,31 @@ struct ReaderControlsView: View {
 
   private func jumpToTOCEntry(_ entry: ReaderTOCEntry) {
     jumpToPage(page: entry.pageIndex + 1)
+  }
+
+  private func shareCurrentPage() {
+    let indices: [Int]
+    if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
+      indices = [pair.first, pair.second].compactMap { $0 }
+    } else {
+      indices = [viewModel.currentPageIndex]
+    }
+
+    var images: [PlatformImage] = []
+    var names: [String] = []
+
+    for index in indices {
+      if index >= 0 && index < viewModel.pages.count {
+        let page = viewModel.pages[index]
+        if let image = viewModel.preloadedImages[page.number] {
+          images.append(image)
+          names.append(page.fileName)
+        }
+      }
+    }
+
+    guard !images.isEmpty else { return }
+    ImageShareHelper.shareMultiple(images: images, fileNames: names)
   }
 
   private var leftButtonLabel: String {
@@ -205,6 +233,16 @@ struct ReaderControlsView: View {
 
           Spacer()
 
+          // Share button
+          Button {
+            shareCurrentPage()
+          } label: {
+            Image(systemName: "square.and.arrow.up")
+          }
+          .contentShape(Rectangle())
+          .adaptiveButtonStyle(buttonStyle)
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+
           // Page info - tappable to open jump sheet
           Button {
             guard !viewModel.pages.isEmpty else { return }
@@ -300,16 +338,6 @@ struct ReaderControlsView: View {
       }
       .focusSection()
     #endif
-    #if os(macOS)
-      .background(
-        // Window-level keyboard event handler
-        KeyboardEventHandler(
-          onKeyPress: { keyCode, flags in
-            handleKeyCode(keyCode, flags: flags)
-          }
-        )
-      )
-    #endif
     .sheet(isPresented: $showingPageJumpSheet) {
       PageJumpSheetView(
         bookId: bookId,
@@ -343,7 +371,7 @@ struct ReaderControlsView: View {
             BookDetailContentView(
               book: book,
               downloadStatus: nil,
-              inSheet: true,
+              inSheet: true
             ).padding(.horizontal)
           }
         }
@@ -353,116 +381,4 @@ struct ReaderControlsView: View {
       viewModel.updateDualPageSettings(noCover: newValue)
     }
   }
-
-  #if os(macOS)
-    func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) {
-      // Handle ESC key to close window
-      if keyCode == 53 {  // ESC key
-        onDismiss()
-        return
-      }
-
-      // Handle ? key and H key for keyboard help
-      if keyCode == 44 {  // ? key (Shift + /)
-        showingKeyboardHelp.toggle()
-        return
-      }
-
-      // Handle Return/Enter key for fullscreen toggle
-      if keyCode == 36 {  // Return/Enter key
-        if let window = NSApplication.shared.keyWindow {
-          window.toggleFullScreen(nil)
-        }
-        return
-      }
-
-      // Handle Space key for toggle controls
-      if keyCode == 49 {  // Space key
-        showingControls.toggle()
-        return
-      }
-
-      // Ignore if modifier keys are pressed (except for system shortcuts)
-      guard flags.intersection([.command, .option, .control]).isEmpty else { return }
-
-      // Handle F key for fullscreen toggle
-      if keyCode == 3 {  // F key
-        if let window = NSApplication.shared.keyWindow {
-          window.toggleFullScreen(nil)
-        }
-        return
-      }
-
-      // Handle H key for keyboard help
-      if keyCode == 4 {  // H key
-        showingKeyboardHelp.toggle()
-        return
-      }
-
-      // Handle C key for toggle controls
-      if keyCode == 8 {  // C key
-        showingControls.toggle()
-        return
-      }
-
-      // Handle T key for TOC
-      if keyCode == 17 {  // T key
-        if !viewModel.tableOfContents.isEmpty {
-          showingTOCSheet = true
-        }
-        return
-      }
-
-      // Handle J key for jump to page
-      if keyCode == 38 {  // J key
-        if !viewModel.pages.isEmpty {
-          showingPageJumpSheet = true
-        }
-        return
-      }
-
-      // Handle N key for next book
-      if keyCode == 45 {  // N key
-        if let nextBook = nextBook, let onNextBook = onNextBook {
-          onNextBook(nextBook.id)
-        }
-        return
-      }
-
-      guard !viewModel.pages.isEmpty else { return }
-
-      switch readingDirection {
-      case .ltr:
-        switch keyCode {
-        case 124:  // Right arrow
-          goToNextPage()
-        case 123:  // Left arrow
-          goToPreviousPage()
-        default:
-          break
-        }
-      case .rtl:
-        switch keyCode {
-        case 123:  // Left arrow
-          goToNextPage()
-        case 124:  // Right arrow
-          goToPreviousPage()
-        default:
-          break
-        }
-      case .vertical:
-        switch keyCode {
-        case 125:  // Down arrow
-          goToNextPage()
-        case 126:  // Up arrow
-          goToPreviousPage()
-        default:
-          break
-        }
-      case .webtoon:
-        // Webtoon scrolling is handled by WebtoonReaderView's own keyboard monitor
-        break
-      }
-    }
-  #endif
 }

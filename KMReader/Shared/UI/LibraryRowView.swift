@@ -127,7 +127,6 @@ struct LibraryRowView: View {
     return joinText(parts, separator: " · ")
   }
 
-
   private func joinText(_ parts: [Text], separator: String) -> Text? {
     guard let first = parts.first else { return nil }
     return parts.dropFirst().reduce(first) { result, part in

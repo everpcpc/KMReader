@@ -15,10 +15,16 @@ import Foundation
 #endif
 
 struct ImageDecodeHelper {
-  nonisolated static func decodeForDisplay(_ image: PlatformImage) -> PlatformImage {
+  /// Decodes image for display asynchronously to avoid blocking the caller and priority inversion.
+  /// - Note: This function should be called from a background context to avoid blocking the main thread,
+  /// especially on macOS where it performs synchronous drawing.
+  nonisolated static func decodeForDisplay(_ image: PlatformImage) async -> PlatformImage {
     #if os(iOS) || os(tvOS)
-      return image.preparingForDisplay() ?? image
+      // Use the modern asynchronous decoding API which handles QoS internally
+      return await image.byPreparingForDisplay() ?? image
     #elseif os(macOS)
+      // On macOS, we perform the decode by drawing into a new context.
+      // We assume the caller is running in an async background context (e.g. Task.detached or TaskGroup).
       guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
         return image
       }

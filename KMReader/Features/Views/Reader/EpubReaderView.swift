@@ -157,15 +157,13 @@
         }
         .padding()
       } else if let navigatorViewController = viewModel.navigatorViewController {
-        NavigatorView(navigatorViewController: navigatorViewController)
-          .readerIgnoresSafeArea()
-          .contentShape(Rectangle())
-          .simultaneousGesture(
-            SpatialTapGesture()
-              .onEnded { value in
-                handleTap(location: value.location, in: size)
-              }
-          )
+        NavigatorView(
+          navigatorViewController: navigatorViewController,
+          onTap: { location in
+            handleTap(location: location, in: size)
+          }
+        )
+        .readerIgnoresSafeArea()
       } else {
         Text("No content available.")
           .foregroundStyle(.secondary)
@@ -405,13 +403,81 @@
 
   struct NavigatorView: UIViewControllerRepresentable {
     let navigatorViewController: EPUBNavigatorViewController
+    let onTap: (CGPoint) -> Void
 
     func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
       return navigatorViewController
     }
 
     func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {
-      // Update if needed
+      context.coordinator.onTap = onTap
+      context.coordinator.setupGestures(for: uiViewController.view)
+    }
+
+    func makeCoordinator() -> Coordinator {
+      Coordinator()
+    }
+
+    class Coordinator: NSObject, UIGestureRecognizerDelegate {
+      var onTap: ((CGPoint) -> Void)?
+      var isLongPressing = false
+      private weak var installedView: UIView?
+
+      func setupGestures(for view: UIView) {
+        guard installedView != view else { return }
+
+        cleanup()
+        installedView = view
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tap.numberOfTapsRequired = 1
+        // Allow touches to pass through to Readium for scrolling and link clicking.
+        tap.cancelsTouchesInView = false
+        tap.delegate = self
+        view.addGestureRecognizer(tap)
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPress.minimumPressDuration = 0.5
+        longPress.cancelsTouchesInView = false
+        longPress.delegate = self
+        view.addGestureRecognizer(longPress)
+      }
+
+      private func cleanup() {
+        if let view = installedView {
+          view.gestureRecognizers?.filter {
+            $0 is UITapGestureRecognizer || $0 is UILongPressGestureRecognizer
+          }.forEach {
+            if $0.delegate === self { view.removeGestureRecognizer($0) }
+          }
+        }
+      }
+
+      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+          isLongPressing = true
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          // Delay resetting to ensure handleTap can see the flag.
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.isLongPressing = false
+          }
+        }
+      }
+
+      @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        // Skip navigation if it was a long press.
+        guard !isLongPressing, let view = gesture.view else { return }
+        let location = gesture.location(in: view)
+        onTap?(location)
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        // Allow simultaneous recognition with Readium's internal gestures.
+        return true
+      }
     }
   }
 #endif

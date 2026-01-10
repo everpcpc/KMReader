@@ -66,7 +66,18 @@
         action: #selector(Coordinator.handleTap(_:))
       )
       tapGesture.numberOfTapsRequired = 1
+      tapGesture.cancelsTouchesInView = false
+      tapGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(tapGesture)
+
+      let longPressGesture = UILongPressGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleLongPress(_:))
+      )
+      longPressGesture.minimumPressDuration = 0.5
+      longPressGesture.cancelsTouchesInView = false
+      longPressGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(longPressGesture)
 
       let nextBookPanGesture = UIPanGestureRecognizer(
         target: context.coordinator,
@@ -130,6 +141,9 @@
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var disableTapToTurnPage: Bool = false
+      var isLongPress: Bool = false
+
+      private let longPressThreshold: TimeInterval = 0.5
 
       var heightCache = WebtoonPageHeightCache()
 
@@ -550,7 +564,19 @@
 
       // MARK: - Tap Gesture Handling
 
+      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+          isLongPress = true
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.isLongPress = false
+          }
+        }
+      }
+
       @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        guard !isLongPress else { return }
+
         guard let collectionView = collectionView,
           let view = collectionView.superview
         else { return }
@@ -599,11 +625,8 @@
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
-        // Allow pan gesture to work simultaneously with scroll
-        if gestureRecognizer == nextBookPanGesture {
-          return true
-        }
-        return false
+        // Always allow simultaneous recognition to ensure scrolling and context menus work.
+        return true
       }
 
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {

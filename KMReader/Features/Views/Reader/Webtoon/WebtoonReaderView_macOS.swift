@@ -70,7 +70,14 @@
 
       let clickGesture = NSClickGestureRecognizer(
         target: context.coordinator, action: #selector(Coordinator.handleClick(_:)))
+      clickGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(clickGesture)
+
+      let pressGesture = NSPressGestureRecognizer(
+        target: context.coordinator, action: #selector(Coordinator.handlePress(_:)))
+      pressGesture.minimumPressDuration = 0.5
+      pressGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(pressGesture)
 
       context.coordinator.collectionView = collectionView
       context.coordinator.scrollView = scrollView
@@ -113,7 +120,7 @@
     }
 
     class Coordinator: NSObject, NSCollectionViewDelegate, NSCollectionViewDataSource,
-      NSCollectionViewDelegateFlowLayout
+      NSCollectionViewDelegateFlowLayout, NSGestureRecognizerDelegate
     {
       var parent: WebtoonReaderView
       var collectionView: NSCollectionView?
@@ -136,6 +143,7 @@
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var disableTapToTurnPage: Bool = false
+      var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
       var keyMonitor: Any?
 
@@ -454,7 +462,18 @@
 
       // MARK: - Click
 
+      @objc func handlePress(_ gesture: NSPressGestureRecognizer) {
+        if gesture.state == .began {
+          isLongPress = true
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.isLongPress = false
+          }
+        }
+      }
+
       @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
+        guard !isLongPress else { return }
         guard let sv = scrollView, let window = sv.window else { return }
 
         if disableTapToTurnPage {
@@ -545,6 +564,13 @@
             await self?.loadImageForPage(index)
           }
         }
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: NSGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
+      ) -> Bool {
+        return true
       }
     }
   }

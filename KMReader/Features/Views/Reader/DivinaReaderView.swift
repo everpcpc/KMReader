@@ -35,9 +35,16 @@ struct DivinaReaderView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
+
+  // UI Panels states
+  @State private var showingPageJumpSheet = false
+  @State private var showingTOCSheet = false
+  @State private var showingReaderSettingsSheet = false
+  @State private var showingBookDetailSheet = false
 
   #if os(tvOS)
     @State private var isEndPageButtonFocused = false
@@ -219,25 +226,18 @@ struct DivinaReaderView: View {
           }
         }
       #endif
+      #if os(macOS)
+        .background(
+          // Window-level keyboard event handler
+          KeyboardEventHandler(
+            onKeyPress: { keyCode, flags in
+              handleKeyCode(keyCode, flags: flags, dualPageEnabled: useDualPage)
+            }
+          )
+        )
+      #endif
     }
     .iPadIgnoresSafeArea()
-    #if os(macOS)
-      .background(
-        // Window-level keyboard event handler for keyboard help
-        KeyboardEventHandler(
-          onKeyPress: { keyCode, flags in
-            // Handle ? key for keyboard help
-            if keyCode == 44 {  // ? key (Shift + /)
-              if showKeyboardHelp {
-                hideKeyboardHelp()
-              } else {
-                triggerKeyboardHelp(timeout: 3)
-              }
-            }
-          }
-        )
-      )
-    #endif
     .onAppear {
       viewModel.updateDualPageSettings(noCover: dualPageNoCover)
       #if os(tvOS)
@@ -436,6 +436,10 @@ struct DivinaReaderView: View {
       readingDirection: $readingDirection,
       pageLayout: $pageLayout,
       dualPageNoCover: $dualPageNoCover,
+      showingPageJumpSheet: $showingPageJumpSheet,
+      showingTOCSheet: $showingTOCSheet,
+      showingReaderSettingsSheet: $showingReaderSettingsSheet,
+      showingBookDetailSheet: $showingBookDetailSheet,
       viewModel: viewModel,
       currentBook: currentBook,
       bookId: currentBookId,
@@ -467,6 +471,116 @@ struct DivinaReaderView: View {
       .opacity(showKeyboardHelp ? 1.0 : 0.0)
       .allowsHitTesting(showKeyboardHelp)
       .animation(.default, value: showKeyboardHelp)
+    }
+
+    private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags, dualPageEnabled: Bool) {
+      // Handle ESC key to close window
+      if keyCode == 53 {  // ESC key
+        closeReader()
+        return
+      }
+
+      // Handle ? key and H key for keyboard help
+      if keyCode == 44 {  // ? key (Shift + /)
+        showKeyboardHelp.toggle()
+        return
+      }
+
+      // Handle Return/Enter key for fullscreen toggle
+      if keyCode == 36 {  // Return/Enter key
+        if let window = NSApplication.shared.keyWindow {
+          window.toggleFullScreen(nil)
+        }
+        return
+      }
+
+      // Handle Space key for toggle controls
+      if keyCode == 49 {  // Space key
+        toggleControls()
+        return
+      }
+
+      // Ignore if modifier keys are pressed (except for system shortcuts)
+      guard flags.intersection([.command, .option, .control]).isEmpty else { return }
+
+      // Handle F key for fullscreen toggle
+      if keyCode == 3 {  // F key
+        if let window = NSApplication.shared.keyWindow {
+          window.toggleFullScreen(nil)
+        }
+        return
+      }
+
+      // Handle H key for keyboard help
+      if keyCode == 4 {  // H key
+        showKeyboardHelp.toggle()
+        return
+      }
+
+      // Handle C key for toggle controls
+      if keyCode == 8 {  // C key
+        toggleControls()
+        return
+      }
+
+      // Handle T key for TOC
+      if keyCode == 17 {  // T key
+        if !viewModel.tableOfContents.isEmpty {
+          showingTOCSheet = true
+        }
+        return
+      }
+
+      // Handle J key for jump to page
+      if keyCode == 38 {  // J key
+        if !viewModel.pages.isEmpty {
+          showingPageJumpSheet = true
+        }
+        return
+      }
+
+      // Handle N key for next book
+      if keyCode == 45 {  // N key
+        if let nextBook = nextBook {
+          openNextBook(nextBookId: nextBook.id)
+        }
+        return
+      }
+
+      guard !viewModel.pages.isEmpty else { return }
+
+      switch readingDirection {
+      case .ltr:
+        switch keyCode {
+        case 124:  // Right arrow
+          goToNextPage(dualPageEnabled: dualPageEnabled)
+        case 123:  // Left arrow
+          goToPreviousPage(dualPageEnabled: dualPageEnabled)
+        default:
+          break
+        }
+      case .rtl:
+        switch keyCode {
+        case 123:  // Left arrow
+          goToNextPage(dualPageEnabled: dualPageEnabled)
+        case 124:  // Right arrow
+          goToPreviousPage(dualPageEnabled: dualPageEnabled)
+        default:
+          break
+        }
+      case .vertical:
+        switch keyCode {
+        case 125:  // Down arrow
+          goToNextPage(dualPageEnabled: dualPageEnabled)
+        case 126:  // Up arrow
+          goToPreviousPage(dualPageEnabled: dualPageEnabled)
+        default:
+          break
+        }
+      case .webtoon:
+        // Webtoon scrolling is handled by WebtoonReaderView's own keyboard monitor
+        break
+      }
     }
   #endif
 

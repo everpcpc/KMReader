@@ -91,7 +91,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
 
       guard !Task.isCancelled, let url = targetURL else { return nil }
       guard let image = PlatformImage(contentsOfFile: url.path) else { return nil }
-      return ImageDecodeHelper.decodeForDisplay(image)
+      return await ImageDecodeHelper.decodeForDisplay(image)
     }.value
   }
 

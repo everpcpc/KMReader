@@ -312,15 +312,13 @@ class ReaderViewModel {
 
   /// Load and decode image from file URL
   private func loadImageFromFile(fileURL: URL) async -> PlatformImage? {
-    return await Task.detached(priority: .userInitiated) { () -> PlatformImage? in
-      guard let data = try? Data(contentsOf: fileURL) else {
-        return nil
-      }
-      if let image = PlatformImage(data: data) {
-        return ImageDecodeHelper.decodeForDisplay(image)
-      }
+    guard let data = try? Data(contentsOf: fileURL) else {
       return nil
-    }.value
+    }
+    if let image = PlatformImage(data: data) {
+      return await ImageDecodeHelper.decodeForDisplay(image)
+    }
+    return nil
   }
 
   /// Preload a single page image into memory for instant display.

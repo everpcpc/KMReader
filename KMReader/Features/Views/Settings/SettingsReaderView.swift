@@ -25,6 +25,7 @@ struct SettingsReaderView: View {
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
 
   var body: some View {
     Form {
@@ -73,6 +74,15 @@ struct SettingsReaderView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text("Auto Hide Controls")
             Text("Automatically hide reader controls after a short delay")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $enableLiveText) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Enable Live Text")
+            Text("Automatically enable Live Text for all images.")
               .font(.caption)
               .foregroundColor(.secondary)
           }

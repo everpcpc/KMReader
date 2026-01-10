@@ -102,152 +102,67 @@ struct PageView: View {
         .onAppear {
           synchronizeInitialScrollIfNeeded(proxy: proxy)
         }
-        .onChange(of: viewModel.pages.count) {
-          hasSyncedInitialScroll = false
-          synchronizeInitialScrollIfNeeded(proxy: proxy)
-        }
         .onChange(of: viewModel.targetPageIndex) { _, newTarget in
           handleTargetPageChange(newTarget, proxy: proxy)
         }
-        .onChange(of: scrollPosition) { _, newTarget in
-          onScrollActivityChange?(true)
-          handleScrollPositionChange(newTarget)
+        .onChange(of: scrollPosition) { _, newPosition in
+          if let newPosition {
+            viewModel.currentPageIndex = newPosition
+          }
         }
     }
   }
 
   @ViewBuilder
   private func scrollViewContent(proxy: ScrollViewProxy) -> some View {
-    if mode.isVertical {
-      ScrollView(.vertical) {
-        LazyVStack(spacing: 0) {
-          verticalPageContent(proxy: proxy)
+    ScrollView(.horizontal) {
+      LazyHStack(spacing: 0) {
+        if mode.isDualPage {
+          dualPageContent(proxy: proxy)
+        } else {
+          singlePageContent(proxy: proxy)
         }
-        .scrollTargetLayout()
       }
-    } else {
-      ScrollView(.horizontal) {
-        LazyHStack(spacing: 0) {
-          horizontalPageContent(proxy: proxy)
+      .scrollTargetLayout()
+    }
+    .environment(\.layoutDirection, mode.isRTL ? .rightToLeft : .leftToRight)
+  }
+
+  private func singlePageContent(proxy: ScrollViewProxy) -> some View {
+    ForEach(0...viewModel.pages.count, id: \.self) { index in
+      Group {
+        if index == viewModel.pages.count {
+          ZStack {
+            readerBackground.color.readerIgnoresSafeArea()
+            EndPageView(
+              viewModel: viewModel,
+              nextBook: nextBook,
+              readList: readList,
+              onDismiss: onDismiss,
+              onNextBook: onNextBook,
+              readingDirection: readingDirection,
+              onFocusChange: onEndPageFocusChange
+            )
+          }
+        } else {
+          SinglePageImageView(
+            viewModel: viewModel,
+            pageIndex: index,
+            screenSize: screenSize,
+            readingDirection: readingDirection,
+            isZoomed: $isZoomed,
+            onNextPage: goToNextPage,
+            onPreviousPage: goToPreviousPage,
+            onToggleControls: toggleControls
+          )
         }
-        .scrollTargetLayout()
       }
-      .environment(\.layoutDirection, mode.isRTL ? .rightToLeft : .leftToRight)
-    }
-  }
-
-  // MARK: - Vertical Content
-
-  @ViewBuilder
-  private func verticalPageContent(proxy: ScrollViewProxy) -> some View {
-    ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-      SinglePageImageView(
-        viewModel: viewModel,
-        pageIndex: pageIndex,
-        screenSize: screenSize,
-        isZoomed: $isZoomed
-      )
       .frame(width: screenSize.width, height: screenSize.height)
-      .pageTapGesture(
-        size: screenSize,
-        readingDirection: readingDirection,
-        isZoomed: isZoomed,
-        liveTextActive: viewModel.liveTextActivePageIndex != nil,
-        onNextPage: goToNextPage,
-        onPreviousPage: goToPreviousPage,
-        onToggleControls: toggleControls
-      )
-      .id(pageIndex)
-      .readerPageScrollTransition(axis: .vertical)
-    }
-
-    // End page
-    ZStack {
-      readerBackground.color.readerIgnoresSafeArea()
-      EndPageView(
-        viewModel: viewModel,
-        nextBook: nextBook,
-        readList: readList,
-        onDismiss: onDismiss,
-        onNextBook: onNextBook,
-        readingDirection: readingDirection,
-        onFocusChange: onEndPageFocusChange
-      )
-    }
-    .frame(width: screenSize.width, height: screenSize.height)
-    .pageTapGesture(
-      size: screenSize,
-      readingDirection: readingDirection,
-      isZoomed: isZoomed,
-      liveTextActive: viewModel.liveTextActivePageIndex != nil,
-      onNextPage: goToNextPage,
-      onPreviousPage: goToPreviousPage,
-      onToggleControls: toggleControls
-    )
-    .id(viewModel.pages.count)
-  }
-
-  // MARK: - Horizontal Content
-
-  @ViewBuilder
-  private func horizontalPageContent(proxy: ScrollViewProxy) -> some View {
-    if mode.isDualPage {
-      dualPageContent(proxy: proxy)
-    } else {
-      singlePageHorizontalContent(proxy: proxy)
-    }
-  }
-
-  @ViewBuilder
-  private func singlePageHorizontalContent(proxy: ScrollViewProxy) -> some View {
-    ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-      SinglePageImageView(
-        viewModel: viewModel,
-        pageIndex: pageIndex,
-        screenSize: screenSize,
-        isZoomed: $isZoomed
-      )
-      .frame(width: screenSize.width, height: screenSize.height)
-      .pageTapGesture(
-        size: screenSize,
-        readingDirection: readingDirection,
-        isZoomed: isZoomed,
-        liveTextActive: viewModel.liveTextActivePageIndex != nil,
-        onNextPage: goToNextPage,
-        onPreviousPage: goToPreviousPage,
-        onToggleControls: toggleControls
-      )
-      .id(pageIndex)
+      .id(index)
       .readerPageScrollTransition()
     }
-
-    ZStack {
-      readerBackground.color.readerIgnoresSafeArea()
-      EndPageView(
-        viewModel: viewModel,
-        nextBook: nextBook,
-        readList: readList,
-        onDismiss: onDismiss,
-        onNextBook: onNextBook,
-        readingDirection: readingDirection,
-        onFocusChange: onEndPageFocusChange
-      )
-    }
-    .frame(width: screenSize.width, height: screenSize.height)
-    .pageTapGesture(
-      size: screenSize,
-      readingDirection: readingDirection,
-      isZoomed: isZoomed,
-      liveTextActive: viewModel.liveTextActivePageIndex != nil,
-      onNextPage: goToNextPage,
-      onPreviousPage: goToPreviousPage,
-      onToggleControls: toggleControls
-    )
-    .id(viewModel.pages.count)
-    .readerPageScrollTransition()
   }
 
-  @ViewBuilder
   private func dualPageContent(proxy: ScrollViewProxy) -> some View {
     ForEach(Array(viewModel.pagePairs), id: \.self) { pagePair in
       Group {
@@ -271,28 +186,27 @@ struct PageView: View {
               firstPageIndex: pagePair.first,
               secondPageIndex: second,
               screenSize: screenSize,
-              isZoomed: $isZoomed
+              readingDirection: readingDirection,
+              isZoomed: $isZoomed,
+              onNextPage: goToNextPage,
+              onPreviousPage: goToPreviousPage,
+              onToggleControls: toggleControls
             )
           } else {
             SinglePageImageView(
               viewModel: viewModel,
               pageIndex: pagePair.first,
               screenSize: screenSize,
-              isZoomed: $isZoomed
+              readingDirection: readingDirection,
+              isZoomed: $isZoomed,
+              onNextPage: goToNextPage,
+              onPreviousPage: goToPreviousPage,
+              onToggleControls: toggleControls
             )
           }
         }
       }
       .frame(width: screenSize.width, height: screenSize.height)
-      .pageTapGesture(
-        size: screenSize,
-        readingDirection: readingDirection,
-        isZoomed: isZoomed,
-        liveTextActive: viewModel.liveTextActivePageIndex != nil,
-        onNextPage: goToNextPage,
-        onPreviousPage: goToPreviousPage,
-        onToggleControls: toggleControls
-      )
       .id(pagePair.first)
       .readerPageScrollTransition()
     }
@@ -329,15 +243,12 @@ struct PageView: View {
     guard !viewModel.pages.isEmpty else { return }
 
     let targetScrollPosition: Int
-    let pageIndexToUpdate: Int
 
     if mode.isDualPage {
       guard let targetPair = viewModel.dualPageIndices[newTarget] else { return }
       targetScrollPosition = targetPair.first
-      pageIndexToUpdate = targetPair.first
     } else {
       targetScrollPosition = min(newTarget, viewModel.pages.count)
-      pageIndexToUpdate = newTarget
     }
 
     if scrollPosition != targetScrollPosition {
@@ -349,30 +260,10 @@ struct PageView: View {
       }
     }
 
-    if viewModel.currentPageIndex != pageIndexToUpdate {
-      viewModel.currentPageIndex = pageIndexToUpdate
+    // Explicitly update progress
+    Task {
+      await viewModel.updateProgress()
+      await viewModel.preloadPages()
     }
   }
-
-  private func handleScrollPositionChange(_ target: Int?) {
-    guard hasSyncedInitialScroll, let target else { return }
-
-    let newPageIndex: Int
-
-    if mode.isDualPage {
-      guard target >= 0 else { return }
-      guard let targetPair = viewModel.dualPageIndices[target] else { return }
-      guard targetPair.first <= viewModel.pages.count else { return }
-      newPageIndex = targetPair.first
-    } else {
-      guard target >= 0, target <= viewModel.pages.count else { return }
-      newPageIndex = target
-    }
-
-    if viewModel.currentPageIndex != newPageIndex {
-      viewModel.currentPageIndex = newPageIndex
-      viewModel.targetPageIndex = nil
-    }
-  }
-
 }
