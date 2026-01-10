@@ -1,4 +1,4 @@
-.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch format
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch format localize
 
 # Configuration
 SCHEME = KMReader
@@ -17,6 +17,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "Format commands:"
 	@echo "  make format           - Format Swift files with swift-format"
+	@echo "  make localize         - Scan source code and update Localizable.xcstrings"
 	@echo ""
 	@echo "Build commands:"
 	@echo "  make build           - Build all platforms (iOS, macOS, tvOS)"
@@ -174,3 +175,9 @@ minor: ## Increment minor version (MARKETING_VERSION)
 format: ## Format Swift files with swift-format
 	@echo "$(GREEN)Formatting Swift files...$(NC)"
 	@find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./.build/*" | xargs swift-format -i
+
+localize: ## Scan source code and update Localizable.xcstrings
+	@echo "$(GREEN)Scanning source code for new strings...$(NC)"
+	@xcodebuild -exportLocalizations -localizationPath ./temp_localization -project $(PROJECT) -quiet
+	@rm -rf ./temp_localization
+	@echo "$(GREEN)Sync completed!$(NC)"

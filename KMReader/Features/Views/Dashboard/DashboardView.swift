@@ -22,6 +22,7 @@ struct DashboardView: View {
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @Environment(AuthViewModel.self) private var authViewModel
@@ -121,6 +122,10 @@ struct DashboardView: View {
     return dashboard.libraryIds.isEmpty || dashboard.libraryIds.contains(libraryId)
   }
 
+  private var selectedDensity: GridDensity {
+    GridDensity.closest(to: gridDensity)
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
@@ -145,7 +150,7 @@ struct DashboardView: View {
                 Button {
                   refreshDashboard(reason: "Manual tvOS button")
                 } label: {
-                  Label("Refresh", systemImage: "arrow.clockwise.circle")
+                  Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .disabled(isRefreshDisabled)
               }
@@ -220,7 +225,7 @@ struct DashboardView: View {
           Button {
             showLibraryPicker = true
           } label: {
-            Image(systemName: "books.vertical.circle")
+            Image(systemName: "books.vertical")
           }
         }
         ToolbarItem(placement: .confirmationAction) {
@@ -239,12 +244,35 @@ struct DashboardView: View {
             }
             .disabled(isCheckingConnection)
           } else {
-            Button {
-              refreshDashboard(reason: "Manual toolbar button")
+            Menu {
+              Picker(
+                selection: Binding(
+                  get: { GridDensity.closest(to: gridDensity) },
+                  set: { gridDensity = $0.rawValue }
+                )
+              ) {
+                ForEach(GridDensity.allCases, id: \.self) { density in
+                  Text(density.label).tag(density)
+                }
+              } label: {
+                Label(
+                  String(localized: "settings.appearance.gridDensity.label"),
+                  systemImage: "square.grid.2x2"
+                )
+              }
+              .pickerStyle(.menu)
+
+              Divider()
+
+              Button {
+                refreshDashboard(reason: "Manual toolbar button")
+              } label: {
+                Label(String(localized: "Refresh Dashboard"), systemImage: "arrow.clockwise")
+              }
+              .disabled(isRefreshDisabled)
             } label: {
-              Image(systemName: "arrow.clockwise.circle")
+              Image(systemName: "ellipsis")
             }
-            .disabled(isRefreshDisabled)
           }
         }
       }
