@@ -59,7 +59,7 @@
     }
 
     private var buttonStyle: AdaptiveButtonStyleType {
-      return .borderedProminent
+      return .bordered
     }
 
     var body: some View {
@@ -180,6 +180,7 @@
             Image(systemName: "xmark")
           }
           .controlSize(.large)
+          .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
@@ -190,10 +191,10 @@
             Button {
               showingBookDetailSheet = true
             } label: {
-              HStack {
+              HStack(spacing: 4) {
                 if incognito {
                   Image(systemName: "eye.slash.fill")
-                    .font(.title3)
+                    .font(.callout)
                 }
                 VStack(alignment: incognito ? .leading : .center, spacing: 4) {
                   if book.oneshot {
@@ -201,6 +202,7 @@
                       .lineLimit(2)
                   } else {
                     Text(book.seriesTitle)
+                      .foregroundStyle(.secondary)
                       .font(.caption)
                       .lineLimit(1)
                     Text("#\(book.metadata.number) - \(book.metadata.title)")
@@ -208,8 +210,8 @@
                   }
                 }
               }
-              .padding(.vertical, 4)
-              .padding(.horizontal, 8)
+              .padding(.vertical, 2)
+              .padding(.horizontal, 4)
             }
             .optimizedControlSize()
             .adaptiveButtonStyle(buttonStyle)
@@ -224,6 +226,7 @@
             Image(systemName: "gearshape")
           }
           .controlSize(.large)
+          .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
@@ -237,7 +240,7 @@
               // Total progress
               if let totalProgression = currentLocator.locations.totalProgression {
                 HStack(spacing: 6) {
-                  Image(systemName: "book.fill")
+                  Image(systemName: "bookmark")
                   Text("\(totalProgression * 100, specifier: "%.1f")%")
                     .monospacedDigit()
                 }
@@ -252,6 +255,7 @@
 
         Spacer()
       }
+      .tint(.primary)
       .padding()
       .iPadIgnoresSafeArea(paddingTop: 24)
       .opacity(shouldShowControls ? 1.0 : 0.0)

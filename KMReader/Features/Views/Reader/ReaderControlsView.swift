@@ -56,7 +56,7 @@ struct ReaderControlsView: View {
   }
 
   private var buttonStyle: AdaptiveButtonStyleType {
-    return .borderedProminent
+    return .bordered
   }
 
   private var progress: Double {
@@ -140,6 +140,7 @@ struct ReaderControlsView: View {
           Image(systemName: "xmark")
         }
         .controlSize(.large)
+        .buttonBorderShape(.circle)
         .adaptiveButtonStyle(buttonStyle)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         #if os(tvOS)
@@ -154,10 +155,10 @@ struct ReaderControlsView: View {
           Button {
             showingBookDetailSheet = true
           } label: {
-            HStack {
+            HStack(spacing: 4) {
               if incognito {
                 Image(systemName: "eye.slash.fill")
-                  .font(.title3)
+                  .font(.callout)
               }
               VStack(alignment: incognito ? .leading : .center, spacing: 4) {
                 if book.oneshot {
@@ -165,6 +166,7 @@ struct ReaderControlsView: View {
                     .lineLimit(2)
                 } else {
                   Text(book.seriesTitle)
+                    .foregroundStyle(.secondary)
                     .font(.caption)
                     .lineLimit(1)
                   Text("#\(book.metadata.number) - \(book.metadata.title)")
@@ -172,8 +174,8 @@ struct ReaderControlsView: View {
                 }
               }
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .padding(.horizontal, 4)
           }
           .optimizedControlSize()
           .adaptiveButtonStyle(buttonStyle)
@@ -182,30 +184,29 @@ struct ReaderControlsView: View {
 
         Spacer()
 
-        // Action buttons
-        HStack(spacing: PlatformHelper.buttonSpacing) {
-          // Reader settings button
-          Button {
-            showingReaderSettingsSheet = true
-          } label: {
-            Image(systemName: "gearshape")
-          }
-          .controlSize(.large)
-          .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          #if os(tvOS)
-            .focused($focusedControl, equals: .settings)
-          #endif
+        // Settings buttons
+        Button {
+          showingReaderSettingsSheet = true
+        } label: {
+          Image(systemName: "gearshape")
         }
+        .controlSize(.large)
+        .buttonBorderShape(.circle)
+        .adaptiveButtonStyle(buttonStyle)
+        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+        #if os(tvOS)
+          .focused($focusedControl, equals: .settings)
+        #endif
 
-      }.allowsHitTesting(true)
+      }
+      .allowsHitTesting(true)
 
       Spacer()
 
       // Bottom section with page info and slider
       VStack(spacing: 12) {
         // Page info display with navigation buttons
-        HStack(spacing: PlatformHelper.buttonSpacing) {
+        HStack {
           // Left button (previous for LTR, next for RTL)
           Button {
             if readingDirection == .rtl {
@@ -233,7 +234,7 @@ struct ReaderControlsView: View {
               $focusedControl, equals: readingDirection == .rtl ? .nextBook : .previousBook)
           #endif
 
-          Spacer()
+          Spacer(minLength: 0)
 
           #if os(iOS) || os(macOS)
             // Share button
@@ -242,7 +243,8 @@ struct ReaderControlsView: View {
             } label: {
               Image(systemName: "square.and.arrow.up")
             }
-            .contentShape(Rectangle())
+            .contentShape(Circle())
+            .buttonBorderShape(.circle)
             .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #endif
@@ -273,7 +275,8 @@ struct ReaderControlsView: View {
               Image(systemName: "list.bullet")
                 .padding(2)
             }
-            .contentShape(Rectangle())
+            .contentShape(Circle())
+            .buttonBorderShape(.circle)
             .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             #if os(tvOS)
@@ -281,7 +284,7 @@ struct ReaderControlsView: View {
             #endif
           }
 
-          Spacer()
+          Spacer(minLength: 0)
 
           // Right button (next for LTR, previous for RTL)
           Button {
@@ -319,6 +322,7 @@ struct ReaderControlsView: View {
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
       }
     }
+    .tint(.primary)
     .padding()
     .iPadIgnoresSafeArea(paddingTop: 24)
     .transition(.opacity)

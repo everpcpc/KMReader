@@ -31,7 +31,7 @@ struct ReaderSettingsSheet: View {
 
   var body: some View {
     SheetView(
-      title: String(localized: "Reader Settings"), size: .both, applyFormStyle: true
+      title: String(localized: "Reader Settings"), size: .large, applyFormStyle: true
     ) {
       Form {
 
