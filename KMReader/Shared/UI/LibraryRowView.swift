@@ -104,32 +104,29 @@ struct LibraryRowView: View {
 
     if let seriesCount = library.seriesCount {
       parts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.series", defaultValue: "%lld series"),
-          value: seriesCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.series", defaultValue: "%lld series"),
+            Int(seriesCount))))
     }
     if let booksCount = library.booksCount {
       parts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.books", defaultValue: "%lld books"),
-          value: booksCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.books", defaultValue: "%lld books"),
+            Int(booksCount))))
     }
     if let sidecarsCount = library.sidecarsCount {
       parts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.sidecars", defaultValue: "%lld sidecars"),
-          value: sidecarsCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.sidecars", defaultValue: "%lld sidecars"),
+            Int(sidecarsCount))))
     }
 
     return joinText(parts, separator: " · ")
   }
 
-  private func formatMetricCount(_ resource: LocalizedStringResource, value: Double) -> Text {
-    return Text(String.localizedStringWithFormat(String(localized: resource), Int(value)))
-  }
 
   private func joinText(_ parts: [Text], separator: String) -> Text? {
     guard let first = parts.first else { return nil }

@@ -48,10 +48,24 @@ make minor              # Increment minor version (MARKETING_VERSION)
 make major              # Increment major version (MARKETING_VERSION)
 ```
 
-### Development
+### Format
 
 ```bash
-open KMReader.xcodeproj # Open project in Xcode
+make format             # Format code
+```
+
+### Localization
+
+```bash
+make localize           # Update localizations
+```
+
+```bash
+# List missing translations
+./misc/translate.py list
+
+# Update translations for a key
+./misc/translate.py update <key>  --zh-hans <zh-hans> --zh-hant <zh-hant> --en <en> --fr <fr> --ja <ja> --ko <ko>
 ```
 
 ## Testing & Validation

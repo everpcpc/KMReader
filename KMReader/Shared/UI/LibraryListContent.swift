@@ -316,9 +316,6 @@ struct LibraryListContent: View {
       || library.sidecarsCount != nil
   }
 
-  private func formatMetricCount(_ resource: LocalizedStringResource, value: Double) -> Text {
-    return Text(String.localizedStringWithFormat(String(localized: resource), Int(value)))
-  }
 
   private func joinText(_ parts: [Text], separator: String) -> Text? {
     guard let first = parts.first else { return nil }
@@ -346,24 +343,24 @@ struct LibraryListContent: View {
     var firstLineParts: [Text] = []
     if let seriesCount = entry.seriesCount {
       firstLineParts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.series", defaultValue: "%lld series"),
-          value: seriesCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.series", defaultValue: "%lld series"),
+            Int(seriesCount))))
     }
     if let booksCount = entry.booksCount {
       firstLineParts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.books", defaultValue: "%lld books"),
-          value: booksCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.books", defaultValue: "%lld books"),
+            Int(booksCount))))
     }
     if let sidecarsCount = entry.sidecarsCount {
       firstLineParts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.sidecars", defaultValue: "%lld sidecars"),
-          value: sidecarsCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.sidecars", defaultValue: "%lld sidecars"),
+            Int(sidecarsCount))))
     }
     if let firstLine = joinText(firstLineParts, separator: " · ") {
       lines.append(firstLine)
@@ -373,17 +370,17 @@ struct LibraryListContent: View {
     var secondLineParts: [Text] = []
     if let collectionsCount = entry.collectionsCount {
       secondLineParts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.collections", defaultValue: "%lld collections"),
-          value: collectionsCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.collections", defaultValue: "%lld collections"),
+            Int(collectionsCount))))
     }
     if let readlistsCount = entry.readlistsCount {
       secondLineParts.append(
-        formatMetricCount(
-          LocalizedStringResource("library.list.metrics.readlists", defaultValue: "%lld read lists"),
-          value: readlistsCount
-        ))
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "library.list.metrics.readlists", defaultValue: "%lld read lists"),
+            Int(readlistsCount))))
     }
     if let secondLine = joinText(secondLineParts, separator: " · ") {
       lines.append(secondLine)

@@ -103,7 +103,7 @@ struct BookContextMenu: View {
             instanceId: currentInstanceId, info: book.downloadInfo)
           await MainActor.run {
             ErrorManager.shared.notify(
-              message: String(localized: downloadNotificationKey(for: previousStatus))
+              message: downloadNotificationMessage(for: previousStatus)
             )
           }
         }
@@ -207,14 +207,14 @@ struct BookContextMenu: View {
     }
   }
 
-  private func downloadNotificationKey(for status: DownloadStatus) -> LocalizedStringResource {
+  private func downloadNotificationMessage(for status: DownloadStatus) -> String {
     switch status {
     case .downloaded:
-      return LocalizedStringResource("notification.book.offlineRemoved", defaultValue: "Removed from offline")
+      return String(localized: "notification.book.offlineRemoved", defaultValue: "Removed from offline")
     case .pending:
-      return LocalizedStringResource("notification.book.downloadCancelled", defaultValue: "Download cancelled")
+      return String(localized: "notification.book.downloadCancelled", defaultValue: "Download cancelled")
     case .notDownloaded, .failed:
-      return LocalizedStringResource("notification.book.downloadQueued", defaultValue: "Download queued")
+      return String(localized: "notification.book.downloadQueued", defaultValue: "Download queued")
     }
   }
 
