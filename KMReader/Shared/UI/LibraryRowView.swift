@@ -105,24 +105,21 @@ struct LibraryRowView: View {
     if let seriesCount = library.seriesCount {
       parts.append(
         formatMetricCount(
-          key: "library.list.metrics.series",
-          defaultValue: "%lld series",
+          LocalizedStringResource("library.list.metrics.series", defaultValue: "%lld series"),
           value: seriesCount
         ))
     }
     if let booksCount = library.booksCount {
       parts.append(
         formatMetricCount(
-          key: "library.list.metrics.books",
-          defaultValue: "%lld books",
+          LocalizedStringResource("library.list.metrics.books", defaultValue: "%lld books"),
           value: booksCount
         ))
     }
     if let sidecarsCount = library.sidecarsCount {
       parts.append(
         formatMetricCount(
-          key: "library.list.metrics.sidecars",
-          defaultValue: "%lld sidecars",
+          LocalizedStringResource("library.list.metrics.sidecars", defaultValue: "%lld sidecars"),
           value: sidecarsCount
         ))
     }
@@ -130,9 +127,8 @@ struct LibraryRowView: View {
     return joinText(parts, separator: " · ")
   }
 
-  private func formatMetricCount(key: String, defaultValue: String, value: Double) -> Text {
-    let format = Bundle.main.localizedString(forKey: key, value: defaultValue, table: nil)
-    return Text(String.localizedStringWithFormat(format, Int(value)))
+  private func formatMetricCount(_ resource: LocalizedStringResource, value: Double) -> Text {
+    return Text(String.localizedStringWithFormat(String(localized: resource), Int(value)))
   }
 
   private func joinText(_ parts: [Text], separator: String) -> Text? {

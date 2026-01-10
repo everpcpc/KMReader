@@ -316,9 +316,8 @@ struct LibraryListContent: View {
       || library.sidecarsCount != nil
   }
 
-  private func formatMetricCount(key: String, defaultValue: String, value: Double) -> Text {
-    let format = Bundle.main.localizedString(forKey: key, value: defaultValue, table: nil)
-    return Text(String.localizedStringWithFormat(format, Int(value)))
+  private func formatMetricCount(_ resource: LocalizedStringResource, value: Double) -> Text {
+    return Text(String.localizedStringWithFormat(String(localized: resource), Int(value)))
   }
 
   private func joinText(_ parts: [Text], separator: String) -> Text? {
@@ -348,24 +347,21 @@ struct LibraryListContent: View {
     if let seriesCount = entry.seriesCount {
       firstLineParts.append(
         formatMetricCount(
-          key: "library.list.metrics.series",
-          defaultValue: "%lld series",
+          LocalizedStringResource("library.list.metrics.series", defaultValue: "%lld series"),
           value: seriesCount
         ))
     }
     if let booksCount = entry.booksCount {
       firstLineParts.append(
         formatMetricCount(
-          key: "library.list.metrics.books",
-          defaultValue: "%lld books",
+          LocalizedStringResource("library.list.metrics.books", defaultValue: "%lld books"),
           value: booksCount
         ))
     }
     if let sidecarsCount = entry.sidecarsCount {
       firstLineParts.append(
         formatMetricCount(
-          key: "library.list.metrics.sidecars",
-          defaultValue: "%lld sidecars",
+          LocalizedStringResource("library.list.metrics.sidecars", defaultValue: "%lld sidecars"),
           value: sidecarsCount
         ))
     }
@@ -378,16 +374,14 @@ struct LibraryListContent: View {
     if let collectionsCount = entry.collectionsCount {
       secondLineParts.append(
         formatMetricCount(
-          key: "library.list.metrics.collections",
-          defaultValue: "%lld collections",
+          LocalizedStringResource("library.list.metrics.collections", defaultValue: "%lld collections"),
           value: collectionsCount
         ))
     }
     if let readlistsCount = entry.readlistsCount {
       secondLineParts.append(
         formatMetricCount(
-          key: "library.list.metrics.readlists",
-          defaultValue: "%lld read lists",
+          LocalizedStringResource("library.list.metrics.readlists", defaultValue: "%lld read lists"),
           value: readlistsCount
         ))
     }
