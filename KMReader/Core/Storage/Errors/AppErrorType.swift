@@ -65,23 +65,32 @@ enum AppErrorType: Error, CustomStringConvertible, LocalizedError {
     case .invalidInput(let message):
       return String(format: String(localized: "error.invalidInput", defaultValue: "Invalid input: %@"), message)
     case .missingRequiredData(let message):
-      return String(format: String(localized: "error.missingRequiredData", defaultValue: "Missing required data: %@"), message)
+      return String(
+        format: String(localized: "error.missingRequiredData", defaultValue: "Missing required data: %@"), message)
     case .fileNotFound(let path):
       return String(format: String(localized: "error.fileNotFound", defaultValue: "File not found: %@"), path)
     case .fileReadError(let path, let reason):
-      return String(format: String(localized: "error.fileReadError", defaultValue: "Failed to read file %1$@: %2$@"), path, reason)
+      return String(
+        format: String(localized: "error.fileReadError", defaultValue: "Failed to read file %1$@: %2$@"), path, reason)
     case .fileWriteError(let path, let reason):
-      return String(format: String(localized: "error.fileWriteError", defaultValue: "Failed to write file %1$@: %2$@"), path, reason)
+      return String(
+        format: String(localized: "error.fileWriteError", defaultValue: "Failed to write file %1$@: %2$@"), path, reason
+      )
     case .invalidFileURL(let url):
       return String(format: String(localized: "error.invalidFileURL", defaultValue: "Invalid file URL: %@"), url)
     case .storageNotConfigured(let message):
-      return String(format: String(localized: "error.storageNotConfigured", defaultValue: "Storage not configured: %@"), message)
+      return String(
+        format: String(localized: "error.storageNotConfigured", defaultValue: "Storage not configured: %@"), message)
     case .storageOperationFailed(let message):
-      return String(format: String(localized: "error.storageOperationFailed", defaultValue: "Storage operation failed: %@"), message)
+      return String(
+        format: String(localized: "error.storageOperationFailed", defaultValue: "Storage operation failed: %@"), message
+      )
     case .dataCorrupted(let message):
       return String(format: String(localized: "error.dataCorrupted", defaultValue: "Data corrupted: %@"), message)
     case .networkUnavailable:
-      return String(localized: "error.networkUnavailable", defaultValue: "No internet connection. Please check your network settings.")
+      return String(
+        localized: "error.networkUnavailable",
+        defaultValue: "No internet connection. Please check your network settings.")
     case .networkTimeout:
       return String(localized: "error.networkTimeout", defaultValue: "Request timed out. Please try again later.")
     case .networkCancelled:
@@ -89,25 +98,36 @@ enum AppErrorType: Error, CustomStringConvertible, LocalizedError {
     case .networkError(let message):
       return String(format: String(localized: "error.networkError", defaultValue: "Network error: %@"), message)
     case .configurationError(let message):
-      return String(format: String(localized: "error.configurationError", defaultValue: "Configuration error: %@"), message)
+      return String(
+        format: String(localized: "error.configurationError", defaultValue: "Configuration error: %@"), message)
     case .invalidConfiguration(let message):
-      return String(format: String(localized: "error.invalidConfiguration", defaultValue: "Invalid configuration: %@"), message)
+      return String(
+        format: String(localized: "error.invalidConfiguration", defaultValue: "Invalid configuration: %@"), message)
     case .operationNotAllowed(let message):
-      return String(format: String(localized: "error.operationNotAllowed", defaultValue: "Operation not allowed: %@"), message)
+      return String(
+        format: String(localized: "error.operationNotAllowed", defaultValue: "Operation not allowed: %@"), message)
     case .resourceNotFound(let message):
-      return String(format: String(localized: "error.resourceNotFound", defaultValue: "Resource not found: %@"), message)
+      return String(
+        format: String(localized: "error.resourceNotFound", defaultValue: "Resource not found: %@"), message)
     case .operationFailed(let message):
       return String(format: String(localized: "error.operationFailed", defaultValue: "Operation failed: %@"), message)
     case .noRenderablePages:
       return String(localized: "error.noRenderablePages", defaultValue: "No renderable pages")
     case .manifestInvalidHref(let href):
-      return String(format: String(localized: "error.manifestInvalidHref", defaultValue: "Invalid manifest href: %@"), href)
+      return String(
+        format: String(localized: "error.manifestInvalidHref", defaultValue: "Invalid manifest href: %@"), href)
     case .manifestUnsupportedType(let type):
-      return String(format: String(localized: "error.manifestUnsupportedType", defaultValue: "Unsupported manifest resource type: %@"), type)
+      return String(
+        format: String(
+          localized: "error.manifestUnsupportedType", defaultValue: "Unsupported manifest resource type: %@"), type)
     case .manifestUnableToDecodeDocument(let href):
-      return String(format: String(localized: "error.manifestUnableToDecodeDocument", defaultValue: "Unable to decode XHTML document: %@"), href)
+      return String(
+        format: String(
+          localized: "error.manifestUnableToDecodeDocument", defaultValue: "Unable to decode XHTML document: %@"), href)
     case .manifestImageTagNotFound(let href):
-      return String(format: String(localized: "error.manifestImageTagNotFound", defaultValue: "No image tag found in XHTML document: %@"), href)
+      return String(
+        format: String(
+          localized: "error.manifestImageTagNotFound", defaultValue: "No image tag found in XHTML document: %@"), href)
     case .bookIdEmpty:
       return String(localized: "error.bookIdEmpty", defaultValue: "Book ID is empty")
     case .imageNotCached:
