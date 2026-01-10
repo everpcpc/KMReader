@@ -464,65 +464,44 @@
         if isAtBottomNow != isAtBottom {
           isAtBottom = isAtBottomNow
           onScrollToBottom?(isAtBottom)
-
-          if isAtBottomNow && pages.count > 0 {
-            let lastPageIndex = pages.count - 1
-            if let collectionView = collectionView {
-              let visibleIndexPaths = collectionView.indexPathsForVisibleItems
-                .filter { $0.item < pages.count }
-              if visibleIndexPaths.contains(where: { $0.item == lastPageIndex }) {
-                if currentPage != lastPageIndex {
-                  currentPage = lastPageIndex
-                  onPageChange?(lastPageIndex)
-                }
-              }
-            }
-          }
         }
       }
 
       private func updateCurrentPage() {
         guard let collectionView = collectionView else { return }
 
-        let visibleIndexPaths = collectionView.indexPathsForVisibleItems
-          .filter { $0.item < pages.count }
-          .sorted { $0.item < $1.item }
+        // When at bottom (showing end page), set currentPage to pages.count to show "END"
+        if isAtBottom {
+          if currentPage != pages.count {
+            currentPage = pages.count
+            onPageChange?(pages.count)
+          }
+          return
+        }
 
-        if pages.count > 0 {
-          let lastPageIndex = pages.count - 1
-          if visibleIndexPaths.contains(where: { $0.item == lastPageIndex }) {
-            let contentHeight = collectionView.contentSize.height
-            let scrollOffset = collectionView.contentOffset.y
-            let scrollViewHeight = collectionView.bounds.height
+        let scrollOffset = collectionView.contentOffset.y
+        let scrollViewHeight = collectionView.bounds.height
+        let viewportBottom = scrollOffset + scrollViewHeight
 
-            if scrollOffset + scrollViewHeight >= contentHeight - WebtoonConstants.bottomThreshold {
-              if currentPage != lastPageIndex {
-                currentPage = lastPageIndex
-                onPageChange?(lastPageIndex)
-                return
-              }
-            }
+        // Find the page whose bottom edge just passed the viewport bottom (with threshold)
+        // This means: find the highest page index where page.bottom <= viewportBottom + threshold
+        var newCurrentPage = 0
+        for pageIndex in 0..<pages.count {
+          let indexPath = IndexPath(item: pageIndex, section: 0)
+          guard let frame = collectionView.layoutAttributesForItem(at: indexPath)?.frame else {
+            continue
+          }
+          // Page is considered "read" when its bottom passes the viewport bottom
+          if frame.maxY <= viewportBottom + WebtoonConstants.bottomThreshold {
+            newCurrentPage = pageIndex
+          } else {
+            break
           }
         }
 
-        let centerY = collectionView.contentOffset.y + collectionView.bounds.height / 2
-        let centerPoint = CGPoint(x: collectionView.bounds.width / 2, y: centerY)
-
-        if let indexPath = collectionView.indexPathForItem(at: centerPoint),
-          indexPath.item != pages.count,
-          indexPath.item != currentPage,
-          isValidPageIndex(indexPath.item)
-        {
-          currentPage = indexPath.item
-          onPageChange?(indexPath.item)
-        } else {
-          if let firstVisible = visibleIndexPaths.first {
-            let midIndex = firstVisible.item + visibleIndexPaths.count / 2
-            if isValidPageIndex(midIndex) && midIndex != currentPage {
-              currentPage = midIndex
-              onPageChange?(midIndex)
-            }
-          }
+        if currentPage != newCurrentPage {
+          currentPage = newCurrentPage
+          onPageChange?(newCurrentPage)
         }
       }
 
