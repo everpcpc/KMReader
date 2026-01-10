@@ -12,6 +12,7 @@ struct OneShotDetailContentView: View {
   let book: Book
   let series: Series
   let downloadStatus: DownloadStatus?
+  let inSheet: Bool
 
   @State private var thumbnailRefreshKey = UUID()
 
@@ -249,11 +250,14 @@ struct OneShotDetailContentView: View {
       if let downloadStatus = downloadStatus {
         BookDownloadActionsSection(book: book, status: downloadStatus)
       }
-      Divider()
-      BookActionsSection(
-        book: book,
-        seriesLink: false
-      )
+
+      if !inSheet {
+        Divider()
+        BookActionsSection(
+          book: book,
+          seriesLink: false
+        )
+      }
 
       if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
         VStack(alignment: .leading, spacing: 8) {

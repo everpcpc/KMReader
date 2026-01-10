@@ -25,6 +25,7 @@ struct DivinaReaderView: View {
   @State private var viewModel = ReaderViewModel()
   @State private var showingControls = true
   @State private var controlsTimer: Timer?
+  @State private var currentSeries: Series?
   @State private var currentBook: Book?
   @State private var seriesId: String?
   @State private var nextBook: Book?
@@ -44,6 +45,7 @@ struct DivinaReaderView: View {
   @State private var showingPageJumpSheet = false
   @State private var showingTOCSheet = false
   @State private var showingReaderSettingsSheet = false
+  @State private var showingSeriesDetailSheet = false
   @State private var showingBookDetailSheet = false
 
   #if os(tvOS)
@@ -238,6 +240,74 @@ struct DivinaReaderView: View {
       #endif
     }
     .iPadIgnoresSafeArea()
+    .sheet(isPresented: $showingPageJumpSheet) {
+      PageJumpSheetView(
+        bookId: currentBookId,
+        totalPages: viewModel.pages.count,
+        currentPage: min(viewModel.currentPageIndex + 1, viewModel.pages.count),
+        readingDirection: readingDirection,
+        onJump: jumpToPage
+      )
+    }
+    .sheet(isPresented: $showingTOCSheet) {
+      ReaderTOCSheetView(
+        entries: viewModel.tableOfContents,
+        currentPageIndex: viewModel.currentPageIndex,
+        onSelect: { entry in
+          showingTOCSheet = false
+          jumpToTOCEntry(entry)
+        }
+      )
+    }
+    .sheet(isPresented: $showingReaderSettingsSheet) {
+      ReaderSettingsSheet(
+        readingDirection: $readingDirection,
+        pageLayout: $pageLayout,
+        dualPageNoCover: $dualPageNoCover
+      )
+    }
+    .sheet(isPresented: $showingSeriesDetailSheet) {
+      if let book = currentBook, let series = currentSeries {
+        SheetView(title: series.metadata.title, size: .large) {
+          ScrollView {
+            if series.oneshot {
+              OneShotDetailContentView(
+                book: book,
+                series: series,
+                downloadStatus: nil,
+                inSheet: true
+              )
+            } else {
+              SeriesDetailContentView(
+                series: series
+              ).padding(.horizontal)
+            }
+          }
+        }
+      }
+    }
+    .sheet(isPresented: $showingBookDetailSheet) {
+      if let book = currentBook, let series = currentSeries {
+        SheetView(title: book.metadata.title, size: .large) {
+          ScrollView {
+            if book.oneshot {
+              OneShotDetailContentView(
+                book: book,
+                series: series,
+                downloadStatus: nil,
+                inSheet: true
+              )
+            } else {
+              BookDetailContentView(
+                book: book,
+                downloadStatus: nil,
+                inSheet: true
+              ).padding(.horizontal)
+            }
+          }
+        }
+      }
+    }
     .onAppear {
       viewModel.updateDualPageSettings(noCover: dualPageNoCover)
       #if os(tvOS)
@@ -439,9 +509,11 @@ struct DivinaReaderView: View {
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
+      showingSeriesDetailSheet: $showingSeriesDetailSheet,
       showingBookDetailSheet: $showingBookDetailSheet,
       viewModel: viewModel,
       currentBook: currentBook,
+      currentSeries: currentSeries,
       bookId: currentBookId,
       dualPage: useDualPage,
       incognito: incognito,
@@ -624,6 +696,7 @@ struct DivinaReaderView: View {
       }
 
       if let series = series {
+        currentSeries = series
         let preferredDirection: ReadingDirection
         if AppConfig.forceDefaultReadingDirection {
           preferredDirection = AppConfig.defaultReadingDirection
@@ -686,6 +759,19 @@ struct DivinaReaderView: View {
       // Start timer to auto-hide controls shortly after entering reader
       resetControlsTimer(timeout: 1)
     #endif
+  }
+
+  private func jumpToPage(page: Int) {
+    guard !viewModel.pages.isEmpty else { return }
+    let clampedPage = min(max(page, 1), viewModel.pages.count)
+    let targetIndex = clampedPage - 1
+    if targetIndex != viewModel.currentPageIndex {
+      viewModel.targetPageIndex = targetIndex
+    }
+  }
+
+  private func jumpToTOCEntry(_ entry: ReaderTOCEntry) {
+    jumpToPage(page: entry.pageIndex + 1)
   }
 
   private func goToNextPage(dualPageEnabled: Bool) {

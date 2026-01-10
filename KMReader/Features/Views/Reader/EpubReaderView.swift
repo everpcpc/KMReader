@@ -28,9 +28,11 @@
     @State private var controlsTimer: Timer?
     @State private var showTapZoneOverlay = false
     @State private var overlayTimer: Timer?
+    @State private var currentSeries: Series?
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
+    @State private var showingSeriesDetailSheet = false
     @State private var showingBookDetailSheet = false
 
     init(
@@ -103,6 +105,20 @@
         currentBook = try await SyncService.shared.syncBook(bookId: bookId)
       } catch {
         // Silently fail
+      }
+
+      if let activeBook = currentBook {
+        var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
+        if series == nil && !AppConfig.isOffline {
+          do {
+            series = try await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
+          } catch {
+            // Silently fail
+          }
+        }
+        if let series = series {
+          currentSeries = series
+        }
       }
 
       await viewModel.load(bookId: bookId)
@@ -216,6 +232,14 @@
             .optimizedControlSize()
             .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            .simultaneousGesture(
+              LongPressGesture()
+                .onEnded { _ in
+                  if currentSeries != nil {
+                    showingSeriesDetailSheet = true
+                  }
+                }
+            )
           }
 
           Spacer()
@@ -277,15 +301,44 @@
           viewModel.applyPreferences(newPreferences, colorScheme: colorScheme)
         }
       }
+      .sheet(isPresented: $showingSeriesDetailSheet) {
+        if let book = currentBook, let series = currentSeries {
+          SheetView(title: series.metadata.title, size: .large) {
+            ScrollView {
+              if series.oneshot {
+                OneShotDetailContentView(
+                  book: book,
+                  series: series,
+                  downloadStatus: nil,
+                  inSheet: true
+                )
+              } else {
+                SeriesDetailContentView(
+                  series: series
+                ).padding(.horizontal)
+              }
+            }
+          }
+        }
+      }
       .sheet(isPresented: $showingBookDetailSheet) {
-        if let book = currentBook {
+        if let book = currentBook, let series = currentSeries {
           SheetView(title: book.metadata.title, size: .large) {
             ScrollView {
-              BookDetailContentView(
-                book: book,
-                downloadStatus: nil,
-                inSheet: true
-              ).padding(.horizontal)
+              if book.oneshot {
+                OneShotDetailContentView(
+                  book: book,
+                  series: series,
+                  downloadStatus: nil,
+                  inSheet: true
+                )
+              } else {
+                BookDetailContentView(
+                  book: book,
+                  downloadStatus: nil,
+                  inSheet: true
+                ).padding(.horizontal)
+              }
             }
           }
         }

@@ -68,7 +68,8 @@ struct OneshotDetailView: View {
           OneShotDetailContentView(
             book: book,
             series: series,
-            downloadStatus: downloadStatus
+            downloadStatus: downloadStatus,
+            inSheet: false
           )
 
           if let komgaSeries = komgaSeries {

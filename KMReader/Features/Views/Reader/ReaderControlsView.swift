@@ -18,10 +18,12 @@ struct ReaderControlsView: View {
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
   @Binding var showingReaderSettingsSheet: Bool
+  @Binding var showingSeriesDetailSheet: Bool
   @Binding var showingBookDetailSheet: Bool
 
   let viewModel: ReaderViewModel
   let currentBook: Book?
+  let currentSeries: Series?
   let bookId: String
   let dualPage: Bool
   let incognito: Bool
@@ -76,19 +78,6 @@ struct ReaderControlsView: View {
         return String(viewModel.currentPageIndex + 1)
       }
     }
-  }
-
-  private func jumpToPage(page: Int) {
-    guard !viewModel.pages.isEmpty else { return }
-    let clampedPage = min(max(page, 1), viewModel.pages.count)
-    let targetIndex = clampedPage - 1
-    if targetIndex != viewModel.currentPageIndex {
-      viewModel.targetPageIndex = targetIndex
-    }
-  }
-
-  private func jumpToTOCEntry(_ entry: ReaderTOCEntry) {
-    jumpToPage(page: entry.pageIndex + 1)
   }
 
   #if os(iOS) || os(macOS)
@@ -180,6 +169,14 @@ struct ReaderControlsView: View {
           .optimizedControlSize()
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          .simultaneousGesture(
+            LongPressGesture()
+              .onEnded { _ in
+                if currentSeries != nil {
+                  showingSeriesDetailSheet = true
+                }
+              }
+          )
         }
 
         Spacer()
@@ -346,47 +343,5 @@ struct ReaderControlsView: View {
       }
       .focusSection()
     #endif
-    .sheet(isPresented: $showingPageJumpSheet) {
-      PageJumpSheetView(
-        bookId: bookId,
-        totalPages: viewModel.pages.count,
-        currentPage: min(viewModel.currentPageIndex + 1, viewModel.pages.count),
-        readingDirection: readingDirection,
-        onJump: jumpToPage
-      )
-    }
-    .sheet(isPresented: $showingTOCSheet) {
-      ReaderTOCSheetView(
-        entries: viewModel.tableOfContents,
-        currentPageIndex: viewModel.currentPageIndex,
-        onSelect: { entry in
-          showingTOCSheet = false
-          jumpToTOCEntry(entry)
-        }
-      )
-    }
-    .sheet(isPresented: $showingReaderSettingsSheet) {
-      ReaderSettingsSheet(
-        readingDirection: $readingDirection,
-        pageLayout: $pageLayout,
-        dualPageNoCover: $dualPageNoCover
-      )
-    }
-    .sheet(isPresented: $showingBookDetailSheet) {
-      if let book = currentBook {
-        SheetView(title: book.metadata.title, size: .large) {
-          ScrollView {
-            BookDetailContentView(
-              book: book,
-              downloadStatus: nil,
-              inSheet: true
-            ).padding(.horizontal)
-          }
-        }
-      }
-    }
-    .onChange(of: dualPageNoCover) { _, newValue in
-      viewModel.updateDualPageSettings(noCover: newValue)
-    }
   }
 }
