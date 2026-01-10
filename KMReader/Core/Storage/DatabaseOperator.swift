@@ -44,7 +44,7 @@ actor DatabaseOperator {
   // MARK: - Book Operations
 
   func upsertBook(dto: Book, instanceId: String) {
-    let compositeId = "\(instanceId)_\(dto.id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       if existing.name != dto.name { existing.name = dto.name }
@@ -164,7 +164,7 @@ actor DatabaseOperator {
   }
 
   func deleteBook(id: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       modelContext.delete(existing)
@@ -229,21 +229,21 @@ actor DatabaseOperator {
 
   func fetchPages(id: String) -> [BookPage]? {
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     return try? modelContext.fetch(descriptor).first?.pages
   }
 
   func fetchTOC(id: String) -> [ReaderTOCEntry]? {
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     return try? modelContext.fetch(descriptor).first?.tableOfContents
   }
 
   func updateBookPages(bookId: String, pages: [BookPage]) {
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let book = try? modelContext.fetch(descriptor).first {
       book.pages = pages
@@ -252,7 +252,7 @@ actor DatabaseOperator {
 
   func updateBookTOC(bookId: String, toc: [ReaderTOCEntry]) {
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let book = try? modelContext.fetch(descriptor).first {
       book.tableOfContents = toc
@@ -262,7 +262,7 @@ actor DatabaseOperator {
   // MARK: - Series Operations
 
   func upsertSeries(dto: Series, instanceId: String) {
-    let compositeId = "\(instanceId)_\(dto.id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       if existing.name != dto.name { existing.name = dto.name }
@@ -409,7 +409,7 @@ actor DatabaseOperator {
   }
 
   func deleteSeries(id: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       modelContext.delete(existing)
@@ -427,7 +427,7 @@ actor DatabaseOperator {
   }
 
   func updateSeriesCollectionIds(seriesId: String, collectionIds: [String], instanceId: String) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       if existing.collectionIds != collectionIds {
@@ -437,7 +437,7 @@ actor DatabaseOperator {
   }
 
   func updateBookReadListIds(bookId: String, readListIds: [String], instanceId: String) {
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       if existing.readListIds != readListIds {
@@ -449,7 +449,7 @@ actor DatabaseOperator {
   // MARK: - Collection Operations
 
   func upsertCollection(dto: SeriesCollection, instanceId: String) {
-    let compositeId = "\(instanceId)_\(dto.id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
@@ -476,7 +476,7 @@ actor DatabaseOperator {
   }
 
   func deleteCollection(id: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
@@ -493,7 +493,7 @@ actor DatabaseOperator {
   // MARK: - ReadList Operations
 
   func upsertReadList(dto: ReadList, instanceId: String) {
-    let compositeId = "\(instanceId)_\(dto.id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       if existing.name != dto.name { existing.name = dto.name }
@@ -521,7 +521,7 @@ actor DatabaseOperator {
   }
 
   func deleteReadList(id: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(id)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       modelContext.delete(existing)
@@ -563,7 +563,7 @@ actor DatabaseOperator {
     downloadedSize: Int64? = nil,
     syncSeriesStatus: Bool = true
   ) {
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -588,7 +588,7 @@ actor DatabaseOperator {
     // Sync series status
     if syncSeriesStatus {
       let seriesId = book.seriesId
-      let compositeSeriesId = "\(instanceId)_\(seriesId)"
+      let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
       let seriesDescriptor = FetchDescriptor<KomgaSeries>(
         predicate: #Predicate { $0.id == compositeSeriesId }
       )
@@ -610,7 +610,7 @@ actor DatabaseOperator {
 
   func updateReadingProgress(bookId: String, page: Int, completed: Bool) {
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -654,7 +654,7 @@ actor DatabaseOperator {
   }
 
   func syncSeriesDownloadStatus(seriesId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let descriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -741,7 +741,7 @@ actor DatabaseOperator {
   }
 
   func downloadSeriesOffline(seriesId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -774,7 +774,7 @@ actor DatabaseOperator {
   }
 
   func downloadSeriesUnreadOffline(seriesId: String, instanceId: String, limit: Int) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -806,7 +806,7 @@ actor DatabaseOperator {
   }
 
   func removeSeriesOffline(seriesId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -838,7 +838,7 @@ actor DatabaseOperator {
   }
 
   func removeSeriesReadOffline(seriesId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -872,7 +872,7 @@ actor DatabaseOperator {
   }
 
   func toggleSeriesDownload(seriesId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let descriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -894,7 +894,7 @@ actor DatabaseOperator {
     limit: Int? = nil,
     syncSeriesStatus: Bool = true
   ) {
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let descriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -969,7 +969,7 @@ actor DatabaseOperator {
   }
 
   func syncReadListDownloadStatus(readListId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
     let descriptor = FetchDescriptor<KomgaReadList>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -1006,7 +1006,7 @@ actor DatabaseOperator {
 
     // Check series policy (if not excluded)
     if book.seriesId != excludeSeriesId {
-      let compositeSeriesId = "\(instanceId)_\(book.seriesId)"
+      let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: book.seriesId)
       let seriesDescriptor = FetchDescriptor<KomgaSeries>(
         predicate: #Predicate { $0.id == compositeSeriesId }
       )
@@ -1023,7 +1023,7 @@ actor DatabaseOperator {
   }
 
   func downloadReadListOffline(readListId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
     let readListDescriptor = FetchDescriptor<KomgaReadList>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -1052,7 +1052,7 @@ actor DatabaseOperator {
   }
 
   func downloadReadListUnreadOffline(readListId: String, instanceId: String, limit: Int) {
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
     let readListDescriptor = FetchDescriptor<KomgaReadList>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -1083,7 +1083,7 @@ actor DatabaseOperator {
   }
 
   func removeReadListOffline(readListId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
     let readListDescriptor = FetchDescriptor<KomgaReadList>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -1120,7 +1120,7 @@ actor DatabaseOperator {
   }
 
   func removeReadListReadOffline(readListId: String, instanceId: String) {
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
     let readListDescriptor = FetchDescriptor<KomgaReadList>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -1426,8 +1426,7 @@ actor DatabaseOperator {
 
   func getDownloadStatus(bookId: String) -> DownloadStatus {
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
-
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -1437,7 +1436,7 @@ actor DatabaseOperator {
   }
 
   func isBookReadCompleted(bookId: String, instanceId: String) -> Bool {
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
     )
@@ -1484,7 +1483,7 @@ actor DatabaseOperator {
   }
 
   func syncSeriesReadingStatus(seriesId: String, instanceId: String) {
-    let compositeSeriesId = "\(instanceId)_\(seriesId)"
+    let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     let seriesDescriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeSeriesId }
     )
@@ -1523,7 +1522,7 @@ actor DatabaseOperator {
     completed: Bool,
     progressionData: Data? = nil
   ) {
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<PendingProgress>(
       predicate: #Predicate { $0.id == compositeId }
     )

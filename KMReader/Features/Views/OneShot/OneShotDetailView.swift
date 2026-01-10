@@ -28,7 +28,7 @@ struct OneshotDetailView: View {
   init(seriesId: String) {
     self.seriesId = seriesId
     let instanceId = AppConfig.currentInstanceId
-    let seriesCompositeId = "\(instanceId)_\(seriesId)"
+    let seriesCompositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == seriesCompositeId })
     _komgaBookList = Query(
       filter: #Predicate<KomgaBook> { $0.instanceId == instanceId && $0.seriesId == seriesId })
@@ -355,7 +355,7 @@ struct OneshotDetailView: View {
             Button {
               markOneshotAsRead()
             } label: {
-              Label("Mark as Read", systemImage: "checkmark.circle")
+              Label("Mark as Read", systemImage: "checkmark")
             }
           }
 
@@ -381,10 +381,10 @@ struct OneshotDetailView: View {
         Button(role: .destructive) {
           clearCache()
         } label: {
-          Label("Clear Cache", systemImage: "xmark.circle")
+          Label("Clear Cache", systemImage: "xmark")
         }
       } label: {
-        Image(systemName: "ellipsis.circle")
+        Image(systemName: "ellipsis")
       }
       .toolbarButtonStyle()
     }

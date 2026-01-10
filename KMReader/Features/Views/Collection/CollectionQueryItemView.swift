@@ -22,8 +22,7 @@ struct CollectionQueryItemView: View {
     self.collectionId = collectionId
     self.layout = layout
 
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(collectionId)"
+    let compositeId = CompositeID.generate(id: collectionId)
     _komgaCollections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
   }
 

@@ -26,7 +26,7 @@ final class PendingProgress {
     completed: Bool,
     progressionData: Data? = nil
   ) {
-    self.id = "\(instanceId)_\(bookId)"
+    self.id = CompositeID.generate(instanceId: instanceId, id: bookId)
     self.instanceId = instanceId
     self.bookId = bookId
     self.page = page

@@ -26,7 +26,7 @@ struct SeriesSelectionItemView: View {
     self._selectedSeriesIds = selectedSeriesIds
 
     let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
   }
 
@@ -40,56 +40,39 @@ struct SeriesSelectionItemView: View {
 
   var body: some View {
     if let series = komgaSeries {
-      switch layout {
-      case .grid:
-        SeriesCardView(
-          komgaSeries: series
-        )
-        .focusPadding()
-        .allowsHitTesting(false)
-        .overlay(alignment: .topTrailing) {
-          Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-            .foregroundColor(isSelected ? .accentColor : .secondary)
-            .font(.title3)
-            .padding(8)
-            .background(Circle().fill(.ultraThinMaterial))
+      Group {
+        switch layout {
+        case .grid:
+          SeriesCardView(
+            komgaSeries: series
+          )
+          .focusPadding()
+        case .list:
+          SeriesRowView(
+            komgaSeries: series
+          )
         }
-        .contentShape(Rectangle())
-        .highPriorityGesture(
-          TapGesture().onEnded {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-              if isSelected {
-                selectedSeriesIds.remove(seriesId)
-              } else {
-                selectedSeriesIds.insert(seriesId)
-              }
-            }
-          }
-        )
-      case .list:
-        SeriesRowView(
-          komgaSeries: series
-        )
-        .allowsHitTesting(false)
-        .overlay(alignment: .trailing) {
-          Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-            .foregroundColor(isSelected ? .accentColor : .secondary)
-            .font(.title3)
-            .padding(.trailing, 16)
-        }
-        .contentShape(Rectangle())
-        .highPriorityGesture(
-          TapGesture().onEnded {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-              if isSelected {
-                selectedSeriesIds.remove(seriesId)
-              } else {
-                selectedSeriesIds.insert(seriesId)
-              }
-            }
-          }
-        )
       }
+      .allowsHitTesting(false)
+      .scaleEffect(isSelected ? 0.96 : 1.0)
+      .overlay {
+        if isSelected {
+          RoundedRectangle(cornerRadius: 12)
+            .stroke(Color.accentColor, lineWidth: 2)
+        }
+      }
+      .contentShape(Rectangle())
+      .highPriorityGesture(
+        TapGesture().onEnded {
+          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            if isSelected {
+              selectedSeriesIds.remove(seriesId)
+            } else {
+              selectedSeriesIds.insert(seriesId)
+            }
+          }
+        }
+      )
     }
   }
 }

@@ -24,8 +24,7 @@ struct BookDetailView: View {
 
   init(bookId: String) {
     self.bookId = bookId
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(id: bookId)
     _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
   }
 
@@ -294,7 +293,7 @@ struct BookDetailView: View {
             Button {
               markBookAsRead()
             } label: {
-              Label("Mark as Read", systemImage: "checkmark.circle")
+              Label("Mark as Read", systemImage: "checkmark")
             }
           }
 
@@ -320,10 +319,10 @@ struct BookDetailView: View {
         Button(role: .destructive) {
           clearCache()
         } label: {
-          Label("Clear Cache", systemImage: "xmark.circle")
+          Label("Clear Cache", systemImage: "xmark")
         }
       } label: {
-        Image(systemName: "ellipsis.circle")
+        Image(systemName: "ellipsis")
       }
       .toolbarButtonStyle()
     }

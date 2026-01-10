@@ -26,8 +26,7 @@ struct ReadListDetailView: View {
 
   init(readListId: String) {
     self.readListId = readListId
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(id: readListId)
     _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
   }
 
@@ -150,7 +149,7 @@ extension ReadListDetailView {
       Button {
         showSavedFilters = true
       } label: {
-        Image(systemName: "bookmark.circle")
+        Image(systemName: "bookmark")
       }
 
       Button {
@@ -176,7 +175,7 @@ extension ReadListDetailView {
           }
         }
       } label: {
-        Image(systemName: "ellipsis.circle")
+        Image(systemName: "ellipsis")
       }
     }.toolbarButtonStyle()
   }

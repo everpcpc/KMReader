@@ -146,7 +146,7 @@ struct BrowseView: View {
             Button {
               showLibraryPicker = true
             } label: {
-              Image(systemName: "books.vertical.circle")
+              Image(systemName: "books.vertical")
             }
           }
         }
@@ -157,7 +157,7 @@ struct BrowseView: View {
               Button {
                 showSavedFilters = true
               } label: {
-                Image(systemName: "bookmark.circle")
+                Image(systemName: "bookmark")
               }
             }
             Button {

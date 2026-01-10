@@ -40,8 +40,7 @@ struct BooksListViewForReadList: View {
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
 
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(id: readListId)
     _readLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
   }
 
@@ -85,9 +84,9 @@ struct BooksListViewForReadList: View {
                 isSelectionMode = true
               }
             } label: {
-              Image(systemName: "square.and.pencil.circle")
+              Image(systemName: "square.and.pencil")
             }
-            .adaptiveButtonStyle(.bordered)
+            .adaptiveButtonStyle(.borderedProminent)
             .optimizedControlSize()
             .transition(.opacity.combined(with: .scale))
           }

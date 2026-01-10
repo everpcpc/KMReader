@@ -90,8 +90,7 @@ enum KomgaBookStore {
   }
 
   static func fetchBook(context: ModelContext, id: String) -> Book? {
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(id)"
+    let compositeId = CompositeID.generate(id: id)
 
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
@@ -108,7 +107,7 @@ enum KomgaBookStore {
     browseOpts: ReadListBookBrowseOptions
   ) -> [Book] {
     let instanceId = AppConfig.currentInstanceId
-    let rlCompositeId = "\(instanceId)_\(readListId)"
+    let rlCompositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
 
     let descriptor = FetchDescriptor<KomgaReadList>(
       predicate: #Predicate { $0.id == rlCompositeId })
@@ -450,8 +449,7 @@ enum KomgaBookStore {
 
   /// Get download status - uses context for internal lookup
   static func getDownloadStatus(context: ModelContext, bookId: String) -> DownloadStatus {
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(id: bookId)
 
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }

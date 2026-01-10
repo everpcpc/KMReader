@@ -69,7 +69,7 @@ struct SettingsOfflineBooksView: View {
       // Batch fetch all series at once
       let instanceId = AppConfig.currentInstanceId
       let seriesIds = Set(seriesGroupsMap.keys)
-      let compositeIds = seriesIds.map { "\(instanceId)_\($0)" }
+      let compositeIds = seriesIds.map { CompositeID.generate(instanceId: instanceId, id: $0) }
       let seriesDescriptor = FetchDescriptor<KomgaSeries>(
         predicate: #Predicate { compositeIds.contains($0.id) })
       let allSeries = (try? modelContext.fetch(seriesDescriptor)) ?? []

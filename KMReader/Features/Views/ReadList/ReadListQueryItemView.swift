@@ -22,8 +22,7 @@ struct ReadListQueryItemView: View {
     self.readListId = readListId
     self.layout = layout
 
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(readListId)"
+    let compositeId = CompositeID.generate(id: readListId)
     _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
   }
 

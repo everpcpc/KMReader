@@ -26,8 +26,7 @@ struct CollectionDetailView: View {
 
   init(collectionId: String) {
     self.collectionId = collectionId
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(collectionId)"
+    let compositeId = CompositeID.generate(id: collectionId)
     _komgaCollections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
   }
 
@@ -142,7 +141,7 @@ extension CollectionDetailView {
       Button {
         showSavedFilters = true
       } label: {
-        Image(systemName: "bookmark.circle")
+        Image(systemName: "bookmark")
       }
 
       Button {
@@ -174,7 +173,7 @@ extension CollectionDetailView {
         }
       }
     } label: {
-      Image(systemName: "ellipsis.circle")
+      Image(systemName: "ellipsis")
     }
   }
 }

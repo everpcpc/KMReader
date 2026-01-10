@@ -29,8 +29,7 @@ struct SeriesDetailView: View {
 
   init(seriesId: String) {
     self.seriesId = seriesId
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(id: seriesId)
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
   }
 
@@ -262,7 +261,7 @@ extension SeriesDetailView {
       Button {
         showSavedFilters = true
       } label: {
-        Image(systemName: "bookmark.circle")
+        Image(systemName: "bookmark")
       }
 
       Button {
@@ -309,7 +308,7 @@ extension SeriesDetailView {
             Button {
               markSeriesAsRead()
             } label: {
-              Label("Mark as Read", systemImage: "checkmark.circle")
+              Label("Mark as Read", systemImage: "checkmark")
             }
           }
 
@@ -332,7 +331,7 @@ extension SeriesDetailView {
           }
         }
       } label: {
-        Image(systemName: "ellipsis.circle")
+        Image(systemName: "ellipsis")
       }
     }.toolbarButtonStyle()
   }

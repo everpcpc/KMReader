@@ -30,8 +30,7 @@ struct BookQueryItemView: View {
     self.showSeriesTitle = showSeriesTitle
     self.showSeriesNavigation = showSeriesNavigation
 
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(bookId)"
+    let compositeId = CompositeID.generate(id: bookId)
     _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
   }
 

@@ -231,8 +231,7 @@ enum KomgaSeriesStore {
   }
 
   static func fetchOne(context: ModelContext, seriesId: String) -> Series? {
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(id: seriesId)
 
     let descriptor = FetchDescriptor<KomgaSeries>(
       predicate: #Predicate { $0.id == compositeId }
@@ -249,7 +248,7 @@ enum KomgaSeriesStore {
     browseOpts: CollectionSeriesBrowseOptions
   ) -> [Series] {
     let instanceId = AppConfig.currentInstanceId
-    let collectionCompositeId = "\(instanceId)_\(collectionId)"
+    let collectionCompositeId = CompositeID.generate(instanceId: instanceId, id: collectionId)
 
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == collectionCompositeId })

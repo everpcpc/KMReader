@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class KomgaCollection {
-  @Attribute(.unique) var id: String  // Composite ID: "\(instanceId)_\(collectionId)"
+  @Attribute(.unique) var id: String  // Composite: CompositeID.generate
 
   var collectionId: String
   var instanceId: String
@@ -34,7 +34,7 @@ final class KomgaCollection {
     filtered: Bool,
     seriesIds: [String] = []
   ) {
-    self.id = id ?? "\(instanceId)_\(collectionId)"
+    self.id = id ?? CompositeID.generate(instanceId: instanceId, id: collectionId)
     self.collectionId = collectionId
     self.instanceId = instanceId
     self.name = name

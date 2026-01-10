@@ -23,8 +23,7 @@ struct SeriesQueryItemView: View {
     self.seriesId = seriesId
     self.layout = layout
 
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_\(seriesId)"
+    let compositeId = CompositeID.generate(id: seriesId)
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
   }
 

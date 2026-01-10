@@ -80,7 +80,7 @@ struct SavedFiltersView: View {
         applyFilterDirectly(filter)
         dismiss()
       } label: {
-        Image(systemName: "line.3.horizontal.decrease.circle.fill")
+        Image(systemName: "arrowshape.turn.up.forward")
           .foregroundColor(.accentColor)
       }
       .adaptiveButtonStyle(.plain)
@@ -107,7 +107,7 @@ struct SavedFiltersView: View {
         applyFilterDirectly(filter)
         dismiss()
       } label: {
-        Label("Apply Filter", systemImage: "line.3.horizontal.decrease.circle.fill")
+        Label("Apply Filter", systemImage: "arrowshape.turn.up.forward")
       }
 
       Button {

@@ -40,8 +40,7 @@ struct CollectionSeriesListView: View {
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
 
-    let instanceId = AppConfig.currentInstanceId
-    let compositeId = "\(instanceId)_" + collectionId
+    let compositeId = CompositeID.generate(id: collectionId)
     _collections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
   }
 
@@ -74,9 +73,9 @@ struct CollectionSeriesListView: View {
                 isSelectionMode = true
               }
             } label: {
-              Image(systemName: "square.and.pencil.circle")
+              Image(systemName: "square.and.pencil")
             }
-            .adaptiveButtonStyle(.bordered)
+            .adaptiveButtonStyle(.borderedProminent)
             .optimizedControlSize()
             .transition(.opacity.combined(with: .scale))
           }
