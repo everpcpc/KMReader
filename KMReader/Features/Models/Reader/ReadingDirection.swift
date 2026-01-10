@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-enum ReadingDirection: String, CaseIterable, Hashable {
+enum ReadingDirection: String, CaseIterable, Hashable, Codable {
   case ltr = "LEFT_TO_RIGHT"
   case rtl = "RIGHT_TO_LEFT"
   case vertical = "VERTICAL"
