@@ -17064,12 +17064,6 @@
             "value" : "Live Text"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "实况文本"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17088,10 +17082,96 @@
             "value" : "라이브 텍스트"
           }
         },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实况文本"
+          }
+        },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "實況文字"
+            "value" : "實況文本"
+          }
+        }
+      }
+    },
+    "Live Text: OFF" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Text: OFF"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte en direct : DÉSACTIVÉ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキスト認識表示：オフ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "라이브 텍스트: 끔"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实况文本：关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "實況文本：關閉"
+          }
+        }
+      }
+    },
+    "Live Text: ON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Text: ON"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte en direct : ACTIVÉ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキスト認識表示：オン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "라이브 텍스트: 켬"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实况文本：开启"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "實況文本：開啟"
           }
         }
       }
@@ -30974,12 +31054,6 @@
             "value" : "Shake to Open Live Text"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "摇一摇打开实况文本"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30998,10 +31072,16 @@
             "value" : "흔들어서 라이브 텍스트 열기"
           }
         },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "摇一摇打开实况文本"
+          }
+        },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "搖一搖開啟實況文字"
+            "value" : "搖一搖打開實況文本"
           }
         }
       }
@@ -31014,16 +31094,10 @@
             "value" : "Shake your device to toggle Live Text"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "摇动设备以切换实况文本"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Secouez votre appareil pour basculer Texte en direct"
+            "value" : "Secouez votre appareil pour basculer le Texte en direct"
           }
         },
         "ja" : {
@@ -31035,13 +31109,19 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "디바이스를 흔들어 라이브 텍스트 전환"
+            "value" : "기기를 흔들어 라이브 텍스트 전환"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "摇晃设备来切换实况文本"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "搖動裝置以切換實況文字"
+            "value" : "搖晃設備來切換實況文本"
           }
         }
       }
