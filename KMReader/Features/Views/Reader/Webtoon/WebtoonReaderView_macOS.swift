@@ -146,6 +146,7 @@
       var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
       var keyMonitor: Any?
+      var lastScrollTime: TimeInterval = 0
 
       init(_ parent: WebtoonReaderView) {
         self.parent = parent
@@ -371,6 +372,7 @@
       @objc func scrollViewDidScroll(_ notification: Notification) {
         guard let sv = scrollView else { return }
         isUserScrolling = true
+        lastScrollTime = Date().timeIntervalSinceReferenceDate
         checkIfAtBottom(sv)
         updateCurrentPage()
       }
@@ -474,6 +476,11 @@
 
       @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
         guard !isLongPress else { return }
+
+        if isUserScrolling { return }
+
+        if Date().timeIntervalSinceReferenceDate - lastScrollTime < 0.25 { return }
+
         guard let sv = scrollView, let window = sv.window else { return }
 
         if disableTapToTurnPage {

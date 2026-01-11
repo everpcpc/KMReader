@@ -15,6 +15,8 @@ struct SettingsApiKeyView: View {
   @State private var showingDeleteConfirmation = false
   @State private var lastActivities: [String: Date] = [:]
 
+  @State private var showRelativeDate = true
+
   var body: some View {
     Form {
       Section {
@@ -64,8 +66,25 @@ struct SettingsApiKeyView: View {
                   Image(systemName: "clock")
                   Text("Recent activity")
                     .foregroundColor(.secondary.opacity(0.6))
-                  Text(lastActivity, style: .relative)
-                    .monospacedDigit()
+                  if showRelativeDate {
+                    Button {
+                      withAnimation {
+                        showRelativeDate = false
+                      }
+                    } label: {
+                      Text(lastActivity.formatted(.relative(presentation: .named)))
+                        .monospacedDigit()
+                    }.adaptiveButtonStyle(.plain)
+                  } else {
+                    Button {
+                      withAnimation {
+                        showRelativeDate = true
+                      }
+                    } label: {
+                      Text(formatTime(lastActivity))
+                        .monospacedDigit()
+                    }.adaptiveButtonStyle(.plain)
+                  }
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
