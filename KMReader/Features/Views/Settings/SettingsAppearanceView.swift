@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
@@ -62,6 +63,15 @@ struct SettingsAppearanceView: View {
 
       #if os(iOS) || os(tvOS)
         Section(header: Text(String(localized: "settings.appearance.theme"))) {
+          Picker(
+            String(localized: "settings.appearance.colorScheme.title"),
+            selection: $appColorScheme
+          ) {
+            ForEach(AppColorScheme.allCases) { scheme in
+              Text(scheme.label).tag(scheme)
+            }
+          }
+
           #if os(iOS)
             ColorPicker(
               String(localized: "settings.appearance.color"),

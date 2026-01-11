@@ -28,6 +28,7 @@ struct MainApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
   #endif
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
   #if os(macOS)
     @Environment(\.openWindow) private var openWindow
   #endif
@@ -86,6 +87,7 @@ struct MainApp: App {
         .environment(readerPresentation)
         .environment(dashboardSectionCacheStore)
         .modelContainer(modelContainer)
+        .preferredColorScheme(appColorScheme.colorScheme)
     }
     #if os(macOS)
       WindowGroup(id: "reader") {
@@ -93,6 +95,7 @@ struct MainApp: App {
           .environment(authViewModel)
           .environment(readerPresentation)
           .modelContainer(modelContainer)
+          .preferredColorScheme(appColorScheme.colorScheme)
       }
       .windowToolbarStyle(.unifiedCompact)
       .defaultSize(width: 1200, height: 800)
@@ -101,6 +104,7 @@ struct MainApp: App {
         SettingsView_macOS()
           .environment(authViewModel)
           .modelContainer(modelContainer)
+          .preferredColorScheme(appColorScheme.colorScheme)
       }
       .windowToolbarStyle(.unifiedCompact)
       .defaultSize(width: 800, height: 600)
