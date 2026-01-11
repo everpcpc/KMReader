@@ -168,17 +168,10 @@ struct DashboardView: View {
         }.padding()
 
         ForEach(dashboard.sections, id: \.id) { section in
-          if section.isLocalSection {
-            DashboardLocalSectionView(
-              section: section,
-              refreshTrigger: refreshTrigger
-            )
-          } else {
-            DashboardSectionView(
-              section: section,
-              refreshTrigger: refreshTrigger
-            )
-          }
+          DashboardSectionView(
+            section: section,
+            refreshTrigger: refreshTrigger
+          )
         }
       }
       .padding(.vertical)

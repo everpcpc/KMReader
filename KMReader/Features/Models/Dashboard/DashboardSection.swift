@@ -12,8 +12,6 @@ import SwiftUI
 enum DashboardSection: String, CaseIterable, Identifiable, Codable {
   case keepReading = "keepReading"
   case onDeck = "onDeck"
-  case collections = "collections"
-  case readLists = "readLists"
   case recentlyReleasedBooks = "recentlyReleasedBooks"
   case recentlyAddedBooks = "recentlyAddedBooks"
   case recentlyAddedSeries = "recentlyAddedSeries"
@@ -38,10 +36,6 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
       return String(localized: "dashboard.recentlyAddedSeries")
     case .recentlyReadBooks:
       return String(localized: "dashboard.recentlyReadBooks")
-    case .collections:
-      return String(localized: "dashboard.collections")
-    case .readLists:
-      return String(localized: "dashboard.readLists")
     }
   }
 
@@ -61,10 +55,6 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
       return "square.stack.3d.up.fill"
     case .recentlyReadBooks:
       return "checkmark.circle.fill"
-    case .collections:
-      return "square.stack.3d.down.right"
-    case .readLists:
-      return "list.bullet.rectangle"
     }
   }
 
@@ -72,16 +62,7 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
     switch self {
     case .keepReading, .onDeck, .recentlyReadBooks, .recentlyReleasedBooks, .recentlyAddedBooks:
       return true
-    case .recentlyUpdatedSeries, .recentlyAddedSeries, .collections, .readLists:
-      return false
-    }
-  }
-
-  var isLocalSection: Bool {
-    switch self {
-    case .collections, .readLists:
-      return true
-    default:
+    case .recentlyUpdatedSeries, .recentlyAddedSeries:
       return false
     }
   }
