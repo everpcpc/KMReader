@@ -44,10 +44,10 @@ enum SettingsSection: String, CaseIterable {
       return "book.pages"
     case .sse:
       return "antenna.radiowaves.left.and.right"
-    case .logs:
-      return "doc.text.magnifyingglass"
     case .network:
       return "network"
+    case .logs:
+      return "doc.text.magnifyingglass"
 
     case .offlineTasks:
       return "tray.and.arrow.down"
@@ -89,10 +89,10 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Reader")
     case .sse:
       return String(localized: "Real-time Updates")
-    case .logs:
-      return String(localized: "Logs")
     case .network:
       return String(localized: "Network")
+    case .logs:
+      return String(localized: "Logs")
 
     case .offlineTasks:
       return String(localized: "Download Tasks")

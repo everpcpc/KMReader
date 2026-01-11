@@ -31,8 +31,8 @@ enum NavDestination: Hashable {
   case settingsCache
   case settingsReader
   case settingsSSE
-  case settingsLogs
   case settingsNetwork
+  case settingsLogs
 
   case settingsOfflineTasks
   case settingsOfflineBooks
@@ -91,10 +91,10 @@ enum NavDestination: Hashable {
       SettingsReaderView()
     case .settingsSSE:
       SettingsSSEView()
-    case .settingsLogs:
-      SettingsLogsView()
     case .settingsNetwork:
       SettingsNetworkView()
+    case .settingsLogs:
+      SettingsLogsView()
 
     case .settingsOfflineTasks:
       SettingsOfflineTasksView()
