@@ -396,25 +396,53 @@ actor ThumbnailCache {
     maxCacheSize: Int
   ) async {
     let maxSize = Int64(maxCacheSize) * 1024 * 1024
+    let targetSize = maxSize * 80 / 100
     let (_, fileInfo, totalSize) = collectFileInfo(
       at: diskCacheURL,
       fileManager: fileManager,
       includeDate: true
     )
 
+    // Check validity state BEFORE deleting to decide strategy
+    let (_, _, isValid) = await cacheSizeActor.get()
+
     if totalSize > maxSize {
       let oldestFirst = fileInfo.sorted {
         ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast)
       }
       var currentSize = totalSize
+      var bytesDeleted: Int64 = 0
+      var filesDeleted = 0
+
       for info in oldestFirst {
-        if currentSize <= maxSize { break }
-        try? fileManager.removeItem(at: info.url)
-        currentSize -= info.size
+        if currentSize <= targetSize { break }
+
+        do {
+          try fileManager.removeItem(at: info.url)
+          bytesDeleted += info.size
+          filesDeleted += 1
+          currentSize -= info.size
+        } catch {
+          // Failed to delete (maybe race condition or permission).
+          // Do not update counts for this file.
+        }
       }
-      await cacheSizeActor.invalidate()
+
+      if isValid {
+        await cacheSizeActor.updateSize(delta: -bytesDeleted)
+        await cacheSizeActor.updateCount(delta: -filesDeleted)
+      } else {
+        // If invalid, we must set the absolute value.
+        // We use our scanned values minus what WE deleted.
+        await cacheSizeActor.set(size: totalSize - bytesDeleted, count: fileInfo.count - filesDeleted)
+      }
     } else {
-      await cacheSizeActor.set(size: totalSize, count: fileInfo.count)
+      // scanned size is within limits.
+      // IF cache was valid, we do NOTHING (to avoid overwriting concurrent writes).
+      // IF cache was invalid, we set it (sync).
+      if !isValid {
+        await cacheSizeActor.set(size: totalSize, count: fileInfo.count)
+      }
     }
   }
 }

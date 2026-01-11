@@ -317,26 +317,49 @@ actor ImageCache {
       includeDate: true
     )
 
+    // Check validity state BEFORE deleting to decide strategy
+    let (_, _, isValid) = await cacheSizeActor.get()
+
     if totalSize > maxSize {
       // Sort by date (oldest first) and remove until under target
       let sortedFiles = fileInfo.sorted {
         ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast)
       }
       var currentSize = totalSize
-      var deletedCount = 0
-      for fileInfo in sortedFiles {
+      var bytesDeleted: Int64 = 0
+      var filesDeleted = 0
+
+      for file in sortedFiles {
         if currentSize <= targetSize {
           break
         }
-        try? fileManager.removeItem(at: fileInfo.url)
-        currentSize -= fileInfo.size
-        deletedCount += 1
+
+        do {
+          try fileManager.removeItem(at: file.url)
+          bytesDeleted += file.size
+          filesDeleted += 1
+          currentSize -= file.size
+        } catch {
+          // Failed to delete (maybe race condition or permission).
+          // Do not update counts for this file.
+        }
       }
-      // Update cache with new size and count after cleanup
-      await cacheSizeActor.set(size: currentSize, count: fileInfo.count - deletedCount)
+
+      if isValid {
+        await cacheSizeActor.updateSize(delta: -bytesDeleted)
+        await cacheSizeActor.updateCount(delta: -filesDeleted)
+      } else {
+        // If invalid, we must set the absolute value.
+        // We use our scanned values minus what WE deleted.
+        await cacheSizeActor.set(size: totalSize - bytesDeleted, count: fileInfo.count - filesDeleted)
+      }
     } else {
-      // Update cache with calculated size and count
-      await cacheSizeActor.set(size: totalSize, count: fileInfo.count)
+      // scanned size is within limits.
+      // IF cache was valid, we do NOTHING (to avoid overwriting concurrent writes).
+      // IF cache was invalid, we set it (sync).
+      if !isValid {
+        await cacheSizeActor.set(size: totalSize, count: fileInfo.count)
+      }
     }
   }
 
