@@ -9,28 +9,27 @@ import SwiftData
 import SwiftUI
 
 struct LibraryPickerSheet: View {
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
   @State private var isRefreshing = false
 
   private let metricsLoader = LibraryMetricsLoader.shared
 
   private var libraries: [KomgaLibrary] {
-    guard !currentInstanceId.isEmpty else {
+    guard !current.instanceId.isEmpty else {
       return []
     }
     return allLibraries.filter {
-      $0.instanceId == currentInstanceId && $0.libraryId != KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
     }
   }
 
   private var allLibrariesEntry: KomgaLibrary? {
-    guard !currentInstanceId.isEmpty else {
+    guard !current.instanceId.isEmpty else {
       return nil
     }
     return allLibraries.first {
-      $0.instanceId == currentInstanceId && $0.libraryId == KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibrary.allLibrariesId
     }
   }
 
@@ -59,12 +58,12 @@ struct LibraryPickerSheet: View {
 
     await LibraryManager.shared.refreshLibraries()
 
-    if isAdmin, !currentInstanceId.isEmpty {
+    if current.isAdmin, !current.instanceId.isEmpty {
       let libraryIds = libraries.map { $0.libraryId }
       let hasAllEntry = allLibrariesEntry != nil
 
       let metricsByLibrary = await metricsLoader.refreshMetrics(
-        instanceId: currentInstanceId,
+        instanceId: current.instanceId,
         libraryIds: libraryIds,
         ensureAllLibrariesEntry: hasAllEntry
       )

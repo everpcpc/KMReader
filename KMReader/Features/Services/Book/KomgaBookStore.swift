@@ -19,7 +19,7 @@ enum KomgaBookStore {
     size: Int,
     browseOpts: BookBrowseOptions
   ) -> [Book] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
 
     var descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
@@ -106,7 +106,7 @@ enum KomgaBookStore {
     size: Int,
     browseOpts: ReadListBookBrowseOptions
   ) -> [Book] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let rlCompositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
 
     let descriptor = FetchDescriptor<KomgaReadList>(
@@ -165,7 +165,7 @@ enum KomgaBookStore {
     size: Int,
     sort: String?
   ) -> [Book] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds ?? []
 
     var descriptor = FetchDescriptor<KomgaBook>()
@@ -236,7 +236,7 @@ enum KomgaBookStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds ?? []
     var descriptor = FetchDescriptor<KomgaBook>()
 
@@ -321,7 +321,7 @@ enum KomgaBookStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaBook>()
 
@@ -355,7 +355,7 @@ enum KomgaBookStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaBook>()
 
@@ -387,7 +387,7 @@ enum KomgaBookStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaBook>()
 
@@ -421,7 +421,7 @@ enum KomgaBookStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaBook>()
 
@@ -467,7 +467,7 @@ enum KomgaBookStore {
   }
 
   static func fetchPendingBooks(context: ModelContext, limit: Int? = nil) -> [Book] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
 
     var descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "pending" },
@@ -487,7 +487,7 @@ enum KomgaBookStore {
   }
 
   static func fetchDownloadedBooks(context: ModelContext) -> [Book] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
 
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded" }

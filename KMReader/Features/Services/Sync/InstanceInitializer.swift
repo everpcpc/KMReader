@@ -79,7 +79,7 @@ final class InstanceInitializer {
 
   /// Sync data for the current instance. Uses incremental sync based on lastModified.
   func syncData() async {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
 
     await performSync(instanceId: instanceId)

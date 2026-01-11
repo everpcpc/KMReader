@@ -9,7 +9,7 @@ import SwiftUI
 struct ReadListDownloadActionsSection: View {
   @Bindable var komgaReadList: KomgaReadList
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   private var readList: ReadList {
     komgaReadList.toReadList()
@@ -140,7 +140,7 @@ struct ReadListDownloadActionsSection: View {
       // Sync books first
       try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
       await DatabaseOperator.shared.downloadReadListOffline(
-        readListId: readList.id, instanceId: currentInstanceId
+        readListId: readList.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -156,7 +156,7 @@ struct ReadListDownloadActionsSection: View {
       try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
       await DatabaseOperator.shared.downloadReadListUnreadOffline(
         readListId: readList.id,
-        instanceId: currentInstanceId,
+        instanceId: current.instanceId,
         limit: limit
       )
       await DatabaseOperator.shared.commit()
@@ -172,7 +172,7 @@ struct ReadListDownloadActionsSection: View {
     Task {
       await DatabaseOperator.shared.removeReadListReadOffline(
         readListId: readList.id,
-        instanceId: currentInstanceId
+        instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -197,7 +197,7 @@ struct ReadListDownloadActionsSection: View {
   private func removeAll() {
     Task {
       await DatabaseOperator.shared.removeReadListOffline(
-        readListId: readList.id, instanceId: currentInstanceId
+        readListId: readList.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {

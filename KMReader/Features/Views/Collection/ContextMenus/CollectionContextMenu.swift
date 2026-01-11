@@ -13,7 +13,7 @@ struct CollectionContextMenu: View {
   let menuTitle: String
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   var body: some View {
@@ -31,7 +31,7 @@ struct CollectionContextMenu: View {
         Label("View Details", systemImage: "info.circle")
       }
 
-      if !isOffline && isAdmin {
+      if !isOffline && current.isAdmin {
         Divider()
         Button {
           onEditRequested?()

@@ -8,13 +8,13 @@
 import SwiftUI
 
 struct SettingsServerInfoView: View {
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @State private var serverInfo: ServerInfo?
   @State private var isLoading = false
 
   var body: some View {
     Form {
-      if !isAdmin {
+      if !current.isAdmin {
         AdminRequiredView()
       } else if isLoading {
         Section {
@@ -253,12 +253,12 @@ struct SettingsServerInfoView: View {
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.serverInfo.title)
     .task {
-      if isAdmin {
+      if current.isAdmin {
         await loadServerInfo()
       }
     }
     .refreshable {
-      if isAdmin {
+      if current.isAdmin {
         await loadServerInfo()
       }
     }

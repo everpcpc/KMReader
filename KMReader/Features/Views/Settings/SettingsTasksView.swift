@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SettingsTasksView: View {
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
   @State private var isLoading = false
@@ -24,7 +24,7 @@ struct SettingsTasksView: View {
 
   var body: some View {
     Form {
-      if !isAdmin {
+      if !current.isAdmin {
         AdminRequiredView()
       } else if isLoading && !hasLoadedMetrics {
         Section {
@@ -36,7 +36,7 @@ struct SettingsTasksView: View {
         }
       } else {
         #if os(tvOS) || os(macOS)
-          if isAdmin {
+          if current.isAdmin {
             Section {
               Button(role: .destructive) {
                 showCancelAllConfirmation = true
@@ -195,12 +195,12 @@ struct SettingsTasksView: View {
       )
     }
     .task {
-      if isAdmin {
+      if current.isAdmin {
         await loadMetrics()
       }
     }
     .refreshable {
-      if isAdmin {
+      if current.isAdmin {
         await loadMetrics()
       }
     }

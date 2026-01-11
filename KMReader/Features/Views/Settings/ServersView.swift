@@ -1,5 +1,5 @@
 //
-//  SettingsServersView.swift
+//  ServersView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-struct SettingsServersView: View {
+struct ServersView: View {
   enum Mode {
     case management
     case onboarding
@@ -27,8 +27,8 @@ struct SettingsServersView: View {
     SortDescriptor(\KomgaInstance.lastUsedAt, order: .reverse),
     SortDescriptor(\KomgaInstance.name, order: .forward),
   ]) private var instances: [KomgaInstance]
-  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
 
   @State private var instancePendingDeletion: KomgaInstance?
   @State private var editingInstance: KomgaInstance?
@@ -36,7 +36,7 @@ struct SettingsServersView: View {
   @State private var showLogoutAlert = false
 
   private var activeInstanceId: String? {
-    currentInstanceId.isEmpty ? nil : currentInstanceId
+    current.instanceId.isEmpty ? nil : current.instanceId
   }
 
   var body: some View {

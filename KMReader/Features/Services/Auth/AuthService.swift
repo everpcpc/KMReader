@@ -81,7 +81,7 @@ class AuthService {
     let headers = ["X-Auth-Token": ""]
 
     // Explicitly set the server URL in AppConfig so apiClient.request uses the correct base
-    AppConfig.serverURL = serverURL
+    AppConfig.current.serverURL = serverURL
 
     return try await apiClient.performLogin(
       serverURL: serverURL,
@@ -181,6 +181,15 @@ class AuthService {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v2/users/me/api-keys/\(id)",
       method: "DELETE"
+    )
+  }
+
+  func updatePassword(userId: String, password: String) async throws {
+    let body = try JSONEncoder().encode(["password": password])
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v2/users/\(userId)/password",
+      method: "PATCH",
+      body: body
     )
   }
 }

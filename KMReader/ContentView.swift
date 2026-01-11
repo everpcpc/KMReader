@@ -12,7 +12,7 @@ struct ContentView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.scenePhase) private var scenePhase
 
-  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+  @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
 
@@ -69,12 +69,12 @@ struct ContentView: View {
             // Just came back online - sync pending progress and resume downloads
             Task {
               await ProgressSyncService.shared.syncPendingProgress(
-                instanceId: AppConfig.currentInstanceId
+                instanceId: AppConfig.current.instanceId
               )
               // Resume offline downloads
               if !AppConfig.offlinePaused {
                 OfflineManager.shared.triggerSync(
-                  instanceId: AppConfig.currentInstanceId, restart: true)
+                  instanceId: AppConfig.current.instanceId, restart: true)
               }
             }
           }
@@ -83,11 +83,11 @@ struct ContentView: View {
           if phase == .active {
             Task {
               await DatabaseOperator.shared.updateInstanceLastUsed(
-                instanceId: AppConfig.currentInstanceId)
+                instanceId: AppConfig.current.instanceId)
               // Resume offline downloads if not paused and online
               if !AppConfig.isOffline && !AppConfig.offlinePaused {
                 OfflineManager.shared.triggerSync(
-                  instanceId: AppConfig.currentInstanceId, restart: true)
+                  instanceId: AppConfig.current.instanceId, restart: true)
               }
             }
           }

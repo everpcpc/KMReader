@@ -15,7 +15,7 @@ struct BookQueryItemView: View {
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @Query private var komgaBooks: [KomgaBook]
 

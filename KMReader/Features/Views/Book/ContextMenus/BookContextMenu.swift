@@ -17,8 +17,7 @@ struct BookContextMenu: View {
   var onEditRequested: (() -> Void)? = nil
   var showSeriesNavigation: Bool = true
 
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   private var isCompleted: Bool {
@@ -71,7 +70,7 @@ struct BookContextMenu: View {
         }
         Divider()
 
-        if isAdmin {
+        if current.isAdmin {
           Menu {
             Button {
               onEditRequested?()
@@ -100,7 +99,7 @@ struct BookContextMenu: View {
         Task {
           let previousStatus = downloadStatus
           await OfflineManager.shared.toggleDownload(
-            instanceId: currentInstanceId, info: book.downloadInfo)
+            instanceId: current.instanceId, info: book.downloadInfo)
           await MainActor.run {
             ErrorManager.shared.notify(
               message: downloadNotificationMessage(for: previousStatus)

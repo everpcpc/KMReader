@@ -8,7 +8,7 @@ import SwiftUI
 
 struct LibraryRowView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Bindable var library: KomgaLibrary
   let isSelected: Bool
   let onSelect: () -> Void
@@ -65,7 +65,7 @@ struct LibraryRowView: View {
     }
     .contentShape(Rectangle())
     .contextMenu {
-      if isAdmin && !isOffline {
+      if current.isAdmin && !isOffline {
         if let onEdit {
           Button {
             onEdit()

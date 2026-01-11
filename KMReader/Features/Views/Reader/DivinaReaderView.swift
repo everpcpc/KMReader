@@ -711,7 +711,7 @@ struct DivinaReaderView: View {
 
       // 4. Try to get next/previous books from DB
       self.nextBook = await DatabaseOperator.shared.getNextBook(
-        instanceId: AppConfig.currentInstanceId,
+        instanceId: AppConfig.current.instanceId,
         bookId: bookId,
         readListId: readList?.id
       )
@@ -721,7 +721,7 @@ struct DivinaReaderView: View {
       }
 
       self.previousBook = await DatabaseOperator.shared.getPreviousBook(
-        instanceId: AppConfig.currentInstanceId,
+        instanceId: AppConfig.current.instanceId,
         bookId: bookId,
         readListId: readList?.id
       )

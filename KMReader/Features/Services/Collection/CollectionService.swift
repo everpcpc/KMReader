@@ -48,7 +48,7 @@ class CollectionService {
   }
 
   func getCollectionThumbnailURL(id: String) -> URL? {
-    let baseURL = AppConfig.serverURL
+    let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/collections/\(id)/thumbnail")
   }
@@ -118,7 +118,7 @@ class CollectionService {
       method: "DELETE"
     )
     // Delete from local SwiftData
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await DatabaseOperator.shared.deleteCollection(id: collectionId, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
   }

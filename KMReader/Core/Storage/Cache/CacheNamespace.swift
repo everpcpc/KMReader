@@ -11,7 +11,7 @@ import Foundation
 enum CacheNamespace {
   /// Returns the active Komga instance identifier for namespace segregation.
   static nonisolated func identifier() -> String {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else {
       return "default"
     }

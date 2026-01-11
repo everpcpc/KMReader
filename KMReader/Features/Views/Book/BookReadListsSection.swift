@@ -12,7 +12,7 @@ struct BookReadListsSection: View {
   @Query private var komgaReadLists: [KomgaReadList]
 
   init(readListIds: [String]) {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _komgaReadLists = Query(
       filter: #Predicate<KomgaReadList> {
         $0.instanceId == instanceId && readListIds.contains($0.readListId)

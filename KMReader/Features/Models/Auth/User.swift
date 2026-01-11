@@ -11,4 +11,12 @@ struct User: Codable {
   let id: String
   let email: String
   let roles: [String]
+
+  var userRoles: [UserRole] {
+    roles.compactMap { UserRole(rawValue: $0) }
+  }
+
+  var isAdmin: Bool {
+    roles.contains(UserRole.admin.rawValue)
+  }
 }

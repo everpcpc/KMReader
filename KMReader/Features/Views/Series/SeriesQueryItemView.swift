@@ -13,7 +13,7 @@ struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Query private var komgaSeriesList: [KomgaSeries]
 
   init(

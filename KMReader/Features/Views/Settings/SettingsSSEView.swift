@@ -11,7 +11,7 @@ struct SettingsSSEView: View {
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("enableSSENotify") private var enableSSENotify: Bool = false
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
-  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+  @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
 
   var body: some View {
     Form {

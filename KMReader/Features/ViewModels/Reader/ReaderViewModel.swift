@@ -155,7 +155,7 @@ class ReaderViewModel {
     // 1. Check OfflineManager (Persistent Offline Content)
     let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
     if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
-      instanceId: AppConfig.currentInstanceId, bookId: bookId, pageNumber: page.number,
+      instanceId: AppConfig.current.instanceId, bookId: bookId, pageNumber: page.number,
       fileExtension: ext
     ) {
       logger.debug(
@@ -358,7 +358,7 @@ class ReaderViewModel {
         if AppConfig.isOffline {
           // Queue for later sync
           await DatabaseOperator.shared.queuePendingProgress(
-            instanceId: AppConfig.currentInstanceId,
+            instanceId: AppConfig.current.instanceId,
             bookId: activeBookId,
             page: currentPageNumber,
             completed: completed,

@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct SettingsHistoryView: View {
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.modelContext) private var modelContext
 
   @State private var pagination = PaginationState<HistoricalEvent>(pageSize: 20)
@@ -25,7 +25,7 @@ struct SettingsHistoryView: View {
 
   var body: some View {
     List {
-      if !isAdmin {
+      if !current.isAdmin {
         AdminRequiredView()
       } else if isLoading && pagination.isEmpty {
         Section {
@@ -53,7 +53,7 @@ struct SettingsHistoryView: View {
         }
       } else {
         #if os(tvOS) || os(macOS)
-          if isAdmin {
+          if current.isAdmin {
             Section {
               Button(role: .destructive) {
                 Task {
@@ -105,7 +105,7 @@ struct SettingsHistoryView: View {
           } label: {
             Label(String(localized: "Clear Local Entries"), systemImage: "trash")
           }
-          .disabled(isClearingLocal || !isAdmin)
+          .disabled(isClearingLocal || !current.isAdmin)
         }
       }
     #endif
@@ -115,12 +115,12 @@ struct SettingsHistoryView: View {
       }
     }
     .task {
-      if isAdmin {
+      if current.isAdmin {
         await loadHistory(refresh: true)
       }
     }
     .refreshable {
-      if isAdmin {
+      if current.isAdmin {
         await loadHistory(refresh: true)
       }
     }
@@ -252,7 +252,7 @@ struct SettingsHistoryView: View {
 
   @MainActor
   private func updateLocalReferences(for events: [HistoricalEvent]) async {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let bookIds = Set(
       events
         .filter { $0.type == "BookFileDeleted" }
@@ -315,7 +315,7 @@ struct SettingsHistoryView: View {
 
   @MainActor
   private func containsLocalMatches(bookIds: [String], seriesIds: [String]) -> Bool {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
 
     if !bookIds.isEmpty {
       let descriptor = FetchDescriptor<KomgaBook>(
@@ -346,7 +346,7 @@ struct SettingsHistoryView: View {
     guard !isClearingLocal else { return }
     isClearingLocal = true
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let bookIds = Set(
       pagination.items
         .filter { $0.type == "BookFileDeleted" }

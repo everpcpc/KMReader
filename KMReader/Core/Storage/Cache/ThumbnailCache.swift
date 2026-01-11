@@ -157,7 +157,7 @@ actor ThumbnailCache {
       return nil
     }
 
-    let instanceId = await MainActor.run { AppConfig.currentInstanceId }
+    let instanceId = await MainActor.run { AppConfig.current.instanceId }
 
     // Try common image extensions
     let extensions = ["jpg", "jpeg", "png", "webp", "avif", "gif"]

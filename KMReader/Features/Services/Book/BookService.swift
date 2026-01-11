@@ -145,21 +145,21 @@ class BookService {
 
   /// Get thumbnail URL for a book
   func getBookThumbnailURL(id: String) -> URL? {
-    let baseURL = AppConfig.serverURL
+    let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/books/\(id)/thumbnail")
   }
 
   /// Get page thumbnail URL for a book
   func getBookPageThumbnailURL(bookId: String, page: Int) -> URL? {
-    let baseURL = AppConfig.serverURL
+    let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/books/\(bookId)/pages/\(page)/thumbnail")
   }
 
   /// Get direct page image URL for a book page
   func getBookPageURL(bookId: String, page: Int) -> URL? {
-    let baseURL = AppConfig.serverURL
+    let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/books/\(bookId)/pages/\(page)")
   }

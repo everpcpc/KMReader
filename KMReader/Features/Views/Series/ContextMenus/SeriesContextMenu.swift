@@ -21,8 +21,7 @@ struct SeriesContextMenu: View {
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
 
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   private var status: SeriesDownloadStatus {
@@ -77,7 +76,7 @@ struct SeriesContextMenu: View {
 
         Divider()
 
-        if isAdmin {
+        if current.isAdmin {
           Menu {
             Button {
               onEditRequested?()
@@ -239,7 +238,7 @@ struct SeriesContextMenu: View {
         try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       }
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
-        seriesId: seriesId, instanceId: currentInstanceId, policy: policy
+        seriesId: seriesId, instanceId: current.instanceId, policy: policy
       )
       await DatabaseOperator.shared.commit()
     }
@@ -250,7 +249,7 @@ struct SeriesContextMenu: View {
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: seriesId,
-        instanceId: currentInstanceId,
+        instanceId: current.instanceId,
         policy: policy,
         limit: limit
       )
@@ -329,7 +328,7 @@ struct SeriesContextMenu: View {
     Task {
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       await DatabaseOperator.shared.downloadSeriesOffline(
-        seriesId: seriesId, instanceId: currentInstanceId
+        seriesId: seriesId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -345,7 +344,7 @@ struct SeriesContextMenu: View {
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
       await DatabaseOperator.shared.downloadSeriesUnreadOffline(
         seriesId: seriesId,
-        instanceId: currentInstanceId,
+        instanceId: current.instanceId,
         limit: limit
       )
       await DatabaseOperator.shared.commit()
@@ -360,7 +359,7 @@ struct SeriesContextMenu: View {
   private func removeRead() {
     Task {
       await DatabaseOperator.shared.removeSeriesReadOffline(
-        seriesId: seriesId, instanceId: currentInstanceId
+        seriesId: seriesId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -374,7 +373,7 @@ struct SeriesContextMenu: View {
   private func removeAll() {
     Task {
       await DatabaseOperator.shared.removeSeriesOffline(
-        seriesId: seriesId, instanceId: currentInstanceId
+        seriesId: seriesId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {

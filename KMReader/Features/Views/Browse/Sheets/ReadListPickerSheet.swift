@@ -16,7 +16,7 @@ private struct ReadListItem: Identifiable {
 
 struct ReadListPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var selectedReadListId: String?
   @State private var isLoading = false
@@ -36,7 +36,7 @@ struct ReadListPickerSheet: View {
     self.bookId = bookId
     self.onSelect = onSelect
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _komgaReadLists = Query(
       filter: #Predicate<KomgaReadList> { $0.instanceId == instanceId },
       sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]
@@ -107,7 +107,7 @@ struct ReadListPickerSheet: View {
       } label: {
         Label("Create New", systemImage: "plus.circle.fill")
       }
-      .disabled(!isAdmin)
+      .disabled(!current.isAdmin)
 
       HStack(spacing: 12) {
         Button(action: confirmSelection) {
@@ -134,7 +134,7 @@ struct ReadListPickerSheet: View {
   private func syncReadLists() async {
     guard !AppConfig.isOffline else { return }
     isLoading = true
-    await SyncService.shared.syncReadLists(instanceId: AppConfig.currentInstanceId)
+    await SyncService.shared.syncReadLists(instanceId: current.instanceId)
     isLoading = false
   }
 

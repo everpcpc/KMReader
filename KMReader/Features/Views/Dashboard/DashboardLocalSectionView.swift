@@ -58,7 +58,7 @@ struct DashboardLocalSectionView: View {
 private struct DashboardCollectionsSection: View {
   let refreshTrigger: DashboardRefreshTrigger
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Query private var items: [KomgaCollection]
 
   @State private var isLoading = false
@@ -66,7 +66,7 @@ private struct DashboardCollectionsSection: View {
   init(refreshTrigger: DashboardRefreshTrigger) {
     self.refreshTrigger = refreshTrigger
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _items = Query(
       filter: #Predicate<KomgaCollection> { $0.instanceId == instanceId },
       sort: [SortDescriptor(\KomgaCollection.lastModifiedDate, order: .reverse)]
@@ -89,7 +89,7 @@ private struct DashboardCollectionsSection: View {
   private func refresh() async {
     guard !isLoading, !AppConfig.isOffline else { return }
     isLoading = true
-    await SyncService.shared.syncCollections(instanceId: currentInstanceId)
+    await SyncService.shared.syncCollections(instanceId: current.instanceId)
     isLoading = false
   }
 }
@@ -99,7 +99,7 @@ private struct DashboardCollectionsSection: View {
 private struct DashboardReadListsSection: View {
   let refreshTrigger: DashboardRefreshTrigger
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Query private var items: [KomgaReadList]
 
   @State private var isLoading = false
@@ -107,7 +107,7 @@ private struct DashboardReadListsSection: View {
   init(refreshTrigger: DashboardRefreshTrigger) {
     self.refreshTrigger = refreshTrigger
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _items = Query(
       filter: #Predicate<KomgaReadList> { $0.instanceId == instanceId },
       sort: [SortDescriptor(\KomgaReadList.lastModifiedDate, order: .reverse)]
@@ -130,7 +130,7 @@ private struct DashboardReadListsSection: View {
   private func refresh() async {
     guard !isLoading, !AppConfig.isOffline else { return }
     isLoading = true
-    await SyncService.shared.syncReadLists(instanceId: currentInstanceId)
+    await SyncService.shared.syncReadLists(instanceId: current.instanceId)
     isLoading = false
   }
 }

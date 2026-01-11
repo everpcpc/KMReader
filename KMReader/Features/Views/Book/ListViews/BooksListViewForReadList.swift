@@ -17,7 +17,7 @@ struct BooksListViewForReadList: View {
   @AppStorage("readListDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("readListBookBrowseOptions") private var browseOpts: ReadListBookBrowseOptions =
     ReadListBookBrowseOptions()
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var bookViewModel = BookViewModel()
   @State private var selectedBookIds: Set<String> = []
@@ -78,7 +78,7 @@ struct BooksListViewForReadList: View {
             showSavedFilters: $showSavedFilters
           )
 
-          if supportsSelectionMode && !isSelectionMode && isAdmin {
+          if supportsSelectionMode && !isSelectionMode && current.isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true
@@ -129,7 +129,7 @@ struct BooksListViewForReadList: View {
           browseLayout: layoutMode,
           isSelectionMode: isSelectionMode,
           selectedBookIds: $selectedBookIds,
-          isAdmin: isAdmin,
+          isAdmin: current.isAdmin,
           refreshBooks: {
             Task {
               await refreshBooks()

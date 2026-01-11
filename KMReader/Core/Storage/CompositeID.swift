@@ -13,6 +13,6 @@ enum CompositeID {
   }
 
   static nonisolated func generate(id: String) -> String {
-    generate(instanceId: AppConfig.currentInstanceId, id: id)
+    generate(instanceId: AppConfig.current.instanceId, id: id)
   }
 }

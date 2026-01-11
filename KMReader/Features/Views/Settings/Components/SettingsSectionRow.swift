@@ -9,13 +9,14 @@ import SwiftUI
 
 struct SettingsSectionRow: View {
   let section: SettingsSection
+  var icon: String? = nil
   var subtitle: String? = nil
   var badge: String? = nil
   var badgeColor: Color? = nil
 
   var body: some View {
     HStack {
-      Label(section.title, systemImage: section.icon)
+      Label(section.title, systemImage: icon ?? section.icon)
       Spacer()
       if let subtitle {
         Text(subtitle)

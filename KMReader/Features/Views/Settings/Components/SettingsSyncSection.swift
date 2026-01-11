@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SettingsSyncSection: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @Query private var instances: [KomgaInstance]
 
@@ -19,7 +19,7 @@ struct SettingsSyncSection: View {
   }
 
   private var currentInstance: KomgaInstance? {
-    guard let uuid = UUID(uuidString: currentInstanceId) else { return nil }
+    guard let uuid = UUID(uuidString: current.instanceId) else { return nil }
     return instances.first { $0.id == uuid }
   }
 

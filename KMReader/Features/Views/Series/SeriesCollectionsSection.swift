@@ -12,7 +12,7 @@ struct SeriesCollectionsSection: View {
   @Query private var komgaCollections: [KomgaCollection]
 
   init(collectionIds: [String]) {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _komgaCollections = Query(
       filter: #Predicate<KomgaCollection> {
         $0.instanceId == instanceId && collectionIds.contains($0.collectionId)

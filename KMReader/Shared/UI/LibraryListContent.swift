@@ -9,9 +9,8 @@ import SwiftData
 import SwiftUI
 
 struct LibraryListContent: View {
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)])
@@ -53,20 +52,20 @@ struct LibraryListContent: View {
   }
 
   private var libraries: [KomgaLibrary] {
-    guard !currentInstanceId.isEmpty else {
+    guard !current.instanceId.isEmpty else {
       return []
     }
     return allLibraries.filter {
-      $0.instanceId == currentInstanceId && $0.libraryId != KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
     }
   }
 
   private var allLibrariesEntry: KomgaLibrary? {
-    guard !currentInstanceId.isEmpty else {
+    guard !current.instanceId.isEmpty else {
       return nil
     }
     return allLibraries.first {
-      $0.instanceId == currentInstanceId && $0.libraryId == KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibrary.allLibrariesId
     }
   }
 
@@ -175,7 +174,7 @@ struct LibraryListContent: View {
   }
 
   private func triggerMetricsUpdate(force: Bool) async {
-    guard loadMetrics, isAdmin && !isOffline, !currentInstanceId.isEmpty else { return }
+    guard loadMetrics, current.isAdmin && !isOffline, !current.instanceId.isEmpty else { return }
 
     let shouldLoad = await MainActor.run {
       force || alwaysRefreshMetrics || needsMetricsReload()
@@ -194,7 +193,7 @@ struct LibraryListContent: View {
     let hasAllEntry = await MainActor.run { allLibrariesEntry != nil }
 
     let metricsByLibrary = await metricsLoader.refreshMetrics(
-      instanceId: currentInstanceId,
+      instanceId: current.instanceId,
       libraryIds: libraryIds,
       ensureAllLibrariesEntry: hasAllEntry
     )
@@ -240,7 +239,7 @@ struct LibraryListContent: View {
               .foregroundColor(.secondary)
           }
         }
-        if isAdmin, let metricsView {
+        if current.isAdmin, let metricsView {
           metricsView
             .font(.caption)
             .foregroundColor(.secondary)
@@ -267,7 +266,7 @@ struct LibraryListContent: View {
     }
     .contentShape(Rectangle())
     .contextMenu {
-      if isAdmin && !isOffline {
+      if current.isAdmin && !isOffline {
         allLibrariesContextMenu()
       }
     }

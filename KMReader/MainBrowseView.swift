@@ -15,9 +15,8 @@ struct MainBrowseView: View {
 
   @Environment(\.sidebarSelection) private var sidebarSelection
 
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
   @Query(sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]) private
     var allCollections: [KomgaCollection]
@@ -42,33 +41,33 @@ struct MainBrowseView: View {
   }
 
   private var libraries: [KomgaLibrary] {
-    guard !currentInstanceId.isEmpty else { return [] }
+    guard !current.instanceId.isEmpty else { return [] }
     return allLibraries.filter {
-      $0.instanceId == currentInstanceId && $0.libraryId != KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
     }
   }
 
   private var collections: [KomgaCollection] {
-    guard !currentInstanceId.isEmpty else { return [] }
-    return allCollections.filter { $0.instanceId == currentInstanceId }
+    guard !current.instanceId.isEmpty else { return [] }
+    return allCollections.filter { $0.instanceId == current.instanceId }
   }
 
   private var readLists: [KomgaReadList] {
-    guard !currentInstanceId.isEmpty else { return [] }
-    return allReadLists.filter { $0.instanceId == currentInstanceId }
+    guard !current.instanceId.isEmpty else { return [] }
+    return allReadLists.filter { $0.instanceId == current.instanceId }
   }
 
   private func refreshSidebar() async {
-    guard !currentInstanceId.isEmpty, !isRefreshing else { return }
+    guard !current.instanceId.isEmpty, !isRefreshing else { return }
     isRefreshing = true
     ErrorManager.shared.notify(message: String(localized: "notification.refreshing"))
     defer {
       isRefreshing = false
       ErrorManager.shared.notify(message: String(localized: "notification.refresh_completed"))
     }
-    await SyncService.shared.syncLibraries(instanceId: currentInstanceId)
-    await SyncService.shared.syncCollections(instanceId: currentInstanceId)
-    await SyncService.shared.syncReadLists(instanceId: currentInstanceId)
+    await SyncService.shared.syncLibraries(instanceId: current.instanceId)
+    await SyncService.shared.syncCollections(instanceId: current.instanceId)
+    await SyncService.shared.syncReadLists(instanceId: current.instanceId)
   }
 
   var body: some View {
@@ -151,7 +150,7 @@ struct MainBrowseView: View {
               count: library.booksCount.map { Int($0) }
             )
             .contextMenu {
-              if isAdmin && !isOffline {
+              if current.isAdmin && !isOffline {
                 ForEach(LibraryAction.allCases, id: \.self) { action in
                   Button {
                     action.perform(for: library.libraryId)

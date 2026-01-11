@@ -76,7 +76,7 @@
 
         // 1. Check OfflineManager
         if let offlineURL = await OfflineManager.shared.getOfflineEpubURL(
-          instanceId: AppConfig.currentInstanceId, bookId: bookId
+          instanceId: AppConfig.current.instanceId, bookId: bookId
         ) {
           epubURL = offlineURL
         }
@@ -332,7 +332,7 @@
           if AppConfig.isOffline {
             // Queue for later sync
             await DatabaseOperator.shared.queuePendingProgress(
-              instanceId: AppConfig.currentInstanceId,
+              instanceId: AppConfig.current.instanceId,
               bookId: activeBookId,
               page: 0,  // EPUB doesn't use page numbers
               completed: false,

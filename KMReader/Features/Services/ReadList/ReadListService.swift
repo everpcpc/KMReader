@@ -48,7 +48,7 @@ class ReadListService {
   }
 
   func getReadListThumbnailURL(id: String) -> URL? {
-    let baseURL = AppConfig.serverURL
+    let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/readlists/\(id)/thumbnail")
   }
@@ -112,7 +112,7 @@ class ReadListService {
       method: "DELETE"
     )
     // Delete from local SwiftData
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await DatabaseOperator.shared.deleteReadList(id: readListId, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
   }

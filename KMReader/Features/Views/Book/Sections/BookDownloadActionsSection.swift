@@ -9,7 +9,7 @@ struct BookDownloadActionsSection: View {
   let book: Book
   let status: DownloadStatus
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   var body: some View {
     HStack {
@@ -25,7 +25,7 @@ struct BookDownloadActionsSection: View {
       Button {
         Task {
           await OfflineManager.shared.toggleDownload(
-            instanceId: currentInstanceId, info: book.downloadInfo)
+            instanceId: current.instanceId, info: book.downloadInfo)
         }
       } label: {
         Label {

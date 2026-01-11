@@ -17,7 +17,7 @@ struct CollectionSeriesListView: View {
   @AppStorage("collectionDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("collectionSeriesBrowseOptions") private var browseOpts: CollectionSeriesBrowseOptions =
     CollectionSeriesBrowseOptions()
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var seriesViewModel = SeriesViewModel()
   @State private var selectedSeriesIds: Set<String> = []
@@ -67,7 +67,7 @@ struct CollectionSeriesListView: View {
             showSavedFilters: $showSavedFilters
           )
 
-          if supportsSelectionMode && !isSelectionMode && isAdmin {
+          if supportsSelectionMode && !isSelectionMode && current.isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true
@@ -118,7 +118,7 @@ struct CollectionSeriesListView: View {
           browseLayout: layoutMode,
           isSelectionMode: isSelectionMode,
           selectedSeriesIds: $selectedSeriesIds,
-          isAdmin: isAdmin
+          isAdmin: current.isAdmin
         )
       } else if seriesViewModel.isLoading {
         ProgressView()

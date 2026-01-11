@@ -12,7 +12,7 @@ import SwiftUI
 struct SeriesDetailView: View {
   let seriesId: String
 
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
@@ -271,7 +271,7 @@ extension SeriesDetailView {
       }
 
       Menu {
-        if isAdmin {
+        if current.isAdmin {
           Button {
             showEditSheet = true
           } label: {
@@ -323,7 +323,7 @@ extension SeriesDetailView {
 
         Divider()
 
-        if isAdmin {
+        if current.isAdmin {
           Button(role: .destructive) {
             showDeleteConfirmation = true
           } label: {

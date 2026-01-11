@@ -31,7 +31,7 @@ struct BookSelectionItemView: View {
     self.refreshBooks = refreshBooks
     self.showSeriesTitle = showSeriesTitle
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
   }

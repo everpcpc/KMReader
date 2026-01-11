@@ -13,7 +13,7 @@ struct BookDetailView: View {
   let bookId: String
 
   @Environment(\.dismiss) private var dismiss
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @Query private var komgaBooks: [KomgaBook]
 
@@ -256,7 +256,7 @@ struct BookDetailView: View {
     HStack(spacing: PlatformHelper.buttonSpacing) {
 
       Menu {
-        if isAdmin {
+        if current.isAdmin {
           Button {
             showEditSheet = true
           } label: {
@@ -308,7 +308,7 @@ struct BookDetailView: View {
 
         Divider()
 
-        if isAdmin {
+        if current.isAdmin {
           Button(role: .destructive) {
             showDeleteConfirmation = true
           } label: {

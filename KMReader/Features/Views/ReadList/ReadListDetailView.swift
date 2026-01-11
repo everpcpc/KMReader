@@ -11,7 +11,7 @@ import SwiftUI
 struct ReadListDetailView: View {
   let readListId: String
 
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readListDetailLayout") private var readListDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
@@ -159,7 +159,7 @@ extension ReadListDetailView {
       }
 
       Menu {
-        if isAdmin {
+        if current.isAdmin {
           Button {
             showEditSheet = true
           } label: {

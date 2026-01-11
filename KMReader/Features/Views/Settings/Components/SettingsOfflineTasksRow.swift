@@ -14,7 +14,7 @@ struct SettingsOfflineTasksRow: View {
   @Query private var books: [KomgaBook]
 
   init() {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _books = Query(
       filter: #Predicate<KomgaBook> { book in
         book.instanceId == instanceId

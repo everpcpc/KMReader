@@ -13,7 +13,7 @@ struct SettingsServerEditView: View {
   @Environment(\.modelContext) private var modelContext
   @Environment(AuthViewModel.self) private var authViewModel
   @Bindable var instance: KomgaInstance
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var name: String
   @State private var serverURL: String
@@ -282,7 +282,7 @@ struct SettingsServerEditView: View {
 
     do {
       try modelContext.save()
-      if currentInstanceId == instance.id.uuidString {
+      if current.instanceId == instance.id.uuidString {
         Task {
           _ = await authViewModel.switchTo(instance: instance)
         }

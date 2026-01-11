@@ -16,7 +16,7 @@ private struct CollectionItem: Identifiable {
 
 struct CollectionPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var selectedCollectionId: String?
   @State private var isLoading = false
@@ -36,7 +36,7 @@ struct CollectionPickerSheet: View {
     self.seriesId = seriesId
     self.onSelect = onSelect
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _komgaCollections = Query(
       filter: #Predicate<KomgaCollection> { $0.instanceId == instanceId },
       sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]
@@ -103,7 +103,7 @@ struct CollectionPickerSheet: View {
       } label: {
         Label("Create New", systemImage: "plus.circle.fill")
       }
-      .disabled(!isAdmin)
+      .disabled(!current.isAdmin)
 
       HStack(spacing: 12) {
         Button(action: confirmSelection) {
@@ -130,7 +130,7 @@ struct CollectionPickerSheet: View {
   private func syncCollections() async {
     guard !AppConfig.isOffline else { return }
     isLoading = true
-    await SyncService.shared.syncCollections(instanceId: AppConfig.currentInstanceId)
+    await SyncService.shared.syncCollections(instanceId: current.instanceId)
     isLoading = false
   }
 

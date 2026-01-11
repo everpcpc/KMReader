@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct AuthenticationActivityView: View {
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @State private var pagination = PaginationState<AuthenticationActivity>(pageSize: 20)
   @State private var isLoading = false
   @State private var isLoadingMore = false
@@ -61,12 +61,12 @@ struct AuthenticationActivityView: View {
     .optimizedListStyle()
     .inlineNavigationBarTitle(SettingsSection.authenticationActivity.title)
     .task {
-      if isAdmin {
+      if current.isAdmin {
         await loadActivities(refresh: true)
       }
     }
     .refreshable {
-      if isAdmin {
+      if current.isAdmin {
         await loadActivities(refresh: true)
       }
     }

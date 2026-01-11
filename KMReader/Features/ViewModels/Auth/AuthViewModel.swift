@@ -109,7 +109,9 @@ class AuthViewModel {
       user = try await authService.getCurrentUser(timeout: timeout)
 
       if let user = user {
-        AppConfig.isAdmin = user.roles.contains("ADMIN")
+        var current = AppConfig.current
+        current.updateMetadata(from: user)
+        AppConfig.current = current
       }
       return true
     } catch {
@@ -153,9 +155,6 @@ class AuthViewModel {
         timeout: AppConfig.apiTimeout
       )
 
-      // Set current instance before applying configuration (shared session)
-      AppConfig.currentInstanceId = instance.id.uuidString
-
       // Apply switch configuration
       try await applyLoginConfiguration(
         serverURL: instance.serverURL,
@@ -164,6 +163,7 @@ class AuthViewModel {
         authMethod: instance.resolvedAuthMethod,
         user: validatedUser,
         displayName: instance.displayName,
+        instanceId: instance.id.uuidString,
         shouldPersistInstance: false,
         successMessage: String(localized: "Switched to \(instance.name)")
       )
@@ -175,12 +175,18 @@ class AuthViewModel {
         // Set up the instance config without full login
         APIClient.shared.setServer(url: instance.serverURL)
         APIClient.shared.setAuthToken(instance.authToken)
-        AppConfig.authMethod = instance.resolvedAuthMethod
-        AppConfig.username = instance.username
-        AppConfig.isAdmin = false  // Cannot verify admin status offline
+
+        AppConfig.current = Current(
+          serverURL: instance.serverURL,
+          serverDisplayName: instance.displayName,
+          authToken: instance.authToken,
+          authMethod: instance.resolvedAuthMethod,
+          username: instance.username,
+          isAdmin: false,
+          instanceId: instance.id.uuidString
+        )
+
         AppConfig.isLoggedIn = true
-        AppConfig.currentInstanceId = instance.id.uuidString
-        AppConfig.serverDisplayName = instance.displayName
 
         AppConfig.dashboard.libraryIds = []
         DashboardSectionCacheStore.shared.reset()
@@ -216,15 +222,44 @@ class AuthViewModel {
     authMethod: AuthenticationMethod,
     user: User,
     displayName: String?,
+    instanceId: String? = nil,
     shouldPersistInstance: Bool,
     successMessage: String
   ) async throws {
     // Update AppConfig only after validation succeeds
     APIClient.shared.setServer(url: serverURL)
     APIClient.shared.setAuthToken(authToken)
-    AppConfig.authMethod = authMethod
-    AppConfig.username = username
-    AppConfig.isAdmin = user.roles.contains("ADMIN")
+
+    let finalInstanceId: String
+    let finalDisplayName: String
+
+    // Persist instance if this is a new login
+    if shouldPersistInstance {
+      let instance = try await DatabaseOperator.shared.upsertInstance(
+        serverURL: serverURL,
+        username: username,
+        authToken: authToken,
+        isAdmin: user.isAdmin,
+        authMethod: authMethod,
+        displayName: displayName
+      )
+      finalInstanceId = instance.id.uuidString
+      finalDisplayName = instance.displayName
+    } else {
+      finalInstanceId = instanceId ?? AppConfig.current.instanceId
+      finalDisplayName = displayName ?? ""
+    }
+
+    AppConfig.current = Current(
+      serverURL: serverURL,
+      serverDisplayName: finalDisplayName,
+      authToken: authToken,
+      authMethod: authMethod,
+      username: user.email,
+      isAdmin: user.isAdmin,
+      instanceId: finalInstanceId
+    )
+
     AppConfig.isLoggedIn = true
 
     // Reset offline mode on successful login/switch
@@ -235,22 +270,6 @@ class AuthViewModel {
     AppConfig.dashboard.libraryIds = []
     DashboardSectionCacheStore.shared.reset()
     AppConfig.serverLastUpdate = nil
-
-    // Persist instance if this is a new login
-    if shouldPersistInstance {
-      let instance = try await DatabaseOperator.shared.upsertInstance(
-        serverURL: serverURL,
-        username: username,
-        authToken: authToken,
-        isAdmin: user.roles.contains("ADMIN"),
-        authMethod: authMethod,
-        displayName: displayName
-      )
-      AppConfig.currentInstanceId = instance.id.uuidString
-      AppConfig.serverDisplayName = instance.displayName
-    } else {
-      AppConfig.serverDisplayName = displayName ?? ""
-    }
 
     // Load libraries
     await LibraryManager.shared.loadLibraries()
@@ -269,4 +288,8 @@ class AuthViewModel {
     }
   }
 
+  func updatePassword(password: String) async throws {
+    guard let user = user else { return }
+    try await authService.updatePassword(userId: user.id, password: password)
+  }
 }

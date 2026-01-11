@@ -40,7 +40,7 @@ struct SettingsOfflineBooksView: View {
   }()
 
   init() {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _downloadedBooks = Query(
       filter: #Predicate<KomgaBook> {
         $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded"
@@ -67,7 +67,7 @@ struct SettingsOfflineBooksView: View {
       let seriesGroupsMap = Dictionary(grouping: seriesBooks) { $0.seriesId }
 
       // Batch fetch all series at once
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       let seriesIds = Set(seriesGroupsMap.keys)
       let compositeIds = seriesIds.map { CompositeID.generate(instanceId: instanceId, id: $0) }
       let seriesDescriptor = FetchDescriptor<KomgaSeries>(

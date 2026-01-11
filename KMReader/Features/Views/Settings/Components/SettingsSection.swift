@@ -25,6 +25,7 @@ enum SettingsSection: String, CaseIterable {
   case history
 
   case servers
+  case account
   case apiKeys
   case authenticationActivity
 
@@ -61,6 +62,8 @@ enum SettingsSection: String, CaseIterable {
 
     case .servers:
       return "list.bullet.rectangle"
+    case .account:
+      return "person.crop.circle"
     case .apiKeys:
       return "key"
     case .authenticationActivity:
@@ -102,6 +105,8 @@ enum SettingsSection: String, CaseIterable {
 
     case .servers:
       return String(localized: "Servers")
+    case .account:
+      return String(localized: "Account")
     case .apiKeys:
       return String(localized: "API Keys")
     case .authenticationActivity:

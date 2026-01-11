@@ -9,7 +9,7 @@ import SwiftUI
 struct SeriesDownloadActionsSection: View {
   @Bindable var komgaSeries: KomgaSeries
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   private var series: Series {
     komgaSeries.toSeries()
@@ -182,7 +182,7 @@ struct SeriesDownloadActionsSection: View {
         try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
       }
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
-        seriesId: series.id, instanceId: currentInstanceId, policy: newPolicy
+        seriesId: series.id, instanceId: current.instanceId, policy: newPolicy
       )
       await DatabaseOperator.shared.commit()
     }
@@ -193,7 +193,7 @@ struct SeriesDownloadActionsSection: View {
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: series.id,
-        instanceId: currentInstanceId,
+        instanceId: current.instanceId,
         policy: newPolicy,
         limit: limit
       )
@@ -241,7 +241,7 @@ struct SeriesDownloadActionsSection: View {
       // Sync books first
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
       await DatabaseOperator.shared.downloadSeriesOffline(
-        seriesId: series.id, instanceId: currentInstanceId
+        seriesId: series.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -257,7 +257,7 @@ struct SeriesDownloadActionsSection: View {
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
       await DatabaseOperator.shared.downloadSeriesUnreadOffline(
         seriesId: series.id,
-        instanceId: currentInstanceId,
+        instanceId: current.instanceId,
         limit: limit
       )
       await DatabaseOperator.shared.commit()
@@ -273,7 +273,7 @@ struct SeriesDownloadActionsSection: View {
     Task {
       await DatabaseOperator.shared.removeSeriesReadOffline(
         seriesId: series.id,
-        instanceId: currentInstanceId
+        instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -298,7 +298,7 @@ struct SeriesDownloadActionsSection: View {
   private func removeAll() {
     Task {
       await DatabaseOperator.shared.removeSeriesOffline(
-        seriesId: series.id, instanceId: currentInstanceId
+        seriesId: series.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {

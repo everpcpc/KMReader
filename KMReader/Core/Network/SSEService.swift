@@ -102,13 +102,13 @@ final class SSEService {
       return
     }
 
-    guard !AppConfig.serverURL.isEmpty, !AppConfig.authToken.isEmpty else {
+    guard !AppConfig.current.serverURL.isEmpty, !AppConfig.current.authToken.isEmpty else {
       logger.warning("Cannot connect SSE: missing server URL or auth token")
       return
     }
 
-    guard let url = URL(string: AppConfig.serverURL + "/sse/v1/events") else {
-      logger.error("Invalid SSE URL: \(AppConfig.serverURL)/sse/v1/events")
+    guard let url = URL(string: AppConfig.current.serverURL + "/sse/v1/events") else {
+      logger.error("Invalid SSE URL: \(AppConfig.current.serverURL)/sse/v1/events")
       return
     }
 

@@ -16,7 +16,7 @@ class HistoryService {
   func getHistory(page: Int, size: Int, sort: String = "timestamp,desc") async throws
     -> HistoricalEventPage
   {
-    guard AppConfig.isAdmin else {
+    guard AppConfig.current.isAdmin else {
       throw AppErrorType.operationNotAllowed(message: "Admin access required")
     }
 

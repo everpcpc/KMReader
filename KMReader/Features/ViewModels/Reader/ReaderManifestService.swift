@@ -68,7 +68,7 @@ struct ReaderManifestService {
     if let absoluteURL = URL(string: href), absoluteURL.scheme != nil {
       return absoluteURL
     }
-    guard !AppConfig.serverURL.isEmpty, let baseURL = URL(string: AppConfig.serverURL) else {
+    guard !AppConfig.current.serverURL.isEmpty, let baseURL = URL(string: AppConfig.current.serverURL) else {
       return nil
     }
     if let relativeURL = URL(string: href, relativeTo: baseURL) {

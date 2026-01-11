@@ -10,7 +10,7 @@ struct ServerRowView: View {
   @Bindable var instance: KomgaInstance
   @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.colorScheme) private var colorScheme
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   let isSwitching: Bool
   let isActive: Bool

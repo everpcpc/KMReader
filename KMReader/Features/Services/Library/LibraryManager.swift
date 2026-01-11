@@ -20,7 +20,7 @@ class LibraryManager {
   private var loadedInstanceId: String?
 
   func loadLibraries() async {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else {
       hasLoaded = false
       loadedInstanceId = nil
@@ -50,7 +50,7 @@ class LibraryManager {
   }
 
   func getLibrary(id: String) async -> LibraryInfo? {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else {
       return nil
     }

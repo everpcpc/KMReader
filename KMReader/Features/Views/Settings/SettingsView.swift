@@ -10,8 +10,7 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @AppStorage("serverDisplayName") private var serverDisplayName: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
   var body: some View {
@@ -55,7 +54,7 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsLibraries) {
           SettingsSectionRow(section: .libraries)
         }
-        if isAdmin {
+        if current.isAdmin {
           NavigationLink(value: NavDestination.settingsServerInfo) {
             SettingsSectionRow(section: .serverInfo)
           }
@@ -76,23 +75,16 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsServers) {
           SettingsSectionRow(
             section: .servers,
-            subtitle: serverDisplayName.isEmpty ? nil : serverDisplayName
+            subtitle: current.serverDisplayName.isEmpty ? nil : current.serverDisplayName
           )
         }
         if let user = authViewModel.user {
-          HStack {
-            Label(String(localized: "User"), systemImage: "person")
-            Spacer()
-            Text(user.email)
-              .lineLimit(1)
-              .foregroundColor(.secondary)
-          }
-          HStack {
-            Label(String(localized: "Role"), systemImage: "shield")
-            Spacer()
-            Text(isAdmin ? String(localized: "Admin") : String(localized: "User"))
-              .lineLimit(1)
-              .foregroundColor(.secondary)
+          NavigationLink(value: NavDestination.settingsAccountDetails) {
+            SettingsSectionRow(
+              section: .account,
+              icon: user.isAdmin ? "shield.checkered" : nil,
+              subtitle: user.email
+            )
           }
         }
         NavigationLink(value: NavDestination.settingsApiKey) {

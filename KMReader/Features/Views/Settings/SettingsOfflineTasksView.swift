@@ -10,7 +10,8 @@ import SwiftUI
 
 struct SettingsOfflineTasksView: View {
   @Environment(\.modelContext) private var modelContext
-  @AppStorage("currentInstanceId") private var instanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
+  private var instanceId: String { current.instanceId }
   @AppStorage("offlinePaused") private var isPaused: Bool = false
   @AppStorage("offlineAutoDeleteRead") private var autoDeleteRead: Bool = false
   @State private var showingBulkAlert = false
@@ -24,7 +25,7 @@ struct SettingsOfflineTasksView: View {
   @Query private var books: [KomgaBook]
 
   init() {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     _books = Query(
       filter: #Predicate<KomgaBook> { book in
         book.instanceId == instanceId
@@ -228,7 +229,8 @@ struct SettingsOfflineTasksView: View {
 }
 
 struct OfflineTaskRow: View {
-  @AppStorage("currentInstanceId") private var instanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
+  private var instanceId: String { current.instanceId }
   @Bindable var book: KomgaBook
 
   private var progress: Double? {

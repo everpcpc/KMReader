@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct SettingsLibrariesView: View {
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @State private var libraryPendingDelete: LibrarySelection?
   @State private var deleteConfirmationText: String = ""
   @State private var showAddSheet = false
@@ -47,7 +48,7 @@ struct SettingsLibrariesView: View {
     )
     .inlineNavigationBarTitle(SettingsSection.libraries.title)
     .toolbar {
-      if isAdmin {
+      if current.isAdmin && !isOffline {
         ToolbarItem(placement: .primaryAction) {
           Button {
             showAddSheet = true

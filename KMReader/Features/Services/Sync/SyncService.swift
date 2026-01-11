@@ -133,7 +133,7 @@ class SyncService {
       searchTerm: searchTerm
     )
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
     await db.commit()
 
@@ -143,12 +143,12 @@ class SyncService {
   func syncSeriesDetail(seriesId: String) async throws -> Series {
     do {
       let series = try await SeriesService.shared.getOneSeries(id: seriesId)
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.upsertSeries(dto: series, instanceId: instanceId)
       await db.commit()
       return series
     } catch APIError.notFound {
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.deleteSeries(id: seriesId, instanceId: instanceId)
       await db.commit()
       throw APIError.notFound(message: "Series not found", url: nil, response: nil)
@@ -158,7 +158,7 @@ class SyncService {
   func syncNewSeries(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Series> {
     let result = try await SeriesService.shared.getNewSeries(
       libraryIds: libraryIds, page: page, size: size)
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -167,7 +167,7 @@ class SyncService {
   func syncUpdatedSeries(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Series> {
     let result = try await SeriesService.shared.getUpdatedSeries(
       libraryIds: libraryIds, page: page, size: size)
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -185,7 +185,7 @@ class SyncService {
       size: size,
       browseOpts: browseOpts ?? BookBrowseOptions()
     )
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -204,7 +204,7 @@ class SyncService {
       sort: sort
     )
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
 
@@ -214,7 +214,7 @@ class SyncService {
   func syncBooksOnDeck(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
     let result = try await BookService.shared.getBooksOnDeck(
       libraryIds: libraryIds, page: page, size: size)
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -223,7 +223,7 @@ class SyncService {
   func syncRecentlyReadBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<Book> {
     let result = try await BookService.shared.getRecentlyReadBooks(
       libraryIds: libraryIds, page: page, size: size)
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -234,7 +234,7 @@ class SyncService {
   > {
     let result = try await BookService.shared.getRecentlyAddedBooks(
       libraryIds: libraryIds, page: page, size: size)
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -245,7 +245,7 @@ class SyncService {
   > {
     let result = try await BookService.shared.getRecentlyReleasedBooks(
       libraryIds: libraryIds, page: page, size: size)
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -253,7 +253,7 @@ class SyncService {
 
   /// Sync all books for a series (all pages) - used before offline policy operations
   func syncAllSeriesBooks(seriesId: String) async throws {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     var page = 0
     var hasMore = true
 
@@ -274,7 +274,7 @@ class SyncService {
 
   /// Sync all books for a readlist (all pages) - used before offline policy operations
   func syncAllReadListBooks(readListId: String) async throws {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     var page = 0
     var hasMore = true
 
@@ -297,12 +297,12 @@ class SyncService {
   func syncBook(bookId: String) async throws -> Book {
     do {
       let book = try await BookService.shared.getBook(id: bookId)
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.upsertBook(dto: book, instanceId: instanceId)
       await db.commit()
       return book
     } catch APIError.notFound {
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.deleteBook(id: bookId, instanceId: instanceId)
       await db.commit()
       throw APIError.notFound(message: "Book not found", url: nil, response: nil)
@@ -316,7 +316,7 @@ class SyncService {
     let book = try await bookTask
     let series = try await seriesTask
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBook(dto: book, instanceId: instanceId)
     await db.upsertSeries(dto: series, instanceId: instanceId)
     await db.commit()
@@ -326,7 +326,7 @@ class SyncService {
   func syncVisitedItems(bookIds: Set<String>, seriesIds: Set<String>) async {
     guard !bookIds.isEmpty || !seriesIds.isEmpty else { return }
 
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
 
     // Fetch all books and series concurrently
     await withTaskGroup(of: Void.self) { group in
@@ -360,7 +360,7 @@ class SyncService {
   func syncNextBook(bookId: String, readListId: String? = nil) async -> Book? {
     do {
       if let book = try await BookService.shared.getNextBook(bookId: bookId, readListId: readListId) {
-        let instanceId = AppConfig.currentInstanceId
+        let instanceId = AppConfig.current.instanceId
         await db.upsertBook(dto: book, instanceId: instanceId)
         await db.commit()
         return book
@@ -374,7 +374,7 @@ class SyncService {
   func syncPreviousBook(bookId: String) async -> Book? {
     do {
       if let book = try await BookService.shared.getPreviousBook(bookId: bookId) {
-        let instanceId = AppConfig.currentInstanceId
+        let instanceId = AppConfig.current.instanceId
         await db.upsertBook(dto: book, instanceId: instanceId)
         await db.commit()
         return book
@@ -399,7 +399,7 @@ class SyncService {
       sort: sort,
       search: search
     )
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertCollections(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -408,12 +408,12 @@ class SyncService {
   func syncCollection(id: String) async throws -> SeriesCollection {
     do {
       let collection = try await CollectionService.shared.getCollection(id: id)
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.upsertCollection(dto: collection, instanceId: instanceId)
       await db.commit()
       return collection
     } catch APIError.notFound {
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.deleteCollection(id: id, instanceId: instanceId)
       await db.commit()
       throw APIError.notFound(message: "Collection not found", url: nil, response: nil)
@@ -423,7 +423,7 @@ class SyncService {
   func syncSeriesCollections(seriesId: String) async {
     do {
       let collections = try await SeriesService.shared.getSeriesCollections(seriesId: seriesId)
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.upsertCollections(collections, instanceId: instanceId)
       // Update the series' cached collectionIds
       let collectionIds = collections.map { $0.id }
@@ -449,7 +449,7 @@ class SyncService {
       browseOpts: browseOpts,
       libraryIds: libraryIds
     )
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertSeriesList(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -469,7 +469,7 @@ class SyncService {
       sort: sort,
       search: search
     )
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertReadLists(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -478,12 +478,12 @@ class SyncService {
   func syncReadList(id: String) async throws -> ReadList {
     do {
       let readList = try await ReadListService.shared.getReadList(id: id)
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.upsertReadList(dto: readList, instanceId: instanceId)
       await db.commit()
       return readList
     } catch APIError.notFound {
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.deleteReadList(id: id, instanceId: instanceId)
       await db.commit()
       throw APIError.notFound(message: "Read list not found", url: nil, response: nil)
@@ -504,7 +504,7 @@ class SyncService {
       browseOpts: browseOpts,
       libraryIds: libraryIds
     )
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await db.upsertBooks(result.content, instanceId: instanceId)
     await db.commit()
     return result
@@ -513,7 +513,7 @@ class SyncService {
   func syncBookReadLists(bookId: String) async {
     do {
       let readLists = try await BookService.shared.getReadListsForBook(bookId: bookId)
-      let instanceId = AppConfig.currentInstanceId
+      let instanceId = AppConfig.current.instanceId
       await db.upsertReadLists(readLists, instanceId: instanceId)
       // Update the book's cached readListIds
       let readListIds = readLists.map { $0.id }

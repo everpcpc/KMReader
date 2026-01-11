@@ -11,9 +11,8 @@ import SwiftUI
 struct LoginView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(AuthViewModel.self) private var authViewModel
-  @AppStorage("serverURL") private var serverURL: String = "https://demo.komga.org"
-  @AppStorage("username") private var username: String = ""
-  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
   @State private var serverURLText: String = ""
   @State private var usernameText: String = ""
   @State private var password = ""
@@ -36,8 +35,8 @@ struct LoginView: View {
       #endif
     }
     .task {
-      serverURLText = serverURL
-      usernameText = username
+      serverURLText = current.serverURL.isEmpty ? "https://demo.komga.org" : current.serverURL
+      usernameText = current.username
     }
   }
 

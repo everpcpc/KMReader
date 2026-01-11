@@ -15,8 +15,7 @@ struct ReadListContextMenu: View {
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
 
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   private var status: SeriesDownloadStatus {
@@ -51,7 +50,7 @@ struct ReadListContextMenu: View {
           Label("Offline", systemImage: status.icon)
         }
 
-        if isAdmin {
+        if current.isAdmin {
           Divider()
           Button {
             onEditRequested?()
@@ -119,7 +118,7 @@ struct ReadListContextMenu: View {
     Task {
       try? await SyncService.shared.syncAllReadListBooks(readListId: readListId)
       await DatabaseOperator.shared.downloadReadListOffline(
-        readListId: readListId, instanceId: currentInstanceId
+        readListId: readListId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -135,7 +134,7 @@ struct ReadListContextMenu: View {
       try? await SyncService.shared.syncAllReadListBooks(readListId: readListId)
       await DatabaseOperator.shared.downloadReadListUnreadOffline(
         readListId: readListId,
-        instanceId: currentInstanceId,
+        instanceId: current.instanceId,
         limit: limit
       )
       await DatabaseOperator.shared.commit()
@@ -151,7 +150,7 @@ struct ReadListContextMenu: View {
     Task {
       await DatabaseOperator.shared.removeReadListReadOffline(
         readListId: readListId,
-        instanceId: currentInstanceId
+        instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {
@@ -165,7 +164,7 @@ struct ReadListContextMenu: View {
   private func removeAll() {
     Task {
       await DatabaseOperator.shared.removeReadListOffline(
-        readListId: readListId, instanceId: currentInstanceId
+        readListId: readListId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
       await MainActor.run {

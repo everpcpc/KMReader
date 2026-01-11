@@ -46,8 +46,8 @@ import OSLog
 
       // Add auth headers
       var headers: [String: String] = [:]
-      if AppConfig.authMethod == .apiKey && !AppConfig.authToken.isEmpty {
-        headers["X-API-Key"] = AppConfig.authToken
+      if AppConfig.current.authMethod == .apiKey && !AppConfig.current.authToken.isEmpty {
+        headers["X-API-Key"] = AppConfig.current.authToken
       }
       if !headers.isEmpty {
         config.httpAdditionalHeaders = headers
@@ -159,13 +159,13 @@ import OSLog
     // MARK: - Private Helpers
 
     private func addAuthHeaders(to request: inout URLRequest) {
-      switch AppConfig.authMethod {
+      switch AppConfig.current.authMethod {
       case .basicAuth:
         // For basic auth, cookies from the shared session should work
         break
       case .apiKey:
-        if !AppConfig.authToken.isEmpty {
-          request.setValue(AppConfig.authToken, forHTTPHeaderField: "X-API-Key")
+        if !AppConfig.current.authToken.isEmpty {
+          request.setValue(AppConfig.current.authToken, forHTTPHeaderField: "X-API-Key")
         }
       }
     }

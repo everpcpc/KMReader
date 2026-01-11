@@ -13,7 +13,7 @@ struct OneshotDetailView: View {
   let seriesId: String
 
   @Environment(\.dismiss) private var dismiss
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @Query private var komgaSeriesList: [KomgaSeries]
   @Query private var komgaBookList: [KomgaBook]
@@ -27,7 +27,7 @@ struct OneshotDetailView: View {
 
   init(seriesId: String) {
     self.seriesId = seriesId
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let seriesCompositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
     _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == seriesCompositeId })
     _komgaBookList = Query(
@@ -313,7 +313,7 @@ struct OneshotDetailView: View {
   private var oneshotToolbarContent: some View {
     HStack(spacing: PlatformHelper.buttonSpacing) {
       Menu {
-        if isAdmin {
+        if current.isAdmin {
           Button {
             showEditSheet = true
           } label: {
@@ -371,7 +371,7 @@ struct OneshotDetailView: View {
 
         Divider()
 
-        if isAdmin {
+        if current.isAdmin {
           Button(role: .destructive) {
             showDeleteConfirmation = true
           } label: {

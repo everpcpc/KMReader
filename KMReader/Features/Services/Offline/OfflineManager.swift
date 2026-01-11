@@ -239,7 +239,7 @@ actor OfflineManager {
 
   /// Delete all downloaded books for the current instance.
   func deleteAllDownloadedBooks() async {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let books = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
 
     // Group by series to update policies
@@ -270,7 +270,7 @@ actor OfflineManager {
 
   /// Delete all read (completed) downloaded books for the current instance.
   func deleteReadBooks() async {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let books = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
     let readBooks = books.filter { $0.readProgress?.completed == true }
 
@@ -303,7 +303,7 @@ actor OfflineManager {
   /// Cleanup orphaned offline files that no longer have corresponding SwiftData entries.
   /// Returns the number of orphaned directories deleted and total bytes freed.
   func cleanupOrphanedFiles() async -> (deletedCount: Int, bytesFreed: Int64) {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let offlineDir = Self.offlineDirectory(for: instanceId)
     let fm = FileManager.default
 
@@ -357,7 +357,7 @@ actor OfflineManager {
   ) async {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
-    let resolvedInstanceId = instanceId ?? AppConfig.currentInstanceId
+    let resolvedInstanceId = instanceId ?? AppConfig.current.instanceId
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId, instanceId: resolvedInstanceId, status: .notDownloaded,
       syncSeriesStatus: syncSeriesStatus
@@ -369,7 +369,7 @@ actor OfflineManager {
 
   /// Cancel all active downloads (used during cleanup).
   func cancelAllDownloads() async {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     for (bookId, task) in activeTasks {
       task.cancel()
       await DatabaseOperator.shared.updateBookDownloadStatus(
@@ -572,7 +572,7 @@ actor OfflineManager {
           totalPages: pages.count
         )
 
-        let serverURL = await MainActor.run { AppConfig.serverURL }
+        let serverURL = await MainActor.run { AppConfig.current.serverURL }
 
         if isEpub {
           // EPUB: single file download
@@ -749,7 +749,7 @@ actor OfflineManager {
   func cancelDownload(bookId: String) async {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId, instanceId: instanceId, status: .notDownloaded
     )

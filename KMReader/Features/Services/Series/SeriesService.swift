@@ -161,7 +161,7 @@ class SeriesService {
 
   /// Get thumbnail URL for a series
   func getSeriesThumbnailURL(id: String) -> URL? {
-    let baseURL = AppConfig.serverURL
+    let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/series/\(id)/thumbnail")
   }

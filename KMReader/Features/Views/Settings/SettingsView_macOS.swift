@@ -10,8 +10,7 @@ import SwiftUI
 #if os(macOS)
   struct SettingsView_macOS: View {
     @Environment(AuthViewModel.self) private var authViewModel
-    @AppStorage("isAdmin") private var isAdmin: Bool = false
-    @AppStorage("serverDisplayName") private var serverDisplayName: String = ""
+    @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
     @State private var selectedSection: SettingsSection? = .appearance
@@ -37,7 +36,7 @@ import SwiftUI
 
           Section("Management") {
             SettingsSectionRow(section: .libraries)
-            if isAdmin {
+            if current.isAdmin {
               SettingsSectionRow(section: .serverInfo)
               SettingsSectionRow(
                 section: .tasks,
@@ -51,21 +50,13 @@ import SwiftUI
           Section("Account") {
             SettingsSectionRow(
               section: .servers,
-              subtitle: serverDisplayName.isEmpty ? nil : serverDisplayName
+              subtitle: current.serverDisplayName.isEmpty ? nil : current.serverDisplayName
             )
             if let user = authViewModel.user {
-              HStack {
-                Label("User", systemImage: "person")
-                Spacer()
-                Text(user.email)
-                  .foregroundColor(.secondary)
-              }
-              HStack {
-                Label("Role", systemImage: "shield")
-                Spacer()
-                Text(isAdmin ? "Admin" : "User")
-                  .foregroundColor(.secondary)
-              }
+              SettingsSectionRow(
+                section: .account,
+                subtitle: user.email
+              )
             }
             SettingsSectionRow(section: .apiKeys)
             SettingsSectionRow(section: .authenticationActivity)
@@ -111,7 +102,9 @@ import SwiftUI
               SettingsHistoryView()
 
             case .servers:
-              SettingsServersView()
+              ServersView()
+            case .account:
+              AccountDetailsView()
             case .apiKeys:
               SettingsApiKeyView()
             case .authenticationActivity:

@@ -54,7 +54,7 @@ struct LandingView: View {
     #if !os(macOS)
       .fullScreenCover(isPresented: $showGetStarted) {
         NavigationStack {
-          SettingsServersView(mode: .onboarding)
+          ServersView(mode: .onboarding)
         }
         .tint(themeColor.color)
         .accentColor(themeColor.color)
@@ -62,7 +62,7 @@ struct LandingView: View {
     #else
       .sheet(isPresented: $showGetStarted) {
         NavigationStack {
-          SettingsServersView(mode: .onboarding)
+          ServersView(mode: .onboarding)
         }
       }
     #endif

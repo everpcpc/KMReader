@@ -10,9 +10,18 @@ import Foundation
 /// Centralized configuration management using UserDefaults
 enum AppConfig {
   // MARK: - Server & Auth
-  static var serverURL: String {
-    get { UserDefaults.standard.string(forKey: "serverURL") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "serverURL") }
+  static nonisolated var current: Current {
+    get {
+      if let rawValue = UserDefaults.standard.string(forKey: "currentAccount"),
+        let current = Current(rawValue: rawValue)
+      {
+        return current
+      }
+      return Current()
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "currentAccount")
+    }
   }
 
   static var apiTimeout: Double {
@@ -35,41 +44,9 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "apiRetryCount") }
   }
 
-  static var serverDisplayName: String {
-    get { UserDefaults.standard.string(forKey: "serverDisplayName") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "serverDisplayName") }
-  }
-
-  static var authToken: String {
-    get { UserDefaults.standard.string(forKey: "authToken") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "authToken") }
-  }
-
-  static var authMethod: AuthenticationMethod {
-    get {
-      if let stored = UserDefaults.standard.string(forKey: "authMethod"),
-        let method = AuthenticationMethod(rawValue: stored)
-      {
-        return method
-      }
-      return .basicAuth
-    }
-    set { UserDefaults.standard.set(newValue.rawValue, forKey: "authMethod") }
-  }
-
-  static var username: String {
-    get { UserDefaults.standard.string(forKey: "username") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "username") }
-  }
-
   static var isLoggedIn: Bool {
-    get { UserDefaults.standard.bool(forKey: "isLoggedIn") }
-    set { UserDefaults.standard.set(newValue, forKey: "isLoggedIn") }
-  }
-
-  static var isAdmin: Bool {
-    get { UserDefaults.standard.bool(forKey: "isAdmin") }
-    set { UserDefaults.standard.set(newValue, forKey: "isAdmin") }
+    get { UserDefaults.standard.bool(forKey: "isLoggedInV2") }
+    set { UserDefaults.standard.set(newValue, forKey: "isLoggedInV2") }
   }
 
   static var deviceIdentifier: String? {
@@ -86,11 +63,6 @@ enum AppConfig {
   static var dualPageNoCover: Bool {
     get { UserDefaults.standard.bool(forKey: "dualPageNoCover") }
     set { UserDefaults.standard.set(newValue, forKey: "dualPageNoCover") }
-  }
-
-  static nonisolated var currentInstanceId: String {
-    get { UserDefaults.standard.string(forKey: "currentInstanceId") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "currentInstanceId") }
   }
 
   static nonisolated var isOffline: Bool {
@@ -653,12 +625,10 @@ enum AppConfig {
 
   // MARK: - Clear all auth data
   static func clearAuthData() {
-    authToken = ""
-    authMethod = .basicAuth
-    username = ""
-    serverDisplayName = ""
-    isAdmin = false
-    currentInstanceId = ""
+    var new = current
+    new.reset()
+    current = new
+
     serverLastUpdate = nil
     dashboard.libraryIds = []
     DashboardSectionCacheStore.shared.reset()

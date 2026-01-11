@@ -11,7 +11,7 @@ import SwiftUI
 struct CollectionDetailView: View {
   let collectionId: String
 
-  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("collectionDetailLayout") private var collectionDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
@@ -157,7 +157,7 @@ extension CollectionDetailView {
   @ViewBuilder
   private var actionsMenu: some View {
     Menu {
-      if isAdmin {
+      if current.isAdmin {
         Button {
           showEditSheet = true
         } label: {

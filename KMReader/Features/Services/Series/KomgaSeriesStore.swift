@@ -84,7 +84,7 @@ enum KomgaSeriesStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds ?? []
     var descriptor = FetchDescriptor<KomgaSeries>()
 
@@ -172,7 +172,7 @@ enum KomgaSeriesStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaSeries>()
 
@@ -204,7 +204,7 @@ enum KomgaSeriesStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds
     var descriptor = FetchDescriptor<KomgaSeries>()
 
@@ -247,7 +247,7 @@ enum KomgaSeriesStore {
     size: Int,
     browseOpts: CollectionSeriesBrowseOptions
   ) -> [Series] {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let collectionCompositeId = CompositeID.generate(instanceId: instanceId, id: collectionId)
 
     let descriptor = FetchDescriptor<KomgaCollection>(

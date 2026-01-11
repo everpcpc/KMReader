@@ -51,11 +51,11 @@ class APIClient {
   }
 
   func setServer(url: String) {
-    AppConfig.serverURL = url
+    AppConfig.current.serverURL = url
   }
 
   func setAuthToken(_ token: String?) {
-    AppConfig.authToken = token ?? ""
+    AppConfig.current.authToken = token ?? ""
   }
 
   // MARK: - Temporary Request (doesn't modify global state)
@@ -237,7 +237,7 @@ class APIClient {
     headers: [String: String]? = nil,
     timeout: TimeInterval? = nil
   ) throws -> URLRequest {
-    guard var urlComponents = URLComponents(string: AppConfig.serverURL + path) else {
+    guard var urlComponents = URLComponents(string: AppConfig.current.serverURL + path) else {
       throw APIError.invalidURL
     }
 
@@ -259,8 +259,8 @@ class APIClient {
     configureDefaultHeaders(&request, body: body, headers: headers)
 
     // Add API Key header on every request when using API Key authentication
-    if AppConfig.authMethod == .apiKey {
-      let token = AppConfig.authToken
+    if AppConfig.current.authMethod == .apiKey {
+      let token = AppConfig.current.authToken
       if !token.isEmpty {
         request.setValue(token, forHTTPHeaderField: "X-API-Key")
       }
@@ -280,7 +280,7 @@ class APIClient {
     authMethod: AuthenticationMethod? = nil,
     timeout: TimeInterval? = nil
   ) throws -> URLRequest {
-    let baseURL = (serverURL ?? AppConfig.serverURL).trimmingCharacters(
+    let baseURL = (serverURL ?? AppConfig.current.serverURL).trimmingCharacters(
       in: .whitespacesAndNewlines)
     var urlString = baseURL
     if !urlString.hasSuffix("/") {
@@ -312,7 +312,7 @@ class APIClient {
 
     // Add auth header based on the authentication method
     if let token = authToken, !token.isEmpty {
-      let method = authMethod ?? AppConfig.authMethod
+      let method = authMethod ?? AppConfig.current.authMethod
       switch method {
       case .basicAuth:
         request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
@@ -418,9 +418,9 @@ class APIClient {
         // Handle 401 Unauthorized with re-login
         // Skip re-login for API Key mode as it's stateless and included in every request
         if httpResponse.statusCode == 401 && retryCount == 0 && !isTemporary
-          && AppConfig.authMethod != .apiKey
+          && AppConfig.current.authMethod != .apiKey
         {
-          let token = AppConfig.authToken
+          let token = AppConfig.current.authToken
           if !token.isEmpty {
             logger.info("🔒 Unauthorized, attempting re-login to refresh session...")
 
