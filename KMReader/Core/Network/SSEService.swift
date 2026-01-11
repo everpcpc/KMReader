@@ -120,7 +120,7 @@ final class SSEService {
   }
 
   @MainActor
-  func disconnect() {
+  func disconnect(notify: Bool = true) {
     guard isConnected else { return }
 
     logger.info("🔌 Disconnecting SSE")
@@ -133,7 +133,7 @@ final class SSEService {
     AppConfig.taskQueueStatus = TaskQueueSSEDto()
 
     // Notify user that SSE disconnected (if notifications enabled)
-    if AppConfig.enableSSENotify {
+    if notify && AppConfig.enableSSENotify {
       ErrorManager.shared.notify(message: String(localized: "notification.sse.disconnected"))
     }
   }

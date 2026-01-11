@@ -90,12 +90,17 @@ struct ContentView: View {
                   instanceId: AppConfig.current.instanceId, restart: true)
               }
             }
+            if enableSSE && !isOffline {
+              SSEService.shared.connect()
+            }
+          } else if phase == .background {
+            SSEService.shared.disconnect(notify: false)
           }
         }
       } else {
         LandingView()
           .onAppear {
-            SSEService.shared.disconnect()
+            SSEService.shared.disconnect(notify: false)
           }
       }
     }
