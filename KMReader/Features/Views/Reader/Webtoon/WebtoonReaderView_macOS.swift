@@ -20,12 +20,14 @@
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let disableTapToTurnPage: Bool
+    let showPageNumber: Bool
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
       disableTapToTurnPage: Bool = false,
+      showPageNumber: Bool = true,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil,
@@ -37,6 +39,7 @@
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
       self.disableTapToTurnPage = disableTapToTurnPage
+      self.showPageNumber = showPageNumber
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
@@ -111,7 +114,8 @@
           onScrollToBottom: onScrollToBottom,
           pageWidth: pageWidth,
           collectionView: collectionView,
-          readerBackground: readerBackground)
+          readerBackground: readerBackground,
+          showPageNumber: showPageNumber)
       }
     }
 
@@ -143,6 +147,7 @@
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var disableTapToTurnPage: Bool = false
+      var showPageNumber: Bool = true
       var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
       var keyMonitor: Any?
@@ -224,7 +229,8 @@
         onScrollToBottom: ((Bool) -> Void)?,
         pageWidth: CGFloat,
         collectionView: NSCollectionView,
-        readerBackground: ReaderBackground
+        readerBackground: ReaderBackground,
+        showPageNumber: Bool
       ) {
         self.pages = pages
         self.viewModel = viewModel
@@ -233,8 +239,21 @@
         self.onScrollToBottom = onScrollToBottom
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
+        self.showPageNumber = showPageNumber
 
         let currentPage = viewModel.currentPageIndex
+
+        if self.showPageNumber != showPageNumber {
+          self.showPageNumber = showPageNumber
+          for ip in collectionView.indexPathsForVisibleItems() {
+            if ip.item < pages.count,
+              let cell = collectionView.item(at: ip) as? WebtoonPageCell
+            {
+              cell.showPageNumber = showPageNumber
+            }
+          }
+        }
+        self.showPageNumber = showPageNumber
 
         if lastPagesCount != pages.count || abs(heightCache.lastPageWidth - pageWidth) > 0.1 {
           if lastPagesCount != pages.count {
@@ -333,7 +352,8 @@
         let page = pages[pageIndex]
         let preloadedImage = viewModel?.preloadedImages[page.number]
 
-        cell.configure(pageIndex: pageIndex, image: preloadedImage) { [weak self] idx in
+        cell.configure(pageIndex: pageIndex, image: preloadedImage, showPageNumber: showPageNumber) {
+          [weak self] idx in
           guard let self = self else { return }
           if let image = self.viewModel?.preloadedImages[self.pages[idx].number] {
             if let cv = self.collectionView,

@@ -441,7 +441,6 @@
 
   private class NativePageItemMacOS: NSView {
     private let imageView = NSImageView()
-    private let pageNumberContainer = NSView()
     private let pageNumberLabel = NSTextField()
     private let progressIndicator = NSProgressIndicator()
 
@@ -511,26 +510,22 @@
       pageNumberLabel.isEditable = false
       pageNumberLabel.isSelectable = false
       pageNumberLabel.isBordered = false
-      pageNumberLabel.drawsBackground = false
-      pageNumberLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+      pageNumberLabel.drawsBackground = true
+      pageNumberLabel.backgroundColor = NSColor.black.withAlphaComponent(0.6)
+      pageNumberLabel.font = .systemFont(ofSize: 14, weight: .semibold)
       pageNumberLabel.textColor = .white
       pageNumberLabel.alignment = .center
+      pageNumberLabel.wantsLayer = true
+      pageNumberLabel.layer?.cornerRadius = 6
+      pageNumberLabel.layer?.masksToBounds = true
       pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
-
-      pageNumberContainer.wantsLayer = true
-      pageNumberContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
-      pageNumberContainer.layer?.cornerRadius = 8
-      pageNumberContainer.translatesAutoresizingMaskIntoConstraints = false
-      pageNumberContainer.addSubview(pageNumberLabel)
-      addSubview(pageNumberContainer)
+      addSubview(pageNumberLabel)
 
       NSLayoutConstraint.activate([
         progressIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
         progressIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
-        pageNumberLabel.centerXAnchor.constraint(equalTo: pageNumberContainer.centerXAnchor),
-        pageNumberLabel.centerYAnchor.constraint(equalTo: pageNumberContainer.centerYAnchor, constant: 1),
-        pageNumberContainer.widthAnchor.constraint(greaterThanOrEqualToConstant: 34),
-        pageNumberContainer.heightAnchor.constraint(equalToConstant: 28),
+        pageNumberLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
+        pageNumberLabel.heightAnchor.constraint(equalToConstant: 24),
       ])
     }
 
@@ -540,9 +535,9 @@
 
       if let num = data.pageNumber, data.image != nil, showPageNumber {
         pageNumberLabel.stringValue = "\(num + 1)"
-        pageNumberContainer.isHidden = false
+        pageNumberLabel.isHidden = false
       } else {
-        pageNumberContainer.isHidden = true
+        pageNumberLabel.isHidden = true
       }
 
       if data.isLoading { progressIndicator.startAnimation(nil) } else { progressIndicator.stopAnimation(nil) }
@@ -633,13 +628,13 @@
       if let alignment = currentData?.alignment {
         let isLeftPage = (!isRTL && alignment == .trailing) || (isRTL && alignment == .leading)
         if isLeftPage {
-          pageNumberContainer.setFrameOrigin(NSPoint(x: xOffset + 12, y: topY))
+          pageNumberLabel.setFrameOrigin(NSPoint(x: xOffset + 12, y: topY))
         } else {
-          pageNumberContainer.setFrameOrigin(
-            NSPoint(x: xOffset + actualImageWidth - pageNumberContainer.bounds.width - 12, y: topY))
+          pageNumberLabel.setFrameOrigin(
+            NSPoint(x: xOffset + actualImageWidth - pageNumberLabel.bounds.width - 12, y: topY))
         }
       } else {
-        pageNumberContainer.setFrameOrigin(NSPoint(x: (viewSize.width - pageNumberContainer.bounds.width) / 2, y: topY))
+        pageNumberLabel.setFrameOrigin(NSPoint(x: (viewSize.width - pageNumberLabel.bounds.width) / 2, y: topY))
       }
     }
 

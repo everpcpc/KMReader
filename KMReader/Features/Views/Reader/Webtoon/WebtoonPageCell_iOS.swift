@@ -21,6 +21,10 @@
       didSet { applyBackground() }
     }
 
+    var showPageNumber: Bool = true {
+      didSet { pageMarkerLabel.isHidden = !showPageNumber }
+    }
+
     override init(frame: CGRect) {
       super.init(frame: frame)
       setupUI()
@@ -37,22 +41,14 @@
       imageView.translatesAutoresizingMaskIntoConstraints = false
       contentView.addSubview(imageView)
 
-      pageMarkerContainer.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-      pageMarkerContainer.layer.cornerRadius = 8
-      pageMarkerContainer.layer.masksToBounds = true
-      pageMarkerContainer.translatesAutoresizingMaskIntoConstraints = false
-      contentView.addSubview(pageMarkerContainer)
-
-      let baseFont = UIFont.systemFont(ofSize: 16, weight: .semibold)
-      if let descriptor = baseFont.fontDescriptor.withDesign(.rounded) {
-        pageMarkerLabel.font = UIFont(descriptor: descriptor, size: 16)
-      } else {
-        pageMarkerLabel.font = baseFont
-      }
+      pageMarkerLabel.font = .systemFont(ofSize: 14, weight: .semibold)
       pageMarkerLabel.textColor = .white
+      pageMarkerLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+      pageMarkerLabel.layer.cornerRadius = 6
+      pageMarkerLabel.layer.masksToBounds = true
       pageMarkerLabel.textAlignment = .center
       pageMarkerLabel.translatesAutoresizingMaskIntoConstraints = false
-      pageMarkerContainer.addSubview(pageMarkerLabel)
+      contentView.addSubview(pageMarkerLabel)
 
       loadingIndicator.color = .white
       loadingIndicator.hidesWhenStopped = true
@@ -64,21 +60,15 @@
         imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
         imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-        pageMarkerContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
-        pageMarkerContainer.trailingAnchor.constraint(
-          equalTo: contentView.trailingAnchor, constant: -12),
-        pageMarkerLabel.topAnchor.constraint(equalTo: pageMarkerContainer.topAnchor, constant: 6),
-        pageMarkerLabel.bottomAnchor.constraint(
-          equalTo: pageMarkerContainer.bottomAnchor, constant: -6),
-        pageMarkerLabel.leadingAnchor.constraint(
-          equalTo: pageMarkerContainer.leadingAnchor, constant: 12),
-        pageMarkerLabel.trailingAnchor.constraint(
-          equalTo: pageMarkerContainer.trailingAnchor, constant: -12),
+
+        pageMarkerLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+        pageMarkerLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
+        pageMarkerLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
+        pageMarkerLabel.heightAnchor.constraint(equalToConstant: 24),
+
         loadingIndicator.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
         loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
       ])
-      pageMarkerLabel.setContentHuggingPriority(.required, for: .horizontal)
-      pageMarkerLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
     }
 
     private func applyBackground() {
@@ -87,12 +77,12 @@
     }
 
     func configure(
-      pageIndex: Int, image: UIImage?, loadImage: @escaping (Int) async -> Void
+      pageIndex: Int, image: UIImage?, showPageNumber: Bool, loadImage: @escaping (Int) async -> Void
     ) {
       self.pageIndex = pageIndex
       self.loadImage = loadImage
       pageMarkerLabel.text = "\(pageIndex + 1)"
-      pageMarkerContainer.isHidden = !AppConfig.showPageNumber
+      pageMarkerLabel.isHidden = !showPageNumber
 
       if let image = image {
         // Instant display if image is provided
@@ -145,7 +135,7 @@
       loadingIndicator.isHidden = true
       pageIndex = -1
       loadImage = nil
-      pageMarkerContainer.isHidden = true
+      pageMarkerLabel.isHidden = true
     }
   }
 #endif

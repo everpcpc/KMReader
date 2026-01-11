@@ -20,12 +20,14 @@
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let disableTapToTurnPage: Bool
+    let showPageNumber: Bool
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
       disableTapToTurnPage: Bool = false,
+      showPageNumber: Bool = true,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil,
@@ -37,6 +39,7 @@
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
       self.disableTapToTurnPage = disableTapToTurnPage
+      self.showPageNumber = showPageNumber
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
@@ -107,7 +110,8 @@
         pageWidth: pageWidth,
         collectionView: collectionView,
         readerBackground: readerBackground,
-        disableTapToTurnPage: disableTapToTurnPage
+        disableTapToTurnPage: disableTapToTurnPage,
+        showPageNumber: showPageNumber
       )
     }
 
@@ -141,6 +145,7 @@
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var disableTapToTurnPage: Bool = false
+      var showPageNumber: Bool = true
       var isLongPress: Bool = false
 
       private let longPressThreshold: TimeInterval = 0.5
@@ -201,7 +206,8 @@
         pageWidth: CGFloat,
         collectionView: UICollectionView,
         readerBackground: ReaderBackground,
-        disableTapToTurnPage: Bool
+        disableTapToTurnPage: Bool,
+        showPageNumber: Bool
       ) {
         applySafeAreaInsetsIfNeeded(for: collectionView)
         self.pages = pages
@@ -214,6 +220,15 @@
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
         self.disableTapToTurnPage = disableTapToTurnPage
+        if self.showPageNumber != showPageNumber {
+          self.showPageNumber = showPageNumber
+          for cell in collectionView.visibleCells {
+            if let pageCell = cell as? WebtoonPageCell {
+              pageCell.showPageNumber = showPageNumber
+            }
+          }
+        }
+        self.showPageNumber = showPageNumber
 
         let currentPage = viewModel.currentPageIndex
 
@@ -224,6 +239,7 @@
         for cell in collectionView.visibleCells {
           if let pageCell = cell as? WebtoonPageCell {
             pageCell.readerBackground = readerBackground
+            pageCell.showPageNumber = showPageNumber
           } else if let footerCell = cell as? WebtoonFooterCell {
             footerCell.readerBackground = readerBackground
           }
@@ -387,6 +403,7 @@
         cell.configure(
           pageIndex: pageIndex,
           image: preloadedImage,
+          showPageNumber: showPageNumber,
           loadImage: { [weak self] index in
             guard let self = self else { return }
             if let image = self.viewModel?.preloadedImages[self.pages[index].number] {

@@ -19,7 +19,9 @@
     let screenSize: CGSize
     let pageWidthPercentage: Double
     let readerBackground: ReaderBackground
+
     @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+    @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
     @State private var panUpdateHandler: ((CGFloat) -> Void)?
     @State private var panEndHandler: ((CGFloat) -> Void)?
@@ -36,6 +38,7 @@
           pageWidth: pageWidth,
           readerBackground: readerBackground,
           disableTapToTurnPage: disableTapToTurnPage,
+          showPageNumber: showPageNumber,
           onPageChange: { pageIndex in
             viewModel.currentPageIndex = pageIndex
           },
