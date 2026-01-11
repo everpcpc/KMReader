@@ -60,7 +60,7 @@ struct SinglePageImageView: View {
         NativePageData(
           bookId: viewModel.bookId,
           pageNumber: pageIndex,
-          isLoading: viewModel.isLoading && page != nil && viewModel.preloadedImages[page!.number] == nil,
+          isLoading: viewModel.isLoading && page != nil && viewModel.preloadedImages[pageIndex] == nil,
           error: nil,
           alignment: .center
         )
