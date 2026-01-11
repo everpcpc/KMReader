@@ -546,6 +546,8 @@ actor DatabaseOperator {
         model: KomgaCollection.self, where: #Predicate { $0.instanceId == instanceId })
       try modelContext.delete(
         model: KomgaReadList.self, where: #Predicate { $0.instanceId == instanceId })
+      try modelContext.delete(
+        model: PendingProgress.self, where: #Predicate { $0.instanceId == instanceId })
 
       logger.info("🗑️ Cleared all SwiftData entities for instance: \(instanceId)")
     } catch {
@@ -1564,18 +1566,6 @@ actor DatabaseOperator {
 
     if let pending = try? modelContext.fetch(descriptor).first {
       modelContext.delete(pending)
-    }
-  }
-
-  func clearPendingProgress(instanceId: String) {
-    do {
-      try modelContext.delete(
-        model: PendingProgress.self,
-        where: #Predicate { $0.instanceId == instanceId }
-      )
-      logger.info("🗑️ Cleared all pending progress for instance: \(instanceId)")
-    } catch {
-      logger.error("❌ Failed to clear pending progress: \(error)")
     }
   }
 }
