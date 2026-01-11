@@ -28,7 +28,7 @@ struct DashboardView: View {
   @Environment(AuthViewModel.self) private var authViewModel
 
   private let sseService = SSEService.shared
-  private let debounceInterval: TimeInterval = 3.0  // 3 seconds debounce
+  private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce
   private let logger = AppLogger(.dashboard)
 
   private var isReaderActive: Bool {
