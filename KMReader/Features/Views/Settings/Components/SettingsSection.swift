@@ -9,6 +9,7 @@ import Foundation
 
 enum SettingsSection: String, CaseIterable {
   case appearance
+  case browse
   case dashboard
   case cache
   case reader
@@ -33,6 +34,8 @@ enum SettingsSection: String, CaseIterable {
     switch self {
     case .appearance:
       return "paintbrush"
+    case .browse:
+      return "square.grid.2x2"
     case .dashboard:
       return "house"
     case .cache:
@@ -76,6 +79,8 @@ enum SettingsSection: String, CaseIterable {
     switch self {
     case .appearance:
       return String(localized: "Appearance")
+    case .browse:
+      return String(localized: "Browse")
     case .dashboard:
       return String(localized: "Dashboard")
     case .cache:

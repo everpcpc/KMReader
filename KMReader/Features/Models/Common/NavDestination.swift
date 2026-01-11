@@ -26,6 +26,7 @@ enum NavDestination: Hashable {
   case dashboardSectionDetail(section: DashboardSection)
 
   case settingsAppearance
+  case settingsBrowse
   case settingsDashboard
   case settingsCache
   case settingsReader
@@ -80,6 +81,8 @@ enum NavDestination: Hashable {
 
     case .settingsAppearance:
       SettingsAppearanceView()
+    case .settingsBrowse:
+      SettingsBrowseView()
     case .settingsDashboard:
       SettingsDashboardView()
     case .settingsCache:

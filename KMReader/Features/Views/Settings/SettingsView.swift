@@ -21,6 +21,9 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsAppearance) {
           SettingsSectionRow(section: .appearance)
         }
+        NavigationLink(value: NavDestination.settingsBrowse) {
+          SettingsSectionRow(section: .browse)
+        }
         NavigationLink(value: NavDestination.settingsDashboard) {
           SettingsSectionRow(section: .dashboard)
         }

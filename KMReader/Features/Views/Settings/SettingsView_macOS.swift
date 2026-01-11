@@ -21,6 +21,7 @@ import SwiftUI
         List(selection: $selectedSection) {
           Section("General") {
             SettingsSectionRow(section: .appearance)
+            SettingsSectionRow(section: .browse)
             SettingsSectionRow(section: .dashboard)
             SettingsSectionRow(section: .cache)
             SettingsSectionRow(section: .reader)
@@ -74,6 +75,8 @@ import SwiftUI
             switch selectedSection {
             case .appearance:
               SettingsAppearanceView()
+            case .browse:
+              SettingsBrowseView()
             case .dashboard:
               SettingsDashboardView()
             case .cache:
