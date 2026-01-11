@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 #if os(iOS) || os(tvOS)
   import UIKit
@@ -14,11 +15,15 @@ import SwiftUI
     static let shared = NotificationWindowManager()
 
     private var notificationWindow: UIWindow?
-    private var hostingController: StatusBarObservingHostingController<NotificationContentView>?
+    private var hostingController: StatusBarObservingHostingController<AnyView>?
 
     private init() {}
 
-    func setup(readerPresentation: ReaderPresentationManager) {
+    func setup(
+      readerPresentation: ReaderPresentationManager,
+      authViewModel: AuthViewModel,
+      modelContainer: ModelContainer
+    ) {
       guard notificationWindow == nil else { return }
 
       // Find the active window scene
@@ -35,8 +40,16 @@ import SwiftUI
       window.windowLevel = .alert + 1
       window.backgroundColor = .clear
 
+      // Inject all necessary environments into the root view
+      let rootView = AnyView(
+        NotificationContentView()
+          .environment(readerPresentation)
+          .environment(authViewModel)
+          .modelContainer(modelContainer)
+      )
+
       let hostingController = StatusBarObservingHostingController(
-        rootView: NotificationContentView(),
+        rootView: rootView,
         readerPresentation: readerPresentation
       )
       hostingController.view.backgroundColor = .clear
@@ -60,11 +73,6 @@ import SwiftUI
   }
 
   // A hosting controller that observes ReaderPresentationManager for UI preferences.
-  // This is needed because this window has a higher windowLevel and iOS uses the
-  // topmost window's rootViewController to determine:
-  // - Status bar visibility (prefersStatusBarHidden)
-  // - Home indicator auto-hide (prefersHomeIndicatorAutoHidden)
-  // - Screen edge gesture deferral (preferredScreenEdgesDeferringSystemGestures)
   private class StatusBarObservingHostingController<Content: View>: UIHostingController<Content> {
     private let readerPresentation: ReaderPresentationManager
 
@@ -105,26 +113,12 @@ import SwiftUI
       override var prefersHomeIndicatorAutoHidden: Bool {
         return readerPresentation.hideStatusBar
       }
-
-    // NOTE: If users report accidental system gesture triggers while reading,
-    // consider implementing preferredScreenEdgesDeferringSystemGestures.
-    // This would require the first swipe from an edge to trigger app gestures,
-    // and the second swipe to trigger system gestures.
-    //
-    // Example implementation:
-    // override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
-    //   return readerPresentation.hideStatusBar ? [.bottom, .top] : []
-    // }
-    //
-    // Also add in startObserving():
-    // self?.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
     #endif
   }
 
   // The actual notification content view
   struct NotificationContentView: View {
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
     @State private var errorManager = ErrorManager.shared
 
     var body: some View {
@@ -168,11 +162,17 @@ import SwiftUI
   // Modifier to setup the notification window
   struct NotificationWindowSetup: ViewModifier {
     @Environment(ReaderPresentationManager.self) private var readerPresentation
+    @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(\.modelContext) private var modelContext
 
     func body(content: Content) -> some View {
       content
         .onAppear {
-          NotificationWindowManager.shared.setup(readerPresentation: readerPresentation)
+          NotificationWindowManager.shared.setup(
+            readerPresentation: readerPresentation,
+            authViewModel: authViewModel,
+            modelContainer: modelContext.container
+          )
         }
     }
   }
