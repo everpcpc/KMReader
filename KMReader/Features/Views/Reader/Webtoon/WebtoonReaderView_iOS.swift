@@ -581,6 +581,10 @@
           let view = collectionView.superview
         else { return }
 
+        if collectionView.isDragging || collectionView.isDecelerating {
+          return
+        }
+
         if disableTapToTurnPage {
           onCenterTap?()
           return
