@@ -61,55 +61,53 @@ struct SettingsAppearanceView: View {
         }
       #endif
 
-      #if os(iOS) || os(tvOS)
-        Section(header: Text(String(localized: "settings.appearance.theme"))) {
-          Picker(
-            String(localized: "settings.appearance.colorScheme.title"),
-            selection: $appColorScheme
-          ) {
-            ForEach(AppColorScheme.allCases) { scheme in
-              Text(scheme.label).tag(scheme)
-            }
+      Section(header: Text(String(localized: "settings.appearance.theme"))) {
+        Picker(
+          String(localized: "settings.appearance.colorScheme.title"),
+          selection: $appColorScheme
+        ) {
+          ForEach(AppColorScheme.allCases) { scheme in
+            Text(scheme.label).tag(scheme)
           }
+        }
 
-          #if os(iOS)
-            ColorPicker(
-              String(localized: "settings.appearance.color"),
-              selection: themeColorBinding,
-              supportsOpacity: false)
-          #elseif os(tvOS)
-            VStack(alignment: .leading, spacing: 12) {
-              Text(String(localized: "settings.appearance.color"))
-                .font(.headline)
-              LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 12) {
-                ForEach(ThemeColor.presetColors, id: \.name) { preset in
-                  Button {
-                    themeColor = preset.themeColor
-                  } label: {
-                    ZStack {
+        #if os(iOS)
+          ColorPicker(
+            String(localized: "settings.appearance.color"),
+            selection: themeColorBinding,
+            supportsOpacity: false)
+        #elseif os(tvOS)
+          VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "settings.appearance.color"))
+              .font(.headline)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 12) {
+              ForEach(ThemeColor.presetColors, id: \.name) { preset in
+                Button {
+                  themeColor = preset.themeColor
+                } label: {
+                  ZStack {
+                    Circle()
+                      .fill(preset.color)
+                      .frame(width: 50, height: 50)
+                    if preset.themeColor == themeColor {
                       Circle()
-                        .fill(preset.color)
+                        .stroke(Color.primary, lineWidth: 3)
                         .frame(width: 50, height: 50)
-                      if preset.themeColor == themeColor {
-                        Circle()
-                          .stroke(Color.primary, lineWidth: 3)
-                          .frame(width: 50, height: 50)
-                        Image(systemName: "checkmark")
-                          .foregroundColor(.primary)
-                          .font(.system(size: 16, weight: .bold))
-                      }
+                      Image(systemName: "checkmark")
+                        .foregroundColor(.primary)
+                        .font(.system(size: 16, weight: .bold))
                     }
                   }
-                  .focused($colorFocusedButton, equals: preset.themeColor)
-                  .adaptiveButtonStyle(.plain)
-                  .focusPadding()
                 }
+                .focused($colorFocusedButton, equals: preset.themeColor)
+                .adaptiveButtonStyle(.plain)
+                .focusPadding()
               }
-              .focusSection()
             }
-          #endif
-        }
-      #endif
+            .focusSection()
+          }
+        #endif
+      }
 
       Section(header: Text(String(localized: "settings.appearance.browse"))) {
         Picker(
