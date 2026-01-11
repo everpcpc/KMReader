@@ -15,6 +15,7 @@ struct Current: Equatable, Sendable {
   var username: String = ""
   var isAdmin: Bool = false
   var instanceId: String = ""
+  var sessionToken: String = ""
 
   nonisolated init() {}
 
@@ -25,7 +26,8 @@ struct Current: Equatable, Sendable {
     authMethod: AuthenticationMethod = .basicAuth,
     username: String = "",
     isAdmin: Bool = false,
-    instanceId: String = ""
+    instanceId: String = "",
+    sessionToken: String = ""
   ) {
     self.serverURL = serverURL
     self.serverDisplayName = serverDisplayName
@@ -34,6 +36,7 @@ struct Current: Equatable, Sendable {
     self.username = username
     self.isAdmin = isAdmin
     self.instanceId = instanceId
+    self.sessionToken = sessionToken
   }
 
   mutating func updateMetadata(from user: User) {
@@ -67,6 +70,7 @@ extension Current: RawRepresentable {
     self.username = dict["username"] as? String ?? ""
     self.isAdmin = dict["isAdmin"] as? Bool ?? false
     self.instanceId = dict["instanceId"] as? String ?? ""
+    self.sessionToken = dict["sessionToken"] as? String ?? ""
   }
 
   public nonisolated var rawValue: String {
@@ -78,6 +82,7 @@ extension Current: RawRepresentable {
       "username": username,
       "isAdmin": isAdmin,
       "instanceId": instanceId,
+      "sessionToken": sessionToken,
     ]
 
     guard let data = try? JSONSerialization.data(withJSONObject: dict),

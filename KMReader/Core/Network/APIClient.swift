@@ -101,6 +101,7 @@ class APIClient {
       headers: headers,
       authToken: authToken,
       authMethod: authMethod,
+      useSessionToken: false,
       timeout: timeout
     )
 
@@ -129,7 +130,8 @@ class APIClient {
       queryItems: queryItems,
       headers: headers,
       authToken: authToken,
-      authMethod: authMethod
+      authMethod: authMethod,
+      useSessionToken: false
     )
 
     // Execute request with temporary session (ephemeral, no persistent cookies)
@@ -258,11 +260,24 @@ class APIClient {
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
-    // Add API Key header on every request when using API Key authentication
-    if AppConfig.current.authMethod == .apiKey {
-      let token = AppConfig.current.authToken
-      if !token.isEmpty {
-        request.setValue(token, forHTTPHeaderField: "X-API-Key")
+    // Add auth header based on the authentication method
+    let authMethod = AppConfig.current.authMethod
+    let authToken = AppConfig.current.authToken
+
+    if !authToken.isEmpty {
+      // Use session token if available for subsequent requests
+      let sessionToken = AppConfig.current.sessionToken
+      if !sessionToken.isEmpty {
+        request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
+      } else {
+        // Fallback or specific auth logic if no session token
+        switch authMethod {
+        case .basicAuth:
+          // Basic Auth relies on Cookies if no Session Token (do nothing here)
+          break
+        case .apiKey:
+          request.setValue(authToken, forHTTPHeaderField: "X-API-Key")
+        }
       }
     }
 
@@ -278,6 +293,7 @@ class APIClient {
     headers: [String: String]? = nil,
     authToken: String? = nil,
     authMethod: AuthenticationMethod? = nil,
+    useSessionToken: Bool = true,
     timeout: TimeInterval? = nil
   ) throws -> URLRequest {
     let baseURL = (serverURL ?? AppConfig.current.serverURL).trimmingCharacters(
@@ -313,11 +329,19 @@ class APIClient {
     // Add auth header based on the authentication method
     if let token = authToken, !token.isEmpty {
       let method = authMethod ?? AppConfig.current.authMethod
-      switch method {
-      case .basicAuth:
-        request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
-      case .apiKey:
-        request.setValue(token, forHTTPHeaderField: "X-API-Key")
+
+      // Common logic: Prioritize session token if available and requested
+      let sessionToken = AppConfig.current.sessionToken
+      if useSessionToken && !sessionToken.isEmpty {
+        request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
+      } else {
+        // Fallback to specific auth headers if session token is not used or available
+        switch method {
+        case .basicAuth:
+          request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
+        case .apiKey:
+          request.setValue(token, forHTTPHeaderField: "X-API-Key")
+        }
       }
     }
 
@@ -407,7 +431,9 @@ class APIClient {
 
       // Log session token if returned (for debugging bootstrap)
       if let sessionToken = httpResponse.value(forHTTPHeaderField: "X-Auth-Token") {
-        logger.debug("🔑 Session token received: \(sessionToken)")
+        if AppConfig.current.sessionToken != sessionToken {
+          AppConfig.current.sessionToken = sessionToken
+        }
       }
 
       logger.info(
@@ -431,7 +457,8 @@ class APIClient {
                 method: "GET",
                 queryItems: [URLQueryItem(name: "remember-me", value: "true")],
                 headers: ["X-Auth-Token": ""],
-                authToken: token
+                authToken: token,
+                useSessionToken: false
               )
 
               // Execute login request through the synchronization actor
