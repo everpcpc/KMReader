@@ -33,13 +33,16 @@ struct DashboardSectionDetailView: View {
   var body: some View {
     GeometryReader { geometry in
       ScrollView {
-        Picker("Layout", selection: $browseLayout) {
-          ForEach(BrowseLayoutMode.allCases, id: \.self) { layout in
-            Image(systemName: layout.iconName)
+
+        #if os(tvOS)
+          Picker("Layout", selection: $browseLayout) {
+            ForEach(BrowseLayoutMode.allCases, id: \.self) { layout in
+              Image(systemName: layout.iconName)
+            }
           }
-        }
-        .pickerStyle(.segmented)
-        .padding()
+          .pickerStyle(.segmented)
+          .padding()
+        #endif
 
         contentView
           .padding(.horizontal)
@@ -55,6 +58,13 @@ struct DashboardSectionDetailView: View {
     .refreshable {
       await loadItems(refresh: true)
     }
+    #if os(iOS) || os(macOS)
+      .toolbar {
+        ToolbarItem(placement: .automatic) {
+          LayoutModePicker(selection: $browseLayout)
+        }
+      }
+    #endif
   }
 
   @ViewBuilder

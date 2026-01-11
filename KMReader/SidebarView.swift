@@ -1,19 +1,13 @@
 //
-//  MainBrowseView.swift
+//  SidebarView.swift
 //  KMReader
 //
 
 import SwiftData
 import SwiftUI
 
-struct MainBrowseView: View {
-  let isSidebar: Bool
-
-  init(isSidebar: Bool = false) {
-    self.isSidebar = isSidebar
-  }
-
-  @Environment(\.sidebarSelection) private var sidebarSelection
+struct SidebarView: View {
+  @Binding var selection: NavDestination?
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
@@ -28,13 +22,9 @@ struct MainBrowseView: View {
 
   @State private var isRefreshing: Bool = false
 
-  private var showsHomeLink: Bool {
-    isSidebar
-  }
-
   private var showsSettingsLink: Bool {
     #if os(iOS)
-      return isSidebar
+      return true
     #else
       return false
     #endif
@@ -72,15 +62,8 @@ struct MainBrowseView: View {
 
   var body: some View {
     Group {
-      if isSidebar, let sidebarSelection {
-        List(selection: sidebarSelection) {
-          listContent
-        }
-      } else {
-        List {
-          listContent
-        }
-        .inlineNavigationBarTitle(String(localized: "title.browse"))
+      List(selection: $selection) {
+        listContent
       }
     }
     #if os(iOS)
@@ -126,16 +109,20 @@ struct MainBrowseView: View {
   @ViewBuilder
   private var listContent: some View {
     Section {
-      if showsHomeLink {
-        NavigationLink(value: NavDestination.home) {
-          Label(String(localized: "tab.home"), systemImage: "house")
-        }
+      NavigationLink(value: NavDestination.home) {
+        Label(String(localized: "tab.home"), systemImage: "house")
       }
       NavigationLink(value: NavDestination.browseSeries) {
         Label(String(localized: "tab.series"), systemImage: "rectangle.stack")
       }
       NavigationLink(value: NavDestination.browseBooks) {
         Label(String(localized: "tab.books"), systemImage: "book")
+      }
+      NavigationLink(value: NavDestination.browseCollections) {
+        Label(String(localized: "tab.collections"), systemImage: "square.stack.3d.down.right")
+      }
+      NavigationLink(value: NavDestination.browseReadLists) {
+        Label(String(localized: "tab.readLists"), systemImage: "list.bullet.rectangle")
       }
     }
 

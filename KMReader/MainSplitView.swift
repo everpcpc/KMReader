@@ -18,8 +18,7 @@ import SwiftUI
 
     var body: some View {
       NavigationSplitView(columnVisibility: $columnVisibility) {
-        MainBrowseView(isSidebar: true)
-          .environment(\.sidebarSelection, $nav)
+        SidebarView(selection: $nav)
       } detail: {
         NavigationStack {
           if let nav {
