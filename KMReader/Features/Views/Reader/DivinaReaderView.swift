@@ -37,6 +37,7 @@ struct DivinaReaderView: View {
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
@@ -240,6 +241,15 @@ struct DivinaReaderView: View {
       #endif
     }
     .iPadIgnoresSafeArea()
+    #if os(iOS)
+      .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
+        if shakeToOpenLiveText {
+          enableLiveText.toggle()
+          let message = enableLiveText ? String(localized: "Live Text: ON") : String(localized: "Live Text: OFF")
+          ErrorManager.shared.notify(message: message)
+        }
+      }
+    #endif
     .sheet(isPresented: $showingPageJumpSheet) {
       PageJumpSheetView(
         bookId: currentBookId,
