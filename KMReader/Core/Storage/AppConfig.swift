@@ -594,6 +594,18 @@ enum AppConfig {
     }
   }
 
+  static var shakeToOpenLiveText: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "shakeToOpenLiveText") != nil {
+        return UserDefaults.standard.bool(forKey: "shakeToOpenLiveText")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "shakeToOpenLiveText")
+    }
+  }
+
   // MARK: - Dashboard
   static var dashboard: DashboardConfiguration {
     get {

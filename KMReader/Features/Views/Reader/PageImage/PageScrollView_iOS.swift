@@ -20,6 +20,7 @@
     let showPageNumber: Bool
     let readerBackground: ReaderBackground
     let readingDirection: ReadingDirection
+    let enableLiveText: Bool
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
     let onToggleControls: () -> Void
@@ -83,6 +84,7 @@
         disableTapToTurnPage: disableTapToTurnPage,
         showPageNumber: showPageNumber,
         readingDirection: readingDirection,
+        enableLiveText: enableLiveText,
         onNextPage: onNextPage,
         onPreviousPage: onPreviousPage,
         onToggleControls: onToggleControls
@@ -114,6 +116,7 @@
       private var mirrorDisableTapToTurnPage: Bool = false
       private var mirrorShowPageNumber: Bool = true
       private var mirrorReadingDirection: ReadingDirection = .ltr
+      private var mirrorEnableLiveText: Bool = false
       private var mirrorOnNextPage: () -> Void = {}
       private var mirrorOnPreviousPage: () -> Void = {}
       private var mirrorOnToggleControls: () -> Void = {}
@@ -146,6 +149,7 @@
         disableTapToTurnPage: Bool,
         showPageNumber: Bool,
         readingDirection: ReadingDirection,
+        enableLiveText: Bool,
         onNextPage: @escaping () -> Void,
         onPreviousPage: @escaping () -> Void,
         onToggleControls: @escaping () -> Void
@@ -159,6 +163,7 @@
         self.mirrorDisableTapToTurnPage = disableTapToTurnPage
         self.mirrorShowPageNumber = showPageNumber
         self.mirrorReadingDirection = readingDirection
+        self.mirrorEnableLiveText = enableLiveText
         self.mirrorOnNextPage = onNextPage
         self.mirrorOnPreviousPage = onPreviousPage
         self.mirrorOnToggleControls = onToggleControls

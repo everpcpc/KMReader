@@ -26,6 +26,7 @@ struct SettingsReaderView: View {
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
   var body: some View {
     Form {
@@ -79,17 +80,6 @@ struct SettingsReaderView: View {
           }
         }
 
-        #if !os(tvOS)
-          Toggle(isOn: $enableLiveText) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Enable Live Text")
-              Text("Automatically enable Live Text for all images.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-        #endif
-
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -120,6 +110,29 @@ struct SettingsReaderView: View {
           }
         #endif
       }
+
+      #if !os(tvOS)
+        Section(header: Text("Live Text")) {
+          Toggle(isOn: $enableLiveText) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Enable Live Text")
+              Text("Automatically enable Live Text for all images.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+          #if os(iOS)
+            Toggle(isOn: $shakeToOpenLiveText) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Shake to Open Live Text")
+                Text("Shake your device to toggle Live Text")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+          #endif
+        }
+      #endif
 
       Section(header: Text("Page Turn")) {
         VStack(alignment: .leading, spacing: 8) {

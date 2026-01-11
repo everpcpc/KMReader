@@ -45,6 +45,7 @@ struct PageImageView: View {
   @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
 
   var body: some View {
     PageScrollView(
@@ -60,6 +61,7 @@ struct PageImageView: View {
       showPageNumber: showPageNumber,
       readerBackground: readerBackground,
       readingDirection: readingDirection,
+      enableLiveText: enableLiveText,
       onNextPage: onNextPage,
       onPreviousPage: onPreviousPage,
       onToggleControls: onToggleControls,

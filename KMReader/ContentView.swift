@@ -15,6 +15,8 @@ struct ContentView: View {
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
   #if os(iOS) || os(tvOS)
     @Namespace private var zoomNamespace
@@ -105,6 +107,15 @@ struct ContentView: View {
         ReaderOverlay(namespace: zoomNamespace)
       }
       .setupNotificationWindow()
+        #if os(iOS)
+          .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
+            if shakeToOpenLiveText {
+              enableLiveText.toggle()
+              let message = enableLiveText ? "Live Text: ON" : "Live Text: OFF"
+              ErrorManager.shared.notify(message: message)
+            }
+          }
+        #endif
     #endif
   }
 }

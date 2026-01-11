@@ -28,6 +28,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
   var body: some View {
     SheetView(
@@ -137,8 +138,10 @@ struct ReaderSettingsSheet: View {
           Toggle(isOn: $controlsAutoHide) {
             Text("Auto Hide Controls")
           }
+        }
 
-          #if !os(tvOS)
+        #if !os(tvOS)
+          Section(header: Text("Live Text")) {
             Toggle(isOn: $enableLiveText) {
               VStack(alignment: .leading, spacing: 4) {
                 Text("Enable Live Text")
@@ -147,8 +150,18 @@ struct ReaderSettingsSheet: View {
                   .foregroundColor(.secondary)
               }
             }
-          #endif
-        }
+            #if os(iOS)
+              Toggle(isOn: $shakeToOpenLiveText) {
+                VStack(alignment: .leading, spacing: 4) {
+                  Text("Shake to Open Live Text")
+                  Text("Shake your device to toggle Live Text")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+              }
+            #endif
+          }
+        #endif
 
         // MARK: - Page Turn Section
 
