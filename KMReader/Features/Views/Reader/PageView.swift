@@ -103,11 +103,21 @@ struct PageView: View {
           synchronizeInitialScrollIfNeeded(proxy: proxy)
         }
         .onChange(of: viewModel.targetPageIndex) { _, newTarget in
-          handleTargetPageChange(newTarget, proxy: proxy)
+          if let newTarget = newTarget {
+            handleTargetPageChange(newTarget, proxy: proxy)
+            // Reset targetPageIndex to allow consecutive taps to the same target if we swiped away
+            Task { @MainActor in
+              viewModel.targetPageIndex = nil
+            }
+          }
         }
         .onChange(of: scrollPosition) { _, newPosition in
           if let newPosition {
             viewModel.currentPageIndex = newPosition
+            // Clear targetPageIndex if the user manually scrolled
+            if viewModel.targetPageIndex != nil {
+              viewModel.targetPageIndex = nil
+            }
           }
         }
     }
@@ -115,15 +125,22 @@ struct PageView: View {
 
   @ViewBuilder
   private func scrollViewContent(proxy: ScrollViewProxy) -> some View {
-    ScrollView(.horizontal) {
-      LazyHStack(spacing: 0) {
-        if mode.isDualPage {
-          dualPageContent(proxy: proxy)
-        } else {
+    ScrollView(mode.isVertical ? .vertical : .horizontal) {
+      if mode.isVertical {
+        LazyVStack(spacing: 0) {
           singlePageContent(proxy: proxy)
         }
+        .scrollTargetLayout()
+      } else {
+        LazyHStack(spacing: 0) {
+          if mode.isDualPage {
+            dualPageContent(proxy: proxy)
+          } else {
+            singlePageContent(proxy: proxy)
+          }
+        }
+        .scrollTargetLayout()
       }
-      .scrollTargetLayout()
     }
     .environment(\.layoutDirection, mode.isRTL ? .rightToLeft : .leftToRight)
   }
