@@ -28,7 +28,7 @@ struct DashboardView: View {
   @Environment(AuthViewModel.self) private var authViewModel
 
   private let sseService = SSEService.shared
-  private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
+  private let debounceInterval: TimeInterval = 3.0  // 3 seconds debounce
   private let logger = AppLogger(.dashboard)
 
   private var isReaderActive: Bool {
@@ -42,6 +42,7 @@ struct DashboardView: View {
     refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: source)
     isRefreshDisabled = true
     Task {
+      // Wait for 2 seconds to allow any pending refreshes to complete
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
       isRefreshDisabled = false
     }
@@ -77,10 +78,10 @@ struct DashboardView: View {
   }
 
   private func scheduleRefresh(reason: String) {
-    logger.debug("Dashboard auto-refresh scheduled: \(reason)")
-
     // Skip if auto-refresh is disabled
     guard enableSSEAutoRefresh else { return }
+
+    logger.debug("Dashboard auto-refresh scheduled: \(reason)")
 
     // Cancel any existing pending refresh
     pendingRefreshTask?.cancel()
@@ -99,7 +100,12 @@ struct DashboardView: View {
     // Schedule a new refresh after debounce interval
     // This ensures the last event will always trigger a refresh
     pendingRefreshTask = Task {
-      try? await Task.sleep(nanoseconds: UInt64(debounceInterval * 1_000_000_000))
+      do {
+        try await Task.sleep(nanoseconds: UInt64(debounceInterval * 1_000_000_000))
+      } catch {
+        // Task cancelled
+        return
+      }
 
       // Check if task was cancelled
       guard !Task.isCancelled else { return }
@@ -109,6 +115,7 @@ struct DashboardView: View {
         if isReaderActive {
           shouldRefreshAfterReading = true
         } else {
+          logger.debug("Executing scheduled refresh: \(reason)")
           performRefresh(reason: "Auto after debounce: \(reason)", source: .auto)
         }
         pendingRefreshTask = nil

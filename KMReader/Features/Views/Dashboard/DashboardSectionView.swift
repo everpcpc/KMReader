@@ -39,6 +39,8 @@ struct DashboardSectionView: View {
   @State private var hoverHideDelayTask: Task<Void, Never>?
   @State private var hasLoadedInitial = false
 
+  private let logger = AppLogger(.dashboard)
+
   private var backgroundColors: [Color] {
     if colorScheme == .dark {
       return [
@@ -149,15 +151,21 @@ struct DashboardSectionView: View {
     #endif
     .opacity(pagination.isEmpty ? 0 : 1)
     .frame(height: pagination.isEmpty ? 0 : nil)
-    .onChange(of: refreshTrigger) {
+    .onChange(of: refreshTrigger) { _, newTrigger in
       // Skip if targeted refresh excludes this section
-      if let sections = refreshTrigger.sectionsToRefresh, !sections.contains(section) {
+      if let sections = newTrigger.sectionsToRefresh, !sections.contains(section) {
+        logger.debug("Dashboard section \(section) skipping refresh: targeted other sections")
         return
       }
-      if refreshTrigger.source == .auto, pagination.currentPage > 0 {
+
+      if newTrigger.source == .auto, pagination.currentPage > 1 {
+        logger.debug(
+          "Dashboard section \(section) skipping auto-refresh: deep in pagination (page \(pagination.currentPage))"
+        )
         return
       }
       Task {
+        logger.debug("Dashboard section \(section) refreshing")
         await refresh()
       }
     }

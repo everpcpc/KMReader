@@ -155,6 +155,8 @@ private struct DashboardLocalSectionContent<
   @State private var hoverShowDelayTask: Task<Void, Never>?
   @State private var hoverHideDelayTask: Task<Void, Never>?
 
+  private let logger = AppLogger(.dashboard)
+
   private let cardWidth: CGFloat = 240
 
   private var backgroundColors: [Color] {

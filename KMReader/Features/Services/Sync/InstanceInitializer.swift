@@ -256,7 +256,7 @@ final class InstanceInitializer {
       while shouldContinue {
         let search = BookSearch(condition: nil)
         let result = try await BookService.shared.getBooksList(
-          search: search, page: page, size: 500, sort: "lastModified,desc")
+          search: search, page: page, size: 100, sort: "lastModified,desc")
 
         var itemsToSync: [Book] = []
         for book in result.content {
