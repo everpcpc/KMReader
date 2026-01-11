@@ -22,7 +22,7 @@ struct ReadingProgressBar: View {
     GeometryReader { geometry in
       ZStack(alignment: .leading) {
         Capsule()
-          .fill(.white.opacity(0.6))
+          .fill(.regularMaterial)
           .frame(height: progressBarHeight)
 
         Capsule()

@@ -122,6 +122,7 @@ struct ReaderControlsView: View {
         } label: {
           Image(systemName: "xmark")
         }
+        .contentShape(Circle())
         .controlSize(.large)
         .buttonBorderShape(.circle)
         .adaptiveButtonStyle(buttonStyle)
@@ -160,6 +161,7 @@ struct ReaderControlsView: View {
             .padding(.vertical, 2)
             .padding(.horizontal, 4)
           }
+          .contentShape(RoundedRectangle(cornerRadius: 12))
           .optimizedControlSize()
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
@@ -181,6 +183,7 @@ struct ReaderControlsView: View {
         } label: {
           Image(systemName: "gearshape")
         }
+        .contentShape(Circle())
         .controlSize(.large)
         .buttonBorderShape(.circle)
         .adaptiveButtonStyle(buttonStyle)
