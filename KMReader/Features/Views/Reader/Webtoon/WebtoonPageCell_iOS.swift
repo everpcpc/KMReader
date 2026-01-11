@@ -36,8 +36,8 @@
 
     private func setupUI() {
       applyBackground()
-      imageView.contentMode = .scaleAspectFit
-      imageView.clipsToBounds = false
+      imageView.contentMode = .scaleToFill
+      imageView.clipsToBounds = true
       imageView.translatesAutoresizingMaskIntoConstraints = false
       contentView.addSubview(imageView)
 

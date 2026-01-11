@@ -436,7 +436,9 @@
         }
         let page = pages[indexPath.item]
         let height = heightCache.height(for: indexPath.item, page: page, pageWidth: pageWidth)
-        return CGSize(width: pageWidth, height: height)
+        let scale = collectionView.traitCollection.displayScale
+        let alignedHeight = scale > 0 ? ceil(height * scale) / scale : height
+        return CGSize(width: pageWidth, height: alignedHeight)
       }
 
       // MARK: - UICollectionViewDelegate

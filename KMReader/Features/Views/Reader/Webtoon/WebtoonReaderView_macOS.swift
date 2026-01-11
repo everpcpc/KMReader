@@ -384,7 +384,9 @@
         }
         let page = pages[indexPath.item]
         let height = heightCache.height(for: indexPath.item, page: page, pageWidth: pageWidth)
-        return NSSize(width: pageWidth, height: height)
+        let scale = collectionView.window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1.0
+        let alignedHeight = scale > 0 ? ceil(height * scale) / scale : height
+        return NSSize(width: pageWidth, height: alignedHeight)
       }
 
       // MARK: - Scroll

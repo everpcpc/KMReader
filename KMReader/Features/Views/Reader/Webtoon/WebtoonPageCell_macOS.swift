@@ -33,7 +33,7 @@
 
     private func setupUI() {
       applyBackground()
-      pageImageView.imageScaling = .scaleProportionallyUpOrDown
+      pageImageView.imageScaling = .scaleAxesIndependently
       pageImageView.wantsLayer = true
       pageImageView.imageAlignment = .alignCenter
       pageImageView.autoresizingMask = [.width, .height]
