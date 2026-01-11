@@ -52,7 +52,7 @@ enum TabItem: Hashable, Identifiable {
     case .home:
       DashboardView()
     case .browse:
-      MainBrowseView()
+      BrowseView()
     case .settings:
       SettingsView()
     }
