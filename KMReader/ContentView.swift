@@ -15,6 +15,9 @@ struct ContentView: View {
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("privacyProtection") private var privacyProtection: Bool = false
+
+  @State private var showPrivacyBlur = false
 
   #if os(iOS) || os(tvOS)
     @Namespace private var zoomNamespace
@@ -81,6 +84,9 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
           if phase == .active {
+            withAnimation(.easeInOut(duration: 0.2)) {
+              showPrivacyBlur = false
+            }
             Task {
               await DatabaseOperator.shared.updateInstanceLastUsed(
                 instanceId: AppConfig.current.instanceId)
@@ -93,8 +99,18 @@ struct ContentView: View {
             if enableSSE && !isOffline {
               SSEService.shared.connect()
             }
+          } else if phase == .inactive {
+            if privacyProtection {
+              showPrivacyBlur = true
+            }
           } else if phase == .background {
+            if privacyProtection {
+              showPrivacyBlur = true
+            }
             SSEService.shared.disconnect(notify: false)
+            Task.detached(priority: .utility) {
+              try? await DatabaseOperator.shared.commitImmediately()
+            }
           }
         }
       } else {
@@ -111,5 +127,19 @@ struct ContentView: View {
       }
       .setupNotificationWindow()
     #endif
+    .overlay {
+      if showPrivacyBlur {
+        ZStack {
+          Rectangle()
+            .fill(.ultraThinMaterial)
+            .ignoresSafeArea()
+
+          Image(systemName: "lock.fill")
+            .font(.system(size: 60))
+            .foregroundStyle(.secondary)
+        }
+        .transition(.opacity)
+      }
+    }
   }
 }

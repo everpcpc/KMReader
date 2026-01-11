@@ -19,6 +19,7 @@ struct SettingsAppearanceView: View {
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
+  @AppStorage("privacyProtection") private var privacyProtection: Bool = false
 
   private var themeColorBinding: Binding<Color> {
     Binding(
@@ -189,6 +190,17 @@ struct SettingsAppearanceView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "settings.appearance.coverShowProgressBar.title"))
             Text(String(localized: "settings.appearance.coverShowProgressBar.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+      }
+
+      Section(header: Text(String(localized: "settings.appearance.privacy"))) {
+        Toggle(isOn: $privacyProtection) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.privacyProtection.title"))
+            Text(String(localized: "settings.appearance.privacyProtection.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }

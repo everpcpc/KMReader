@@ -376,6 +376,15 @@ enum AppConfig {
     }
   }
 
+  static var privacyProtection: Bool {
+    get {
+      UserDefaults.standard.bool(forKey: "privacyProtection")
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "privacyProtection")
+    }
+  }
+
   static var searchIgnoreFilters: Bool {
     get {
       if UserDefaults.standard.object(forKey: "searchIgnoreFilters") != nil {
