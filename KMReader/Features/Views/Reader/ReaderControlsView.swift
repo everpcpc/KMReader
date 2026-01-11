@@ -89,7 +89,7 @@ struct ReaderControlsView: View {
       for index in indices {
         if index >= 0 && index < viewModel.pages.count {
           let page = viewModel.pages[index]
-          if let image = viewModel.preloadedImages[page.number] {
+          if let image = viewModel.preloadedImages[index] {
             images.append(image)
             names.append(page.fileName)
           }

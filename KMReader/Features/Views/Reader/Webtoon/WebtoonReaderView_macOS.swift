@@ -350,12 +350,12 @@
         cell.readerBackground = readerBackground
         let pageIndex = indexPath.item
         let page = pages[pageIndex]
-        let preloadedImage = viewModel?.preloadedImages[page.number]
+        let preloadedImage = viewModel?.preloadedImages[pageIndex]
 
         cell.configure(pageIndex: pageIndex, image: preloadedImage, showPageNumber: showPageNumber) {
           [weak self] idx in
           guard let self = self else { return }
-          if let image = self.viewModel?.preloadedImages[self.pages[idx].number] {
+          if let image = self.viewModel?.preloadedImages[idx] {
             if let cv = self.collectionView,
               let cell = cv.item(at: IndexPath(item: idx, section: 0)) as? WebtoonPageCell
             {
@@ -463,10 +463,9 @@
       @MainActor
       func loadImageForPage(_ pageIndex: Int) async {
         guard isValidPageIndex(pageIndex), let vm = viewModel else { return }
-        let page = pages[pageIndex]
 
         // First check if image is already preloaded
-        if let preloadedImage = vm.preloadedImages[page.number] {
+        if let preloadedImage = vm.preloadedImages[pageIndex] {
           if let cv = collectionView,
             let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell
           {
@@ -475,6 +474,7 @@
           return
         }
 
+        let page = pages[pageIndex]
         if let image = await vm.preloadImageForPage(page) {
           if let cv = collectionView,
             let cell = cv.item(at: IndexPath(item: pageIndex, section: 0)) as? WebtoonPageCell

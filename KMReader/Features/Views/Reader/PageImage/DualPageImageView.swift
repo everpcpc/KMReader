@@ -58,12 +58,10 @@ struct DualPageImageView: View {
 
   var body: some View {
     let page1 = firstPageIndex >= 0 && firstPageIndex < viewModel.pages.count ? viewModel.pages[firstPageIndex] : nil
-    let image1 = page1 != nil ? viewModel.preloadedImages[page1!.number] : nil
-
     let page2 = secondPageIndex >= 0 && secondPageIndex < viewModel.pages.count ? viewModel.pages[secondPageIndex] : nil
-    let image2 = page2 != nil ? viewModel.preloadedImages[page2!.number] : nil
 
     PageImageView(
+      viewModel: viewModel,
       screenSize: screenSize,
       resetID: resetID,
       minScale: 1.0,
@@ -77,9 +75,8 @@ struct DualPageImageView: View {
       pages: [
         NativePageData(
           bookId: viewModel.bookId,
-          image: image1,
           pageNumber: firstPageIndex,
-          isLoading: viewModel.isLoading && image1 == nil,
+          isLoading: viewModel.isLoading && page1 != nil && viewModel.preloadedImages[page1!.number] == nil,
           error: nil,
           // Page 1 is always the first subview. In Dual Mode, the first subview always hugs the center spine (Trailing).
           // UIKit's Trailing automatically means Right in LTR and Left in RTL. Perfect.
@@ -87,9 +84,8 @@ struct DualPageImageView: View {
         ),
         NativePageData(
           bookId: viewModel.bookId,
-          image: image2,
           pageNumber: secondPageIndex,
-          isLoading: viewModel.isLoading && image2 == nil,
+          isLoading: viewModel.isLoading && page2 != nil && viewModel.preloadedImages[page2!.number] == nil,
           error: nil,
           // Page 2 is the second subview, it hugs the center spine (Leading).
           alignment: .leading

@@ -43,9 +43,9 @@ struct SinglePageImageView: View {
 
   var body: some View {
     let page = pageIndex >= 0 && pageIndex < viewModel.pages.count ? viewModel.pages[pageIndex] : nil
-    let image = page != nil ? viewModel.preloadedImages[page!.number] : nil
 
     PageImageView(
+      viewModel: viewModel,
       screenSize: screenSize,
       resetID: pageIndex,
       minScale: 1.0,
@@ -59,9 +59,8 @@ struct SinglePageImageView: View {
       pages: [
         NativePageData(
           bookId: viewModel.bookId,
-          image: image,
           pageNumber: pageIndex,
-          isLoading: viewModel.isLoading && image == nil,
+          isLoading: viewModel.isLoading && page != nil && viewModel.preloadedImages[page!.number] == nil,
           error: nil,
           alignment: .center
         )

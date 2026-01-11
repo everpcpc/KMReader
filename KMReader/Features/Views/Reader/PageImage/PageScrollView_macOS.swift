@@ -20,6 +20,7 @@
   }
 
   struct PageScrollView: NSViewRepresentable {
+    var viewModel: ReaderViewModel
     let screenSize: CGSize
     let resetID: AnyHashable
     let minScale: CGFloat
@@ -71,6 +72,10 @@
       return scrollView
     }
 
+    static func dismantleNSView(_ nsView: NSScrollView, coordinator: Coordinator) {
+      coordinator.prepareForDismantle()
+    }
+
     func updateNSView(_ nsView: NSScrollView, context: Context) {
       context.coordinator.isUpdatingFromSwiftUI = true
       defer {
@@ -80,6 +85,7 @@
       }
 
       context.coordinator.syncStates(
+        viewModel: viewModel,
         pages: pages,
         screenSize: screenSize,
         isZoomed: $isZoomed,
@@ -155,7 +161,25 @@
       weak var contentStack: NSStackView?
       private var pageViews: [NativePageItemMacOS] = []
 
+      deinit {
+        prepareForDismantle()
+      }
+
+      func prepareForDismantle() {
+        if let scrollView = scrollView {
+          NotificationCenter.default.removeObserver(
+            self, name: NSScrollView.didEndLiveScrollNotification, object: scrollView)
+        }
+        pageViews.forEach { view in
+          view.prepareForDismantle()
+          view.removeFromSuperview()
+        }
+        pageViews.removeAll()
+        mirrorPages.removeAll()
+      }
+
       func syncStates(
+        viewModel: ReaderViewModel,
         pages: [NativePageData],
         screenSize: CGSize,
         isZoomed: Binding<Bool>,
@@ -170,6 +194,7 @@
         scrollView: NSScrollView,
         readerBackground: ReaderBackground
       ) {
+        self.viewModel = viewModel
         self.mirrorPages = pages
         self.mirrorScreenSize = screenSize
         self.isZoomedBinding = isZoomed
@@ -202,7 +227,12 @@
           pageViews.forEach { stack.addArrangedSubview($0) }
         }
         for (index, data) in mirrorPages.enumerated() {
-          pageViews[index].update(with: data, showPageNumber: mirrorShowPageNumber, background: mirrorReaderBackground)
+          if let viewModel = viewModel {
+            let image = viewModel.preloadedImages[data.pageNumber]
+            pageViews[index].update(
+              with: data, viewModel: viewModel, image: image, showPageNumber: mirrorShowPageNumber,
+              background: mirrorReaderBackground)
+          }
         }
       }
 
@@ -444,11 +474,11 @@
     private let pageNumberLabel = NSTextField()
     private let progressIndicator = NSProgressIndicator()
 
-    private let analyzer = ImageAnalyzer()
     private let overlayView = ImageAnalysisOverlayView()
     private var analysisTask: Task<Void, Never>?
     private var analyzedImage: NSImage?
     private var currentData: NativePageData?
+    private weak var viewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
 
     init() {
@@ -462,6 +492,35 @@
     required init?(coder: NSCoder) {
       super.init(coder: coder)
       setup()
+    }
+
+    deinit {
+      analysisTask?.cancel()
+    }
+
+    func prepareForDismantle() {
+      clearAnalysis()
+      imageView.image = nil
+      analyzedImage = nil
+    }
+
+    override func viewDidMoveToWindow() {
+      super.viewDidMoveToWindow()
+      if window == nil {
+        clearAnalysis()
+        imageView.image = nil
+        analyzedImage = nil
+      } else {
+        // Restore image when returning to window if it was cleared
+        if imageView.image == nil, let data = currentData {
+          imageView.image = viewModel?.preloadedImages[data.pageNumber]
+        }
+        if AppConfig.enableLiveText {
+          if let image = imageView.image {
+            analyzeImage(image)
+          }
+        }
+      }
     }
 
     override var acceptsFirstResponder: Bool { false }
@@ -529,12 +588,16 @@
       ])
     }
 
-    func update(with data: NativePageData, showPageNumber: Bool, background: ReaderBackground) {
-      currentData = data
-      imageView.image = data.image
+    func update(
+      with data: NativePageData, viewModel: ReaderViewModel, image: PlatformImage?, showPageNumber: Bool,
+      background: ReaderBackground
+    ) {
+      self.currentData = data
+      self.viewModel = viewModel
+      imageView.image = image
 
-      if let num = data.pageNumber, data.image != nil, showPageNumber {
-        pageNumberLabel.stringValue = "\(num + 1)"
+      if image != nil, showPageNumber {
+        pageNumberLabel.stringValue = "\(data.pageNumber + 1)"
         pageNumberLabel.isHidden = false
       } else {
         pageNumberLabel.isHidden = true
@@ -542,8 +605,8 @@
 
       if data.isLoading { progressIndicator.startAnimation(nil) } else { progressIndicator.stopAnimation(nil) }
 
-      if AppConfig.enableLiveText, let image = data.image, !visibleRect.isEmpty {
-        analyzeImage(image)
+      if AppConfig.enableLiveText, let img = image, !visibleRect.isEmpty {
+        analyzeImage(img)
         overlayView.isHidden = false
       } else if !AppConfig.enableLiveText {
         clearAnalysis()
@@ -561,26 +624,28 @@
       let pageNum = currentData?.pageNumber ?? -1
       let bookId = currentData?.bookId ?? "unknown"
       let startTime = Date()
-      logger.info("[LiveText] [\(bookId)] 🚀 Starting macOS analysis for page \(pageNum + 1)")
 
       analyzedImage = image
       analysisTask?.cancel()
-      analysisTask = Task {
+      analysisTask = Task { [weak self] in
         let configuration = ImageAnalyzer.Configuration([.text, .machineReadableCode])
         do {
-          let analysis = try await analyzer.analyze(image, orientation: .up, configuration: configuration)
+          let analysis = try await LiveTextManager.shared.analyzer.analyze(
+            image, orientation: .up, configuration: configuration)
           if !Task.isCancelled {
-            overlayView.analysis = analysis
-            overlayView.preferredInteractionTypes = .automatic
-            overlayView.isHidden = false
+            guard let self = self else { return }
+            self.overlayView.analysis = analysis
+            self.overlayView.preferredInteractionTypes = .automatic
+            self.overlayView.isHidden = false
             let duration = Date().timeIntervalSince(startTime)
-            logger.info(
+            self.logger.info(
               String(
                 format: "[LiveText] [\(bookId)] ✅ Finished macOS analysis for page %d in %.2fs", pageNum + 1, duration))
           }
         } catch {
           if !Task.isCancelled {
-            logger.error("[LiveText] [\(bookId)] ❌ macOS Analysis failed for page \(pageNum + 1): \(error)")
+            guard let self = self else { return }
+            self.logger.error("[LiveText] [\(bookId)] ❌ macOS Analysis failed for page \(pageNum + 1): \(error)")
           }
         }
       }
@@ -642,7 +707,8 @@
       super.layout()
       updateOverlaysPosition()
 
-      if AppConfig.enableLiveText, let data = currentData, let image = data.image,
+      if AppConfig.enableLiveText, let data = currentData,
+        let image = imageView.image,
         !visibleRect.isEmpty, overlayView.analysis == nil, analysisTask == nil
       {
         analyzeImage(image)

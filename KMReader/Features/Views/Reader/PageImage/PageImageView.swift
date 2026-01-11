@@ -16,8 +16,7 @@ import SwiftUI
 /// Data structure for a single page to be rendered natively
 struct NativePageData {
   let bookId: String
-  let image: PlatformImage?
-  let pageNumber: Int?
+  let pageNumber: Int
   let isLoading: Bool
   let error: String?
   let alignment: HorizontalAlignment
@@ -25,6 +24,7 @@ struct NativePageData {
 
 /// A high-performance page view entry point that calls platform-specific PageScrollView.
 struct PageImageView: View {
+  var viewModel: ReaderViewModel
   let screenSize: CGSize
   let resetID: AnyHashable
   let minScale: CGFloat
@@ -48,6 +48,7 @@ struct PageImageView: View {
 
   var body: some View {
     PageScrollView(
+      viewModel: viewModel,
       screenSize: screenSize,
       resetID: resetID,
       minScale: minScale,

@@ -60,6 +60,7 @@ class ReaderViewModel {
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
   private var lastProgressUpdateTime: Date?
   private var lastPreloadRequestTime: Date?
+  private var preloadTask: Task<Void, Never>?
 
   var currentPage: BookPage? {
     guard currentPageIndex >= 0 else { return nil }
@@ -246,90 +247,132 @@ class ReaderViewModel {
   }
 
   /// Preload pages around the current page for smoother scrolling
-  /// Preloads 2 pages before and 4 pages after the current page
+  /// Preloads a small window around the current page to keep memory usage in check
   func preloadPages() async {
     let now = Date()
     if let last = lastPreloadRequestTime,
-      now.timeIntervalSince(last) < 0.5
+      now.timeIntervalSince(last) < 0.3
     {
       return
     }
     lastPreloadRequestTime = now
     guard !bookId.isEmpty else { return }
+
+    // Cancel any previous preloading task
+    preloadTask?.cancel()
+
     let preloadBefore = max(0, currentPageIndex - 2)
     let preloadAfter = min(currentPageIndex + 4, pages.count)
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
-    // Load pages concurrently and collect decoded images
-    let results = await withTaskGroup(of: (Int, PlatformImage?).self) {
-      group -> [(Int, PlatformImage?)] in
-      for index in pagesToPreload {
-        let page = pages[index]
-        // Skip if already preloaded
-        if preloadedImages[page.number] != nil {
-          continue
-        }
-        group.addTask {
-          // Get file URL (downloads if needed)
-          guard let fileURL = await self.getPageImageFileURL(page: page) else {
-            return (page.number, nil)
+    preloadTask = Task { [weak self] in
+      guard let self = self else { return }
+
+      // Load pages concurrently and collect decoded images
+      let results = await withTaskGroup(of: (Int, PlatformImage?).self) {
+        group -> [(Int, PlatformImage?)] in
+        for index in pagesToPreload {
+          if Task.isCancelled { break }
+          let page = self.pages[index]
+          // Skip if already preloaded
+          if self.preloadedImages[index] != nil {
+            continue
           }
-          // Decode image from file
-          let image = await self.loadImageFromFile(fileURL: fileURL)
-          return (page.number, image)
+          group.addTask {
+            if Task.isCancelled { return (index, nil) }
+            // Get file URL (downloads if needed)
+            guard let fileURL = await self.getPageImageFileURL(page: page) else {
+              return (index, nil)
+            }
+            if Task.isCancelled { return (index, nil) }
+            // Decode image from file
+            let image = await self.loadImageFromFile(fileURL: fileURL)
+            return (index, image)
+          }
+        }
+        var collected: [(Int, PlatformImage?)] = []
+        for await result in group {
+          if !Task.isCancelled {
+            collected.append(result)
+          }
+        }
+        return collected
+      }
+
+      if Task.isCancelled { return }
+
+      // Store preloaded images for instant access by PageImageView
+      for (pageIndex, image) in results {
+        if let image = image {
+          self.preloadedImages[pageIndex] = image
         }
       }
-      var collected: [(Int, PlatformImage?)] = []
-      for await result in group {
-        collected.append(result)
-      }
-      return collected
-    }
 
-    // Store preloaded images for instant access by PageImageView
-    for (pageNumber, image) in results {
-      if let image = image {
-        preloadedImages[pageNumber] = image
-      }
+      // Clean up images too far from current page to release memory
+      self.cleanupDistantImagesAroundCurrentPage()
     }
-
-    // Clean up images too far from current page to release memory
-    // Keep a window of -4 to +6 pages around current position
-    cleanupDistantImagesAroundCurrentPage()
   }
 
   /// Remove preloaded images that are too far from current page to release memory
   func cleanupDistantImagesAroundCurrentPage() {
     guard !pages.isEmpty else { return }
-    let currentPageNumber = currentPage?.number ?? 1
-    let keepRange = (currentPageNumber - 4)...(currentPageNumber + 6)
+    // Keep a reasonable window of -4 to +8 pages around current index
+    let keepRange = (currentPageIndex - 4)...(currentPageIndex + 8)
 
     let keysToRemove = preloadedImages.keys.filter { !keepRange.contains($0) }
-    for key in keysToRemove {
-      preloadedImages.removeValue(forKey: key)
+    if !keysToRemove.isEmpty {
+      for key in keysToRemove {
+        preloadedImages.removeValue(forKey: key)
+      }
     }
+
+    // Log current memory usage
+    let count = preloadedImages.count
+    var totalBytes: Int64 = 0
+    for image in preloadedImages.values {
+      let size = image.size
+      // Rough estimation: width * height * 4 bytes per pixel (RGBA)
+      totalBytes += Int64(size.width * size.height * 4)
+    }
+    let mb = Double(totalBytes) / 1024 / 1024
+    logger.debug(
+      String(format: "🖼️ Memory Cache: %d images, approx. %.2f MB", count, mb)
+    )
   }
 
   /// Load and decode image from file URL
   private func loadImageFromFile(fileURL: URL) async -> PlatformImage? {
-    guard let data = try? Data(contentsOf: fileURL) else {
-      return nil
-    }
-    if let image = PlatformImage(data: data) {
-      return await ImageDecodeHelper.decodeForDisplay(image)
-    }
-    return nil
+    #if os(macOS)
+      guard let image = NSImage(contentsOf: fileURL) else {
+        return nil
+      }
+    #else
+      guard let image = UIImage(contentsOfFile: fileURL.path) else {
+        return nil
+      }
+    #endif
+
+    return await ImageDecodeHelper.decodeForDisplay(image)
   }
 
   /// Preload a single page image into memory for instant display.
   func preloadImageForPage(_ page: BookPage) async -> PlatformImage? {
-    if let cached = preloadedImages[page.number] {
+    guard let index = pages.firstIndex(where: { $0.number == page.number }) else { return nil }
+    if let cached = preloadedImages[index] {
       return cached
     }
     guard let fileURL = await getPageImageFileURL(page: page) else { return nil }
     guard let image = await loadImageFromFile(fileURL: fileURL) else { return nil }
-    preloadedImages[page.number] = image
+    preloadedImages[index] = image
     return image
+  }
+
+  /// Cancel any ongoing preloading tasks and clear preloaded images
+  func clearPreloadedImages() {
+    preloadTask?.cancel()
+    preloadTask = nil
+    preloadedImages.removeAll()
+    logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
   }
 
   /// Update reading progress on the server
@@ -373,6 +416,12 @@ class ReaderViewModel {
           await DatabaseOperator.shared.commit()
         } else {
           try await BookService.shared.updatePageReadProgress(
+            bookId: activeBookId,
+            page: currentPageNumber,
+            completed: completed
+          )
+          // Also update local progress but don't commit
+          await DatabaseOperator.shared.updateReadingProgress(
             bookId: activeBookId,
             page: currentPageNumber,
             completed: completed

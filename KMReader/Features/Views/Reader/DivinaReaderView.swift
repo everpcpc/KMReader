@@ -338,7 +338,7 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
-      viewModel.preloadedImages.removeAll()
+      viewModel.clearPreloadedImages()
     }
     .onChange(of: showingControls) { _, newValue in
       applyStatusBarVisibility(controlsHidden: !newValue)

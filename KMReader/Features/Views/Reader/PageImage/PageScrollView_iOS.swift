@@ -7,6 +7,7 @@
   #endif
 
   struct PageScrollView: UIViewRepresentable {
+    var viewModel: ReaderViewModel
     let screenSize: CGSize
     let resetID: AnyHashable
     let minScale: CGFloat
@@ -62,6 +63,10 @@
       return scrollView
     }
 
+    static func dismantleUIView(_ uiView: UIScrollView, coordinator: Coordinator) {
+      coordinator.prepareForDismantle()
+    }
+
     func updateUIView(_ uiView: UIScrollView, context: Context) {
       context.coordinator.isUpdatingFromSwiftUI = true
       defer {
@@ -69,6 +74,7 @@
       }
 
       context.coordinator.syncStates(
+        viewModel: viewModel,
         pages: pages,
         screenSize: screenSize,
         isZoomed: $isZoomed,
@@ -101,6 +107,7 @@
       var lastTouchStartTime: Date = .distantPast
 
       private var mirrorPages: [NativePageData] = []
+      private weak var viewModel: ReaderViewModel?
       private var mirrorScreenSize: CGSize = .zero
       private var mirrorMinScale: CGFloat = 1.0
       private var mirrorTapZoneSize: TapZoneSize = .large
@@ -115,7 +122,22 @@
       weak var contentStack: UIStackView?
       private var pageViews: [NativePageItemiOS] = []
 
+      deinit {
+        prepareForDismantle()
+      }
+
+      func prepareForDismantle() {
+        pageViews.forEach { view in
+          view.prepareForDismantle()
+          view.removeFromSuperview()
+        }
+        pageViews.removeAll()
+        mirrorPages.removeAll()
+        viewModel = nil
+      }
+
       func syncStates(
+        viewModel: ReaderViewModel,
         pages: [NativePageData],
         screenSize: CGSize,
         isZoomed: Binding<Bool>,
@@ -128,6 +150,7 @@
         onPreviousPage: @escaping () -> Void,
         onToggleControls: @escaping () -> Void
       ) {
+        self.viewModel = viewModel
         self.mirrorPages = pages
         self.mirrorScreenSize = screenSize
         self.isZoomedBinding = isZoomed
@@ -155,7 +178,11 @@
         }
 
         for (index, data) in mirrorPages.enumerated() {
-          pageViews[index].update(with: data, showPageNumber: mirrorShowPageNumber)
+          if let viewModel = viewModel {
+            let image = viewModel.preloadedImages[data.pageNumber]
+            pageViews[index].update(
+              with: data, viewModel: viewModel, image: image, showPageNumber: mirrorShowPageNumber)
+          }
         }
       }
 
@@ -289,9 +316,9 @@
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let errorLabel = UILabel()
     private var currentData: NativePageData?
+    private weak var viewModel: ReaderViewModel?
 
     #if !os(tvOS)
-      private let analyzer = ImageAnalyzer()
       private let interaction = ImageAnalysisInteraction()
       private var analysisTask: Task<Void, Never>?
       private var analyzedImage: UIImage?
@@ -312,6 +339,35 @@
       setup()
     }
     required init?(coder: NSCoder) { fatalError() }
+
+    #if !os(tvOS)
+      deinit {
+        analysisTask?.cancel()
+      }
+
+      func prepareForDismantle() {
+        clearAnalysis()
+        imageView.image = nil
+        analyzedImage = nil
+      }
+
+      override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window == nil {
+          clearAnalysis()
+          imageView.image = nil
+          analyzedImage = nil
+        } else {
+          // Restore image when returning to window if it was cleared
+          if imageView.image == nil, let data = currentData {
+            imageView.image = viewModel?.preloadedImages[data.pageNumber]
+          }
+          if AppConfig.enableLiveText {
+            analyzeImage()
+          }
+        }
+      }
+    #endif
 
     private func setup() {
       imageView.contentMode = .scaleAspectFit
@@ -374,14 +430,15 @@
       ])
     }
 
-    func update(with data: NativePageData, showPageNumber: Bool) {
-      currentData = data
-      imageView.image = data.image
+    func update(with data: NativePageData, viewModel: ReaderViewModel, image: PlatformImage?, showPageNumber: Bool) {
+      self.currentData = data
+      self.viewModel = viewModel
+      imageView.image = image
 
       updateImageAlignment()
 
-      if let num = data.pageNumber, data.image != nil, showPageNumber {
-        pageNumberLabel.text = "\(num + 1)"
+      if image != nil, showPageNumber {
+        pageNumberLabel.text = "\(data.pageNumber + 1)"
         pageNumberLabel.isHidden = false
       } else {
         pageNumberLabel.isHidden = true
@@ -410,7 +467,7 @@
     }
 
     private func updateImageAlignment() {
-      guard let data = currentData, let image = data.image else {
+      guard let data = currentData, let image = imageView.image else {
         aspectConstraint?.isActive = false
         return
       }
@@ -449,25 +506,26 @@
         let pageNum = currentData?.pageNumber ?? -1
         let bookId = currentData?.bookId ?? "unknown"
         let startTime = Date()
-        logger.info("[LiveText] [\(bookId)] 🚀 Starting analysis for page \(pageNum + 1)")
 
         analyzedImage = image
         analysisTask?.cancel()
-        analysisTask = Task {
+        analysisTask = Task { [weak self] in
           let configuration = ImageAnalyzer.Configuration([.text, .machineReadableCode])
           do {
-            let analysis = try await analyzer.analyze(image, configuration: configuration)
+            let analysis = try await LiveTextManager.shared.analyzer.analyze(image, configuration: configuration)
             if !Task.isCancelled {
-              interaction.analysis = analysis
-              interaction.preferredInteractionTypes = .automatic
+              guard let self = self else { return }
+              self.interaction.analysis = analysis
+              self.interaction.preferredInteractionTypes = .automatic
               let duration = Date().timeIntervalSince(startTime)
-              logger.info(
+              self.logger.info(
                 String(format: "[LiveText] [\(bookId)] ✅ Finished analysis for page %d in %.2fs", pageNum + 1, duration)
               )
             }
           } catch {
             if !Task.isCancelled {
-              logger.error("[LiveText] [\(bookId)] ❌ Analysis failed for page \(pageNum + 1): \(error)")
+              guard let self = self else { return }
+              self.logger.error("[LiveText] [\(bookId)] ❌ Analysis failed for page \(pageNum + 1): \(error)")
             }
           }
         }
@@ -488,7 +546,7 @@
       #if !os(tvOS)
         // When layout happens (e.g. during scroll),
         // check if we should start analysis if it hasn't been started yet
-        if AppConfig.enableLiveText, let data = currentData, data.image != nil,
+        if AppConfig.enableLiveText, imageView.image != nil,
           window != nil, !isHidden, interaction.analysis == nil, analysisTask == nil
         {
           if !imageView.interactions.contains(where: { $0 === interaction }) {
