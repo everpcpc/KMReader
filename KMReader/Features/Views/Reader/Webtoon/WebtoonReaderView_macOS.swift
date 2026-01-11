@@ -239,7 +239,6 @@
         self.onScrollToBottom = onScrollToBottom
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
-        self.showPageNumber = showPageNumber
 
         let currentPage = viewModel.currentPageIndex
 
@@ -253,7 +252,6 @@
             }
           }
         }
-        self.showPageNumber = showPageNumber
 
         if lastPagesCount != pages.count || abs(heightCache.lastPageWidth - pageWidth) > 0.1 {
           if lastPagesCount != pages.count {
