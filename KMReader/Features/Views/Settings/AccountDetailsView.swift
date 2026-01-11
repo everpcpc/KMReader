@@ -108,8 +108,7 @@ struct UpdatePasswordSheet: View {
         .listRowInsets(EdgeInsets())
       }
       .formStyle(.grouped)
-      .navigationTitle(String(localized: "account.details.changePassword"))
-      .navigationBarTitleDisplayMode(.inline)
+      .inlineNavigationBarTitle(String(localized: "account.details.changePassword"))
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button(String(localized: "Cancel")) {

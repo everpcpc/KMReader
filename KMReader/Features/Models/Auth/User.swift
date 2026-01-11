@@ -13,7 +13,7 @@ struct User: Codable {
   let roles: [String]
 
   var userRoles: [UserRole] {
-    roles.compactMap { UserRole(rawValue: $0) }
+    roles.map { UserRole(rawValue: $0) }
   }
 
   var isAdmin: Bool {
