@@ -283,6 +283,11 @@
         if scrollView.magnification > mirrorMinScale + 0.01 { return }
         if zoomOutDiff < 0.4 { return }
 
+        if mirrorDisableTapToTurnPage {
+          mirrorOnToggleControls()
+          return
+        }
+
         let location = gesture.location(in: gesture.view)
         let normalizedX = location.x / mirrorScreenSize.width
         let threshold = mirrorTapZoneSize.value
@@ -290,21 +295,17 @@
         if mirrorReadingDirection == .vertical || mirrorReadingDirection == .webtoon {
           let normalizedY = 1.0 - (location.y / mirrorScreenSize.height)
           if normalizedY < threshold {
-            if !mirrorDisableTapToTurnPage { mirrorOnPreviousPage() }
+            mirrorOnPreviousPage()
           } else if normalizedY > (1.0 - threshold) {
-            if !mirrorDisableTapToTurnPage { mirrorOnNextPage() }
+            mirrorOnNextPage()
           } else {
             mirrorOnToggleControls()
           }
         } else {
           if normalizedX < threshold {
-            if !mirrorDisableTapToTurnPage {
-              mirrorReadingDirection == .rtl ? mirrorOnNextPage() : mirrorOnPreviousPage()
-            }
+            mirrorReadingDirection == .rtl ? mirrorOnNextPage() : mirrorOnPreviousPage()
           } else if normalizedX > (1.0 - threshold) {
-            if !mirrorDisableTapToTurnPage {
-              mirrorReadingDirection == .rtl ? mirrorOnPreviousPage() : mirrorOnNextPage()
-            }
+            mirrorReadingDirection == .rtl ? mirrorOnPreviousPage() : mirrorOnNextPage()
           } else {
             mirrorOnToggleControls()
           }
