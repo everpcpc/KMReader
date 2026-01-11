@@ -3,8 +3,8 @@
 //  KMReader
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 #if os(iOS) || os(tvOS)
   import UIKit
