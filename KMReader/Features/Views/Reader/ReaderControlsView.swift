@@ -316,7 +316,9 @@ struct ReaderControlsView: View {
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
       }
     }
-    .tint(.primary)
+    #if os(iOS)
+      .tint(.primary)
+    #endif
     .padding()
     .iPadIgnoresSafeArea(paddingTop: 24)
     .transition(.opacity)
