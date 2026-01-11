@@ -29,8 +29,11 @@ struct SettingsAppearanceView: View {
     )
   }
 
-  private var selectedDensity: GridDensity {
-    GridDensity.closest(to: gridDensity)
+  private var gridDensityBinding: Binding<GridDensity> {
+    Binding(
+      get: { GridDensity.closest(to: gridDensity) },
+      set: { gridDensity = $0.rawValue }
+    )
   }
 
   #if os(tvOS)
@@ -110,12 +113,7 @@ struct SettingsAppearanceView: View {
       }
 
       Section(header: Text(String(localized: "settings.appearance.browse"))) {
-        Picker(
-          selection: Binding(
-            get: { selectedDensity },
-            set: { gridDensity = $0.rawValue }
-          )
-        ) {
+        Picker(selection: gridDensityBinding) {
           ForEach(GridDensity.allCases, id: \.self) { density in
             Text(density.label).tag(density)
           }

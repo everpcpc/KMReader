@@ -35,6 +35,13 @@ struct DashboardView: View {
     readerPresentation.readerState != nil
   }
 
+  private var gridDensityBinding: Binding<GridDensity> {
+    Binding(
+      get: { GridDensity.closest(to: gridDensity) },
+      set: { gridDensity = $0.rawValue }
+    )
+  }
+
   private func performRefresh(reason: String, source: DashboardRefreshSource) {
     logger.debug("Dashboard refresh start: \(reason)")
 
@@ -127,10 +134,6 @@ struct DashboardView: View {
     // If dashboard shows all libraries (empty array), refresh for any library
     // Otherwise, only refresh if the library matches
     return dashboard.libraryIds.isEmpty || dashboard.libraryIds.contains(libraryId)
-  }
-
-  private var selectedDensity: GridDensity {
-    GridDensity.closest(to: gridDensity)
   }
 
   var body: some View {
@@ -245,12 +248,7 @@ struct DashboardView: View {
             .disabled(isCheckingConnection)
           } else {
             Menu {
-              Picker(
-                selection: Binding(
-                  get: { GridDensity.closest(to: gridDensity) },
-                  set: { gridDensity = $0.rawValue }
-                )
-              ) {
+              Picker(selection: gridDensityBinding) {
                 ForEach(GridDensity.allCases, id: \.self) { density in
                   Text(density.label).tag(density)
                 }

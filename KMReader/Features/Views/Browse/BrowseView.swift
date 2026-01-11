@@ -11,6 +11,7 @@ struct BrowseView: View {
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
   // Layout mode storage for each content type
   @AppStorage("seriesBrowseLayout") private var seriesBrowseLayout: BrowseLayoutMode = .grid
@@ -75,6 +76,13 @@ struct BrowseView: View {
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
       isRefreshDisabled = false
     }
+  }
+
+  private var gridDensityBinding: Binding<GridDensity> {
+    Binding(
+      get: { GridDensity.closest(to: gridDensity) },
+      set: { gridDensity = $0.rawValue }
+    )
   }
 
   func sectionCount(browseContent: BrowseContentType) -> Int? {
@@ -152,7 +160,23 @@ struct BrowseView: View {
         }
         ToolbarItem(placement: .confirmationAction) {
           HStack {
-            LayoutModePicker(selection: layoutModeBinding)
+            Menu {
+              Picker(String(localized: "Layout"), selection: layoutModeBinding) {
+                ForEach(BrowseLayoutMode.allCases) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }.pickerStyle(.inline)
+              if layoutModeBinding.wrappedValue == .grid {
+                Picker(String(localized: "settings.appearance.gridDensity.label"), selection: gridDensityBinding) {
+                  ForEach(GridDensity.allCases, id: \.self) { density in
+                    Text(density.label).tag(density)
+                  }
+                }.pickerStyle(.inline)
+              }
+            } label: {
+              Image(systemName: layoutModeBinding.wrappedValue.iconName)
+            }
+
             if effectiveContent == .series || effectiveContent == .books {
               Button {
                 showSavedFilters = true
