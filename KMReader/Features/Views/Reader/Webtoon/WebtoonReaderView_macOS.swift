@@ -138,6 +138,7 @@
       var onScrollToBottom: ((Bool) -> Void)?
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
+      var isProgrammaticScrolling: Bool = false
       var hasScrolledToInitialPage: Bool = false
       var initialScrollRetrier = InitialScrollRetrier(
         maxRetries: WebtoonConstants.initialScrollMaxRetries
@@ -239,7 +240,6 @@
         self.onScrollToBottom = onScrollToBottom
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
-        self.showPageNumber = showPageNumber
 
         let currentPage = viewModel.currentPageIndex
 
@@ -253,7 +253,6 @@
             }
           }
         }
-        self.showPageNumber = showPageNumber
 
         if lastPagesCount != pages.count || abs(heightCache.lastPageWidth - pageWidth) > 0.1 {
           if lastPagesCount != pages.count {
@@ -299,13 +298,20 @@
         guard let cv = collectionView, isValidPageIndex(pageIndex) else { return }
         let ip = IndexPath(item: pageIndex, section: 0)
         if let attr = cv.layoutAttributesForItem(at: ip) {
+          isProgrammaticScrolling = true
           if animated {
             NSAnimationContext.runAnimationGroup {
               $0.duration = 0.3
               cv.animator().scroll(attr.frame.origin)
+            } completionHandler: { [weak self] in
+              self?.isProgrammaticScrolling = false
             }
           } else {
             cv.scroll(attr.frame.origin)
+            // Reset flag after immediate scroll
+            DispatchQueue.main.async { [weak self] in
+              self?.isProgrammaticScrolling = false
+            }
           }
         }
       }
@@ -320,7 +326,12 @@
         }
         let ip = IndexPath(item: pageIndex, section: 0)
         if let attr = cv.layoutAttributesForItem(at: ip) {
+          isProgrammaticScrolling = true
           cv.scroll(attr.frame.origin)
+          // Reset flag after immediate scroll
+          DispatchQueue.main.async { [weak self] in
+            self?.isProgrammaticScrolling = false
+          }
         }
         hasScrolledToInitialPage = true
       }
@@ -392,7 +403,9 @@
 
       @objc func scrollViewDidScroll(_ notification: Notification) {
         guard let sv = scrollView else { return }
-        isUserScrolling = true
+        if !isProgrammaticScrolling {
+          isUserScrolling = true
+        }
         lastScrollTime = Date().timeIntervalSinceReferenceDate
         checkIfAtBottom(sv)
         updateCurrentPage()
@@ -544,12 +557,14 @@
         let targetY = max(currentOrigin.y - scrollAmount, 0)
         preheatPages(at: targetY)
 
+        isProgrammaticScrolling = true
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0.3
           context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
           context.allowsImplicitAnimation = true
           clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
-        } completionHandler: { [weak sv] in
+        } completionHandler: { [weak self, weak sv] in
+          self?.isProgrammaticScrolling = false
           guard let sv = sv else { return }
           sv.reflectScrolledClipView(clipView)
         }
@@ -565,12 +580,14 @@
         let targetY = min(currentOrigin.y + scrollAmount, maxY)
         preheatPages(at: targetY)
 
+        isProgrammaticScrolling = true
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0.3
           context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
           context.allowsImplicitAnimation = true
           clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
-        } completionHandler: { [weak sv] in
+        } completionHandler: { [weak self, weak sv] in
+          self?.isProgrammaticScrolling = false
           guard let sv = sv else { return }
           sv.reflectScrolledClipView(clipView)
         }

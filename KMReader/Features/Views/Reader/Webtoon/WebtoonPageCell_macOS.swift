@@ -13,6 +13,7 @@
     private let pageImageView = NSImageView()
     private let loadingIndicator = NSProgressIndicator()
     private let pageMarkerLabel = NSTextField(labelWithString: "")
+    private let pageMarkerContainer = NSView()
     private var pageIndex: Int = -1
     private var loadImage: ((Int) async -> Void)?
 
@@ -21,7 +22,7 @@
     }
 
     var showPageNumber: Bool = true {
-      didSet { pageMarkerLabel.isHidden = !showPageNumber }
+      didSet { pageMarkerContainer.isHidden = !showPageNumber }
     }
 
     override func loadView() {
@@ -40,14 +41,19 @@
       pageImageView.frame = view.bounds
       view.addSubview(pageImageView)
 
+      pageMarkerContainer.wantsLayer = true
+      pageMarkerContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
+      pageMarkerContainer.layer?.cornerRadius = 6
+      pageMarkerContainer.translatesAutoresizingMaskIntoConstraints = false
+      view.addSubview(pageMarkerContainer)
+
       pageMarkerLabel.wantsLayer = true
       pageMarkerLabel.font = .systemFont(ofSize: 14, weight: .semibold)
       pageMarkerLabel.textColor = .white
-      pageMarkerLabel.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
-      pageMarkerLabel.layer?.cornerRadius = 6
+      pageMarkerLabel.drawsBackground = false
       pageMarkerLabel.alignment = .center
       pageMarkerLabel.translatesAutoresizingMaskIntoConstraints = false
-      view.addSubview(pageMarkerLabel)
+      pageMarkerContainer.addSubview(pageMarkerLabel)
 
       loadingIndicator.style = .spinning
       loadingIndicator.controlSize = .small
@@ -56,10 +62,15 @@
       view.addSubview(loadingIndicator)
 
       NSLayoutConstraint.activate([
-        pageMarkerLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
-        pageMarkerLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-        pageMarkerLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
-        pageMarkerLabel.heightAnchor.constraint(equalToConstant: 24),
+        pageMarkerContainer.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
+        pageMarkerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+        pageMarkerContainer.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
+        pageMarkerContainer.heightAnchor.constraint(equalToConstant: 24),
+
+        pageMarkerLabel.centerXAnchor.constraint(equalTo: pageMarkerContainer.centerXAnchor),
+        pageMarkerLabel.centerYAnchor.constraint(equalTo: pageMarkerContainer.centerYAnchor),
+        pageMarkerLabel.leadingAnchor.constraint(equalTo: pageMarkerContainer.leadingAnchor, constant: 4),
+        pageMarkerLabel.trailingAnchor.constraint(equalTo: pageMarkerContainer.trailingAnchor, constant: -4),
 
         loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -86,7 +97,7 @@
       self.pageIndex = pageIndex
       self.loadImage = loadImage
       pageMarkerLabel.stringValue = "\(pageIndex + 1)"
-      pageMarkerLabel.isHidden = !showPageNumber
+      pageMarkerContainer.isHidden = !showPageNumber
 
       if let image = image {
         // Instant display if image is provided
@@ -140,7 +151,7 @@
       loadingIndicator.stopAnimation(nil)
       pageIndex = -1
       loadImage = nil
-      pageMarkerLabel.isHidden = true
+      pageMarkerContainer.isHidden = true
     }
   }
 #endif

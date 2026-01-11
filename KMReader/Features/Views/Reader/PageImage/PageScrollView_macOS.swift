@@ -202,6 +202,10 @@
         self.mirrorMinScale = minScale
         self.mirrorTapZoneSize = tapZoneSize
         self.mirrorDisableTapToTurnPage = disableTapToTurnPage
+        if self.mirrorShowPageNumber != showPageNumber {
+          self.mirrorShowPageNumber = showPageNumber
+          updatePages()
+        }
         self.mirrorShowPageNumber = showPageNumber
         self.mirrorReadingDirection = readingDirection
         self.mirrorOnNextPage = onNextPage
@@ -472,6 +476,7 @@
 
   private class NativePageItemMacOS: NSView {
     private let imageView = NSImageView()
+    private let pageNumberContainer = NSView()
     private let pageNumberLabel = NSTextField()
     private let progressIndicator = NSProgressIndicator()
 
@@ -567,25 +572,31 @@
       progressIndicator.translatesAutoresizingMaskIntoConstraints = false
       addSubview(progressIndicator)
 
+      pageNumberContainer.wantsLayer = true
+      pageNumberContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
+      pageNumberContainer.layer?.cornerRadius = 6
+      pageNumberContainer.translatesAutoresizingMaskIntoConstraints = false
+      addSubview(pageNumberContainer)
+
       pageNumberLabel.isEditable = false
       pageNumberLabel.isSelectable = false
       pageNumberLabel.isBordered = false
-      pageNumberLabel.drawsBackground = true
-      pageNumberLabel.backgroundColor = NSColor.black.withAlphaComponent(0.6)
+      pageNumberLabel.drawsBackground = false
       pageNumberLabel.font = .systemFont(ofSize: 14, weight: .semibold)
       pageNumberLabel.textColor = .white
       pageNumberLabel.alignment = .center
-      pageNumberLabel.wantsLayer = true
-      pageNumberLabel.layer?.cornerRadius = 6
-      pageNumberLabel.layer?.masksToBounds = true
       pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
-      addSubview(pageNumberLabel)
+      pageNumberContainer.addSubview(pageNumberLabel)
 
       NSLayoutConstraint.activate([
         progressIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
         progressIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
-        pageNumberLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
-        pageNumberLabel.heightAnchor.constraint(equalToConstant: 24),
+        pageNumberContainer.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
+        pageNumberContainer.heightAnchor.constraint(equalToConstant: 24),
+        pageNumberLabel.centerXAnchor.constraint(equalTo: pageNumberContainer.centerXAnchor),
+        pageNumberLabel.centerYAnchor.constraint(equalTo: pageNumberContainer.centerYAnchor),
+        pageNumberLabel.leadingAnchor.constraint(equalTo: pageNumberContainer.leadingAnchor, constant: 4),
+        pageNumberLabel.trailingAnchor.constraint(equalTo: pageNumberContainer.trailingAnchor, constant: -4),
       ])
     }
 
@@ -599,9 +610,9 @@
 
       if image != nil, showPageNumber {
         pageNumberLabel.stringValue = "\(data.pageNumber + 1)"
-        pageNumberLabel.isHidden = false
+        pageNumberContainer.isHidden = false
       } else {
-        pageNumberLabel.isHidden = true
+        pageNumberContainer.isHidden = true
       }
 
       if data.isLoading { progressIndicator.startAnimation(nil) } else { progressIndicator.stopAnimation(nil) }
@@ -694,13 +705,14 @@
       if let alignment = currentData?.alignment {
         let isLeftPage = (!isRTL && alignment == .trailing) || (isRTL && alignment == .leading)
         if isLeftPage {
-          pageNumberLabel.setFrameOrigin(NSPoint(x: xOffset + 12, y: topY))
+          pageNumberContainer.setFrameOrigin(NSPoint(x: xOffset + 12, y: topY))
         } else {
-          pageNumberLabel.setFrameOrigin(
-            NSPoint(x: xOffset + actualImageWidth - pageNumberLabel.bounds.width - 12, y: topY))
+          pageNumberContainer.setFrameOrigin(
+            NSPoint(x: xOffset + actualImageWidth - pageNumberContainer.bounds.width - 12, y: topY))
         }
       } else {
-        pageNumberLabel.setFrameOrigin(NSPoint(x: (viewSize.width - pageNumberLabel.bounds.width) / 2, y: topY))
+        pageNumberContainer.setFrameOrigin(
+          NSPoint(x: (viewSize.width - pageNumberContainer.bounds.width) / 2, y: topY))
       }
     }
 
