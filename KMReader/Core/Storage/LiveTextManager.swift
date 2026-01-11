@@ -4,7 +4,10 @@
 //
 
 import Foundation
-import VisionKit
+
+#if !os(tvOS)
+  import VisionKit
+#endif
 
 @MainActor
 class LiveTextManager {

@@ -349,7 +349,6 @@
             for: indexPath) as! WebtoonPageCell
         cell.readerBackground = readerBackground
         let pageIndex = indexPath.item
-        let page = pages[pageIndex]
         let preloadedImage = viewModel?.preloadedImages[pageIndex]
 
         cell.configure(pageIndex: pageIndex, image: preloadedImage, showPageNumber: showPageNumber) {

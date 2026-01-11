@@ -145,6 +145,7 @@
       private let logger = AppLogger(.reader)
 
       private var mirrorPages: [NativePageData] = []
+      private weak var readerViewModel: ReaderViewModel?
       private var mirrorScreenSize: CGSize = .zero
       private var mirrorMinScale: CGFloat = 1.0
       private var mirrorTapZoneSize: TapZoneSize = .large
@@ -194,7 +195,7 @@
         scrollView: NSScrollView,
         readerBackground: ReaderBackground
       ) {
-        self.viewModel = viewModel
+        self.readerViewModel = viewModel
         self.mirrorPages = pages
         self.mirrorScreenSize = screenSize
         self.isZoomedBinding = isZoomed
@@ -227,7 +228,7 @@
           pageViews.forEach { stack.addArrangedSubview($0) }
         }
         for (index, data) in mirrorPages.enumerated() {
-          if let viewModel = viewModel {
+          if let viewModel = self.readerViewModel {
             let image = viewModel.preloadedImages[data.pageNumber]
             pageViews[index].update(
               with: data, viewModel: viewModel, image: image, showPageNumber: mirrorShowPageNumber,
@@ -478,7 +479,7 @@
     private var analysisTask: Task<Void, Never>?
     private var analyzedImage: NSImage?
     private var currentData: NativePageData?
-    private weak var viewModel: ReaderViewModel?
+    private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
 
     init() {
@@ -513,7 +514,7 @@
       } else {
         // Restore image when returning to window if it was cleared
         if imageView.image == nil, let data = currentData {
-          imageView.image = viewModel?.preloadedImages[data.pageNumber]
+          imageView.image = readerViewModel?.preloadedImages[data.pageNumber]
         }
         if AppConfig.enableLiveText {
           if let image = imageView.image {
@@ -593,7 +594,7 @@
       background: ReaderBackground
     ) {
       self.currentData = data
-      self.viewModel = viewModel
+      self.readerViewModel = viewModel
       imageView.image = image
 
       if image != nil, showPageNumber {
@@ -707,7 +708,7 @@
       super.layout()
       updateOverlaysPosition()
 
-      if AppConfig.enableLiveText, let data = currentData,
+      if AppConfig.enableLiveText, currentData != nil,
         let image = imageView.image,
         !visibleRect.isEmpty, overlayView.analysis == nil, analysisTask == nil
       {

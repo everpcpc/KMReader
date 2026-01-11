@@ -340,34 +340,36 @@
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    #if !os(tvOS)
-      deinit {
+    deinit {
+      #if !os(tvOS)
         analysisTask?.cancel()
-      }
+      #endif
+    }
 
-      func prepareForDismantle() {
+    func prepareForDismantle() {
+      #if !os(tvOS)
         clearAnalysis()
-        imageView.image = nil
         analyzedImage = nil
-      }
+      #endif
+      imageView.image = nil
+    }
 
-      override func didMoveToWindow() {
-        super.didMoveToWindow()
-        if window == nil {
-          clearAnalysis()
-          imageView.image = nil
-          analyzedImage = nil
-        } else {
-          // Restore image when returning to window if it was cleared
-          if imageView.image == nil, let data = currentData {
-            imageView.image = viewModel?.preloadedImages[data.pageNumber]
-          }
+    override func didMoveToWindow() {
+      super.didMoveToWindow()
+      if window == nil {
+        prepareForDismantle()
+      } else {
+        // Restore image when returning to window if it was cleared
+        if imageView.image == nil, let data = currentData {
+          imageView.image = viewModel?.preloadedImages[data.pageNumber]
+        }
+        #if !os(tvOS)
           if AppConfig.enableLiveText {
             analyzeImage()
           }
-        }
+        #endif
       }
-    #endif
+    }
 
     private func setup() {
       imageView.contentMode = .scaleAspectFit
