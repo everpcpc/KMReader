@@ -35,50 +35,6 @@ struct ReaderSettingsSheet: View {
       title: String(localized: "Reader Settings"), size: .large, applyFormStyle: true
     ) {
       Form {
-
-        // MARK: - Session Reading Options Section (not persisted)
-
-        Section(header: Text("Current Reading Options")) {
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Reading Direction", selection: $readingDirection) {
-              ForEach(ReadingDirection.availableCases, id: \.self) { direction in
-                Label(direction.displayName, systemImage: direction.icon)
-                  .tag(direction)
-              }
-            }
-            .pickerStyle(.menu)
-            Text("Only applies to current reading session")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-
-          if readingDirection != .webtoon && readingDirection != .vertical {
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Page Layout", selection: $pageLayout) {
-                ForEach(PageLayout.allCases, id: \.self) { layout in
-                  Label(layout.displayName, systemImage: layout.icon)
-                    .tag(layout)
-                }
-              }
-              .pickerStyle(.menu)
-              Text("Only applies to current reading session")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-
-            if pageLayout.supportsDualPageOptions {
-              Toggle(isOn: $dualPageNoCover) {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text("Show Cover in Dual Spread")
-                  Text("Only applies to current reading session")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-            }
-          }
-        }
-
         // MARK: - Appearance Section
 
         Section(header: Text("Appearance")) {

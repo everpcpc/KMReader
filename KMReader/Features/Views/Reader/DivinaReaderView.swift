@@ -507,6 +507,8 @@ struct DivinaReaderView: View {
     ReaderControlsView(
       showingControls: $showingControls,
       readingDirection: $readingDirection,
+      pageLayout: $pageLayout,
+      dualPageNoCover: $dualPageNoCover,
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,

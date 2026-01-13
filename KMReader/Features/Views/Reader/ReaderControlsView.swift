@@ -11,6 +11,8 @@ import UniformTypeIdentifiers
 struct ReaderControlsView: View {
   @Binding var showingControls: Bool
   @Binding var readingDirection: ReadingDirection
+  @Binding var pageLayout: PageLayout
+  @Binding var dualPageNoCover: Bool
 
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
@@ -37,10 +39,7 @@ struct ReaderControlsView: View {
   #if os(tvOS)
     private enum ControlFocus: Hashable {
       case close
-      case previousBook
       case pageNumber
-      case toc
-      case nextBook
       case settings
     }
     @FocusState private var focusedControl: ControlFocus?
@@ -75,14 +74,7 @@ struct ReaderControlsView: View {
   }
 
   #if os(iOS) || os(macOS)
-    private func shareCurrentPage() {
-      let indices: [Int]
-      if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
-        indices = [pair.first, pair.second].compactMap { $0 }
-      } else {
-        indices = [viewModel.currentPageIndex]
-      }
-
+    private func sharePages(indices: [Int]) {
       var images: [PlatformImage] = []
       var names: [String] = []
 
@@ -99,17 +91,15 @@ struct ReaderControlsView: View {
       guard !images.isEmpty else { return }
       ImageShareHelper.shareMultiple(images: images, fileNames: names)
     }
+
+    private func sharePage(index: Int) {
+      sharePages(indices: [index])
+    }
+
+    private var sharePageFormat: String {
+      String(localized: "Share Page %d")
+    }
   #endif
-
-  private var leftButtonLabel: String {
-    readingDirection == .rtl
-      ? String(localized: "reader.nextBook") : String(localized: "reader.previousBook")
-  }
-
-  private var rightButtonLabel: String {
-    readingDirection == .rtl
-      ? String(localized: "reader.previousBook") : String(localized: "reader.nextBook")
-  }
 
   var body: some View {
     VStack {
@@ -177,21 +167,18 @@ struct ReaderControlsView: View {
 
         Spacer()
 
-        // Settings buttons
-        Button {
-          showingReaderSettingsSheet = true
+        Menu {
+          menuContent()
         } label: {
-          Image(systemName: "gearshape")
+          Image(systemName: "ellipsis")
         }
         .contentShape(Circle())
         .controlSize(.large)
         .buttonBorderShape(.circle)
         .adaptiveButtonStyle(buttonStyle)
-        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         #if os(tvOS)
           .focused($focusedControl, equals: .settings)
         #endif
-
       }
       .allowsHitTesting(true)
 
@@ -201,47 +188,7 @@ struct ReaderControlsView: View {
       VStack(spacing: 12) {
         // Page info display with navigation buttons
         HStack {
-          // Left button (previous for LTR, next for RTL)
-          Button {
-            if readingDirection == .rtl {
-              if let nextBook = nextBook, let onNextBook = onNextBook {
-                onNextBook(nextBook.id)
-              }
-            } else {
-              if let previousBook = previousBook, let onPreviousBook = onPreviousBook {
-                onPreviousBook(previousBook.id)
-              }
-            }
-          } label: {
-            HStack(spacing: 4) {
-              Image(systemName: "chevron.left")
-              Text(leftButtonLabel)
-            }
-          }
-          .contentShape(Rectangle())
-          .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          .opacity((readingDirection == .rtl ? nextBook : previousBook) != nil ? 1.0 : 0.0)
-          .disabled((readingDirection == .rtl ? nextBook : previousBook) == nil)
-          #if os(tvOS)
-            .focused(
-              $focusedControl, equals: readingDirection == .rtl ? .nextBook : .previousBook)
-          #endif
-
           Spacer(minLength: 0)
-
-          #if os(iOS) || os(macOS)
-            // Share button
-            Button {
-              shareCurrentPage()
-            } label: {
-              Image(systemName: "square.and.arrow.up")
-            }
-            .contentShape(Circle())
-            .buttonBorderShape(.circle)
-            .adaptiveButtonStyle(buttonStyle)
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          #endif
 
           // Page info - tappable to open jump sheet
           Button {
@@ -261,51 +208,7 @@ struct ReaderControlsView: View {
             .focused($focusedControl, equals: .pageNumber)
           #endif
 
-          // TOC button (only show if TOC exists)
-          if !viewModel.tableOfContents.isEmpty {
-            Button {
-              showingTOCSheet = true
-            } label: {
-              Image(systemName: "list.bullet")
-                .padding(2)
-            }
-            .contentShape(Circle())
-            .buttonBorderShape(.circle)
-            .adaptiveButtonStyle(buttonStyle)
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-            #if os(tvOS)
-              .focused($focusedControl, equals: .toc)
-            #endif
-          }
-
           Spacer(minLength: 0)
-
-          // Right button (next for LTR, previous for RTL)
-          Button {
-            if readingDirection == .rtl {
-              if let previousBook = previousBook, let onPreviousBook = onPreviousBook {
-                onPreviousBook(previousBook.id)
-              }
-            } else {
-              if let nextBook = nextBook, let onNextBook = onNextBook {
-                onNextBook(nextBook.id)
-              }
-            }
-          } label: {
-            HStack(spacing: 4) {
-              Text(rightButtonLabel)
-              Image(systemName: "chevron.right")
-            }
-          }
-          .contentShape(Rectangle())
-          .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          .opacity((readingDirection == .rtl ? previousBook : nextBook) != nil ? 1.0 : 0.0)
-          .disabled((readingDirection == .rtl ? previousBook : nextBook) == nil)
-          #if os(tvOS)
-            .focused(
-              $focusedControl, equals: readingDirection == .rtl ? .previousBook : .nextBook)
-          #endif
         }
         .optimizedControlSize()
         .allowsHitTesting(true)
@@ -341,6 +244,131 @@ struct ReaderControlsView: View {
         }
       }
       .focusSection()
+    #endif
+  }
+
+  @ViewBuilder
+  private func menuContent() -> some View {
+    Section {
+      Picker(String(localized: "Reading Direction"), selection: $readingDirection) {
+        ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+          Label(direction.displayName, systemImage: direction.icon)
+            .tag(direction)
+        }
+      }
+      .pickerStyle(.menu)
+
+      if readingDirection != .webtoon && readingDirection != .vertical {
+        Picker(String(localized: "Page Layout"), selection: $pageLayout) {
+          ForEach(PageLayout.allCases, id: \.self) { layout in
+            Label(layout.displayName, systemImage: layout.icon)
+              .tag(layout)
+          }
+        }
+        .pickerStyle(.menu)
+
+        if pageLayout.supportsDualPageOptions {
+          Toggle(String(localized: "Show Cover in Dual Spread"), isOn: $dualPageNoCover)
+        }
+      }
+    } header: {
+      Text(String(localized: "Current Reading Options"))
+    }
+
+    Button {
+      showingReaderSettingsSheet = true
+    } label: {
+      Label(String(localized: "Reader Settings"), systemImage: "gearshape")
+    }
+
+    Section {
+      if !viewModel.tableOfContents.isEmpty {
+        Button {
+          showingTOCSheet = true
+        } label: {
+          Label(String(localized: "Table of Contents"), systemImage: "list.bullet")
+        }
+      }
+      Button {
+        guard !viewModel.pages.isEmpty else { return }
+        showingPageJumpSheet = true
+      } label: {
+        Label(String(localized: "Jump to Page"), systemImage: "bookmark")
+      }
+      .disabled(viewModel.pages.isEmpty)
+    } header: {
+      Text(String(localized: "Page Navigation"))
+    }
+
+    Section {
+      if let previousBook, let onPreviousBook {
+        let previousNumber =
+          previousBook.metadata.number.isEmpty
+          ? nil
+          : previousBook.metadata.number
+        Button {
+          onPreviousBook(previousBook.id)
+        } label: {
+          Label(
+            "\(String(localized: "reader.previousBook")) #\(previousNumber ?? "-")",
+            systemImage: "chevron.left"
+          )
+        }
+      }
+
+      if let nextBook, let onNextBook {
+        let nextNumber =
+          nextBook.metadata.number.isEmpty
+          ? nil
+          : nextBook.metadata.number
+        Button {
+          onNextBook(nextBook.id)
+        } label: {
+          Label(
+            "\(String(localized: "reader.nextBook")) #\(nextNumber ?? "-")",
+            systemImage: "chevron.right"
+          )
+        }
+      }
+    } header: {
+      Text(String(localized: "Book Navigation"))
+    }
+
+    #if os(iOS) || os(macOS)
+      Section {
+        if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex],
+          let secondIndex = pair.second
+        {
+          Button {
+            sharePage(index: pair.first)
+          } label: {
+            Label(
+              String.localizedStringWithFormat(sharePageFormat, pair.first + 1),
+              systemImage: "square.and.arrow.up"
+            )
+          }
+          Button {
+            sharePage(index: secondIndex)
+          } label: {
+            Label(
+              String.localizedStringWithFormat(sharePageFormat, secondIndex + 1),
+              systemImage: "square.and.arrow.up.on.square"
+            )
+          }
+        } else {
+          Button {
+            sharePage(index: viewModel.currentPageIndex)
+          } label: {
+            Label(
+              String.localizedStringWithFormat(
+                sharePageFormat, viewModel.currentPageIndex + 1),
+              systemImage: "square.and.arrow.up"
+            )
+          }
+        }
+      } header: {
+        Text(String(localized: "Share"))
+      }
     #endif
   }
 }
