@@ -14,6 +14,7 @@
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let pageMarkerContainer = UIView()
     private let pageMarkerLabel = UILabel()
+    private let errorLabel = UILabel()
     private var pageIndex: Int = -1
     private var loadImage: ((Int) async -> Void)?
 
@@ -55,6 +56,14 @@
       loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
       contentView.addSubview(loadingIndicator)
 
+      errorLabel.font = .systemFont(ofSize: 32)
+      errorLabel.textColor = .systemRed
+      errorLabel.text = "⚠"
+      errorLabel.textAlignment = .center
+      errorLabel.isHidden = true
+      errorLabel.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(errorLabel)
+
       NSLayoutConstraint.activate([
         imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
         imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -68,6 +77,9 @@
 
         loadingIndicator.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
         loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+
+        errorLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+        errorLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
       ])
     }
 
@@ -90,9 +102,11 @@
         imageView.alpha = 1.0
         loadingIndicator.stopAnimating()
         loadingIndicator.isHidden = true
+        errorLabel.isHidden = true
       } else {
         imageView.image = nil
         imageView.alpha = 0.0
+        errorLabel.isHidden = true
         loadingIndicator.isHidden = false
         loadingIndicator.startAnimating()
       }
@@ -125,6 +139,7 @@
       imageView.image = nil
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
+      errorLabel.isHidden = false
     }
 
     override func prepareForReuse() {
@@ -133,6 +148,7 @@
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
       loadingIndicator.isHidden = true
+      errorLabel.isHidden = true
       pageIndex = -1
       loadImage = nil
       pageMarkerLabel.isHidden = true

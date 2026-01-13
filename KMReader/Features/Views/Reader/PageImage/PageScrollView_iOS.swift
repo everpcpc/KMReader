@@ -451,7 +451,18 @@
         pageNumberLabel.isHidden = true
       }
 
-      if data.isLoading { loadingIndicator.startAnimating() } else { loadingIndicator.stopAnimating() }
+      // Show error or loading indicator
+      if let error = data.error {
+        loadingIndicator.stopAnimating()
+        errorLabel.text = error
+        errorLabel.isHidden = false
+      } else if image == nil || data.isLoading {
+        errorLabel.isHidden = true
+        loadingIndicator.startAnimating()
+      } else {
+        errorLabel.isHidden = true
+        loadingIndicator.stopAnimating()
+      }
 
       #if !os(tvOS)
         // Only analyze if enableLiveText is on AND the view is likely visible
