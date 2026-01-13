@@ -77,10 +77,12 @@ struct DivinaReaderView: View {
     // Always show controls when no pages are loaded or when explicitly shown
     #if os(tvOS)
       // On tvOS, don't force controls at endpage to allow navigation back
-      viewModel.pages.isEmpty || showingControls || (readingDirection == .webtoon && isAtBottom)
+      !viewModel.isZoomed
+        && (viewModel.pages.isEmpty || showingControls || (readingDirection == .webtoon && isAtBottom))
     #else
-      viewModel.pages.isEmpty || showingControls || isShowingEndPage
-        || (readingDirection == .webtoon && isAtBottom)
+      !viewModel.isZoomed
+        && (viewModel.pages.isEmpty || showingControls || isShowingEndPage
+          || (readingDirection == .webtoon && isAtBottom))
     #endif
   }
 
@@ -353,6 +355,11 @@ struct DivinaReaderView: View {
     }
     .onChange(of: showingControls) { _, newValue in
       applyStatusBarVisibility(controlsHidden: !newValue)
+    }
+    .onChange(of: viewModel.isZoomed) { _, newValue in
+      if newValue {
+        showingControls = false
+      }
     }
     .onChange(of: controlsAutoHide) { _, newValue in
       if newValue {
