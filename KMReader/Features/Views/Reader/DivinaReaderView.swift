@@ -16,7 +16,7 @@ struct DivinaReaderView: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
-  @State private var dualPageNoCover: Bool
+  @State private var isolateCoverPage: Bool
 
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -70,7 +70,7 @@ struct DivinaReaderView: View {
     self._currentBookId = State(initialValue: bookId)
     self._readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
-    self._dualPageNoCover = State(initialValue: AppConfig.dualPageNoCover)
+    self._isolateCoverPage = State(initialValue: AppConfig.isolateCoverPage)
   }
 
   var shouldShowControls: Bool {
@@ -114,7 +114,7 @@ struct DivinaReaderView: View {
   private func resetReaderPreferencesForCurrentBook() {
     pageLayout = AppConfig.pageLayout
     viewModel.updatePageLayout(pageLayout)
-    dualPageNoCover = AppConfig.dualPageNoCover
+    isolateCoverPage = AppConfig.isolateCoverPage
     readingDirection = AppConfig.defaultReadingDirection
   }
 
@@ -273,11 +273,7 @@ struct DivinaReaderView: View {
       )
     }
     .sheet(isPresented: $showingReaderSettingsSheet) {
-      ReaderSettingsSheet(
-        readingDirection: $readingDirection,
-        pageLayout: $pageLayout,
-        dualPageNoCover: $dualPageNoCover
-      )
+      ReaderSettingsSheet(readingDirection: $readingDirection)
     }
     .sheet(isPresented: $showingSeriesDetailSheet) {
       if let book = currentBook, let series = currentSeries {
@@ -322,13 +318,13 @@ struct DivinaReaderView: View {
       }
     }
     .onAppear {
-      viewModel.updateDualPageSettings(noCover: dualPageNoCover)
+      viewModel.updateDualPageSettings(noCover: !isolateCoverPage)
       #if os(tvOS)
         updateContentFocusAnchor()
       #endif
     }
-    .onChange(of: dualPageNoCover) { _, newValue in
-      viewModel.updateDualPageSettings(noCover: newValue)
+    .onChange(of: isolateCoverPage) { _, newValue in
+      viewModel.updateDualPageSettings(noCover: !newValue)
     }
     .onChange(of: pageLayout) { _, newValue in
       viewModel.updatePageLayout(newValue)
@@ -515,7 +511,7 @@ struct DivinaReaderView: View {
       showingControls: $showingControls,
       readingDirection: $readingDirection,
       pageLayout: $pageLayout,
-      dualPageNoCover: $dualPageNoCover,
+      isolateCoverPage: $isolateCoverPage,
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
@@ -982,7 +978,7 @@ struct DivinaReaderView: View {
     preserveReaderOptions = true
     currentBookId = nextBookId
     // Reset viewModel state for new book
-    viewModel = ReaderViewModel(dualPageNoCover: dualPageNoCover, pageLayout: pageLayout)
+    viewModel = ReaderViewModel(isolateCoverPage: isolateCoverPage, pageLayout: pageLayout)
     // Preserve incognito mode for next book
     viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom
@@ -998,7 +994,7 @@ struct DivinaReaderView: View {
     preserveReaderOptions = true
     currentBookId = previousBookId
     // Reset viewModel state for new book
-    viewModel = ReaderViewModel(dualPageNoCover: dualPageNoCover, pageLayout: pageLayout)
+    viewModel = ReaderViewModel(isolateCoverPage: isolateCoverPage, pageLayout: pageLayout)
     // Preserve incognito mode for previous book
     viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom

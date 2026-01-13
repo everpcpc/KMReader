@@ -10,8 +10,6 @@ import SwiftUI
 struct ReaderSettingsSheet: View {
   // Session-specific bindings (not persisted until reader closes)
   @Binding var readingDirection: ReadingDirection
-  @Binding var pageLayout: PageLayout
-  @Binding var dualPageNoCover: Bool
 
   // Persisted settings (via @AppStorage)
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system

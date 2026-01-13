@@ -15,7 +15,7 @@ struct SettingsReaderView: View {
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
-  @AppStorage("dualPageNoCover") private var dualPageNoCover: Bool = false
+  @AppStorage("isolateCoverPage") private var isolateCoverPage: Bool = true
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
@@ -292,10 +292,10 @@ struct SettingsReaderView: View {
             .foregroundColor(.secondary)
         }
         if pageLayout.supportsDualPageOptions {
-          Toggle(isOn: $dualPageNoCover) {
+          Toggle(isOn: $isolateCoverPage) {
             VStack(alignment: .leading, spacing: 4) {
-              Text("Show Cover in Dual Spread")
-              Text("Display the cover alongside the next page when using dual page mode")
+              Text("Isolate Cover Page")
+              Text("Display the cover page separately, not paired with the next page")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }

@@ -234,6 +234,22 @@ actor DatabaseOperator {
     return try? modelContext.fetch(descriptor).first?.pages
   }
 
+  func fetchIsolatePages(id: String) -> [Int]? {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    return try? modelContext.fetch(descriptor).first?.isolatePages
+  }
+
+  func updateIsolatePages(bookId: String, pages: [Int]) {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      book.isolatePages = pages
+    }
+  }
+
   func fetchTOC(id: String) -> [ReaderTOCEntry]? {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: id)

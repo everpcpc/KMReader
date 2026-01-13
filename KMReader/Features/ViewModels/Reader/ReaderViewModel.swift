@@ -34,6 +34,7 @@ struct PagePair: Hashable {
 @Observable
 class ReaderViewModel {
   var pages: [BookPage] = []
+  var isolatePages: [Int] = []
   var currentPageIndex = 0
   var targetPageIndex: Int? = nil
   var isLoading = true
@@ -50,7 +51,7 @@ class ReaderViewModel {
   var preloadedImages: [Int: PlatformImage] = [:]
   /// Page index with Live Text mode active (nil = no Live Text active)
   var liveTextActivePageIndex: Int? = nil
-  private var dualPageNoCoverEnabled: Bool
+  private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
 
   private let logger = AppLogger(.reader)
@@ -70,16 +71,20 @@ class ReaderViewModel {
     return pages[clampedIndex]
   }
 
+  var isCurrentPageIsolated: Bool {
+    isolatePages.contains(currentPageIndex)
+  }
+
   convenience init() {
     self.init(
-      dualPageNoCover: AppConfig.dualPageNoCover,
+      isolateCoverPage: AppConfig.isolateCoverPage,
       pageLayout: AppConfig.pageLayout
     )
   }
 
-  init(dualPageNoCover: Bool, pageLayout: PageLayout) {
+  init(isolateCoverPage: Bool, pageLayout: PageLayout) {
     self.pageImageCache = ImageCache()
-    self.dualPageNoCoverEnabled = dualPageNoCover
+    self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     regenerateDualPageState()
   }
@@ -104,6 +109,10 @@ class ReaderViewModel {
         await DatabaseOperator.shared.updateBookPages(bookId: book.id, pages: fetchedPages)
       } else {
         throw APIError.offline
+      }
+
+      if let localIsolatePages = await DatabaseOperator.shared.fetchIsolatePages(id: book.id) {
+        isolatePages = localIsolatePages
       }
 
       // Set initial page index BEFORE assigning pages to ensure proper scroll synchronization
@@ -447,8 +456,9 @@ class ReaderViewModel {
   }
 
   func updateDualPageSettings(noCover: Bool) {
-    guard dualPageNoCoverEnabled != noCover else { return }
-    dualPageNoCoverEnabled = noCover
+    let newIsolateCover = !noCover
+    guard isolateCoverPageEnabled != newIsolateCover else { return }
+    isolateCoverPageEnabled = newIsolateCover
     regenerateDualPageState()
   }
 
@@ -459,11 +469,25 @@ class ReaderViewModel {
     regenerateDualPageState()
   }
 
+  func toggleIsolatePage(_ pageIndex: Int) {
+    if let index = isolatePages.firstIndex(of: pageIndex) {
+      isolatePages.remove(at: index)
+    } else {
+      isolatePages.append(pageIndex)
+    }
+    regenerateDualPageState()
+    Task {
+      await DatabaseOperator.shared.updateIsolatePages(bookId: bookId, pages: isolatePages)
+      await DatabaseOperator.shared.commit()
+    }
+  }
+
   private func regenerateDualPageState() {
     pagePairs = generatePagePairs(
       pages: pages,
-      noCover: dualPageNoCoverEnabled,
-      forceDualPairs: forceDualPagePairs
+      noCover: !isolateCoverPageEnabled,
+      forceDualPairs: forceDualPagePairs,
+      isolatePages: Set(isolatePages)
     )
     dualPageIndices = generateDualPageIndices(pairs: pagePairs)
   }
@@ -472,7 +496,8 @@ class ReaderViewModel {
 private func generatePagePairs(
   pages: [BookPage],
   noCover: Bool,
-  forceDualPairs: Bool
+  forceDualPairs: Bool,
+  isolatePages: Set<Int> = []
 ) -> [PagePair] {
   guard pages.count > 0 else { return [] }
 
@@ -481,7 +506,9 @@ private func generatePagePairs(
   var index = 0
   while index < pages.count {
     if forceDualPairs {
-      let shouldShowSingle = (!noCover && index == 0) || index == pages.count - 1
+      let shouldShowSingle =
+        (!noCover && index == 0) || index == pages.count - 1
+        || isolatePages.contains(index) || isolatePages.contains(index + 1)
       if shouldShowSingle {
         pairs.append(PagePair(first: index, second: nil))
         index += 1
@@ -502,6 +529,9 @@ private func generatePagePairs(
     if !noCover && index == 0 {
       useSinglePage = true
     }
+    if isolatePages.contains(index) {
+      useSinglePage = true
+    }
     if index == pages.count - 1 {
       useSinglePage = true
     }
@@ -511,7 +541,7 @@ private func generatePagePairs(
       index += 1
     } else {
       let nextPage = pages[index + 1]
-      if nextPage.isPortrait {
+      if nextPage.isPortrait && !isolatePages.contains(index + 1) {
         pairs.append(PagePair(first: index, second: index + 1))
         index += 2
       } else {

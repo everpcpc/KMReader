@@ -80,6 +80,8 @@ final class KomgaBook {
   // Cached read list IDs containing this book
   var readListIds: [String] = []
 
+  var isolatePages: [Int] = []
+
   /// Computed property for download status.
   var downloadStatus: DownloadStatus {
     get {

@@ -12,7 +12,7 @@ struct ReaderControlsView: View {
   @Binding var showingControls: Bool
   @Binding var readingDirection: ReadingDirection
   @Binding var pageLayout: PageLayout
-  @Binding var dualPageNoCover: Bool
+  @Binding var isolateCoverPage: Bool
 
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
@@ -71,6 +71,10 @@ struct ReaderControlsView: View {
         return String(viewModel.currentPageIndex + 1)
       }
     }
+  }
+
+  private var enableDualPageOptions: Bool {
+    return readingDirection != .webtoon && readingDirection != .vertical && pageLayout.supportsDualPageOptions
   }
 
   #if os(iOS) || os(macOS)
@@ -268,8 +272,8 @@ struct ReaderControlsView: View {
         }
         .pickerStyle(.menu)
 
-        if pageLayout.supportsDualPageOptions {
-          Toggle(String(localized: "Show Cover in Dual Spread"), isOn: $dualPageNoCover)
+        if enableDualPageOptions {
+          pageIsolation()
         }
       }
     } header: {
@@ -305,6 +309,49 @@ struct ReaderControlsView: View {
         Text(String(localized: "Share"))
       }
     #endif
+  }
+
+  @ViewBuilder
+  private func pageIsolation() -> some View {
+    Button {
+      isolateCoverPage.toggle()
+    } label: {
+      Label(
+        String(localized: "Isolate Cover Page"),
+        systemImage: isolateCoverPage ? "checkmark.rectangle.portrait" : "rectangle.portrait"
+      )
+    }
+
+    if viewModel.isCurrentPageIsolated {
+      // Current page is already isolated, show cancel button
+      Button {
+        viewModel.toggleIsolatePage(viewModel.currentPageIndex)
+      } label: {
+        Label(String(localized: "Cancel Isolation"), systemImage: "rectangle.portrait.slash")
+      }
+    } else if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex],
+      let secondPage = pair.second
+    {
+      // Dual page mode with two pages, show separate buttons
+      let leftPage = readingDirection == .rtl ? secondPage : pair.first
+      let rightPage = readingDirection == .rtl ? pair.first : secondPage
+      Button {
+        viewModel.toggleIsolatePage(leftPage)
+      } label: {
+        Label(
+          String.localizedStringWithFormat(String(localized: "Isolate Page %d"), leftPage + 1),
+          systemImage: "rectangle.lefthalf.inset.filled"
+        )
+      }
+      Button {
+        viewModel.toggleIsolatePage(rightPage)
+      } label: {
+        Label(
+          String.localizedStringWithFormat(String(localized: "Isolate Page %d"), rightPage + 1),
+          systemImage: "rectangle.righthalf.inset.filled"
+        )
+      }
+    }
   }
 
   @ViewBuilder

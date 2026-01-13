@@ -64,9 +64,14 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "osVersion") }
   }
 
-  static nonisolated var dualPageNoCover: Bool {
-    get { UserDefaults.standard.bool(forKey: "dualPageNoCover") }
-    set { UserDefaults.standard.set(newValue, forKey: "dualPageNoCover") }
+  static nonisolated var isolateCoverPage: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "isolateCoverPage") != nil {
+        return UserDefaults.standard.bool(forKey: "isolateCoverPage")
+      }
+      return true
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "isolateCoverPage") }
   }
 
   static nonisolated var isOffline: Bool {

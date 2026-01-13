@@ -4824,16 +4824,16 @@
     },
     "Book Navigation" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Book Navigation"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buchnavigation"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Book Navigation"
           }
         },
         "fr" : {
@@ -6520,6 +6520,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消下載"
+          }
+        }
+      }
+    },
+    "Cancel Isolation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einzelseitenansicht aufheben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel Isolation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler la page seule"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単独表示を解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단독 표시 취소"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消单独显示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消單獨顯示"
           }
         }
       }
@@ -11078,48 +11124,48 @@
         }
       }
     },
-    "Display the cover alongside the next page when using dual page mode" : {
+    "Display the cover page separately, not paired with the next page" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Cover neben der nächsten Seite im Doppelseitenmodus anzeigen"
+            "value" : "Titelseite einzeln anzeigen, nicht mit der nächsten Seite"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Display the cover alongside the next page when using dual page mode"
+            "value" : "Display the cover page separately, not paired with the next page"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher la couverture à côté de la page suivante en mode double page"
+            "value" : "Afficher la couverture seule, sans la page suivante"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "見開きモードで表紙を次ページと並べて表示"
+            "value" : "表紙を次のページとペアにせず単独で表示"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "듀얼 페이지 모드 사용 시 표지를 다음 페이지와 함께 표시"
+            "value" : "표지를 다음 페이지와 짝짓지 않고 단독으로 표시"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "双页模式下封面与下一页并排显示"
+            "value" : "单独显示封面页，不与下一页配对"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "雙頁模式下封面與下一頁並排顯示"
+            "value" : "單獨顯示封面頁，不與下一頁配對"
           }
         }
       }
@@ -16042,6 +16088,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ISBN"
+          }
+        }
+      }
+    },
+    "Isolate Cover Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titelseite einzeln"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isolate Cover Page"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couverture seule"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を単独表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "표지 단독 표시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单独显示封面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單獨顯示封面"
+          }
+        }
+      }
+    },
+    "Isolate Page %d" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite %d einzeln"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isolate Page %d"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %d seule"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ %d を単独表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 %d 단독 표시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单独显示第 %d 页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單獨顯示第 %d 頁"
           }
         }
       }
@@ -25940,16 +26078,16 @@
     },
     "Page Navigation" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Page Navigation"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seitennavigation"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page Navigation"
           }
         },
         "fr" : {
@@ -36560,52 +36698,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示連線狀態與任務完成提示"
-          }
-        }
-      }
-    },
-    "Show Cover in Dual Spread" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cover in Doppelseite anzeigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Cover in Dual Spread"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher la couverture en double page"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "見開きで表紙を表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "듀얼 스프레드에서 표지 표시"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "双页模式显示封面"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "雙頁模式顯示封面"
           }
         }
       }
