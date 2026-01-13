@@ -258,7 +258,7 @@ struct DashboardView: View {
                   systemImage: "square.grid.2x2"
                 )
               }
-              .pickerStyle(.menu)
+              .pickerStyle(.inline)
 
               Divider()
 
