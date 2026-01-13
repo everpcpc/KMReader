@@ -224,6 +224,8 @@ struct BrowseView: View {
     }
     .onChange(of: dashboard.libraryIds) { _, newValue in
       guard library == nil else { return }
+      // Skip during server switch - dedicated refresh happens when switch completes
+      guard !authViewModel.isSwitching else { return }
       guard libraryIds != newValue else { return }
       libraryIds = newValue
       refreshBrowse()

@@ -222,6 +222,8 @@ struct DashboardView: View {
       }
     }
     .onChange(of: dashboard.libraryIds) { _, _ in
+      // Skip during server switch - dedicated refresh happens when switch completes
+      guard !authViewModel.isSwitching else { return }
       // Bypass auto-refresh setting for configuration changes
       refreshDashboard(reason: "Library filter changed")
     }
