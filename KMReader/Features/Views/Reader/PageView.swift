@@ -53,7 +53,6 @@ struct PageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
-  @State private var isZoomed = false
   @Environment(\.readerBackgroundPreference) private var readerBackground
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
@@ -95,7 +94,7 @@ struct PageView: View {
         .scrollTargetBehavior(.paging)
         .scrollIndicators(.hidden)
         .scrollPosition(id: $scrollPosition)
-        .scrollDisabled(isZoomed || viewModel.liveTextActivePageIndex != nil)
+        .scrollDisabled(viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil)
         #if os(tvOS)
           .focusable(false)
         #endif
@@ -167,7 +166,6 @@ struct PageView: View {
             pageIndex: index,
             screenSize: screenSize,
             readingDirection: readingDirection,
-            isZoomed: $isZoomed,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
             onToggleControls: toggleControls
@@ -204,7 +202,6 @@ struct PageView: View {
               secondPageIndex: second,
               screenSize: screenSize,
               readingDirection: readingDirection,
-              isZoomed: $isZoomed,
               onNextPage: goToNextPage,
               onPreviousPage: goToPreviousPage,
               onToggleControls: toggleControls
@@ -215,7 +212,6 @@ struct PageView: View {
               pageIndex: pagePair.first,
               screenSize: screenSize,
               readingDirection: readingDirection,
-              isZoomed: $isZoomed,
               onNextPage: goToNextPage,
               onPreviousPage: goToPreviousPage,
               onToggleControls: toggleControls

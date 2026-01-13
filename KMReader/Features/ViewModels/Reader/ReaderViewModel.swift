@@ -40,6 +40,7 @@ class ReaderViewModel {
   var isDismissing = false
   var pageImageCache: ImageCache
   var incognitoMode: Bool = false
+  var isZoomed: Bool = false
 
   var pagePairs: [PagePair] = []
   // map of page index to dual page index

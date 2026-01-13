@@ -51,7 +51,6 @@ struct SinglePageImageView: View {
       minScale: 1.0,
       maxScale: 8.0,
       doubleTapScale: doubleTapZoomScale,
-      isZoomed: $isZoomed,
       readingDirection: readingDirection,
       onNextPage: onNextPage,
       onPreviousPage: onPreviousPage,

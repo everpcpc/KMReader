@@ -26,7 +26,6 @@
     let minScale: CGFloat
     let maxScale: CGFloat
     let doubleTapScale: CGFloat
-    @Binding var isZoomed: Bool
 
     let tapZoneSize: TapZoneSize
     let tapZoneMode: TapZoneMode
@@ -89,7 +88,6 @@
         viewModel: viewModel,
         pages: pages,
         screenSize: screenSize,
-        isZoomed: $isZoomed,
         minScale: minScale,
         tapZoneSize: tapZoneSize,
         tapZoneMode: tapZoneMode,
@@ -158,7 +156,6 @@
       private var mirrorOnNextPage: () -> Void = {}
       private var mirrorOnPreviousPage: () -> Void = {}
       private var mirrorOnToggleControls: () -> Void = {}
-      private var isZoomedBinding: Binding<Bool>?
       weak var scrollView: NSScrollView?
       private var mirrorReaderBackground: ReaderBackground = .system
 
@@ -186,7 +183,6 @@
         viewModel: ReaderViewModel,
         pages: [NativePageData],
         screenSize: CGSize,
-        isZoomed: Binding<Bool>,
         minScale: CGFloat,
         tapZoneSize: TapZoneSize,
         tapZoneMode: TapZoneMode,
@@ -202,7 +198,6 @@
         self.readerViewModel = viewModel
         self.mirrorPages = pages
         self.mirrorScreenSize = screenSize
-        self.isZoomedBinding = isZoomed
         self.mirrorMinScale = minScale
         self.mirrorTapZoneSize = tapZoneSize
         self.mirrorTapZoneMode = tapZoneMode
@@ -270,12 +265,12 @@
         guard !isUpdatingFromSwiftUI, let scrollView = scrollView else { return }
 
         // Handle Zoom state binding
-        let zoomed = scrollView.magnification > mirrorMinScale + 0.01
-        if isZoomedBinding?.wrappedValue != zoomed {
+        let zoomed = scrollView.magnification > (mirrorMinScale + 0.01)
+        if zoomed != readerViewModel?.isZoomed {
           DispatchQueue.main.async { [weak self] in
-            guard let self = self, let binding = self.isZoomedBinding else { return }
-            if binding.wrappedValue != zoomed {
-              binding.wrappedValue = zoomed
+            guard let self = self else { return }
+            if self.readerViewModel?.isZoomed != zoomed {
+              self.readerViewModel?.isZoomed = zoomed
             }
           }
         }

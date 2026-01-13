@@ -171,6 +171,7 @@ struct ReaderControlsView: View {
           menuContent()
         } label: {
           Image(systemName: "ellipsis")
+            .padding(4)
         }
         .contentShape(Circle())
         .controlSize(.large)
@@ -282,93 +283,102 @@ struct ReaderControlsView: View {
     }
 
     Section {
-      if !viewModel.tableOfContents.isEmpty {
-        Button {
-          showingTOCSheet = true
-        } label: {
-          Label(String(localized: "Table of Contents"), systemImage: "list.bullet")
-        }
-      }
-      Button {
-        guard !viewModel.pages.isEmpty else { return }
-        showingPageJumpSheet = true
-      } label: {
-        Label(String(localized: "Jump to Page"), systemImage: "bookmark")
-      }
-      .disabled(viewModel.pages.isEmpty)
+      pageNavigation()
     } header: {
       Text(String(localized: "Page Navigation"))
     }
 
     Section {
-      if let previousBook, let onPreviousBook {
-        let previousNumber =
-          previousBook.metadata.number.isEmpty
-          ? nil
-          : previousBook.metadata.number
-        Button {
-          onPreviousBook(previousBook.id)
-        } label: {
-          Label(
-            "\(String(localized: "reader.previousBook")) #\(previousNumber ?? "-")",
-            systemImage: "chevron.left"
-          )
-        }
-      }
-
-      if let nextBook, let onNextBook {
-        let nextNumber =
-          nextBook.metadata.number.isEmpty
-          ? nil
-          : nextBook.metadata.number
-        Button {
-          onNextBook(nextBook.id)
-        } label: {
-          Label(
-            "\(String(localized: "reader.nextBook")) #\(nextNumber ?? "-")",
-            systemImage: "chevron.right"
-          )
-        }
-      }
+      bookNavigation()
     } header: {
       Text(String(localized: "Book Navigation"))
     }
 
     #if os(iOS) || os(macOS)
       Section {
-        if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex],
-          let secondIndex = pair.second
-        {
-          Button {
-            sharePage(index: pair.first)
-          } label: {
-            Label(
-              String.localizedStringWithFormat(sharePageFormat, pair.first + 1),
-              systemImage: "square.and.arrow.up"
-            )
-          }
-          Button {
-            sharePage(index: secondIndex)
-          } label: {
-            Label(
-              String.localizedStringWithFormat(sharePageFormat, secondIndex + 1),
-              systemImage: "square.and.arrow.up.on.square"
-            )
-          }
+        if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
+          share(firstPage: pair.first, secondPage: pair.second)
         } else {
-          Button {
-            sharePage(index: viewModel.currentPageIndex)
-          } label: {
-            Label(
-              String.localizedStringWithFormat(
-                sharePageFormat, viewModel.currentPageIndex + 1),
-              systemImage: "square.and.arrow.up"
-            )
-          }
+          share(firstPage: viewModel.currentPageIndex, secondPage: nil)
         }
       } header: {
         Text(String(localized: "Share"))
       }
     #endif
   }
+
+  @ViewBuilder
+  private func pageNavigation() -> some View {
+    if !viewModel.tableOfContents.isEmpty {
+      Button {
+        showingTOCSheet = true
+      } label: {
+        Label(String(localized: "Table of Contents"), systemImage: "list.bullet")
+      }
+    }
+    Button {
+      guard !viewModel.pages.isEmpty else { return }
+      showingPageJumpSheet = true
+    } label: {
+      Label(String(localized: "Jump to Page"), systemImage: "bookmark")
+    }
+    .disabled(viewModel.pages.isEmpty)
+  }
+
+  @ViewBuilder
+  private func bookNavigation() -> some View {
+    if let previousBook, let onPreviousBook {
+      let previousNumber =
+        previousBook.metadata.number.isEmpty
+        ? nil
+        : previousBook.metadata.number
+      Button {
+        onPreviousBook(previousBook.id)
+      } label: {
+        Label(
+          "\(String(localized: "reader.previousBook")) #\(previousNumber ?? "-")",
+          systemImage: "chevron.left"
+        )
+      }
+    }
+
+    if let nextBook, let onNextBook {
+      let nextNumber =
+        nextBook.metadata.number.isEmpty
+        ? nil
+        : nextBook.metadata.number
+      Button {
+        onNextBook(nextBook.id)
+      } label: {
+        Label(
+          "\(String(localized: "reader.nextBook")) #\(nextNumber ?? "-")",
+          systemImage: "chevron.right"
+        )
+      }
+    }
+  }
+
+  #if os(iOS) || os(macOS)
+    @ViewBuilder
+    private func share(firstPage: Int, secondPage: Int?) -> some View {
+      Button {
+        sharePage(index: firstPage)
+      } label: {
+        Label(
+          String.localizedStringWithFormat(sharePageFormat, firstPage + 1),
+          systemImage: "square.and.arrow.up"
+        )
+      }
+      if let secondPage {
+        Button {
+          sharePage(index: secondPage)
+        } label: {
+          Label(
+            String.localizedStringWithFormat(sharePageFormat, secondPage + 1),
+            systemImage: "square.and.arrow.up.on.square"
+          )
+        }
+      }
+    }
+  #endif
 }

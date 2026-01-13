@@ -30,7 +30,6 @@ struct PageImageView: View {
   let minScale: CGFloat
   let maxScale: CGFloat
   let doubleTapScale: CGFloat
-  @Binding var isZoomed: Bool
 
   // Navigation Callbacks
   let readingDirection: ReadingDirection
@@ -55,7 +54,6 @@ struct PageImageView: View {
       minScale: minScale,
       maxScale: maxScale,
       doubleTapScale: doubleTapScale,
-      isZoomed: $isZoomed,
       tapZoneSize: tapZoneSize,
       tapZoneMode: tapZoneMode,
       showPageNumber: showPageNumber,
