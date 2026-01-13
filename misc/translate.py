@@ -5,8 +5,14 @@ import os
 import argparse
 import sys
 
+
 # Path to the xcstrings file relative to the project root
 XISTRINGS_PATH = "KMReader/Localizable.xcstrings"
+REQUIRED_LANGUAGES = ["en", "fr", "de", "ja", "ko", "zh-Hans", "zh-Hant"]
+
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def get_project_root():
@@ -33,22 +39,26 @@ def find_missing(data):
     missing = []
     strings = data.get("strings", {})
     for key, value in strings.items():
-        # Case 1: Key is an empty object
-        if value == {}:
-            missing.append(key)
+        if value.get("shouldTranslate") is False:
             continue
 
-        # Case 2: localizations object is empty
         localizations = value.get("localizations", {})
-        if not localizations:
-            missing.append(key)
-            continue
+        missing_langs = []
+        for lang in REQUIRED_LANGUAGES:
+            if lang not in localizations:
+                missing_langs.append(lang)
+                continue
 
-        # Case 3: Any language has an empty object
-        for lang, loc in localizations.items():
-            if loc == {}:
-                missing.append(key)
-                break
+            loc = localizations[lang]
+            if (
+                not loc
+                or "stringUnit" not in loc
+                or loc.get("stringUnit", {}).get("state") != "translated"
+            ):
+                missing_langs.append(lang)
+
+        if missing_langs:
+            missing.append((key, missing_langs))
 
     return missing
 
@@ -68,6 +78,7 @@ def main():
     update_parser.add_argument("--zh-hans", help="Simplified Chinese translation")
     update_parser.add_argument("--zh-hant", help="Traditional Chinese translation")
     update_parser.add_argument("--en", help="English translation")
+    update_parser.add_argument("--de", help="German translation")
     update_parser.add_argument("--fr", help="French translation")
     update_parser.add_argument("--ja", help="Japanese translation")
     update_parser.add_argument("--ko", help="Korean translation")
@@ -78,7 +89,7 @@ def main():
     file_path = os.path.join(project_root, XISTRINGS_PATH)
 
     if not os.path.exists(file_path):
-        print(f"Error: Could not find {XISTRINGS_PATH} at {file_path}")
+        eprint(f"Error: Could not find {XISTRINGS_PATH} at {file_path}")
         sys.exit(1)
 
     data = load_data(file_path)
@@ -86,22 +97,30 @@ def main():
     if args.command == "list":
         missing = find_missing(data)
         if not missing:
-            print("No missing translations found.")
+            eprint("No missing translations found.")
         else:
-            print(f"Found {len(missing)} keys with missing translations:")
-            for key in missing:
-                print(f"  - {key}")
+            eprint(f"Found {len(missing)} keys with missing translations:")
+            for key, langs in missing:
+                print(f"  - {key} ({', '.join(langs)})")
 
     elif args.command == "update":
         key = args.key
         if key not in data["strings"]:
-            data["strings"][key] = {}
+            eprint(
+                f"Key '{key}' not found in strings. Available keys (first 10): {list(data['strings'].keys())[:10]}",
+            )
+            eprint(f"Total keys: {len(data['strings'])}")
+            data["strings"][key] = {"localizations": {}}
 
         if "localizations" not in data["strings"][key]:
             data["strings"][key]["localizations"] = {}
 
+        localizations = data["strings"][key]["localizations"]
+        eprint(f"Existing translations for '{key}': {list(localizations.keys())}")
+
         translations = {
             "en": args.en,
+            "de": args.de,
             "fr": args.fr,
             "ja": args.ja,
             "ko": args.ko,
@@ -109,19 +128,22 @@ def main():
             "zh-Hant": args.zh_hant,
         }
 
-        updated = False
+        updated_langs = []
         for lang, value in translations.items():
-            if value:
-                data["strings"][key]["localizations"][lang] = {
+            if value is not None and value.strip() != "":
+                localizations[lang] = {
                     "stringUnit": {"state": "translated", "value": value}
                 }
-                updated = True
+                updated_langs.append(lang)
 
-        if updated:
+        if updated_langs:
             save_data(file_path, data)
-            print(f"Successfully updated translations for '{key}'.")
+            eprint(
+                f"Successfully updated {len(updated_langs)} translations for '{key}': {updated_langs}"
+            )
+            eprint(f"Final translations list: {list(localizations.keys())}")
         else:
-            print("No translations provided. Nothing updated.")
+            eprint("No translations provided. Nothing updated.")
 
     else:
         parser.print_help()
