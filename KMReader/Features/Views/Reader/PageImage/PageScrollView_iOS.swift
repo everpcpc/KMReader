@@ -16,7 +16,7 @@
     @Binding var isZoomed: Bool
 
     let tapZoneSize: TapZoneSize
-    let disableTapToTurnPage: Bool
+    let tapZoneMode: TapZoneMode
     let showPageNumber: Bool
     let readerBackground: ReaderBackground
     let readingDirection: ReadingDirection
@@ -81,7 +81,7 @@
         isZoomed: $isZoomed,
         minScale: minScale,
         tapZoneSize: tapZoneSize,
-        disableTapToTurnPage: disableTapToTurnPage,
+        tapZoneMode: tapZoneMode,
         showPageNumber: showPageNumber,
         readingDirection: readingDirection,
         enableLiveText: enableLiveText,
@@ -113,7 +113,7 @@
       private var mirrorScreenSize: CGSize = .zero
       private var mirrorMinScale: CGFloat = 1.0
       private var mirrorTapZoneSize: TapZoneSize = .large
-      private var mirrorDisableTapToTurnPage: Bool = false
+      private var mirrorTapZoneMode: TapZoneMode = .auto
       private var mirrorShowPageNumber: Bool = true
       private var mirrorReadingDirection: ReadingDirection = .ltr
       private var mirrorEnableLiveText: Bool = false
@@ -146,7 +146,7 @@
         isZoomed: Binding<Bool>,
         minScale: CGFloat,
         tapZoneSize: TapZoneSize,
-        disableTapToTurnPage: Bool,
+        tapZoneMode: TapZoneMode,
         showPageNumber: Bool,
         readingDirection: ReadingDirection,
         enableLiveText: Bool,
@@ -160,7 +160,7 @@
         self.isZoomedBinding = isZoomed
         self.mirrorMinScale = minScale
         self.mirrorTapZoneSize = tapZoneSize
-        self.mirrorDisableTapToTurnPage = disableTapToTurnPage
+        self.mirrorTapZoneMode = tapZoneMode
         self.mirrorShowPageNumber = showPageNumber
         self.mirrorReadingDirection = readingDirection
         self.mirrorEnableLiveText = enableLiveText
@@ -261,34 +261,25 @@
         if scrollView.zoomScale > mirrorMinScale + 0.01 { return }
         if Date().timeIntervalSince(lastZoomOutTime) < 0.4 { return }
 
-        if mirrorDisableTapToTurnPage {
-          mirrorOnToggleControls()
-          return
-        }
-
         let location = gesture.location(in: scrollView)
         let normalizedX = location.x / mirrorScreenSize.width
         let normalizedY = location.y / mirrorScreenSize.height
-        let threshold = mirrorTapZoneSize.value
 
-        if mirrorReadingDirection == .vertical || mirrorReadingDirection == .webtoon {
-          if normalizedY < threshold {
-            mirrorOnPreviousPage()
-          } else if normalizedY > (1.0 - threshold) {
-            mirrorOnNextPage()
-          } else {
-            mirrorOnToggleControls()
-          }
-        } else {
-          if normalizedX < threshold || normalizedX > (1.0 - threshold) {
-            if normalizedX < threshold {
-              mirrorReadingDirection == .rtl ? mirrorOnNextPage() : mirrorOnPreviousPage()
-            } else {
-              mirrorReadingDirection == .rtl ? mirrorOnPreviousPage() : mirrorOnNextPage()
-            }
-          } else {
-            mirrorOnToggleControls()
-          }
+        let action = TapZoneHelper.action(
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          tapZoneMode: mirrorTapZoneMode,
+          readingDirection: mirrorReadingDirection,
+          zoneThreshold: mirrorTapZoneSize.value
+        )
+
+        switch action {
+        case .previous:
+          mirrorOnPreviousPage()
+        case .next:
+          mirrorOnNextPage()
+        case .toggleControls:
+          mirrorOnToggleControls()
         }
       }
 

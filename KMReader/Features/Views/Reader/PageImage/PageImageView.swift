@@ -42,7 +42,7 @@ struct PageImageView: View {
   let pages: [NativePageData]
 
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
@@ -57,7 +57,7 @@ struct PageImageView: View {
       doubleTapScale: doubleTapScale,
       isZoomed: $isZoomed,
       tapZoneSize: tapZoneSize,
-      disableTapToTurnPage: disableTapToTurnPage,
+      tapZoneMode: tapZoneMode,
       showPageNumber: showPageNumber,
       readerBackground: readerBackground,
       readingDirection: readingDirection,

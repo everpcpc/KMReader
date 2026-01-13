@@ -414,15 +414,17 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var disableTapToTurnPage: Bool {
+  static nonisolated var tapZoneMode: TapZoneMode {
     get {
-      if UserDefaults.standard.object(forKey: "disableTapToTurnPage") != nil {
-        return UserDefaults.standard.bool(forKey: "disableTapToTurnPage")
+      if let stored = UserDefaults.standard.string(forKey: "tapZoneMode"),
+        let mode = TapZoneMode(rawValue: stored)
+      {
+        return mode
       }
-      return false
+      return .auto
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "disableTapToTurnPage")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneMode")
     }
   }
 

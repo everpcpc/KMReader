@@ -19,6 +19,7 @@
     @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
+    @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -132,8 +133,11 @@
           contentView(for: geometry.size)
 
           if viewModel.navigatorViewController != nil {
-            ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
+            TapZoneOverlay(isVisible: $showTapZoneOverlay, readingDirection: .ltr)
               .readerIgnoresSafeArea()
+              .onChange(of: tapZoneMode) {
+                triggerTapZoneDisplay()
+              }
           }
 
           controlsOverlay
@@ -419,22 +423,28 @@
     }
 
     private func handleTap(location: CGPoint, in size: CGSize) {
-      let width = size.width
-      let zoneThreshold = tapZoneSize.value
-      let leftZone = width * zoneThreshold
-      let rightZone = width * (1.0 - zoneThreshold)
-
       if showingControls {
         toggleControls()
         return
       }
 
-      switch location.x {
-      case ..<leftZone:
+      let normalizedX = location.x / size.width
+      let normalizedY = location.y / size.height
+
+      let action = TapZoneHelper.action(
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+        tapZoneMode: tapZoneMode,
+        readingDirection: .ltr,
+        zoneThreshold: tapZoneSize.value
+      )
+
+      switch action {
+      case .previous:
         viewModel.goToPreviousPage()
-      case rightZone...:
+      case .next:
         viewModel.goToNextPage()
-      default:
+      case .toggleControls:
         toggleControls()
       }
     }

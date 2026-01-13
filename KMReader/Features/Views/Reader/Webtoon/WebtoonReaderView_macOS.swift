@@ -19,14 +19,14 @@
     let onNextBookPanEnd: ((CGFloat) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
-    let disableTapToTurnPage: Bool
+    let tapZoneMode: TapZoneMode
     let showPageNumber: Bool
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
-      disableTapToTurnPage: Bool = false,
+      tapZoneMode: TapZoneMode = .auto,
       showPageNumber: Bool = true,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
@@ -38,7 +38,7 @@
       self.viewModel = viewModel
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
-      self.disableTapToTurnPage = disableTapToTurnPage
+      self.tapZoneMode = tapZoneMode
       self.showPageNumber = showPageNumber
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
@@ -147,7 +147,7 @@
       var isAtBottom: Bool = false
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
-      var disableTapToTurnPage: Bool = false
+      var tapZoneMode: TapZoneMode = .auto
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
@@ -166,7 +166,7 @@
         self.pageWidth = parent.pageWidth
         self.heightCache.lastPageWidth = parent.pageWidth
         self.readerBackground = parent.readerBackground
-        self.disableTapToTurnPage = parent.disableTapToTurnPage
+        self.tapZoneMode = parent.tapZoneMode
       }
 
       deinit {
@@ -517,11 +517,6 @@
 
         guard let sv = scrollView, let window = sv.window else { return }
 
-        if disableTapToTurnPage {
-          onCenterTap?()
-          return
-        }
-
         let locInWindow = gesture.location(in: nil)
         let windowHeight = window.contentView?.bounds.height ?? window.frame.height
         let loc = NSPoint(x: locInWindow.x, y: windowHeight - locInWindow.y)
@@ -529,23 +524,24 @@
         let h = windowHeight
         let w = window.contentView?.bounds.width ?? window.frame.width
 
-        let isTopArea = loc.y < h * WebtoonConstants.topAreaThreshold
-        let isBottomArea = loc.y > h * WebtoonConstants.bottomAreaThreshold
-        let isMiddleY = !isTopArea && !isBottomArea
-        let isLeftArea = loc.x < w * WebtoonConstants.topAreaThreshold
+        let normalizedX = loc.x / w
+        let normalizedY = loc.y / h
 
-        let isCenterArea =
-          loc.x > w * WebtoonConstants.centerAreaMin
-          && loc.x < w * WebtoonConstants.centerAreaMax
-          && loc.y > h * WebtoonConstants.centerAreaMin
-          && loc.y < h * WebtoonConstants.centerAreaMax
+        let action = TapZoneHelper.action(
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          tapZoneMode: tapZoneMode,
+          readingDirection: .webtoon,
+          zoneThreshold: AppConfig.tapZoneSize.value
+        )
 
-        if isCenterArea {
-          onCenterTap?()
-        } else if isTopArea || (isMiddleY && isLeftArea) {
+        switch action {
+        case .previous:
           scrollUp(h)
-        } else {
+        case .next:
           scrollDown(h)
+        case .toggleControls:
+          onCenterTap?()
         }
       }
 

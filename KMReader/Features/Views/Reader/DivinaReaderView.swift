@@ -34,6 +34,7 @@ struct DivinaReaderView: View {
   @State private var showTapZoneOverlay = false
   @State private var tapZoneOverlayTimer: Timer?
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
@@ -487,23 +488,16 @@ struct DivinaReaderView: View {
   @ViewBuilder
   private func helperOverlay(screenKey: String) -> some View {
     #if os(iOS) || os(macOS)
-      Group {
-        switch readingDirection {
-        case .ltr:
-          ComicTapZoneOverlay(isVisible: $showTapZoneOverlay)
-        case .rtl:
-          MangaTapZoneOverlay(isVisible: $showTapZoneOverlay)
-        case .vertical:
-          VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
-        case .webtoon:
-          WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
+      TapZoneOverlay(isVisible: $showTapZoneOverlay, readingDirection: readingDirection)
+        .readerIgnoresSafeArea()
+        .onChange(of: screenKey) {
+          // Show helper overlay when screen orientation changes
+          triggerTapZoneOverlay(timeout: 1)
         }
-      }
-      .readerIgnoresSafeArea()
-      .onChange(of: screenKey) {
-        // Show helper overlay when screen orientation changes
-        triggerTapZoneOverlay(timeout: 1)
-      }
+        .onChange(of: tapZoneMode) {
+          // Show helper overlay when tap zone mode changes
+          triggerTapZoneOverlay(timeout: 1)
+        }
     #else
       EmptyView()
     #endif

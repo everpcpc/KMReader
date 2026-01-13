@@ -19,14 +19,14 @@
     let onNextBookPanEnd: ((CGFloat) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
-    let disableTapToTurnPage: Bool
+    let tapZoneMode: TapZoneMode
     let showPageNumber: Bool
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
-      disableTapToTurnPage: Bool = false,
+      tapZoneMode: TapZoneMode = .auto,
       showPageNumber: Bool = true,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
@@ -38,7 +38,7 @@
       self.viewModel = viewModel
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
-      self.disableTapToTurnPage = disableTapToTurnPage
+      self.tapZoneMode = tapZoneMode
       self.showPageNumber = showPageNumber
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
@@ -110,7 +110,7 @@
         pageWidth: pageWidth,
         collectionView: collectionView,
         readerBackground: readerBackground,
-        disableTapToTurnPage: disableTapToTurnPage,
+        tapZoneMode: tapZoneMode,
         showPageNumber: showPageNumber
       )
     }
@@ -144,7 +144,7 @@
       var isAtBottom: Bool = false
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
-      var disableTapToTurnPage: Bool = false
+      var tapZoneMode: TapZoneMode = .auto
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
 
@@ -206,7 +206,7 @@
         pageWidth: CGFloat,
         collectionView: UICollectionView,
         readerBackground: ReaderBackground,
-        disableTapToTurnPage: Bool,
+        tapZoneMode: TapZoneMode,
         showPageNumber: Bool
       ) {
         applySafeAreaInsetsIfNeeded(for: collectionView)
@@ -219,7 +219,7 @@
         self.onNextBookPanEnd = onNextBookPanEnd
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
-        self.disableTapToTurnPage = disableTapToTurnPage
+        self.tapZoneMode = tapZoneMode
         if self.showPageNumber != showPageNumber {
           self.showPageNumber = showPageNumber
           for cell in collectionView.visibleCells {
@@ -603,25 +603,28 @@
           return
         }
 
-        if disableTapToTurnPage {
-          onCenterTap?()
-          return
-        }
-
         let location = gesture.location(in: view)
         let screenHeight = view.bounds.height
         let screenWidth = view.bounds.width
 
-        let tapArea = determineTapArea(
-          location: location, screenWidth: screenWidth, screenHeight: screenHeight)
+        let normalizedX = location.x / screenWidth
+        let normalizedY = location.y / screenHeight
 
-        switch tapArea {
-        case .center:
-          handleCenterTap(collectionView: collectionView)
-        case .topLeft:
+        let action = TapZoneHelper.action(
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          tapZoneMode: tapZoneMode,
+          readingDirection: .webtoon,
+          zoneThreshold: AppConfig.tapZoneSize.value
+        )
+
+        switch action {
+        case .previous:
           scrollUp(collectionView: collectionView, screenHeight: screenHeight)
-        case .bottomRight:
+        case .next:
           scrollDown(collectionView: collectionView, screenHeight: screenHeight)
+        case .toggleControls:
+          onCenterTap?()
         }
       }
 
@@ -661,39 +664,6 @@
         let velocity = pan.velocity(in: pan.view)
         // Only allow upward pan (negative y velocity)
         return velocity.y < 0 && abs(velocity.y) > abs(velocity.x)
-      }
-
-      private enum TapArea {
-        case center
-        case topLeft
-        case bottomRight
-      }
-
-      private func determineTapArea(location: CGPoint, screenWidth: CGFloat, screenHeight: CGFloat)
-        -> TapArea
-      {
-        let isTopArea = location.y < screenHeight * WebtoonConstants.topAreaThreshold
-        let isBottomArea = location.y > screenHeight * WebtoonConstants.bottomAreaThreshold
-        let isMiddleArea = !isTopArea && !isBottomArea
-        let isLeftArea = location.x < screenWidth * WebtoonConstants.topAreaThreshold
-
-        let isCenterArea =
-          location.x > screenWidth * WebtoonConstants.centerAreaMin
-          && location.x < screenWidth * WebtoonConstants.centerAreaMax
-          && location.y > screenHeight * WebtoonConstants.centerAreaMin
-          && location.y < screenHeight * WebtoonConstants.centerAreaMax
-
-        if isCenterArea {
-          return .center
-        } else if isTopArea || (isMiddleArea && isLeftArea) {
-          return .topLeft
-        } else {
-          return .bottomRight
-        }
-      }
-
-      private func handleCenterTap(collectionView: UICollectionView) {
-        onCenterTap?()
       }
 
       private func scrollUp(collectionView: UICollectionView, screenHeight: CGFloat) {

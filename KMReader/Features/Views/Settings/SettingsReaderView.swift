@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SettingsReaderView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
-  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
@@ -159,16 +159,19 @@ struct SettingsReaderView: View {
         #endif
 
         #if os(iOS) || os(macOS)
-          Toggle(isOn: $disableTapToTurnPage) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Disable Tap to Turn Page")
-              Text("Tap will only show/hide controls, not turn pages")
-                .font(.caption)
-                .foregroundColor(.secondary)
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Tap Zone Mode", selection: $tapZoneMode) {
+              ForEach(TapZoneMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
+              }
             }
+            .pickerStyle(.menu)
+            Text("Choose how tap zones work: auto matches reading direction, or select a fixed layout")
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
 
-          if !disableTapToTurnPage {
+          if !tapZoneMode.isDisabled {
             Toggle(isOn: $showTapZoneHints) {
               VStack(alignment: .leading, spacing: 4) {
                 Text("Show Tap Zone Hints")
@@ -187,10 +190,23 @@ struct SettingsReaderView: View {
               .pickerStyle(.menu)
 
               HStack(spacing: 12) {
-                TapZonePreview(size: tapZoneSize, direction: .ltr)
-                TapZonePreview(size: tapZoneSize, direction: .rtl)
-                TapZonePreview(size: tapZoneSize, direction: .vertical)
-                TapZonePreview(size: tapZoneSize, direction: .webtoon)
+                switch tapZoneMode {
+                case .none:
+                  EmptyView()
+                case .auto:
+                  TapZonePreview(size: tapZoneSize, direction: .ltr)
+                  TapZonePreview(size: tapZoneSize, direction: .rtl)
+                  TapZonePreview(size: tapZoneSize, direction: .vertical)
+                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
+                case .ltr:
+                  TapZonePreview(size: tapZoneSize, direction: .ltr)
+                case .rtl:
+                  TapZonePreview(size: tapZoneSize, direction: .rtl)
+                case .vertical:
+                  TapZonePreview(size: tapZoneSize, direction: .vertical)
+                case .webtoon:
+                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
+                }
               }
               .frame(height: 80)
 
@@ -287,7 +303,7 @@ struct SettingsReaderView: View {
         }
       }
     }
-    .animation(.default, value: disableTapToTurnPage)
+    .animation(.default, value: tapZoneMode)
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.reader.title)
   }

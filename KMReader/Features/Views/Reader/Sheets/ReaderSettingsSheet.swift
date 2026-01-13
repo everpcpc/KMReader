@@ -20,7 +20,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
-  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
@@ -187,11 +187,14 @@ struct ReaderSettingsSheet: View {
           #endif
 
           #if os(iOS) || os(macOS)
-            Toggle(isOn: $disableTapToTurnPage) {
-              Text("Disable Tap to Turn Page")
+            Picker("Tap Zone Mode", selection: $tapZoneMode) {
+              ForEach(TapZoneMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
+              }
             }
+            .pickerStyle(.menu)
 
-            if !disableTapToTurnPage {
+            if !tapZoneMode.isDisabled {
               Toggle(isOn: $showTapZoneHints) {
                 Text("Show Tap Zone Hints")
               }
@@ -204,8 +207,23 @@ struct ReaderSettingsSheet: View {
                 }
                 .pickerStyle(.menu)
 
-                TapZonePreview(size: tapZoneSize, direction: readingDirection)
-                  .frame(height: 60)
+                HStack(spacing: 12) {
+                  switch tapZoneMode {
+                  case .none:
+                    EmptyView()
+                  case .auto:
+                    TapZonePreview(size: tapZoneSize, direction: readingDirection)
+                  case .ltr:
+                    TapZonePreview(size: tapZoneSize, direction: .ltr)
+                  case .rtl:
+                    TapZonePreview(size: tapZoneSize, direction: .rtl)
+                  case .vertical:
+                    TapZonePreview(size: tapZoneSize, direction: .vertical)
+                  case .webtoon:
+                    TapZonePreview(size: tapZoneSize, direction: .webtoon)
+                  }
+                }
+                .frame(height: 60)
 
                 Text("Size of tap zones for page navigation")
                   .font(.caption)
@@ -253,7 +271,7 @@ struct ReaderSettingsSheet: View {
         }
       }
     }
-    .animation(.default, value: disableTapToTurnPage)
+    .animation(.default, value: tapZoneMode)
     .presentationDragIndicator(.visible)
   }
 }
