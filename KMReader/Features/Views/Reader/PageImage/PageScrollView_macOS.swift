@@ -484,6 +484,7 @@
     private let pageNumberContainer = NSView()
     private let pageNumberLabel = NSTextField()
     private let progressIndicator = NSProgressIndicator()
+    private let errorLabel = NSTextField()
 
     private let overlayView = ImageAnalysisOverlayView()
     private var analysisTask: Task<Void, Never>?
@@ -593,6 +594,19 @@
       pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
       pageNumberContainer.addSubview(pageNumberLabel)
 
+      errorLabel.isEditable = false
+      errorLabel.isSelectable = false
+      errorLabel.isBordered = false
+      errorLabel.drawsBackground = false
+      errorLabel.font = .systemFont(ofSize: 14)
+      errorLabel.textColor = .systemRed
+      errorLabel.alignment = .center
+      errorLabel.maximumNumberOfLines = 0
+      errorLabel.lineBreakMode = .byWordWrapping
+      errorLabel.isHidden = true
+      errorLabel.translatesAutoresizingMaskIntoConstraints = false
+      addSubview(errorLabel)
+
       NSLayoutConstraint.activate([
         progressIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
         progressIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -602,6 +616,10 @@
         pageNumberLabel.centerYAnchor.constraint(equalTo: pageNumberContainer.centerYAnchor),
         pageNumberLabel.leadingAnchor.constraint(equalTo: pageNumberContainer.leadingAnchor, constant: 4),
         pageNumberLabel.trailingAnchor.constraint(equalTo: pageNumberContainer.trailingAnchor, constant: -4),
+        errorLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+        errorLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+        errorLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
+        errorLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
       ])
     }
 
@@ -620,7 +638,18 @@
         pageNumberContainer.isHidden = true
       }
 
-      if data.isLoading { progressIndicator.startAnimation(nil) } else { progressIndicator.stopAnimation(nil) }
+      // Show error or loading indicator
+      if let error = data.error {
+        progressIndicator.stopAnimation(nil)
+        errorLabel.stringValue = error
+        errorLabel.isHidden = false
+      } else if image == nil || data.isLoading {
+        errorLabel.isHidden = true
+        progressIndicator.startAnimation(nil)
+      } else {
+        errorLabel.isHidden = true
+        progressIndicator.stopAnimation(nil)
+      }
 
       if AppConfig.enableLiveText, let img = image, !visibleRect.isEmpty {
         analyzeImage(img)
