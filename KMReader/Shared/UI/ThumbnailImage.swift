@@ -26,12 +26,18 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @Environment(\.zoomNamespace) private var zoomNamespace
+
+  @State private var isLoading: Bool = true
   @State private var image: PlatformImage?
   @State private var currentBaseKey: String?
   @State private var loadedImageSize: CGSize?
 
   private var effectiveShadowStyle: ShadowStyle {
-    thumbnailShowShadow ? shadowStyle : .none
+    return thumbnailShowShadow ? shadowStyle : .none
+  }
+
+  private var shouldShowPlaceholder: Bool {
+    !isLoading && image == nil
   }
 
   @ViewBuilder
@@ -40,6 +46,31 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       RoundedRectangle(cornerRadius: cornerRadius)
         .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
     }
+  }
+
+  @ViewBuilder
+  private func thumbnailBase<Content: View>(
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    content()
+      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+      .overlay { borderOverlay }
+      .overlay {
+        if !isAbnormalSize, let overlay = overlay {
+          overlay()
+        }
+      }
+      #if os(iOS)
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+      #endif
+      .withNavigationLink(navigationLink)
+      .withButtonAction(onAction)
+      .contextMenu {
+        if let menu = menu {
+          menu()
+        }
+      }
+      .transition(.opacity)
   }
 
   init(
@@ -97,34 +128,21 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
 
   var body: some View {
     ZStack(alignment: alignment) {
-      RoundedRectangle(cornerRadius: cornerRadius)
-        .fill(Color.gray.opacity(0.1))
-        .opacity(image == nil ? 1 : 0)
+      Color.clear
 
       if image != nil {
-        imageContent
-          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-          .overlay { borderOverlay }
-          .overlay {
-            if !isAbnormalSize, let overlay = overlay {
-              overlay()
-            }
-          }
-          .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
-            view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
-          }
-          #if os(iOS)
-            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
-          #endif
-          .withNavigationLink(navigationLink)
-          .withButtonAction(onAction)
-          .contextMenu {
-            if let menu = menu {
-              menu()
-            }
-          }
-          .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-          .transition(.opacity)
+        thumbnailBase {
+          imageContent
+        }
+        .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
+          view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
+        }
+        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+      } else if shouldShowPlaceholder {
+        thumbnailBase {
+          RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(.secondary)
+        }
       }
     }
     .animation(.easeInOut(duration: 0.18), value: image != nil)
@@ -136,6 +154,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       }
     }
     .task(id: baseKey) {
+      isLoading = true
       if currentBaseKey != baseKey {
         currentBaseKey = baseKey
         image = nil
@@ -147,6 +166,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
         loadedImageSize = loaded.size
         image = loaded
       }
+      isLoading = false
     }
   }
 
@@ -166,8 +186,6 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
             .clipped()
         }
       }
-    } else {
-      Color.gray.opacity(0.1)
     }
   }
 }
