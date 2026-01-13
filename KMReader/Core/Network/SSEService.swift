@@ -8,97 +8,43 @@
 import Foundation
 import OSLog
 
-private actor SSEStreamActor {
-  private var task: Task<Void, Never>?
-
-  func start(service: SSEService, url: URL) async {
-    task?.cancel()
-    task = Task.detached(priority: .utility) { [weak service] in
-      guard let service else { return }
-      await service.handleSSEStream(url: url)
-    }
-  }
-
-  func cancel() async {
-    task?.cancel()
-    task = nil
-  }
-
-  func isRunning() async -> Bool {
-    task != nil
-  }
+extension Notification.Name {
+  static let sseEventReceived = Notification.Name("SSEEventReceived")
 }
 
-final class SSEService {
+struct SSEEventInfo: Sendable {
+  let type: SSEEventType
+  let data: String
+}
+
+@globalActor
+actor SSEService {
   static let shared = SSEService()
 
   private let logger = AppLogger(.sse)
 
   private var isConnected = false
-  private let streamActor = SSEStreamActor()
+  private var streamTask: Task<Void, Never>?
   private var lastServerUpdateAt = Date(timeIntervalSince1970: 0)
   private let serverUpdateThrottle: TimeInterval = 1.0
 
-  @MainActor
   var connected: Bool {
     isConnected
   }
 
-  // Event handlers
-  var onLibraryAdded: ((LibrarySSEDto) -> Void)?
-  var onLibraryChanged: ((LibrarySSEDto) -> Void)?
-  var onLibraryDeleted: ((LibrarySSEDto) -> Void)?
-
-  var onSeriesAdded: ((SeriesSSEDto) -> Void)?
-  var onSeriesChanged: ((SeriesSSEDto) -> Void)?
-  var onSeriesDeleted: ((SeriesSSEDto) -> Void)?
-
-  var onBookAdded: ((BookSSEDto) -> Void)?
-  var onBookChanged: ((BookSSEDto) -> Void)?
-  var onBookDeleted: ((BookSSEDto) -> Void)?
-  var onBookImported: ((BookImportSSEDto) -> Void)?
-
-  var onCollectionAdded: ((CollectionSSEDto) -> Void)?
-  var onCollectionChanged: ((CollectionSSEDto) -> Void)?
-  var onCollectionDeleted: ((CollectionSSEDto) -> Void)?
-
-  var onReadListAdded: ((ReadListSSEDto) -> Void)?
-  var onReadListChanged: ((ReadListSSEDto) -> Void)?
-  var onReadListDeleted: ((ReadListSSEDto) -> Void)?
-
-  var onReadProgressChanged: ((ReadProgressSSEDto) -> Void)?
-  var onReadProgressDeleted: ((ReadProgressSSEDto) -> Void)?
-  var onReadProgressSeriesChanged: ((ReadProgressSeriesSSEDto) -> Void)?
-  var onReadProgressSeriesDeleted: ((ReadProgressSeriesSSEDto) -> Void)?
-
-  var onThumbnailBookAdded: ((ThumbnailBookSSEDto) -> Void)?
-  var onThumbnailBookDeleted: ((ThumbnailBookSSEDto) -> Void)?
-  var onThumbnailSeriesAdded: ((ThumbnailSeriesSSEDto) -> Void)?
-  var onThumbnailSeriesDeleted: ((ThumbnailSeriesSSEDto) -> Void)?
-  var onThumbnailReadListAdded: ((ThumbnailReadListSSEDto) -> Void)?
-  var onThumbnailReadListDeleted: ((ThumbnailReadListSSEDto) -> Void)?
-  var onThumbnailCollectionAdded: ((ThumbnailCollectionSSEDto) -> Void)?
-  var onThumbnailCollectionDeleted: ((ThumbnailCollectionSSEDto) -> Void)?
-
-  var onTaskQueueStatus: ((TaskQueueSSEDto) -> Void)?
-  var onSessionExpired: ((SessionExpiredSSEDto) -> Void)?
-
-  private init() {}
-
-  @MainActor
   func connect() {
     guard !isConnected else {
-      logger.info("SSE already connected")
+      logger.debug("SSE already connected")
       return
     }
 
     guard !AppConfig.isOffline else {
-      logger.info("SSE connection skipped: app is offline")
+      logger.debug("SSE connection skipped: app is offline")
       return
     }
 
     guard AppConfig.enableSSE else {
-      logger.info("SSE is disabled by user preference")
+      logger.debug("SSE is disabled by user preference")
       return
     }
 
@@ -113,20 +59,19 @@ final class SSEService {
     }
 
     logger.info("🔌 Connecting to SSE: \(url.absoluteString)")
-    Task {
-      await streamActor.start(service: self, url: url)
+    streamTask?.cancel()
+    streamTask = Task.detached(priority: .utility) {
+      await SSEService.shared.handleSSEStream(url: url)
     }
     isConnected = true
   }
 
-  @MainActor
   func disconnect(notify: Bool = true) {
     guard isConnected else { return }
 
     logger.info("🔌 Disconnecting SSE")
-    Task {
-      await streamActor.cancel()
-    }
+    streamTask?.cancel()
+    streamTask = nil
     isConnected = false
 
     // Clear task queue status when disconnecting
@@ -134,7 +79,9 @@ final class SSEService {
 
     // Notify user that SSE disconnected (if notifications enabled)
     if notify && AppConfig.enableSSENotify {
-      ErrorManager.shared.notify(message: String(localized: "notification.sse.disconnected"))
+      Task { @MainActor in
+        ErrorManager.shared.notify(message: String(localized: "notification.sse.disconnected"))
+      }
     }
   }
 
@@ -167,9 +114,7 @@ final class SSEService {
         (200...299).contains(httpResponse.statusCode)
       else {
         logger.error("SSE connection failed: \(response)")
-        await MainActor.run {
-          self.isConnected = false
-        }
+        self.isConnected = false
         return
       }
 
@@ -226,9 +171,7 @@ final class SSEService {
 
       // Stream ended - connection closed
       logger.warning("SSE stream ended - connection closed")
-      await MainActor.run {
-        self.isConnected = false
-      }
+      self.isConnected = false
 
       // Attempt to reconnect if still logged in
       if AppConfig.isLoggedIn && AppConfig.enableSSE && !AppConfig.isOffline && !Task.isCancelled {
@@ -236,18 +179,14 @@ final class SSEService {
           try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
           if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE && !AppConfig.isOffline {
             logger.info("Reconnecting SSE after stream ended")
-            await MainActor.run {
-              self.connect()
-            }
+            self.connect()
           }
         }
       }
     } catch {
       if !Task.isCancelled {
         logger.error("SSE stream error: \(error.localizedDescription)")
-        await MainActor.run {
-          self.isConnected = false
-        }
+        self.isConnected = false
 
         // Attempt to reconnect after a delay
         if AppConfig.isLoggedIn && AppConfig.enableSSE && !AppConfig.isOffline {
@@ -255,9 +194,7 @@ final class SSEService {
             try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
             if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE && !AppConfig.isOffline {
               logger.info("Reconnecting SSE after error")
-              await MainActor.run {
-                self.connect()
-              }
+              self.connect()
             }
           }
         }
@@ -269,83 +206,16 @@ final class SSEService {
     logger.debug("SSE event received: \(type), data: \(data)")
     recordServerUpdate()
 
-    switch type {
-    case "LibraryAdded":
-      dispatchToMain(handler: onLibraryAdded, data: data, as: LibrarySSEDto.self)
-    case "LibraryChanged":
-      dispatchToMain(handler: onLibraryChanged, data: data, as: LibrarySSEDto.self)
-    case "LibraryDeleted":
-      dispatchToMain(handler: onLibraryDeleted, data: data, as: LibrarySSEDto.self)
-
-    case "SeriesAdded":
-      dispatchToMain(handler: onSeriesAdded, data: data, as: SeriesSSEDto.self)
-    case "SeriesChanged":
-      dispatchToMain(handler: onSeriesChanged, data: data, as: SeriesSSEDto.self)
-    case "SeriesDeleted":
-      dispatchToMain(handler: onSeriesDeleted, data: data, as: SeriesSSEDto.self)
-
-    case "BookAdded":
-      dispatchToMain(handler: onBookAdded, data: data, as: BookSSEDto.self)
-    case "BookChanged":
-      dispatchToMain(handler: onBookChanged, data: data, as: BookSSEDto.self)
-    case "BookDeleted":
-      dispatchToMain(handler: onBookDeleted, data: data, as: BookSSEDto.self)
-    case "BookImported":
-      dispatchToMain(handler: onBookImported, data: data, as: BookImportSSEDto.self)
-
-    case "CollectionAdded":
-      dispatchToMain(handler: onCollectionAdded, data: data, as: CollectionSSEDto.self)
-    case "CollectionChanged":
-      dispatchToMain(handler: onCollectionChanged, data: data, as: CollectionSSEDto.self)
-    case "CollectionDeleted":
-      dispatchToMain(handler: onCollectionDeleted, data: data, as: CollectionSSEDto.self)
-
-    case "ReadListAdded":
-      dispatchToMain(handler: onReadListAdded, data: data, as: ReadListSSEDto.self)
-    case "ReadListChanged":
-      dispatchToMain(handler: onReadListChanged, data: data, as: ReadListSSEDto.self)
-    case "ReadListDeleted":
-      dispatchToMain(handler: onReadListDeleted, data: data, as: ReadListSSEDto.self)
-
-    case "ReadProgressChanged":
-      dispatchToMain(handler: onReadProgressChanged, data: data, as: ReadProgressSSEDto.self)
-    case "ReadProgressDeleted":
-      dispatchToMain(handler: onReadProgressDeleted, data: data, as: ReadProgressSSEDto.self)
-    case "ReadProgressSeriesChanged":
-      dispatchToMain(
-        handler: onReadProgressSeriesChanged, data: data, as: ReadProgressSeriesSSEDto.self)
-    case "ReadProgressSeriesDeleted":
-      dispatchToMain(
-        handler: onReadProgressSeriesDeleted, data: data, as: ReadProgressSeriesSSEDto.self)
-
-    case "ThumbnailBookAdded":
-      dispatchToMain(handler: onThumbnailBookAdded, data: data, as: ThumbnailBookSSEDto.self)
-    case "ThumbnailBookDeleted":
-      dispatchToMain(handler: onThumbnailBookDeleted, data: data, as: ThumbnailBookSSEDto.self)
-    case "ThumbnailSeriesAdded":
-      dispatchToMain(handler: onThumbnailSeriesAdded, data: data, as: ThumbnailSeriesSSEDto.self)
-    case "ThumbnailSeriesDeleted":
-      dispatchToMain(handler: onThumbnailSeriesDeleted, data: data, as: ThumbnailSeriesSSEDto.self)
-    case "ThumbnailReadListAdded":
-      dispatchToMain(
-        handler: onThumbnailReadListAdded, data: data, as: ThumbnailReadListSSEDto.self)
-    case "ThumbnailReadListDeleted":
-      dispatchToMain(
-        handler: onThumbnailReadListDeleted, data: data, as: ThumbnailReadListSSEDto.self)
-    case "ThumbnailSeriesCollectionAdded":
-      dispatchToMain(
-        handler: onThumbnailCollectionAdded, data: data, as: ThumbnailCollectionSSEDto.self)
-    case "ThumbnailSeriesCollectionDeleted":
-      dispatchToMain(
-        handler: onThumbnailCollectionDeleted, data: data, as: ThumbnailCollectionSSEDto.self)
-
-    case "TaskQueueStatus":
-      handleTaskQueueStatus(data: data)
-    case "SessionExpired":
-      dispatchToMain(handler: onSessionExpired, data: data, as: SessionExpiredSSEDto.self)
-
-    default:
+    guard let eventType = SSEEventType(rawValue: type) else {
       logger.debug("Unknown SSE event type: \(type)")
+      return
+    }
+
+    switch eventType {
+    case .taskQueueStatus:
+      handleTaskQueueStatus(data: data)
+    default:
+      broadcastNotification(type: eventType, data: data)
     }
   }
 
@@ -358,7 +228,7 @@ final class SSEService {
     guard previousStatus != dto else { return }
 
     AppConfig.taskQueueStatus = dto
-    dispatchToMain(handler: onTaskQueueStatus, dto: dto)
+    broadcastNotification(type: .taskQueueStatus, data: data)
 
     if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotify {
       Task { @MainActor in
@@ -368,20 +238,13 @@ final class SSEService {
     }
   }
 
-  private func dispatchToMain<T: Decodable>(handler: ((T) -> Void)?, data: String, as type: T.Type) {
-    guard let handler else { return }
-    guard let jsonData = data.data(using: .utf8),
-      let dto = try? JSONDecoder().decode(type, from: jsonData)
-    else { return }
+  private func broadcastNotification(type: SSEEventType, data: String) {
     Task { @MainActor in
-      handler(dto)
-    }
-  }
-
-  private func dispatchToMain<T>(handler: ((T) -> Void)?, dto: T) {
-    guard let handler else { return }
-    Task { @MainActor in
-      handler(dto)
+      NotificationCenter.default.post(
+        name: .sseEventReceived,
+        object: nil,
+        userInfo: ["info": SSEEventInfo(type: type, data: data)]
+      )
     }
   }
 
@@ -393,5 +256,3 @@ final class SSEService {
     }
   }
 }
-
-extension SSEService: @unchecked Sendable {}

@@ -601,7 +601,7 @@ class APIClient {
       Task { @MainActor in
         guard !AppConfig.isOffline else { return }
         AppConfig.isOffline = true
-        SSEService.shared.disconnect()
+        await SSEService.shared.disconnect()
         ErrorManager.shared.notify(
           message: String(localized: "notification.automaticOfflineMode")
         )

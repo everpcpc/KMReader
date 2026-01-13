@@ -166,6 +166,8 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
             .clipped()
         }
       }
+    } else {
+      Color.gray.opacity(0.1)
     }
   }
 }

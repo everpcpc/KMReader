@@ -28,11 +28,13 @@ struct SettingsSSEView: View {
           }
         }
         .onChange(of: enableSSE) { _, newValue in
-          // Always disconnect first to ensure clean state
-          SSEService.shared.disconnect()
-          // Then connect if enabled and logged in
-          if newValue && isLoggedIn {
-            SSEService.shared.connect()
+          Task {
+            // Always disconnect first to ensure clean state
+            await SSEService.shared.disconnect()
+            // Then connect if enabled and logged in
+            if newValue && isLoggedIn {
+              await SSEService.shared.connect()
+            }
           }
         }
       } header: {

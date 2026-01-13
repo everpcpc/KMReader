@@ -63,6 +63,7 @@ struct MainApp: App {
     CustomFontStore.shared.configure(with: modelContainer)
     DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
     _ = OfflineManager.shared
+    PlatformHelper.setup()
     _authViewModel = State(initialValue: AuthViewModel())
   }
 

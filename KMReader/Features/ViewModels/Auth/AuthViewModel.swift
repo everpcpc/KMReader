@@ -19,10 +19,6 @@ class AuthViewModel {
   var credentialsVersion = UUID()
 
   private let authService = AuthService.shared
-  private let sseService = SSEService.shared
-
-  init() {
-  }
 
   func login(
     username: String,
@@ -76,10 +72,9 @@ class AuthViewModel {
   }
 
   func logout() {
-    // Disconnect SSE before logout
-    sseService.disconnect()
-
     Task {
+      // Disconnect SSE before logout
+      await SSEService.shared.disconnect()
       try? await authService.logout()
     }
     // ViewModel-specific cleanup
@@ -194,7 +189,7 @@ class AuthViewModel {
 
         // Switch to offline mode
         AppConfig.isOffline = true
-        SSEService.shared.disconnect()
+        await SSEService.shared.disconnect()
 
         // We cannot load the user object offline, but isLoggedIn=true allows entry
         self.user = nil
@@ -282,10 +277,8 @@ class AuthViewModel {
     ErrorManager.shared.notify(message: successMessage)
 
     // Reconnect SSE with new instance if enabled
-    sseService.disconnect()
-    if AppConfig.enableSSE {
-      sseService.connect()
-    }
+    await SSEService.shared.disconnect()
+    await SSEService.shared.connect()
   }
 
   func updatePassword(password: String) async throws {

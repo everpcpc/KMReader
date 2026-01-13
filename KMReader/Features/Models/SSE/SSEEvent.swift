@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - SSE Event Types
 
-enum SSEEventType: String, Codable {
+enum SSEEventType: String, Codable, Sendable {
   case libraryAdded = "LibraryAdded"
   case libraryChanged = "LibraryChanged"
   case libraryDeleted = "LibraryDeleted"
@@ -51,92 +51,80 @@ enum SSEEventType: String, Codable {
 
 // MARK: - SSE Event Data Models
 
-struct LibrarySSEDto: Codable {
+struct LibrarySSEDto: Codable, Sendable {
   let libraryId: String
 }
 
-struct SeriesSSEDto: Codable {
+struct SeriesSSEDto: Codable, Sendable {
   let seriesId: String
   let libraryId: String
 }
 
-struct BookSSEDto: Codable {
+struct BookSSEDto: Codable, Sendable {
   let bookId: String
   let seriesId: String
   let libraryId: String
 }
 
-struct CollectionSSEDto: Codable {
+struct CollectionSSEDto: Codable, Sendable {
   let collectionId: String
   let seriesIds: [String]
 }
 
-struct ReadListSSEDto: Codable {
+struct ReadListSSEDto: Codable, Sendable {
   let readListId: String
   let bookIds: [String]
 }
 
-struct ReadProgressSSEDto: Codable {
+struct ReadProgressSSEDto: Codable, Sendable {
   let bookId: String
   let userId: String
 }
 
-struct ReadProgressSeriesSSEDto: Codable {
+struct ReadProgressSeriesSSEDto: Codable, Sendable {
   let seriesId: String
   let userId: String
 }
 
-struct ThumbnailBookSSEDto: Codable {
+struct ThumbnailBookSSEDto: Codable, Sendable {
   let bookId: String
   let seriesId: String
   let selected: Bool
 }
 
-struct ThumbnailSeriesSSEDto: Codable {
+struct ThumbnailSeriesSSEDto: Codable, Sendable {
   let seriesId: String
   let selected: Bool
 }
 
-struct ThumbnailReadListSSEDto: Codable {
+struct ThumbnailReadListSSEDto: Codable, Sendable {
   let readListId: String
   let selected: Bool
 }
 
-struct ThumbnailCollectionSSEDto: Codable {
+struct ThumbnailCollectionSSEDto: Codable, Sendable {
   let collectionId: String
   let selected: Bool
 }
 
-struct SessionExpiredSSEDto: Codable {
+struct SessionExpiredSSEDto: Codable, Sendable {
   let userId: String
 }
 
-struct TaskQueueSSEDto: Codable, Equatable, RawRepresentable {
+struct TaskQueueSSEDto: Codable, Equatable, RawRepresentable, Sendable {
   typealias RawValue = String
 
   let count: Int
   let countByType: [String: Int]
 
-  // MARK: - Codable
-  enum CodingKeys: String, CodingKey {
-    case count
-    case countByType
-  }
-
-  init(from decoder: Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    count = try container.decode(Int.self, forKey: .count)
-    countByType = try container.decode([String: Int].self, forKey: .countByType)
-  }
-
-  func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKeys.self)
-    try container.encode(count, forKey: .count)
-    try container.encode(countByType, forKey: .countByType)
+  // MARK: - Initializers
+  nonisolated init(count: Int = 0, countByType: [String: Int] = [:]) {
+    self.count = count
+    self.countByType = countByType
   }
 
   // MARK: - RawRepresentable
-  var rawValue: String {
+  nonisolated var rawValue: String {
     let dict: [String: Any] = [
       "count": count,
       "countByType": countByType,
@@ -149,7 +137,7 @@ struct TaskQueueSSEDto: Codable, Equatable, RawRepresentable {
     return "{}"
   }
 
-  init?(rawValue: String) {
+  nonisolated init?(rawValue: String) {
     guard !rawValue.isEmpty else {
       self.count = 0
       self.countByType = [:]
@@ -165,15 +153,9 @@ struct TaskQueueSSEDto: Codable, Equatable, RawRepresentable {
     self.count = dict["count"] as? Int ?? 0
     self.countByType = dict["countByType"] as? [String: Int] ?? [:]
   }
-
-  // MARK: - Initializers
-  init(count: Int = 0, countByType: [String: Int] = [:]) {
-    self.count = count
-    self.countByType = countByType
-  }
 }
 
-struct BookImportSSEDto: Codable {
+struct BookImportSSEDto: Codable, Sendable {
   let bookId: String?
   let sourceFile: String
   let success: Bool

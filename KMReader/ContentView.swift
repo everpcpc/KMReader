@@ -63,9 +63,7 @@ struct ContentView: View {
         .task {
           let serverReachable = await authViewModel.loadCurrentUser(timeout: 5)
           isOffline = !serverReachable
-          if enableSSE && serverReachable {
-            SSEService.shared.connect()
-          }
+          await SSEService.shared.connect()
         }
         .onChange(of: isOffline) { oldValue, newValue in
           if oldValue && !newValue {
@@ -97,7 +95,9 @@ struct ContentView: View {
               }
             }
             if enableSSE && !isOffline {
-              SSEService.shared.connect()
+              Task {
+                await SSEService.shared.connect()
+              }
             }
           } else if phase == .inactive {
             if privacyProtection {
@@ -107,7 +107,9 @@ struct ContentView: View {
             if privacyProtection {
               showPrivacyBlur = true
             }
-            SSEService.shared.disconnect(notify: false)
+            Task {
+              await SSEService.shared.disconnect(notify: false)
+            }
             Task.detached(priority: .utility) {
               try? await DatabaseOperator.shared.commitImmediately()
             }
@@ -116,7 +118,9 @@ struct ContentView: View {
       } else {
         LandingView()
           .onAppear {
-            SSEService.shared.disconnect(notify: false)
+            Task {
+              await SSEService.shared.disconnect(notify: false)
+            }
           }
       }
     }

@@ -208,18 +208,18 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
 }
 
 // RawRepresentable wrapper for [DashboardSection] and libraryIds to use with @AppStorage
-struct DashboardConfiguration: Equatable, RawRepresentable {
+struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
   typealias RawValue = String
 
   var sections: [DashboardSection]
   var libraryIds: [String]
 
-  init(sections: [DashboardSection] = DashboardSection.allCases, libraryIds: [String] = []) {
+  nonisolated init(sections: [DashboardSection] = DashboardSection.allCases, libraryIds: [String] = []) {
     self.sections = sections
     self.libraryIds = libraryIds
   }
 
-  var rawValue: String {
+  nonisolated var rawValue: String {
     let dict: [String: Any] = [
       "sections": sections.map { $0.rawValue },
       "libraryIds": libraryIds,
@@ -232,7 +232,7 @@ struct DashboardConfiguration: Equatable, RawRepresentable {
     return "{}"
   }
 
-  init?(rawValue: String) {
+  nonisolated init?(rawValue: String) {
     guard !rawValue.isEmpty else {
       self.sections = DashboardSection.allCases
       self.libraryIds = []

@@ -8,18 +8,18 @@
 import SwiftUI
 
 // ThemeColor type that embeds Color and supports RawRepresentable
-struct ThemeColor: RawRepresentable, Equatable, Hashable {
+struct ThemeColor: RawRepresentable, Equatable, Hashable, Sendable {
   let color: Color
 
-  init(color: Color) {
+  nonisolated init(color: Color) {
     self.color = color
   }
 
   // Default orange color
-  static let orange = ThemeColor(color: .orange)
+  static nonisolated let orange = ThemeColor(color: .orange)
 
   // Convert ThemeColor to hex string
-  var rawValue: String {
+  nonisolated var rawValue: String {
     // Extract RGB components from Color in sRGB color space
     // Use CGColor to ensure consistent color space conversion
     let cgColor = PlatformHelper.cgColor(from: color)
@@ -64,7 +64,7 @@ struct ThemeColor: RawRepresentable, Equatable, Hashable {
   }
 
   // Create ThemeColor from hex string
-  init?(rawValue: String) {
+  nonisolated init?(rawValue: String) {
     // Parse hex color string
     let hex = rawValue.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
     var int: UInt64 = 0

@@ -16,7 +16,6 @@ class BookViewModel {
   var isLoading = false
 
   private let bookService = BookService.shared
-  private let sseService = SSEService.shared
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   private var currentSeriesId: String?
   private var currentSeriesBrowseOpts: BookBrowseOptions?

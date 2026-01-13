@@ -24,7 +24,7 @@ enum AppConfig {
     }
   }
 
-  static var apiTimeout: Double {
+  static nonisolated var apiTimeout: Double {
     get {
       if UserDefaults.standard.object(forKey: "apiTimeout") != nil {
         return UserDefaults.standard.double(forKey: "apiTimeout")
@@ -34,7 +34,7 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "apiTimeout") }
   }
 
-  static var apiRetryCount: Int {
+  static nonisolated var apiRetryCount: Int {
     get {
       if UserDefaults.standard.object(forKey: "apiRetryCount") != nil {
         return UserDefaults.standard.integer(forKey: "apiRetryCount")
@@ -44,23 +44,27 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "apiRetryCount") }
   }
 
-  static var isLoggedIn: Bool {
+  static nonisolated var isLoggedIn: Bool {
     get { UserDefaults.standard.bool(forKey: "isLoggedInV2") }
     set { UserDefaults.standard.set(newValue, forKey: "isLoggedInV2") }
   }
 
-  static var deviceIdentifier: String? {
-    get { UserDefaults.standard.string(forKey: "deviceIdentifier") }
-    set {
-      if let value = newValue {
-        UserDefaults.standard.set(value, forKey: "deviceIdentifier")
-      } else {
-        UserDefaults.standard.removeObject(forKey: "deviceIdentifier")
-      }
-    }
+  static nonisolated var deviceIdentifier: String {
+    get { UserDefaults.standard.string(forKey: "deviceIdentifier") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "deviceIdentifier") }
   }
 
-  static var dualPageNoCover: Bool {
+  static nonisolated var deviceModel: String {
+    get { UserDefaults.standard.string(forKey: "deviceModel") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "deviceModel") }
+  }
+
+  static nonisolated var osVersion: String {
+    get { UserDefaults.standard.string(forKey: "osVersion") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "osVersion") }
+  }
+
+  static nonisolated var dualPageNoCover: Bool {
     get { UserDefaults.standard.bool(forKey: "dualPageNoCover") }
     set { UserDefaults.standard.set(newValue, forKey: "dualPageNoCover") }
   }
@@ -91,7 +95,7 @@ enum AppConfig {
   }
 
   // MARK: - SSE (Server-Sent Events)
-  static var enableSSE: Bool {
+  static nonisolated var enableSSE: Bool {
     get {
       if UserDefaults.standard.object(forKey: "enableSSE") != nil {
         return UserDefaults.standard.bool(forKey: "enableSSE")
@@ -101,7 +105,7 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "enableSSE") }
   }
 
-  static var enableSSENotify: Bool {
+  static nonisolated var enableSSENotify: Bool {
     get {
       if UserDefaults.standard.object(forKey: "enableSSENotify") != nil {
         return UserDefaults.standard.bool(forKey: "enableSSENotify")
@@ -111,7 +115,7 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "enableSSENotify") }
   }
 
-  static var enableSSEAutoRefresh: Bool {
+  static nonisolated var enableSSEAutoRefresh: Bool {
     get {
       if UserDefaults.standard.object(forKey: "enableSSEAutoRefresh") != nil {
         return UserDefaults.standard.bool(forKey: "enableSSEAutoRefresh")
@@ -121,7 +125,7 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "enableSSEAutoRefresh") }
   }
 
-  static var taskQueueStatus: TaskQueueSSEDto {
+  static nonisolated var taskQueueStatus: TaskQueueSSEDto {
     get {
       guard let rawValue = UserDefaults.standard.string(forKey: "taskQueueStatus"),
         !rawValue.isEmpty,
@@ -159,7 +163,7 @@ enum AppConfig {
 
   // MARK: - Dashboard
 
-  static var gridDensity: Double {
+  static nonisolated var gridDensity: Double {
     get {
       if UserDefaults.standard.object(forKey: "gridDensity") != nil {
         return UserDefaults.standard.double(forKey: "gridDensity")
@@ -171,7 +175,7 @@ enum AppConfig {
     }
   }
 
-  static var serverLastUpdate: Date? {
+  static nonisolated var serverLastUpdate: Date? {
     get {
       guard
         let timeInterval = UserDefaults.standard.object(forKey: "serverLastUpdate") as? TimeInterval
@@ -190,7 +194,7 @@ enum AppConfig {
   }
 
   // MARK: - Custom Fonts
-  static var customFontNames: [String] {
+  static nonisolated var customFontNames: [String] {
     get {
       UserDefaults.standard.stringArray(forKey: "customFontNames") ?? []
     }
@@ -200,7 +204,7 @@ enum AppConfig {
   }
 
   // MARK: - Appearance
-  static var themeColor: ThemeColor {
+  static nonisolated var themeColor: ThemeColor {
     get {
       if let stored = UserDefaults.standard.string(forKey: "themeColorHex"),
         let color = ThemeColor(rawValue: stored)
@@ -215,7 +219,7 @@ enum AppConfig {
   }
 
   // MARK: - Browse Layouts
-  static var seriesBrowseLayout: BrowseLayoutMode {
+  static nonisolated var seriesBrowseLayout: BrowseLayoutMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "seriesBrowseLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
@@ -229,7 +233,7 @@ enum AppConfig {
     }
   }
 
-  static var collectionBrowseLayout: BrowseLayoutMode {
+  static nonisolated var collectionBrowseLayout: BrowseLayoutMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "collectionBrowseLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
@@ -243,7 +247,7 @@ enum AppConfig {
     }
   }
 
-  static var bookBrowseLayout: BrowseLayoutMode {
+  static nonisolated var bookBrowseLayout: BrowseLayoutMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "bookBrowseLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
@@ -257,7 +261,7 @@ enum AppConfig {
     }
   }
 
-  static var readListBrowseLayout: BrowseLayoutMode {
+  static nonisolated var readListBrowseLayout: BrowseLayoutMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "readListBrowseLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
@@ -272,7 +276,7 @@ enum AppConfig {
   }
 
   // MARK: - Detail Layouts
-  static var seriesDetailLayout: BrowseLayoutMode {
+  static nonisolated var seriesDetailLayout: BrowseLayoutMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "seriesDetailLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
@@ -286,7 +290,7 @@ enum AppConfig {
     }
   }
 
-  static var collectionDetailLayout: BrowseLayoutMode {
+  static nonisolated var collectionDetailLayout: BrowseLayoutMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "collectionDetailLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
@@ -300,7 +304,7 @@ enum AppConfig {
     }
   }
 
-  static var readListDetailLayout: BrowseLayoutMode {
+  static nonisolated var readListDetailLayout: BrowseLayoutMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "readListDetailLayout"),
         let layout = BrowseLayoutMode(rawValue: stored)
@@ -315,32 +319,32 @@ enum AppConfig {
   }
 
   // MARK: - Browse Options Raw Values
-  static var seriesBrowseOptions: String {
+  static nonisolated var seriesBrowseOptions: String {
     get { UserDefaults.standard.string(forKey: "seriesBrowseOptions") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "seriesBrowseOptions") }
   }
 
-  static var bookBrowseOptions: String {
+  static nonisolated var bookBrowseOptions: String {
     get { UserDefaults.standard.string(forKey: "bookBrowseOptions") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "bookBrowseOptions") }
   }
 
-  static var collectionSeriesBrowseOptions: String {
+  static nonisolated var collectionSeriesBrowseOptions: String {
     get { UserDefaults.standard.string(forKey: "collectionSeriesBrowseOptions") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "collectionSeriesBrowseOptions") }
   }
 
-  static var readListBookBrowseOptions: String {
+  static nonisolated var readListBookBrowseOptions: String {
     get { UserDefaults.standard.string(forKey: "readListBookBrowseOptions") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "readListBookBrowseOptions") }
   }
 
-  static var seriesBookBrowseOptions: String {
+  static nonisolated var seriesBookBrowseOptions: String {
     get { UserDefaults.standard.string(forKey: "seriesBookBrowseOptions") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "seriesBookBrowseOptions") }
   }
 
-  static var coverOnlyCards: Bool {
+  static nonisolated var coverOnlyCards: Bool {
     get {
       if UserDefaults.standard.object(forKey: "coverOnlyCards") != nil {
         return UserDefaults.standard.bool(forKey: "coverOnlyCards")
@@ -352,7 +356,7 @@ enum AppConfig {
     }
   }
 
-  static var showBookCardSeriesTitle: Bool {
+  static nonisolated var showBookCardSeriesTitle: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showBookCardSeriesTitle") != nil {
         return UserDefaults.standard.bool(forKey: "showBookCardSeriesTitle")
@@ -364,7 +368,7 @@ enum AppConfig {
     }
   }
 
-  static var thumbnailPreserveAspectRatio: Bool {
+  static nonisolated var thumbnailPreserveAspectRatio: Bool {
     get {
       if UserDefaults.standard.object(forKey: "thumbnailPreserveAspectRatio") != nil {
         return UserDefaults.standard.bool(forKey: "thumbnailPreserveAspectRatio")
@@ -376,7 +380,7 @@ enum AppConfig {
     }
   }
 
-  static var privacyProtection: Bool {
+  static nonisolated var privacyProtection: Bool {
     get {
       UserDefaults.standard.bool(forKey: "privacyProtection")
     }
@@ -385,7 +389,7 @@ enum AppConfig {
     }
   }
 
-  static var searchIgnoreFilters: Bool {
+  static nonisolated var searchIgnoreFilters: Bool {
     get {
       if UserDefaults.standard.object(forKey: "searchIgnoreFilters") != nil {
         return UserDefaults.standard.bool(forKey: "searchIgnoreFilters")
@@ -398,7 +402,7 @@ enum AppConfig {
   }
 
   // MARK: - Reader
-  static var showTapZoneHints: Bool {
+  static nonisolated var showTapZoneHints: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showTapZoneHints") != nil {
         return UserDefaults.standard.bool(forKey: "showTapZoneHints")
@@ -410,7 +414,7 @@ enum AppConfig {
     }
   }
 
-  static var disableTapToTurnPage: Bool {
+  static nonisolated var disableTapToTurnPage: Bool {
     get {
       if UserDefaults.standard.object(forKey: "disableTapToTurnPage") != nil {
         return UserDefaults.standard.bool(forKey: "disableTapToTurnPage")
@@ -422,7 +426,7 @@ enum AppConfig {
     }
   }
 
-  static var tapZoneSize: TapZoneSize {
+  static nonisolated var tapZoneSize: TapZoneSize {
     get {
       if let stored = UserDefaults.standard.string(forKey: "tapZoneSize"),
         let size = TapZoneSize(rawValue: stored)
@@ -436,7 +440,7 @@ enum AppConfig {
     }
   }
 
-  static var showKeyboardHelpOverlay: Bool {
+  static nonisolated var showKeyboardHelpOverlay: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showKeyboardHelpOverlay") != nil {
         return UserDefaults.standard.bool(forKey: "showKeyboardHelpOverlay")
@@ -448,7 +452,7 @@ enum AppConfig {
     }
   }
 
-  static var autoFullscreenOnOpen: Bool {
+  static nonisolated var autoFullscreenOnOpen: Bool {
     get {
       if UserDefaults.standard.object(forKey: "autoFullscreenOnOpen") != nil {
         return UserDefaults.standard.bool(forKey: "autoFullscreenOnOpen")
@@ -460,7 +464,7 @@ enum AppConfig {
     }
   }
 
-  static var readerBackground: ReaderBackground {
+  static nonisolated var readerBackground: ReaderBackground {
     get {
       if let stored = UserDefaults.standard.string(forKey: "readerBackground"),
         let background = ReaderBackground(rawValue: stored)
@@ -474,7 +478,7 @@ enum AppConfig {
     }
   }
 
-  static var pageLayout: PageLayout {
+  static nonisolated var pageLayout: PageLayout {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pageLayout") {
         if stored == "dual" {
@@ -491,7 +495,7 @@ enum AppConfig {
     }
   }
 
-  static var forceDefaultReadingDirection: Bool {
+  static nonisolated var forceDefaultReadingDirection: Bool {
     get {
       if UserDefaults.standard.object(forKey: "forceDefaultReadingDirection") != nil {
         return UserDefaults.standard.bool(forKey: "forceDefaultReadingDirection")
@@ -503,7 +507,7 @@ enum AppConfig {
     }
   }
 
-  static var defaultReadingDirection: ReadingDirection {
+  static nonisolated var defaultReadingDirection: ReadingDirection {
     get {
       if let stored = UserDefaults.standard.string(forKey: "defaultReadingDirection"),
         let direction = ReadingDirection(rawValue: stored)
@@ -517,7 +521,7 @@ enum AppConfig {
     }
   }
 
-  static var webtoonPageWidthPercentage: Double {
+  static nonisolated var webtoonPageWidthPercentage: Double {
     get {
       if UserDefaults.standard.object(forKey: "webtoonPageWidthPercentage") != nil {
         return UserDefaults.standard.double(forKey: "webtoonPageWidthPercentage")
@@ -529,7 +533,7 @@ enum AppConfig {
     }
   }
 
-  static var webtoonTapScrollPercentage: Double {
+  static nonisolated var webtoonTapScrollPercentage: Double {
     get {
       if UserDefaults.standard.object(forKey: "webtoonTapScrollPercentage") != nil {
         return UserDefaults.standard.double(forKey: "webtoonTapScrollPercentage")
@@ -541,7 +545,7 @@ enum AppConfig {
     }
   }
 
-  static var showPageNumber: Bool {
+  static nonisolated var showPageNumber: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showPageNumber") != nil {
         return UserDefaults.standard.bool(forKey: "showPageNumber")
@@ -553,7 +557,7 @@ enum AppConfig {
     }
   }
 
-  static var tapPageTransitionDuration: Double {
+  static nonisolated var tapPageTransitionDuration: Double {
     get {
       if UserDefaults.standard.object(forKey: "tapPageTransitionDuration") != nil {
         return UserDefaults.standard.double(forKey: "tapPageTransitionDuration")
@@ -565,7 +569,7 @@ enum AppConfig {
     }
   }
 
-  static var scrollPageTransitionStyle: ScrollPageTransitionStyle {
+  static nonisolated var scrollPageTransitionStyle: ScrollPageTransitionStyle {
     get {
       if let stored = UserDefaults.standard.string(forKey: "scrollPageTransitionStyle"),
         let style = ScrollPageTransitionStyle(rawValue: stored)
@@ -579,7 +583,7 @@ enum AppConfig {
     }
   }
 
-  static var doubleTapZoomScale: Double {
+  static nonisolated var doubleTapZoomScale: Double {
     get {
       if UserDefaults.standard.object(forKey: "doubleTapZoomScale") != nil {
         return UserDefaults.standard.double(forKey: "doubleTapZoomScale")
@@ -591,7 +595,7 @@ enum AppConfig {
     }
   }
 
-  static var enableLiveText: Bool {
+  static nonisolated var enableLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "enableLiveText") != nil {
         return UserDefaults.standard.bool(forKey: "enableLiveText")
@@ -603,7 +607,7 @@ enum AppConfig {
     }
   }
 
-  static var shakeToOpenLiveText: Bool {
+  static nonisolated var shakeToOpenLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "shakeToOpenLiveText") != nil {
         return UserDefaults.standard.bool(forKey: "shakeToOpenLiveText")
@@ -616,7 +620,7 @@ enum AppConfig {
   }
 
   // MARK: - Dashboard
-  static var dashboard: DashboardConfiguration {
+  static nonisolated var dashboard: DashboardConfiguration {
     get {
       if let stored = UserDefaults.standard.string(forKey: "dashboard"),
         let config = DashboardConfiguration(rawValue: stored)
@@ -630,7 +634,7 @@ enum AppConfig {
     }
   }
 
-  static var dashboardSectionCache: DashboardSectionCache {
+  static nonisolated var dashboardSectionCache: DashboardSectionCache {
     get {
       if let stored = UserDefaults.standard.string(forKey: "dashboardSectionCache"),
         let cache = DashboardSectionCache(rawValue: stored)

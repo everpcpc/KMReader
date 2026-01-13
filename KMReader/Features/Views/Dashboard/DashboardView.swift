@@ -76,8 +76,10 @@ struct DashboardView: View {
     AppConfig.serverLastUpdate = Date()
 
     // Check SSE connection status and reconnect if disconnected
-    if enableSSE && !sseService.connected {
-      sseService.connect()
+    if enableSSE {
+      Task {
+        await SSEService.shared.connect()
+      }
     }
 
     // Perform refresh immediately
@@ -127,6 +129,37 @@ struct DashboardView: View {
         }
         pendingRefreshTask = nil
       }
+    }
+  }
+
+  private func handleSSEEvent(_ info: SSEEventInfo) {
+    let jsonData = info.data.data(using: .utf8) ?? Data()
+    let decoder = JSONDecoder()
+
+    switch info.type {
+    case .seriesAdded, .seriesChanged, .seriesDeleted:
+      if let event = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
+        if shouldRefreshForLibrary(event.libraryId) {
+          scheduleRefresh(reason: "SSE \(info.type.rawValue) \(event.seriesId)")
+        }
+      }
+    case .bookAdded, .bookChanged, .bookDeleted:
+      if let event = try? decoder.decode(BookSSEDto.self, from: jsonData) {
+        if shouldRefreshForLibrary(event.libraryId) {
+          scheduleRefresh(reason: "SSE \(info.type.rawValue) \(event.bookId)")
+        }
+      }
+    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
+      .readProgressSeriesDeleted:
+      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
+    case .libraryAdded, .libraryChanged, .libraryDeleted:
+      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
+    case .collectionAdded, .collectionChanged, .collectionDeleted:
+      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
+    case .readListAdded, .readListChanged, .readListDeleted:
+      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
+    default:
+      break
     }
   }
 
@@ -192,14 +225,14 @@ struct DashboardView: View {
       // Bypass auto-refresh setting for configuration changes
       refreshDashboard(reason: "Library filter changed")
     }
-    .onAppear {
-      setupSSEHandlers()
-    }
     .onDisappear {
-      cleanupSSEHandlers()
       // Cancel any pending refresh when view disappears
       pendingRefreshTask?.cancel()
       pendingRefreshTask = nil
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
+      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
+      handleSSEEvent(info)
     }
     .onChange(of: enableSSEAutoRefresh) { _, newValue in
       // Cancel any pending refresh when auto-refresh is disabled
@@ -283,70 +316,6 @@ struct DashboardView: View {
     #endif
   }
 
-  private func setupSSEHandlers() {
-    // Series events
-    sseService.onSeriesAdded = { event in
-      if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh(reason: "SSE SeriesAdded \(event.seriesId)")
-      }
-    }
-    sseService.onSeriesChanged = { event in
-      if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh(reason: "SSE SeriesChanged \(event.seriesId)")
-      }
-    }
-    sseService.onSeriesDeleted = { event in
-      if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh(reason: "SSE SeriesDeleted \(event.seriesId)")
-      }
-    }
-
-    // Book events
-    sseService.onBookAdded = { event in
-      if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh(reason: "SSE BookAdded \(event.bookId)")
-      }
-    }
-    sseService.onBookChanged = { event in
-      if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh(reason: "SSE BookChanged \(event.bookId)")
-      }
-    }
-    sseService.onBookDeleted = { event in
-      if shouldRefreshForLibrary(event.libraryId) {
-        scheduleRefresh(reason: "SSE BookDeleted \(event.bookId)")
-      }
-    }
-
-    // Read progress events - always refresh as they affect multiple sections
-    sseService.onReadProgressChanged = { _ in
-      scheduleRefresh(reason: "SSE ReadProgressChanged")
-    }
-    sseService.onReadProgressDeleted = { _ in
-      scheduleRefresh(reason: "SSE ReadProgressDeleted")
-    }
-    sseService.onReadProgressSeriesChanged = { _ in
-      scheduleRefresh(reason: "SSE ReadProgressSeriesChanged")
-    }
-    sseService.onReadProgressSeriesDeleted = { _ in
-      scheduleRefresh(reason: "SSE ReadProgressSeriesDeleted")
-    }
-  }
-
-  private func cleanupSSEHandlers() {
-    // Clear handlers to avoid memory leaks
-    sseService.onSeriesAdded = nil
-    sseService.onSeriesChanged = nil
-    sseService.onSeriesDeleted = nil
-    sseService.onBookAdded = nil
-    sseService.onBookChanged = nil
-    sseService.onBookDeleted = nil
-    sseService.onReadProgressChanged = nil
-    sseService.onReadProgressDeleted = nil
-    sseService.onReadProgressSeriesChanged = nil
-    sseService.onReadProgressSeriesDeleted = nil
-  }
-
   private func tryReconnect() async {
     isCheckingConnection = true
     let serverReachable = await authViewModel.loadCurrentUser()
@@ -354,7 +323,7 @@ struct DashboardView: View {
     isCheckingConnection = false
 
     if serverReachable {
-      sseService.connect()
+      await sseService.connect()
       ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
       refreshDashboard(reason: "Reconnected")
     }

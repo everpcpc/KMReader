@@ -22,49 +22,67 @@ import SwiftUI
   public typealias PlatformPasteboard = NSPasteboard
 #endif
 
+#if os(iOS) || os(tvOS)
+  import Darwin
+#endif
+
 /// Platform helper for device information and UI idioms
-struct PlatformHelper {
-  /// Get device model name
-  static var deviceModel: String {
-    #if os(iOS)
-      return UIDevice.current.model
+enum PlatformHelper {
+
+  /// Initialize cached values that require MainActor
+  @MainActor
+  static func setup() {
+    // 1. Detect device model
+    let detectedModel: String
+    #if os(iOS) || os(tvOS)
+      var systemInfo = utsname()
+      uname(&systemInfo)
+      let machineMirror = Mirror(reflecting: systemInfo.machine)
+      detectedModel = machineMirror.children.reduce("") { identifier, element in
+        guard let value = element.value as? Int8, value != 0 else { return identifier }
+        return identifier + String(UnicodeScalar(UInt8(value)))
+      }
     #elseif os(macOS)
-      return "Mac"
+      detectedModel = "Mac"
     #else
-      return "Unknown"
+      detectedModel = "Unknown"
     #endif
+    AppConfig.deviceModel = detectedModel
+
+    // 2. Detect OS version
+    let version = ProcessInfo.processInfo.operatingSystemVersion
+    let detectedOS = "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
+    AppConfig.osVersion = detectedOS
+
+    // 3. Handle device identifier
+    let storedId = AppConfig.deviceIdentifier
+    if storedId.isEmpty {
+      var newId: String?
+      #if os(iOS)
+        newId = UIDevice.current.identifierForVendor?.uuidString
+      #endif
+      let finalId = newId ?? UUID().uuidString
+      AppConfig.deviceIdentifier = finalId
+    }
+  }
+
+  /// Get device model name
+  static nonisolated var deviceModel: String {
+    AppConfig.deviceModel
   }
 
   /// Get OS version string
-  static var osVersion: String {
-    #if os(iOS)
-      return UIDevice.current.systemVersion
-    #elseif os(macOS)
-      let version = ProcessInfo.processInfo.operatingSystemVersion
-      return "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
-    #else
-      let version = ProcessInfo.processInfo.operatingSystemVersion
-      return "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
-    #endif
+  static nonisolated var osVersion: String {
+    AppConfig.osVersion
   }
 
   /// Persistent, per-installation identifier used when reporting reading positions.
-  static var deviceIdentifier: String {
-    if let cached = AppConfig.deviceIdentifier, !cached.isEmpty {
-      return cached
-    }
-    #if os(iOS)
-      if let vendorId = UIDevice.current.identifierForVendor?.uuidString {
-        AppConfig.deviceIdentifier = vendorId
-        return vendorId
-      }
-    #endif
-    let fallback = UUID().uuidString
-    AppConfig.deviceIdentifier = fallback
-    return fallback
+  static nonisolated var deviceIdentifier: String {
+    AppConfig.deviceIdentifier
   }
 
   /// Check if running on iPad
+  @MainActor
   static var isPad: Bool {
     #if os(iOS)
       return UIDevice.current.userInterfaceIdiom == .pad
@@ -73,6 +91,7 @@ struct PlatformHelper {
     #endif
   }
 
+  @MainActor
   static var defaultDashboardCardWidth: CGFloat {
     #if os(tvOS)
       return 240
@@ -85,6 +104,7 @@ struct PlatformHelper {
     #endif
   }
 
+  @MainActor
   static var sheetPadding: CGFloat {
     #if os(tvOS)
       return 24
@@ -95,6 +115,7 @@ struct PlatformHelper {
     #endif
   }
 
+  @MainActor
   static var buttonSpacing: CGFloat {
     #if os(tvOS)
       return 36
@@ -105,6 +126,7 @@ struct PlatformHelper {
     #endif
   }
 
+  @MainActor
   static var iconSize: CGFloat {
     #if os(tvOS)
       return 24
@@ -115,6 +137,7 @@ struct PlatformHelper {
     #endif
   }
 
+  @MainActor
   static var detailThumbnailWidth: CGFloat {
     #if os(tvOS)
       return 240
@@ -125,6 +148,7 @@ struct PlatformHelper {
     #endif
   }
 
+  @MainActor
   static var progressBarHeight: CGFloat {
     #if os(tvOS)
       return 6
@@ -141,6 +165,7 @@ struct PlatformHelper {
   /// - iOS: use `UIDevice.current.orientation`
   /// - tvOS / macOS: always return `.landscape`
   /// - Others: `.unknown`
+  @MainActor
   static var deviceOrientation: DeviceOrientation {
     #if os(tvOS) || os(macOS)
       return .landscape
@@ -160,7 +185,7 @@ struct PlatformHelper {
 
   #if os(iOS) || os(macOS)
     /// Get pasteboard for copying text (iOS and macOS only)
-    static var generalPasteboard: PlatformPasteboard {
+    static nonisolated var generalPasteboard: PlatformPasteboard {
       #if os(iOS)
         return UIPasteboard.general
       #elseif os(macOS)
@@ -170,6 +195,7 @@ struct PlatformHelper {
   #endif
 
   /// Get the maximum dimension of the screen to validate geometry values
+  @MainActor
   static var maxScreenDimension: CGFloat {
     #if os(iOS) || os(tvOS)
       let bounds = UIScreen.main.bounds
@@ -185,6 +211,7 @@ struct PlatformHelper {
   }
 
   /// Check if a width value is valid (not anomalously large during app transitions)
+  @MainActor
   static func isValidWidth(_ width: CGFloat) -> Bool {
     return width <= maxScreenDimension * 1.2
   }
@@ -192,7 +219,7 @@ struct PlatformHelper {
   /// Convert SwiftUI Color to CGColor
   /// - Parameter color: SwiftUI Color to convert
   /// - Returns: CGColor representation of the color
-  static func cgColor(from color: Color) -> CGColor {
+  static nonisolated func cgColor(from color: Color) -> CGColor {
     #if os(iOS) || os(tvOS)
       return UIColor(color).cgColor
     #elseif os(macOS)
@@ -205,7 +232,7 @@ struct PlatformHelper {
 
   /// Get system background color
   /// - Returns: System background color appropriate for the platform
-  static var systemBackgroundColor: Color {
+  static nonisolated var systemBackgroundColor: Color {
     #if os(iOS)
       return Color(.systemBackground)
     #elseif os(macOS)
@@ -217,7 +244,7 @@ struct PlatformHelper {
 
   /// Get secondary system background color
   /// - Returns: Secondary system background color appropriate for the platform
-  static var secondarySystemBackgroundColor: Color {
+  static nonisolated var secondarySystemBackgroundColor: Color {
     #if os(iOS)
       return Color(.secondarySystemBackground)
     #elseif os(macOS)
@@ -230,7 +257,7 @@ struct PlatformHelper {
   /// Convert PlatformImage to PNG data
   /// - Parameter image: Platform image to convert
   /// - Returns: PNG data if conversion succeeds, nil otherwise
-  static func pngData(from image: PlatformImage) -> Data? {
+  static nonisolated func pngData(from image: PlatformImage) -> Data? {
     #if os(iOS)
       return image.pngData()
     #elseif os(macOS)

@@ -6,12 +6,12 @@
 import Foundation
 
 /// Caches the first page of item IDs for each dashboard section
-struct DashboardSectionCache: Equatable, RawRepresentable {
+struct DashboardSectionCache: Equatable, RawRepresentable, Sendable {
   typealias RawValue = String
 
   var sectionIds: [DashboardSection: [String]]
 
-  init(sectionIds: [DashboardSection: [String]] = [:]) {
+  nonisolated init(sectionIds: [DashboardSection: [String]] = [:]) {
     self.sectionIds = sectionIds
   }
 
@@ -27,7 +27,7 @@ struct DashboardSectionCache: Equatable, RawRepresentable {
     return true
   }
 
-  var rawValue: String {
+  nonisolated var rawValue: String {
     // Convert to a simple dictionary with section rawValue as key
     let dict = sectionIds.reduce(into: [String: [String]]()) { result, pair in
       result[pair.key.rawValue] = pair.value
@@ -40,7 +40,7 @@ struct DashboardSectionCache: Equatable, RawRepresentable {
     return "{}"
   }
 
-  init?(rawValue: String) {
+  nonisolated init?(rawValue: String) {
     guard !rawValue.isEmpty,
       let data = rawValue.data(using: .utf8),
       let dict = try? JSONSerialization.jsonObject(with: data) as? [String: [String]]

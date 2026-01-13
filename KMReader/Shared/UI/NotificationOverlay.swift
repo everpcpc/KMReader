@@ -134,7 +134,7 @@ import SwiftUI
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
       }
-      .animation(.default, value: errorManager.notifications)
+      .animation(.snappy, value: errorManager.notifications)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .padding(.horizontal, 8)
       .padding(.bottom, 64)
