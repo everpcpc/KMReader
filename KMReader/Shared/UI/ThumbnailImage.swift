@@ -31,6 +31,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   @State private var image: PlatformImage?
   @State private var currentBaseKey: String?
   @State private var loadedImageSize: CGSize?
+  @State private var refreshTrigger: UUID = UUID()
 
   private var effectiveShadowStyle: ShadowStyle {
     return thumbnailShowShadow ? shadowStyle : .none
@@ -153,7 +154,18 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
         overlay()
       }
     }
-    .task(id: baseKey) {
+    .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
+      guard let userInfo = notification.userInfo,
+        let notificationId = userInfo["id"] as? String,
+        let notificationType = userInfo["type"] as? String,
+        notificationId == id,
+        notificationType == type.rawValue
+      else {
+        return
+      }
+      refreshTrigger = UUID()
+    }
+    .task(id: refreshTrigger) {
       isLoading = true
       if currentBaseKey != baseKey {
         currentBaseKey = baseKey

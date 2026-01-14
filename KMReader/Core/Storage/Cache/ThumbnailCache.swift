@@ -10,6 +10,10 @@ import ImageIO
 import OSLog
 import UniformTypeIdentifiers
 
+extension Notification.Name {
+  static let thumbnailDidRefresh = Notification.Name("thumbnailDidRefresh")
+}
+
 enum ThumbnailType: String, CaseIterable {
   case book
   case series
@@ -302,6 +306,22 @@ actor ThumbnailCache {
         maxCacheSize: maxCacheSize
       )
     }.value
+  }
+
+  /// Refresh thumbnail by re-downloading from server
+  /// - Parameters:
+  ///   - id: The entity ID
+  ///   - type: The thumbnail type
+  static func refreshThumbnail(id: String, type: ThumbnailType) async throws {
+    _ = try await shared.ensureThumbnail(id: id, type: type, force: true)
+
+    await MainActor.run {
+      NotificationCenter.default.post(
+        name: .thumbnailDidRefresh,
+        object: nil,
+        userInfo: ["id": id, "type": type.rawValue]
+      )
+    }
   }
 
   // MARK: - Private Management Helpers
