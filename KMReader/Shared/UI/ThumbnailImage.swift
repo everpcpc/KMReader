@@ -146,7 +146,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
         }
       }
     }
-    .animation(.easeInOut(duration: 0.18), value: image != nil)
+    .animation(.easeInOut(duration: 0.18), value: refreshTrigger)
     .aspectRatio(1 / ratio, contentMode: .fit)
     .frame(width: width)
     .overlay {
