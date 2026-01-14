@@ -10,7 +10,9 @@ HIGHLIGHTS
 
 • Browse and Dashboards: Search, filters, grid/list layouts. Customizable dashboard sections per library with faster first paint and stable refresh.
 
-• Readers: DIVINA (LTR/RTL/vertical/Webtoon) with spreads, zoom, tap zones, page transition styles, and exports. EPUB with custom fonts/themes, pagination, TOC navigation, and incognito mode.
+• Readers: DIVINA (LTR/RTL/vertical/Webtoon) with spreads, zoom, customizable tap zones, page isolation, and transition styles. EPUB with custom fonts/themes, pagination, TOC navigation, and incognito mode. Live Text support with shake-to-open on iOS.
+
+• Privacy Protection: Optional blur overlay to protect reading content from prying eyes.
 
 • Admin Tools: Metadata editing, scans, task management, live metrics via SSE, and an in-app log viewer with filtering.
 
