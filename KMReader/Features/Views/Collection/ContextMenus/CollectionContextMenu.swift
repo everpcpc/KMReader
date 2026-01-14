@@ -31,18 +31,36 @@ struct CollectionContextMenu: View {
         Label("View Details", systemImage: "info.circle")
       }
 
-      if !isOffline && current.isAdmin {
+      if !isOffline {
+        if current.isAdmin {
+          Divider()
+          Button {
+            onEditRequested?()
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
+        }
+
         Divider()
         Button {
-          onEditRequested?()
+          refreshCover()
         } label: {
-          Label("Edit", systemImage: "pencil")
+          Label("Refresh Cover", systemImage: "arrow.clockwise")
         }
-        Divider()
-        Button(role: .destructive) {
-          onDeleteRequested?()
-        } label: {
-          Label("Delete", systemImage: "trash")
+      }
+    }
+  }
+
+  private func refreshCover() {
+    Task {
+      do {
+        try await ThumbnailCache.refreshThumbnail(id: collectionId, type: .collection)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.collection.coverRefreshed"))
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
         }
       }
     }

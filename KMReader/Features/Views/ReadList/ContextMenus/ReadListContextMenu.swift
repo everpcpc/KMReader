@@ -43,7 +43,6 @@ struct ReadListContextMenu: View {
 
       if !isOffline {
         Divider()
-
         Menu {
           actionsView(actions: SeriesDownloadAction.availableActions(for: status))
         } label: {
@@ -57,12 +56,28 @@ struct ReadListContextMenu: View {
           } label: {
             Label("Edit", systemImage: "pencil")
           }
-          Divider()
-          Button(role: .destructive) {
-            onDeleteRequested?()
-          } label: {
-            Label("Delete", systemImage: "trash")
-          }
+        }
+
+        Divider()
+        Button {
+          refreshCover()
+        } label: {
+          Label("Refresh Cover", systemImage: "arrow.clockwise")
+        }
+      }
+    }
+  }
+
+  private func refreshCover() {
+    Task {
+      do {
+        try await ThumbnailCache.refreshThumbnail(id: readListId, type: .readlist)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.readList.coverRefreshed"))
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
         }
       }
     }

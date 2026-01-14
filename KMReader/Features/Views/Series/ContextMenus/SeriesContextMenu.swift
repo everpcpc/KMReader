@@ -140,12 +140,34 @@ struct SeriesContextMenu: View {
         Label("Offline Policy", systemImage: offlinePolicy.icon)
       }
 
-      Divider()
-
       Menu {
         actionsView(actions: SeriesDownloadAction.availableActions(for: status))
       } label: {
         Label("Download", systemImage: status.icon)
+      }
+
+      if !isOffline {
+        Divider()
+        Button {
+          refreshCover()
+        } label: {
+          Label("Refresh Cover", systemImage: "arrow.clockwise")
+        }
+      }
+    }
+  }
+
+  private func refreshCover() {
+    Task {
+      do {
+        try await ThumbnailCache.refreshThumbnail(id: seriesId, type: .series)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.series.coverRefreshed"))
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
       }
     }
   }

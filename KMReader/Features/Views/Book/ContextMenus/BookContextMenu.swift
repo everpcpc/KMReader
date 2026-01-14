@@ -110,6 +110,16 @@ struct BookContextMenu: View {
         Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
       }
 
+      if !isOffline {
+        Divider()
+        Button {
+          refreshCover()
+        } label: {
+          Label("Refresh Cover", systemImage: "arrow.clockwise")
+        }
+      }
+
+      Divider()
       Button(role: .destructive) {
         Task {
           await CacheManager.clearCache(forBookId: book.id)
@@ -119,6 +129,21 @@ struct BookContextMenu: View {
         }
       } label: {
         Label("Clear Cache", systemImage: "xmark.circle")
+      }
+    }
+  }
+
+  private func refreshCover() {
+    Task {
+      do {
+        try await ThumbnailCache.refreshThumbnail(id: book.id, type: .book)
+        await MainActor.run {
+          ErrorManager.shared.notify(message: String(localized: "notification.book.coverRefreshed"))
+        }
+      } catch {
+        await MainActor.run {
+          ErrorManager.shared.alert(error: error)
+        }
       }
     }
   }
