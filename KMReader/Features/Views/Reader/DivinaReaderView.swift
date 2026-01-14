@@ -36,7 +36,7 @@ struct DivinaReaderView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
-  @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
+  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @State private var showKeyboardHelp = false
@@ -357,7 +357,7 @@ struct DivinaReaderView: View {
         showingControls = false
       }
     }
-    .onChange(of: controlsAutoHide) { _, newValue in
+    .onChange(of: autoHideControls) { _, newValue in
       if newValue {
         resetControlsTimer(timeout: 3)
       } else {
@@ -892,7 +892,7 @@ struct DivinaReaderView: View {
   #else
     private func resetControlsTimer(timeout: TimeInterval) {
       // Don't start timer if auto-hide is disabled
-      if !controlsAutoHide {
+      if !autoHideControls {
         return
       }
 

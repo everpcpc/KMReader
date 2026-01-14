@@ -24,7 +24,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
-  @AppStorage("controlsAutoHide") private var controlsAutoHide: Bool = true
+  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
@@ -89,7 +89,7 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          Toggle(isOn: $controlsAutoHide) {
+          Toggle(isOn: $autoHideControls) {
             Text("Auto Hide Controls")
           }
         }
@@ -178,10 +178,6 @@ struct ReaderSettingsSheet: View {
                   }
                 }
                 .frame(height: 60)
-
-                Text("Size of tap zones for page navigation")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
               }
 
               if readingDirection == .webtoon {
@@ -197,9 +193,6 @@ struct ReaderSettingsSheet: View {
                     in: 25...100,
                     step: 5
                   )
-                  Text("Scroll distance when tapping to navigate in webtoon mode")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
                 }
               } else {
                 VStack(alignment: .leading, spacing: 8) {
