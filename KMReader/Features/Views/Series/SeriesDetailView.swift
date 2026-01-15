@@ -303,8 +303,6 @@ extension SeriesDetailView {
           Label("Add to Collection", systemImage: "square.grid.2x2")
         }
 
-        Divider()
-
         if series != nil {
           if canMarkSeriesAsRead {
             Button {

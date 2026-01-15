@@ -286,8 +286,6 @@ struct BookDetailView: View {
           Label("Add to Read List", systemImage: "list.bullet")
         }
 
-        Divider()
-
         if let book = book {
           if !(book.readProgress?.completed ?? false) {
             Button {
