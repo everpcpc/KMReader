@@ -32,7 +32,7 @@
         VStack(spacing: 0) {
           VStack(alignment: .leading, spacing: 8) {
             EpubPreviewView(preferences: draft)
-              .frame(height: 200)
+              .frame(height: 160)
               .cornerRadius(8)
           }
           .padding(.horizontal, 16)
