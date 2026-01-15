@@ -34,8 +34,7 @@
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
-    @State private var showingSeriesDetailSheet = false
-    @State private var showingBookDetailSheet = false
+    @State private var showingDetailSheet = false
 
     init(
       bookId: String,
@@ -218,7 +217,7 @@
           // Series and book title
           if let book = currentBook {
             Button {
-              showingBookDetailSheet = true
+              showingDetailSheet = true
             } label: {
               HStack(spacing: 4) {
                 if incognito {
@@ -246,14 +245,6 @@
             .optimizedControlSize()
             .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-            .simultaneousGesture(
-              LongPressGesture()
-                .onEnded { _ in
-                  if currentSeries != nil {
-                    showingSeriesDetailSheet = true
-                  }
-                }
-            )
           }
 
           Spacer()
@@ -316,48 +307,11 @@
           viewModel.applyPreferences(newPreferences, colorScheme: colorScheme)
         }
       }
-      .sheet(isPresented: $showingSeriesDetailSheet) {
-        if let book = currentBook, let series = currentSeries {
-          SheetView(title: series.metadata.title, size: .large) {
-            ScrollView {
-              if series.oneshot {
-                OneShotDetailContentView(
-                  book: book,
-                  series: series,
-                  downloadStatus: nil,
-                  inSheet: true
-                )
-              } else {
-                SeriesDetailContentView(
-                  series: series
-                ).padding(.horizontal)
-              }
-            }
-          }
-        }
-      }
-      .sheet(isPresented: $showingBookDetailSheet) {
-        if let book = currentBook, let series = currentSeries {
-          SheetView(title: book.metadata.title, size: .large) {
-            ScrollView {
-              if book.oneshot {
-                OneShotDetailContentView(
-                  book: book,
-                  series: series,
-                  downloadStatus: nil,
-                  inSheet: true
-                )
-              } else {
-                BookDetailContentView(
-                  book: book,
-                  downloadStatus: nil,
-                  inSheet: true
-                ).padding(.horizontal)
-              }
-            }
-          }
-        }
-      }
+      .readerDetailSheet(
+        isPresented: $showingDetailSheet,
+        book: currentBook,
+        series: currentSeries
+      )
     }
 
     private func toggleControls(autoHide: Bool = true) {

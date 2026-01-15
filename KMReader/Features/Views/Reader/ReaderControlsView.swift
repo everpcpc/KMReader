@@ -17,8 +17,7 @@ struct ReaderControlsView: View {
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
   @Binding var showingReaderSettingsSheet: Bool
-  @Binding var showingSeriesDetailSheet: Bool
-  @Binding var showingBookDetailSheet: Bool
+  @Binding var showingDetailSheet: Bool
 
   let viewModel: ReaderViewModel
   let currentBook: Book?
@@ -131,7 +130,7 @@ struct ReaderControlsView: View {
         // Series and book title
         if let book = currentBook {
           Button {
-            showingBookDetailSheet = true
+            showingDetailSheet = true
           } label: {
             HStack(spacing: 4) {
               if incognito {
@@ -159,14 +158,6 @@ struct ReaderControlsView: View {
           .optimizedControlSize()
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          .simultaneousGesture(
-            LongPressGesture()
-              .onEnded { _ in
-                if currentSeries != nil {
-                  showingSeriesDetailSheet = true
-                }
-              }
-          )
         }
 
         Spacer()
