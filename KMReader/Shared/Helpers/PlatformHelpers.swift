@@ -161,6 +161,19 @@ enum PlatformHelper {
     #endif
   }
 
+  @MainActor
+  static var pageNumberFontSize: CGFloat {
+    #if os(tvOS)
+      return 24
+    #elseif os(macOS)
+      return 16
+    #elseif os(iOS)
+      return 14
+    #else
+      return 14
+    #endif
+  }
+
   /// Get device orientation
   /// - iOS: use `UIDevice.current.orientation`
   /// - tvOS / macOS: always return `.landscape`

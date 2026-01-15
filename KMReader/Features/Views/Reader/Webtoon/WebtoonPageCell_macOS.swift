@@ -49,7 +49,7 @@
       view.addSubview(pageMarkerContainer)
 
       pageMarkerLabel.wantsLayer = true
-      pageMarkerLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+      pageMarkerLabel.font = .systemFont(ofSize: PlatformHelper.pageNumberFontSize, weight: .semibold)
       pageMarkerLabel.textColor = .white
       pageMarkerLabel.drawsBackground = false
       pageMarkerLabel.alignment = .center

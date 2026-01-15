@@ -373,7 +373,7 @@
       loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
       addSubview(loadingIndicator)
 
-      pageNumberLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+      pageNumberLabel.font = .systemFont(ofSize: PlatformHelper.pageNumberFontSize, weight: .semibold)
       pageNumberLabel.textColor = .white
       pageNumberLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
       pageNumberLabel.layer.cornerRadius = 6

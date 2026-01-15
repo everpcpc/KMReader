@@ -42,7 +42,7 @@
       imageView.translatesAutoresizingMaskIntoConstraints = false
       contentView.addSubview(imageView)
 
-      pageMarkerLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+      pageMarkerLabel.font = .systemFont(ofSize: PlatformHelper.pageNumberFontSize, weight: .semibold)
       pageMarkerLabel.textColor = .white
       pageMarkerLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
       pageMarkerLabel.layer.cornerRadius = 6

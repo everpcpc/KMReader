@@ -577,7 +577,7 @@
       pageNumberLabel.isSelectable = false
       pageNumberLabel.isBordered = false
       pageNumberLabel.drawsBackground = false
-      pageNumberLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+      pageNumberLabel.font = .systemFont(ofSize: PlatformHelper.pageNumberFontSize, weight: .semibold)
       pageNumberLabel.textColor = .white
       pageNumberLabel.alignment = .center
       pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
