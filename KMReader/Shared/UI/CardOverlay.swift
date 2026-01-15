@@ -79,5 +79,4 @@ struct UnreadIndicator: View {
     }
   }
   .padding()
-  .background(Color(UIColor.systemGroupedBackground))
 }
