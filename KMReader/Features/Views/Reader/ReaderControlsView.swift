@@ -219,9 +219,9 @@ struct ReaderControlsView: View {
         .allowsHitTesting(true)
 
         // Bottom slider
-        ReadingProgressBar(progress: progress)
+        ReadingProgressBar(progress: progress, type: .reader)
           .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
       }
     }
     #if os(iOS)

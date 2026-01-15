@@ -155,7 +155,7 @@ enum PlatformHelper {
     #elseif os(macOS)
       return 4
     #elseif os(iOS)
-      return isPad ? 4 : 3
+      return isPad ? 4 : 4
     #else
       return 4
     #endif
