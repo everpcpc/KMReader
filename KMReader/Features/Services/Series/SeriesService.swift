@@ -26,7 +26,8 @@ class SeriesService {
     completeFilter: TriStateFilter<BoolTriStateFlag>,
     oneshotFilter: TriStateFilter<BoolTriStateFlag>,
     deletedFilter: TriStateFilter<BoolTriStateFlag>,
-    searchTerm: String? = nil
+    searchTerm: String? = nil,
+    metadataFilter: MetadataFilterConfig? = nil
   ) async throws -> Page<Series> {
     // Check if we have any filters - if so, use getSeriesList
     let hasLibraryFilter = libraryIds != nil && !libraryIds!.isEmpty
@@ -35,8 +36,14 @@ class SeriesService {
     let hasSeriesStatusFilter =
       !includeSeriesStatuses.isEmpty || !excludeSeriesStatuses.isEmpty || oneshotFilter.isActive
       || deletedFilter.isActive || completeFilter.isActive
+    let hasMetadataFilter = metadataFilter != nil && (
+      metadataFilter!.publisher != nil ||
+      !(metadataFilter!.authors?.isEmpty ?? true) ||
+      !(metadataFilter!.genres?.isEmpty ?? true) ||
+      !(metadataFilter!.tags?.isEmpty ?? true)
+    )
 
-    if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter {
+    if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter || hasMetadataFilter {
       let condition = SeriesSearch.buildCondition(
         filters: SeriesSearchFilters(
           libraryIds: libraryIds,
@@ -48,6 +55,10 @@ class SeriesService {
           oneshot: oneshotFilter.effectiveBool,
           deleted: deletedFilter.effectiveBool,
           complete: completeFilter.effectiveBool,
+          publisher: metadataFilter?.publisher,
+          authors: metadataFilter?.authors,
+          genres: metadataFilter?.genres,
+          tags: metadataFilter?.tags
         ))
 
       let search = SeriesSearch(

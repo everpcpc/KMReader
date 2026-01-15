@@ -106,7 +106,8 @@ class SyncService {
     size: Int,
     sort: String,
     searchTerm: String?,
-    browseOpts: SeriesBrowseOptions?
+    browseOpts: SeriesBrowseOptions?,
+    metadataFilter: MetadataFilterConfig? = nil
   ) async throws -> Page<Series> {
     let includeRead = browseOpts?.includeReadStatuses ?? []
     let excludeRead = browseOpts?.excludeReadStatuses ?? []
@@ -130,7 +131,8 @@ class SyncService {
       completeFilter: complete,
       oneshotFilter: oneshot,
       deletedFilter: deleted,
-      searchTerm: searchTerm
+      searchTerm: searchTerm,
+      metadataFilter: metadataFilter
     )
 
     let instanceId = AppConfig.current.instanceId

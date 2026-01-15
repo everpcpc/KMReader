@@ -150,6 +150,7 @@ class BookViewModel {
     browseOpts: BookBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
+    metadataFilter: MetadataFilterConfig? = nil,
     refresh: Bool = false
   ) async {
     if !refresh {
@@ -189,7 +190,9 @@ class BookViewModel {
           includeReadStatuses: Array(browseOpts.includeReadStatuses),
           excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
           oneshot: browseOpts.oneshotFilter.effectiveBool,
-          deleted: browseOpts.deletedFilter.effectiveBool
+          deleted: browseOpts.deletedFilter.effectiveBool,
+          authors: metadataFilter?.authors,
+          tags: metadataFilter?.tags
         )
         let condition = BookSearch.buildCondition(filters: filters)
         let bookSearch = BookSearch(

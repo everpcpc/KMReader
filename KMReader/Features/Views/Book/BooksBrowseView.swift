@@ -12,6 +12,7 @@ struct BooksBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
+  let metadataFilter: MetadataFilterConfig?
 
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -71,6 +72,7 @@ struct BooksBrowseView: View {
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,
+      metadataFilter: metadataFilter,
       refresh: refresh
     )
   }

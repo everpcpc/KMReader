@@ -48,6 +48,10 @@ struct BookSearchFilters {
   var deleted: Bool? = nil
   var seriesId: String? = nil
   var readListId: String? = nil
+
+  // Metadata filters
+  var authors: [String]? = nil
+  var tags: [String]? = nil
 }
 
 // Helper functions to build conditions
@@ -111,6 +115,21 @@ extension BookSearch {
           "operator": deleted ? "istrue" : "isfalse"
         ]
       ])
+    }
+
+    // Metadata filters
+    if let authors = filters.authors, !authors.isEmpty {
+      let authorConditions = authors.map { author in
+        ["author": ["operator": "is", "value": ["name": author]]]
+      }
+      conditions.append(["anyOf": authorConditions])
+    }
+
+    if let tags = filters.tags, !tags.isEmpty {
+      let tagConditions = tags.map { tag in
+        ["tag": ["operator": "is", "value": tag]]
+      }
+      conditions.append(["anyOf": tagConditions])
     }
 
     if conditions.isEmpty {

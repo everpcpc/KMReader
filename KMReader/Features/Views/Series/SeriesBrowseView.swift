@@ -12,6 +12,7 @@ struct SeriesBrowseView: View {
   let libraryIds: [String]
   let searchText: String
   let refreshTrigger: UUID
+  let metadataFilter: MetadataFilterConfig?
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
 
@@ -75,6 +76,7 @@ struct SeriesBrowseView: View {
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,
+      metadataFilter: metadataFilter,
       refresh: refresh
     )
   }

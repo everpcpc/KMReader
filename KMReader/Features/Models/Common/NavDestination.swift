@@ -18,6 +18,14 @@ enum NavDestination: Hashable {
 
   case browseLibrary(selection: LibrarySelection)
 
+  // Browse with metadata filter
+  case browseSeriesWithPublisher(publisher: String)
+  case browseSeriesWithAuthor(author: String)
+  case browseSeriesWithGenre(genre: String)
+  case browseSeriesWithTag(tag: String)
+  case browseBooksWithAuthor(author: String)
+  case browseBooksWithTag(tag: String)
+
   case seriesDetail(seriesId: String)
   case bookDetail(bookId: String)
   case oneshotDetail(seriesId: String)
@@ -65,6 +73,19 @@ enum NavDestination: Hashable {
 
     case .browseLibrary(let selection):
       BrowseView(library: selection)
+
+    case .browseSeriesWithPublisher(let publisher):
+      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forPublisher(publisher))
+    case .browseSeriesWithAuthor(let author):
+      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forAuthors([author]))
+    case .browseSeriesWithGenre(let genre):
+      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forGenres([genre]))
+    case .browseSeriesWithTag(let tag):
+      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forTags([tag]))
+    case .browseBooksWithAuthor(let author):
+      BrowseView(fixedContent: .books, metadataFilter: MetadataFilterConfig.forAuthors([author]))
+    case .browseBooksWithTag(let tag):
+      BrowseView(fixedContent: .books, metadataFilter: MetadataFilterConfig.forTags([tag]))
 
     case .seriesDetail(let seriesId):
       SeriesDetailView(seriesId: seriesId)

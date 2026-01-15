@@ -21,6 +21,7 @@ struct BrowseView: View {
 
   let library: LibrarySelection?
   let fixedContent: BrowseContentType?
+  let metadataFilter: MetadataFilterConfig?
 
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
@@ -49,9 +50,10 @@ struct BrowseView: View {
     }
   }
 
-  init(library: LibrarySelection? = nil, fixedContent: BrowseContentType? = nil) {
+  init(library: LibrarySelection? = nil, fixedContent: BrowseContentType? = nil, metadataFilter: MetadataFilterConfig? = nil) {
     self.library = library
     self.fixedContent = fixedContent
+    self.metadataFilter = metadataFilter
     if let library = library {
       _libraryIds = State(initialValue: [library.libraryId])
     } else {
@@ -234,6 +236,7 @@ struct BrowseView: View {
         libraryIds: libraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
+        metadataFilter: metadataFilter,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters
       )
@@ -243,7 +246,8 @@ struct BrowseView: View {
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         showFilterSheet: $showFilterSheet,
-        showSavedFilters: $showSavedFilters
+        showSavedFilters: $showSavedFilters,
+        metadataFilter: metadataFilter
       )
     case .collections:
       CollectionsBrowseView(

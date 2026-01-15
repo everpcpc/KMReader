@@ -31,6 +31,7 @@ import SwiftUI
             }
           }
         }
+        .environment(\.sidebarSelection, $nav)
       }
     }
   }

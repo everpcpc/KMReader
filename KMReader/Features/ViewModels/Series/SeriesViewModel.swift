@@ -18,15 +18,17 @@ class SeriesViewModel {
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   private var currentState: SeriesBrowseOptions?
   private var currentSearchText: String = ""
+  private var currentMetadataFilter: MetadataFilterConfig?
 
   func loadSeries(
     context: ModelContext,
     browseOpts: SeriesBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
+    metadataFilter: MetadataFilterConfig? = nil,
     refresh: Bool = false
   ) async {
-    let paramsChanged = currentState != browseOpts || currentSearchText != searchText
+    let paramsChanged = currentState != browseOpts || currentSearchText != searchText || currentMetadataFilter != metadataFilter
     let shouldReset = refresh || paramsChanged
 
     if !shouldReset {
@@ -37,6 +39,7 @@ class SeriesViewModel {
       pagination.reset()
       currentState = browseOpts
       currentSearchText = searchText
+      currentMetadataFilter = metadataFilter
     }
 
     let loadID = pagination.loadID
@@ -69,7 +72,8 @@ class SeriesViewModel {
           size: pagination.pageSize,
           sort: browseOpts.sortString,
           searchTerm: searchText.isEmpty ? nil : searchText,
-          browseOpts: browseOpts
+          browseOpts: browseOpts,
+          metadataFilter: metadataFilter
         )
 
         guard loadID == pagination.loadID else { return }

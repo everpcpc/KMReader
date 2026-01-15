@@ -153,11 +153,12 @@ struct BookDetailContentView: View {
           if let authors = book.metadata.authors, !authors.isEmpty {
             HFlow {
               ForEach(authors.sortedByRole(), id: \.self) { author in
-                InfoChip(
+                TappableInfoChip(
                   label: author.name,
                   systemImage: author.role.icon,
                   backgroundColor: Color.indigo.opacity(0.2),
-                  foregroundColor: .indigo
+                  foregroundColor: .indigo,
+                  destination: MetadataFilterHelper.booksDestinationForAuthor(author.name)
                 )
               }
             }
@@ -169,12 +170,13 @@ struct BookDetailContentView: View {
       if let tags = book.metadata.tags, !tags.isEmpty {
         HFlow {
           ForEach(tags.sorted(), id: \.self) { tag in
-            InfoChip(
+            TappableInfoChip(
               label: tag,
               systemImage: "tag",
               backgroundColor: Color.secondary.opacity(0.1),
               foregroundColor: .secondary,
-              cornerRadius: 8
+              cornerRadius: 8,
+              destination: MetadataFilterHelper.booksDestinationForTag(tag)
             )
           }
         }

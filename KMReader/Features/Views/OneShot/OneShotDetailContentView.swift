@@ -177,22 +177,24 @@ struct OneShotDetailContentView: View {
           }
 
           if let publisher = series.metadata.publisher, !publisher.isEmpty {
-            InfoChip(
+            TappableInfoChip(
               label: publisher,
               systemImage: "building.2",
               backgroundColor: Color.teal.opacity(0.2),
-              foregroundColor: .teal
+              foregroundColor: .teal,
+              destination: MetadataFilterHelper.seriesDestinationForPublisher(publisher)
             )
           }
 
           if let authors = book.metadata.authors, !authors.isEmpty {
             HFlow {
               ForEach(authors.sortedByRole(), id: \.self) { author in
-                InfoChip(
+                TappableInfoChip(
                   label: author.name,
                   systemImage: author.role.icon,
                   backgroundColor: Color.indigo.opacity(0.2),
-                  foregroundColor: .indigo
+                  foregroundColor: .indigo,
+                  destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
                 )
               }
             }
@@ -204,12 +206,13 @@ struct OneShotDetailContentView: View {
       if let genres = series.metadata.genres, !genres.isEmpty {
         HFlow {
           ForEach(genres.sorted(), id: \.self) { genre in
-            InfoChip(
+            TappableInfoChip(
               label: genre,
               systemImage: "bookmark",
               backgroundColor: Color.blue.opacity(0.1),
               foregroundColor: .blue,
-              cornerRadius: 8
+              cornerRadius: 8,
+              destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
             )
           }
         }
@@ -219,12 +222,13 @@ struct OneShotDetailContentView: View {
       if let tags = book.metadata.tags, !tags.isEmpty {
         HFlow {
           ForEach(tags.sorted(), id: \.self) { tag in
-            InfoChip(
+            TappableInfoChip(
               label: tag,
               systemImage: "tag",
               backgroundColor: Color.secondary.opacity(0.1),
               foregroundColor: .secondary,
-              cornerRadius: 8
+              cornerRadius: 8,
+              destination: MetadataFilterHelper.seriesDestinationForTag(tag)
             )
           }
         }

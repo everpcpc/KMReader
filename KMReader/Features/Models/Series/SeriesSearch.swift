@@ -52,6 +52,12 @@ struct SeriesSearchFilters {
   /// complete = true / false / nil
   var complete: Bool? = nil
   var collectionId: String? = nil
+
+  // Metadata filters
+  var publisher: String? = nil
+  var authors: [String]? = nil
+  var genres: [String]? = nil
+  var tags: [String]? = nil
 }
 
 // Helper functions to build conditions
@@ -133,6 +139,34 @@ extension SeriesSearch {
       conditions.append([
         "collectionId": ["operator": "is", "value": collectionId]
       ])
+    }
+
+    // Metadata filters
+    if let publisher = filters.publisher, !publisher.isEmpty {
+      conditions.append([
+        "publisher": ["operator": "is", "value": publisher]
+      ])
+    }
+
+    if let authors = filters.authors, !authors.isEmpty {
+      let authorConditions = authors.map { author in
+        ["author": ["operator": "is", "value": ["name": author]]]
+      }
+      conditions.append(["anyOf": authorConditions])
+    }
+
+    if let genres = filters.genres, !genres.isEmpty {
+      let genreConditions = genres.map { genre in
+        ["genre": ["operator": "is", "value": genre]]
+      }
+      conditions.append(["anyOf": genreConditions])
+    }
+
+    if let tags = filters.tags, !tags.isEmpty {
+      let tagConditions = tags.map { tag in
+        ["tag": ["operator": "is", "value": tag]]
+      }
+      conditions.append(["anyOf": tagConditions])
     }
 
     if conditions.isEmpty {
