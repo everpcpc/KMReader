@@ -54,7 +54,6 @@ struct BookSelectionItemView: View {
             onReadBook: { _ in },
             showSeriesTitle: showSeriesTitle
           )
-          .focusPadding()
         case .list:
           BookRowView(
             komgaBook: book,

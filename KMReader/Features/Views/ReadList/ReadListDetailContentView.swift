@@ -21,7 +21,8 @@ struct ReadListDetailContentView: View {
           id: readList.id,
           type: .readlist,
           width: PlatformHelper.detailThumbnailWidth,
-          isTransitionSource: false
+          isTransitionSource: false,
+          onAction: {}
         ) {
         } menu: {
           Button {
@@ -49,7 +50,6 @@ struct ReadListDetailContentView: View {
           }
         }
         .id(thumbnailRefreshKey)
-        .thumbnailFocus()
 
         VStack(alignment: .leading) {
           // Summary

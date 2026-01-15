@@ -96,17 +96,17 @@ struct SettingsApiKeyView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
               }
-            }
-            #if os(iOS) || os(macOS)
-              .swipeActions {
-                Button(role: .destructive) {
-                  keyToDelete = apiKey
-                  showingDeleteConfirmation = true
-                } label: {
-                  Label(String(localized: "Delete"), systemImage: "trash")
+            }.tvFocusableHighlight()
+              #if os(iOS) || os(macOS)
+                .swipeActions {
+                  Button(role: .destructive) {
+                    keyToDelete = apiKey
+                    showingDeleteConfirmation = true
+                  } label: {
+                    Label(String(localized: "Delete"), systemImage: "trash")
+                  }
                 }
-              }
-            #endif
+              #endif
           }
         }
       }

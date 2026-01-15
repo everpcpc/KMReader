@@ -78,6 +78,7 @@ struct ServersView: View {
                 instancePendingDeletion = instance
               }
             )
+            // .tvFocusableHighlight()
           }
         }
       }
@@ -114,17 +115,6 @@ struct ServersView: View {
       .scrollContentBackground(.hidden)
     #endif
     .inlineNavigationBarTitle(navigationTitle)
-    .toolbar {
-      if mode == .onboarding {
-        ToolbarItem(placement: .cancellationAction) {
-          Button {
-            dismiss()
-          } label: {
-            Image(systemName: "xmark")
-          }
-        }
-      }
-    }
     .sheet(item: $editingInstance) { instance in
       SettingsServerEditView(instance: instance)
     }

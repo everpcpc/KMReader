@@ -47,7 +47,8 @@ struct OneShotDetailContentView: View {
           id: book.id,
           type: .book,
           width: PlatformHelper.detailThumbnailWidth,
-          isTransitionSource: false
+          isTransitionSource: false,
+          onAction: {}
         ) {
         } menu: {
           Button {
@@ -75,7 +76,6 @@ struct OneShotDetailContentView: View {
           }
         }
         .id(thumbnailRefreshKey)
-        .thumbnailFocus()
 
         VStack(alignment: .leading) {
           HStack(spacing: 6) {

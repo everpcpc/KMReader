@@ -29,7 +29,8 @@ struct SeriesDetailContentView: View {
           id: series.id,
           type: .series,
           width: PlatformHelper.detailThumbnailWidth,
-          isTransitionSource: false
+          isTransitionSource: false,
+          onAction: {}
         ) {
         } menu: {
           Button {
@@ -57,7 +58,6 @@ struct SeriesDetailContentView: View {
           }
         }
         .id(thumbnailRefreshKey)
-        .thumbnailFocus()
 
         VStack(alignment: .leading) {
 

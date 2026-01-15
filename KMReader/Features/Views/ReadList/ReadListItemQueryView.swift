@@ -25,7 +25,6 @@ struct ReadListItemQueryView: View {
         )
       }
     }
-    .focusPadding()
     .adaptiveButtonStyle(.plain)
   }
 }

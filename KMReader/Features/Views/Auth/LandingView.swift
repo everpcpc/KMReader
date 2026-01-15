@@ -51,9 +51,9 @@ struct LandingView: View {
       .padding(.horizontal, 40)
       .padding(.bottom, 60)
     }
-    #if !os(macOS)
+    #if os(iOS)
       .fullScreenCover(isPresented: $showGetStarted) {
-        NavigationStack {
+        SheetView(title: "Get Started") {
           ServersView(mode: .onboarding)
         }
         .tint(themeColor.color)
@@ -61,7 +61,7 @@ struct LandingView: View {
       }
     #else
       .sheet(isPresented: $showGetStarted) {
-        NavigationStack {
+        SheetView(title: "Get Started", applyFormStyle: true) {
           ServersView(mode: .onboarding)
         }
       }

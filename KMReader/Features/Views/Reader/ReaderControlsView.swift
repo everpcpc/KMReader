@@ -38,8 +38,9 @@ struct ReaderControlsView: View {
   #if os(tvOS)
     private enum ControlFocus: Hashable {
       case close
-      case pageNumber
+      case title
       case settings
+      case pageNumber
     }
     @FocusState private var focusedControl: ControlFocus?
   #endif
@@ -158,6 +159,10 @@ struct ReaderControlsView: View {
           .optimizedControlSize()
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          #if os(tvOS)
+            .focused($focusedControl, equals: .title)
+            .id("titleLabel")
+          #endif
         }
 
         Spacer()

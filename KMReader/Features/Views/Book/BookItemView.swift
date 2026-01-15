@@ -23,7 +23,6 @@ struct BookItemView: View {
         showSeriesTitle: showSeriesTitle,
         showSeriesNavigation: showSeriesNavigation
       )
-      .focusPadding()
     case .list:
       BookRowView(
         komgaBook: book,

@@ -25,7 +25,6 @@ struct CollectionItemQueryView: View {
         )
       }
     }
-    .focusPadding()
     .adaptiveButtonStyle(.plain)
   }
 }

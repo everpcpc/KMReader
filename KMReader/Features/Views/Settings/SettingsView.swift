@@ -36,9 +36,11 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
-        NavigationLink(value: NavDestination.settingsNetwork) {
-          SettingsSectionRow(section: .network)
-        }
+        #if !os(tvOS)
+          NavigationLink(value: NavDestination.settingsNetwork) {
+            SettingsSectionRow(section: .network)
+          }
+        #endif
         NavigationLink(value: NavDestination.settingsLogs) {
           SettingsSectionRow(section: .logs)
         }

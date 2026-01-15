@@ -119,6 +119,7 @@ struct SettingsOfflineBooksView: View {
         } description: {
           Text(String(localized: "settings.offline.no_books.description"))
         }
+        .tvFocusableHighlight()
       } else {
         Section {
           HStack {

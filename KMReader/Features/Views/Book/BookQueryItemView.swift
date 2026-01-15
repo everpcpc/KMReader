@@ -50,7 +50,6 @@ struct BookQueryItemView: View {
           showSeriesTitle: showSeriesTitle,
           showSeriesNavigation: showSeriesNavigation
         )
-        .focusPadding()
       case .list:
         BookRowView(
           komgaBook: book,
@@ -63,7 +62,6 @@ struct BookQueryItemView: View {
       }
     } else {
       CardPlaceholder(layout: layout)
-        .focusPadding()
     }
   }
 }

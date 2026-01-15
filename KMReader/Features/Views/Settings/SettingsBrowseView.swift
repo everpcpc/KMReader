@@ -14,6 +14,7 @@ struct SettingsBrowseView: View {
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
+  @AppStorage("thumbnailGlassEffect") private var thumbnailGlassEffect: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
@@ -90,6 +91,17 @@ struct SettingsBrowseView: View {
             Text(String(localized: "settings.appearance.coverShowShadow.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
+          }
+        }
+
+        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
+          Toggle(isOn: $thumbnailGlassEffect) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "settings.appearance.coverGlassEffect.title"))
+              Text(String(localized: "settings.appearance.coverGlassEffect.caption"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
         }
 

@@ -56,19 +56,22 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     content()
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
       .overlay { borderOverlay }
-      .overlay {
-        if !isAbnormalSize, let overlay = overlay {
-          overlay()
-        }
+      .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
+        view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
       }
       #if os(iOS)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
       #endif
-      .withNavigationLink(navigationLink)
-      .withButtonAction(onAction)
+      .withNavigationLink(navigationLink, cornerRadius: cornerRadius)
+      .withButtonAction(onAction, cornerRadius: cornerRadius)
       .contextMenu {
         if let menu = menu {
           menu()
+        }
+      }
+      .overlay {
+        if !isAbnormalSize, let overlay = overlay {
+          overlay()
         }
       }
       .transition(.opacity)
@@ -134,9 +137,6 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       if image != nil {
         thumbnailBase {
           imageContent
-        }
-        .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
-          view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
         }
         .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
       } else if shouldShowPlaceholder {
@@ -256,26 +256,26 @@ extension ThumbnailImage where Menu == EmptyView {
 
 extension View {
   @ViewBuilder
-  func withButtonAction(_ onAction: (() -> Void)?) -> some View {
+  func withButtonAction(_ onAction: (() -> Void)?, cornerRadius: CGFloat = 8) -> some View {
     if let onAction = onAction {
       Button(action: onAction) {
         self
       }
       .adaptiveButtonStyle(.plain)
-      .focusPadding()
+      .thumbnailFocus(cornerRadius: cornerRadius)
     } else {
       self
     }
   }
 
   @ViewBuilder
-  func withNavigationLink(_ navigationLink: NavDestination?) -> some View {
+  func withNavigationLink(_ navigationLink: NavDestination?, cornerRadius: CGFloat = 8) -> some View {
     if let navigationLink = navigationLink {
       NavigationLink(value: navigationLink) {
         self
       }
       .adaptiveButtonStyle(.plain)
-      .focusPadding()
+      .thumbnailFocus(cornerRadius: cornerRadius)
     } else {
       self
     }

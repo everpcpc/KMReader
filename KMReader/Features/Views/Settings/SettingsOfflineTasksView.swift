@@ -155,6 +155,7 @@ struct SettingsOfflineTasksView: View {
         } description: {
           Text("No books are currently queued for offline reading.")
         }
+        .tvFocusableHighlight()
       }
     }
     .formStyle(.grouped)

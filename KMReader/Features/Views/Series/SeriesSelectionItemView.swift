@@ -46,7 +46,6 @@ struct SeriesSelectionItemView: View {
           SeriesCardView(
             komgaSeries: series
           )
-          .focusPadding()
         case .list:
           SeriesRowView(
             komgaSeries: series

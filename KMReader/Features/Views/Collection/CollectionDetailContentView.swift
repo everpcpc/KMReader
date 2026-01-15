@@ -21,7 +21,8 @@ struct CollectionDetailContentView: View {
           id: collection.id,
           type: .collection,
           width: PlatformHelper.detailThumbnailWidth,
-          isTransitionSource: false
+          isTransitionSource: false,
+          onAction: {}
         ) {
         } menu: {
           Button {
@@ -49,7 +50,6 @@ struct CollectionDetailContentView: View {
           }
         }
         .id(thumbnailRefreshKey)
-        .thumbnailFocus()
 
         VStack(alignment: .leading) {
           VStack(alignment: .leading, spacing: 6) {
