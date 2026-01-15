@@ -20,6 +20,7 @@
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -97,6 +98,13 @@
         .onChange(of: colorScheme) { _, newScheme in
           guard readerPrefs.theme == .system else { return }
           viewModel.applyPreferences(readerPrefs, colorScheme: newScheme)
+        }
+        .onChange(of: autoHideControls) { _, newValue in
+          if newValue {
+            resetControlsTimer(timeout: 3)
+          } else {
+            controlsTimer?.invalidate()
+          }
         }
     }
 
@@ -352,16 +360,27 @@
       }
     }
 
-    private func toggleControls() {
+    private func toggleControls(autoHide: Bool = true) {
       withAnimation {
         showingControls.toggle()
       }
       if showingControls {
-        resetControlsTimer(timeout: 3)
+        // Only auto-hide if autoHide is true
+        if autoHide {
+          resetControlsTimer(timeout: 3)
+        } else {
+          // Cancel any existing timer when manually opened
+          controlsTimer?.invalidate()
+        }
       }
     }
 
     private func resetControlsTimer(timeout: TimeInterval) {
+      // Don't start timer if auto-hide is disabled
+      if !autoHideControls {
+        return
+      }
+
       controlsTimer?.invalidate()
       controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
         withAnimation {
