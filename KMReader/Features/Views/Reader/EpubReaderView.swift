@@ -404,7 +404,8 @@
           }
 
           if let totalProgression {
-            ReadingProgressBar(progress: totalProgression)
+            ReadingProgressBar(progress: totalProgression, type: .reader)
+              .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
               .opacity(shouldShowControls ? 1.0 : 0.0)
               .allowsHitTesting(false)
           }

@@ -48,8 +48,15 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
+  var padding: CGFloat {
+    if isInProgress && thumbnailShowProgressBar {
+      return 4
+    }
+    return 12
+  }
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: padding) {
       ThumbnailImage(
         id: komgaBook.bookId,
         type: .book,
@@ -57,21 +64,9 @@ struct BookCardView: View {
         alignment: .bottom,
         onAction: { onReadBook?(false) }
       ) {
-        ZStack {
-          if let progressCompleted = komgaBook.progressCompleted {
-            if !progressCompleted {
-              if thumbnailShowProgressBar {
-                ReadingProgressBar(progress: progress)
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                  .padding(2)
-              }
-            }
-          } else {
-            if thumbnailShowUnreadIndicator {
-              UnreadIndicator()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            }
-          }
+        if komgaBook.progressCompleted == nil && thumbnailShowUnreadIndicator {
+          UnreadIndicator()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
       } menu: {
         BookContextMenu(
@@ -89,6 +84,10 @@ struct BookCardView: View {
           },
           showSeriesNavigation: showSeriesNavigation
         )
+      }
+
+      if isInProgress && thumbnailShowProgressBar {
+        ReadingProgressBar(progress: progress, type: .card)
       }
 
       if !coverOnlyCards {
