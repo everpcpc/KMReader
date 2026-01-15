@@ -68,7 +68,8 @@ struct DashboardSectionView: View {
       NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
         HStack {
           Text(section.displayName)
-            .font(.appSerifDesign(size: 22, weight: .bold))
+            .font(.title2)
+            .fontDesign(.serif)
           Image(systemName: "chevron.right")
             .font(.subheadline)
             .foregroundStyle(.secondary)
@@ -76,6 +77,7 @@ struct DashboardSectionView: View {
       }
       .buttonStyle(.plain)
       .padding(.leading, 16)
+      .disabled(pagination.isEmpty)
 
       ScrollViewReader { proxy in
         ScrollView(.horizontal, showsIndicators: false) {

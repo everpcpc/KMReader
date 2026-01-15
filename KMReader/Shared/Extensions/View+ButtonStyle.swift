@@ -31,9 +31,13 @@ extension View {
         self.buttonStyle(.glass)
       case .plain:
         #if os(tvOS)
-          self.buttonStyle(.plain)
+          self.buttonStyle(.card)
+        #elseif os(iOS)
+          self.buttonStyle(.squish).hoverEffect(.lift)
+        #elseif os(macOS)
+          self.buttonStyle(.squish).macHoverEffect()
         #else
-          self.buttonStyle(.squish)
+          self.buttonStyle(.plain)
         #endif
       }
     } else {
@@ -46,9 +50,13 @@ extension View {
         self.buttonStyle(.borderless)
       case .plain:
         #if os(tvOS)
-          self.buttonStyle(.plain)
+          self.buttonStyle(.card)
+        #elseif os(iOS)
+          self.buttonStyle(.squish).hoverEffect(.lift)
+        #elseif os(macOS)
+          self.buttonStyle(.squish).macHoverEffect()
         #else
-          self.buttonStyle(.squish)
+          self.buttonStyle(.plain)
         #endif
       }
     }

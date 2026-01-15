@@ -385,18 +385,6 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var thumbnailGlassEffect: Bool {
-    get {
-      if UserDefaults.standard.object(forKey: "thumbnailGlassEffect") != nil {
-        return UserDefaults.standard.bool(forKey: "thumbnailGlassEffect")
-      }
-      return false
-    }
-    set {
-      UserDefaults.standard.set(newValue, forKey: "thumbnailGlassEffect")
-    }
-  }
-
   static nonisolated var privacyProtection: Bool {
     get {
       UserDefaults.standard.bool(forKey: "privacyProtection")

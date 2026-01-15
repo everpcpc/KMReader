@@ -262,7 +262,6 @@ extension View {
         self
       }
       .adaptiveButtonStyle(.plain)
-      .thumbnailFocus(cornerRadius: cornerRadius)
     } else {
       self
     }
@@ -275,7 +274,6 @@ extension View {
         self
       }
       .adaptiveButtonStyle(.plain)
-      .thumbnailFocus(cornerRadius: cornerRadius)
     } else {
       self
     }
