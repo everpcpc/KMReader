@@ -294,14 +294,16 @@ struct ReaderControlsView: View {
     }
 
     #if os(iOS) || os(macOS)
-      Section {
-        if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
-          share(firstPage: pair.first, secondPage: pair.second)
-        } else {
-          share(firstPage: viewModel.currentPageIndex, secondPage: nil)
+      if viewModel.currentPageIndex < viewModel.pages.count {
+        Section {
+          if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
+            share(firstPage: pair.first, secondPage: pair.second)
+          } else {
+            share(firstPage: viewModel.currentPageIndex, secondPage: nil)
+          }
+        } header: {
+          Text(String(localized: "Share"))
         }
-      } header: {
-        Text(String(localized: "Share"))
       }
     #endif
   }
