@@ -17,8 +17,7 @@ struct ReaderControlsView: View {
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
   @Binding var showingReaderSettingsSheet: Bool
-  @Binding var showingSeriesDetailSheet: Bool
-  @Binding var showingBookDetailSheet: Bool
+  @Binding var showingDetailSheet: Bool
 
   let viewModel: ReaderViewModel
   let currentBook: Book?
@@ -131,7 +130,7 @@ struct ReaderControlsView: View {
         // Series and book title
         if let book = currentBook {
           Button {
-            showingBookDetailSheet = true
+            showingDetailSheet = true
           } label: {
             HStack(spacing: 4) {
               if incognito {
@@ -159,14 +158,6 @@ struct ReaderControlsView: View {
           .optimizedControlSize()
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          .simultaneousGesture(
-            LongPressGesture()
-              .onEnded { _ in
-                if currentSeries != nil {
-                  showingSeriesDetailSheet = true
-                }
-              }
-          )
         }
 
         Spacer()
@@ -255,20 +246,24 @@ struct ReaderControlsView: View {
   @ViewBuilder
   private func menuContent() -> some View {
     Section {
-      Picker(String(localized: "Reading Direction"), selection: $readingDirection) {
+      Picker(selection: $readingDirection) {
         ForEach(ReadingDirection.availableCases, id: \.self) { direction in
           Label(direction.displayName, systemImage: direction.icon)
             .tag(direction)
         }
+      } label: {
+        Label(String(localized: "Reading Direction"), systemImage: readingDirection.icon)
       }
       .pickerStyle(.menu)
 
       if readingDirection != .webtoon && readingDirection != .vertical {
-        Picker(String(localized: "Page Layout"), selection: $pageLayout) {
+        Picker(selection: $pageLayout) {
           ForEach(PageLayout.allCases, id: \.self) { layout in
             Label(layout.displayName, systemImage: layout.icon)
               .tag(layout)
           }
+        } label: {
+          Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
         }
         .pickerStyle(.menu)
 
@@ -299,14 +294,16 @@ struct ReaderControlsView: View {
     }
 
     #if os(iOS) || os(macOS)
-      Section {
-        if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
-          share(firstPage: pair.first, secondPage: pair.second)
-        } else {
-          share(firstPage: viewModel.currentPageIndex, secondPage: nil)
+      if viewModel.currentPageIndex < viewModel.pages.count {
+        Section {
+          if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
+            share(firstPage: pair.first, secondPage: pair.second)
+          } else {
+            share(firstPage: viewModel.currentPageIndex, secondPage: nil)
+          }
+        } header: {
+          Text(String(localized: "Share"))
         }
-      } header: {
-        Text(String(localized: "Share"))
       }
     #endif
   }

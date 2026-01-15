@@ -20,6 +20,7 @@
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -33,8 +34,7 @@
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
-    @State private var showingSeriesDetailSheet = false
-    @State private var showingBookDetailSheet = false
+    @State private var showingDetailSheet = false
 
     init(
       bookId: String,
@@ -97,6 +97,13 @@
         .onChange(of: colorScheme) { _, newScheme in
           guard readerPrefs.theme == .system else { return }
           viewModel.applyPreferences(readerPrefs, colorScheme: newScheme)
+        }
+        .onChange(of: autoHideControls) { _, newValue in
+          if newValue {
+            resetControlsTimer(timeout: 3)
+          } else {
+            controlsTimer?.invalidate()
+          }
         }
     }
 
@@ -210,7 +217,7 @@
           // Series and book title
           if let book = currentBook {
             Button {
-              showingBookDetailSheet = true
+              showingDetailSheet = true
             } label: {
               HStack(spacing: 4) {
                 if incognito {
@@ -238,14 +245,6 @@
             .optimizedControlSize()
             .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-            .simultaneousGesture(
-              LongPressGesture()
-                .onEnded { _ in
-                  if currentSeries != nil {
-                    showingSeriesDetailSheet = true
-                  }
-                }
-            )
           }
 
           Spacer()
@@ -308,60 +307,34 @@
           viewModel.applyPreferences(newPreferences, colorScheme: colorScheme)
         }
       }
-      .sheet(isPresented: $showingSeriesDetailSheet) {
-        if let book = currentBook, let series = currentSeries {
-          SheetView(title: series.metadata.title, size: .large) {
-            ScrollView {
-              if series.oneshot {
-                OneShotDetailContentView(
-                  book: book,
-                  series: series,
-                  downloadStatus: nil,
-                  inSheet: true
-                )
-              } else {
-                SeriesDetailContentView(
-                  series: series
-                ).padding(.horizontal)
-              }
-            }
-          }
-        }
-      }
-      .sheet(isPresented: $showingBookDetailSheet) {
-        if let book = currentBook, let series = currentSeries {
-          SheetView(title: book.metadata.title, size: .large) {
-            ScrollView {
-              if book.oneshot {
-                OneShotDetailContentView(
-                  book: book,
-                  series: series,
-                  downloadStatus: nil,
-                  inSheet: true
-                )
-              } else {
-                BookDetailContentView(
-                  book: book,
-                  downloadStatus: nil,
-                  inSheet: true
-                ).padding(.horizontal)
-              }
-            }
-          }
-        }
-      }
+      .readerDetailSheet(
+        isPresented: $showingDetailSheet,
+        book: currentBook,
+        series: currentSeries
+      )
     }
 
-    private func toggleControls() {
+    private func toggleControls(autoHide: Bool = true) {
       withAnimation {
         showingControls.toggle()
       }
       if showingControls {
-        resetControlsTimer(timeout: 3)
+        // Only auto-hide if autoHide is true
+        if autoHide {
+          resetControlsTimer(timeout: 3)
+        } else {
+          // Cancel any existing timer when manually opened
+          controlsTimer?.invalidate()
+        }
       }
     }
 
     private func resetControlsTimer(timeout: TimeInterval) {
+      // Don't start timer if auto-hide is disabled
+      if !autoHideControls {
+        return
+      }
+
       controlsTimer?.invalidate()
       controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
         withAnimation {

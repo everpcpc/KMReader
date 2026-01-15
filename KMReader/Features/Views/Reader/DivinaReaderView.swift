@@ -47,8 +47,7 @@ struct DivinaReaderView: View {
   @State private var showingPageJumpSheet = false
   @State private var showingTOCSheet = false
   @State private var showingReaderSettingsSheet = false
-  @State private var showingSeriesDetailSheet = false
-  @State private var showingBookDetailSheet = false
+  @State private var showingDetailSheet = false
 
   #if os(tvOS)
     @State private var isEndPageButtonFocused = false
@@ -259,6 +258,7 @@ struct DivinaReaderView: View {
         totalPages: viewModel.pages.count,
         currentPage: min(viewModel.currentPageIndex + 1, viewModel.pages.count),
         readingDirection: readingDirection,
+        viewModel: viewModel,
         onJump: jumpToPage
       )
     }
@@ -275,48 +275,11 @@ struct DivinaReaderView: View {
     .sheet(isPresented: $showingReaderSettingsSheet) {
       ReaderSettingsSheet(readingDirection: $readingDirection)
     }
-    .sheet(isPresented: $showingSeriesDetailSheet) {
-      if let book = currentBook, let series = currentSeries {
-        SheetView(title: series.metadata.title, size: .large) {
-          ScrollView {
-            if series.oneshot {
-              OneShotDetailContentView(
-                book: book,
-                series: series,
-                downloadStatus: nil,
-                inSheet: true
-              )
-            } else {
-              SeriesDetailContentView(
-                series: series
-              ).padding(.horizontal)
-            }
-          }
-        }
-      }
-    }
-    .sheet(isPresented: $showingBookDetailSheet) {
-      if let book = currentBook, let series = currentSeries {
-        SheetView(title: book.metadata.title, size: .large) {
-          ScrollView {
-            if book.oneshot {
-              OneShotDetailContentView(
-                book: book,
-                series: series,
-                downloadStatus: nil,
-                inSheet: true
-              )
-            } else {
-              BookDetailContentView(
-                book: book,
-                downloadStatus: nil,
-                inSheet: true
-              ).padding(.horizontal)
-            }
-          }
-        }
-      }
-    }
+    .readerDetailSheet(
+      isPresented: $showingDetailSheet,
+      book: currentBook,
+      series: currentSeries
+    )
     .onAppear {
       viewModel.updateDualPageSettings(noCover: !isolateCoverPage)
       #if os(tvOS)
@@ -515,8 +478,7 @@ struct DivinaReaderView: View {
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
-      showingSeriesDetailSheet: $showingSeriesDetailSheet,
-      showingBookDetailSheet: $showingBookDetailSheet,
+      showingDetailSheet: $showingDetailSheet,
       viewModel: viewModel,
       currentBook: currentBook,
       currentSeries: currentSeries,
