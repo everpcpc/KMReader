@@ -25,6 +25,8 @@ enum GridDensity: Double, CaseIterable {
     }
   }
 
+  static let icon: String = "slider.horizontal.3"
+
   /// Find the closest preset for a given density value
   static func closest(to value: Double) -> GridDensity {
     allCases.min(by: { abs($0.rawValue - value) < abs($1.rawValue - value) }) ?? .standard

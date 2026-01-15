@@ -144,8 +144,6 @@ extension ReadListDetailView {
   @ViewBuilder
   private var readListToolbarContent: some View {
     HStack {
-      LayoutModePicker(selection: $readListDetailLayout)
-
       Button {
         showSavedFilters = true
       } label: {
@@ -159,6 +157,10 @@ extension ReadListDetailView {
       }
 
       Menu {
+        LayoutModePicker(selection: $readListDetailLayout)
+
+        Divider()
+
         if current.isAdmin {
           Button {
             showEditSheet = true

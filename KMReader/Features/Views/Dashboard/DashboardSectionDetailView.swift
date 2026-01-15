@@ -61,7 +61,14 @@ struct DashboardSectionDetailView: View {
     #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
-          LayoutModePicker(selection: $browseLayout)
+          Menu {
+            LayoutModePicker(
+              selection: $browseLayout,
+              showGridDensity: true
+            )
+          } label: {
+            Image(systemName: "ellipsis")
+          }
         }
       }
     #endif
