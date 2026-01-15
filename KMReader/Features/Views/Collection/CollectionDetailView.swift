@@ -136,8 +136,6 @@ extension CollectionDetailView {
   @ViewBuilder
   private var collectionToolbarContent: some View {
     HStack {
-      LayoutModePicker(selection: $collectionDetailLayout)
-
       Button {
         showSavedFilters = true
       } label: {
@@ -157,6 +155,10 @@ extension CollectionDetailView {
   @ViewBuilder
   private var actionsMenu: some View {
     Menu {
+      LayoutModePicker(selection: $collectionDetailLayout)
+
+      Divider()
+
       if current.isAdmin {
         Button {
           showEditSheet = true

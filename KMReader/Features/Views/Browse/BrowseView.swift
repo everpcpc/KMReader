@@ -158,25 +158,9 @@ struct BrowseView: View {
             }
           }
         }
+
         ToolbarItem(placement: .confirmationAction) {
           HStack {
-            Menu {
-              Picker(String(localized: "Layout"), selection: layoutModeBinding) {
-                ForEach(BrowseLayoutMode.allCases) { mode in
-                  Text(mode.displayName).tag(mode)
-                }
-              }.pickerStyle(.inline)
-              if layoutModeBinding.wrappedValue == .grid {
-                Picker(String(localized: "settings.appearance.gridDensity.label"), selection: gridDensityBinding) {
-                  ForEach(GridDensity.allCases, id: \.self) { density in
-                    Text(density.label).tag(density)
-                  }
-                }.pickerStyle(.inline)
-              }
-            } label: {
-              Image(systemName: layoutModeBinding.wrappedValue.iconName)
-            }
-
             if effectiveContent == .series || effectiveContent == .books {
               Button {
                 showSavedFilters = true
@@ -184,10 +168,20 @@ struct BrowseView: View {
                 Image(systemName: "bookmark")
               }
             }
+
             Button {
               showFilterSheet = true
             } label: {
               Image(systemName: "line.3.horizontal.decrease.circle")
+            }
+
+            Menu {
+              LayoutModePicker(
+                selection: layoutModeBinding,
+                showGridDensity: true
+              )
+            } label: {
+              Image(systemName: "ellipsis")
             }
           }
         }

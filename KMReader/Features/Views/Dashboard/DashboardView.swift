@@ -11,7 +11,7 @@ import SwiftUI
 
 struct DashboardView: View {
   @State private var refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: .manual)
-  @State private var isRefreshDisabled = false
+  @State private var isRefreshing = false
   @State private var pendingRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
   @State private var shouldRefreshAfterReading = false
@@ -47,11 +47,11 @@ struct DashboardView: View {
 
     // Update refresh trigger to cause all sections to reload
     refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: source)
-    isRefreshDisabled = true
+    isRefreshing = true
     Task {
       // Wait for 2 seconds to allow any pending refreshes to complete
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
-      isRefreshDisabled = false
+      isRefreshing = false
     }
   }
 
@@ -195,7 +195,7 @@ struct DashboardView: View {
                 } label: {
                   Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .disabled(isRefreshDisabled)
+                .disabled(isRefreshing)
               }
             #endif
             ServerUpdateStatusView()
@@ -266,6 +266,7 @@ struct DashboardView: View {
             Image(systemName: "books.vertical")
           }
         }
+
         ToolbarItem(placement: .confirmationAction) {
           if isOffline {
             Button {
@@ -281,6 +282,8 @@ struct DashboardView: View {
               }
             }
             .disabled(isCheckingConnection)
+          } else if isRefreshing {
+            ProgressView()
           } else {
             Menu {
               Picker(selection: gridDensityBinding) {
@@ -290,10 +293,9 @@ struct DashboardView: View {
               } label: {
                 Label(
                   String(localized: "settings.appearance.gridDensity.label"),
-                  systemImage: "square.grid.2x2"
+                  systemImage: GridDensity.icon
                 )
-              }
-              .pickerStyle(.inline)
+              }.pickerStyle(.menu)
 
               Divider()
 
@@ -302,7 +304,6 @@ struct DashboardView: View {
               } label: {
                 Label(String(localized: "Refresh Dashboard"), systemImage: "arrow.clockwise")
               }
-              .disabled(isRefreshDisabled)
             } label: {
               Image(systemName: "ellipsis")
             }

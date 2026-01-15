@@ -256,8 +256,6 @@ extension SeriesDetailView {
   @ViewBuilder
   private var seriesToolbarContent: some View {
     HStack {
-      LayoutModePicker(selection: $seriesDetailLayout)
-
       Button {
         showSavedFilters = true
       } label: {
@@ -271,6 +269,10 @@ extension SeriesDetailView {
       }
 
       Menu {
+        LayoutModePicker(selection: $seriesDetailLayout)
+
+        Divider()
+
         if current.isAdmin {
           Button {
             showEditSheet = true
