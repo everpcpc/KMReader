@@ -255,20 +255,24 @@ struct ReaderControlsView: View {
   @ViewBuilder
   private func menuContent() -> some View {
     Section {
-      Picker(String(localized: "Reading Direction"), selection: $readingDirection) {
+      Picker(selection: $readingDirection) {
         ForEach(ReadingDirection.availableCases, id: \.self) { direction in
           Label(direction.displayName, systemImage: direction.icon)
             .tag(direction)
         }
+      } label: {
+        Label(String(localized: "Reading Direction"), systemImage: readingDirection.icon)
       }
       .pickerStyle(.menu)
 
       if readingDirection != .webtoon && readingDirection != .vertical {
-        Picker(String(localized: "Page Layout"), selection: $pageLayout) {
+        Picker(selection: $pageLayout) {
           ForEach(PageLayout.allCases, id: \.self) { layout in
             Label(layout.displayName, systemImage: layout.icon)
               .tag(layout)
           }
+        } label: {
+          Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
         }
         .pickerStyle(.menu)
 
