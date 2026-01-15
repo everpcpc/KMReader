@@ -69,6 +69,7 @@ struct PageJumpSheetView: View {
   let totalPages: Int
   let currentPage: Int
   let readingDirection: ReadingDirection
+  let viewModel: ReaderViewModel
   let onJump: (Int) -> Void
 
   @Environment(\.dismiss) private var dismiss
@@ -99,12 +100,14 @@ struct PageJumpSheetView: View {
   init(
     bookId: String, totalPages: Int, currentPage: Int,
     readingDirection: ReadingDirection = .ltr,
+    viewModel: ReaderViewModel,
     onJump: @escaping (Int) -> Void
   ) {
     self.bookId = bookId
     self.totalPages = totalPages
     self.currentPage = currentPage
     self.readingDirection = readingDirection
+    self.viewModel = viewModel
     self.onJump = onJump
 
     let safeInitialPage = max(1, min(currentPage, max(totalPages, 1)))
@@ -137,6 +140,22 @@ struct PageJumpSheetView: View {
     pageValue = newValue
     scrollPosition = newValue
   }
+
+  #if os(iOS) || os(macOS)
+    private func sharePage() async {
+      let pageNumber = pageValue
+      guard pageNumber > 0 && pageNumber <= totalPages else { return }
+      guard let pageIndex = viewModel.pages.firstIndex(where: { $0.number == pageNumber }) else { return }
+
+      let page = viewModel.pages[pageIndex]
+
+      // Use viewModel's method to get page image (checks cache, offline, downloads if needed)
+      guard let fileURL = await viewModel.getPageImageFileURL(page: page) else { return }
+      guard let image = PlatformImage(contentsOfFile: fileURL.path) else { return }
+
+      ImageShareHelper.shareMultiple(images: [image], fileNames: [page.fileName])
+    }
+  #endif
 
   var body: some View {
     SheetView(title: String(localized: "Go to Page"), size: .medium) {
@@ -273,6 +292,17 @@ struct PageJumpSheetView: View {
         Spacer()
       }
       .padding()
+    } controls: {
+      #if os(iOS) || os(macOS)
+        Button {
+          Task {
+            await sharePage()
+          }
+        } label: {
+          Image(systemName: "square.and.arrow.up")
+        }
+        .disabled(!canJump)
+      #endif
     }
     .presentationDragIndicator(.visible)
   }
