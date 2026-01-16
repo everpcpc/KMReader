@@ -71,15 +71,15 @@ struct SeriesDetailContentView: View {
                   InfoChip(
                     labelKey: "\(series.booksCount) / \(totalBookCount) books",
                     systemImage: "book",
-                    backgroundColor: Color.blue.opacity(0.2),
-                    foregroundColor: .blue
+                    backgroundColor: Color.secondary.opacity(0.1),
+                    foregroundColor: .secondary
                   )
                 } else {
                   InfoChip(
                     labelKey: "\(series.booksCount) books",
                     systemImage: "book",
-                    backgroundColor: Color.blue.opacity(0.2),
-                    foregroundColor: .blue
+                    backgroundColor: Color.secondary.opacity(0.1),
+                    foregroundColor: .secondary
                   )
                 }
 
@@ -155,8 +155,7 @@ struct SeriesDetailContentView: View {
               TappableInfoChip(
                 label: publisher,
                 systemImage: "building.2",
-                backgroundColor: Color.teal.opacity(0.2),
-                foregroundColor: .teal,
+                color: .secondary,
                 destination: MetadataFilterHelper.seriesDestinationForPublisher(publisher)
               )
             }
@@ -167,8 +166,7 @@ struct SeriesDetailContentView: View {
                   TappableInfoChip(
                     label: author.name,
                     systemImage: author.role.icon,
-                    backgroundColor: Color.indigo.opacity(0.2),
-                    foregroundColor: .indigo,
+                    color: .purple,
                     destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
                   )
                 }
@@ -184,9 +182,7 @@ struct SeriesDetailContentView: View {
             TappableInfoChip(
               label: genre,
               systemImage: "theatermasks",
-              backgroundColor: Color.blue.opacity(0.1),
-              foregroundColor: .blue,
-              cornerRadius: 8,
+              color: .teal,
               destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
             )
           }
@@ -199,9 +195,7 @@ struct SeriesDetailContentView: View {
             TappableInfoChip(
               label: tag,
               systemImage: "tag",
-              backgroundColor: Color.secondary.opacity(0.1),
-              foregroundColor: .secondary,
-              cornerRadius: 8,
+              color: .secondary,
               destination: MetadataFilterHelper.seriesDestinationForTag(tag)
             )
           }
@@ -212,8 +206,8 @@ struct SeriesDetailContentView: View {
         InfoChip(
           labelKey: "Created: \(series.created.formattedMediumDate)",
           systemImage: "calendar.badge.plus",
-          backgroundColor: Color.blue.opacity(0.2),
-          foregroundColor: .blue
+          backgroundColor: Color.secondary.opacity(0.1),
+          foregroundColor: .secondary
         )
         InfoChip(
           labelKey: "Modified: \(series.lastModified.formattedMediumDate)",
@@ -251,23 +245,7 @@ struct SeriesDetailContentView: View {
             .font(.headline)
           HFlow {
             ForEach(Array(links.enumerated()), id: \.offset) { _, link in
-              if let url = URL(string: link.url) {
-                Link(destination: url) {
-                  InfoChip(
-                    label: link.label,
-                    systemImage: "link",
-                    backgroundColor: Color.blue.opacity(0.2),
-                    foregroundColor: .blue
-                  )
-                }
-              } else {
-                InfoChip(
-                  label: link.label,
-                  systemImage: "link",
-                  backgroundColor: Color.gray.opacity(0.2),
-                  foregroundColor: .gray
-                )
-              }
+              ExternalLinkChip(label: link.label, url: link.url)
             }
           }
         }.padding(.bottom, 8)
