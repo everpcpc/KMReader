@@ -7,6 +7,10 @@
 
 import SwiftUI
 
+#if os(macOS)
+  import UniformTypeIdentifiers
+#endif
+
 struct SettingsDashboardView: View {
   var body: some View {
     #if os(tvOS)
@@ -23,40 +27,77 @@ struct SettingsDashboardView: View {
   private struct SettingsDashboardView_iOS: View {
     @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
       DashboardConfiguration()
+    @Environment(\.editMode) private var editMode
+
     private var controller: DashboardSectionsController {
       DashboardSectionsController(dashboard: $dashboard)
     }
 
+    private var isEditing: Bool {
+      editMode?.wrappedValue.isEditing == true
+    }
+
     var body: some View {
       List {
-        Section(header: Text(String(localized: "dashboard.sections"))) {
+        Section {
           ForEach(controller.sections) { section in
-            HStack {
-              Label(section.displayName, systemImage: section.icon)
+            HStack(spacing: 12) {
+              Image(systemName: section.icon)
+                .foregroundStyle(.secondary)
+                .frame(width: 24)
+
+              Text(section.displayName)
+
               Spacer()
-              Toggle("", isOn: controller.sectionToggleBinding(for: section))
+
+              if !isEditing {
+                Toggle("", isOn: controller.sectionToggleBinding(for: section))
+                  .labelsHidden()
+              }
             }
           }
           .onMove(perform: controller.moveSections)
-          #if os(iOS)
-            .environment(\.editMode, .constant(.active))
-          #endif
+        } header: {
+          Text(String(localized: "dashboard.sections"))
+        } footer: {
+          if isEditing {
+            Text(String(localized: "dashboard.sections.footer"))
+              .font(.footnote)
+          }
         }
 
         if !controller.hiddenSections.isEmpty {
-          Section(header: Text(String(localized: "dashboard.hiddenSections"))) {
+          Section {
             ForEach(controller.hiddenSections) { section in
-              HStack {
-                Label(section.displayName, systemImage: section.icon)
+              HStack(spacing: 12) {
+                Image(systemName: section.icon)
+                  .foregroundStyle(.tertiary)
+                  .frame(width: 24)
+
+                Text(section.displayName)
+                  .foregroundStyle(.secondary)
+
                 Spacer()
-                Toggle("", isOn: controller.hiddenSectionToggleBinding(for: section))
+
+                Button {
+                  withAnimation {
+                    controller.showSection(section)
+                  }
+                } label: {
+                  Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(.green)
+                    .imageScale(.large)
+                }
+                .buttonStyle(.plain)
               }
             }
+          } header: {
+            Text(String(localized: "dashboard.hiddenSections"))
           }
         }
 
         Section {
-          Button {
+          Button(role: .destructive) {
             withAnimation {
               controller.resetSections()
             }
@@ -71,6 +112,9 @@ struct SettingsDashboardView: View {
       }
       .optimizedListStyle()
       .inlineNavigationBarTitle(SettingsSection.dashboard.title)
+      .toolbar {
+        EditButton()
+      }
       .animation(.default, value: dashboard)
     }
   }
@@ -78,41 +122,109 @@ struct SettingsDashboardView: View {
   private struct SettingsDashboardView_macOS: View {
     @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
       DashboardConfiguration()
+    @State private var draggedSection: DashboardSection?
+
     private var controller: DashboardSectionsController {
       DashboardSectionsController(dashboard: $dashboard)
     }
 
     var body: some View {
       Form {
-        Section(header: Text(String(localized: "dashboard.sections"))) {
-          List {
-            ForEach(controller.sections) { section in
-              HStack {
-                Label(section.displayName, systemImage: section.icon)
+        Section {
+          VStack(spacing: 0) {
+            ForEach(Array(controller.sections.enumerated()), id: \.element.id) { index, section in
+              HStack(spacing: 12) {
+                Image(systemName: "line.3.horizontal")
+                  .foregroundStyle(.tertiary)
+                  .frame(width: 16)
+
+                Image(systemName: section.icon)
+                  .foregroundStyle(.secondary)
+                  .frame(width: 20)
+
+                Text(section.displayName)
+
                 Spacer()
+
                 Toggle("", isOn: controller.sectionToggleBinding(for: section))
+                  .labelsHidden()
+                  .toggleStyle(.switch)
+              }
+              .padding(.vertical, 8)
+              .padding(.horizontal, 12)
+              .background(
+                RoundedRectangle(cornerRadius: 6)
+                  .fill(draggedSection == section ? Color.accentColor.opacity(0.1) : Color.clear)
+              )
+              .contentShape(Rectangle())
+              .onDrag {
+                draggedSection = section
+                return NSItemProvider(object: section.id as NSString)
+              }
+              .onDrop(
+                of: [.text],
+                delegate: SectionDropDelegate(
+                  section: section,
+                  sections: controller.sections,
+                  draggedSection: $draggedSection,
+                  onMove: { from, to in
+                    withAnimation {
+                      controller.moveSections(IndexSet(integer: from), to)
+                    }
+                  }
+                )
+              )
+
+              if index < controller.sections.count - 1 {
+                Divider()
+                  .padding(.leading, 48)
               }
             }
-            .onMove(perform: controller.moveSections)
           }
-          .listStyle(.inset(alternatesRowBackgrounds: true))
-          .scrollDisabled(true)
+          .padding(.vertical, 4)
+        } header: {
+          Text(String(localized: "dashboard.sections"))
+        } footer: {
+          Text(String(localized: "dashboard.sections.footer"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
 
         if !controller.hiddenSections.isEmpty {
-          Section(header: Text(String(localized: "dashboard.hiddenSections"))) {
-            ForEach(controller.hiddenSections) { section in
-              HStack {
-                Label(section.displayName, systemImage: section.icon)
-                Spacer()
-                Toggle("", isOn: controller.hiddenSectionToggleBinding(for: section))
+          Section {
+            VStack(spacing: 8) {
+              ForEach(controller.hiddenSections) { section in
+                HStack(spacing: 12) {
+                  Image(systemName: section.icon)
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 20)
+
+                  Text(section.displayName)
+                    .foregroundStyle(.secondary)
+
+                  Spacer()
+
+                  Button {
+                    withAnimation {
+                      controller.showSection(section)
+                    }
+                  } label: {
+                    Image(systemName: "plus.circle.fill")
+                      .foregroundStyle(.green)
+                  }
+                  .buttonStyle(.plain)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
               }
             }
+          } header: {
+            Text(String(localized: "dashboard.hiddenSections"))
           }
         }
 
         Section {
-          Button {
+          Button(role: .destructive) {
             withAnimation {
               controller.resetSections()
             }
@@ -130,123 +242,151 @@ struct SettingsDashboardView: View {
       .animation(.default, value: dashboard)
     }
   }
+
+  private struct SectionDropDelegate: DropDelegate {
+    let section: DashboardSection
+    let sections: [DashboardSection]
+    @Binding var draggedSection: DashboardSection?
+    let onMove: (Int, Int) -> Void
+
+    func performDrop(info: DropInfo) -> Bool {
+      draggedSection = nil
+      return true
+    }
+
+    func dropEntered(info: DropInfo) {
+      guard let draggedSection = draggedSection,
+        draggedSection != section,
+        let fromIndex = sections.firstIndex(of: draggedSection),
+        let toIndex = sections.firstIndex(of: section)
+      else { return }
+
+      if fromIndex != toIndex {
+        onMove(fromIndex, toIndex > fromIndex ? toIndex + 1 : toIndex)
+      }
+    }
+  }
 #elseif os(tvOS)
   private struct SettingsDashboardView_tvOS: View {
     @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
       DashboardConfiguration()
+    @State private var editModeValue: EditMode = .inactive
+    @State private var workingSections: [DashboardSection] = []
+
     private var controller: DashboardSectionsController {
       DashboardSectionsController(dashboard: $dashboard)
     }
 
-    @State private var isEditMode = false
-    @State private var movingSection: DashboardSection?
-    @FocusState private var focusedHandle: DashboardSection?
+    private var activeSections: [DashboardSection] {
+      editModeValue == .active ? workingSections : controller.sections
+    }
+
+    private var displayHiddenSections: [DashboardSection] {
+      if editModeValue == .active {
+        return DashboardSection.allCases.filter { section in
+          !workingSections.contains(section)
+        }
+      } else {
+        return controller.hiddenSections
+      }
+    }
 
     var body: some View {
-      Form {
-        HStack {
-          Spacer()
-          Button {
-            isEditMode.toggle()
-            if !isEditMode {
-              movingSection = nil
-              focusedHandle = nil
+      List {
+        // Edit/Done Button (Top)
+        Section {
+          HStack {
+            Spacer()
+            if editModeValue == .inactive {
+              Button {
+                withAnimation {
+                  workingSections = controller.sections
+                  editModeValue = .active
+                }
+              } label: {
+                Label(String(localized: "edit"), systemImage: "pencil.circle.fill")
+              }
+              .adaptiveButtonStyle(.borderedProminent)
+            } else {
+              Button {
+                withAnimation {
+                  controller.setSections(workingSections)
+                  editModeValue = .inactive
+                }
+              } label: {
+                Label(String(localized: "done"), systemImage: "checkmark.circle.fill")
+              }
+              .adaptiveButtonStyle(.borderedProminent)
             }
-          } label: {
-            Text(isEditMode ? "Done" : "Edit")
           }
-          .adaptiveButtonStyle(.borderedProminent)
         }
         .listRowBackground(Color.clear)
 
-        Section(header: Text(String(localized: "dashboard.sections"))) {
-          ForEach(controller.sections) { section in
-            HStack {
-              Text(section.displayName)
-                .font(.headline)
-              Spacer()
-              HStack(spacing: 18) {
-                Button {
-                  if movingSection == section {
-                    movingSection = nil
-                    focusedHandle = nil
-                  } else {
-                    movingSection = section
-                    focusedHandle = section
+        // Active Sections
+        Section {
+          ForEach(activeSections) { section in
+            SectionRow(
+              section: section,
+              isEditMode: editModeValue == .active,
+              isEnabled: true,
+              onDelete: {
+                withAnimation {
+                  if let index = workingSections.firstIndex(of: section) {
+                    workingSections.remove(at: index)
                   }
-                } label: {
-                  Image(systemName: "line.3.horizontal")
-                }
-                .adaptiveButtonStyle(.plain)
-                .focused($focusedHandle, equals: section)
-
-                if isEditMode {
-                  Button {
-                    if movingSection == section {
-                      movingSection = nil
-                      focusedHandle = nil
-                    }
-                    withAnimation {
-                      controller.hideSection(section)
-                    }
-                  } label: {
-                    Image(systemName: "minus.circle.fill")
-                  }
-                  .adaptiveButtonStyle(.plain)
                 }
               }
-              .padding(.horizontal, 18)
-            }
-            .listRowBackground(
-              Capsule()
-                .fill(PlatformHelper.secondarySystemBackgroundColor)
-                .opacity(movingSection == section ? 0.5 : 0))
+            )
           }
-          .onMoveCommand { direction in
-            guard let movingSection = movingSection else { return }
-            if let focus = focusedHandle, focus != movingSection {
-              focusedHandle = movingSection
-            }
-            withAnimation {
-              switch direction {
-              case .up:
-                moveSectionUp(movingSection)
-              case .down:
-                moveSectionDown(movingSection)
-              default:
-                break
-              }
-            }
+          .onMove(perform: moveItem)
+        } header: {
+          Text(String(localized: "dashboard.sections"))
+        } footer: {
+          if editModeValue == .active {
+            Text(String(localized: "dashboard.sections.footer.tvos"))
           }
         }
 
-        if isEditMode && !controller.hiddenSections.isEmpty {
-          Section(header: Text(String(localized: "dashboard.hiddenSections"))) {
-            ForEach(controller.hiddenSections) { section in
-              HStack {
+        // Hidden Sections - Only show in Edit Mode for a cleaner UI
+        if editModeValue == .active && !displayHiddenSections.isEmpty {
+          Section {
+            ForEach(displayHiddenSections) { section in
+              HStack(spacing: 16) {
+                Image(systemName: section.icon)
+                  .foregroundStyle(.secondary)
+                  .frame(width: 32)
+
                 Text(section.displayName)
-                  .font(.headline)
+                  .font(.title3)
+                  .foregroundStyle(.secondary)
+
                 Spacer()
+
                 Button {
                   withAnimation {
-                    controller.showSection(section)
+                    workingSections.append(section)
                   }
                 } label: {
-                  Image(systemName: "plus.circle")
+                  Image(systemName: "plus")
+                    .font(.body.bold())
                 }
-                .adaptiveButtonStyle(.plain)
+                .buttonStyle(.bordered)
               }
               .padding(.vertical, 8)
             }
+          } header: {
+            Text(String(localized: "dashboard.hiddenSections"))
           }
         }
 
+        // Reset & Done
         Section {
-          Button {
-            movingSection = nil
-            focusedHandle = nil
+          Button(role: .destructive) {
             withAnimation {
               controller.resetSections()
+              if editModeValue == .active {
+                workingSections = controller.sections
+              }
             }
           } label: {
             HStack {
@@ -255,31 +395,63 @@ struct SettingsDashboardView: View {
               Spacer()
             }
           }
+
+          if editModeValue == .active {
+            Button {
+              withAnimation {
+                controller.setSections(workingSections)
+                editModeValue = .inactive
+              }
+            } label: {
+              HStack {
+                Spacer()
+                Label(String(localized: "done"), systemImage: "checkmark.circle.fill")
+                Spacer()
+              }
+            }
+            .adaptiveButtonStyle(.borderedProminent)
+          }
         }
       }
-      .formStyle(.grouped)
+      .environment(\.editMode, $editModeValue)
       .inlineNavigationBarTitle(SettingsSection.dashboard.title)
-      .animation(.default, value: dashboard)
-      .onAppear {
-        movingSection = nil
-        focusedHandle = nil
+    }
+
+    private func moveItem(from source: IndexSet, to destination: Int) {
+      workingSections.move(fromOffsets: source, toOffset: destination)
+    }
+  }
+
+  private struct SectionRow: View {
+    let section: DashboardSection
+    let isEditMode: Bool
+    let isEnabled: Bool
+    let onDelete: () -> Void
+
+    var body: some View {
+      HStack(spacing: 16) {
+        Image(systemName: section.icon)
+          .foregroundStyle(isEnabled ? .primary : .tertiary)
+          .frame(width: 32)
+
+        Text(section.displayName)
+          .font(.title3)
+          .foregroundStyle(isEnabled ? .primary : .secondary)
+
+        Spacer()
+
+        if isEditMode {
+          Button {
+            onDelete()
+          } label: {
+            Image(systemName: "minus")
+              .font(.body.bold())
+              .foregroundStyle(.red)
+          }
+          .buttonStyle(.bordered)
+        }
       }
-    }
-
-    private func moveSectionUp(_ section: DashboardSection) {
-      var currentSections = controller.sections
-      guard let index = currentSections.firstIndex(of: section), index > 0 else { return }
-      currentSections.swapAt(index, index - 1)
-      controller.setSections(currentSections)
-    }
-
-    private func moveSectionDown(_ section: DashboardSection) {
-      var currentSections = controller.sections
-      guard let index = currentSections.firstIndex(of: section),
-        index < currentSections.count - 1
-      else { return }
-      currentSections.swapAt(index, index + 1)
-      controller.setSections(currentSections)
+      .padding(.vertical, 8)
     }
   }
 #endif
