@@ -12,10 +12,12 @@ struct CollectionSeriesBrowseOptionsSheet: View {
   @Environment(\.dismiss) private var dismiss
   @State private var tempOpts: CollectionSeriesBrowseOptions
   @State private var showSaveFilterSheet = false
+  let collectionId: String?
 
-  init(browseOpts: Binding<CollectionSeriesBrowseOptions>) {
+  init(browseOpts: Binding<CollectionSeriesBrowseOptions>, collectionId: String? = nil) {
     self._browseOpts = browseOpts
     self._tempOpts = State(initialValue: browseOpts.wrappedValue)
+    self.collectionId = collectionId
   }
 
   var body: some View {
@@ -23,7 +25,7 @@ struct CollectionSeriesBrowseOptionsSheet: View {
       title: String(localized: "Filter"), size: .both, onReset: resetOptions, applyFormStyle: true
     ) {
       Form {
-        Section("Read Status") {
+        Section(String(localized: "Read Status")) {
           ForEach(ReadStatus.allCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {
@@ -45,10 +47,10 @@ struct CollectionSeriesBrowseOptionsSheet: View {
           }
         }
 
-        Section("Series Status") {
-          Picker("Logic", selection: $tempOpts.seriesStatusLogic) {
-            Text("All").tag(FilterLogic.all)
-            Text("Any").tag(FilterLogic.any)
+        Section(String(localized: "Series Status")) {
+          Picker(String(localized: "Logic"), selection: $tempOpts.seriesStatusLogic) {
+            Text(String(localized: "All")).tag(FilterLogic.all)
+            Text(String(localized: "Any")).tag(FilterLogic.any)
           }
           .pickerStyle(.segmented)
 
@@ -68,7 +70,7 @@ struct CollectionSeriesBrowseOptionsSheet: View {
           }
         }
 
-        Section("Flags") {
+        Section(String(localized: "Flags")) {
           Button {
             withAnimation(.easeInOut) {
               tempOpts.completeFilter.cycle(to: .yes)
@@ -109,15 +111,26 @@ struct CollectionSeriesBrowseOptionsSheet: View {
           }
         }
 
+        // Note: collectionId would need to be passed from parent view
+        MetadataFilterSection(
+          metadataFilter: $tempOpts.metadataFilter,
+          collectionId: collectionId,
+          showPublisher: true,
+          showAuthors: true,
+          showGenres: true,
+          showTags: true,
+          showLanguages: true
+        )
+
       }
     } controls: {
       Button {
         showSaveFilterSheet = true
       } label: {
-        Label("Save Filter", systemImage: "bookmark")
+        Label(String(localized: "Save Filter"), systemImage: "bookmark")
       }
       Button(action: applyChanges) {
-        Label("Done", systemImage: "checkmark")
+        Label(String(localized: "Done"), systemImage: "checkmark")
       }
     }
     .sheet(isPresented: $showSaveFilterSheet) {

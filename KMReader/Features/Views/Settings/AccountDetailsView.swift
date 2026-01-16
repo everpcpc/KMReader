@@ -101,7 +101,7 @@ struct UpdatePasswordSheet: View {
                 .frame(maxWidth: .infinity)
             }
           }
-          .buttonStyle(.borderedProminent)
+          .adaptiveButtonStyle(.borderedProminent)
           .disabled(newPassword.isEmpty || newPassword != confirmPassword || isUpdating)
         }
         .listRowBackground(Color.clear)

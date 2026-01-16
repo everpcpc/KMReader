@@ -41,7 +41,8 @@ struct BooksListViewForSeries: View {
           browseOpts: $browseOpts,
           showFilterSheet: $showFilterSheet,
           showSavedFilters: $showSavedFilters,
-          filterType: .seriesBooks
+          filterType: .seriesBooks,
+          seriesId: seriesId
         )
       }
       .padding(.horizontal)

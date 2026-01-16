@@ -101,6 +101,39 @@ class BookService {
     return result.data
   }
 
+  func getBrowseBooks(
+    libraryIds: [String]? = nil,
+    page: Int = 0,
+    size: Int = 20,
+    browseOpts: BookBrowseOptions,
+    searchTerm: String? = nil
+  ) async throws -> Page<Book> {
+    let sort = browseOpts.sortString
+    let filters = BookSearchFilters(
+      libraryIds: libraryIds,
+      includeReadStatuses: Array(browseOpts.includeReadStatuses),
+      excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
+      oneshot: browseOpts.oneshotFilter.effectiveBool,
+      deleted: browseOpts.deletedFilter.effectiveBool,
+      authors: browseOpts.metadataFilter.authors,
+      authorsLogic: browseOpts.metadataFilter.authorsLogic,
+      tags: browseOpts.metadataFilter.tags,
+      tagsLogic: browseOpts.metadataFilter.tagsLogic
+    )
+    let condition = BookSearch.buildCondition(filters: filters)
+    let search = BookSearch(
+      condition: condition,
+      fullTextSearch: searchTerm?.isEmpty == false ? searchTerm : nil
+    )
+
+    return try await getBooksList(
+      search: search,
+      page: page,
+      size: size,
+      sort: sort
+    )
+  }
+
   func getBooksList(
     search: BookSearch,
     page: Int = 0,

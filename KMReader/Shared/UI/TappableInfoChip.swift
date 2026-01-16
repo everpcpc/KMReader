@@ -2,55 +2,25 @@
 //  TappableInfoChip.swift
 //  KMReader
 //
-//  Created by Komga iOS Client
-//
 
 import SwiftUI
 
 /// A tappable version of InfoChip that can navigate to a destination
 struct TappableInfoChip: View {
-  private let label: Text
-  private let labelString: String
+  private let label: String
   let systemImage: String?
-  let backgroundColor: Color
-  let foregroundColor: Color
-  let cornerRadius: CGFloat
+  let color: Color
   let destination: NavDestination
-
-  init(
-    labelKey: LocalizedStringKey,
-    systemImage: String? = nil,
-    backgroundColor: Color = Color.secondary.opacity(0.2),
-    foregroundColor: Color = .primary,
-    cornerRadius: CGFloat = 16,
-    destination: NavDestination
-  ) {
-    let mirror = Mirror(reflecting: labelKey)
-    let key = mirror.children.first(where: { $0.label == "key" })?.value as? String ?? ""
-
-    self.label = Text(labelKey)
-    self.labelString = key
-    self.systemImage = systemImage
-    self.backgroundColor = backgroundColor
-    self.foregroundColor = foregroundColor
-    self.cornerRadius = cornerRadius
-    self.destination = destination
-  }
 
   init(
     label: String,
     systemImage: String? = nil,
-    backgroundColor: Color = Color.secondary.opacity(0.2),
-    foregroundColor: Color = .primary,
-    cornerRadius: CGFloat = 16,
+    color: Color = .accentColor,
     destination: NavDestination
   ) {
-    self.label = Text(label)
-    self.labelString = label
+    self.label = label
     self.systemImage = systemImage
-    self.backgroundColor = backgroundColor
-    self.foregroundColor = foregroundColor
-    self.cornerRadius = cornerRadius
+    self.color = color
     self.destination = destination
   }
 
@@ -61,25 +31,13 @@ struct TappableInfoChip: View {
           Image(systemName: systemImage)
             .font(.caption2)
         }
-        label
+        Text(label)
           .font(.caption)
           .lineLimit(1)
       }
-      .foregroundColor(foregroundColor)
-      .padding(.horizontal, 8)
-      .padding(.vertical, 4)
-      .background(backgroundColor)
-      .cornerRadius(cornerRadius)
     }
-    .adaptiveButtonStyle(.plain)
-    #if os(iOS) || os(macOS)
-      .contextMenu {
-        Button {
-          PlatformHelper.generalPasteboard.string = labelString
-        } label: {
-          Label("Copy", systemImage: "doc.on.doc")
-        }
-      }
-    #endif
+    .adaptiveButtonStyle(.bordered)
+    .controlSize(.mini)
+    .tint(color)
   }
 }

@@ -12,10 +12,12 @@ struct ReadListBookBrowseOptionsSheet: View {
   @Environment(\.dismiss) private var dismiss
   @State private var tempOpts: ReadListBookBrowseOptions
   @State private var showSaveFilterSheet = false
+  let readListId: String?
 
-  init(browseOpts: Binding<ReadListBookBrowseOptions>) {
+  init(browseOpts: Binding<ReadListBookBrowseOptions>, readListId: String? = nil) {
     self._browseOpts = browseOpts
     self._tempOpts = State(initialValue: browseOpts.wrappedValue)
+    self.readListId = readListId
   }
 
   var body: some View {
@@ -23,7 +25,7 @@ struct ReadListBookBrowseOptionsSheet: View {
       title: String(localized: "Filter"), size: .both, onReset: resetOptions, applyFormStyle: true
     ) {
       Form {
-        Section("Read Status") {
+        Section(String(localized: "Read Status")) {
           ForEach(ReadStatus.allCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {
@@ -45,7 +47,7 @@ struct ReadListBookBrowseOptionsSheet: View {
           }
         }
 
-        Section("Flags") {
+        Section(String(localized: "Flags")) {
           Button {
             withAnimation(.easeInOut) {
               tempOpts.oneshotFilter.cycle(to: .yes)
@@ -73,15 +75,22 @@ struct ReadListBookBrowseOptionsSheet: View {
           }
         }
 
+        MetadataFilterSection(
+          metadataFilter: $tempOpts.metadataFilter,
+          readListId: readListId,
+          showAuthors: true,
+          showTags: true
+        )
+
       }
     } controls: {
       Button {
         showSaveFilterSheet = true
       } label: {
-        Label("Save Filter", systemImage: "bookmark")
+        Label(String(localized: "Save Filter"), systemImage: "bookmark")
       }
       Button(action: applyChanges) {
-        Label("Done", systemImage: "checkmark")
+        Label(String(localized: "Done"), systemImage: "checkmark")
       }
     }
     .sheet(isPresented: $showSaveFilterSheet) {

@@ -11,6 +11,19 @@ struct ReadListBookFilterView: View {
   @Binding var browseOpts: ReadListBookBrowseOptions
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
+  let readListId: String?
+
+  init(
+    browseOpts: Binding<ReadListBookBrowseOptions>,
+    showFilterSheet: Binding<Bool>,
+    showSavedFilters: Binding<Bool>,
+    readListId: String? = nil
+  ) {
+    self._browseOpts = browseOpts
+    self._showFilterSheet = showFilterSheet
+    self._showSavedFilters = showSavedFilters
+    self.readListId = readListId
+  }
 
   var emptyFilter: Bool {
     return browseOpts.includeReadStatuses.isEmpty && browseOpts.excludeReadStatuses.isEmpty
@@ -57,6 +70,26 @@ struct ReadListBookFilterView: View {
           )
         }
 
+        if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.authorsLogic == .all ? "∧" : "∨"
+          let label = authors.joined(separator: " \(logicSymbol) ")
+          FilterChip(
+            label: label,
+            systemImage: "person",
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.tagsLogic == .all ? "∧" : "∨"
+          let label = tags.joined(separator: " \(logicSymbol) ")
+          FilterChip(
+            label: label,
+            systemImage: "tag",
+            openSheet: $showFilterSheet
+          )
+        }
+
         if emptyFilter {
           FilterChip(
             label: String(localized: "Filter"),
@@ -69,7 +102,7 @@ struct ReadListBookFilterView: View {
     }
     .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
-      ReadListBookBrowseOptionsSheet(browseOpts: $browseOpts)
+      ReadListBookBrowseOptionsSheet(browseOpts: $browseOpts, readListId: readListId)
     }
   }
 }

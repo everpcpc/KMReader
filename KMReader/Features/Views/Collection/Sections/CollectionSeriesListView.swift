@@ -64,7 +64,8 @@ struct CollectionSeriesListView: View {
           CollectionSeriesFilterView(
             browseOpts: $browseOpts,
             showFilterSheet: $showFilterSheet,
-            showSavedFilters: $showSavedFilters
+            showSavedFilters: $showSavedFilters,
+            collectionId: collectionId
           )
 
           if supportsSelectionMode && !isSelectionMode && current.isAdmin {

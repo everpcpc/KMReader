@@ -104,35 +104,15 @@ class SyncService {
     libraryIds: [String]?,
     page: Int,
     size: Int,
-    sort: String,
     searchTerm: String?,
-    browseOpts: SeriesBrowseOptions?,
-    metadataFilter: MetadataFilterConfig? = nil
+    browseOpts: SeriesBrowseOptions?
   ) async throws -> Page<Series> {
-    let includeRead = browseOpts?.includeReadStatuses ?? []
-    let excludeRead = browseOpts?.excludeReadStatuses ?? []
-    let includeStatus = browseOpts?.includeSeriesStatuses ?? []
-    let excludeStatus = browseOpts?.excludeSeriesStatuses ?? []
-    let statusLogic = browseOpts?.seriesStatusLogic ?? .all
-    let complete = browseOpts?.completeFilter ?? TriStateFilter<BoolTriStateFlag>()
-    let oneshot = browseOpts?.oneshotFilter ?? TriStateFilter<BoolTriStateFlag>()
-    let deleted = browseOpts?.deletedFilter ?? TriStateFilter<BoolTriStateFlag>()
-
     let result = try await SeriesService.shared.getSeries(
       libraryIds: libraryIds,
       page: page,
       size: size,
-      sort: sort,
-      includeReadStatuses: includeRead,
-      excludeReadStatuses: excludeRead,
-      includeSeriesStatuses: includeStatus,
-      excludeSeriesStatuses: excludeStatus,
-      seriesStatusLogic: statusLogic,
-      completeFilter: complete,
-      oneshotFilter: oneshot,
-      deletedFilter: deleted,
-      searchTerm: searchTerm,
-      metadataFilter: metadataFilter
+      browseOpts: browseOpts ?? SeriesBrowseOptions(),
+      searchTerm: searchTerm
     )
 
     let instanceId = AppConfig.current.instanceId
@@ -204,6 +184,28 @@ class SyncService {
       page: page,
       size: size,
       sort: sort
+    )
+
+    let instanceId = AppConfig.current.instanceId
+    await db.upsertBooks(result.content, instanceId: instanceId)
+    await db.commit()
+
+    return result
+  }
+
+  func syncBrowseBooks(
+    libraryIds: [String]?,
+    page: Int,
+    size: Int,
+    searchTerm: String?,
+    browseOpts: BookBrowseOptions
+  ) async throws -> Page<Book> {
+    let result = try await BookService.shared.getBrowseBooks(
+      libraryIds: libraryIds,
+      page: page,
+      size: size,
+      browseOpts: browseOpts,
+      searchTerm: searchTerm
     )
 
     let instanceId = AppConfig.current.instanceId

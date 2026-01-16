@@ -19,6 +19,8 @@ class BookViewModel {
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   private var currentSeriesId: String?
   private var currentSeriesBrowseOpts: BookBrowseOptions?
+  private var currentBrowseOpts: BookBrowseOptions?
+  private var currentBrowseSearchText: String = ""
 
   func loadSeriesBooks(
     context: ModelContext,
@@ -26,7 +28,7 @@ class BookViewModel {
     browseOpts: BookBrowseOptions,
     refresh: Bool = true
   ) async {
-    let shouldReset = refresh || currentSeriesId != seriesId
+    let shouldReset = refresh || currentSeriesId != seriesId || currentSeriesBrowseOpts != browseOpts
 
     if !shouldReset {
       guard pagination.hasMorePages && !isLoading else { return }
@@ -150,15 +152,19 @@ class BookViewModel {
     browseOpts: BookBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
-    metadataFilter: MetadataFilterConfig? = nil,
     refresh: Bool = false
   ) async {
-    if !refresh {
+    let paramsChanged = currentBrowseOpts != browseOpts || currentBrowseSearchText != searchText
+    let shouldReset = refresh || paramsChanged
+
+    if !shouldReset {
       guard pagination.hasMorePages && !isLoading else { return }
     }
 
-    if refresh {
+    if shouldReset {
       pagination.reset()
+      currentBrowseOpts = browseOpts
+      currentBrowseSearchText = searchText
     }
 
     let loadID = pagination.loadID
@@ -185,26 +191,12 @@ class BookViewModel {
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        let filters = BookSearchFilters(
+        let page = try await SyncService.shared.syncBrowseBooks(
           libraryIds: libraryIds,
-          includeReadStatuses: Array(browseOpts.includeReadStatuses),
-          excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
-          oneshot: browseOpts.oneshotFilter.effectiveBool,
-          deleted: browseOpts.deletedFilter.effectiveBool,
-          authors: metadataFilter?.authors,
-          tags: metadataFilter?.tags
-        )
-        let condition = BookSearch.buildCondition(filters: filters)
-        let bookSearch = BookSearch(
-          condition: condition,
-          fullTextSearch: searchText.isEmpty == false ? searchText : nil
-        )
-
-        let page = try await SyncService.shared.syncBooksList(
-          search: bookSearch,
           page: pagination.currentPage,
           size: pagination.pageSize,
-          sort: browseOpts.sortString
+          searchTerm: searchText.isEmpty ? nil : searchText,
+          browseOpts: browseOpts
         )
 
         guard loadID == pagination.loadID else { return }

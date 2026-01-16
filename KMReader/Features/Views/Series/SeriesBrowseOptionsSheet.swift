@@ -12,10 +12,12 @@ struct SeriesBrowseOptionsSheet: View {
   @Environment(\.dismiss) private var dismiss
   @State private var tempOpts: SeriesBrowseOptions
   @State private var showSaveFilterSheet = false
+  let libraryIds: [String]?
 
-  init(browseOpts: Binding<SeriesBrowseOptions>) {
+  init(browseOpts: Binding<SeriesBrowseOptions>, libraryIds: [String]? = nil) {
     self._browseOpts = browseOpts
     self._tempOpts = State(initialValue: browseOpts.wrappedValue)
+    self.libraryIds = libraryIds
   }
 
   var body: some View {
@@ -29,7 +31,7 @@ struct SeriesBrowseOptionsSheet: View {
           sortDirection: $tempOpts.sortDirection
         )
 
-        Section("Read Status") {
+        Section(String(localized: "Read Status")) {
           ForEach(ReadStatus.allCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {
@@ -51,10 +53,10 @@ struct SeriesBrowseOptionsSheet: View {
           }
         }
 
-        Section("Series Status") {
-          Picker("Logic", selection: $tempOpts.seriesStatusLogic) {
-            Text("All").tag(FilterLogic.all)
-            Text("Any").tag(FilterLogic.any)
+        Section(String(localized: "Series Status")) {
+          Picker(String(localized: "Logic"), selection: $tempOpts.seriesStatusLogic) {
+            Text(String(localized: "All")).tag(FilterLogic.all)
+            Text(String(localized: "Any")).tag(FilterLogic.any)
           }
           .pickerStyle(.segmented)
 
@@ -74,7 +76,7 @@ struct SeriesBrowseOptionsSheet: View {
           }
         }
 
-        Section("Flags") {
+        Section(String(localized: "Flags")) {
           Button {
             withAnimation(.easeInOut) {
               tempOpts.completeFilter.cycle(to: .yes)
@@ -115,15 +117,25 @@ struct SeriesBrowseOptionsSheet: View {
           }
         }
 
+        MetadataFilterSection(
+          metadataFilter: $tempOpts.metadataFilter,
+          libraryIds: libraryIds,
+          showPublisher: true,
+          showAuthors: true,
+          showGenres: true,
+          showTags: true,
+          showLanguages: true
+        )
+
       }
     } controls: {
       Button {
         showSaveFilterSheet = true
       } label: {
-        Label("Save Filter", systemImage: "bookmark")
+        Label(String(localized: "Save Filter"), systemImage: "bookmark")
       }
       Button(action: applyChanges) {
-        Label("Done", systemImage: "checkmark")
+        Label(String(localized: "Done"), systemImage: "checkmark")
       }
     }
     .sheet(isPresented: $showSaveFilterSheet) {

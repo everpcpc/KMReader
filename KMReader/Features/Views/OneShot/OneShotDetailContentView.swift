@@ -180,8 +180,7 @@ struct OneShotDetailContentView: View {
             TappableInfoChip(
               label: publisher,
               systemImage: "building.2",
-              backgroundColor: Color.teal.opacity(0.2),
-              foregroundColor: .teal,
+              color: .secondary,
               destination: MetadataFilterHelper.seriesDestinationForPublisher(publisher)
             )
           }
@@ -192,8 +191,7 @@ struct OneShotDetailContentView: View {
                 TappableInfoChip(
                   label: author.name,
                   systemImage: author.role.icon,
-                  backgroundColor: Color.indigo.opacity(0.2),
-                  foregroundColor: .indigo,
+                  color: .purple,
                   destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
                 )
               }
@@ -208,10 +206,8 @@ struct OneShotDetailContentView: View {
           ForEach(genres.sorted(), id: \.self) { genre in
             TappableInfoChip(
               label: genre,
-              systemImage: "bookmark",
-              backgroundColor: Color.blue.opacity(0.1),
-              foregroundColor: .blue,
-              cornerRadius: 8,
+              systemImage: "theatermasks",
+              color: .teal,
               destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
             )
           }
@@ -225,9 +221,7 @@ struct OneShotDetailContentView: View {
             TappableInfoChip(
               label: tag,
               systemImage: "tag",
-              backgroundColor: Color.secondary.opacity(0.1),
-              foregroundColor: .secondary,
-              cornerRadius: 8,
+              color: .secondary,
               destination: MetadataFilterHelper.seriesDestinationForTag(tag)
             )
           }
@@ -239,8 +233,8 @@ struct OneShotDetailContentView: View {
         InfoChip(
           labelKey: "Created: \(book.created.formattedMediumDate)",
           systemImage: "calendar.badge.plus",
-          backgroundColor: Color.blue.opacity(0.2),
-          foregroundColor: .blue
+          backgroundColor: Color.secondary.opacity(0.1),
+          foregroundColor: .secondary
         )
         InfoChip(
           labelKey: "Modified: \(book.lastModified.formattedMediumDate)",
@@ -291,23 +285,7 @@ struct OneShotDetailContentView: View {
             .font(.headline)
           HFlow {
             ForEach(Array(links.enumerated()), id: \.offset) { _, link in
-              if let url = URL(string: link.url) {
-                Link(destination: url) {
-                  InfoChip(
-                    label: link.label,
-                    systemImage: "link",
-                    backgroundColor: Color.blue.opacity(0.2),
-                    foregroundColor: .blue
-                  )
-                }
-              } else {
-                InfoChip(
-                  label: link.label,
-                  systemImage: "link",
-                  backgroundColor: Color.gray.opacity(0.2),
-                  foregroundColor: .gray
-                )
-              }
+              ExternalLinkChip(label: link.label, url: link.url)
             }
           }
         }
