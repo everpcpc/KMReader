@@ -28,7 +28,8 @@ class SeriesViewModel {
     metadataFilter: MetadataFilterConfig? = nil,
     refresh: Bool = false
   ) async {
-    let paramsChanged = currentState != browseOpts || currentSearchText != searchText || currentMetadataFilter != metadataFilter
+    let paramsChanged =
+      currentState != browseOpts || currentSearchText != searchText || currentMetadataFilter != metadataFilter
     let shouldReset = refresh || paramsChanged
 
     if !shouldReset {

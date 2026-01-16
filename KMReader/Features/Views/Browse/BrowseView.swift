@@ -50,7 +50,10 @@ struct BrowseView: View {
     }
   }
 
-  init(library: LibrarySelection? = nil, fixedContent: BrowseContentType? = nil, metadataFilter: MetadataFilterConfig? = nil) {
+  init(
+    library: LibrarySelection? = nil, fixedContent: BrowseContentType? = nil,
+    metadataFilter: MetadataFilterConfig? = nil
+  ) {
     self.library = library
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter

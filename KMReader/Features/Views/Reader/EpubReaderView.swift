@@ -69,7 +69,6 @@
       readerBody
         .task(id: bookId) {
           await loadBook()
-          resetControlsTimer(timeout: 1)
           triggerTapZoneDisplay()
         }
         .task(id: readerPrefs) {
@@ -92,6 +91,11 @@
             resetOverlayTimer()
           } else {
             overlayTimer?.invalidate()
+          }
+        }
+        .onChange(of: viewModel.isLoading) { _, newValue in
+          if !newValue {
+            forceInitialAutoHide(timeout: 2)
           }
         }
         .onChange(of: colorScheme) { _, newScheme in
@@ -325,6 +329,15 @@
         } else {
           // Cancel any existing timer when manually opened
           controlsTimer?.invalidate()
+        }
+      }
+    }
+
+    private func forceInitialAutoHide(timeout: TimeInterval) {
+      controlsTimer?.invalidate()
+      controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
+        withAnimation {
+          showingControls = false
         }
       }
     }

@@ -24,7 +24,9 @@ struct ReaderSettingsSheet: View {
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
-  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
+  #if os(iOS)
+    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
+  #endif
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
@@ -89,9 +91,12 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          Toggle(isOn: $autoHideControls) {
-            Text("Auto Hide Controls")
-          }
+          #if os(iOS)
+            Toggle(isOn: $autoHideControls) {
+              Text("Auto Hide Controls")
+            }
+          #endif
+
         }
 
         #if !os(tvOS)

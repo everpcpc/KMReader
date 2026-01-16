@@ -36,12 +36,10 @@ class SeriesService {
     let hasSeriesStatusFilter =
       !includeSeriesStatuses.isEmpty || !excludeSeriesStatuses.isEmpty || oneshotFilter.isActive
       || deletedFilter.isActive || completeFilter.isActive
-    let hasMetadataFilter = metadataFilter != nil && (
-      metadataFilter!.publisher != nil ||
-      !(metadataFilter!.authors?.isEmpty ?? true) ||
-      !(metadataFilter!.genres?.isEmpty ?? true) ||
-      !(metadataFilter!.tags?.isEmpty ?? true)
-    )
+    let hasMetadataFilter =
+      metadataFilter != nil
+      && (metadataFilter!.publisher != nil || !(metadataFilter!.authors?.isEmpty ?? true)
+        || !(metadataFilter!.genres?.isEmpty ?? true) || !(metadataFilter!.tags?.isEmpty ?? true))
 
     if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter || hasMetadataFilter {
       let condition = SeriesSearch.buildCondition(

@@ -72,17 +72,14 @@ struct TappableInfoChip: View {
       .cornerRadius(cornerRadius)
     }
     .adaptiveButtonStyle(.plain)
-    .contextMenu {
-      Button {
-        #if os(iOS) || os(visionOS)
-        UIPasteboard.general.string = labelString
-        #elseif os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(labelString, forType: .string)
-        #endif
-      } label: {
-        Label("Copy", systemImage: "doc.on.doc")
+    #if os(iOS) || os(macOS)
+      .contextMenu {
+        Button {
+          PlatformHelper.generalPasteboard.string = labelString
+        } label: {
+          Label("Copy", systemImage: "doc.on.doc")
+        }
       }
-    }
+    #endif
   }
 }

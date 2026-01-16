@@ -36,7 +36,11 @@ struct DivinaReaderView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
-  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
+  #if os(iOS)
+    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
+  #else
+    private let autoHideControls: Bool = false
+  #endif
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @State private var showKeyboardHelp = false
@@ -304,6 +308,7 @@ struct DivinaReaderView: View {
       if oldCount == 0 && newCount > 0 {
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 2)
+        forceInitialAutoHide(timeout: 2)
       }
     }
     .onDisappear {
@@ -320,13 +325,15 @@ struct DivinaReaderView: View {
         showingControls = false
       }
     }
-    .onChange(of: autoHideControls) { _, newValue in
-      if newValue {
-        resetControlsTimer(timeout: 3)
-      } else {
-        controlsTimer?.invalidate()
+    #if os(iOS)
+      .onChange(of: autoHideControls) { _, newValue in
+        if newValue {
+          resetControlsTimer(timeout: 3)
+        } else {
+          controlsTimer?.invalidate()
+        }
       }
-    }
+    #endif
     #if os(iOS)
       .onAppear {
         if readingDirection != readerPresentation.readingDirection {
@@ -718,12 +725,6 @@ struct DivinaReaderView: View {
       return
     }
     await viewModel.preloadPages()
-    #if os(tvOS)
-      // Keep controls visible on tvOS when first entering reader
-    #else
-      // Start timer to auto-hide controls shortly after entering reader
-      resetControlsTimer(timeout: 1)
-    #endif
   }
 
   private func jumpToPage(page: Int) {
@@ -846,31 +847,33 @@ struct DivinaReaderView: View {
     }
   #endif
 
-  #if os(tvOS)
-    private func resetControlsTimer(timeout: TimeInterval) {
-      // Controls remain visible on tvOS
-      // No-op on tvOS
-    }
-  #else
-    private func resetControlsTimer(timeout: TimeInterval) {
-      // Don't start timer if auto-hide is disabled
-      if !autoHideControls {
-        return
-      }
-
-      // Don't start timer when at end page or webtoon at bottom
-      if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
-        return
-      }
-
-      controlsTimer?.invalidate()
-      controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-        withAnimation {
-          showingControls = false
-        }
+  private func forceInitialAutoHide(timeout: TimeInterval) {
+    controlsTimer?.invalidate()
+    controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
+      withAnimation {
+        showingControls = false
       }
     }
-  #endif
+  }
+
+  private func resetControlsTimer(timeout: TimeInterval) {
+    // Don't start timer if auto-hide is disabled
+    if !autoHideControls {
+      return
+    }
+
+    // Don't start timer when at end page or webtoon at bottom
+    if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
+      return
+    }
+
+    controlsTimer?.invalidate()
+    controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
+      withAnimation {
+        showingControls = false
+      }
+    }
+  }
 
   /// Hide helper overlay and cancel timer
   private func hideTapZoneOverlay() {
