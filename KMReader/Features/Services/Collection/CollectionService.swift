@@ -87,6 +87,35 @@ class CollectionService {
       queryItems.append(URLQueryItem(name: "complete", value: String(complete)))
     }
 
+    // Metadata filters
+    if let publisher = browseOpts.metadataFilter.publisher {
+      queryItems.append(URLQueryItem(name: "publisher", value: publisher))
+    }
+
+    if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
+      for author in authors {
+        queryItems.append(URLQueryItem(name: "author", value: "\(author),"))
+      }
+    }
+
+    if let genres = browseOpts.metadataFilter.genres, !genres.isEmpty {
+      for genre in genres {
+        queryItems.append(URLQueryItem(name: "genre", value: genre))
+      }
+    }
+
+    if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
+      for tag in tags {
+        queryItems.append(URLQueryItem(name: "tag", value: tag))
+      }
+    }
+
+    if let languages = browseOpts.metadataFilter.languages, !languages.isEmpty {
+      for language in languages {
+        queryItems.append(URLQueryItem(name: "language", value: language))
+      }
+    }
+
     return try await apiClient.request(
       path: "/api/v1/collections/\(collectionId)/series",
       queryItems: queryItems

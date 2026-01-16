@@ -79,6 +79,19 @@ class ReadListService {
       queryItems.append(URLQueryItem(name: "deleted", value: String(deleted)))
     }
 
+    // Metadata filters
+    if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
+      for author in authors {
+        queryItems.append(URLQueryItem(name: "author", value: "\(author),"))
+      }
+    }
+
+    if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
+      for tag in tags {
+        queryItems.append(URLQueryItem(name: "tag", value: tag))
+      }
+    }
+
     return try await apiClient.request(
       path: "/api/v1/readlists/\(readListId)/books",
       queryItems: queryItems

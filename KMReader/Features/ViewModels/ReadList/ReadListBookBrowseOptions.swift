@@ -15,6 +15,7 @@ struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
   var excludeReadStatuses: Set<ReadStatus> = []
   var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
+  var metadataFilter: MetadataFilterConfig = MetadataFilterConfig()
 
   var rawValue: String {
     let dict: [String: String] = [
@@ -26,6 +27,7 @@ struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
       ),
       "oneshotFilter": oneshotFilter.storageValue,
       "deletedFilter": deletedFilter.storageValue,
+      "metadataFilter": metadataFilter.rawValue,
     ]
     if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys]),
       let json = String(data: data, encoding: .utf8)
@@ -53,6 +55,8 @@ struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
 
     self.oneshotFilter = TriStateFilter.decode(dict["oneshotFilter"])
     self.deletedFilter = TriStateFilter.decode(dict["deletedFilter"])
+    self.metadataFilter =
+      MetadataFilterConfig(rawValue: dict["metadataFilter"] ?? "") ?? MetadataFilterConfig()
 
     if includeReadStatuses.isEmpty && excludeReadStatuses.isEmpty,
       let legacy = dict["readStatusFilter"]

@@ -44,7 +44,7 @@ struct SeriesSearchFilters {
   var excludeReadStatuses: [ReadStatus] = []
   var includeSeriesStatuses: [String] = []
   var excludeSeriesStatuses: [String] = []
-  var seriesStatusLogic: StatusFilterLogic = .all
+  var seriesStatusLogic: FilterLogic = .all
   /// oneshot = true / false / nil
   var oneshot: Bool? = nil
   /// deleted = true / false / nil
@@ -56,8 +56,13 @@ struct SeriesSearchFilters {
   // Metadata filters
   var publisher: String? = nil
   var authors: [String]? = nil
+  var authorsLogic: FilterLogic = .all
   var genres: [String]? = nil
+  var genresLogic: FilterLogic = .all
   var tags: [String]? = nil
+  var tagsLogic: FilterLogic = .all
+  var languages: [String]? = nil
+  var languagesLogic: FilterLogic = .all
 }
 
 // Helper functions to build conditions
@@ -152,21 +157,32 @@ extension SeriesSearch {
       let authorConditions = authors.map { author in
         ["author": ["operator": "is", "value": ["name": author]]]
       }
-      conditions.append(["anyOf": authorConditions])
+      let wrapperKey = filters.authorsLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: authorConditions])
     }
 
     if let genres = filters.genres, !genres.isEmpty {
       let genreConditions = genres.map { genre in
         ["genre": ["operator": "is", "value": genre]]
       }
-      conditions.append(["anyOf": genreConditions])
+      let wrapperKey = filters.genresLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: genreConditions])
     }
 
     if let tags = filters.tags, !tags.isEmpty {
       let tagConditions = tags.map { tag in
         ["tag": ["operator": "is", "value": tag]]
       }
-      conditions.append(["anyOf": tagConditions])
+      let wrapperKey = filters.tagsLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: tagConditions])
+    }
+
+    if let languages = filters.languages, !languages.isEmpty {
+      let languageConditions = languages.map { language in
+        ["language": ["operator": "is", "value": language]]
+      }
+      let wrapperKey = filters.languagesLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: languageConditions])
     }
 
     if conditions.isEmpty {

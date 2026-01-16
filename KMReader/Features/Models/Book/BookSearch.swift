@@ -51,7 +51,9 @@ struct BookSearchFilters {
 
   // Metadata filters
   var authors: [String]? = nil
+  var authorsLogic: FilterLogic = .all
   var tags: [String]? = nil
+  var tagsLogic: FilterLogic = .all
 }
 
 // Helper functions to build conditions
@@ -122,14 +124,16 @@ extension BookSearch {
       let authorConditions = authors.map { author in
         ["author": ["operator": "is", "value": ["name": author]]]
       }
-      conditions.append(["anyOf": authorConditions])
+      let wrapperKey = filters.authorsLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: authorConditions])
     }
 
     if let tags = filters.tags, !tags.isEmpty {
       let tagConditions = tags.map { tag in
         ["tag": ["operator": "is", "value": tag]]
       }
-      conditions.append(["anyOf": tagConditions])
+      let wrapperKey = filters.tagsLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: tagConditions])
     }
 
     if conditions.isEmpty {

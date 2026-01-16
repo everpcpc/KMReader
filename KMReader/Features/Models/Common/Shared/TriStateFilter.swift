@@ -13,7 +13,7 @@ enum TriStateSelection: String, Codable {
   case exclude
 }
 
-enum StatusFilterLogic: String, Codable {
+enum FilterLogic: String, Codable {
   case all = "ALL"
   case any = "ANY"
 }
