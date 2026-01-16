@@ -116,7 +116,7 @@ struct MetadataFilterSection: View {
           Spacer()
           if let authors = metadataFilter.authors, !authors.isEmpty {
             let logicSymbol = metadataFilter.authorsLogic == .all ? "∧" : "∨"
-            Text(authors.prefix(2).joined(separator: " \(logicSymbol) ") + (authors.count > 2 ? "..." : ""))
+            Text(authors.joined(separator: " \(logicSymbol) "))
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }
@@ -150,7 +150,7 @@ struct MetadataFilterSection: View {
           Spacer()
           if let genres = metadataFilter.genres, !genres.isEmpty {
             let logicSymbol = metadataFilter.genresLogic == .all ? "∧" : "∨"
-            Text(genres.prefix(2).joined(separator: " \(logicSymbol) ") + (genres.count > 2 ? "..." : ""))
+            Text(genres.joined(separator: " \(logicSymbol) "))
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }
@@ -184,7 +184,7 @@ struct MetadataFilterSection: View {
           Spacer()
           if let tags = metadataFilter.tags, !tags.isEmpty {
             let logicSymbol = metadataFilter.tagsLogic == .all ? "∧" : "∨"
-            Text(tags.prefix(2).joined(separator: " \(logicSymbol) ") + (tags.count > 2 ? "..." : ""))
+            Text(tags.joined(separator: " \(logicSymbol) "))
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }
@@ -219,8 +219,8 @@ struct MetadataFilterSection: View {
           Spacer()
           if let languages = metadataFilter.languages, !languages.isEmpty {
             let logicSymbol = metadataFilter.languagesLogic == .all ? "∧" : "∨"
-            let displayNames = languages.prefix(2).map { LanguageCodeHelper.displayName(for: $0) }
-            Text(displayNames.joined(separator: " \(logicSymbol) ") + (languages.count > 2 ? "..." : ""))
+            let displayNames = languages.map { LanguageCodeHelper.displayName(for: $0) }
+            Text(displayNames.joined(separator: " \(logicSymbol) "))
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }

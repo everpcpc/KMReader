@@ -96,7 +96,7 @@ struct SeriesFilterView: View {
 
         if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
           let logicSymbol = browseOpts.metadataFilter.authorsLogic == .all ? "∧" : "∨"
-          let label = authors.prefix(2).joined(separator: " \(logicSymbol) ") + (authors.count > 2 ? "..." : "")
+          let label = authors.joined(separator: " \(logicSymbol) ")
           FilterChip(
             label: label,
             systemImage: "person",
@@ -106,7 +106,7 @@ struct SeriesFilterView: View {
 
         if let genres = browseOpts.metadataFilter.genres, !genres.isEmpty {
           let logicSymbol = browseOpts.metadataFilter.genresLogic == .all ? "∧" : "∨"
-          let label = genres.prefix(2).joined(separator: " \(logicSymbol) ") + (genres.count > 2 ? "..." : "")
+          let label = genres.joined(separator: " \(logicSymbol) ")
           FilterChip(
             label: label,
             systemImage: "theatermasks",
@@ -116,7 +116,7 @@ struct SeriesFilterView: View {
 
         if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
           let logicSymbol = browseOpts.metadataFilter.tagsLogic == .all ? "∧" : "∨"
-          let label = tags.prefix(2).joined(separator: " \(logicSymbol) ") + (tags.count > 2 ? "..." : "")
+          let label = tags.joined(separator: " \(logicSymbol) ")
           FilterChip(
             label: label,
             systemImage: "tag",
@@ -126,8 +126,8 @@ struct SeriesFilterView: View {
 
         if let languages = browseOpts.metadataFilter.languages, !languages.isEmpty {
           let logicSymbol = browseOpts.metadataFilter.languagesLogic == .all ? "∧" : "∨"
-          let displayNames = languages.prefix(2).map { LanguageCodeHelper.displayName(for: $0) }
-          let label = displayNames.joined(separator: " \(logicSymbol) ") + (languages.count > 2 ? "..." : "")
+          let displayNames = languages.map { LanguageCodeHelper.displayName(for: $0) }
+          let label = displayNames.joined(separator: " \(logicSymbol) ")
           FilterChip(
             label: label,
             systemImage: "globe",

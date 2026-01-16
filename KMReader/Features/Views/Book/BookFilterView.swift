@@ -88,7 +88,7 @@ struct BookFilterView: View {
 
         if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
           let logicSymbol = browseOpts.metadataFilter.authorsLogic == .all ? "∧" : "∨"
-          let label = authors.prefix(2).joined(separator: " \(logicSymbol) ") + (authors.count > 2 ? "..." : "")
+          let label = authors.joined(separator: " \(logicSymbol) ")
           FilterChip(
             label: label,
             systemImage: "person",
@@ -98,7 +98,7 @@ struct BookFilterView: View {
 
         if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
           let logicSymbol = browseOpts.metadataFilter.tagsLogic == .all ? "∧" : "∨"
-          let label = tags.prefix(2).joined(separator: " \(logicSymbol) ") + (tags.count > 2 ? "..." : "")
+          let label = tags.joined(separator: " \(logicSymbol) ")
           FilterChip(
             label: label,
             systemImage: "tag",
