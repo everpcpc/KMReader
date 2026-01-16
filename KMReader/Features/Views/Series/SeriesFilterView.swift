@@ -11,6 +11,19 @@ struct SeriesFilterView: View {
   @Binding var browseOpts: SeriesBrowseOptions
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
+  let libraryIds: [String]?
+
+  init(
+    browseOpts: Binding<SeriesBrowseOptions>,
+    showFilterSheet: Binding<Bool>,
+    showSavedFilters: Binding<Bool>,
+    libraryIds: [String]? = nil
+  ) {
+    self._browseOpts = browseOpts
+    self._showFilterSheet = showFilterSheet
+    self._showSavedFilters = showSavedFilters
+    self.libraryIds = libraryIds
+  }
 
   var sortString: String {
     return
@@ -73,12 +86,61 @@ struct SeriesFilterView: View {
           )
         }
 
+        if let publisher = browseOpts.metadataFilter.publisher {
+          FilterChip(
+            label: publisher,
+            systemImage: "building.2",
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.authorsLogic == .all ? "∧" : "∨"
+          let label = authors.prefix(2).joined(separator: " \(logicSymbol) ") + (authors.count > 2 ? "..." : "")
+          FilterChip(
+            label: label,
+            systemImage: "person",
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if let genres = browseOpts.metadataFilter.genres, !genres.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.genresLogic == .all ? "∧" : "∨"
+          let label = genres.prefix(2).joined(separator: " \(logicSymbol) ") + (genres.count > 2 ? "..." : "")
+          FilterChip(
+            label: label,
+            systemImage: "theatermasks",
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.tagsLogic == .all ? "∧" : "∨"
+          let label = tags.prefix(2).joined(separator: " \(logicSymbol) ") + (tags.count > 2 ? "..." : "")
+          FilterChip(
+            label: label,
+            systemImage: "tag",
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if let languages = browseOpts.metadataFilter.languages, !languages.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.languagesLogic == .all ? "∧" : "∨"
+          let displayNames = languages.prefix(2).map { LanguageCodeHelper.displayName(for: $0) }
+          let label = displayNames.joined(separator: " \(logicSymbol) ") + (languages.count > 2 ? "..." : "")
+          FilterChip(
+            label: label,
+            systemImage: "globe",
+            openSheet: $showFilterSheet
+          )
+        }
+
       }
       .padding(4)
     }
     .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
-      SeriesBrowseOptionsSheet(browseOpts: $browseOpts)
+      SeriesBrowseOptionsSheet(browseOpts: $browseOpts, libraryIds: libraryIds)
     }
   }
 }

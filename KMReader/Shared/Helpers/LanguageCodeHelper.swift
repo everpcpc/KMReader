@@ -20,13 +20,22 @@ struct LanguageCodeHelper {
       return "None"
     }
 
-    let baseCode = languageCode.components(separatedBy: "-").first ?? languageCode
+    let components = languageCode.components(separatedBy: "-")
+    let baseCode = components.first ?? languageCode
+    let suffix = components.count > 1 ? components.dropFirst().joined(separator: "-") : nil
 
+    var name: String
     if let displayName = Locale.current.localizedString(forLanguageCode: baseCode) {
-      return displayName.capitalized
+      name = displayName.capitalized
+    } else {
+      name = baseCode.uppercased()
     }
 
-    return baseCode.uppercased()
+    if let suffix = suffix {
+      name += " (\(suffix))"
+    }
+
+    return name
   }
 
   static func allLanguageCodes() -> [String] {

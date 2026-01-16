@@ -14,7 +14,8 @@ struct BooksBrowseView: View {
   @Binding var showSavedFilters: Bool
   let metadataFilter: MetadataFilterConfig?
 
-  @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
+  @AppStorage("bookBrowseOptions") private var storedBrowseOpts: BookBrowseOptions = BookBrowseOptions()
+  @State private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
   @State private var viewModel = BookViewModel()
@@ -28,7 +29,8 @@ struct BooksBrowseView: View {
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
-        filterType: .books
+        filterType: .books,
+        libraryIds: libraryIds
       )
       .padding(.horizontal)
       .padding(.vertical, 4)
@@ -40,8 +42,16 @@ struct BooksBrowseView: View {
         loadMore: loadBooks
       )
       .task {
-        guard !hasInitialized else { return }
-        hasInitialized = true
+        if !hasInitialized {
+          if let metadataFilter = metadataFilter {
+            var opts = BookBrowseOptions()
+            opts.metadataFilter = metadataFilter
+            browseOpts = opts
+          } else {
+            browseOpts = storedBrowseOpts
+          }
+          hasInitialized = true
+        }
         await loadBooks(refresh: true)
       }
       .onChange(of: refreshTrigger) { _, _ in
@@ -51,9 +61,17 @@ struct BooksBrowseView: View {
       }
       .onChange(of: browseOpts) { oldValue, newValue in
         if oldValue != newValue {
+          if metadataFilter == nil {
+            storedBrowseOpts = newValue
+          }
           Task {
             await loadBooks(refresh: true)
           }
+        }
+      }
+      .onChange(of: storedBrowseOpts) { _, newValue in
+        if browseOpts != newValue {
+          browseOpts = newValue
         }
       }
       .onChange(of: searchText) { _, newValue in
@@ -72,7 +90,6 @@ struct BooksBrowseView: View {
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,
-      metadataFilter: metadataFilter,
       refresh: refresh
     )
   }

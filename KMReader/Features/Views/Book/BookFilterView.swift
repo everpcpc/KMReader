@@ -12,17 +12,23 @@ struct BookFilterView: View {
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
   let filterType: SavedFilterType
+  let seriesId: String?
+  let libraryIds: [String]?
 
   init(
     browseOpts: Binding<BookBrowseOptions>,
     showFilterSheet: Binding<Bool>,
     showSavedFilters: Binding<Bool>,
-    filterType: SavedFilterType = .books
+    filterType: SavedFilterType = .books,
+    seriesId: String? = nil,
+    libraryIds: [String]? = nil
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
     self.filterType = filterType
+    self.seriesId = seriesId
+    self.libraryIds = libraryIds
   }
 
   var sortString: String {
@@ -79,12 +85,34 @@ struct BookFilterView: View {
             openSheet: $showFilterSheet
           )
         }
+
+        if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.authorsLogic == .all ? "∧" : "∨"
+          let label = authors.prefix(2).joined(separator: " \(logicSymbol) ") + (authors.count > 2 ? "..." : "")
+          FilterChip(
+            label: label,
+            systemImage: "person",
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.tagsLogic == .all ? "∧" : "∨"
+          let label = tags.prefix(2).joined(separator: " \(logicSymbol) ") + (tags.count > 2 ? "..." : "")
+          FilterChip(
+            label: label,
+            systemImage: "tag",
+            openSheet: $showFilterSheet
+          )
+        }
+
       }
       .padding(4)
     }
     .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
-      BookBrowseOptionsSheet(browseOpts: $browseOpts, filterType: filterType)
+      BookBrowseOptionsSheet(
+        browseOpts: $browseOpts, filterType: filterType, seriesId: seriesId, libraryIds: libraryIds)
     }
   }
 }

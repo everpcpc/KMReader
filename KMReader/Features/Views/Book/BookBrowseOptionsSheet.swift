@@ -13,11 +13,20 @@ struct BookBrowseOptionsSheet: View {
   @State private var tempOpts: BookBrowseOptions
   @State private var showSaveFilterSheet = false
   let filterType: SavedFilterType
+  let seriesId: String?
+  let libraryIds: [String]?
 
-  init(browseOpts: Binding<BookBrowseOptions>, filterType: SavedFilterType = .books) {
+  init(
+    browseOpts: Binding<BookBrowseOptions>,
+    filterType: SavedFilterType = .books,
+    seriesId: String? = nil,
+    libraryIds: [String]? = nil
+  ) {
     self._browseOpts = browseOpts
     self._tempOpts = State(initialValue: browseOpts.wrappedValue)
     self.filterType = filterType
+    self.seriesId = seriesId
+    self.libraryIds = libraryIds
   }
 
   var body: some View {
@@ -31,7 +40,7 @@ struct BookBrowseOptionsSheet: View {
           sortDirection: $tempOpts.sortDirection
         )
 
-        Section("Read Status") {
+        Section(String(localized: "Read Status")) {
           ForEach(ReadStatus.allCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {
@@ -53,7 +62,7 @@ struct BookBrowseOptionsSheet: View {
           }
         }
 
-        Section("Flags") {
+        Section(String(localized: "Flags")) {
           Button {
             withAnimation(.easeInOut) {
               tempOpts.oneshotFilter.cycle(to: .yes)
@@ -81,15 +90,23 @@ struct BookBrowseOptionsSheet: View {
           }
         }
 
+        MetadataFilterSection(
+          metadataFilter: $tempOpts.metadataFilter,
+          libraryIds: libraryIds,
+          seriesId: seriesId,
+          showAuthors: true,
+          showTags: true
+        )
+
       }
     } controls: {
       Button {
         showSaveFilterSheet = true
       } label: {
-        Label("Save Filter", systemImage: "bookmark")
+        Label(String(localized: "Save Filter"), systemImage: "bookmark")
       }
       Button(action: applyChanges) {
-        Label("Done", systemImage: "checkmark")
+        Label(String(localized: "Done"), systemImage: "checkmark")
       }
     }
     .sheet(isPresented: $showSaveFilterSheet) {

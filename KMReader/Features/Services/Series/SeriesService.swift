@@ -17,85 +17,49 @@ class SeriesService {
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
-    sort: String = "metadata.titleSort,asc",
-    includeReadStatuses: Set<ReadStatus>,
-    excludeReadStatuses: Set<ReadStatus>,
-    includeSeriesStatuses: Set<SeriesStatus>,
-    excludeSeriesStatuses: Set<SeriesStatus>,
-    seriesStatusLogic: FilterLogic,
-    completeFilter: TriStateFilter<BoolTriStateFlag>,
-    oneshotFilter: TriStateFilter<BoolTriStateFlag>,
-    deletedFilter: TriStateFilter<BoolTriStateFlag>,
-    searchTerm: String? = nil,
-    metadataFilter: MetadataFilterConfig? = nil
+    browseOpts: SeriesBrowseOptions,
+    searchTerm: String? = nil
   ) async throws -> Page<Series> {
-    // Check if we have any filters - if so, use getSeriesList
-    let hasLibraryFilter = libraryIds != nil && !libraryIds!.isEmpty
-    let hasReadStatusFilter =
-      !includeReadStatuses.isEmpty || !excludeReadStatuses.isEmpty
-    let hasSeriesStatusFilter =
-      !includeSeriesStatuses.isEmpty || !excludeSeriesStatuses.isEmpty || oneshotFilter.isActive
-      || deletedFilter.isActive || completeFilter.isActive
-    let hasMetadataFilter =
-      metadataFilter != nil
-      && (metadataFilter!.publisher != nil || !(metadataFilter!.authors?.isEmpty ?? true)
-        || !(metadataFilter!.genres?.isEmpty ?? true) || !(metadataFilter!.tags?.isEmpty ?? true)
-        || !(metadataFilter!.languages?.isEmpty ?? true))
+    let sort = browseOpts.sortString
+    let effectiveMetadataFilter = browseOpts.metadataFilter
 
-    if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter || hasMetadataFilter {
-      let condition = SeriesSearch.buildCondition(
-        filters: SeriesSearchFilters(
-          libraryIds: libraryIds,
-          includeReadStatuses: Array(includeReadStatuses),
-          excludeReadStatuses: Array(excludeReadStatuses),
-          includeSeriesStatuses: includeSeriesStatuses.map { $0.apiValue }.filter { !$0.isEmpty },
-          excludeSeriesStatuses: excludeSeriesStatuses.map { $0.apiValue }.filter { !$0.isEmpty },
-          seriesStatusLogic: seriesStatusLogic,
-          oneshot: oneshotFilter.effectiveBool,
-          deleted: deletedFilter.effectiveBool,
-          complete: completeFilter.effectiveBool,
-          publisher: metadataFilter?.publisher,
-          authors: metadataFilter?.authors,
-          authorsLogic: metadataFilter?.authorsLogic ?? .all,
-          genres: metadataFilter?.genres,
-          genresLogic: metadataFilter?.genresLogic ?? .all,
-          tags: metadataFilter?.tags,
-          tagsLogic: metadataFilter?.tagsLogic ?? .all,
-          languages: metadataFilter?.languages,
-          languagesLogic: metadataFilter?.languagesLogic ?? .all
-        ))
+    let condition = SeriesSearch.buildCondition(
+      filters: SeriesSearchFilters(
+        libraryIds: libraryIds,
+        includeReadStatuses: Array(browseOpts.includeReadStatuses),
+        excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
+        includeSeriesStatuses: browseOpts.includeSeriesStatuses.map { $0.apiValue }.filter {
+          !$0.isEmpty
+        },
+        excludeSeriesStatuses: browseOpts.excludeSeriesStatuses.map { $0.apiValue }.filter {
+          !$0.isEmpty
+        },
+        seriesStatusLogic: browseOpts.seriesStatusLogic,
+        oneshot: browseOpts.oneshotFilter.effectiveBool,
+        deleted: browseOpts.deletedFilter.effectiveBool,
+        complete: browseOpts.completeFilter.effectiveBool,
+        publisher: effectiveMetadataFilter.publisher,
+        authors: effectiveMetadataFilter.authors,
+        authorsLogic: effectiveMetadataFilter.authorsLogic,
+        genres: effectiveMetadataFilter.genres,
+        genresLogic: effectiveMetadataFilter.genresLogic,
+        tags: effectiveMetadataFilter.tags,
+        tagsLogic: effectiveMetadataFilter.tagsLogic,
+        languages: effectiveMetadataFilter.languages,
+        languagesLogic: effectiveMetadataFilter.languagesLogic
+      ))
 
-      let search = SeriesSearch(
-        condition: condition,
-        fullTextSearch: searchTerm?.isEmpty == false ? searchTerm : nil
-      )
+    let search = SeriesSearch(
+      condition: condition,
+      fullTextSearch: searchTerm?.isEmpty == false ? searchTerm : nil
+    )
 
-      return try await getSeriesList(
-        search: search,
-        page: page,
-        size: size,
-        sort: sort
-      )
-    } else {
-      // No filters - use the simple GET endpoint
-      var queryItems = [
-        URLQueryItem(name: "page", value: "\(page)"),
-        URLQueryItem(name: "size", value: "\(size)"),
-        URLQueryItem(name: "sort", value: sort),
-      ]
-
-      // Support multiple libraryIds
-      if let libraryIds = libraryIds, !libraryIds.isEmpty {
-        for id in libraryIds where !id.isEmpty {
-          queryItems.append(URLQueryItem(name: "library_id", value: id))
-        }
-      }
-
-      if let searchTerm, !searchTerm.isEmpty {
-        queryItems.append(URLQueryItem(name: "search", value: searchTerm))
-      }
-      return try await apiClient.request(path: "/api/v1/series", queryItems: queryItems)
-    }
+    return try await getSeriesList(
+      search: search,
+      page: page,
+      size: size,
+      sort: sort
+    )
   }
 
   func getSeriesList(

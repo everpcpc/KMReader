@@ -16,8 +16,9 @@ struct SeriesBrowseView: View {
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
 
-  @AppStorage("seriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
+  @AppStorage("seriesBrowseOptions") private var storedBrowseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
+  @State private var browseOpts: SeriesBrowseOptions = SeriesBrowseOptions()
   @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
@@ -31,7 +32,8 @@ struct SeriesBrowseView: View {
       SeriesFilterView(
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
-        showSavedFilters: $showSavedFilters
+        showSavedFilters: $showSavedFilters,
+        libraryIds: libraryIds
       )
       .padding(.horizontal)
       .padding(.vertical, 4)
@@ -45,8 +47,16 @@ struct SeriesBrowseView: View {
       )
     }
     .task {
-      guard !hasInitialized else { return }
-      hasInitialized = true
+      if !hasInitialized {
+        if let metadataFilter = metadataFilter {
+          var opts = SeriesBrowseOptions()
+          opts.metadataFilter = metadataFilter
+          browseOpts = opts
+        } else {
+          browseOpts = storedBrowseOpts
+        }
+        hasInitialized = true
+      }
       await loadSeries(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in
@@ -56,9 +66,17 @@ struct SeriesBrowseView: View {
     }
     .onChange(of: browseOpts) { oldValue, newValue in
       if oldValue != newValue {
+        if metadataFilter == nil {
+          storedBrowseOpts = newValue
+        }
         Task {
           await loadSeries(refresh: true)
         }
+      }
+    }
+    .onChange(of: storedBrowseOpts) { _, newValue in
+      if browseOpts != newValue {
+        browseOpts = newValue
       }
     }
     .onChange(of: searchText) { _, newValue in
@@ -76,7 +94,6 @@ struct SeriesBrowseView: View {
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,
-      metadataFilter: metadataFilter,
       refresh: refresh
     )
   }

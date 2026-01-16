@@ -208,7 +208,7 @@ struct OneShotDetailContentView: View {
           ForEach(genres.sorted(), id: \.self) { genre in
             TappableInfoChip(
               label: genre,
-              systemImage: "bookmark",
+              systemImage: "theatermasks",
               backgroundColor: Color.blue.opacity(0.1),
               foregroundColor: .blue,
               cornerRadius: 8,
