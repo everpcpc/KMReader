@@ -15,10 +15,11 @@ struct SeriesBrowseOptions: Equatable, RawRepresentable {
   var excludeReadStatuses: Set<ReadStatus> = []
   var includeSeriesStatuses: Set<SeriesStatus> = []
   var excludeSeriesStatuses: Set<SeriesStatus> = []
-  var seriesStatusLogic: StatusFilterLogic = .all
+  var seriesStatusLogic: FilterLogic = .all
   var completeFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
+  var metadataFilter: MetadataFilterConfig = MetadataFilterConfig()
   var sortField: SeriesSortField = .name
   var sortDirection: SortDirection = .ascending
 
@@ -47,6 +48,7 @@ struct SeriesBrowseOptions: Equatable, RawRepresentable {
       "completeFilter": completeFilter.storageValue,
       "oneshotFilter": oneshotFilter.storageValue,
       "deletedFilter": deletedFilter.storageValue,
+      "metadataFilter": metadataFilter.rawValue,
       "sortField": sortField.rawValue,
       "sortDirection": sortDirection.rawValue,
     ]
@@ -110,11 +112,13 @@ struct SeriesBrowseOptions: Equatable, RawRepresentable {
 
     let logicRaw = dict["seriesStatusLogic"] ?? ""
     self.seriesStatusLogic =
-      StatusFilterLogic(rawValue: logicRaw)
+      FilterLogic(rawValue: logicRaw)
       ?? (logicRaw == "AND" ? .all : logicRaw == "OR" ? .any : .all)
     self.completeFilter = TriStateFilter.decode(dict["completeFilter"])
     self.oneshotFilter = TriStateFilter.decode(dict["oneshotFilter"])
     self.deletedFilter = TriStateFilter.decode(dict["deletedFilter"])
+    self.metadataFilter =
+      MetadataFilterConfig(rawValue: dict["metadataFilter"] ?? "") ?? MetadataFilterConfig()
     self.sortField = SeriesSortField(rawValue: dict["sortField"] ?? "") ?? .name
     self.sortDirection = SortDirection(rawValue: dict["sortDirection"] ?? "") ?? .ascending
   }

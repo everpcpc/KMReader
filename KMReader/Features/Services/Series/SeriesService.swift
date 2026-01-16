@@ -22,7 +22,7 @@ class SeriesService {
     excludeReadStatuses: Set<ReadStatus>,
     includeSeriesStatuses: Set<SeriesStatus>,
     excludeSeriesStatuses: Set<SeriesStatus>,
-    seriesStatusLogic: StatusFilterLogic,
+    seriesStatusLogic: FilterLogic,
     completeFilter: TriStateFilter<BoolTriStateFlag>,
     oneshotFilter: TriStateFilter<BoolTriStateFlag>,
     deletedFilter: TriStateFilter<BoolTriStateFlag>,
@@ -39,7 +39,8 @@ class SeriesService {
     let hasMetadataFilter =
       metadataFilter != nil
       && (metadataFilter!.publisher != nil || !(metadataFilter!.authors?.isEmpty ?? true)
-        || !(metadataFilter!.genres?.isEmpty ?? true) || !(metadataFilter!.tags?.isEmpty ?? true))
+        || !(metadataFilter!.genres?.isEmpty ?? true) || !(metadataFilter!.tags?.isEmpty ?? true)
+        || !(metadataFilter!.languages?.isEmpty ?? true))
 
     if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter || hasMetadataFilter {
       let condition = SeriesSearch.buildCondition(
@@ -55,8 +56,13 @@ class SeriesService {
           complete: completeFilter.effectiveBool,
           publisher: metadataFilter?.publisher,
           authors: metadataFilter?.authors,
+          authorsLogic: metadataFilter?.authorsLogic ?? .all,
           genres: metadataFilter?.genres,
-          tags: metadataFilter?.tags
+          genresLogic: metadataFilter?.genresLogic ?? .all,
+          tags: metadataFilter?.tags,
+          tagsLogic: metadataFilter?.tagsLogic ?? .all,
+          languages: metadataFilter?.languages,
+          languagesLogic: metadataFilter?.languagesLogic ?? .all
         ))
 
       let search = SeriesSearch(

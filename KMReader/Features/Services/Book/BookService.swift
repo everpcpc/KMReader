@@ -34,7 +34,11 @@ class BookService {
       oneshot: browseOpts.oneshotFilter.effectiveBool,
       deleted: browseOpts.deletedFilter.effectiveBool,
       seriesId: seriesId,
-      readListId: nil
+      readListId: nil,
+      authors: browseOpts.metadataFilter.authors,
+      authorsLogic: browseOpts.metadataFilter.authorsLogic,
+      tags: browseOpts.metadataFilter.tags,
+      tagsLogic: browseOpts.metadataFilter.tagsLogic
     )
     let condition = BookSearch.buildCondition(filters: filters)
     let search = BookSearch(condition: condition)

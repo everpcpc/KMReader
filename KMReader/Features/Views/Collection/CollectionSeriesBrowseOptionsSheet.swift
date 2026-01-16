@@ -47,8 +47,8 @@ struct CollectionSeriesBrowseOptionsSheet: View {
 
         Section("Series Status") {
           Picker("Logic", selection: $tempOpts.seriesStatusLogic) {
-            Text("All").tag(StatusFilterLogic.all)
-            Text("Any").tag(StatusFilterLogic.any)
+            Text("All").tag(FilterLogic.all)
+            Text("Any").tag(FilterLogic.any)
           }
           .pickerStyle(.segmented)
 

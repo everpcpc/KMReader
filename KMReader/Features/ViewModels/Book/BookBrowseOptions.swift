@@ -15,6 +15,7 @@ struct BookBrowseOptions: Equatable, RawRepresentable {
   var excludeReadStatuses: Set<ReadStatus> = []
   var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
+  var metadataFilter: MetadataFilterConfig = MetadataFilterConfig()
   var sortField: BookSortField = .series
   var sortDirection: SortDirection = .ascending
 
@@ -32,6 +33,7 @@ struct BookBrowseOptions: Equatable, RawRepresentable {
       ),
       "oneshotFilter": oneshotFilter.storageValue,
       "deletedFilter": deletedFilter.storageValue,
+      "metadataFilter": metadataFilter.rawValue,
       "sortField": sortField.rawValue,
       "sortDirection": sortDirection.rawValue,
     ]
@@ -61,6 +63,8 @@ struct BookBrowseOptions: Equatable, RawRepresentable {
 
     self.oneshotFilter = TriStateFilter.decode(dict["oneshotFilter"])
     self.deletedFilter = TriStateFilter.decode(dict["deletedFilter"])
+    self.metadataFilter =
+      MetadataFilterConfig(rawValue: dict["metadataFilter"] ?? "") ?? MetadataFilterConfig()
 
     // backward compatibility with legacy tri-state
     if includeReadStatuses.isEmpty && excludeReadStatuses.isEmpty,
