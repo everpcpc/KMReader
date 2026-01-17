@@ -20267,6 +20267,52 @@
         }
       }
     },
+    "Loading" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로딩 중"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载中"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "載入中"
+          }
+        }
+      }
+    },
     "Loading Libraries…" : {
       "localizations" : {
         "de" : {
@@ -21693,6 +21739,52 @@
         }
       }
     },
+    "No authors available" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Autoren verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No authors available"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun auteur disponible"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能な著者はありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 가능한 작가 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无可用作者"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無可用作者"
+          }
+        }
+      }
+    },
     "No books are currently queued for offline reading." : {
       "localizations" : {
         "de" : {
@@ -21969,6 +22061,52 @@
         }
       }
     },
+    "No genres available" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Genres verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No genres available"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun genre disponible"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能なジャンルはありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 가능한 장르 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无可用类型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無可用風格"
+          }
+        }
+      }
+    },
     "No history found" : {
       "localizations" : {
         "de" : {
@@ -22011,6 +22149,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未找到歷史記錄"
+          }
+        }
+      }
+    },
+    "No languages available" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Sprachen verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No languages available"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune langue disponible"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能な言語はありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 가능한 언어 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无可用语言"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無可用語言"
           }
         }
       }
@@ -22107,48 +22291,48 @@
         }
       }
     },
-    "No Publishers" : {
+    "No publishers available" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Verleger"
+            "value" : "Keine Verleger verfügbar"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No Publishers"
+            "value" : "No publishers available"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun éditeur"
+            "value" : "Aucun éditeur disponible"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "出版社なし"
+            "value" : "利用可能な出版社はありません"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "출판사 없음"
+            "value" : "사용 가능한 출판사 없음"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无出版商"
+            "value" : "无可用出版商"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無出版商"
+            "value" : "無可用出版商"
           }
         }
       }
@@ -22425,6 +22609,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未找到伺服器"
+          }
+        }
+      }
+    },
+    "No tags available" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Tags verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No tags available"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun tag disponible"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能なタグはありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 가능한 태그 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无可用标签"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無可用標籤"
           }
         }
       }
@@ -27629,52 +27859,6 @@
         }
       }
     },
-    "Publishers" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verleger"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Publishers"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Éditeurs"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "配信元"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "출판사"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出版商"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出版商"
-          }
-        }
-      }
-    },
     "Publisher Default" : {
       "localizations" : {
         "de" : {
@@ -27721,48 +27905,48 @@
         }
       }
     },
-    "Publisher filters are unavailable right now." : {
+    "Publishers" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verlegerfilter sind derzeit nicht verfügbar."
+            "value" : "Verleger"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Publisher filters are unavailable right now."
+            "value" : "Publishers"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les filtres d'éditeur sont indisponibles pour le moment."
+            "value" : "Éditeurs"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "出版社のフィルターは現在利用できません。"
+            "value" : "配信元"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "출판사 필터는 현재 사용할 수 없습니다."
+            "value" : "출판사"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "出版商过滤器目前不可用。"
+            "value" : "出版商"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "出版商篩選器目前不可用。"
+            "value" : "出版商"
           }
         }
       }
@@ -41287,6 +41471,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法編碼憑證"
+          }
+        }
+      }
+    },
+    "Unable to load filters" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter konnten nicht geladen werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to load filters"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les filtres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィルターを読み込めません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "필터를 로드할 수 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载过滤器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法載入篩選器"
           }
         }
       }
