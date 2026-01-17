@@ -182,7 +182,7 @@ struct DashboardView: View {
                   }
                 } label: {
                   if isCheckingConnection {
-                    ProgressView()
+                    LoadingIcon()
                   } else {
                     Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
                       .foregroundStyle(.orange)
@@ -275,7 +275,7 @@ struct DashboardView: View {
               }
             } label: {
               if isCheckingConnection {
-                ProgressView()
+                LoadingIcon()
               } else {
                 Image(systemName: "wifi.slash")
                 .foregroundStyle(.red)
@@ -283,7 +283,7 @@ struct DashboardView: View {
             }
             .disabled(isCheckingConnection)
           } else if isRefreshing {
-            ProgressView()
+            LoadingIcon()
           } else {
             Menu {
               Picker(selection: gridDensityBinding) {

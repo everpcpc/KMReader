@@ -56,7 +56,7 @@ struct LibraryAddSheet: View {
     } controls: {
       Button(action: createLibrary) {
         if isCreating {
-          ProgressView()
+          LoadingIcon()
         } else {
           Label(String(localized: "common.create"), systemImage: "plus")
         }

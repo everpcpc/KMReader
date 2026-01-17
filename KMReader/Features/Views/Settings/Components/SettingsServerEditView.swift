@@ -148,8 +148,7 @@ struct SettingsServerEditView: View {
           } label: {
             HStack {
               if isValidating {
-                ProgressView()
-                  .scaleEffect(0.8)
+                LoadingIcon()
               } else {
                 Image(systemName: "checkmark.circle")
               }

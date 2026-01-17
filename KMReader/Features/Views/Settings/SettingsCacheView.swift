@@ -118,8 +118,7 @@ struct SettingsCacheView: View {
           Text("Cached Size")
           Spacer()
           if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
+            LoadingIcon()
           } else {
             Text(formatCacheSize(imageCacheSize))
               .foregroundColor(.secondary)
@@ -131,8 +130,7 @@ struct SettingsCacheView: View {
           Text("Cached Images")
           Spacer()
           if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
+            LoadingIcon()
           } else {
             Text(formatCacheCount(imageCacheCount))
               .foregroundColor(.secondary)
@@ -201,8 +199,7 @@ struct SettingsCacheView: View {
           Text("Cached Size")
           Spacer()
           if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
+            LoadingIcon()
           } else {
             Text(formatCacheSize(thumbnailCacheSize))
               .foregroundColor(.secondary)
@@ -214,8 +211,7 @@ struct SettingsCacheView: View {
           Text(String(localized: "Cached Covers"))
           Spacer()
           if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
+            LoadingIcon()
           } else {
             Text(formatCacheCount(thumbnailCacheCount))
               .foregroundColor(.secondary)
@@ -245,8 +241,7 @@ struct SettingsCacheView: View {
           Text("Cached Size")
           Spacer()
           if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
+            LoadingIcon()
           } else {
             Text(formatCacheSize(bookFileCacheSize))
               .foregroundColor(.secondary)
@@ -258,8 +253,7 @@ struct SettingsCacheView: View {
           Text("Cached Files")
           Spacer()
           if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
+            LoadingIcon()
           } else {
             Text(formatCacheCount(bookFileCacheCount))
               .foregroundColor(.secondary)

@@ -189,7 +189,7 @@ struct LoginView: View {
         HStack(spacing: 8) {
           Spacer()
           if authViewModel.isLoading {
-            ProgressView()
+            LoadingIcon()
           } else {
             Text(String(localized: "Login"))
             Image(systemName: "arrow.right.circle.fill")

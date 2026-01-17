@@ -70,7 +70,7 @@ struct ReadListPickerSheet: View {
     SheetView(title: String(localized: "Select Read List"), size: .large, applyFormStyle: true) {
       Form {
         if isLoading && komgaReadLists.isEmpty {
-          ProgressView()
+          LoadingIcon()
             .frame(maxWidth: .infinity)
         } else if filteredReadLists.isEmpty && searchText.isEmpty {
           Text("No read lists found")
@@ -167,7 +167,7 @@ struct CreateReadListSheet: View {
     } controls: {
       Button(action: createReadList) {
         if isCreating {
-          ProgressView()
+          LoadingIcon()
         } else {
           Label("Create", systemImage: "checkmark")
         }

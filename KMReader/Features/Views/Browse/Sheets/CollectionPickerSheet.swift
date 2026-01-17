@@ -66,7 +66,7 @@ struct CollectionPickerSheet: View {
     SheetView(title: String(localized: "Select Collection"), size: .large, applyFormStyle: true) {
       Form {
         if isLoading && komgaCollections.isEmpty {
-          ProgressView()
+          LoadingIcon()
             .frame(maxWidth: .infinity)
         } else if filteredCollections.isEmpty && searchText.isEmpty {
           Text("No collections found")
@@ -160,7 +160,7 @@ struct CreateCollectionSheet: View {
     } controls: {
       Button(action: createCollection) {
         if isCreating {
-          ProgressView()
+          LoadingIcon()
         } else {
           Label("Create", systemImage: "checkmark")
         }

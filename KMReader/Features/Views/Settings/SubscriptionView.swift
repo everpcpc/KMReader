@@ -23,7 +23,7 @@ struct SubscriptionView: View {
 
             if StoreManager.shared.isLoadingProducts {
               VStack(spacing: 12) {
-                ProgressView()
+                LoadingIcon()
                 Text(String(localized: "Brewing..."))
                   .font(.caption)
                   .foregroundColor(.secondary)
@@ -178,7 +178,7 @@ struct SubscriptionView: View {
         Spacer()
 
         if isPurchasing {
-          ProgressView()
+          LoadingIcon()
         } else {
           Text(product.displayPrice)
             .font(.subheadline)
@@ -206,7 +206,7 @@ struct SubscriptionView: View {
     } label: {
       HStack(spacing: 8) {
         if StoreManager.shared.isRestoring {
-          ProgressView()
+          LoadingIcon()
         }
         Text(String(localized: "Restore Purchases"))
           .font(.caption)

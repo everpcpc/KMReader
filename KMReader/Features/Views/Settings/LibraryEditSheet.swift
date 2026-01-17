@@ -62,7 +62,7 @@ struct LibraryEditSheet: View {
     } controls: {
       Button(action: saveLibrary) {
         if isSaving {
-          ProgressView()
+          LoadingIcon()
         } else {
           Label(String(localized: "common.save"), systemImage: "checkmark")
         }

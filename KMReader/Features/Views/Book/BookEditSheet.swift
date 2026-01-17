@@ -52,7 +52,7 @@ struct BookEditSheet: View {
     } controls: {
       Button(action: saveChanges) {
         if isSaving {
-          ProgressView()
+          LoadingIcon()
         } else {
           Label("Save", systemImage: "checkmark")
         }
