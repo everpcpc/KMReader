@@ -16,13 +16,25 @@ import SwiftUI
       @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
     #endif
 
+    var librarySelection: LibrarySelection? {
+      guard let nav else { return nil }
+      switch nav {
+      case .browseLibrary(let library):
+        return library
+      default:
+        return nil
+      }
+    }
+
     var body: some View {
       NavigationSplitView(columnVisibility: $columnVisibility) {
         SidebarView(selection: $nav)
       } detail: {
         NavigationStack {
           if let nav {
-            nav.content.handleNavigation()
+            nav.content
+              .handleNavigation()
+              .environment(\.browseLibrarySelection, librarySelection)
           } else {
             ContentUnavailableView {
               Label(String(localized: "Select a Category"), systemImage: "sidebar.left")
@@ -31,7 +43,6 @@ import SwiftUI
             }
           }
         }
-        .environment(\.sidebarSelection, $nav)
       }
     }
   }

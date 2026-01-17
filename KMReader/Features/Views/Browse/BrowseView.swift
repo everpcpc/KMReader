@@ -8,8 +8,13 @@
 import SwiftUI
 
 struct BrowseView: View {
-  @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
+  let fixedContent: BrowseContentType?
+  let metadataFilter: MetadataFilterConfig?
+
   @Environment(AuthViewModel.self) private var authViewModel
+  @Environment(\.browseLibrarySelection) private var librarySelection
+
+  @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
@@ -19,10 +24,6 @@ struct BrowseView: View {
   @AppStorage("collectionBrowseLayout") private var collectionBrowseLayout: BrowseLayoutMode = .grid
   @AppStorage("readListBrowseLayout") private var readListBrowseLayout: BrowseLayoutMode = .grid
 
-  let library: LibrarySelection?
-  let fixedContent: BrowseContentType?
-  let metadataFilter: MetadataFilterConfig?
-
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
   @State private var searchQuery: String = ""
@@ -30,7 +31,6 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
-  @State private var libraryIds: [String] = []
 
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
@@ -51,21 +51,15 @@ struct BrowseView: View {
   }
 
   init(
-    library: LibrarySelection? = nil, fixedContent: BrowseContentType? = nil,
+    fixedContent: BrowseContentType? = nil,
     metadataFilter: MetadataFilterConfig? = nil
   ) {
-    self.library = library
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
-    if let library = library {
-      _libraryIds = State(initialValue: [library.libraryId])
-    } else {
-      _libraryIds = State(initialValue: AppConfig.dashboard.libraryIds)
-    }
   }
 
   var title: String {
-    if let library = library {
+    if let library = librarySelection {
       return library.name
     } else if let fixedContent {
       return fixedContent.displayName
@@ -74,13 +68,15 @@ struct BrowseView: View {
     }
   }
 
-  private func refreshBrowse() {
-    refreshTrigger = UUID()
-    isRefreshDisabled = true
-    Task {
-      try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
-      isRefreshDisabled = false
+  private var resolvedLibraryIds: [String] {
+    if let library = librarySelection {
+      return [library.libraryId]
     }
+    return dashboard.libraryIds
+  }
+
+  private var resolvedLibraryIdsKey: String {
+    resolvedLibraryIds.joined(separator: ",")
   }
 
   private var gridDensityBinding: Binding<GridDensity> {
@@ -91,7 +87,7 @@ struct BrowseView: View {
   }
 
   func sectionCount(browseContent: BrowseContentType) -> Int? {
-    guard let library = library else { return nil }
+    guard let library = librarySelection else { return nil }
     switch browseContent {
     case .series:
       return library.seriesCount.map { Int($0) }
@@ -114,7 +110,7 @@ struct BrowseView: View {
   var body: some View {
     ScrollView {
       VStack(spacing: 0) {
-        if let library = library {
+        if let library = librarySelection {
           VStack(alignment: .leading) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
               Image(systemName: "books.vertical")
@@ -146,15 +142,15 @@ struct BrowseView: View {
           .padding(.vertical, 8)
         }
 
-        contentView()
+        browseContentView
       }
     }
     .inlineNavigationBarTitle(title)
-    .animation(.default, value: library)
+    .animation(.default, value: librarySelection)
     .searchable(text: $searchQuery)
     #if !os(tvOS)
       .toolbar {
-        if library == nil {
+        if librarySelection == nil {
           ToolbarItem(placement: .cancellationAction) {
             Button {
               showLibraryPicker = true
@@ -207,61 +203,58 @@ struct BrowseView: View {
       }
     }
     .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
-      guard library == nil else { return }
+      guard librarySelection == nil else { return }
       // Refresh when server switch completes to avoid race condition
       if oldValue && !newValue {
         refreshBrowse()
       }
     }
-    .onChange(of: library?.libraryId) { _, _ in
-      if let library = library {
-        libraryIds = [library.libraryId]
-      } else {
-        libraryIds = dashboard.libraryIds
-      }
-      refreshBrowse()
-    }
-    .onChange(of: dashboard.libraryIds) { _, newValue in
-      guard library == nil else { return }
-      // Skip during server switch - dedicated refresh happens when switch completes
+    .task(id: resolvedLibraryIdsKey) {
       guard !authViewModel.isSwitching else { return }
-      guard libraryIds != newValue else { return }
-      libraryIds = newValue
       refreshBrowse()
     }
   }
 
+  private func refreshBrowse() {
+    refreshTrigger = UUID()
+    isRefreshDisabled = true
+    Task {
+      try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
+      isRefreshDisabled = false
+    }
+  }
+
   @ViewBuilder
-  private func contentView() -> some View {
+  private var browseContentView: some View {
     switch effectiveContent {
     case .series:
       SeriesBrowseView(
-        libraryIds: libraryIds,
+        libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         metadataFilter: metadataFilter,
         showFilterSheet: $showFilterSheet,
-        showSavedFilters: $showSavedFilters
+        showSavedFilters: $showSavedFilters,
       )
     case .books:
       BooksBrowseView(
-        libraryIds: libraryIds,
+        libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
+        metadataFilter: metadataFilter,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
-        metadataFilter: metadataFilter
       )
     case .collections:
       CollectionsBrowseView(
-        libraryIds: libraryIds,
+        libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         showFilterSheet: $showFilterSheet
       )
     case .readlists:
       ReadListsBrowseView(
-        libraryIds: libraryIds,
+        libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
         refreshTrigger: refreshTrigger,
         showFilterSheet: $showFilterSheet
