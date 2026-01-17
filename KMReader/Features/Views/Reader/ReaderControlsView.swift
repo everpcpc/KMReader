@@ -77,6 +77,10 @@ struct ReaderControlsView: View {
     return readingDirection != .webtoon && readingDirection != .vertical && pageLayout.supportsDualPageOptions
   }
 
+  private var isCurrentPageValid: Bool {
+    return viewModel.currentPageIndex >= 0 && viewModel.currentPageIndex < viewModel.pages.count
+  }
+
   #if os(iOS) || os(macOS)
     private func sharePages(indices: [Int]) {
       var images: [PlatformImage] = []
@@ -324,34 +328,38 @@ struct ReaderControlsView: View {
       )
     }
 
-    if viewModel.isCurrentPageIsolated {
-      // Current page is already isolated, show cancel button
-      Button {
-        viewModel.toggleIsolatePage(viewModel.currentPageIndex)
-      } label: {
-        Label(String(localized: "Cancel Isolation"), systemImage: "rectangle.portrait.slash")
-      }
-    } else if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex],
-      let secondPage = pair.second
-    {
-      // Dual page mode with two pages, show separate buttons
-      let leftPage = readingDirection == .rtl ? secondPage : pair.first
-      let rightPage = readingDirection == .rtl ? pair.first : secondPage
-      Button {
-        viewModel.toggleIsolatePage(leftPage)
-      } label: {
-        Label(
-          String.localizedStringWithFormat(String(localized: "Isolate Page %d"), leftPage + 1),
-          systemImage: "rectangle.lefthalf.inset.filled"
-        )
-      }
-      Button {
-        viewModel.toggleIsolatePage(rightPage)
-      } label: {
-        Label(
-          String.localizedStringWithFormat(String(localized: "Isolate Page %d"), rightPage + 1),
-          systemImage: "rectangle.righthalf.inset.filled"
-        )
+    if isCurrentPageValid {
+      if viewModel.isCurrentPageIsolated {
+        // Current page is already isolated, show cancel button
+        Button {
+          viewModel.toggleIsolatePage(viewModel.currentPageIndex)
+        } label: {
+          Label(String(localized: "Cancel Isolation"), systemImage: "rectangle.portrait.slash")
+        }
+      } else if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex],
+        let secondPage = pair.second,
+        pair.first < viewModel.pages.count,
+        secondPage < viewModel.pages.count
+      {
+        // Dual page mode with two pages, show separate buttons
+        let leftPage = readingDirection == .rtl ? secondPage : pair.first
+        let rightPage = readingDirection == .rtl ? pair.first : secondPage
+        Button {
+          viewModel.toggleIsolatePage(leftPage)
+        } label: {
+          Label(
+            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), leftPage + 1),
+            systemImage: "rectangle.lefthalf.inset.filled"
+          )
+        }
+        Button {
+          viewModel.toggleIsolatePage(rightPage)
+        } label: {
+          Label(
+            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), rightPage + 1),
+            systemImage: "rectangle.righthalf.inset.filled"
+          )
+        }
       }
     }
   }
