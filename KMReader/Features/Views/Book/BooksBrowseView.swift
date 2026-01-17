@@ -10,17 +10,19 @@ struct BooksBrowseView: View {
   let libraryIds: [String]
   let searchText: String
   let refreshTrigger: UUID
+  let metadataFilter: MetadataFilterConfig?
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
-  let metadataFilter: MetadataFilterConfig?
+
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.modelContext) private var modelContext
 
   @AppStorage("bookBrowseOptions") private var storedBrowseOpts: BookBrowseOptions = BookBrowseOptions()
   @State private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
+
   @State private var viewModel = BookViewModel()
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
-  @Environment(\.modelContext) private var modelContext
   @State private var hasInitialized = false
 
   var body: some View {
