@@ -68,7 +68,7 @@ struct DashboardSectionView: View {
       NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
         HStack {
           Text(section.displayName)
-            .font(.title2)
+            .font(.title)
             .fontDesign(.serif)
           Image(systemName: "chevron.right")
             .font(.subheadline)
