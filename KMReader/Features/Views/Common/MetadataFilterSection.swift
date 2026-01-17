@@ -87,11 +87,24 @@ struct MetadataFilterSection: View {
         Spacer()
         ProgressView()
       }
-    } else {
-      Picker(String(localized: "Publisher"), selection: $metadataFilter.publisher) {
-        Text(String(localized: "Any")).tag(nil as String?)
-        ForEach(publishers, id: \.self) { publisher in
-          Text(publisher).tag(publisher as String?)
+    } else if !publishers.isEmpty {
+      NavigationLink {
+        PublisherSelectList(
+          publishers: publishers,
+          selectedPublisher: Binding(
+            get: { metadataFilter.publisher },
+            set: { metadataFilter.publisher = $0 }
+          )
+        )
+      } label: {
+        HStack {
+          Text(String(localized: "Publisher"))
+          Spacer()
+          if let publisher = metadataFilter.publisher {
+            Text(publisher)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+          }
         }
       }
     }
@@ -289,6 +302,7 @@ struct MultiSelectList: View {
   @Binding var logic: FilterLogic
   let displayNameTransform: ((String) -> String)?
   @Environment(\.dismiss) private var dismiss
+  @State private var searchText: String = ""
 
   init(
     title: String,
@@ -304,6 +318,16 @@ struct MultiSelectList: View {
     self.displayNameTransform = displayNameTransform
   }
 
+  private var filteredItems: [String] {
+    if searchText.isEmpty {
+      return items
+    }
+    return items.filter { item in
+      let displayName = displayNameTransform?(item) ?? item
+      return displayName.localizedCaseInsensitiveContains(searchText)
+    }
+  }
+
   var body: some View {
     List {
       Section {
@@ -315,7 +339,7 @@ struct MultiSelectList: View {
       }
 
       Section {
-        ForEach(items, id: \.self) { item in
+        ForEach(filteredItems, id: \.self) { item in
           SelectableRow(
             item: item,
             displayName: displayNameTransform?(item) ?? item,
@@ -326,6 +350,7 @@ struct MultiSelectList: View {
         }
       }
     }
+    .searchable(text: $searchText, prompt: String(localized: "Search"))
     .inlineNavigationBarTitle(title)
     .toolbar {
       ToolbarItem(placement: .cancellationAction) {
@@ -365,6 +390,63 @@ struct SelectableRow: View {
         if isSelected {
           Image(systemName: "checkmark")
             .foregroundStyle(.green)
+        }
+      }
+    }
+  }
+}
+
+struct PublisherSelectList: View {
+  let publishers: [String]
+  @Binding var selectedPublisher: String?
+  @Environment(\.dismiss) private var dismiss
+  @State private var searchText: String = ""
+
+  private var filteredPublishers: [String] {
+    if searchText.isEmpty {
+      return publishers
+    }
+    return publishers.filter { publisher in
+      publisher.localizedCaseInsensitiveContains(searchText)
+    }
+  }
+
+  var body: some View {
+    List {
+      Section {
+        ForEach(filteredPublishers, id: \.self) { publisher in
+          Button {
+            // Toggle selection: if already selected, deselect; otherwise select
+            if selectedPublisher == publisher {
+              selectedPublisher = nil
+            } else {
+              selectedPublisher = publisher
+            }
+          } label: {
+            HStack {
+              Text(publisher)
+              Spacer()
+              if selectedPublisher == publisher {
+                Image(systemName: "checkmark")
+                  .foregroundStyle(.green)
+              }
+            }
+          }
+        }
+      }
+    }
+    .searchable(text: $searchText, prompt: String(localized: "Search"))
+    .inlineNavigationBarTitle(String(localized: "Publisher"))
+    .toolbar {
+      ToolbarItem(placement: .cancellationAction) {
+        Button(String(localized: "Reset")) {
+          selectedPublisher = nil
+        }
+        .disabled(selectedPublisher == nil)
+      }
+      ToolbarItem(placement: .confirmationAction) {
+        Button(String(localized: "Done")) {
+          dismiss()
         }
       }
     }
