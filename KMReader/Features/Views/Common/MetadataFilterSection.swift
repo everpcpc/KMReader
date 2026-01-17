@@ -19,12 +19,11 @@ struct MetadataFilterSection: View {
   let showTags: Bool
   let showLanguages: Bool
 
-  @State private var publishers: [String] = []
-  @State private var authors: [String] = []
-  @State private var genres: [String] = []
-  @State private var tags: [String] = []
-  @State private var languages: [String] = []
-  @State private var isLoading = false
+  @State private var publishers: [String]?
+  @State private var authors: [String]?
+  @State private var genres: [String]?
+  @State private var tags: [String]?
+  @State private var languages: [String]?
 
   init(
     metadataFilter: Binding<MetadataFilterConfig>,
@@ -73,227 +72,280 @@ struct MetadataFilterSection: View {
           languagesSection
         }
       }
-      .task {
-        await loadMetadata()
-      }
     }
   }
 
   @ViewBuilder
   private var publisherPicker: some View {
-    if !publishers.isEmpty {
-      NavigationLink {
-        MultiSelectList(
-          title: String(localized: "Publishers"),
-          items: publishers,
-          selectedItems: Binding(
-            get: { Set(metadataFilter.publishers ?? []) },
-            set: { metadataFilter.publishers = $0.isEmpty ? nil : Array($0).sorted() }
-          ),
-          logic: $metadataFilter.publishersLogic
-        )
-      } label: {
-        HStack {
-          Text(String(localized: "Publishers"))
-          Spacer()
-          if let publishers = metadataFilter.publishers, !publishers.isEmpty {
-            let logicSymbol = metadataFilter.publishersLogic == .all ? "∧" : "∨"
-            Text(publishers.joined(separator: " \(logicSymbol) "))
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
-          }
-        }
-      }
-    } else if isLoading {
+    NavigationLink {
+      MetadataMultiSelectLoader(
+        title: String(localized: "Publishers"),
+        cachedItems: $publishers,
+        loadItems: { try await ReferentialService.shared.getPublishers() },
+        selectedItems: Binding(
+          get: { Set(metadataFilter.publishers ?? []) },
+          set: { metadataFilter.publishers = $0.isEmpty ? nil : Array($0).sorted() }
+        ),
+        logic: $metadataFilter.publishersLogic,
+        emptyDescription: String(localized: "No publishers available")
+      )
+    } label: {
       HStack {
         Text(String(localized: "Publishers"))
         Spacer()
-        ProgressView()
+        if let publishers = metadataFilter.publishers, !publishers.isEmpty {
+          let logicSymbol = metadataFilter.publishersLogic == .all ? "∧" : "∨"
+          Text(publishers.joined(separator: " \(logicSymbol) "))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
       }
     }
   }
 
   @ViewBuilder
   private var authorsSection: some View {
-    if !authors.isEmpty {
-      NavigationLink {
-        MultiSelectList(
-          title: String(localized: "Authors"),
-          items: authors,
-          selectedItems: Binding(
-            get: { Set(metadataFilter.authors ?? []) },
-            set: { metadataFilter.authors = $0.isEmpty ? nil : Array($0).sorted() }
-          ),
-          logic: $metadataFilter.authorsLogic
-        )
-      } label: {
-        HStack {
-          Text(String(localized: "Authors"))
-          Spacer()
-          if let authors = metadataFilter.authors, !authors.isEmpty {
-            let logicSymbol = metadataFilter.authorsLogic == .all ? "∧" : "∨"
-            Text(authors.joined(separator: " \(logicSymbol) "))
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
-          }
-        }
-      }
-    } else if isLoading {
+    NavigationLink {
+      MetadataMultiSelectLoader(
+        title: String(localized: "Authors"),
+        cachedItems: $authors,
+        loadItems: { try await ReferentialService.shared.getAuthorsNames() },
+        selectedItems: Binding(
+          get: { Set(metadataFilter.authors ?? []) },
+          set: { metadataFilter.authors = $0.isEmpty ? nil : Array($0).sorted() }
+        ),
+        logic: $metadataFilter.authorsLogic,
+        emptyDescription: String(localized: "No authors available")
+      )
+    } label: {
       HStack {
         Text(String(localized: "Authors"))
         Spacer()
-        ProgressView()
+        if let authors = metadataFilter.authors, !authors.isEmpty {
+          let logicSymbol = metadataFilter.authorsLogic == .all ? "∧" : "∨"
+          Text(authors.joined(separator: " \(logicSymbol) "))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
       }
     }
   }
 
   @ViewBuilder
   private var genresSection: some View {
-    if !genres.isEmpty {
-      NavigationLink {
-        MultiSelectList(
-          title: String(localized: "Genres"),
-          items: genres,
-          selectedItems: Binding(
-            get: { Set(metadataFilter.genres ?? []) },
-            set: { metadataFilter.genres = $0.isEmpty ? nil : Array($0).sorted() }
-          ),
-          logic: $metadataFilter.genresLogic
-        )
-      } label: {
-        HStack {
-          Text(String(localized: "Genres"))
-          Spacer()
-          if let genres = metadataFilter.genres, !genres.isEmpty {
-            let logicSymbol = metadataFilter.genresLogic == .all ? "∧" : "∨"
-            Text(genres.joined(separator: " \(logicSymbol) "))
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
-          }
-        }
-      }
-    } else if isLoading {
+    NavigationLink {
+      MetadataMultiSelectLoader(
+        title: String(localized: "Genres"),
+        cachedItems: $genres,
+        loadItems: {
+          try await ReferentialService.shared.getGenres(
+            libraryIds: libraryIds,
+            collectionId: collectionId
+          )
+        },
+        selectedItems: Binding(
+          get: { Set(metadataFilter.genres ?? []) },
+          set: { metadataFilter.genres = $0.isEmpty ? nil : Array($0).sorted() }
+        ),
+        logic: $metadataFilter.genresLogic,
+        emptyDescription: String(localized: "No genres available")
+      )
+    } label: {
       HStack {
         Text(String(localized: "Genres"))
         Spacer()
-        ProgressView()
+        if let genres = metadataFilter.genres, !genres.isEmpty {
+          let logicSymbol = metadataFilter.genresLogic == .all ? "∧" : "∨"
+          Text(genres.joined(separator: " \(logicSymbol) "))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
       }
     }
   }
 
   @ViewBuilder
   private var tagsSection: some View {
-    if !tags.isEmpty {
-      NavigationLink {
-        MultiSelectList(
-          title: String(localized: "Tags"),
-          items: tags,
-          selectedItems: Binding(
-            get: { Set(metadataFilter.tags ?? []) },
-            set: { metadataFilter.tags = $0.isEmpty ? nil : Array($0).sorted() }
-          ),
-          logic: $metadataFilter.tagsLogic
-        )
-      } label: {
-        HStack {
-          Text(String(localized: "Tags"))
-          Spacer()
-          if let tags = metadataFilter.tags, !tags.isEmpty {
-            let logicSymbol = metadataFilter.tagsLogic == .all ? "∧" : "∨"
-            Text(tags.joined(separator: " \(logicSymbol) "))
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
+    NavigationLink {
+      MetadataMultiSelectLoader(
+        title: String(localized: "Tags"),
+        cachedItems: $tags,
+        loadItems: {
+          if seriesId != nil || readListId != nil {
+            return try await ReferentialService.shared.getBookTags(
+              seriesId: seriesId,
+              readListId: readListId,
+              libraryIds: libraryIds
+            )
+          } else {
+            return try await ReferentialService.shared.getTags(
+              libraryIds: libraryIds,
+              collectionId: collectionId
+            )
           }
-        }
-      }
-    } else if isLoading {
+        },
+        selectedItems: Binding(
+          get: { Set(metadataFilter.tags ?? []) },
+          set: { metadataFilter.tags = $0.isEmpty ? nil : Array($0).sorted() }
+        ),
+        logic: $metadataFilter.tagsLogic,
+        emptyDescription: String(localized: "No tags available")
+      )
+    } label: {
       HStack {
         Text(String(localized: "Tags"))
         Spacer()
-        ProgressView()
+        if let tags = metadataFilter.tags, !tags.isEmpty {
+          let logicSymbol = metadataFilter.tagsLogic == .all ? "∧" : "∨"
+          Text(tags.joined(separator: " \(logicSymbol) "))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
       }
     }
   }
 
   @ViewBuilder
   private var languagesSection: some View {
-    if !languages.isEmpty {
-      NavigationLink {
-        MultiSelectList(
-          title: String(localized: "Languages"),
-          items: languages,
-          selectedItems: Binding(
-            get: { Set(metadataFilter.languages ?? []) },
-            set: { metadataFilter.languages = $0.isEmpty ? nil : Array($0).sorted() }
-          ),
-          logic: $metadataFilter.languagesLogic,
-          displayNameTransform: { LanguageCodeHelper.displayName(for: $0) }
-        )
-      } label: {
-        HStack {
-          Text(String(localized: "Languages"))
-          Spacer()
-          if let languages = metadataFilter.languages, !languages.isEmpty {
-            let logicSymbol = metadataFilter.languagesLogic == .all ? "∧" : "∨"
-            let displayNames = languages.map { LanguageCodeHelper.displayName(for: $0) }
-            Text(displayNames.joined(separator: " \(logicSymbol) "))
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
-          }
-        }
-      }
-    } else if isLoading {
+    NavigationLink {
+      MetadataMultiSelectLoader(
+        title: String(localized: "Languages"),
+        cachedItems: $languages,
+        loadItems: {
+          try await ReferentialService.shared.getLanguages(
+            libraryIds: libraryIds,
+            collectionId: collectionId
+          )
+        },
+        selectedItems: Binding(
+          get: { Set(metadataFilter.languages ?? []) },
+          set: { metadataFilter.languages = $0.isEmpty ? nil : Array($0).sorted() }
+        ),
+        logic: $metadataFilter.languagesLogic,
+        emptyDescription: String(localized: "No languages available"),
+        displayNameTransform: { LanguageCodeHelper.displayName(for: $0) }
+      )
+    } label: {
       HStack {
         Text(String(localized: "Languages"))
         Spacer()
-        ProgressView()
+        if let languages = metadataFilter.languages, !languages.isEmpty {
+          let logicSymbol = metadataFilter.languagesLogic == .all ? "∧" : "∨"
+          let displayNames = languages.map { LanguageCodeHelper.displayName(for: $0) }
+          Text(displayNames.joined(separator: " \(logicSymbol) "))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
       }
     }
   }
+}
 
-  private func loadMetadata() async {
+@MainActor
+struct MetadataMultiSelectLoader: View {
+  let title: String
+  @Binding var cachedItems: [String]?
+  let loadItems: () async throws -> [String]
+  @Binding var selectedItems: Set<String>
+  @Binding var logic: FilterLogic
+  let emptyDescription: String
+  let displayNameTransform: ((String) -> String)?
+
+  @State private var isLoading = false
+  @State private var loadError: Error?
+  @Environment(\.dismiss) private var dismiss
+
+  init(
+    title: String,
+    cachedItems: Binding<[String]?>,
+    loadItems: @escaping () async throws -> [String],
+    selectedItems: Binding<Set<String>>,
+    logic: Binding<FilterLogic>,
+    emptyDescription: String,
+    displayNameTransform: ((String) -> String)? = nil
+  ) {
+    self.title = title
+    self._cachedItems = cachedItems
+    self.loadItems = loadItems
+    self._selectedItems = selectedItems
+    self._logic = logic
+    self.emptyDescription = emptyDescription
+    self.displayNameTransform = displayNameTransform
+  }
+
+  var body: some View {
+    Group {
+      if let items = cachedItems {
+        if items.isEmpty {
+          ContentUnavailableView(
+            title,
+            systemImage: "line.3.horizontal.decrease.circle",
+            description: Text(emptyDescription)
+          )
+          .toolbar { placeholderToolbar }
+        } else {
+          MultiSelectList(
+            title: title,
+            items: items,
+            selectedItems: $selectedItems,
+            logic: $logic,
+            displayNameTransform: displayNameTransform
+          )
+        }
+      } else if isLoading {
+        ProgressView(String(localized: "Loading"))
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .toolbar { placeholderToolbar }
+      } else if let loadError {
+        VStack(spacing: 16) {
+          ContentUnavailableView(
+            String(localized: "Unable to load filters"),
+            systemImage: "exclamationmark.triangle",
+            description: Text(loadError.localizedDescription)
+          )
+          Button(String(localized: "Retry")) {
+            Task { await loadMetadata(force: true) }
+          }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .toolbar { placeholderToolbar }
+      } else {
+        ProgressView(String(localized: "Loading"))
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .toolbar { placeholderToolbar }
+      }
+    }
+    .task {
+      await loadMetadata(force: false)
+    }
+  }
+
+  private func loadMetadata(force: Bool) async {
+    guard force || cachedItems == nil else { return }
     isLoading = true
-    defer { isLoading = false }
+    loadError = nil
+    do {
+      let items = try await loadItems()
+      cachedItems = items
+    } catch {
+      loadError = error
+    }
+    isLoading = false
+  }
 
-    async let publishersTask: [String]? =
-      showPublisher
-      ? try? await ReferentialService.shared.getPublishers(
-        libraryIds: libraryIds, collectionId: collectionId) : nil
-    async let authorsTask: [String]? =
-      showAuthors
-      ? try? await ReferentialService.shared.getAuthorsNames() : nil
-    async let genresTask: [String]? =
-      showGenres
-      ? try? await ReferentialService.shared.getGenres(
-        libraryIds: libraryIds, collectionId: collectionId) : nil
-    async let tagsTask: [String]? =
-      showTags
-      ? (seriesId != nil || readListId != nil
-        ? try? await ReferentialService.shared.getBookTags(
-          seriesId: seriesId, readListId: readListId, libraryIds: libraryIds)
-        : try? await ReferentialService.shared.getTags(
-          libraryIds: libraryIds, collectionId: collectionId)) : nil
-    async let languagesTask: [String]? =
-      showLanguages
-      ? try? await ReferentialService.shared.getLanguages(
-        libraryIds: libraryIds, collectionId: collectionId) : nil
-
-    let results = await (publishersTask, authorsTask, genresTask, tagsTask, languagesTask)
-
-    if let fetchedPublishers = results.0 {
-      publishers = fetchedPublishers
+  @ToolbarContentBuilder
+  private var placeholderToolbar: some ToolbarContent {
+    ToolbarItem(placement: .cancellationAction) {
+      Button(String(localized: "Reset")) {
+        selectedItems.removeAll()
+      }
+      .disabled(selectedItems.isEmpty)
     }
-    if let fetchedAuthors = results.1 {
-      authors = fetchedAuthors
-    }
-    if let fetchedGenres = results.2 {
-      genres = fetchedGenres
-    }
-    if let fetchedTags = results.3 {
-      tags = fetchedTags
-    }
-    if let fetchedLanguages = results.4 {
-      languages = fetchedLanguages
+    ToolbarItem(placement: .confirmationAction) {
+      Button(String(localized: "Done")) {
+        dismiss()
+      }
     }
   }
 }

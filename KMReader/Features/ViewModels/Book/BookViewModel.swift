@@ -17,10 +17,6 @@ class BookViewModel {
 
   private let bookService = BookService.shared
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
-  private var currentSeriesId: String?
-  private var currentSeriesBrowseOpts: BookBrowseOptions?
-  private var currentBrowseOpts: BookBrowseOptions?
-  private var currentBrowseSearchText: String = ""
 
   func loadSeriesBooks(
     context: ModelContext,
@@ -28,16 +24,10 @@ class BookViewModel {
     browseOpts: BookBrowseOptions,
     refresh: Bool = true
   ) async {
-    let shouldReset = refresh || currentSeriesId != seriesId || currentSeriesBrowseOpts != browseOpts
-
-    if !shouldReset {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    if shouldReset {
+    if refresh {
       pagination.reset()
-      currentSeriesId = seriesId
-      currentSeriesBrowseOpts = browseOpts
+    } else {
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     let loadID = pagination.loadID
@@ -154,17 +144,10 @@ class BookViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
-    let paramsChanged = currentBrowseOpts != browseOpts || currentBrowseSearchText != searchText
-    let shouldReset = refresh || paramsChanged
-
-    if !shouldReset {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    if shouldReset {
+    if refresh {
       pagination.reset()
-      currentBrowseOpts = browseOpts
-      currentBrowseSearchText = searchText
+    } else {
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     let loadID = pagination.loadID

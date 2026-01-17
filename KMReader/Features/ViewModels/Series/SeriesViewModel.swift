@@ -14,10 +14,7 @@ import SwiftUI
 class SeriesViewModel {
   var isLoading = false
 
-  private let seriesService = SeriesService.shared
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
-  private var currentState: SeriesBrowseOptions?
-  private var currentSearchText: String = ""
 
   func loadSeries(
     context: ModelContext,
@@ -26,18 +23,10 @@ class SeriesViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
-    let paramsChanged =
-      currentState != browseOpts || currentSearchText != searchText
-    let shouldReset = refresh || paramsChanged
-
-    if !shouldReset {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    if shouldReset {
+    if refresh {
       pagination.reset()
-      currentState = browseOpts
-      currentSearchText = searchText
+    } else {
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     let loadID = pagination.loadID
@@ -77,38 +66,10 @@ class SeriesViewModel {
         applyPage(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == pagination.loadID else { return }
-        if shouldReset {
+        if refresh {
           ErrorManager.shared.alert(error: error)
         }
       }
-    }
-  }
-
-  func markAsRead(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
-    do {
-      try await seriesService.markAsRead(seriesId: seriesId)
-      _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
-      await MainActor.run {
-        ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
-      }
-      await loadSeries(
-        context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
-    } catch {
-      ErrorManager.shared.alert(error: error)
-    }
-  }
-
-  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
-    do {
-      try await seriesService.markAsUnread(seriesId: seriesId)
-      _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
-      await MainActor.run {
-        ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
-      }
-      await loadSeries(
-        context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
-    } catch {
-      ErrorManager.shared.alert(error: error)
     }
   }
 

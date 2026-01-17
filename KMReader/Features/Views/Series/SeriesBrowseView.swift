@@ -16,14 +16,13 @@ struct SeriesBrowseView: View {
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
 
-  @AppStorage("seriesBrowseOptions") private var storedBrowseOpts: SeriesBrowseOptions =
-    SeriesBrowseOptions()
-  @State private var browseOpts: SeriesBrowseOptions = SeriesBrowseOptions()
+  @AppStorage("seriesBrowseOptions") private var storedBrowseOpts: SeriesBrowseOptions = SeriesBrowseOptions()
   @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   @Environment(\.modelContext) private var modelContext
 
+  @State private var browseOpts: SeriesBrowseOptions = SeriesBrowseOptions()
   @State private var viewModel = SeriesViewModel()
   @State private var hasInitialized = false
 

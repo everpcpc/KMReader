@@ -14,11 +14,7 @@ import SwiftUI
 class ReadListViewModel {
   var isLoading = false
 
-  private let readListService = ReadListService.shared
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
-  private var currentLibraryIds: [String] = []
-  private var currentSort: String?
-  private var currentSearchText: String = ""
 
   func loadReadLists(
     context: ModelContext,
@@ -27,19 +23,10 @@ class ReadListViewModel {
     searchText: String,
     refresh: Bool = false
   ) async {
-    let paramsChanged =
-      currentLibraryIds != libraryIds || currentSort != sort || currentSearchText != searchText
-    let shouldReset = refresh || paramsChanged
-
-    if !shouldReset {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    if shouldReset {
+    if refresh {
       pagination.reset()
-      currentLibraryIds = libraryIds ?? []
-      currentSort = sort
-      currentSearchText = searchText
+    } else {
+      guard pagination.hasMorePages && !isLoading else { return }
     }
 
     let loadID = pagination.loadID
@@ -79,7 +66,7 @@ class ReadListViewModel {
         applyPage(ids: ids, moreAvailable: !page.last)
       } catch {
         guard loadID == pagination.loadID else { return }
-        if shouldReset {
+        if refresh {
           ErrorManager.shared.alert(error: error)
         }
       }
