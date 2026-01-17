@@ -18,6 +18,9 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
+  #if os(iOS)
+    @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
+  #endif
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
@@ -125,6 +128,22 @@ struct ReaderSettingsSheet: View {
         // MARK: - Page Turn Section
 
         Section(header: Text("Page Turn")) {
+          #if os(iOS)
+            if readingDirection != .webtoon && readingDirection != .vertical {
+              VStack(alignment: .leading, spacing: 8) {
+                Picker("Page Transition Style", selection: $pageTransitionStyle) {
+                  ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                    Text(style.displayName).tag(style)
+                  }
+                }
+                .pickerStyle(.menu)
+                Text(pageTransitionStyle.description)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+          #endif
+
           if readingDirection != .webtoon {
             VStack(alignment: .leading, spacing: 8) {
               Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {

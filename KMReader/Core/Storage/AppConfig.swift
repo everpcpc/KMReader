@@ -590,6 +590,20 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var pageTransitionStyle: PageTransitionStyle {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "pageTransitionStyle"),
+        let style = PageTransitionStyle(rawValue: stored)
+      {
+        return style
+      }
+      return .scroll
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "pageTransitionStyle")
+    }
+  }
+
   static nonisolated var doubleTapZoomScale: Double {
     get {
       if UserDefaults.standard.object(forKey: "doubleTapZoomScale") != nil {
