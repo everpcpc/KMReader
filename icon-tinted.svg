@@ -1,0 +1,16 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- No background (transparent for tinted mode) -->
+
+  <!-- Four vertical bars -->
+  <!-- Left long bar -->
+  <rect x="137" y="212" width="150" height="600" rx="35" fill="#000000"/>
+  <!-- Left short bar -->
+  <rect x="337" y="262" width="150" height="500" rx="35" fill="#000000"/>
+  <!-- Right short bar -->
+  <rect x="537" y="262" width="150" height="500" rx="35" fill="#000000"/>
+  <!-- Right long bar -->
+  <rect x="737" y="212" width="150" height="600" rx="35" fill="#000000"/>
+
+  <!-- Horizontal bar -->
+  <rect x="137" y="499.5" width="750" height="25" rx="12" fill="#000000"/>
+</svg>

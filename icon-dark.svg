@@ -1,0 +1,17 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Square background (iOS dark background) -->
+  <rect width="1024" height="1024" fill="#1c1c1e"/>
+
+  <!-- Four vertical bars: long-short-short-long, colors from Komga blue palette -->
+  <!-- Left long bar (Komga primary blue) -->
+  <rect x="137" y="212" width="150" height="600" rx="35" fill="#0057b7"/>
+  <!-- Left short bar (Komga primary blue) -->
+  <rect x="337" y="262" width="150" height="500" rx="35" fill="#0057b7"/>
+  <!-- Right short bar (Komga shadow blue) -->
+  <rect x="537" y="262" width="150" height="500" rx="35" fill="#00418c"/>
+  <!-- Right long bar (Komga shadow blue) -->
+  <rect x="737" y="212" width="150" height="600" rx="35" fill="#00418c"/>
+
+  <!-- Horizontal bar (very dark red) -->
+  <rect x="137" y="499.5" width="750" height="25" rx="12" fill="#4d000a"/>
+</svg>
