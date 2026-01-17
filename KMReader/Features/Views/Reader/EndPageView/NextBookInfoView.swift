@@ -39,7 +39,7 @@ struct NextBookInfoView: View {
           }
           if let readList = readList {
             HStack(spacing: 4) {
-              Image(systemName: "list.bullet.rectangle")
+              Image(systemName: ContentIcon.readList)
                 .font(.caption2)
               Text("From: \(readList.name)")
                 .font(.caption)

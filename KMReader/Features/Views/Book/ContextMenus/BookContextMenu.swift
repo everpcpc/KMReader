@@ -52,7 +52,7 @@ struct BookContextMenu: View {
         Button {
           onShowReadListPicker?()
         } label: {
-          Label("Add to Read List", systemImage: "list.bullet")
+          Label("Add to Read List", systemImage: ContentIcon.readList)
         }
         if !isCompleted {
           Button {
@@ -266,7 +266,7 @@ struct BookContextMenu: View {
 
         if showSeriesNavigation && !book.oneshot {
           NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-            Label("Series", systemImage: "book")
+            Label("Series", systemImage: ContentIcon.series)
           }
         }
       }
@@ -290,7 +290,7 @@ struct BookContextMenu: View {
       }
       if showSeriesNavigation && !book.oneshot {
         NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-          Label("Series", systemImage: "book")
+          Label("Series", systemImage: ContentIcon.series)
         }
       }
       Divider()

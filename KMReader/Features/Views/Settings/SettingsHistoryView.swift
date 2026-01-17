@@ -139,7 +139,7 @@ struct SettingsHistoryView: View {
 
         if let seriesId = event.seriesId, !seriesId.isEmpty {
           HStack(spacing: 6) {
-            Image(systemName: "rectangle.stack")
+            Image(systemName: ContentIcon.series)
               .font(.caption)
             Text(seriesNameById[seriesId] ?? seriesId)
               .foregroundColor(.secondary)
@@ -149,7 +149,7 @@ struct SettingsHistoryView: View {
 
         if let bookId = event.bookId, !bookId.isEmpty {
           HStack(spacing: 6) {
-            Image(systemName: "book")
+            Image(systemName: ContentIcon.book)
               .font(.caption)
             Text(bookNameById[bookId] ?? bookId)
               .foregroundColor(.secondary)

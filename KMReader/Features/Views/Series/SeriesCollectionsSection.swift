@@ -38,7 +38,7 @@ struct SeriesCollectionsSection: View {
               value: NavDestination.collectionDetail(collectionId: collection.id)
             ) {
               HStack {
-                Label(collection.name, systemImage: "square.grid.2x2")
+                Label(collection.name, systemImage: ContentIcon.collection)
                   .foregroundColor(.primary)
                 Spacer()
                 Image(systemName: "chevron.right")

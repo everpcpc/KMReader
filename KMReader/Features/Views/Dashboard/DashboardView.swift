@@ -263,7 +263,7 @@ struct DashboardView: View {
           Button {
             showLibraryPicker = true
           } label: {
-            Image(systemName: "books.vertical")
+            Image(systemName: ContentIcon.library)
           }
         }
 

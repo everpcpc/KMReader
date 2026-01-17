@@ -65,7 +65,7 @@ struct ReadListDetailContentView: View {
             HStack(spacing: 6) {
               InfoChip(
                 labelKey: "\(readList.bookIds.count) books",
-                systemImage: "books.vertical",
+                systemImage: ContentIcon.book,
                 backgroundColor: Color.blue.opacity(0.2),
                 foregroundColor: .blue
               )

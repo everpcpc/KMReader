@@ -300,7 +300,7 @@ extension SeriesDetailView {
         Button {
           showCollectionPicker = true
         } label: {
-          Label("Add to Collection", systemImage: "square.grid.2x2")
+          Label("Add to Collection", systemImage: ContentIcon.collection)
         }
 
         if series != nil {

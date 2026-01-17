@@ -115,7 +115,7 @@ struct SettingsOfflineBooksView: View {
     Form {
       if downloadedBooks.isEmpty {
         ContentUnavailableView {
-          Label(String(localized: "settings.offline.no_books"), systemImage: "books.vertical")
+          Label(String(localized: "settings.offline.no_books"), systemImage: ContentIcon.book)
         } description: {
           Text(String(localized: "settings.offline.no_books.description"))
         }

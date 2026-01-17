@@ -340,13 +340,13 @@ struct OneshotDetailView: View {
         Button {
           showCollectionPicker = true
         } label: {
-          Label("Add to Collection", systemImage: "square.grid.2x2")
+          Label("Add to Collection", systemImage: ContentIcon.collection)
         }
 
         Button {
           showReadListPicker = true
         } label: {
-          Label("Add to Read List", systemImage: "list.bullet")
+          Label("Add to Read List", systemImage: ContentIcon.readList)
         }
 
         Divider()

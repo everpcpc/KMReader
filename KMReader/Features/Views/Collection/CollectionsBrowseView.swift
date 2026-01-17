@@ -39,7 +39,7 @@ struct CollectionsBrowseView: View {
       BrowseStateView(
         isLoading: viewModel.isLoading,
         isEmpty: viewModel.pagination.isEmpty,
-        emptyIcon: "square.grid.2x2",
+        emptyIcon: ContentIcon.collection,
         emptyTitle: LocalizedStringKey("No collections found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
         onRetry: {

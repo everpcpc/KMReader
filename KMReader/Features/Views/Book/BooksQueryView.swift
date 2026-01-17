@@ -28,7 +28,7 @@ struct BooksQueryView: View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
       isEmpty: viewModel.pagination.isEmpty,
-      emptyIcon: "book",
+      emptyIcon: ContentIcon.book,
       emptyTitle: LocalizedStringKey("No books found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
       onRetry: {

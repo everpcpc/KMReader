@@ -84,7 +84,7 @@ struct ReadListPickerSheet: View {
                 }
               } label: {
                 HStack {
-                  Label(item.name, systemImage: "list.bullet")
+                  Label(item.name, systemImage: ContentIcon.readList)
                   Spacer()
                   if item.alreadyIn {
                     Image(systemName: "checkmark.circle.fill")

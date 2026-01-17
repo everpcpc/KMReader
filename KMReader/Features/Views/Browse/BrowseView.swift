@@ -113,7 +113,7 @@ struct BrowseView: View {
         if let library = librarySelection {
           VStack(alignment: .leading) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-              Image(systemName: "books.vertical")
+              Image(systemName: ContentIcon.library)
               Text(library.name)
                 .font(.title2)
               if let fileSize = library.fileSize {
@@ -155,7 +155,7 @@ struct BrowseView: View {
             Button {
               showLibraryPicker = true
             } label: {
-              Image(systemName: "books.vertical")
+              Image(systemName: ContentIcon.library)
             }
           }
         }

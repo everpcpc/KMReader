@@ -283,7 +283,7 @@ struct BookDetailView: View {
         Button {
           showReadListPicker = true
         } label: {
-          Label("Add to Read List", systemImage: "list.bullet")
+          Label("Add to Read List", systemImage: ContentIcon.readList)
         }
 
         if let book = book {

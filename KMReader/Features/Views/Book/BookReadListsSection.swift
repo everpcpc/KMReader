@@ -27,7 +27,7 @@ struct BookReadListsSection: View {
     if !readLists.isEmpty {
       VStack(alignment: .leading, spacing: 6) {
         HStack(spacing: 4) {
-          Image(systemName: "list.bullet")
+          Image(systemName: ContentIcon.readList)
             .font(.caption)
           Text("Read Lists")
             .font(.headline)
@@ -38,7 +38,7 @@ struct BookReadListsSection: View {
           ForEach(readLists) { readList in
             NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
               HStack {
-                Label(readList.name, systemImage: "list.bullet")
+                Label(readList.name, systemImage: ContentIcon.readList)
                   .foregroundColor(.primary)
                 Spacer()
                 Image(systemName: "chevron.right")

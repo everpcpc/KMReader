@@ -55,7 +55,7 @@ enum SettingsSection: String, CaseIterable {
       return "tray.full"
 
     case .libraries:
-      return "books.vertical"
+      return ContentIcon.library
     case .serverInfo:
       return "server.rack"
     case .tasks:

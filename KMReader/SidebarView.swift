@@ -113,16 +113,16 @@ struct SidebarView: View {
         Label(String(localized: "tab.home"), systemImage: "house")
       }
       NavigationLink(value: NavDestination.browseSeries) {
-        Label(String(localized: "tab.series"), systemImage: "rectangle.stack")
+        Label(String(localized: "tab.series"), systemImage: ContentIcon.series)
       }
       NavigationLink(value: NavDestination.browseBooks) {
-        Label(String(localized: "tab.books"), systemImage: "book")
+        Label(String(localized: "tab.books"), systemImage: ContentIcon.book)
       }
       NavigationLink(value: NavDestination.browseCollections) {
-        Label(String(localized: "tab.collections"), systemImage: "square.stack.3d.down.right")
+        Label(String(localized: "tab.collections"), systemImage: ContentIcon.collection)
       }
       NavigationLink(value: NavDestination.browseReadLists) {
-        Label(String(localized: "tab.readLists"), systemImage: "list.bullet.rectangle")
+        Label(String(localized: "tab.readLists"), systemImage: ContentIcon.readList)
       }
     }
 
@@ -150,7 +150,7 @@ struct SidebarView: View {
           }
         }
       } header: {
-        Label(String(localized: "Libraries"), systemImage: "books.vertical")
+        Label(String(localized: "Libraries"), systemImage: ContentIcon.library)
       }
     }
 
@@ -167,7 +167,7 @@ struct SidebarView: View {
           }
         }
       } header: {
-        Label(String(localized: "Collections"), systemImage: "square.stack.3d.down.right")
+        Label(String(localized: "Collections"), systemImage: ContentIcon.collection)
       }
     }
 
@@ -184,7 +184,7 @@ struct SidebarView: View {
           }
         }
       } header: {
-        Label(String(localized: "Read Lists"), systemImage: "list.bullet.rectangle")
+        Label(String(localized: "Read Lists"), systemImage: ContentIcon.readList)
       }
     }
 

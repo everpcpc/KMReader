@@ -33,7 +33,7 @@ struct CollectionRowView: View {
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
-            Label("\(komgaCollection.seriesIds.count) series", systemImage: "book")
+            Label("\(komgaCollection.seriesIds.count) series", systemImage: ContentIcon.series)
               .font(.footnote)
               .foregroundColor(.secondary)
 

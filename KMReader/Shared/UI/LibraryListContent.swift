@@ -93,7 +93,7 @@ struct LibraryListContent: View {
       } else if libraries.isEmpty {
         Section {
           VStack(spacing: 12) {
-            Image(systemName: "books.vertical")
+            Image(systemName: ContentIcon.library)
               .font(.largeTitle)
               .foregroundColor(.secondary)
             Text(String(localized: "No libraries found"))

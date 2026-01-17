@@ -76,7 +76,7 @@ struct SeriesRowView: View {
                   .foregroundColor(.blue)
               } else {
                 HStack(spacing: 4) {
-                  Label("\(series.booksCount) books", systemImage: "book")
+                  Label("\(series.booksCount) books", systemImage: ContentIcon.book)
                   Text("•")
                   if series.booksUnreadCount > 0 {
                     Image(systemName: "circle.righthalf.filled")

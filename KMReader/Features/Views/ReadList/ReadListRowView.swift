@@ -29,7 +29,7 @@ struct ReadListRowView: View {
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
-            Label("\(komgaReadList.bookIds.count) books", systemImage: "book")
+            Label("\(komgaReadList.bookIds.count) books", systemImage: ContentIcon.book)
               .font(.footnote)
               .foregroundColor(.secondary)
 

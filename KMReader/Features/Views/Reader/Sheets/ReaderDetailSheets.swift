@@ -68,7 +68,7 @@ private struct ReaderDetailSheetContent: View {
             showingSeries.toggle()
           }
         } label: {
-          Image(systemName: showingSeries ? "book" : "rectangle.stack")
+          Image(systemName: showingSeries ? ContentIcon.book : ContentIcon.series)
         }
       }
     }

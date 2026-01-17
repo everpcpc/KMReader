@@ -28,7 +28,7 @@ struct SeriesQueryView: View {
     BrowseStateView(
       isLoading: viewModel.isLoading,
       isEmpty: viewModel.pagination.isEmpty,
-      emptyIcon: "books.vertical",
+      emptyIcon: ContentIcon.series,
       emptyTitle: LocalizedStringKey("No series found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
       onRetry: {

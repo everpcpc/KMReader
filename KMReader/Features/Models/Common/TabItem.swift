@@ -36,7 +36,7 @@ enum TabItem: Hashable, Identifiable {
     case .home:
       return "house"
     case .browse:
-      return "books.vertical"
+      return ContentIcon.library
     case .settings:
       return "gearshape"
     }

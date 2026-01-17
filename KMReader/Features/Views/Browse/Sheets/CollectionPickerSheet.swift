@@ -80,7 +80,7 @@ struct CollectionPickerSheet: View {
                 }
               } label: {
                 HStack {
-                  Label(item.name, systemImage: "square.grid.2x2")
+                  Label(item.name, systemImage: ContentIcon.collection)
                   Spacer()
                   if item.alreadyIn {
                     Image(systemName: "checkmark.circle.fill")

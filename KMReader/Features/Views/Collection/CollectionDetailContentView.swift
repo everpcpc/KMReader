@@ -56,7 +56,7 @@ struct CollectionDetailContentView: View {
             HStack(spacing: 6) {
               InfoChip(
                 labelKey: "\(collection.seriesIds.count) series",
-                systemImage: "square.grid.2x2",
+                systemImage: ContentIcon.collection,
                 backgroundColor: Color.blue.opacity(0.2),
                 foregroundColor: .blue
               )

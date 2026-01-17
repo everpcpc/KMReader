@@ -70,14 +70,14 @@ struct SeriesDetailContentView: View {
                 if let totalBookCount = series.metadata.totalBookCount {
                   InfoChip(
                     labelKey: "\(series.booksCount) / \(totalBookCount) books",
-                    systemImage: "book",
+                    systemImage: ContentIcon.book,
                     backgroundColor: Color.secondary.opacity(0.1),
                     foregroundColor: .secondary
                   )
                 } else {
                   InfoChip(
                     labelKey: "\(series.booksCount) books",
-                    systemImage: "book",
+                    systemImage: ContentIcon.book,
                     backgroundColor: Color.secondary.opacity(0.1),
                     foregroundColor: .secondary
                   )
