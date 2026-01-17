@@ -40,6 +40,10 @@ struct CollectionDetailView: View {
     komgaCollection?.toCollection()
   }
 
+  private var navigationTitle: String {
+    collection?.name ?? String(localized: "title.collection")
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
@@ -68,7 +72,7 @@ struct CollectionDetailView: View {
         }
       }
     }
-    .inlineNavigationBarTitle(String(localized: "title.collection"))
+    .inlineNavigationBarTitle(navigationTitle)
     .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         Task {

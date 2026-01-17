@@ -42,6 +42,10 @@ struct BookDetailView: View {
     komgaBook?.downloadStatus ?? .notDownloaded
   }
 
+  private var navigationTitle: String {
+    book?.metadata.title ?? String(localized: "Book")
+  }
+
   var body: some View {
     ScrollView {
       LazyVStack(alignment: .leading) {
@@ -76,7 +80,7 @@ struct BookDetailView: View {
       }
       .padding()
     }
-    .inlineNavigationBarTitle(String(localized: "Book"))
+    .inlineNavigationBarTitle(navigationTitle)
     #if !os(tvOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {

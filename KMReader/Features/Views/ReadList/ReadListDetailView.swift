@@ -40,6 +40,10 @@ struct ReadListDetailView: View {
     komgaReadList?.toReadList()
   }
 
+  private var navigationTitle: String {
+    readList?.name ?? String(localized: "title.readList")
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
@@ -76,7 +80,7 @@ struct ReadListDetailView: View {
         }
       }
     }
-    .inlineNavigationBarTitle(String(localized: "title.readList"))
+    .inlineNavigationBarTitle(navigationTitle)
     .alert("Delete Read List?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         Task {

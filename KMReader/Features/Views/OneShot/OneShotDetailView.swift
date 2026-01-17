@@ -56,6 +56,10 @@ struct OneshotDetailView: View {
     komgaBook?.downloadStatus ?? .notDownloaded
   }
 
+  private var navigationTitle: String {
+    book?.metadata.title ?? String(localized: "Oneshot")
+  }
+
   var body: some View {
     ScrollView {
       LazyVStack(alignment: .leading) {
@@ -95,7 +99,7 @@ struct OneshotDetailView: View {
       }
       .padding()
     }
-    .inlineNavigationBarTitle(String(localized: "Oneshot"))
+    .inlineNavigationBarTitle(navigationTitle)
     #if !os(tvOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {

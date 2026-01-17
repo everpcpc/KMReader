@@ -53,6 +53,10 @@ struct SeriesDetailView: View {
     return (series.booksReadCount + series.booksInProgressCount) > 0
   }
 
+  private var navigationTitle: String {
+    series?.metadata.title ?? String(localized: "Series")
+  }
+
   var body: some View {
     ScrollView {
       LazyVStack(alignment: .leading) {
@@ -91,7 +95,7 @@ struct SeriesDetailView: View {
         }
       }
     }
-    .inlineNavigationBarTitle(String(localized: "Series"))
+    .inlineNavigationBarTitle(navigationTitle)
     #if !os(tvOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
