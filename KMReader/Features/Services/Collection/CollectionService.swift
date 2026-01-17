@@ -88,8 +88,10 @@ class CollectionService {
     }
 
     // Metadata filters
-    if let publisher = browseOpts.metadataFilter.publisher {
-      queryItems.append(URLQueryItem(name: "publisher", value: publisher))
+    if let publishers = browseOpts.metadataFilter.publishers, !publishers.isEmpty {
+      for publisher in publishers {
+        queryItems.append(URLQueryItem(name: "publisher", value: publisher))
+      }
     }
 
     if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {

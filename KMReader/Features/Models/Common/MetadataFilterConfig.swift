@@ -11,7 +11,8 @@ import Foundation
 struct MetadataFilterConfig: Equatable, RawRepresentable {
   typealias RawValue = String
 
-  var publisher: String?
+  var publishers: [String]?
+  var publishersLogic: FilterLogic = .all
   var authors: [String]?
   var authorsLogic: FilterLogic = .all
   var genres: [String]?
@@ -22,7 +23,8 @@ struct MetadataFilterConfig: Equatable, RawRepresentable {
   var languagesLogic: FilterLogic = .all
 
   init(
-    publisher: String? = nil,
+    publishers: [String]? = nil,
+    publishersLogic: FilterLogic = .all,
     authors: [String]? = nil,
     authorsLogic: FilterLogic = .all,
     genres: [String]? = nil,
@@ -32,7 +34,8 @@ struct MetadataFilterConfig: Equatable, RawRepresentable {
     languages: [String]? = nil,
     languagesLogic: FilterLogic = .all
   ) {
-    self.publisher = publisher
+    self.publishers = publishers
+    self.publishersLogic = publishersLogic
     self.authors = authors
     self.authorsLogic = authorsLogic
     self.genres = genres
@@ -45,14 +48,15 @@ struct MetadataFilterConfig: Equatable, RawRepresentable {
 
   /// Check if any filter is active
   var hasAnyFilter: Bool {
-    return publisher != nil || authors != nil || genres != nil || tags != nil || languages != nil
+    return publishers != nil || authors != nil || genres != nil || tags != nil || languages != nil
   }
 
   var rawValue: String {
     var dict: [String: Any] = [:]
-    if let publisher = publisher {
-      dict["publisher"] = publisher
+    if let publishers = publishers {
+      dict["publishers"] = publishers
     }
+    dict["publishersLogic"] = publishersLogic.rawValue
     if let authors = authors {
       dict["authors"] = authors
     }
@@ -86,7 +90,14 @@ struct MetadataFilterConfig: Equatable, RawRepresentable {
     else {
       return nil
     }
-    self.publisher = dict["publisher"] as? String
+    self.publishers = dict["publishers"] as? [String]
+    if let publishersLogicRaw = dict["publishersLogic"] as? String,
+      let logic = FilterLogic(rawValue: publishersLogicRaw)
+    {
+      self.publishersLogic = logic
+    } else {
+      self.publishersLogic = .all
+    }
     self.authors = dict["authors"] as? [String]
     if let authorsLogicRaw = dict["authorsLogic"] as? String,
       let logic = FilterLogic(rawValue: authorsLogicRaw)
@@ -123,7 +134,12 @@ struct MetadataFilterConfig: Equatable, RawRepresentable {
 
   /// Create config for publisher filter
   static func forPublisher(_ publisher: String) -> MetadataFilterConfig {
-    return MetadataFilterConfig(publisher: publisher)
+    return MetadataFilterConfig(publishers: [publisher])
+  }
+
+  /// Create config for publishers filter
+  static func forPublishers(_ publishers: [String]) -> MetadataFilterConfig {
+    return MetadataFilterConfig(publishers: publishers)
   }
 
   /// Create config for author filter

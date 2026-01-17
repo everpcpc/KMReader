@@ -81,31 +81,34 @@ struct MetadataFilterSection: View {
 
   @ViewBuilder
   private var publisherPicker: some View {
-    if isLoading {
-      HStack {
-        Text(String(localized: "Publisher"))
-        Spacer()
-        ProgressView()
-      }
-    } else if !publishers.isEmpty {
+    if !publishers.isEmpty {
       NavigationLink {
-        PublisherSelectList(
-          publishers: publishers,
-          selectedPublisher: Binding(
-            get: { metadataFilter.publisher },
-            set: { metadataFilter.publisher = $0 }
-          )
+        MultiSelectList(
+          title: String(localized: "Publishers"),
+          items: publishers,
+          selectedItems: Binding(
+            get: { Set(metadataFilter.publishers ?? []) },
+            set: { metadataFilter.publishers = $0.isEmpty ? nil : Array($0).sorted() }
+          ),
+          logic: $metadataFilter.publishersLogic
         )
       } label: {
         HStack {
-          Text(String(localized: "Publisher"))
+          Text(String(localized: "Publishers"))
           Spacer()
-          if let publisher = metadataFilter.publisher {
-            Text(publisher)
+          if let publishers = metadataFilter.publishers, !publishers.isEmpty {
+            let logicSymbol = metadataFilter.publishersLogic == .all ? "∧" : "∨"
+            Text(publishers.joined(separator: " \(logicSymbol) "))
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }
         }
+      }
+    } else if isLoading {
+      HStack {
+        Text(String(localized: "Publishers"))
+        Spacer()
+        ProgressView()
       }
     }
   }
@@ -390,63 +393,6 @@ struct SelectableRow: View {
         if isSelected {
           Image(systemName: "checkmark")
             .foregroundStyle(.green)
-        }
-      }
-    }
-  }
-}
-
-struct PublisherSelectList: View {
-  let publishers: [String]
-  @Binding var selectedPublisher: String?
-  @Environment(\.dismiss) private var dismiss
-  @State private var searchText: String = ""
-
-  private var filteredPublishers: [String] {
-    if searchText.isEmpty {
-      return publishers
-    }
-    return publishers.filter { publisher in
-      publisher.localizedCaseInsensitiveContains(searchText)
-    }
-  }
-
-  var body: some View {
-    List {
-      Section {
-        ForEach(filteredPublishers, id: \.self) { publisher in
-          Button {
-            // Toggle selection: if already selected, deselect; otherwise select
-            if selectedPublisher == publisher {
-              selectedPublisher = nil
-            } else {
-              selectedPublisher = publisher
-            }
-          } label: {
-            HStack {
-              Text(publisher)
-              Spacer()
-              if selectedPublisher == publisher {
-                Image(systemName: "checkmark")
-                  .foregroundStyle(.green)
-              }
-            }
-          }
-        }
-      }
-    }
-    .searchable(text: $searchText, prompt: String(localized: "Search"))
-    .inlineNavigationBarTitle(String(localized: "Publisher"))
-    .toolbar {
-      ToolbarItem(placement: .cancellationAction) {
-        Button(String(localized: "Reset")) {
-          selectedPublisher = nil
-        }
-        .disabled(selectedPublisher == nil)
-      }
-      ToolbarItem(placement: .confirmationAction) {
-        Button(String(localized: "Done")) {
-          dismiss()
         }
       }
     }

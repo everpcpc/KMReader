@@ -86,9 +86,11 @@ struct SeriesFilterView: View {
           )
         }
 
-        if let publisher = browseOpts.metadataFilter.publisher {
+        if let publishers = browseOpts.metadataFilter.publishers, !publishers.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.publishersLogic == .all ? "∧" : "∨"
+          let label = publishers.joined(separator: " \(logicSymbol) ")
           FilterChip(
-            label: publisher,
+            label: label,
             systemImage: "building.2",
             openSheet: $showFilterSheet
           )

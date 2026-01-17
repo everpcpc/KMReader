@@ -54,7 +54,8 @@ struct SeriesSearchFilters {
   var collectionId: String? = nil
 
   // Metadata filters
-  var publisher: String? = nil
+  var publishers: [String]? = nil
+  var publishersLogic: FilterLogic = .all
   var authors: [String]? = nil
   var authorsLogic: FilterLogic = .all
   var genres: [String]? = nil
@@ -147,10 +148,12 @@ extension SeriesSearch {
     }
 
     // Metadata filters
-    if let publisher = filters.publisher, !publisher.isEmpty {
-      conditions.append([
-        "publisher": ["operator": "is", "value": publisher]
-      ])
+    if let publishers = filters.publishers, !publishers.isEmpty {
+      let publisherConditions = publishers.map { publisher in
+        ["publisher": ["operator": "is", "value": publisher]]
+      }
+      let wrapperKey = filters.publishersLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: publisherConditions])
     }
 
     if let authors = filters.authors, !authors.isEmpty {
