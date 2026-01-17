@@ -40,11 +40,13 @@ extension View {
 
 private struct NavigationHandlingModifier: ViewModifier {
   @Environment(\.zoomNamespace) private var zoomNamespace
+  @Environment(\.browseLibrarySelection) private var browseLibrarySelection
 
   func body(content: Content) -> some View {
     content
       .navigationDestination(for: NavDestination.self) { destination in
         destination.content
+          .environment(\.browseLibrarySelection, browseLibrarySelection)
           .ifLet(destination.zoomSourceID) { view, sourceID in
             view.navigationTransitionZoomIfAvailable(sourceID: sourceID, in: zoomNamespace)
           }

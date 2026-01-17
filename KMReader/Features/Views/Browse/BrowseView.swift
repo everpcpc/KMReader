@@ -8,12 +8,11 @@
 import SwiftUI
 
 struct BrowseView: View {
-  let library: LibrarySelection?
   let fixedContent: BrowseContentType?
   let metadataFilter: MetadataFilterConfig?
 
   @Environment(AuthViewModel.self) private var authViewModel
-  @Environment(\.browseLibrarySelection) private var browseLibrarySelection
+  @Environment(\.browseLibrarySelection) private var librarySelection
 
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
@@ -52,17 +51,15 @@ struct BrowseView: View {
   }
 
   init(
-    library: LibrarySelection? = nil,
     fixedContent: BrowseContentType? = nil,
     metadataFilter: MetadataFilterConfig? = nil
   ) {
-    self.library = library
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
   }
 
   var title: String {
-    if let library = library {
+    if let library = librarySelection {
       return library.name
     } else if let fixedContent {
       return fixedContent.displayName
@@ -72,11 +69,8 @@ struct BrowseView: View {
   }
 
   private var resolvedLibraryIds: [String] {
-    if let library = library {
+    if let library = librarySelection {
       return [library.libraryId]
-    }
-    if let selection = browseLibrarySelection {
-      return [selection.libraryId]
     }
     return dashboard.libraryIds
   }
@@ -93,7 +87,7 @@ struct BrowseView: View {
   }
 
   func sectionCount(browseContent: BrowseContentType) -> Int? {
-    guard let library = library else { return nil }
+    guard let library = librarySelection else { return nil }
     switch browseContent {
     case .series:
       return library.seriesCount.map { Int($0) }
@@ -116,7 +110,7 @@ struct BrowseView: View {
   var body: some View {
     ScrollView {
       VStack(spacing: 0) {
-        if let library = library {
+        if let library = librarySelection {
           VStack(alignment: .leading) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
               Image(systemName: "books.vertical")
@@ -148,19 +142,15 @@ struct BrowseView: View {
           .padding(.vertical, 8)
         }
 
-        if let library {
-          browseContentView.environment(\.browseLibrarySelection, library)
-        } else {
-          browseContentView
-        }
+        browseContentView
       }
     }
     .inlineNavigationBarTitle(title)
-    .animation(.default, value: library)
+    .animation(.default, value: librarySelection)
     .searchable(text: $searchQuery)
     #if !os(tvOS)
       .toolbar {
-        if library == nil {
+        if librarySelection == nil {
           ToolbarItem(placement: .cancellationAction) {
             Button {
               showLibraryPicker = true
@@ -213,7 +203,7 @@ struct BrowseView: View {
       }
     }
     .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
-      guard library == nil else { return }
+      guard librarySelection == nil else { return }
       // Refresh when server switch completes to avoid race condition
       if oldValue && !newValue {
         refreshBrowse()

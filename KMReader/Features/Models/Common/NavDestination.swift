@@ -71,8 +71,9 @@ enum NavDestination: Hashable {
     case .settings:
       SettingsView()
 
-    case .browseLibrary(let selection):
-      BrowseView(library: selection)
+    // NOTE: library selection passed via environment
+    case .browseLibrary(_):
+      BrowseView()
 
     case .browseSeriesWithPublisher(let publisher):
       BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forPublisher(publisher))
