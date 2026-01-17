@@ -111,7 +111,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     guard let loadedImageSize = loadedImageSize else { return false }
     guard thumbnailPreserveAspectRatio else { return false }
     let realRatio = loadedImageSize.height / loadedImageSize.width
-    return realRatio < 0.35 || realRatio > 2.828
+    return realRatio < 0.35 || realRatio > 4.242
   }
 
   private func loadThumbnail(id: String, type: ThumbnailType) async -> PlatformImage? {
