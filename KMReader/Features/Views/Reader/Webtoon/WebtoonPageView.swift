@@ -16,7 +16,6 @@
     let onDismiss: () -> Void
     let onNextBook: (String) -> Void
     let toggleControls: () -> Void
-    let screenSize: CGSize
     let pageWidthPercentage: Double
     let readerBackground: ReaderBackground
 
@@ -26,59 +25,62 @@
     @State private var panUpdateHandler: ((CGFloat) -> Void)?
     @State private var panEndHandler: ((CGFloat) -> Void)?
 
-    var pageWidth: CGFloat {
-      return screenSize.width * (pageWidthPercentage / 100.0)
+    func pageWidth(_ geometry: GeometryProxy) -> CGFloat {
+      return geometry.size.width * (pageWidthPercentage / 100.0)
     }
 
     var body: some View {
-      ZStack {
-        WebtoonReaderView(
-          pages: viewModel.pages,
-          viewModel: viewModel,
-          pageWidth: pageWidth,
-          readerBackground: readerBackground,
-          tapZoneMode: tapZoneMode,
-          showPageNumber: showPageNumber,
-          onPageChange: { pageIndex in
-            viewModel.currentPageIndex = pageIndex
-          },
-          onCenterTap: {
-            toggleControls()
-          },
-          onScrollToBottom: { atBottom in
-            isAtBottom = atBottom
-          },
-          onNextBookPanUpdate: { translation in
-            panUpdateHandler?(translation)
-          },
-          onNextBookPanEnd: { translation in
-            panEndHandler?(translation)
-          }
-        )
-
-        VStack {
-          Spacer()
-          EndPageView(
+      GeometryReader { geometry in
+        ZStack {
+          WebtoonReaderView(
+            pages: viewModel.pages,
             viewModel: viewModel,
-            nextBook: nextBook,
-            readList: readList,
-            onDismiss: onDismiss,
-            onNextBook: onNextBook,
-            readingDirection: .webtoon,
-            onFocusChange: nil,
-            onExternalPanUpdate: { handler in
-              panUpdateHandler = handler
+            pageWidth: pageWidth(geometry),
+            readerBackground: readerBackground,
+            tapZoneMode: tapZoneMode,
+            showPageNumber: showPageNumber,
+            onPageChange: { pageIndex in
+              viewModel.currentPageIndex = pageIndex
             },
-            onExternalPanEnd: { handler in
-              panEndHandler = handler
+            onCenterTap: {
+              toggleControls()
+            },
+            onScrollToBottom: { atBottom in
+              isAtBottom = atBottom
+            },
+            onNextBookPanUpdate: { translation in
+              panUpdateHandler?(translation)
+            },
+            onNextBookPanEnd: { translation in
+              panEndHandler?(translation)
             }
           )
-          .padding(.bottom, WebtoonConstants.footerPadding)
-          .frame(height: WebtoonConstants.footerHeight)
+
+          VStack {
+            Spacer()
+            EndPageView(
+              viewModel: viewModel,
+              nextBook: nextBook,
+              readList: readList,
+              onDismiss: onDismiss,
+              onNextBook: onNextBook,
+              readingDirection: .webtoon,
+              onPreviousPage: {},
+              onFocusChange: nil,
+              onExternalPanUpdate: { handler in
+                panUpdateHandler = handler
+              },
+              onExternalPanEnd: { handler in
+                panEndHandler = handler
+              }
+            )
+            .padding(.bottom, WebtoonConstants.footerPadding)
+            .frame(height: WebtoonConstants.footerHeight)
+          }
+          .opacity(isAtBottom ? 1 : 0)
+          .allowsHitTesting(isAtBottom)
+          .transition(.opacity)
         }
-        .opacity(isAtBottom ? 1 : 0)
-        .allowsHitTesting(isAtBottom)
-        .transition(.opacity)
       }
     }
   }

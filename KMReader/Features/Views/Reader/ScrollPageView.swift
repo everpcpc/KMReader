@@ -16,13 +16,11 @@ struct ScrollPageView: View {
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
-  let screenSize: CGSize
   let onEndPageFocusChange: ((Bool) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
-  @Environment(\.readerBackgroundPreference) private var readerBackground
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
 
@@ -37,7 +35,6 @@ struct ScrollPageView: View {
     goToNextPage: @escaping () -> Void,
     goToPreviousPage: @escaping () -> Void,
     toggleControls: @escaping () -> Void,
-    screenSize: CGSize,
     onEndPageFocusChange: ((Bool) -> Void)?,
     onScrollActivityChange: ((Bool) -> Void)? = nil
   ) {
@@ -51,60 +48,61 @@ struct ScrollPageView: View {
     self.goToNextPage = goToNextPage
     self.goToPreviousPage = goToPreviousPage
     self.toggleControls = toggleControls
-    self.screenSize = screenSize
     self.onEndPageFocusChange = onEndPageFocusChange
     self.onScrollActivityChange = onScrollActivityChange
   }
 
   var body: some View {
-    ScrollViewReader { proxy in
-      scrollViewContent(proxy: proxy)
-        .frame(width: screenSize.width, height: screenSize.height)
-        .scrollTargetBehavior(.paging)
-        .scrollIndicators(.hidden)
-        .scrollPosition(id: $scrollPosition)
-        .scrollDisabled(viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil)
-        #if os(tvOS)
-          .focusable(false)
-        #endif
-        .onAppear {
-          synchronizeInitialScrollIfNeeded(proxy: proxy)
-        }
-        .onChange(of: viewModel.targetPageIndex) { _, newTarget in
-          if let newTarget = newTarget {
-            handleTargetPageChange(newTarget, proxy: proxy)
-            // Reset targetPageIndex to allow consecutive taps to the same target if we swiped away
-            Task { @MainActor in
-              viewModel.targetPageIndex = nil
+    GeometryReader { geometry in
+      ScrollViewReader { proxy in
+        scrollViewContent(proxy: proxy, geometry: geometry)
+          .frame(width: geometry.size.width, height: geometry.size.height)
+          .scrollTargetBehavior(.paging)
+          .scrollIndicators(.hidden)
+          .scrollPosition(id: $scrollPosition)
+          .scrollDisabled(viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil)
+          #if os(tvOS)
+            .focusable(false)
+          #endif
+          .onAppear {
+            synchronizeInitialScrollIfNeeded(proxy: proxy)
+          }
+          .onChange(of: viewModel.targetPageIndex) { _, newTarget in
+            if let newTarget = newTarget {
+              handleTargetPageChange(newTarget, proxy: proxy)
+              // Reset targetPageIndex to allow consecutive taps to the same target if we swiped away
+              Task { @MainActor in
+                viewModel.targetPageIndex = nil
+              }
             }
           }
-        }
-        .onChange(of: scrollPosition) { _, newPosition in
-          if let newPosition {
-            viewModel.currentPageIndex = newPosition
-            // Clear targetPageIndex if the user manually scrolled
-            if viewModel.targetPageIndex != nil {
-              viewModel.targetPageIndex = nil
+          .onChange(of: scrollPosition) { _, newPosition in
+            if let newPosition {
+              viewModel.currentPageIndex = newPosition
+              // Clear targetPageIndex if the user manually scrolled
+              if viewModel.targetPageIndex != nil {
+                viewModel.targetPageIndex = nil
+              }
             }
           }
-        }
+      }
     }
   }
 
   @ViewBuilder
-  private func scrollViewContent(proxy: ScrollViewProxy) -> some View {
+  private func scrollViewContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
     ScrollView(mode.isVertical ? .vertical : .horizontal) {
       if mode.isVertical {
         LazyVStack(spacing: 0) {
-          singlePageContent(proxy: proxy)
+          singlePageContent(proxy: proxy, geometry: geometry)
         }
         .scrollTargetLayout()
       } else {
         LazyHStack(spacing: 0) {
           if mode.isDualPage {
-            dualPageContent(proxy: proxy)
+            dualPageContent(proxy: proxy, geometry: geometry)
           } else {
-            singlePageContent(proxy: proxy)
+            singlePageContent(proxy: proxy, geometry: geometry)
           }
         }
         .scrollTargetLayout()
@@ -113,27 +111,25 @@ struct ScrollPageView: View {
     .environment(\.layoutDirection, mode.isRTL ? .rightToLeft : .leftToRight)
   }
 
-  private func singlePageContent(proxy: ScrollViewProxy) -> some View {
+  private func singlePageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
     ForEach(0...viewModel.pages.count, id: \.self) { index in
       Group {
         if index == viewModel.pages.count {
-          ZStack {
-            readerBackground.color.readerIgnoresSafeArea()
-            EndPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: onDismiss,
-              onNextBook: onNextBook,
-              readingDirection: readingDirection,
-              onFocusChange: onEndPageFocusChange
-            )
-          }
+          EndPageView(
+            viewModel: viewModel,
+            nextBook: nextBook,
+            readList: readList,
+            onDismiss: onDismiss,
+            onNextBook: onNextBook,
+            readingDirection: readingDirection,
+            onPreviousPage: goToPreviousPage,
+            onFocusChange: onEndPageFocusChange
+          )
         } else {
           SinglePageImageView(
             viewModel: viewModel,
             pageIndex: index,
-            screenSize: screenSize,
+            screenSize: geometry.size,
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
@@ -141,35 +137,33 @@ struct ScrollPageView: View {
           )
         }
       }
-      .frame(width: screenSize.width, height: screenSize.height)
+      .frame(width: geometry.size.width, height: geometry.size.height)
       .id(index)
       .readerPageScrollTransition()
     }
   }
 
-  private func dualPageContent(proxy: ScrollViewProxy) -> some View {
+  private func dualPageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
     ForEach(Array(viewModel.pagePairs), id: \.self) { pagePair in
       Group {
         if pagePair.first == viewModel.pages.count {
-          ZStack {
-            readerBackground.color.readerIgnoresSafeArea()
-            EndPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: onDismiss,
-              onNextBook: onNextBook,
-              readingDirection: readingDirection,
-              onFocusChange: onEndPageFocusChange
-            )
-          }
+          EndPageView(
+            viewModel: viewModel,
+            nextBook: nextBook,
+            readList: readList,
+            onDismiss: onDismiss,
+            onNextBook: onNextBook,
+            readingDirection: readingDirection,
+            onPreviousPage: goToPreviousPage,
+            onFocusChange: onEndPageFocusChange
+          )
         } else {
           if let second = pagePair.second {
             DualPageImageView(
               viewModel: viewModel,
               firstPageIndex: pagePair.first,
               secondPageIndex: second,
-              screenSize: screenSize,
+              screenSize: geometry.size,
               readingDirection: readingDirection,
               onNextPage: goToNextPage,
               onPreviousPage: goToPreviousPage,
@@ -179,7 +173,7 @@ struct ScrollPageView: View {
             SinglePageImageView(
               viewModel: viewModel,
               pageIndex: pagePair.first,
-              screenSize: screenSize,
+              screenSize: geometry.size,
               readingDirection: readingDirection,
               onNextPage: goToNextPage,
               onPreviousPage: goToPreviousPage,
@@ -188,7 +182,7 @@ struct ScrollPageView: View {
           }
         }
       }
-      .frame(width: screenSize.width, height: screenSize.height)
+      .frame(width: geometry.size.width, height: geometry.size.height)
       .id(pagePair.first)
       .readerPageScrollTransition()
     }

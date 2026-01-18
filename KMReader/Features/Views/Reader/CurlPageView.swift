@@ -20,7 +20,6 @@
     let goToNextPage: () -> Void
     let goToPreviousPage: () -> Void
     let toggleControls: () -> Void
-    let screenSize: CGSize
     let onEndPageFocusChange: ((Bool) -> Void)?
 
     func makeCoordinator() -> Coordinator {
@@ -31,7 +30,7 @@
       let spineLocation: UIPageViewController.SpineLocation = mode.isRTL ? .max : .min
       let pageVC = UIPageViewController(
         transitionStyle: .pageCurl,
-        navigationOrientation: .horizontal,
+        navigationOrientation: mode.isVertical ? .vertical : .horizontal,
         options: [.spineLocation: NSNumber(value: spineLocation.rawValue)]
       )
       pageVC.dataSource = context.coordinator
@@ -117,6 +116,7 @@
             onDismiss: parent.onDismiss,
             onNextBook: parent.onNextBook,
             readingDirection: parent.readingDirection,
+            onPreviousPage: parent.goToPreviousPage,
             onFocusChange: parent.onEndPageFocusChange
           )
           hostingController = UIHostingController(rootView: AnyView(endPageView))
@@ -124,7 +124,6 @@
           let pageView = CurlSinglePageView(
             viewModel: parent.viewModel,
             pageIndex: index,
-            screenSize: parent.screenSize,
             readingDirection: parent.readingDirection,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
@@ -193,7 +192,6 @@
   private struct CurlSinglePageView: View {
     let viewModel: ReaderViewModel
     let pageIndex: Int
-    let screenSize: CGSize
     let readingDirection: ReadingDirection
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
@@ -202,20 +200,24 @@
     @Environment(\.readerBackgroundPreference) private var readerBackground
 
     var body: some View {
-      ZStack {
-        readerBackground.color
+      GeometryReader { proxy in
+        ZStack {
+          readerBackground.color.readerIgnoresSafeArea()
 
-        SinglePageImageView(
-          viewModel: viewModel,
-          pageIndex: pageIndex,
-          screenSize: screenSize,
-          readingDirection: readingDirection,
-          onNextPage: onNextPage,
-          onPreviousPage: onPreviousPage,
-          onToggleControls: onToggleControls
-        )
+          SinglePageImageView(
+            viewModel: viewModel,
+            pageIndex: pageIndex,
+            screenSize: proxy.size,
+            readingDirection: readingDirection,
+            onNextPage: onNextPage,
+            onPreviousPage: onPreviousPage,
+            onToggleControls: onToggleControls
+          )
+        }
+        .frame(width: proxy.size.width, height: proxy.size.height)
       }
-      .frame(width: screenSize.width, height: screenSize.height)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .readerIgnoresSafeArea()
     }
   }
 #endif

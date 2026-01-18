@@ -164,6 +164,7 @@
         self.mirrorOnToggleControls = onToggleControls
 
         updatePages()
+        contentStack?.semanticContentAttribute = readingDirection == .rtl ? .forceRightToLeft : .forceLeftToRight
       }
 
       private func updatePages() {
@@ -181,7 +182,12 @@
           if let viewModel = viewModel {
             let image = viewModel.preloadedImages[data.pageNumber]
             pageViews[index].update(
-              with: data, viewModel: viewModel, image: image, showPageNumber: mirrorShowPageNumber)
+              with: data,
+              viewModel: viewModel,
+              image: image,
+              showPageNumber: mirrorShowPageNumber,
+              readingDirection: mirrorReadingDirection
+            )
           }
         }
       }
@@ -230,7 +236,7 @@
           lastZoomOutTime = Date()
         } else {
           let point = gesture.location(in: contentStack)
-          let zoomRect = calculateZoomRect(scale: 2.0, center: point, scrollView: scrollView)
+          let zoomRect = calculateZoomRect(scale: AppConfig.doubleTapZoomScale, center: point, scrollView: scrollView)
           scrollView.zoom(to: zoomRect, animated: true)
         }
       }
@@ -308,6 +314,7 @@
     private let errorLabel = UILabel()
     private var currentData: NativePageData?
     private weak var viewModel: ReaderViewModel?
+    private var readingDirection: ReadingDirection = .ltr
 
     #if !os(tvOS)
       private let interaction = ImageAnalysisInteraction()
@@ -423,9 +430,16 @@
       ])
     }
 
-    func update(with data: NativePageData, viewModel: ReaderViewModel, image: PlatformImage?, showPageNumber: Bool) {
+    func update(
+      with data: NativePageData,
+      viewModel: ReaderViewModel,
+      image: PlatformImage?,
+      showPageNumber: Bool,
+      readingDirection: ReadingDirection
+    ) {
       self.currentData = data
       self.viewModel = viewModel
+      self.readingDirection = readingDirection
       imageView.image = image
 
       updateImageAlignment()
@@ -575,7 +589,7 @@
       let actualImageHeight = imageSize.height * scale
       let yOffset = (viewSize.height - actualImageHeight) / 2
 
-      let isRTL = effectiveUserInterfaceLayoutDirection == .rightToLeft
+      let isRTL = readingDirection == .rtl
       var xOffset: CGFloat = (viewSize.width - actualImageWidth) / 2
 
       // Calculate xOffset based on alignment
@@ -585,31 +599,34 @@
         } else if alignment == .trailing {
           xOffset = isRTL ? 0 : (viewSize.width - actualImageWidth)
         } else {
+          // Center alignment
           xOffset = (viewSize.width - actualImageWidth) / 2
         }
       }
 
-      let topY = yOffset + 12
+      let topY = yOffset
       let labelWidth = pageNumberLabel.intrinsicContentSize.width + 16
 
-      // Determine if this is dual-page mode (leading or trailing alignment)
-      let isDualPage = currentData?.alignment == .leading || currentData?.alignment == .trailing
+      if let alignment = currentData?.alignment {
+        let isLeft: Bool
+        if alignment == .center {
+          isLeft = isRTL
+        } else {
+          // outer edge
+          if alignment == .trailing {
+            isLeft = !isRTL
+          } else {
+            isLeft = isRTL
+          }
+        }
 
-      if isDualPage {
-        // Dual page mode: position based on left/right page
-        let isLeftPage =
-          (!isRTL && currentData?.alignment == .trailing) || (isRTL && currentData?.alignment == .leading)
-
-        if isLeftPage {
-          pageNumberLabel.frame = CGRect(x: xOffset + 12, y: topY, width: max(30, labelWidth), height: 24)
+        if isLeft {
+          pageNumberLabel.frame = CGRect(x: xOffset + 12, y: topY + 12, width: max(30, labelWidth), height: 24)
         } else {
           pageNumberLabel.frame = CGRect(
-            x: xOffset + actualImageWidth - max(30, labelWidth) - 12, y: topY, width: max(30, labelWidth), height: 24)
+            x: xOffset + actualImageWidth - max(30, labelWidth) - 12, y: topY + 12, width: max(30, labelWidth),
+            height: 24)
         }
-      } else {
-        // Single page mode: center at top
-        pageNumberLabel.frame = CGRect(
-          x: xOffset + (actualImageWidth - max(30, labelWidth)) / 2, y: topY, width: max(30, labelWidth), height: 24)
       }
     }
 

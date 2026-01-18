@@ -16,7 +16,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   #if os(iOS)
     @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll

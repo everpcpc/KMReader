@@ -386,8 +386,7 @@ struct DivinaReaderView: View {
     screenKey: String
   ) -> some View {
     if !viewModel.pages.isEmpty {
-      GeometryReader { geometry in
-        let screenSize = geometry.size
+      Group {
         if readingDirection == .webtoon {
           #if os(iOS) || os(macOS)
             WebtoonPageView(
@@ -398,10 +397,9 @@ struct DivinaReaderView: View {
               onDismiss: { closeReader() },
               onNextBook: { openNextBook(nextBookId: $0) },
               toggleControls: { toggleControls() },
-              screenSize: screenSize,
               pageWidthPercentage: webtoonPageWidthPercentage,
               readerBackground: readerBackground
-            ).readerIgnoresSafeArea()
+            )
           #else
             ScrollPageView(
               mode: .vertical,
@@ -414,7 +412,6 @@ struct DivinaReaderView: View {
               goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
               goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
               toggleControls: { toggleControls() },
-              screenSize: screenSize,
               onEndPageFocusChange: endPageFocusChangeHandler,
               onScrollActivityChange: { isScrolling in
                 if isScrolling {
@@ -425,7 +422,7 @@ struct DivinaReaderView: View {
           #endif
         } else {
           #if os(iOS)
-            if pageTransitionStyle == .pageCurl && !useDualPage && readingDirection != .vertical {
+            if pageTransitionStyle == .pageCurl && !useDualPage {
               CurlPageView(
                 viewModel: viewModel,
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
@@ -437,7 +434,6 @@ struct DivinaReaderView: View {
                 goToNextPage: { goToNextPage(dualPageEnabled: false) },
                 goToPreviousPage: { goToPreviousPage(dualPageEnabled: false) },
                 toggleControls: { toggleControls() },
-                screenSize: screenSize,
                 onEndPageFocusChange: endPageFocusChangeHandler
               )
             } else {
@@ -452,7 +448,6 @@ struct DivinaReaderView: View {
                 goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                 goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                 toggleControls: { toggleControls() },
-                screenSize: screenSize,
                 onEndPageFocusChange: endPageFocusChangeHandler,
                 onScrollActivityChange: { isScrolling in
                   if isScrolling {
@@ -473,7 +468,6 @@ struct DivinaReaderView: View {
               goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
               goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
               toggleControls: { toggleControls() },
-              screenSize: screenSize,
               onEndPageFocusChange: endPageFocusChangeHandler,
               onScrollActivityChange: { isScrolling in
                 if isScrolling {

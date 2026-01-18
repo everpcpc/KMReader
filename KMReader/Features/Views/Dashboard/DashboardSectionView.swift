@@ -64,65 +64,67 @@ struct DashboardSectionView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
-        HStack {
-          Text(section.displayName)
-            .font(.title)
-            .fontDesign(.serif)
-          Image(systemName: "chevron.right")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-        }
-      }
-      .buttonStyle(.plain)
-      .padding(.leading, 16)
-      .disabled(pagination.isEmpty)
-
-      ScrollViewReader { proxy in
-        ScrollView(.horizontal, showsIndicators: false) {
-          LazyHStack(alignment: .top, spacing: spacing) {
-            ForEach(pagination.items) { item in
-              itemView(for: item.id)
-                .id(item.id)
-                .frame(width: cardWidth)
-                .onAppear {
-                  if pagination.shouldLoadMore(after: item) {
-                    Task {
-                      await loadMore()
-                    }
-                  }
-                }
-            }
-          }
-          .padding(.vertical)
-          #if os(macOS)
-            .padding(.leading, 16)
-          #endif
-        }
-        .contentMargins(.horizontal, spacing, for: .scrollContent)
-        .scrollClipDisabled()
-        #if os(macOS)
-          .overlay {
-            HorizontalScrollButtons(
-              scrollProxy: proxy,
-              itemIds: pagination.items.map(\.id),
-              isVisible: isHoveringScrollArea
-            )
-          }
-        #endif
-      }
-    }
-    .padding(.vertical, 16)
-    #if os(iOS) || os(macOS)
-      .background {
+    ZStack {
+      #if os(iOS) || os(macOS)
         LinearGradient(
           colors: backgroundColors,
           startPoint: .top,
           endPoint: .bottom
-        )
+        ).ignoresSafeArea()
+      #endif
+
+      VStack(alignment: .leading, spacing: 4) {
+        NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
+          HStack {
+            Text(section.displayName)
+              .font(.title2)
+              .bold()
+              .fontDesign(.serif)
+            Image(systemName: "chevron.right")
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .buttonStyle(.plain)
+        .padding(.leading, 16)
+        .disabled(pagination.isEmpty)
+
+        ScrollViewReader { proxy in
+          ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(alignment: .top, spacing: spacing) {
+              ForEach(pagination.items) { item in
+                itemView(for: item.id)
+                  .id(item.id)
+                  .frame(width: cardWidth)
+                  .onAppear {
+                    if pagination.shouldLoadMore(after: item) {
+                      Task {
+                        await loadMore()
+                      }
+                    }
+                  }
+              }
+            }
+            .padding(.vertical)
+            #if os(macOS)
+              .padding(.leading, 16)
+            #endif
+          }
+          .contentMargins(.horizontal, spacing, for: .scrollContent)
+          .scrollClipDisabled()
+          #if os(macOS)
+            .overlay {
+              HorizontalScrollButtons(
+                scrollProxy: proxy,
+                itemIds: pagination.items.map(\.id),
+                isVisible: isHoveringScrollArea
+              )
+            }
+          #endif
+        }
       }
-    #endif
+    }
+    .padding(.vertical, 16)
     #if os(macOS)
       .onContinuousHover { phase in
         switch phase {
