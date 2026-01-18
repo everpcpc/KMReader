@@ -31,7 +31,7 @@
       let spineLocation: UIPageViewController.SpineLocation = mode.isRTL ? .max : .min
       let pageVC = UIPageViewController(
         transitionStyle: .pageCurl,
-        navigationOrientation: .horizontal,
+        navigationOrientation: mode.isVertical ? .vertical : .horizontal,
         options: [.spineLocation: NSNumber(value: spineLocation.rawValue)]
       )
       pageVC.dataSource = context.coordinator

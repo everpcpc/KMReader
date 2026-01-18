@@ -425,7 +425,7 @@ struct DivinaReaderView: View {
           #endif
         } else {
           #if os(iOS)
-            if pageTransitionStyle == .pageCurl && !useDualPage && readingDirection != .vertical {
+            if pageTransitionStyle == .pageCurl && !useDualPage {
               CurlPageView(
                 viewModel: viewModel,
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
