@@ -85,20 +85,16 @@ class BookService {
     )
   }
 
-  /// Download the book file (any supported format)
   func downloadBookFile(bookId: String) async throws -> BookFileDownloadResult {
-    let result = try await apiClient.requestData(path: "/api/v1/books/\(bookId)/file")
+    let result = try await apiClient.requestDataWithProgress(
+      path: "/api/v1/books/\(bookId)/file",
+      progressKey: bookId,
+    )
     return BookFileDownloadResult(
       data: result.data,
       contentType: result.contentType,
       suggestedFilename: result.suggestedFilename
     )
-  }
-
-  /// Download the entire EPUB file for a book
-  func downloadEpubFile(bookId: String) async throws -> Data {
-    let result = try await downloadBookFile(bookId: bookId)
-    return result.data
   }
 
   func getBrowseBooks(

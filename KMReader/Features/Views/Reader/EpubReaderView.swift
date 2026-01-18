@@ -74,6 +74,11 @@
         .task(id: readerPrefs) {
           viewModel.applyPreferences(readerPrefs, colorScheme: colorScheme)
         }
+        .onReceive(
+          NotificationCenter.default.publisher(for: .fileDownloadProgress)
+        ) { notification in
+          viewModel.updateDownloadProgress(notification: notification)
+        }
         .onDisappear {
           controlsTimer?.invalidate()
           overlayTimer?.invalidate()
@@ -112,6 +117,8 @@
     }
 
     private func loadBook() async {
+      viewModel.beginLoading()
+
       // Load book info
       do {
         currentBook = try await SyncService.shared.syncBook(bookId: bookId)
@@ -141,7 +148,7 @@
         ZStack {
           Color.clear.readerIgnoresSafeArea()
 
-          contentView(for: geometry.size)
+          contentView(for: geometry.size, viewModel: viewModel)
 
           if viewModel.navigatorViewController != nil {
             TapZoneOverlay(isVisible: $showTapZoneOverlay, readingDirection: .ltr)
@@ -164,16 +171,14 @@
     }
 
     @ViewBuilder
-    private func contentView(for size: CGSize) -> some View {
+    private func contentView(for size: CGSize, viewModel: EpubReaderViewModel) -> some View {
       if viewModel.isLoading {
-        VStack(spacing: 16) {
-          ProgressView()
-          if viewModel.downloadProgress > 0 {
-            Text("Downloading: \(Int(viewModel.downloadProgress * 100))%")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-        }
+        ReaderLoadingView(
+          title: loadingTitle,
+          detail: loadingDetail,
+          progress: (viewModel.downloadBytesReceived > 0 || viewModel.downloadProgress > 0)
+            ? viewModel.downloadProgress : nil
+        )
       } else if let error = viewModel.errorMessage {
         VStack(spacing: 12) {
           Image(systemName: "exclamationmark.triangle")
@@ -199,6 +204,36 @@
         Text("No content available.")
           .foregroundStyle(.secondary)
       }
+    }
+
+    private var loadingTitle: String {
+      switch viewModel.loadingStage {
+      case .fetchingMetadata:
+        return String(localized: "Fetching book info...")
+      case .downloading:
+        return String(localized: "Downloading book...")
+      case .opening:
+        return String(localized: "Opening book...")
+      case .preparingReader:
+        return String(localized: "Preparing reader...")
+      case .idle:
+        return String(localized: "Loading...")
+      }
+    }
+
+    private var loadingDetail: String? {
+      let received = viewModel.downloadBytesReceived
+      if let expected = viewModel.downloadBytesExpected, expected > 0 {
+        let receivedText = ByteCountFormatter.string(fromByteCount: received, countStyle: .file)
+        let expectedText = ByteCountFormatter.string(fromByteCount: expected, countStyle: .file)
+        let percent = Int(viewModel.downloadProgress * 100)
+        return "\(percent)% · \(receivedText) / \(expectedText)"
+      }
+      if received > 0 {
+        let receivedText = ByteCountFormatter.string(fromByteCount: received, countStyle: .file)
+        return String(localized: "Downloaded \(receivedText)")
+      }
+      return nil
     }
 
     private var controlsOverlay: some View {

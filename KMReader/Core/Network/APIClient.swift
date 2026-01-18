@@ -8,6 +8,17 @@
 import Foundation
 import OSLog
 
+struct DownloadProgressUserInfo {
+  static let urlKey = "url"
+  static let itemKey = "item"
+  static let receivedKey = "received"
+  static let expectedKey = "expected"
+}
+
+extension Notification.Name {
+  static let fileDownloadProgress = Notification.Name("fileDownloadProgress")
+}
+
 class APIClient {
   static let shared = APIClient()
 
@@ -407,7 +418,8 @@ class APIClient {
     session: URLSession? = nil,
     isTemporary: Bool = false,
     retryCount: Int = 0,
-    skipOfflineSwitch: Bool = false
+    skipOfflineSwitch: Bool = false,
+    onProgress: ((_ received: Int64, _ expected: Int64?) -> Void)? = nil
   ) async throws -> (data: Data, response: HTTPURLResponse) {
     let method = request.httpMethod ?? "GET"
     let urlString = request.url?.absoluteString ?? ""
@@ -417,19 +429,180 @@ class APIClient {
     let startTime = Date()
     let sessionToUse = session ?? currentSession()
 
-    do {
+    struct FetchResult {
+      let data: Data
+      let response: HTTPURLResponse
+      let expectedBytes: Int64?
+    }
+
+    func fetchWithProgress(
+      _ onProgress: @escaping (_ received: Int64, _ expected: Int64?) -> Void
+    ) async throws -> FetchResult {
+      actor ProgressState {
+        let onProgress: (_ received: Int64, _ expected: Int64?) -> Void
+        let urlString: String
+        var data = Data()
+        var response: HTTPURLResponse?
+        var expectedBytes: Int64?
+        var receivedBytes: Int64 = 0
+        var continuation: CheckedContinuation<FetchResult, Error>?
+        var lastUpdate = Date.distantPast
+        let updateInterval: TimeInterval = 0.1
+
+        init(
+          onProgress: @escaping (_ received: Int64, _ expected: Int64?) -> Void,
+          urlString: String
+        ) {
+          self.onProgress = onProgress
+          self.urlString = urlString
+        }
+
+        func setContinuation(_ continuation: CheckedContinuation<FetchResult, Error>) {
+          self.continuation = continuation
+        }
+
+        func fail(_ error: Error) {
+          guard let continuation else { return }
+          self.continuation = nil
+          continuation.resume(throwing: error)
+        }
+
+        func handleResponse(_ httpResponse: HTTPURLResponse) {
+          response = httpResponse
+          let expectedLength = httpResponse.expectedContentLength
+          expectedBytes = expectedLength > 0 ? expectedLength : nil
+          onProgress(0, expectedBytes)
+        }
+
+        func handleData(_ chunk: Data) {
+          data.append(chunk)
+          receivedBytes += Int64(chunk.count)
+
+          let now = Date()
+          guard now.timeIntervalSince(lastUpdate) >= updateInterval else { return }
+          lastUpdate = now
+          onProgress(receivedBytes, expectedBytes)
+        }
+
+        func handleComplete(_ error: Error?) {
+          guard continuation != nil else { return }
+          if let error {
+            fail(error)
+            return
+          }
+          guard let response else {
+            fail(APIError.invalidResponse(url: urlString))
+            return
+          }
+
+          onProgress(receivedBytes, expectedBytes)
+          let result = FetchResult(data: data, response: response, expectedBytes: expectedBytes)
+          continuation?.resume(returning: result)
+          continuation = nil
+        }
+      }
+
+      final class ProgressDelegate: NSObject, URLSessionDataDelegate {
+        let state: ProgressState
+        let urlString: String
+
+        init(state: ProgressState, urlString: String) {
+          self.state = state
+          self.urlString = urlString
+        }
+
+        func urlSession(
+          _ session: URLSession,
+          dataTask: URLSessionDataTask,
+          didReceive response: URLResponse,
+          completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+        ) {
+          guard let httpResponse = response as? HTTPURLResponse else {
+            completionHandler(.cancel)
+            Task { await state.fail(APIError.invalidResponse(url: urlString)) }
+            return
+          }
+
+          completionHandler(.allow)
+          Task { await state.handleResponse(httpResponse) }
+        }
+
+        func urlSession(
+          _ session: URLSession,
+          dataTask: URLSessionDataTask,
+          didReceive data: Data
+        ) {
+          Task { await state.handleData(data) }
+        }
+
+        func urlSession(
+          _ session: URLSession,
+          task: URLSessionTask,
+          didCompleteWithError error: Error?
+        ) {
+          defer {
+            session.finishTasksAndInvalidate()
+          }
+
+          Task { await state.handleComplete(error) }
+        }
+      }
+
+      logger.debug("Streaming download started: url=\(urlString)")
+      let state = ProgressState(onProgress: onProgress, urlString: urlString)
+      let delegate = ProgressDelegate(state: state, urlString: urlString)
+      let delegateQueue = OperationQueue()
+      delegateQueue.maxConcurrentOperationCount = 1
+      let progressSession = URLSession(
+        configuration: sessionToUse.configuration,
+        delegate: delegate,
+        delegateQueue: delegateQueue
+      )
+
+      return try await withCheckedThrowingContinuation { continuation in
+        Task {
+          await state.setContinuation(continuation)
+          let task = progressSession.dataTask(with: request)
+          task.resume()
+        }
+      }
+    }
+
+    func fetch() async throws -> FetchResult {
+      if let onProgress {
+        let result = try await fetchWithProgress(onProgress)
+        if let expectedBytes = result.expectedBytes {
+          logger.debug(
+            "Streaming download finished: bytes=\(result.data.count) expected=\(expectedBytes) url=\(urlString)"
+          )
+        } else {
+          logger.debug(
+            "Streaming download finished: bytes=\(result.data.count) expected=unknown url=\(urlString)"
+          )
+        }
+        return result
+      }
+
       let (data, response) = try await sessionToUse.data(for: request)
-      let duration = Date().timeIntervalSince(startTime)
 
       guard let httpResponse = response as? HTTPURLResponse else {
         logger.error("❌ Invalid response from \(urlString)")
         throw APIError.invalidResponse(url: urlString)
       }
 
+      return FetchResult(data: data, response: httpResponse, expectedBytes: nil)
+    }
+
+    do {
+      let result = try await fetch()
+      let duration = Date().timeIntervalSince(startTime)
+      let data = result.data
+      let httpResponse = result.response
+      let expectedBytes = result.expectedBytes
+
       let statusEmoji = (200...299).contains(httpResponse.statusCode) ? "✅" : "❌"
       let durationMs = String(format: "%.2f", duration * 1000)
 
-      // Log session token if returned (for debugging bootstrap)
       if let sessionToken = httpResponse.value(forHTTPHeaderField: "X-Auth-Token") {
         if AppConfig.current.sessionToken != sessionToken {
           AppConfig.current.sessionToken = sessionToken
@@ -441,8 +614,6 @@ class APIClient {
       )
 
       guard (200...299).contains(httpResponse.statusCode) else {
-        // Handle 401 Unauthorized with re-login
-        // Skip re-login for API Key mode as it's stateless and included in every request
         if httpResponse.statusCode == 401 && retryCount == 0 && !isTemporary
           && AppConfig.current.authMethod != .apiKey
         {
@@ -451,7 +622,6 @@ class APIClient {
             logger.info("🔒 Unauthorized, attempting re-login to refresh session...")
 
             do {
-              // Create a dedicated login request with Authorization header
               let loginRequest = try buildLoginRequest(
                 path: "/api/v2/users/me",
                 method: "GET",
@@ -461,7 +631,6 @@ class APIClient {
                 useSessionToken: false
               )
 
-              // Execute login request through the synchronization actor
               _ = try await reLoginActor.getReLoginTask { [weak self] in
                 guard let self = self else {
                   throw APIError.networkError(
@@ -469,18 +638,19 @@ class APIClient {
                     url: urlString
                   )
                 }
-                // Use retryCount: 1 to prevent recursive 401 handling if login fails
                 return try await self.executeRequest(
                   loginRequest, session: sessionToUse, isTemporary: false, retryCount: 1)
               }
 
               logger.info("✅ Re-login successful, retrying original request...")
-              // Retry the original request UNCHANGED (relying on new session cookies)
+              if let onProgress {
+                onProgress(0, expectedBytes)
+              }
               return try await executeRequest(
-                request, session: sessionToUse, isTemporary: false, retryCount: 1)
+                request, session: sessionToUse, isTemporary: false, retryCount: 1,
+                skipOfflineSwitch: skipOfflineSwitch, onProgress: onProgress)
             } catch {
               logger.error("❌ Re-login failed: \(error.localizedDescription)")
-              // Fall through to throw the original 401 error or the login error
             }
           }
         }
@@ -506,16 +676,14 @@ class APIClient {
           throw APIError.tooManyRequests(
             message: errorMessage, url: urlString, response: responseBody)
         case 500...599:
-          // Retry on server errors if we haven't exceeded the max retry count
-          // and it's not a cancellation error
           if retryCount < AppConfig.apiRetryCount {
             logger.warning(
               "⚠️ Server error, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(httpResponse.statusCode)"
             )
-            try? await Task.sleep(nanoseconds: 1_000_000_000)  // Wait 1s before retry
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             return try await executeRequest(
               request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1,
-              skipOfflineSwitch: skipOfflineSwitch)
+              skipOfflineSwitch: skipOfflineSwitch, onProgress: onProgress)
           }
 
           logger.error("❌ Server Error \(httpResponse.statusCode): \(errorMessage)")
@@ -547,16 +715,14 @@ class APIClient {
       }
       throw APIError.networkError(appError, url: urlString)
     } catch {
-      // Retry on network errors if we haven't exceeded the max retry count
-      // and it's not a cancellation error
       if retryCount < AppConfig.apiRetryCount && !(error is CancellationError) {
         logger.warning(
           "⚠️ Request failed, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(error.localizedDescription)"
         )
-        try? await Task.sleep(nanoseconds: 1_000_000_000)  // Wait 1s before retry
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         return try await executeRequest(
           request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1,
-          skipOfflineSwitch: skipOfflineSwitch)
+          skipOfflineSwitch: skipOfflineSwitch, onProgress: onProgress)
       }
 
       logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")
@@ -687,6 +853,38 @@ class APIClient {
     let urlRequest = try buildRequest(
       path: path, method: method, headers: headers)
     let (data, httpResponse) = try await executeRequest(urlRequest)
+
+    return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)
+  }
+
+  func requestDataWithProgress(
+    path: String,
+    progressKey: String,
+    method: String = "GET",
+    headers: [String: String]? = nil,
+  ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
+    try throwIfOffline()
+
+    let urlRequest = try buildRequest(
+      path: path, method: method, headers: headers)
+    let urlString = urlRequest.url?.absoluteString ?? ""
+    let (data, httpResponse) = try await executeRequest(
+      urlRequest,
+      onProgress: { received, expected in
+        Task { @MainActor in
+          NotificationCenter.default.post(
+            name: .fileDownloadProgress,
+            object: nil,
+            userInfo: [
+              DownloadProgressUserInfo.urlKey: urlString,
+              DownloadProgressUserInfo.itemKey: progressKey,
+              DownloadProgressUserInfo.receivedKey: received,
+              DownloadProgressUserInfo.expectedKey: expected as Any,
+            ]
+          )
+        }
+      }
+    )
 
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)
   }

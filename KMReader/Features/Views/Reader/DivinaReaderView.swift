@@ -490,7 +490,11 @@ struct DivinaReaderView: View {
         }
       }
     } else if viewModel.isLoading {
-      ProgressView()
+      ReaderLoadingView(
+        title: String(localized: "Loading book..."),
+        detail: nil,
+        progress: nil
+      )
     } else {
       NoPagesView(onDismiss: { closeReader() })
     }

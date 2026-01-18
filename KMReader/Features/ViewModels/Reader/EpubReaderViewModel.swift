@@ -20,9 +20,20 @@
   @MainActor
   @Observable
   class EpubReaderViewModel: EPUBNavigatorDelegate {
+    enum LoadingStage: String {
+      case idle
+      case fetchingMetadata
+      case downloading
+      case opening
+      case preparingReader
+    }
+
     var isLoading = false
     var errorMessage: String?
+    var loadingStage: LoadingStage = .idle
     var downloadProgress: Double = 0.0
+    var downloadBytesReceived: Int64 = 0
+    var downloadBytesExpected: Int64?
     var publication: Publication?
     var navigatorViewController: EPUBNavigatorViewController?
     var currentLocator: Locator?
@@ -58,6 +69,31 @@
       self.httpServer = GCDHTTPServer(assetRetriever: assetRetriever)
     }
 
+    func beginLoading() {
+      isLoading = true
+      errorMessage = nil
+      loadingStage = .fetchingMetadata
+      downloadProgress = 0.0
+      downloadBytesReceived = 0
+      downloadBytesExpected = nil
+    }
+
+    func updateDownloadProgress(notification: Notification) {
+      guard let progressKey = notification.userInfo?[DownloadProgressUserInfo.itemKey] as? String else { return }
+      guard progressKey == self.bookId else { return }
+
+      let expected = notification.userInfo?[DownloadProgressUserInfo.expectedKey] as? Int64
+      let received = notification.userInfo?[DownloadProgressUserInfo.receivedKey] as? Int64 ?? 0
+
+      self.downloadBytesReceived = received
+      self.downloadBytesExpected = expected
+      if let expected, expected > 0 {
+        self.downloadProgress = Double(received) / Double(expected)
+      } else {
+        self.downloadProgress = 0.0
+      }
+    }
+
     func load(bookId: String) async {
       if self.bookId != bookId && !self.bookId.isEmpty {
         await BookFileCache.shared.clear(bookId: self.bookId)
@@ -66,11 +102,15 @@
       self.bookId = bookId
       isLoading = true
       errorMessage = nil
+      loadingStage = .opening
       downloadProgress = 0.0
+      downloadBytesReceived = 0
+      downloadBytesExpected = nil
       publication = nil
       navigatorViewController = nil
 
       do {
+        logger.debug("EPUB load started for bookId=\(bookId)")
         // Check if EPUB file is already cached or downloaded
         let epubURL: URL
 
@@ -78,20 +118,27 @@
         if let offlineURL = await OfflineManager.shared.getOfflineEpubURL(
           instanceId: AppConfig.current.instanceId, bookId: bookId
         ) {
+          logger.debug("EPUB load: using offline file")
           epubURL = offlineURL
         }
         // 2. Check BookFileCache
         else if let cachedURL = await BookFileCache.shared.cachedEpubFileURL(bookId: bookId) {
+          logger.debug("EPUB load: using cached file")
           epubURL = cachedURL
         } else {
           // Download the entire EPUB file
+          loadingStage = .downloading
+          logger.debug("EPUB load: downloading file")
           epubURL = try await BookFileCache.shared.ensureEpubFile(bookId: bookId) {
-            try await BookService.shared.downloadEpubFile(bookId: bookId)
+            let result = try await BookService.shared.downloadBookFile(bookId: bookId)
+            return result.data
           }
         }
 
+        loadingStage = .opening
         epubFileURL = epubURL
         downloadProgress = 1.0
+        logger.debug("EPUB load: opening publication")
 
         // Retrieve asset from URL using AssetRetriever
         // Convert URL to AbsoluteURL via AnyURL
@@ -107,7 +154,9 @@
         ).get()
 
         self.publication = publication
+        logger.debug("EPUB load: publication opened")
         await loadTableOfContents(from: publication)
+        logger.debug("EPUB load: table of contents loaded")
 
         // Get progression if not in incognito mode
         var initialLocation: Locator? = nil
@@ -116,6 +165,10 @@
             initialLocation = locatorFromR2Locator(progression.locator, in: publication)
           }
         }
+        logger.debug("EPUB load: initial location resolved")
+
+        loadingStage = .preparingReader
+        logger.debug("EPUB load: preparing reader")
 
         // Create EPUBNavigatorViewController
         let navigator = try EPUBNavigatorViewController(
@@ -130,12 +183,16 @@
         self.navigatorViewController = navigator
         navigator.submitPreferences(preferences)
 
+        loadingStage = .idle
         isLoading = false
+        logger.debug("EPUB load: ready")
       } catch {
         let message = error.localizedDescription
         errorMessage = message
         ErrorManager.shared.alert(error: error)
+        loadingStage = .idle
         isLoading = false
+        logger.error("EPUB load failed: \(message)")
       }
     }
 

@@ -5,19 +5,32 @@
 
 import SwiftUI
 
+struct LargeLoadingIcon: View {
+  @State private var isRotating = 0.0
+
+  var body: some View {
+    Image(systemName: "arrow.clockwise")
+      .font(.system(size: 24, weight: .semibold))
+      .foregroundStyle(
+        LinearGradient(
+          colors: [.accentColor, .accentColor.opacity(0.5)],
+          startPoint: .topLeading,
+          endPoint: .bottomTrailing
+        )
+      )
+      .rotationEffect(.degrees(isRotating))
+      .onAppear {
+        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+          isRotating = 360.0
+        }
+      }
+  }
+}
+
 struct LoadingIcon: View {
+
   var body: some View {
     ProgressView()
       .progressViewStyle(.circular)
-      .tint(.secondary)
-    // if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
-    //   Image(systemName: "arrow.clockwise.circle")
-    //     .symbolEffect(.rotate.byLayer, options: .repeat(.periodic(delay: 0.0)))
-    //     .foregroundStyle(.secondary)
-    // } else {
-    //   Image(systemName: "arrow.clockwise.circle")
-    //     .animation(.easeInOut(duration: 1).repeatForever(), value: 0)
-    //     .foregroundStyle(.secondary)
-    // }
   }
 }

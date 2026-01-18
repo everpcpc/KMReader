@@ -1028,8 +1028,8 @@ actor OfflineManager {
       return
     }
 
-    let data = try await BookService.shared.downloadEpubFile(bookId: bookId)
-    try data.write(to: destination)
+    let result = try await BookService.shared.downloadBookFile(bookId: bookId)
+    try result.data.write(to: destination)
   }
 
   private func downloadPages(bookId: String, to bookDir: URL) async throws {
