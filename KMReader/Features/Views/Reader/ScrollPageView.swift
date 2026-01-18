@@ -125,7 +125,8 @@ struct ScrollPageView: View {
             onNextBook: onNextBook,
             readingDirection: readingDirection,
             onPreviousPage: goToPreviousPage,
-            onFocusChange: onEndPageFocusChange
+            onFocusChange: onEndPageFocusChange,
+            showImage: true,
           )
         } else {
           SinglePageImageView(
@@ -157,7 +158,8 @@ struct ScrollPageView: View {
             onNextBook: onNextBook,
             readingDirection: readingDirection,
             onPreviousPage: goToPreviousPage,
-            onFocusChange: onEndPageFocusChange
+            onFocusChange: onEndPageFocusChange,
+            showImage: readingDirection != .webtoon
           )
         } else {
           if let second = pagePair.second {

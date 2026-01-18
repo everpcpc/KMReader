@@ -72,7 +72,8 @@
               },
               onExternalPanEnd: { handler in
                 panEndHandler = handler
-              }
+              },
+              showImage: false
             )
             .padding(.bottom, WebtoonConstants.footerPadding)
             .frame(height: WebtoonConstants.footerHeight)

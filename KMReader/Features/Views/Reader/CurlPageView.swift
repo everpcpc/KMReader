@@ -124,7 +124,8 @@
             onNextBook: parent.onNextBook,
             readingDirection: parent.readingDirection,
             onPreviousPage: parent.goToPreviousPage,
-            onFocusChange: parent.onEndPageFocusChange
+            onFocusChange: parent.onEndPageFocusChange,
+            showImage: true,
           )
           hostingController = UIHostingController(rootView: AnyView(endPageView))
         } else {

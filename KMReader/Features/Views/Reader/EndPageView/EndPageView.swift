@@ -18,6 +18,7 @@ struct EndPageView: View {
   let onFocusChange: ((Bool) -> Void)?
   var onExternalPanUpdate: ((@escaping (CGFloat) -> Void) -> Void)?
   var onExternalPanEnd: ((@escaping (CGFloat) -> Void) -> Void)?
+  var showImage: Bool = true
 
   @Environment(\.readerBackgroundPreference) private var readerBackground
 
@@ -152,8 +153,16 @@ struct EndPageView: View {
   }
 
   private var content: some View {
-    VStack(spacing: PlatformHelper.buttonSpacing) {
-      HStack(spacing: PlatformHelper.buttonSpacing) {
+    VStack {
+      NextBookInfoView(
+        nextBook: nextBook,
+        readList: readList,
+        showImage: showImage
+      )
+      .environment(\.layoutDirection, .leftToRight)
+      .allowsHitTesting(false)
+
+      HStack(spacing: 16) {
         // Hidden button for navigation (leading side)
         #if os(tvOS)
           Button {
@@ -173,9 +182,12 @@ struct EndPageView: View {
             Image(systemName: "xmark")
             Text("Close")
           }
+          .padding(.horizontal, 4)
+          .contentShape(.capsule)
         }
         .adaptiveButtonStyle(.bordered)
-        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+        .buttonBorderShape(.capsule)
+        .tint(.primary)
         #if os(tvOS)
           .focused($focusedButton, equals: .close)
         #endif
@@ -189,20 +201,20 @@ struct EndPageView: View {
               Text(String(localized: "reader.nextBook"))
               Image(systemName: readingDirection == .rtl ? "arrow.left" : "arrow.right")
             }
+            .padding(.horizontal, 4)
+            .contentShape(.capsule)
           }
-          .adaptiveButtonStyle(.borderedProminent)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          .adaptiveButtonStyle(.bordered)
+          .buttonBorderShape(.capsule)
+          .tint(.primary)
           #if os(tvOS)
             .focused($focusedButton, equals: .next)
           #endif
         }
       }
-      NextBookInfoView(nextBook: nextBook, readList: readList)
-        .environment(\.layoutDirection, .leftToRight)
-        .allowsHitTesting(false)
     }
     .environment(\.layoutDirection, readingDirection == .rtl ? .rightToLeft : .leftToRight)
-    .padding()
+    .padding(40)
   }
 
 }
