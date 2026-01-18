@@ -84,23 +84,8 @@
         }
       }
 
-      context.coordinator.syncStates(
-        viewModel: viewModel,
-        pages: pages,
-        screenSize: screenSize,
-        minScale: minScale,
-        doubleTapScale: doubleTapScale,
-        tapZoneSize: tapZoneSize,
-        tapZoneMode: tapZoneMode,
-        showPageNumber: showPageNumber,
-        readingDirection: readingDirection,
-        enableLiveText: enableLiveText,
-        onNextPage: onNextPage,
-        onPreviousPage: onPreviousPage,
-        onToggleControls: onToggleControls,
-        scrollView: nsView,
-        readerBackground: readerBackground
-      )
+      context.coordinator.parent = self
+      context.coordinator.updatePages()
 
       // Force focus restoration on state changes to ensure keyboard responsiveness
       if let window = nsView.window {
@@ -121,6 +106,12 @@
       }
 
       nsView.backgroundColor = NSColor(readerBackground.color)
+
+      if let focusScroll = nsView as? FocusScrollView {
+        focusScroll.readingDirection = readingDirection
+        focusScroll.onNextPage = onNextPage
+        focusScroll.onPreviousPage = onPreviousPage
+      }
 
       if context.coordinator.lastResetID != resetID {
         context.coordinator.lastResetID = resetID
@@ -145,21 +136,8 @@
       var lastLongPressEndTime: Date = .distantPast
       private let logger = AppLogger(.reader)
 
-      private var mirrorPages: [NativePageData] = []
-      private weak var readerViewModel: ReaderViewModel?
-      private var mirrorScreenSize: CGSize = .zero
-      private var mirrorMinScale: CGFloat = 1.0
-      private var mirrorDoubleTapScale: CGFloat = 3.0
-      private var mirrorTapZoneSize: TapZoneSize = .large
-      private var mirrorTapZoneMode: TapZoneMode = .auto
-      private var mirrorShowPageNumber: Bool = true
-      private var mirrorReadingDirection: ReadingDirection = .ltr
-      private var mirrorEnableLiveText: Bool = false
-      private var mirrorOnNextPage: () -> Void = {}
-      private var mirrorOnPreviousPage: () -> Void = {}
-      private var mirrorOnToggleControls: () -> Void = {}
+      var parent: PageScrollView!
       weak var scrollView: NSScrollView?
-      private var mirrorReaderBackground: ReaderBackground = .system
 
       weak var contentStack: NSStackView?
       private var pageViews: [NativePageItemMacOS] = []
@@ -178,79 +156,31 @@
           view.removeFromSuperview()
         }
         pageViews.removeAll()
-        mirrorPages.removeAll()
       }
 
-      func syncStates(
-        viewModel: ReaderViewModel,
-        pages: [NativePageData],
-        screenSize: CGSize,
-        minScale: CGFloat,
-        doubleTapScale: CGFloat,
-        tapZoneSize: TapZoneSize,
-        tapZoneMode: TapZoneMode,
-        showPageNumber: Bool,
-        readingDirection: ReadingDirection,
-        enableLiveText: Bool,
-        onNextPage: @escaping () -> Void,
-        onPreviousPage: @escaping () -> Void,
-        onToggleControls: @escaping () -> Void,
-        scrollView: NSScrollView,
-        readerBackground: ReaderBackground
-      ) {
-        self.readerViewModel = viewModel
-        self.mirrorPages = pages
-        self.mirrorScreenSize = screenSize
-        self.mirrorMinScale = minScale
-        self.mirrorDoubleTapScale = doubleTapScale
-        self.mirrorTapZoneSize = tapZoneSize
-        self.mirrorTapZoneMode = tapZoneMode
-        if self.mirrorShowPageNumber != showPageNumber {
-          self.mirrorShowPageNumber = showPageNumber
-          updatePages()
-        }
-        self.mirrorShowPageNumber = showPageNumber
-        self.mirrorReadingDirection = readingDirection
-        self.mirrorEnableLiveText = enableLiveText
-        self.mirrorOnNextPage = onNextPage
-        self.mirrorOnPreviousPage = onPreviousPage
-        self.mirrorOnToggleControls = onToggleControls
-        self.scrollView = scrollView
-        self.mirrorReaderBackground = readerBackground
+      func updatePages() {
+        guard let stack = contentStack else { return }
+        let pages = parent.pages
 
-        if let focusScroll = scrollView as? FocusScrollView {
-          focusScroll.readingDirection = readingDirection
-          focusScroll.onNextPage = onNextPage
-          focusScroll.onPreviousPage = onPreviousPage
+        if pageViews.count != pages.count {
+          pageViews.forEach { $0.removeFromSuperview() }
+          pageViews = pages.map { _ in NativePageItemMacOS() }
+          pageViews.forEach { stack.addArrangedSubview($0) }
+        }
+        for (index, data) in pages.enumerated() {
+          let image = parent.viewModel.preloadedImages[data.pageNumber]
+          pageViews[index].update(
+            with: data,
+            viewModel: parent.viewModel,
+            image: image,
+            showPageNumber: parent.showPageNumber,
+            background: parent.readerBackground,
+            readingDirection: parent.readingDirection
+          )
         }
 
         // Match reading direction
-        contentStack?.userInterfaceLayoutDirection = readingDirection == .rtl ? .rightToLeft : .leftToRight
-
-        updatePages()
-      }
-
-      private func updatePages() {
-        guard let stack = contentStack else { return }
-
-        if pageViews.count != mirrorPages.count {
-          pageViews.forEach { $0.removeFromSuperview() }
-          pageViews = mirrorPages.map { _ in NativePageItemMacOS() }
-          pageViews.forEach { stack.addArrangedSubview($0) }
-        }
-        for (index, data) in mirrorPages.enumerated() {
-          if let viewModel = self.readerViewModel {
-            let image = viewModel.preloadedImages[data.pageNumber]
-            pageViews[index].update(
-              with: data,
-              viewModel: viewModel,
-              image: image,
-              showPageNumber: mirrorShowPageNumber,
-              background: mirrorReaderBackground,
-              readingDirection: mirrorReadingDirection
-            )
-          }
-        }
+        contentStack?.userInterfaceLayoutDirection = parent.readingDirection == .rtl ? .rightToLeft : .leftToRight
       }
 
       func setupNativeInteractions(on scrollView: NSScrollView) {
@@ -277,19 +207,19 @@
         guard !isUpdatingFromSwiftUI, let scrollView = scrollView else { return }
 
         // Handle Zoom state binding
-        let zoomed = scrollView.magnification > (mirrorMinScale + 0.01)
-        if zoomed != readerViewModel?.isZoomed {
+        let zoomed = scrollView.magnification > (parent.minScale + 0.01)
+        if zoomed != parent.viewModel.isZoomed {
           DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if self.readerViewModel?.isZoomed != zoomed {
-              self.readerViewModel?.isZoomed = zoomed
+            if self.parent.viewModel.isZoomed != zoomed {
+              self.parent.viewModel.isZoomed = zoomed
             }
           }
         }
 
         // Paging Snap Logic
         if !zoomed {
-          let pageWidth = mirrorScreenSize.width
+          let pageWidth = parent.screenSize.width
           guard pageWidth > 0 else { return }
 
           let currentX = scrollView.contentView.bounds.origin.x
@@ -327,29 +257,29 @@
         if longPressDiff < 0.5 { return }
 
         guard let scrollView = scrollView else { return }
-        if scrollView.magnification > mirrorMinScale + 0.01 { return }
+        if scrollView.magnification > parent.minScale + 0.01 { return }
         if zoomOutDiff < 0.4 { return }
 
         let location = gesture.location(in: gesture.view)
-        let normalizedX = location.x / mirrorScreenSize.width
+        let normalizedX = location.x / parent.screenSize.width
         // macOS uses flipped Y coordinate (0 at bottom)
-        let normalizedY = 1.0 - (location.y / mirrorScreenSize.height)
+        let normalizedY = 1.0 - (location.y / parent.screenSize.height)
 
         let action = TapZoneHelper.action(
           normalizedX: normalizedX,
           normalizedY: normalizedY,
-          tapZoneMode: mirrorTapZoneMode,
-          readingDirection: mirrorReadingDirection,
-          zoneThreshold: mirrorTapZoneSize.value
+          tapZoneMode: parent.tapZoneMode,
+          readingDirection: parent.readingDirection,
+          zoneThreshold: parent.tapZoneSize.value
         )
 
         switch action {
         case .previous:
-          mirrorOnPreviousPage()
+          parent.onPreviousPage()
         case .next:
-          mirrorOnNextPage()
+          parent.onNextPage()
         case .toggleControls:
-          mirrorOnToggleControls()
+          parent.onToggleControls()
         }
 
         // Recover focus
@@ -404,8 +334,8 @@
           // We only allow the paging gesture if the click is in the LEFT/RIGHT paging zones.
           // This allows the center to be used for Live Text interaction (like clicking to deselect).
           if AppConfig.enableLiveText && className.contains("VK") {
-            let normalizedX = location.x / mirrorScreenSize.width
-            let threshold = mirrorTapZoneSize.value
+            let normalizedX = location.x / parent.screenSize.width
+            let threshold = parent.tapZoneSize.value
             let isEdge = normalizedX < threshold || normalizedX > (1.0 - threshold)
 
             if !isEdge {

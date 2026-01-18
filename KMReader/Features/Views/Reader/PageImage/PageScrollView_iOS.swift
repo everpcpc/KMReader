@@ -73,21 +73,8 @@
         DispatchQueue.main.async { context.coordinator.isUpdatingFromSwiftUI = false }
       }
 
-      context.coordinator.syncStates(
-        viewModel: viewModel,
-        pages: pages,
-        screenSize: screenSize,
-        minScale: minScale,
-        doubleTapScale: doubleTapScale,
-        tapZoneSize: tapZoneSize,
-        tapZoneMode: tapZoneMode,
-        showPageNumber: showPageNumber,
-        readingDirection: readingDirection,
-        enableLiveText: enableLiveText,
-        onNextPage: onNextPage,
-        onPreviousPage: onPreviousPage,
-        onToggleControls: onToggleControls
-      )
+      context.coordinator.parent = self
+      context.coordinator.updatePages()
 
       uiView.backgroundColor = UIColor(readerBackground.color)
 
@@ -107,19 +94,7 @@
       var lastLongPressEndTime: Date = .distantPast
       var lastTouchStartTime: Date = .distantPast
 
-      private var mirrorPages: [NativePageData] = []
-      private weak var viewModel: ReaderViewModel?
-      private var mirrorScreenSize: CGSize = .zero
-      private var mirrorMinScale: CGFloat = 1.0
-      private var mirrorDoubleTapScale: CGFloat = 3.0
-      private var mirrorTapZoneSize: TapZoneSize = .large
-      private var mirrorTapZoneMode: TapZoneMode = .auto
-      private var mirrorShowPageNumber: Bool = true
-      private var mirrorReadingDirection: ReadingDirection = .ltr
-      private var mirrorEnableLiveText: Bool = false
-      private var mirrorOnNextPage: () -> Void = {}
-      private var mirrorOnPreviousPage: () -> Void = {}
-      private var mirrorOnToggleControls: () -> Void = {}
+      var parent: PageScrollView!
 
       weak var contentStack: UIStackView?
       private var pageViews: [NativePageItemiOS] = []
@@ -134,66 +109,32 @@
           view.removeFromSuperview()
         }
         pageViews.removeAll()
-        mirrorPages.removeAll()
-        viewModel = nil
       }
 
-      func syncStates(
-        viewModel: ReaderViewModel,
-        pages: [NativePageData],
-        screenSize: CGSize,
-        minScale: CGFloat,
-        doubleTapScale: CGFloat,
-        tapZoneSize: TapZoneSize,
-        tapZoneMode: TapZoneMode,
-        showPageNumber: Bool,
-        readingDirection: ReadingDirection,
-        enableLiveText: Bool,
-        onNextPage: @escaping () -> Void,
-        onPreviousPage: @escaping () -> Void,
-        onToggleControls: @escaping () -> Void
-      ) {
-        self.viewModel = viewModel
-        self.mirrorPages = pages
-        self.mirrorScreenSize = screenSize
-        self.mirrorMinScale = minScale
-        self.mirrorDoubleTapScale = doubleTapScale
-        self.mirrorTapZoneSize = tapZoneSize
-        self.mirrorTapZoneMode = tapZoneMode
-        self.mirrorShowPageNumber = showPageNumber
-        self.mirrorReadingDirection = readingDirection
-        self.mirrorEnableLiveText = enableLiveText
-        self.mirrorOnNextPage = onNextPage
-        self.mirrorOnPreviousPage = onPreviousPage
-        self.mirrorOnToggleControls = onToggleControls
-
-        updatePages()
-        contentStack?.semanticContentAttribute = readingDirection == .rtl ? .forceRightToLeft : .forceLeftToRight
-      }
-
-      private func updatePages() {
+      func updatePages() {
         guard let stack = contentStack else { return }
+        let pages = parent.pages
 
-        if pageViews.count != mirrorPages.count {
+        if pageViews.count != pages.count {
           pageViews.forEach { $0.removeFromSuperview() }
-          pageViews = mirrorPages.map { _ in NativePageItemiOS() }
+          pageViews = pages.map { _ in NativePageItemiOS() }
           pageViews.forEach {
             stack.addArrangedSubview($0)
           }
         }
 
-        for (index, data) in mirrorPages.enumerated() {
-          if let viewModel = viewModel {
-            let image = viewModel.preloadedImages[data.pageNumber]
-            pageViews[index].update(
-              with: data,
-              viewModel: viewModel,
-              image: image,
-              showPageNumber: mirrorShowPageNumber,
-              readingDirection: mirrorReadingDirection
-            )
-          }
+        for (index, data) in pages.enumerated() {
+          let image = parent.viewModel.preloadedImages[data.pageNumber]
+          pageViews[index].update(
+            with: data,
+            viewModel: parent.viewModel,
+            image: image,
+            showPageNumber: parent.showPageNumber,
+            readingDirection: parent.readingDirection
+          )
         }
+
+        contentStack?.semanticContentAttribute = parent.readingDirection == .rtl ? .forceRightToLeft : .forceLeftToRight
       }
 
       func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -203,12 +144,12 @@
       func scrollViewDidZoom(_ scrollView: UIScrollView) {
         guard !isUpdatingFromSwiftUI else { return }
 
-        let zoomed = scrollView.zoomScale > (mirrorMinScale + 0.01)
-        if zoomed != viewModel?.isZoomed {
+        let zoomed = scrollView.zoomScale > (parent.minScale + 0.01)
+        if zoomed != parent.viewModel.isZoomed {
           DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if self.viewModel?.isZoomed != zoomed {
-              self.viewModel?.isZoomed = zoomed
+            if self.parent.viewModel.isZoomed != zoomed {
+              self.parent.viewModel.isZoomed = zoomed
             }
           }
         }
@@ -235,12 +176,12 @@
 
       @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
         guard let scrollView = gesture.view as? UIScrollView else { return }
-        if scrollView.zoomScale > mirrorMinScale + 0.01 {
-          scrollView.setZoomScale(mirrorMinScale, animated: true)
+        if scrollView.zoomScale > parent.minScale + 0.01 {
+          scrollView.setZoomScale(parent.minScale, animated: true)
           lastZoomOutTime = Date()
         } else {
           let point = gesture.location(in: contentStack)
-          let zoomRect = calculateZoomRect(scale: mirrorDoubleTapScale, center: point, scrollView: scrollView)
+          let zoomRect = calculateZoomRect(scale: parent.doubleTapScale, center: point, scrollView: scrollView)
           scrollView.zoom(to: zoomRect, animated: true)
         }
       }
@@ -263,28 +204,28 @@
         if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
 
         guard let scrollView = gesture.view as? UIScrollView else { return }
-        if scrollView.zoomScale > mirrorMinScale + 0.01 { return }
+        if scrollView.zoomScale > parent.minScale + 0.01 { return }
         if Date().timeIntervalSince(lastZoomOutTime) < 0.4 { return }
 
         let location = gesture.location(in: scrollView)
-        let normalizedX = location.x / mirrorScreenSize.width
-        let normalizedY = location.y / mirrorScreenSize.height
+        let normalizedX = location.x / parent.screenSize.width
+        let normalizedY = location.y / parent.screenSize.height
 
         let action = TapZoneHelper.action(
           normalizedX: normalizedX,
           normalizedY: normalizedY,
-          tapZoneMode: mirrorTapZoneMode,
-          readingDirection: mirrorReadingDirection,
-          zoneThreshold: mirrorTapZoneSize.value
+          tapZoneMode: parent.tapZoneMode,
+          readingDirection: parent.readingDirection,
+          zoneThreshold: parent.tapZoneSize.value
         )
 
         switch action {
         case .previous:
-          mirrorOnPreviousPage()
+          parent.onPreviousPage()
         case .next:
-          mirrorOnNextPage()
+          parent.onNextPage()
         case .toggleControls:
-          mirrorOnToggleControls()
+          parent.onToggleControls()
         }
       }
 
