@@ -119,7 +119,7 @@
             onPreviousPage: parent.goToPreviousPage,
             onFocusChange: parent.onEndPageFocusChange
           )
-          hostingController = UIHostingController(rootView: AnyView(endPageView.readerIgnoresSafeArea()))
+          hostingController = UIHostingController(rootView: AnyView(endPageView))
         } else {
           let pageView = CurlSinglePageView(
             viewModel: parent.viewModel,
@@ -129,7 +129,7 @@
             onPreviousPage: parent.goToPreviousPage,
             onToggleControls: parent.toggleControls
           )
-          hostingController = UIHostingController(rootView: AnyView(pageView.readerIgnoresSafeArea()))
+          hostingController = UIHostingController(rootView: AnyView(pageView))
         }
 
         hostingController.view.tag = index
@@ -217,6 +217,7 @@
         .frame(width: proxy.size.width, height: proxy.size.height)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .readerIgnoresSafeArea()
     }
   }
 #endif
