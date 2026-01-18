@@ -16,7 +16,6 @@
     private let readList: ReadList?
     private let onClose: (() -> Void)?
 
-    @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -139,7 +138,7 @@
     private var readerBody: some View {
       GeometryReader { geometry in
         ZStack {
-          readerBackground.color.readerIgnoresSafeArea()
+          Color.clear.readerIgnoresSafeArea()
 
           contentView(for: geometry.size)
 

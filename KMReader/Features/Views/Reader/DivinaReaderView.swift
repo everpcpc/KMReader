@@ -401,7 +401,7 @@ struct DivinaReaderView: View {
               screenSize: screenSize,
               pageWidthPercentage: webtoonPageWidthPercentage,
               readerBackground: readerBackground
-            ).readerIgnoresSafeArea()
+            )
           #else
             ScrollPageView(
               mode: .vertical,
@@ -438,7 +438,7 @@ struct DivinaReaderView: View {
                 goToPreviousPage: { goToPreviousPage(dualPageEnabled: false) },
                 toggleControls: { toggleControls() },
                 onEndPageFocusChange: endPageFocusChangeHandler
-              ).readerIgnoresSafeArea()
+              )
             } else {
               ScrollPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),

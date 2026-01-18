@@ -22,7 +22,6 @@ struct ScrollPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
-  @Environment(\.readerBackgroundPreference) private var readerBackground
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
 
