@@ -386,8 +386,7 @@ struct DivinaReaderView: View {
     screenKey: String
   ) -> some View {
     if !viewModel.pages.isEmpty {
-      GeometryReader { geometry in
-        let screenSize = geometry.size
+      Group {
         if readingDirection == .webtoon {
           #if os(iOS) || os(macOS)
             WebtoonPageView(
@@ -398,7 +397,6 @@ struct DivinaReaderView: View {
               onDismiss: { closeReader() },
               onNextBook: { openNextBook(nextBookId: $0) },
               toggleControls: { toggleControls() },
-              screenSize: screenSize,
               pageWidthPercentage: webtoonPageWidthPercentage,
               readerBackground: readerBackground
             )
@@ -414,7 +412,6 @@ struct DivinaReaderView: View {
               goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
               goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
               toggleControls: { toggleControls() },
-              screenSize: screenSize,
               onEndPageFocusChange: endPageFocusChangeHandler,
               onScrollActivityChange: { isScrolling in
                 if isScrolling {
@@ -451,7 +448,6 @@ struct DivinaReaderView: View {
                 goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                 goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                 toggleControls: { toggleControls() },
-                screenSize: screenSize,
                 onEndPageFocusChange: endPageFocusChangeHandler,
                 onScrollActivityChange: { isScrolling in
                   if isScrolling {
@@ -472,7 +468,6 @@ struct DivinaReaderView: View {
               goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
               goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
               toggleControls: { toggleControls() },
-              screenSize: screenSize,
               onEndPageFocusChange: endPageFocusChangeHandler,
               onScrollActivityChange: { isScrolling in
                 if isScrolling {
