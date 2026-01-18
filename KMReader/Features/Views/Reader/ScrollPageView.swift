@@ -19,10 +19,12 @@ struct ScrollPageView: View {
   let onEndPageFocusChange: ((Bool) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
 
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
+
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
 
   init(
     mode: PageViewMode,
