@@ -13,6 +13,7 @@
   @Observable
   class ReaderWindowManager {
     static let shared = ReaderWindowManager()
+
     var currentState: BookReaderState? {
       didSet {
         // When state becomes nil, call onDismiss if it hasn't been called yet

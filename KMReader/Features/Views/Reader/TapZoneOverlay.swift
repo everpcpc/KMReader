@@ -9,11 +9,12 @@ import SwiftUI
 
 /// Unified tap zone overlay that displays the correct layout based on TapZoneMode
 struct TapZoneOverlay: View {
+  @Binding var isVisible: Bool
+  let readingDirection: ReadingDirection
+
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @Binding var isVisible: Bool
-  let readingDirection: ReadingDirection
 
   var body: some View {
     Group {

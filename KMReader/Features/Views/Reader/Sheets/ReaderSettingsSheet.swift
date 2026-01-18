@@ -17,19 +17,15 @@ struct ReaderSettingsSheet: View {
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
-  #if os(iOS)
-    @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
-  #endif
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
-  #if os(iOS)
-    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
-  #endif
+  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
@@ -129,7 +125,7 @@ struct ReaderSettingsSheet: View {
 
         Section(header: Text("Page Turn")) {
           #if os(iOS)
-            if readingDirection != .webtoon && readingDirection != .vertical {
+            if readingDirection != .webtoon {
               VStack(alignment: .leading, spacing: 8) {
                 Picker("Page Transition Style", selection: $pageTransitionStyle) {
                   ForEach(PageTransitionStyle.availableCases, id: \.self) { style in

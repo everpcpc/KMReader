@@ -35,6 +35,11 @@
       )
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
+
+      // Allow simultaneous gesture recognition for zoom transition return gesture
+      for recognizer in pageVC.gestureRecognizers {
+        recognizer.delegate = context.coordinator
+      }
       // isDoubleSided requires 2 VCs for animated transitions which complicates the logic
       // For single-page curl effect, keep it false
       pageVC.isDoubleSided = false
@@ -88,7 +93,9 @@
 
     // MARK: - Coordinator
 
-    class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate {
+    class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
+      UIGestureRecognizerDelegate
+    {
       var parent: CurlPageView
       var currentPageIndex: Int
 
@@ -182,6 +189,16 @@
           await parent.viewModel.updateProgress()
           await parent.viewModel.preloadPages()
         }
+      }
+
+      // MARK: - UIGestureRecognizerDelegate
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        // Allow UIPageViewController's gestures to work with other gestures (like zoom transition)
+        return true
       }
     }
   }

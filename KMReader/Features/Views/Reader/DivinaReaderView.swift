@@ -12,17 +12,28 @@ struct DivinaReaderView: View {
   let readList: ReadList?
   let onClose: (() -> Void)?
 
+  @Environment(\.dismiss) private var dismiss
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
+
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   #if os(iOS)
     @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   #endif
+  @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+  #if os(iOS)
+    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
+  #else
+    private let autoHideControls: Bool = false
+  #endif
+
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
   @State private var isolateCoverPage: Bool
-
-  @Environment(\.dismiss) private var dismiss
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
@@ -36,16 +47,7 @@ struct DivinaReaderView: View {
   @State private var isAtBottom = false
   @State private var showTapZoneOverlay = false
   @State private var tapZoneOverlayTimer: Timer?
-  @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
-  @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
-  #if os(iOS)
-    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
-  #else
-    private let autoHideControls: Bool = false
-  #endif
-  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
-  @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false

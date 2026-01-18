@@ -53,17 +53,40 @@
         let recognizerType = String(describing: type(of: gestureRecognizer))
 
         switch recognizerType {
-        case "_UIParallaxTransitionPanGestureRecognizer":
-          // Edge swipe - allow only for vertical reading
+        case let type
+        where type.contains("Parallax") || type.contains("ZoomTransition")
+          || type.contains("FullPageSwipe") || type.contains("ScreenEdgePan"):
+          // Navigation/Edge/Zoom swipe - allow only for vertical reading
           return isVerticalReading
 
         case "_UIContentSwipeDismissGestureRecognizer":
           // Swipe down - allow only for horizontal reading
-          return !isVerticalReading
+          if isVerticalReading {
+            return false
+          }
+
+          // For horizontal reading (LTR/RTL), only allow if it's primarily a vertical swipe down.
+          // This prevents horizontal swipes (page turns) from triggering dismissal.
+          if let pan = gestureRecognizer as? UIPanGestureRecognizer {
+            let velocity = pan.velocity(in: pan.view)
+            // velocity.y > 0 means swiping down.
+            // abs(velocity.y) > abs(velocity.x) means more vertical than horizontal.
+            return velocity.y > 0 && abs(velocity.y) > abs(velocity.x)
+          }
+          return true
 
         default:
           return true
         }
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        // Don't allow dismiss gestures to work alongside other gestures (like scrolling or curling)
+        // to avoid conflicting animations/actions.
+        return false
       }
 
       func restoreOriginalDelegates() {
@@ -100,10 +123,13 @@
           for recognizer in gestureRecognizers {
             let recognizerType = String(describing: type(of: recognizer))
 
-            guard
-              recognizerType == "_UIParallaxTransitionPanGestureRecognizer"
-                || recognizerType == "_UIContentSwipeDismissGestureRecognizer"
-            else { continue }
+            let isNavigationGesture =
+              recognizerType.contains("Parallax") || recognizerType.contains("ZoomTransition")
+              || recognizerType.contains("FullPageSwipe")
+              || recognizerType.contains("ScreenEdgePan")
+              || recognizerType == "_UIContentSwipeDismissGestureRecognizer"
+
+            guard isNavigationGesture else { continue }
 
             // Check if already configured
             let alreadyConfigured = coordinator.configuredRecognizers.contains {

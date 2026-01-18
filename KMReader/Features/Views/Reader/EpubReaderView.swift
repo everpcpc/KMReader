@@ -16,13 +16,14 @@
     private let readList: ReadList?
     private let onClose: (() -> Void)?
 
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(ReaderPresentationManager.self) private var readerPresentation
+
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
     @AppStorage("autoHideControls") private var autoHideControls: Bool = false
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @State private var viewModel: EpubReaderViewModel
     @State private var showingControls = true

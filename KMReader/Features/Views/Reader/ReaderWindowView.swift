@@ -11,9 +11,11 @@
 
   struct ReaderWindowView: View {
     @Environment(\.dismissWindow) private var dismissWindow
+
+    @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
+
     @State private var readerState: BookReaderState?
     @State private var didRequestFullscreen: Bool = false
-    @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
 
     var body: some View {
       Group {

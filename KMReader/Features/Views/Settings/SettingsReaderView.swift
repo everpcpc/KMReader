@@ -21,10 +21,9 @@ struct SettingsReaderView: View {
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-  #if os(iOS)
-    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
-  #endif
+  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
@@ -139,6 +138,20 @@ struct SettingsReaderView: View {
       #endif
 
       Section(header: Text("Page Turn")) {
+        #if os(iOS)
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Page Transition Style", selection: $pageTransitionStyle) {
+              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+              }
+            }
+            .pickerStyle(.menu)
+            Text(pageTransitionStyle.description)
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        #endif
+
         VStack(alignment: .leading, spacing: 8) {
           Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
             ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
