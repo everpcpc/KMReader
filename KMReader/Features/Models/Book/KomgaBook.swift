@@ -49,7 +49,7 @@ final class KomgaBook {
   var metaReleaseDateLock: Bool?
   var metaAuthorsRaw: Data?  // JSON encoded [Author]
   var metaAuthorsLock: Bool?
-  var metaTags: [String]?
+  var metaTagsRaw: Data?  // JSON encoded [String]
   var metaTagsLock: Bool?
   var metaIsbn: String?
   var metaIsbnLock: Bool?
@@ -78,9 +78,24 @@ final class KomgaBook {
   var downloadedSize: Int64 = 0
 
   // Cached read list IDs containing this book
-  var readListIds: [String] = []
+  var readListIdsRaw: Data?
 
-  var isolatePages: [Int] = []
+  var isolatePagesRaw: Data?
+
+  var metaTags: [String] {
+    get { metaTagsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
+    set { metaTagsRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var readListIds: [String] {
+    get { readListIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
+    set { readListIdsRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var isolatePages: [Int] {
+    get { isolatePagesRaw.flatMap { try? JSONDecoder().decode([Int].self, from: $0) } ?? [] }
+    set { isolatePagesRaw = try? JSONEncoder().encode(newValue) }
+  }
 
   /// Computed property for download status.
   var downloadStatus: DownloadStatus {
@@ -176,7 +191,7 @@ final class KomgaBook {
     self.metaReleaseDateLock = metadata.releaseDateLock
     self.metaAuthorsRaw = try? JSONEncoder().encode(metadata.authors)
     self.metaAuthorsLock = metadata.authorsLock
-    self.metaTags = metadata.tags
+    self.metaTagsRaw = try? JSONEncoder().encode(metadata.tags ?? [])
     self.metaTagsLock = metadata.tagsLock
     self.metaIsbn = metadata.isbn
     self.metaIsbnLock = metadata.isbnLock
@@ -193,6 +208,8 @@ final class KomgaBook {
     self.isUnavailable = isUnavailable
     self.oneshot = oneshot
     self.downloadedSize = downloadedSize
+    self.readListIdsRaw = try? JSONEncoder().encode([] as [String])
+    self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
   }
 
   var media: Media {

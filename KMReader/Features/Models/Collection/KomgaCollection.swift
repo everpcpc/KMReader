@@ -21,7 +21,12 @@ final class KomgaCollection {
   var lastModifiedDate: Date
   var filtered: Bool
 
-  var seriesIds: [String] = []
+  var seriesIdsRaw: Data?
+
+  var seriesIds: [String] {
+    get { seriesIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
+    set { seriesIdsRaw = try? JSONEncoder().encode(newValue) }
+  }
 
   init(
     id: String? = nil,
@@ -42,7 +47,7 @@ final class KomgaCollection {
     self.createdDate = createdDate
     self.lastModifiedDate = lastModifiedDate
     self.filtered = filtered
-    self.seriesIds = seriesIds
+    self.seriesIdsRaw = try? JSONEncoder().encode(seriesIds)
   }
 
   func toCollection() -> SeriesCollection {

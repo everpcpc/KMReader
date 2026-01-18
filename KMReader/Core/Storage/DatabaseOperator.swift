@@ -107,7 +107,9 @@ actor DatabaseOperator {
       if existing.metaAuthorsLock != dto.metadata.authorsLock {
         existing.metaAuthorsLock = dto.metadata.authorsLock
       }
-      if existing.metaTags != dto.metadata.tags { existing.metaTags = dto.metadata.tags }
+      if existing.metaTags != (dto.metadata.tags ?? []) {
+        existing.metaTags = dto.metadata.tags ?? []
+      }
       if existing.metaTagsLock != dto.metadata.tagsLock {
         existing.metaTagsLock = dto.metadata.tagsLock
       }
@@ -345,11 +347,15 @@ actor DatabaseOperator {
       if existing.metaLanguageLock != dto.metadata.languageLock {
         existing.metaLanguageLock = dto.metadata.languageLock
       }
-      if existing.metaGenres != dto.metadata.genres { existing.metaGenres = dto.metadata.genres }
+      if existing.metaGenres != (dto.metadata.genres ?? []) {
+        existing.metaGenres = dto.metadata.genres ?? []
+      }
       if existing.metaGenresLock != dto.metadata.genresLock {
         existing.metaGenresLock = dto.metadata.genresLock
       }
-      if existing.metaTags != dto.metadata.tags { existing.metaTags = dto.metadata.tags }
+      if existing.metaTags != (dto.metadata.tags ?? []) {
+        existing.metaTags = dto.metadata.tags ?? []
+      }
       if existing.metaTagsLock != dto.metadata.tagsLock {
         existing.metaTagsLock = dto.metadata.tagsLock
       }
@@ -359,8 +365,8 @@ actor DatabaseOperator {
       if existing.metaTotalBookCountLock != dto.metadata.totalBookCountLock {
         existing.metaTotalBookCountLock = dto.metadata.totalBookCountLock
       }
-      if existing.metaSharingLabels != dto.metadata.sharingLabels {
-        existing.metaSharingLabels = dto.metadata.sharingLabels
+      if existing.metaSharingLabels != (dto.metadata.sharingLabels ?? []) {
+        existing.metaSharingLabels = dto.metadata.sharingLabels ?? []
       }
       if existing.metaSharingLabelsLock != dto.metadata.sharingLabelsLock {
         existing.metaSharingLabelsLock = dto.metadata.sharingLabelsLock
@@ -388,8 +394,8 @@ actor DatabaseOperator {
       if existing.booksMetaAuthorsRaw != newAuthorsRaw {
         existing.booksMetaAuthorsRaw = newAuthorsRaw
       }
-      if existing.booksMetaTags != dto.booksMetadata.tags {
-        existing.booksMetaTags = dto.booksMetadata.tags
+      if existing.booksMetaTags != (dto.booksMetadata.tags ?? []) {
+        existing.booksMetaTags = dto.booksMetadata.tags ?? []
       }
       if existing.booksMetaReleaseDate != dto.booksMetadata.releaseDate {
         existing.booksMetaReleaseDate = dto.booksMetadata.releaseDate

@@ -45,13 +45,13 @@ final class KomgaSeries {
   var metaAgeRatingLock: Bool?
   var metaLanguage: String?
   var metaLanguageLock: Bool?
-  var metaGenres: [String]?
+  var metaGenresRaw: Data?
   var metaGenresLock: Bool?
-  var metaTags: [String]?
+  var metaTagsRaw: Data?
   var metaTagsLock: Bool?
   var metaTotalBookCount: Int?
   var metaTotalBookCountLock: Bool?
-  var metaSharingLabels: [String]?
+  var metaSharingLabelsRaw: Data?
   var metaSharingLabelsLock: Bool?
   var metaLinksRaw: Data?  // JSON encoded [WebLink]
   var metaLinksLock: Bool?
@@ -62,7 +62,7 @@ final class KomgaSeries {
   var booksMetaCreated: String?
   var booksMetaLastModified: String?
   var booksMetaAuthorsRaw: Data?  // JSON encoded [Author]
-  var booksMetaTags: [String]?
+  var booksMetaTagsRaw: Data?
   var booksMetaReleaseDate: String?
   var booksMetaSummary: String?
   var booksMetaSummaryNumber: String?
@@ -81,7 +81,34 @@ final class KomgaSeries {
   var offlinePolicyLimit: Int = 0
 
   // Cached collection IDs containing this series
-  var collectionIds: [String] = []
+  var collectionIdsRaw: Data?
+
+  var metaGenres: [String] {
+    get { metaGenresRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
+    set { metaGenresRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var metaTags: [String] {
+    get { metaTagsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
+    set { metaTagsRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var metaSharingLabels: [String] {
+    get { metaSharingLabelsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
+    set { metaSharingLabelsRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var booksMetaTags: [String] {
+    get { booksMetaTagsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
+    set { booksMetaTagsRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var collectionIds: [String] {
+    get {
+      collectionIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+    }
+    set { collectionIdsRaw = try? JSONEncoder().encode(newValue) }
+  }
 
   /// Computed property for download status.
   var downloadStatus: SeriesDownloadStatus {
@@ -170,13 +197,13 @@ final class KomgaSeries {
     self.metaAgeRatingLock = metadata.ageRatingLock
     self.metaLanguage = metadata.language
     self.metaLanguageLock = metadata.languageLock
-    self.metaGenres = metadata.genres
+    self.metaGenresRaw = try? JSONEncoder().encode(metadata.genres ?? [])
     self.metaGenresLock = metadata.genresLock
-    self.metaTags = metadata.tags
+    self.metaTagsRaw = try? JSONEncoder().encode(metadata.tags ?? [])
     self.metaTagsLock = metadata.tagsLock
     self.metaTotalBookCount = metadata.totalBookCount
     self.metaTotalBookCountLock = metadata.totalBookCountLock
-    self.metaSharingLabels = metadata.sharingLabels
+    self.metaSharingLabelsRaw = try? JSONEncoder().encode(metadata.sharingLabels ?? [])
     self.metaSharingLabelsLock = metadata.sharingLabelsLock
     self.metaLinksRaw = try? JSONEncoder().encode(metadata.links)
     self.metaLinksLock = metadata.linksLock
@@ -187,7 +214,7 @@ final class KomgaSeries {
     self.booksMetaCreated = booksMetadata.created
     self.booksMetaLastModified = booksMetadata.lastModified
     self.booksMetaAuthorsRaw = try? JSONEncoder().encode(booksMetadata.authors)
-    self.booksMetaTags = booksMetadata.tags
+    self.booksMetaTagsRaw = try? JSONEncoder().encode(booksMetadata.tags ?? [])
     self.booksMetaReleaseDate = booksMetadata.releaseDate
     self.booksMetaSummary = booksMetadata.summary
     self.booksMetaSummaryNumber = booksMetadata.summaryNumber
@@ -199,6 +226,7 @@ final class KomgaSeries {
     self.downloadedSize = downloadedSize
     self.offlinePolicyRaw = offlinePolicy.rawValue
     self.offlinePolicyLimit = offlinePolicyLimit
+    self.collectionIdsRaw = try? JSONEncoder().encode([] as [String])
   }
 
   var metadata: SeriesMetadata {
