@@ -22,6 +22,9 @@
     let toggleControls: () -> Void
     let onEndPageFocusChange: ((Bool) -> Void)?
 
+    @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
+    @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
     }
@@ -193,6 +196,73 @@
       }
 
       // MARK: - UIGestureRecognizerDelegate
+
+      private func isValidIndex(_ index: Int) -> Bool {
+        index >= 0 && index < totalPages
+      }
+
+      private func nextIndex(from index: Int) -> Int {
+        parent.mode.isRTL ? index - 1 : index + 1
+      }
+
+      private func previousIndex(from index: Int) -> Int {
+        parent.mode.isRTL ? index + 1 : index - 1
+      }
+
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard !parent.viewModel.isZoomed else { return false }
+        guard parent.viewModel.liveTextActivePageIndex == nil else { return false }
+
+        let nextExists = isValidIndex(nextIndex(from: currentPageIndex))
+        let previousExists = isValidIndex(previousIndex(from: currentPageIndex))
+
+        if let tap = gestureRecognizer as? UITapGestureRecognizer,
+          let view = tap.view,
+          view.bounds.width > 0,
+          view.bounds.height > 0
+        {
+          let location = tap.location(in: view)
+          let normalizedX = location.x / view.bounds.width
+          let normalizedY = location.y / view.bounds.height
+
+          let action = TapZoneHelper.action(
+            normalizedX: normalizedX,
+            normalizedY: normalizedY,
+            tapZoneMode: parent.tapZoneMode,
+            readingDirection: parent.readingDirection,
+            zoneThreshold: parent.tapZoneSize.value
+          )
+
+          switch action {
+          case .next:
+            return nextExists
+          case .previous:
+            return previousExists
+          case .toggleControls:
+            return true
+          }
+        }
+
+        if let pan = gestureRecognizer as? UIPanGestureRecognizer {
+          let velocity = pan.velocity(in: pan.view)
+          let forward: Bool?
+
+          switch parent.readingDirection {
+          case .ltr:
+            if velocity.x < 0 { forward = true } else if velocity.x > 0 { forward = false } else { forward = nil }
+          case .rtl:
+            if velocity.x > 0 { forward = true } else if velocity.x < 0 { forward = false } else { forward = nil }
+          case .vertical, .webtoon:
+            if velocity.y < 0 { forward = true } else if velocity.y > 0 { forward = false } else { forward = nil }
+          }
+
+          if let forward {
+            return forward ? nextExists : previousExists
+          }
+        }
+
+        return true
+      }
 
       func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
