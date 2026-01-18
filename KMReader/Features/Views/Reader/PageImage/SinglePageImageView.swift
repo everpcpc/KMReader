@@ -12,46 +12,35 @@ struct SinglePageImageView: View {
   var viewModel: ReaderViewModel
   let pageIndex: Int
   let screenSize: CGSize
-  @Binding var isZoomed: Bool
 
   let readingDirection: ReadingDirection
   let onNextPage: () -> Void
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
 
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-
-  init(
-    viewModel: ReaderViewModel,
-    pageIndex: Int,
-    screenSize: CGSize,
-    readingDirection: ReadingDirection = .ltr,
-    isZoomed: Binding<Bool> = .constant(false),
-    onNextPage: @escaping () -> Void = {},
-    onPreviousPage: @escaping () -> Void = {},
-    onToggleControls: @escaping () -> Void = {}
-  ) {
-    self.viewModel = viewModel
-    self.pageIndex = pageIndex
-    self.screenSize = screenSize
-    self.readingDirection = readingDirection
-    self._isZoomed = isZoomed
-    self.onNextPage = onNextPage
-    self.onPreviousPage = onPreviousPage
-    self.onToggleControls = onToggleControls
-  }
 
   var body: some View {
     let page = pageIndex >= 0 && pageIndex < viewModel.pages.count ? viewModel.pages[pageIndex] : nil
 
-    PageImageView(
+    PageScrollView(
       viewModel: viewModel,
       screenSize: screenSize,
       resetID: pageIndex,
       minScale: 1.0,
       maxScale: 8.0,
-      doubleTapScale: doubleTapZoomScale,
       readingDirection: readingDirection,
+      doubleTapScale: CGFloat(doubleTapZoomScale),
+      tapZoneSize: tapZoneSize,
+      tapZoneMode: tapZoneMode,
+      showPageNumber: showPageNumber,
+      readerBackground: readerBackground,
+      enableLiveText: enableLiveText,
       onNextPage: onNextPage,
       onPreviousPage: onPreviousPage,
       onToggleControls: onToggleControls,
@@ -65,5 +54,6 @@ struct SinglePageImageView: View {
         )
       ]
     )
+    .frame(width: screenSize.width, height: screenSize.height)
   }
 }

@@ -13,61 +13,40 @@ struct DualPageImageView: View {
   let firstPageIndex: Int
   let secondPageIndex: Int
   let screenSize: CGSize
-  @Binding var isZoomed: Bool
 
   let readingDirection: ReadingDirection
   let onNextPage: () -> Void
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
 
-  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-
-  init(
-    viewModel: ReaderViewModel,
-    firstPageIndex: Int,
-    secondPageIndex: Int,
-    screenSize: CGSize,
-    readingDirection: ReadingDirection = .ltr,
-    isZoomed: Binding<Bool> = .constant(false),
-    onNextPage: @escaping () -> Void = {},
-    onPreviousPage: @escaping () -> Void = {},
-    onToggleControls: @escaping () -> Void = {}
-  ) {
-    self.viewModel = viewModel
-    self.firstPageIndex = firstPageIndex
-    self.secondPageIndex = secondPageIndex
-    self.screenSize = screenSize
-    self.readingDirection = readingDirection
-    self._isZoomed = isZoomed
-    self.onNextPage = onNextPage
-    self.onPreviousPage = onPreviousPage
-    self.onToggleControls = onToggleControls
-  }
-
-  var imageWidth: CGFloat {
-    screenSize.width / 2
-  }
-
-  var imageHeight: CGFloat {
-    screenSize.height
-  }
-
   var resetID: String {
     "\(firstPageIndex)-\(secondPageIndex)"
   }
+
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
 
   var body: some View {
     let page1 = firstPageIndex >= 0 && firstPageIndex < viewModel.pages.count ? viewModel.pages[firstPageIndex] : nil
     let page2 = secondPageIndex >= 0 && secondPageIndex < viewModel.pages.count ? viewModel.pages[secondPageIndex] : nil
 
-    PageImageView(
+    PageScrollView(
       viewModel: viewModel,
       screenSize: screenSize,
       resetID: resetID,
       minScale: 1.0,
       maxScale: 8.0,
-      doubleTapScale: doubleTapZoomScale,
       readingDirection: readingDirection,
+      doubleTapScale: CGFloat(doubleTapZoomScale),
+      tapZoneSize: tapZoneSize,
+      tapZoneMode: tapZoneMode,
+      showPageNumber: showPageNumber,
+      readerBackground: readerBackground,
+      enableLiveText: enableLiveText,
       onNextPage: onNextPage,
       onPreviousPage: onPreviousPage,
       onToggleControls: onToggleControls,
@@ -89,7 +68,8 @@ struct DualPageImageView: View {
           // Page 2 is the second subview, it hugs the center spine (Leading).
           alignment: .leading
         ),
-      ]
+      ],
     )
+    .frame(width: screenSize.width, height: screenSize.height)
   }
 }

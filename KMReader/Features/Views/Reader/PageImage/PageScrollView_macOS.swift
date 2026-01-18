@@ -25,14 +25,14 @@
     let resetID: AnyHashable
     let minScale: CGFloat
     let maxScale: CGFloat
+    let readingDirection: ReadingDirection
     let doubleTapScale: CGFloat
-
     let tapZoneSize: TapZoneSize
     let tapZoneMode: TapZoneMode
     let showPageNumber: Bool
     let readerBackground: ReaderBackground
-    let readingDirection: ReadingDirection
     let enableLiveText: Bool
+
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
     let onToggleControls: () -> Void
@@ -89,6 +89,7 @@
         pages: pages,
         screenSize: screenSize,
         minScale: minScale,
+        doubleTapScale: doubleTapScale,
         tapZoneSize: tapZoneSize,
         tapZoneMode: tapZoneMode,
         showPageNumber: showPageNumber,
@@ -148,6 +149,7 @@
       private weak var readerViewModel: ReaderViewModel?
       private var mirrorScreenSize: CGSize = .zero
       private var mirrorMinScale: CGFloat = 1.0
+      private var mirrorDoubleTapScale: CGFloat = 3.0
       private var mirrorTapZoneSize: TapZoneSize = .large
       private var mirrorTapZoneMode: TapZoneMode = .auto
       private var mirrorShowPageNumber: Bool = true
@@ -184,6 +186,7 @@
         pages: [NativePageData],
         screenSize: CGSize,
         minScale: CGFloat,
+        doubleTapScale: CGFloat,
         tapZoneSize: TapZoneSize,
         tapZoneMode: TapZoneMode,
         showPageNumber: Bool,
@@ -193,12 +196,13 @@
         onPreviousPage: @escaping () -> Void,
         onToggleControls: @escaping () -> Void,
         scrollView: NSScrollView,
-        readerBackground: ReaderBackground,
+        readerBackground: ReaderBackground
       ) {
         self.readerViewModel = viewModel
         self.mirrorPages = pages
         self.mirrorScreenSize = screenSize
         self.mirrorMinScale = minScale
+        self.mirrorDoubleTapScale = doubleTapScale
         self.mirrorTapZoneSize = tapZoneSize
         self.mirrorTapZoneMode = tapZoneMode
         if self.mirrorShowPageNumber != showPageNumber {
