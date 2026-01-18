@@ -43,6 +43,7 @@ struct ArcEffectShape: Shape {
 }
 
 struct ArcEffectView: View {
+  let color: Color
   let progress: CGFloat
   let readingDirection: ReadingDirection
 
@@ -76,36 +77,34 @@ struct ArcEffectView: View {
             .fill(
               LinearGradient(
                 gradient: Gradient(colors: [
-                  Color.accentColor.opacity(0.6),
-                  Color.accentColor.opacity(0.3),
-                  Color.accentColor.opacity(0.0),
+                  color.opacity(0.6),
+                  color.opacity(0.3),
+                  color.opacity(0.0),
                 ]),
                 startPoint: .bottom,
                 endPoint: .top
               )
             )
-            .shadow(color: Color.accentColor.opacity(0.4), radius: 20, x: 0, y: 0)
         } else {
           ArcEffectShape(progress: progress, isLeading: isLeading)
             .fill(
               LinearGradient(
                 gradient: Gradient(colors: [
-                  Color.accentColor.opacity(0.6),
-                  Color.accentColor.opacity(0.3),
-                  Color.accentColor.opacity(0.0),
+                  color.opacity(0.6),
+                  color.opacity(0.3),
+                  color.opacity(0.0),
                 ]),
                 startPoint: isLeading ? .leading : .trailing,
                 endPoint: isLeading ? .trailing : .leading
               )
             )
-            .shadow(color: Color.accentColor.opacity(0.4), radius: 20, x: 0, y: 0)
         }
 
         if showArrow {
           if isVertical {
             Image(systemName: "arrow.up")
               .font(.system(size: arrowSize, weight: .bold))
-              .foregroundColor(.white)
+              .foregroundColor(color)
               .opacity(Double(progress))
               .position(x: geometry.size.width / 2, y: geometry.size.height - currentArcWidth / 4)
           } else {

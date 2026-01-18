@@ -8,11 +8,10 @@
 import SwiftUI
 
 struct NextBookInfoView: View {
+  let textColor: Color
   let nextBook: Book?
   let readList: ReadList?
   let showImage: Bool
-
-  @Environment(\.readerBackgroundPreference) private var readerBackground
 
   private var bookNumber: String {
     guard let book = nextBook else { return "" }
@@ -30,19 +29,6 @@ struct NextBookInfoView: View {
         String(localized: "UP NEXT IN SERIES: %@"),
         bookNumber
       ).uppercased()
-    }
-  }
-
-  private var textColor: Color {
-    switch readerBackground {
-    case .black:
-      return .white
-    case .white:
-      return .black
-    case .gray:
-      return .white
-    case .system:
-      return .primary
     }
   }
 

@@ -81,6 +81,19 @@ struct EndPageView: View {
     }
   #endif
 
+  private var textColor: Color {
+    switch readerBackground {
+    case .black:
+      return .white
+    case .white:
+      return .black
+    case .gray:
+      return .white
+    case .system:
+      return .primary
+    }
+  }
+
   var body: some View {
     ZStack {
       #if os(iOS)
@@ -109,6 +122,7 @@ struct EndPageView: View {
       #if os(iOS)
         if shouldShowArc {
           ArcEffectView(
+            color: textColor,
             progress: dragProgress,
             readingDirection: readingDirection,
           )
@@ -155,6 +169,7 @@ struct EndPageView: View {
   private var content: some View {
     VStack {
       NextBookInfoView(
+        textColor: textColor,
         nextBook: nextBook,
         readList: readList,
         showImage: showImage
