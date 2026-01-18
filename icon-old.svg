@@ -1,0 +1,17 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Square background -->
+  <rect width="1024" height="1024" fill="rgb(0, 94, 209)"/>
+  
+  <!-- Four vertical bars: long-short-short-long, left half dark yellow, right half light yellow -->
+  <!-- Left long bar (dark yellow) -->
+  <rect x="137" y="212" width="150" height="600" rx="35" fill="#ffdf47"/>
+  <!-- Left short bar (dark yellow) -->
+  <rect x="337" y="262" width="150" height="500" rx="35" fill="#ffdf47"/>
+  <!-- Right short bar (light yellow) -->
+  <rect x="537" y="262" width="150" height="500" rx="35" fill="#fec000"/>
+  <!-- Right long bar (light yellow) -->
+  <rect x="737" y="212" width="150" height="600" rx="35" fill="#fec000"/>
+  
+  <!-- Horizontal bar (red) -->
+  <rect x="137" y="499.5" width="750" height="25" rx="12" fill="#ff0335"/>
+</svg>
