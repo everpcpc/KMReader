@@ -73,7 +73,7 @@ struct DashboardSectionView: View {
         ).ignoresSafeArea()
       #endif
 
-      VStack(alignment: .leading, spacing: 4) {
+      VStack(alignment: .leading, spacing: 0) {
         NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
           HStack {
             Text(section.displayName)
@@ -81,12 +81,14 @@ struct DashboardSectionView: View {
               .bold()
               .fontDesign(.serif)
             Image(systemName: "chevron.right")
-              .font(.subheadline)
               .foregroundStyle(.secondary)
           }
         }
         .buttonStyle(.plain)
-        .padding(.leading, 16)
+        .padding()
+        #if os(macOS)
+          .padding(.leading, 16)
+        #endif
         .disabled(pagination.isEmpty)
 
         ScrollViewReader { proxy in
@@ -124,7 +126,6 @@ struct DashboardSectionView: View {
         }
       }
     }
-    .padding(.vertical, 16)
     #if os(macOS)
       .onContinuousHover { phase in
         switch phase {
