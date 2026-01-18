@@ -283,7 +283,10 @@ struct DashboardView: View {
             }
             .disabled(isCheckingConnection)
           } else if isRefreshing {
-            LoadingIcon()
+            Button {
+            } label: {
+              LoadingIcon()
+            }
           } else {
             Menu {
               Picker(selection: gridDensityBinding) {
