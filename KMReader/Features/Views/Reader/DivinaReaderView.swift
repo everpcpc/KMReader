@@ -439,7 +439,7 @@ struct DivinaReaderView: View {
                 toggleControls: { toggleControls() },
                 screenSize: screenSize,
                 onEndPageFocusChange: endPageFocusChangeHandler
-              )
+              ).readerIgnoresSafeArea()
             } else {
               ScrollPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),

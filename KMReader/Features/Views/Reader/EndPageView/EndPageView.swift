@@ -81,6 +81,7 @@ struct EndPageView: View {
       #if os(iOS)
         if readingDirection != .webtoon {
           Color.clear
+            .readerIgnoresSafeArea()
             .overlay(
               Group {
                 SwipeDetector(

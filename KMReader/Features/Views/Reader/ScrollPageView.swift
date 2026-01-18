@@ -117,18 +117,15 @@ struct ScrollPageView: View {
     ForEach(0...viewModel.pages.count, id: \.self) { index in
       Group {
         if index == viewModel.pages.count {
-          ZStack {
-            readerBackground.color.readerIgnoresSafeArea()
-            EndPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: onDismiss,
-              onNextBook: onNextBook,
-              readingDirection: readingDirection,
-              onFocusChange: onEndPageFocusChange
-            )
-          }
+          EndPageView(
+            viewModel: viewModel,
+            nextBook: nextBook,
+            readList: readList,
+            onDismiss: onDismiss,
+            onNextBook: onNextBook,
+            readingDirection: readingDirection,
+            onFocusChange: onEndPageFocusChange
+          )
         } else {
           SinglePageImageView(
             viewModel: viewModel,
@@ -151,18 +148,15 @@ struct ScrollPageView: View {
     ForEach(Array(viewModel.pagePairs), id: \.self) { pagePair in
       Group {
         if pagePair.first == viewModel.pages.count {
-          ZStack {
-            readerBackground.color.readerIgnoresSafeArea()
-            EndPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: onDismiss,
-              onNextBook: onNextBook,
-              readingDirection: readingDirection,
-              onFocusChange: onEndPageFocusChange
-            )
-          }
+          EndPageView(
+            viewModel: viewModel,
+            nextBook: nextBook,
+            readList: readList,
+            onDismiss: onDismiss,
+            onNextBook: onNextBook,
+            readingDirection: readingDirection,
+            onFocusChange: onEndPageFocusChange
+          )
         } else {
           if let second = pagePair.second {
             DualPageImageView(

@@ -118,8 +118,8 @@
             onNextBook: parent.onNextBook,
             readingDirection: parent.readingDirection,
             onFocusChange: parent.onEndPageFocusChange
-          )
-          hostingController = UIHostingController(rootView: AnyView(endPageView))
+          ).frame(width: parent.screenSize.width, height: parent.screenSize.height)
+          hostingController = UIHostingController(rootView: AnyView(endPageView.readerIgnoresSafeArea()))
         } else {
           let pageView = CurlSinglePageView(
             viewModel: parent.viewModel,
@@ -130,7 +130,7 @@
             onPreviousPage: parent.goToPreviousPage,
             onToggleControls: parent.toggleControls
           )
-          hostingController = UIHostingController(rootView: AnyView(pageView))
+          hostingController = UIHostingController(rootView: AnyView(pageView.readerIgnoresSafeArea()))
         }
 
         hostingController.view.tag = index
@@ -203,7 +203,7 @@
 
     var body: some View {
       ZStack {
-        readerBackground.color
+        readerBackground.color.readerIgnoresSafeArea()
 
         SinglePageImageView(
           viewModel: viewModel,

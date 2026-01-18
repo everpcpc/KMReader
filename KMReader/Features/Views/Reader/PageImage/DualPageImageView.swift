@@ -20,7 +20,7 @@ struct DualPageImageView: View {
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
 
-  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
 
   init(
     viewModel: ReaderViewModel,
