@@ -220,6 +220,9 @@
           focusScroll.onPreviousPage = onPreviousPage
         }
 
+        // Match reading direction
+        contentStack?.userInterfaceLayoutDirection = readingDirection == .rtl ? .rightToLeft : .leftToRight
+
         updatePages()
       }
 
@@ -235,8 +238,13 @@
           if let viewModel = self.readerViewModel {
             let image = viewModel.preloadedImages[data.pageNumber]
             pageViews[index].update(
-              with: data, viewModel: viewModel, image: image, showPageNumber: mirrorShowPageNumber,
-              background: mirrorReaderBackground)
+              with: data,
+              viewModel: viewModel,
+              image: image,
+              showPageNumber: mirrorShowPageNumber,
+              background: mirrorReaderBackground,
+              readingDirection: mirrorReadingDirection
+            )
           }
         }
       }
@@ -479,6 +487,7 @@
     private var analysisTask: Task<Void, Never>?
     private var analyzedImage: NSImage?
     private var currentData: NativePageData?
+    private var readingDirection: ReadingDirection = .ltr
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
 
@@ -613,11 +622,16 @@
     }
 
     func update(
-      with data: NativePageData, viewModel: ReaderViewModel, image: PlatformImage?, showPageNumber: Bool,
-      background: ReaderBackground
+      with data: NativePageData,
+      viewModel: ReaderViewModel,
+      image: PlatformImage?,
+      showPageNumber: Bool,
+      background: ReaderBackground,
+      readingDirection: ReadingDirection
     ) {
       self.currentData = data
       self.readerViewModel = viewModel
+      self.readingDirection = readingDirection
       imageView.image = image
 
       if image != nil, showPageNumber {
@@ -708,7 +722,7 @@
       let actualImageHeight = imageSize.height * scale
       let yOffset = (viewSize.height - actualImageHeight) / 2
 
-      let isRTL = userInterfaceLayoutDirection == .rightToLeft
+      let isRTL = readingDirection == .rtl
       var xOffset: CGFloat = (viewSize.width - actualImageWidth) / 2
 
       if let alignment = currentData?.alignment {
@@ -716,6 +730,8 @@
           xOffset = isRTL ? (viewSize.width - actualImageWidth) : 0
         } else if alignment == .trailing {
           xOffset = isRTL ? 0 : (viewSize.width - actualImageWidth)
+        } else {
+          xOffset = (viewSize.width - actualImageWidth) / 2
         }
       }
 
@@ -723,19 +739,27 @@
       imageView.frame = imgFrame
       overlayView.frame = imgFrame
 
-      let topY = yOffset + actualImageHeight - 38
+      let topY = yOffset + actualImageHeight - 36
 
       if let alignment = currentData?.alignment {
-        let isLeftPage = (!isRTL && alignment == .trailing) || (isRTL && alignment == .leading)
-        if isLeftPage {
+        let isLeft: Bool
+        if alignment == .center {
+          isLeft = isRTL
+        } else {
+          // outer edge
+          if alignment == .trailing {
+            isLeft = !isRTL
+          } else {
+            isLeft = isRTL
+          }
+        }
+
+        if isLeft {
           pageNumberContainer.setFrameOrigin(NSPoint(x: xOffset + 12, y: topY))
         } else {
           pageNumberContainer.setFrameOrigin(
             NSPoint(x: xOffset + actualImageWidth - pageNumberContainer.bounds.width - 12, y: topY))
         }
-      } else {
-        pageNumberContainer.setFrameOrigin(
-          NSPoint(x: (viewSize.width - pageNumberContainer.bounds.width) / 2, y: topY))
       }
     }
 
