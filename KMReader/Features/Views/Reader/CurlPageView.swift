@@ -20,7 +20,6 @@
     let goToNextPage: () -> Void
     let goToPreviousPage: () -> Void
     let toggleControls: () -> Void
-    let screenSize: CGSize
     let onEndPageFocusChange: ((Bool) -> Void)?
 
     func makeCoordinator() -> Coordinator {
@@ -117,14 +116,14 @@
             onDismiss: parent.onDismiss,
             onNextBook: parent.onNextBook,
             readingDirection: parent.readingDirection,
+            onPreviousPage: parent.goToPreviousPage,
             onFocusChange: parent.onEndPageFocusChange
-          ).frame(width: parent.screenSize.width, height: parent.screenSize.height)
+          )
           hostingController = UIHostingController(rootView: AnyView(endPageView.readerIgnoresSafeArea()))
         } else {
           let pageView = CurlSinglePageView(
             viewModel: parent.viewModel,
             pageIndex: index,
-            screenSize: parent.screenSize,
             readingDirection: parent.readingDirection,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
@@ -193,7 +192,6 @@
   private struct CurlSinglePageView: View {
     let viewModel: ReaderViewModel
     let pageIndex: Int
-    let screenSize: CGSize
     let readingDirection: ReadingDirection
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
@@ -202,20 +200,23 @@
     @Environment(\.readerBackgroundPreference) private var readerBackground
 
     var body: some View {
-      ZStack {
-        readerBackground.color.readerIgnoresSafeArea()
+      GeometryReader { proxy in
+        ZStack {
+          readerBackground.color.readerIgnoresSafeArea()
 
-        SinglePageImageView(
-          viewModel: viewModel,
-          pageIndex: pageIndex,
-          screenSize: screenSize,
-          readingDirection: readingDirection,
-          onNextPage: onNextPage,
-          onPreviousPage: onPreviousPage,
-          onToggleControls: onToggleControls
-        )
+          SinglePageImageView(
+            viewModel: viewModel,
+            pageIndex: pageIndex,
+            screenSize: proxy.size,
+            readingDirection: readingDirection,
+            onNextPage: onNextPage,
+            onPreviousPage: onPreviousPage,
+            onToggleControls: onToggleControls
+          )
+        }
+        .frame(width: proxy.size.width, height: proxy.size.height)
       }
-      .frame(width: screenSize.width, height: screenSize.height)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
   }
 #endif

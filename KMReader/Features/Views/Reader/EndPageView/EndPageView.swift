@@ -14,11 +14,15 @@ struct EndPageView: View {
   let onDismiss: () -> Void
   let onNextBook: (String) -> Void
   let readingDirection: ReadingDirection
+  let onPreviousPage: () -> Void
   let onFocusChange: ((Bool) -> Void)?
   var onExternalPanUpdate: ((@escaping (CGFloat) -> Void) -> Void)?
   var onExternalPanEnd: ((@escaping (CGFloat) -> Void) -> Void)?
 
   @Environment(\.readerBackgroundPreference) private var readerBackground
+
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
 
   #if os(iOS)
     @State private var dragOffset: CGFloat = 0
@@ -80,12 +84,15 @@ struct EndPageView: View {
     ZStack {
       #if os(iOS)
         if readingDirection != .webtoon {
-          Color.clear
+          readerBackground.color
             .readerIgnoresSafeArea()
             .overlay(
               Group {
                 SwipeDetector(
                   readingDirection: readingDirection,
+                  tapZoneMode: tapZoneMode,
+                  tapZoneSize: tapZoneSize,
+                  onPreviousPage: onPreviousPage,
                   onUpdate: { translation in
                     handlePanUpdate(translation)
                   },
@@ -203,16 +210,42 @@ struct EndPageView: View {
 #if os(iOS)
   struct SwipeDetector: UIViewRepresentable {
     var readingDirection: ReadingDirection
+    var tapZoneMode: TapZoneMode
+    var tapZoneSize: TapZoneSize
+    var onPreviousPage: () -> Void
     var onUpdate: (CGFloat) -> Void
     var onEnd: (CGFloat) -> Void
 
     func makeUIView(context: Context) -> UIView {
       let view = UIView()
       view.backgroundColor = .clear
+
       let gesture = UIPanGestureRecognizer(
-        target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
+        target: context.coordinator,
+        action: #selector(Coordinator.handlePan(_:))
+      )
       gesture.delegate = context.coordinator
       view.addGestureRecognizer(gesture)
+
+      if readingDirection != .webtoon {
+        let singleTap = UITapGestureRecognizer(
+          target: context.coordinator,
+          action: #selector(Coordinator.handleSingleTap(_:))
+        )
+        singleTap.numberOfTapsRequired = 1
+        singleTap.delegate = context.coordinator
+        singleTap.cancelsTouchesInView = false
+        view.addGestureRecognizer(singleTap)
+
+        let longPress = UILongPressGestureRecognizer(
+          target: context.coordinator,
+          action: #selector(Coordinator.handleLongPress(_:))
+        )
+        longPress.minimumPressDuration = 0.5
+        longPress.delegate = context.coordinator
+        longPress.cancelsTouchesInView = false
+        view.addGestureRecognizer(longPress)
+      }
       return view
     }
 
@@ -227,8 +260,20 @@ struct EndPageView: View {
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
       var parent: SwipeDetector
 
+      var isLongPressing = false
+      var lastLongPressEndTime: Date = .distantPast
+      var lastTouchStartTime: Date = .distantPast
+
       init(parent: SwipeDetector) {
         self.parent = parent
+      }
+
+      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        lastTouchStartTime = Date()
+        if let view = touch.view, view is UIControl {
+          return false
+        }
+        return true
       }
 
       @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
@@ -263,6 +308,45 @@ struct EndPageView: View {
           // Ignore horizontal swipes, accept upward (< 0) for next
           if abs(velocity.x) > abs(velocity.y) { return false }
           return velocity.y < 0
+        }
+      }
+
+      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+          isLongPressing = true
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.isLongPressing = false
+          }
+        }
+      }
+
+      @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+        let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
+        guard !isLongPressing && holdDuration < 0.3 else { return }
+
+        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
+
+        guard let view = gesture.view else { return }
+
+        let location = gesture.location(in: view)
+        let normalizedX = location.x / view.bounds.width
+        let normalizedY = location.y / view.bounds.height
+
+        let action = TapZoneHelper.action(
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          tapZoneMode: parent.tapZoneMode,
+          readingDirection: parent.readingDirection,
+          zoneThreshold: parent.tapZoneSize.value
+        )
+
+        switch action {
+        case .previous:
+          parent.onPreviousPage()
+        default:
+          break
         }
       }
     }

@@ -437,7 +437,6 @@ struct DivinaReaderView: View {
                 goToNextPage: { goToNextPage(dualPageEnabled: false) },
                 goToPreviousPage: { goToPreviousPage(dualPageEnabled: false) },
                 toggleControls: { toggleControls() },
-                screenSize: screenSize,
                 onEndPageFocusChange: endPageFocusChangeHandler
               ).readerIgnoresSafeArea()
             } else {

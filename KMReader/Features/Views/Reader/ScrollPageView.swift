@@ -124,6 +124,7 @@ struct ScrollPageView: View {
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             readingDirection: readingDirection,
+            onPreviousPage: goToPreviousPage,
             onFocusChange: onEndPageFocusChange
           )
         } else {
@@ -155,6 +156,7 @@ struct ScrollPageView: View {
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             readingDirection: readingDirection,
+            onPreviousPage: goToPreviousPage,
             onFocusChange: onEndPageFocusChange
           )
         } else {

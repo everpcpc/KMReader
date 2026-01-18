@@ -230,7 +230,7 @@
           lastZoomOutTime = Date()
         } else {
           let point = gesture.location(in: contentStack)
-          let zoomRect = calculateZoomRect(scale: 2.0, center: point, scrollView: scrollView)
+          let zoomRect = calculateZoomRect(scale: AppConfig.doubleTapZoomScale, center: point, scrollView: scrollView)
           scrollView.zoom(to: zoomRect, animated: true)
         }
       }

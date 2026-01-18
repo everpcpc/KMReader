@@ -65,6 +65,7 @@
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             readingDirection: .webtoon,
+            onPreviousPage: {},
             onFocusChange: nil,
             onExternalPanUpdate: { handler in
               panUpdateHandler = handler
