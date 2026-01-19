@@ -1,0 +1,28 @@
+Search & Discovery
+
+- Advanced metadata filtering system for publishers, authors, genres, tags, and languages
+- Flexible filtering logic allowing you to match all or any selected criteria
+- Integrated search support within filters to quickly navigate large libraries
+- Interactive metadata chips that let you jump to related content with a single tap
+
+Reader Experience
+
+- Natural page curl transition for a more immersive reading feel on iOS
+- Customizable double-tap zoom sensitivity to perfectly match your reading pace
+- Brand new loading interface with glassmorphism effects and real-time progress
+- Redesigned book-end page featuring cover art display and smoother navigation
+- Optimized gesture handling for seamless switching between zooming and page turns
+
+Dashboard & Customization
+
+- Completely overhauled dashboard management with native drag-and-drop to reorder or hide sections
+- Streamlined interface by moving layout and density controls into a unified menu
+- New appearance setting to toggle glass effects on library thumbnails
+- Refined visual components including more consistent icons, badges, and progress bars
+- Brand new app icon and visual assets with a refreshed modern design
+
+Platform Enhancements
+
+- Major optimizations for tvOS including native list reordering and improved focus behavior
+- Enhanced cursor and hover effects for a more responsive experience on macOS and iPadOS
+- Improved layout stability and safe area handling across all device orientations
