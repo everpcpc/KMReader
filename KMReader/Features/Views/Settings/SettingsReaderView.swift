@@ -26,6 +26,7 @@ struct SettingsReaderView: View {
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
+  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
@@ -46,6 +47,12 @@ struct SettingsReaderView: View {
 
         #if os(iOS)
           VStack(alignment: .leading, spacing: 8) {
+            Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
+              ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
+              }
+            }
+            .pickerStyle(.menu)
             HStack {
               Text("Double Tap Zoom Scale")
               Spacer()

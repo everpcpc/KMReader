@@ -14,6 +14,7 @@
     let maxScale: CGFloat
     let readingDirection: ReadingDirection
     let doubleTapScale: CGFloat
+    let doubleTapZoomMode: DoubleTapZoomMode
     let tapZoneSize: TapZoneSize
     let tapZoneMode: TapZoneMode
     let showPageNumber: Bool
@@ -88,11 +89,14 @@
     class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
       var lastResetID: AnyHashable?
       var isUpdatingFromSwiftUI = false
-      var isLongPressing = false
       var isMenuVisible = false
+      var isLongPressing = false
       var lastZoomOutTime: Date = .distantPast
       var lastLongPressEndTime: Date = .distantPast
       var lastTouchStartTime: Date = .distantPast
+      var lastSingleTapActionTime: Date = .distantPast
+
+      private var singleTapWorkItem: DispatchWorkItem?
 
       var parent: PageScrollView!
 
@@ -156,10 +160,12 @@
       }
 
       func setupNativeInteractions(on scrollView: UIScrollView) {
-        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
-        doubleTap.numberOfTapsRequired = 2
-        doubleTap.delegate = self
-        scrollView.addGestureRecognizer(doubleTap)
+        if parent.doubleTapZoomMode != .disabled {
+          let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+          doubleTap.numberOfTapsRequired = 2
+          doubleTap.delegate = self
+          scrollView.addGestureRecognizer(doubleTap)
+        }
 
         let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
         singleTap.numberOfTapsRequired = 1
@@ -175,6 +181,8 @@
       }
 
       @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        if Date().timeIntervalSince(lastSingleTapActionTime) < 0.3 { return }
         guard let scrollView = gesture.view as? UIScrollView else { return }
         if scrollView.zoomScale > parent.minScale + 0.01 {
           scrollView.setZoomScale(parent.minScale, animated: true)
@@ -198,6 +206,8 @@
       }
 
       @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+
         let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
         guard !isLongPressing && !isMenuVisible && holdDuration < 0.3 else { return }
 
@@ -208,6 +218,29 @@
         if Date().timeIntervalSince(lastZoomOutTime) < 0.4 { return }
 
         let location = gesture.location(in: scrollView)
+
+        let item = DispatchWorkItem { [weak self] in
+          self?.performSingleTapAction(location: location)
+        }
+        // Determine delay based on mode
+        let delay: Double
+        switch parent.doubleTapZoomMode {
+        case .disabled: delay = 0
+        case .fast: delay = 0.15
+        case .slow: delay = 0.3
+        }
+
+        if delay > 0 {
+          singleTapWorkItem = item
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
+        } else {
+          // Execute immediately if disabled
+          item.perform()
+        }
+      }
+
+      private func performSingleTapAction(location: CGPoint) {
+        lastSingleTapActionTime = Date()
         let normalizedX = location.x / parent.screenSize.width
         let normalizedY = location.y / parent.screenSize.height
 

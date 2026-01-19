@@ -616,6 +616,20 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var doubleTapZoomMode: DoubleTapZoomMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "doubleTapZoomMode"),
+        let mode = DoubleTapZoomMode(rawValue: stored)
+      {
+        return mode
+      }
+      return .fast
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "doubleTapZoomMode")
+    }
+  }
+
   static nonisolated var enableLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "enableLiveText") != nil {

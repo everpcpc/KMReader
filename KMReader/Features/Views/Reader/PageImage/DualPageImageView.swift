@@ -29,6 +29,7 @@ struct DualPageImageView: View {
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
+  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
 
   var body: some View {
     let page1 = firstPageIndex >= 0 && firstPageIndex < viewModel.pages.count ? viewModel.pages[firstPageIndex] : nil
@@ -42,6 +43,7 @@ struct DualPageImageView: View {
       maxScale: 8.0,
       readingDirection: readingDirection,
       doubleTapScale: CGFloat(doubleTapZoomScale),
+      doubleTapZoomMode: doubleTapZoomMode,
       tapZoneSize: tapZoneSize,
       tapZoneMode: tapZoneMode,
       showPageNumber: showPageNumber,

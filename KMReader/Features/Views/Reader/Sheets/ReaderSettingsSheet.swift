@@ -17,6 +17,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
+  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -47,6 +48,13 @@ struct ReaderSettingsSheet: View {
           #if os(iOS)
             if readingDirection != .webtoon {
               VStack(alignment: .leading, spacing: 8) {
+                Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
+                  ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
+                    Text(mode.displayName).tag(mode)
+                  }
+                }
+                .pickerStyle(.menu)
+
                 HStack {
                   Text("Double Tap Zoom Scale")
                   Spacer()
