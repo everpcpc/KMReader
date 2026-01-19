@@ -27,6 +27,7 @@
     let maxScale: CGFloat
     let readingDirection: ReadingDirection
     let doubleTapScale: CGFloat
+    let doubleTapZoomMode: DoubleTapZoomMode
     let tapZoneSize: TapZoneSize
     let tapZoneMode: TapZoneMode
     let showPageNumber: Bool
@@ -67,6 +68,7 @@
         contentStack.heightAnchor.constraint(equalToConstant: screenSize.height),
       ])
 
+      context.coordinator.parent = self
       context.coordinator.setupNativeInteractions(on: scrollView)
 
       return scrollView

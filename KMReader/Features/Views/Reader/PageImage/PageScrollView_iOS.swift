@@ -60,6 +60,7 @@
         contentStack.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
       ])
 
+      context.coordinator.parent = self
       context.coordinator.setupNativeInteractions(on: scrollView)
       return scrollView
     }

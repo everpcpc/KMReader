@@ -234,12 +234,8 @@
           )
 
           switch action {
-          case .next:
-            return nextExists
-          case .previous:
-            return previousExists
-          case .toggleControls:
-            return true
+          case .next, .previous, .toggleControls:
+            return false
           }
         }
 

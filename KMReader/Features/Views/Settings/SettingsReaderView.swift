@@ -45,31 +45,6 @@ struct SettingsReaderView: View {
             .foregroundColor(.secondary)
         }
 
-        #if os(iOS)
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
-              ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
-              }
-            }
-            .pickerStyle(.menu)
-            HStack {
-              Text("Double Tap Zoom Scale")
-              Spacer()
-              Text(String(format: "%.1fx", doubleTapZoomScale))
-                .foregroundColor(.secondary)
-            }
-            Slider(
-              value: $doubleTapZoomScale,
-              in: 1.0...8.0,
-              step: 0.5
-            )
-            Text("Zoom level when double-tapping on a page")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        #endif
-
         Toggle(isOn: $showPageNumber) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Always Show Page Number")
@@ -120,6 +95,33 @@ struct SettingsReaderView: View {
           }
         #endif
       }
+
+      #if os(iOS)
+        Section(header: Text("Zooming")) {
+          Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
+            ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
+              Text(mode.displayName).tag(mode)
+            }
+          }
+          .pickerStyle(.menu)
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Text("Double Tap Zoom Scale")
+              Spacer()
+              Text(String(format: "%.1fx", doubleTapZoomScale))
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: $doubleTapZoomScale,
+              in: 1.0...8.0,
+              step: 0.5
+            )
+            Text("Zoom level when double-tapping on a page")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+      #endif
 
       #if !os(tvOS)
         Section(header: Text("Live Text")) {
