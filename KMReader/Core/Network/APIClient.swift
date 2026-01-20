@@ -38,23 +38,7 @@ class APIClient {
   }()
 
   private init() {
-    let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
-    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
-
-    let device = PlatformHelper.deviceModel
-    let osVersion = PlatformHelper.osVersion
-    #if os(iOS)
-      let platform = "iOS"
-    #elseif os(macOS)
-      let platform = "macOS"
-    #elseif os(tvOS)
-      let platform = "tvOS"
-    #else
-      let platform = "Unknown"
-    #endif
-    self.userAgent =
-      "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
+    self.userAgent = AppConfig.userAgent
   }
 
   private func currentSession() -> URLSession {
@@ -657,24 +641,28 @@ class APIClient {
 
         let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
         let responseBody = String(data: data, encoding: .utf8)
+        let requestBody = request.httpBody.flatMap { String(data: $0, encoding: .utf8) }
 
         switch httpResponse.statusCode {
         case 400:
           logger.warning("🔒 Bad Request: \(urlString)")
-          throw APIError.badRequest(message: errorMessage, url: urlString, response: responseBody)
+          throw APIError.badRequest(
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
         case 401:
           logger.warning("🔒 Unauthorized: \(urlString)")
           throw APIError.unauthorized(url: urlString)
         case 403:
           logger.warning("🔒 Forbidden: \(urlString)")
-          throw APIError.forbidden(message: errorMessage, url: urlString, response: responseBody)
+          throw APIError.forbidden(
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
         case 404:
           logger.warning("🔒 Not Found: \(urlString)")
-          throw APIError.notFound(message: errorMessage, url: urlString, response: responseBody)
+          throw APIError.notFound(
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
         case 429:
           logger.warning("🔒 Too Many Requests: \(urlString)")
           throw APIError.tooManyRequests(
-            message: errorMessage, url: urlString, response: responseBody)
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
         case 500...599:
           if retryCount < AppConfig.apiRetryCount {
             logger.warning(
@@ -689,12 +677,12 @@ class APIClient {
           logger.error("❌ Server Error \(httpResponse.statusCode): \(errorMessage)")
           throw APIError.serverError(
             code: httpResponse.statusCode, message: errorMessage, url: urlString,
-            response: responseBody)
+            response: responseBody, request: requestBody)
         default:
           logger.error("❌ HTTP \(httpResponse.statusCode): \(errorMessage)")
           throw APIError.httpError(
             code: httpResponse.statusCode, message: errorMessage, url: urlString,
-            response: responseBody)
+            response: responseBody, request: requestBody)
         }
       }
 

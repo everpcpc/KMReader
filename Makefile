@@ -174,7 +174,7 @@ minor: ## Increment minor version (MARKETING_VERSION)
 
 format: ## Format Swift files with swift-format
 	@echo "$(GREEN)Formatting Swift files...$(NC)"
-	@find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./.build/*" | xargs swift-format -i
+	@find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./.build/*" -not -path "./packages/*" | xargs swift-format -i
 
 localize: ## Scan source code and update Localizable.xcstrings
 	@echo "$(GREEN)Scanning source code for new strings...$(NC)"

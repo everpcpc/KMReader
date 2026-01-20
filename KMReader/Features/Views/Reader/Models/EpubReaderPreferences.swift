@@ -6,18 +6,31 @@
 //
 
 #if os(iOS)
+
+  enum EpubConstants {
+    static let defaultFontSize: Double = 16.0
+
+    static let defaultLetterSpacing: Double = 0.0
+    static let defaultWordSpacing: Double = 0.0
+
+    static let defaultLineHeight: Double = 1.2
+
+    static let defaultParagraphSpacing: Double = 0.5
+    static let defaultParagraphIndent: Double = 2.0
+
+    static let defaultPageMargins: Double = 1.0
+    static let defaultFontWeight: Double = 1.0
+  }
+
   import Foundation
-  import ReadiumNavigator
   import SwiftUI
 
   struct EpubReaderPreferences: RawRepresentable, Equatable {
     typealias RawValue = String
 
+    var theme: ThemeChoice
     var fontFamily: FontFamilyChoice
     var fontSize: Double
-    var pagination: PaginationMode
-    var layout: LayoutChoice
-    var theme: ThemeChoice
     var wordSpacing: Double
     var paragraphSpacing: Double
     var paragraphIndent: Double
@@ -27,24 +40,20 @@
     var fontWeight: Double
 
     init(
-      fontFamily: FontFamilyChoice = .publisher,
-      fontSize: Double = 1.0,
-      pagination: PaginationMode = .paged,
-      layout: LayoutChoice = .auto,
       theme: ThemeChoice = .system,
-      wordSpacing: Double = 1.0,
-      paragraphSpacing: Double = 1.0,
-      paragraphIndent: Double = 1.0,
-      pageMargins: Double = 1.0,
-      letterSpacing: Double = 1.0,
-      lineHeight: Double = 1.0,
-      fontWeight: Double = 1.0
+      fontFamily: FontFamilyChoice = .publisher,
+      fontSize: Double = EpubConstants.defaultFontSize,
+      wordSpacing: Double = EpubConstants.defaultWordSpacing,
+      paragraphSpacing: Double = EpubConstants.defaultParagraphSpacing,
+      paragraphIndent: Double = EpubConstants.defaultParagraphIndent,
+      pageMargins: Double = EpubConstants.defaultPageMargins,
+      letterSpacing: Double = EpubConstants.defaultLetterSpacing,
+      lineHeight: Double = EpubConstants.defaultLineHeight,
+      fontWeight: Double = EpubConstants.defaultFontWeight
     ) {
+      self.theme = theme
       self.fontFamily = fontFamily
       self.fontSize = fontSize
-      self.pagination = pagination
-      self.layout = layout
-      self.theme = theme
       self.wordSpacing = wordSpacing
       self.paragraphSpacing = paragraphSpacing
       self.paragraphIndent = paragraphIndent
@@ -67,25 +76,21 @@
         return
       }
 
+      let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
       let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
       let font = FontFamilyChoice(rawValue: fontString)
-      let fontSize = dict["fontSize"] as? Double ?? 1.0
-      let pagination = (dict["pagination"] as? String).flatMap(PaginationMode.init) ?? .paged
-      let layout = (dict["layout"] as? String).flatMap(LayoutChoice.init) ?? .auto
-      let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
-      let wordSpacing = dict["wordSpacing"] as? Double ?? 1.0
-      let paragraphSpacing = dict["paragraphSpacing"] as? Double ?? 1.0
-      let paragraphIndent = dict["paragraphIndent"] as? Double ?? 1.0
-      let pageMargins = dict["pageMargins"] as? Double ?? 1.0
-      let letterSpacing = dict["letterSpacing"] as? Double ?? 1.0
-      let lineHeight = dict["lineHeight"] as? Double ?? 1.0
-      let fontWeight = dict["fontWeight"] as? Double ?? 1.0
+      let fontSize = dict["fontSize"] as? Double ?? EpubConstants.defaultFontSize
+      let wordSpacing = dict["wordSpacing"] as? Double ?? EpubConstants.defaultWordSpacing
+      let paragraphSpacing = dict["paragraphSpacing"] as? Double ?? EpubConstants.defaultParagraphSpacing
+      let paragraphIndent = dict["paragraphIndent"] as? Double ?? EpubConstants.defaultParagraphIndent
+      let pageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
+      let letterSpacing = dict["letterSpacing"] as? Double ?? EpubConstants.defaultLetterSpacing
+      let lineHeight = dict["lineHeight"] as? Double ?? EpubConstants.defaultLineHeight
+      let fontWeight = dict["fontWeight"] as? Double ?? EpubConstants.defaultFontWeight
       self.init(
+        theme: theme,
         fontFamily: font,
         fontSize: fontSize,
-        pagination: pagination,
-        layout: layout,
-        theme: theme,
         wordSpacing: wordSpacing,
         paragraphSpacing: paragraphSpacing,
         paragraphIndent: paragraphIndent,
@@ -98,11 +103,9 @@
 
     var rawValue: String {
       let dict: [String: Any] = [
+        "theme": theme.rawValue,
         "fontFamily": fontFamily.rawValue,
         "fontSize": fontSize,
-        "pagination": pagination.rawValue,
-        "layout": layout.rawValue,
-        "theme": theme.rawValue,
         "wordSpacing": wordSpacing,
         "paragraphSpacing": paragraphSpacing,
         "paragraphIndent": paragraphIndent,
@@ -119,81 +122,45 @@
       return "{}"
     }
 
-    func toPreferences(colorScheme: ColorScheme? = nil) -> EPUBPreferences {
-      EPUBPreferences(
-        columnCount: layout.columnCount,
-        fontFamily: fontFamily.fontFamily,
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        letterSpacing: letterSpacing,
-        lineHeight: lineHeight,
-        pageMargins: pageMargins,
-        paragraphIndent: paragraphIndent,
-        paragraphSpacing: paragraphSpacing,
-        scroll: pagination == .scroll,
-        spread: .auto,
-        theme: theme.resolvedTheme(for: colorScheme),
-        wordSpacing: wordSpacing
-      )
-    }
-  }
-
-  enum PaginationMode: String, CaseIterable, Identifiable {
-    case paged
-    case scroll
-
-    var id: String { rawValue }
-    var title: String {
-      switch self {
-      case .paged: return String(localized: "Paged")
-      case .scroll: return String(localized: "Continuous Scroll")
-      }
-    }
-    var icon: String {
-      switch self {
-      case .paged: return "square.on.square"
-      case .scroll: return "text.justify"
-      }
-    }
-  }
-
-  enum LayoutChoice: String, CaseIterable, Identifiable {
-    case auto
-    case single
-    case dual
-
-    var id: String { rawValue }
-
-    var title: String {
-      switch self {
-      case .auto: return String(localized: "Auto")
-      case .single: return String(localized: "Single Page")
-      case .dual: return String(localized: "Dual Page")
-      }
+    func resolvedTheme(for colorScheme: ColorScheme? = nil) -> ReaderTheme {
+      theme.resolvedTheme(for: colorScheme) ?? .light
     }
 
-    var icon: String {
-      switch self {
-      case .auto: return "sparkles"
-      case .single: return "rectangle.portrait"
-      case .dual: return "rectangle.split.2x1"
-      }
-    }
+    func makeCSS(theme: ReaderTheme) -> String {
+      let fontSize = fontSize
+      let fontWeightValue = 300 + Int(fontWeight * 160)
+      let letterSpacingEm = letterSpacing
+      let wordSpacingEm = wordSpacing
+      let lineHeightValue = lineHeight
+      let paragraphSpacingEm = paragraphSpacing
+      let paragraphIndentEm = paragraphIndent
 
-    var columnCount: ColumnCount? {
-      switch self {
-      case .auto: return nil
-      case .single: return .one
-      case .dual: return .two
-      }
-    }
+      // Only set font-family if user selected a specific font, otherwise use EPUB's default
+      let fontFamilyCSS = fontFamily.fontName.map { "font-family: \($0);" } ?? ""
 
-    static func from(_ columnCount: ColumnCount?) -> LayoutChoice {
-      switch columnCount {
-      case .some(.one): return .single
-      case .some(.two): return .dual
-      default: return .auto
-      }
+      // Internal CSS padding controlled by user's pageMargins setting
+      let basePadding = 10.0
+      let internalPadding = Int(basePadding * pageMargins)
+
+      return """
+          body {
+            margin: 0;
+            padding: \(internalPadding)px;
+            background-color: \(theme.backgroundColor);
+            color: \(theme.textColor);
+            \(fontFamilyCSS)
+            font-size: \(fontSize)px;
+            font-weight: \(fontWeightValue);
+            letter-spacing: \(letterSpacingEm)em;
+            word-spacing: \(wordSpacingEm)em;
+            line-height: \(lineHeightValue);
+          }
+          p {
+            margin: 0 !important;
+            margin-bottom: \(max(0, paragraphSpacingEm))em !important;
+            text-indent: \(max(0, paragraphIndentEm))em !important;
+          }
+        """
     }
   }
 
@@ -212,7 +179,7 @@
       case .dark: return String(localized: "Dark")
       }
     }
-    func resolvedTheme(for colorScheme: ColorScheme?) -> Theme? {
+    func resolvedTheme(for colorScheme: ColorScheme?) -> ReaderTheme? {
       switch self {
       case .system:
         guard let colorScheme else { return nil }
@@ -222,13 +189,26 @@
       case .dark: return .dark
       }
     }
+  }
 
-    static func from(_ theme: Theme?) -> ThemeChoice {
-      switch theme {
-      case .some(.light): return .light
-      case .some(.sepia): return .sepia
-      case .some(.dark): return .dark
-      default: return .system
+  enum ReaderTheme: String, CaseIterable {
+    case light
+    case sepia
+    case dark
+
+    var backgroundColor: String {
+      switch self {
+      case .light: return "#FFFFFF"
+      case .sepia: return "#F4ECD8"
+      case .dark: return "#1E1E1E"
+      }
+    }
+
+    var textColor: String {
+      switch self {
+      case .light: return "#000000"
+      case .sepia: return "#5C4A37"
+      case .dark: return "#E0E0E0"
       }
     }
   }
@@ -256,18 +236,11 @@
       }
     }
 
-    var fontFamily: FontFamily? {
+    var fontName: String? {
       switch self {
       case .publisher: return nil
-      case .system(let name): return FontFamily(rawValue: name)
+      case .system(let name): return name
       }
-    }
-
-    static func from(_ fontFamily: FontFamily?) -> FontFamilyChoice {
-      guard let name = fontFamily?.rawValue else {
-        return .publisher
-      }
-      return .system(name)
     }
   }
 #endif

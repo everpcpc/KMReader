@@ -10,15 +10,15 @@ import Foundation
 enum APIError: Error, CustomStringConvertible, LocalizedError {
   case invalidURL
   case invalidResponse(url: String?)
-  case httpError(code: Int, message: String, url: String?, response: String?)
+  case httpError(code: Int, message: String, url: String?, response: String?, request: String?)
   case decodingError(Error, url: String?, response: String?)
   case unauthorized(url: String?)
   case networkError(Error, url: String?)
-  case badRequest(message: String, url: String?, response: String?)
-  case forbidden(message: String, url: String?, response: String?)
-  case notFound(message: String, url: String?, response: String?)
-  case tooManyRequests(message: String, url: String?, response: String?)
-  case serverError(code: Int, message: String, url: String?, response: String?)
+  case badRequest(message: String, url: String?, response: String?, request: String?)
+  case forbidden(message: String, url: String?, response: String?, request: String?)
+  case notFound(message: String, url: String?, response: String?, request: String?)
+  case tooManyRequests(message: String, url: String?, response: String?, request: String?)
+  case serverError(code: Int, message: String, url: String?, response: String?, request: String?)
   case offline
 
   private static func truncateResponse(_ response: String?) -> String? {
@@ -36,7 +36,8 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
     title: String,
     code: Int? = nil,
     url: String? = nil,
-    response: String? = nil
+    response: String? = nil,
+    request: String? = nil
   ) -> String {
     var parts: [String] = []
 
@@ -52,6 +53,10 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
       parts.append("Response: \(truncated)")
     }
 
+    if let request = request, !request.isEmpty {
+      parts.append("Request: \(request)")
+    }
+
     if parts.isEmpty {
       return title
     }
@@ -65,12 +70,13 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
       return "Invalid server URL"
     case .invalidResponse(let url):
       return Self.formatError(title: "Invalid response from server", url: url)
-    case .httpError(let code, let message, let url, let response):
+    case .httpError(let code, let message, let url, let response, let request):
       return Self.formatError(
         title: "Server error (\(code)): \(message)",
         code: code,
         url: url,
-        response: response
+        response: response,
+        request: request
       )
     case .decodingError(let error, let url, let response):
       return Self.formatError(
@@ -97,40 +103,45 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
         errorMessage = "Network error: \(error.localizedDescription)"
       }
       return Self.formatError(title: errorMessage, url: url)
-    case .badRequest(let message, let url, let response):
+    case .badRequest(let message, let url, let response, let request):
       return Self.formatError(
         title: "Bad request: \(message)",
         code: 400,
         url: url,
-        response: response
+        response: response,
+        request: request
       )
-    case .forbidden(let message, let url, let response):
+    case .forbidden(let message, let url, let response, let request):
       return Self.formatError(
         title: "Forbidden: \(message)",
         code: 403,
         url: url,
-        response: response
+        response: response,
+        request: request
       )
-    case .notFound(let message, let url, let response):
+    case .notFound(let message, let url, let response, let request):
       return Self.formatError(
         title: "Not found: \(message)",
         code: 404,
         url: url,
-        response: response
+        response: response,
+        request: request
       )
-    case .tooManyRequests(let message, let url, let response):
+    case .tooManyRequests(let message, let url, let response, let request):
       return Self.formatError(
         title: "Too many requests: \(message)",
         code: 429,
         url: url,
-        response: response
+        response: response,
+        request: request
       )
-    case .serverError(let code, let message, let url, let response):
+    case .serverError(let code, let message, let url, let response, let request):
       return Self.formatError(
         title: "Server error (\(code)): \(message)",
         code: code,
         url: url,
-        response: response
+        response: response,
+        request: request
       )
     case .offline:
       return "App is in offline mode"

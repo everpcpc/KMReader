@@ -236,7 +236,11 @@ struct SettingsCacheView: View {
         .buttonStyle(.bordered)
       }
 
-      Section(header: Text("Book File")) {
+      Section(header: Text("Book File (Deprecated)")) {
+        Text("This cache is deprecated. EPUB now reads from offline downloads.")
+          .font(.caption)
+          .foregroundColor(.secondary)
+
         HStack {
           Text("Cached Size")
           Spacer()

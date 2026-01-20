@@ -6,8 +6,6 @@
 //
 
 #if os(iOS)
-  import ReadiumNavigator
-  import ReadiumShared
   import SwiftUI
 
   struct EpubReaderView: View {
@@ -20,7 +18,7 @@
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
-    @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
+    @AppStorage("epubPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
     @AppStorage("autoHideControls") private var autoHideControls: Bool = false
@@ -35,6 +33,7 @@
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
     @State private var showingDetailSheet = false
+    @State private var showingQuickActions = false
 
     init(
       bookId: String,
@@ -58,21 +57,43 @@
     }
 
     var shouldShowControls: Bool {
-      viewModel.isLoading || showingControls
+      guard viewModel.errorMessage == nil else { return true }
+      guard !viewModel.isLoading else { return true }
+      return showingControls
     }
 
     private var buttonStyle: AdaptiveButtonStyleType {
       return .bordered
     }
 
+    private var titleText: String {
+      if showingControls {
+        if let totalProgression = viewModel.currentLocation?.totalProgression {
+          return String(localized: "\(totalProgression * 100, specifier: "%.1f")%")
+        }
+      } else {
+        if let title = viewModel.book?.metadata.title {
+          return title
+        }
+      }
+      return String(localized: "")
+    }
+
     var body: some View {
       readerBody
+        .iPadIgnoresSafeArea()
         .task(id: bookId) {
           await loadBook()
           triggerTapZoneDisplay()
         }
-        .task(id: readerPrefs) {
+        .onAppear {
           viewModel.applyPreferences(readerPrefs, colorScheme: colorScheme)
+        }
+        .onChange(of: readerPrefs) { _, newPrefs in
+          viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)
+        }
+        .onChange(of: colorScheme) { _, newScheme in
+          viewModel.applyPreferences(readerPrefs, colorScheme: newScheme)
         }
         .onReceive(
           NotificationCenter.default.publisher(for: .fileDownloadProgress)
@@ -102,10 +123,6 @@
           if !newValue {
             forceInitialAutoHide(timeout: 2)
           }
-        }
-        .onChange(of: colorScheme) { _, newScheme in
-          guard readerPrefs.theme == .system else { return }
-          viewModel.applyPreferences(readerPrefs, colorScheme: newScheme)
         }
         .onChange(of: autoHideControls) { _, newValue in
           if newValue {
@@ -150,7 +167,7 @@
 
           contentView(for: geometry.size, viewModel: viewModel)
 
-          if viewModel.navigatorViewController != nil {
+          if !viewModel.pageLocations.isEmpty {
             TapZoneOverlay(isVisible: $showTapZoneOverlay, readingDirection: .ltr)
               .readerIgnoresSafeArea()
               .onChange(of: tapZoneMode) {
@@ -158,14 +175,17 @@
               }
           }
 
-          controlsOverlay
-
-          chapterStatusOverlay
+          chapterStatusOverlay.iPadIgnoresSafeArea(paddingTop: 24)
+          controlsOverlay.iPadIgnoresSafeArea(paddingTop: 24)
         }
-      }
-      .onAppear {
-        if .ltr != readerPresentation.readingDirection {
-          readerPresentation.readingDirection = .ltr
+        .onAppear {
+          viewModel.updateViewport(size: geometry.size)
+          if .ltr != readerPresentation.readingDirection {
+            readerPresentation.readingDirection = .ltr
+          }
+        }
+        .onChange(of: geometry.size) { _, newSize in
+          viewModel.updateViewport(size: newSize)
         }
       }
     }
@@ -192,12 +212,15 @@
           }
         }
         .padding()
-      } else if let navigatorViewController = viewModel.navigatorViewController {
-        NavigatorView(
-          navigatorViewController: navigatorViewController,
-          onTap: { location in
-            handleTap(location: location, in: size)
-          }
+      } else if !viewModel.pageLocations.isEmpty {
+        WebPubPageView(
+          viewModel: viewModel,
+          preferences: readerPrefs,
+          colorScheme: colorScheme,
+          onTap: { location, containerSize in
+            handleTap(location: location, in: containerSize)
+          },
+          transitionStyle: .pageCurl
         )
         .readerIgnoresSafeArea()
       } else {
@@ -212,34 +235,41 @@
         return String(localized: "Fetching book info...")
       case .downloading:
         return String(localized: "Downloading book...")
-      case .opening:
-        return String(localized: "Opening book...")
       case .preparingReader:
         return String(localized: "Preparing reader...")
+      case .paginating:
+        return String(localized: "Paginating chapters...")
       case .idle:
         return String(localized: "Loading...")
       }
     }
 
     private var loadingDetail: String? {
-      let received = viewModel.downloadBytesReceived
-      if let expected = viewModel.downloadBytesExpected, expected > 0 {
-        let receivedText = ByteCountFormatter.string(fromByteCount: received, countStyle: .file)
-        let expectedText = ByteCountFormatter.string(fromByteCount: expected, countStyle: .file)
-        let percent = Int(viewModel.downloadProgress * 100)
-        return "\(percent)% · \(receivedText) / \(expectedText)"
+      switch viewModel.loadingStage {
+      case .fetchingMetadata:
+        return String(localized: "Fetching book metadata")
+      case .downloading:
+        if let expectedBytes = viewModel.downloadBytesExpected {
+          let received = Double(viewModel.downloadBytesReceived)
+          let expected = Double(expectedBytes)
+          return
+            "\(String(format: "%.1f", received / 1024 / 1024)) / \(String(format: "%.1f", expected / 1024 / 1024)) MB"
+        }
+        return String(localized: "Downloading book content")
+      case .preparingReader:
+        return String(localized: "Preparing reader view")
+      case .paginating:
+        return String(localized: "Calculating chapter pages")
+      case .idle:
+        return String(localized: "Loading...")
       }
-      if received > 0 {
-        let receivedText = ByteCountFormatter.string(fromByteCount: received, countStyle: .file)
-        return String(localized: "Downloaded \(receivedText)")
-      }
-      return nil
     }
 
+    @ViewBuilder
     private var controlsOverlay: some View {
       VStack {
-        // Top bar
         HStack {
+          Spacer()
           Button {
             closeReader()
           } label: {
@@ -249,80 +279,31 @@
           .controlSize(.large)
           .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
+        }
 
+        Spacer()
+
+        if showingQuickActions {
+          quickActionsPanel
+        }
+
+        HStack {
           Spacer()
-
-          // Series and book title
-          if let book = currentBook {
-            Button {
-              showingDetailSheet = true
-            } label: {
-              HStack(spacing: 4) {
-                if incognito {
-                  Image(systemName: "eye.slash.fill")
-                    .font(.callout)
-                }
-                VStack(alignment: incognito ? .leading : .center, spacing: 4) {
-                  if book.oneshot {
-                    Text(book.metadata.title)
-                      .lineLimit(2)
-                  } else {
-                    Text(book.seriesTitle)
-                      .foregroundStyle(.secondary)
-                      .font(.caption)
-                      .lineLimit(1)
-                    Text("#\(book.metadata.number) - \(book.metadata.title)")
-                      .lineLimit(1)
-                  }
-                }
-              }
-              .padding(.vertical, 2)
-              .padding(.horizontal, 4)
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 12))
-            .optimizedControlSize()
-            .adaptiveButtonStyle(buttonStyle)
-            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          }
-
-          Spacer()
-
           Button {
-            showingPreferencesSheet = true
+            withAnimation {
+              showingQuickActions.toggle()
+            }
           } label: {
-            Image(systemName: "gearshape")
+            Image(systemName: showingQuickActions ? "xmark" : "line.3.horizontal")
+              .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
           }
           .contentShape(Circle())
           .controlSize(.large)
           .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
         }
-        .allowsHitTesting(true)
-
-        if let currentLocator = viewModel.currentLocator {
-          Button {
-            showingChapterSheet = true
-          } label: {
-            HStack(spacing: 4) {
-              // Total progress
-              if let totalProgression = currentLocator.locations.totalProgression {
-                HStack(spacing: 6) {
-                  Image(systemName: "bookmark")
-                  Text("\(totalProgression * 100, specifier: "%.1f")%")
-                    .monospacedDigit()
-                }
-              }
-            }
-          }
-          .adaptiveButtonStyle(buttonStyle)
-          .optimizedControlSize()
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          .disabled(viewModel.tableOfContents.isEmpty)
-        }
-
-        Spacer()
       }
       .tint(.primary)
       .padding()
@@ -343,7 +324,6 @@
       .sheet(isPresented: $showingPreferencesSheet) {
         EpubPreferencesSheet(readerPrefs) { newPreferences in
           readerPrefs = newPreferences
-          viewModel.applyPreferences(newPreferences, colorScheme: colorScheme)
         }
       }
       .readerDetailSheet(
@@ -353,18 +333,77 @@
       )
     }
 
+    @ViewBuilder
+    private var quickActionsPanel: some View {
+      VStack {
+        Spacer()
+        HStack {
+          Spacer()
+          VStack(alignment: .trailing, spacing: 6) {
+            if let currentLocation = viewModel.currentLocation,
+              let totalProgression = currentLocation.totalProgression
+            {
+              Button {
+                showingChapterSheet = true
+              } label: {
+                HStack {
+                  Text("Contents · \(totalProgression * 100, specifier: "%.1f")%")
+                    .font(.callout)
+                  Image(systemName: "list.bullet")
+                }
+              }
+              .adaptiveButtonStyle(buttonStyle)
+              .buttonBorderShape(.capsule)
+              .controlSize(.large)
+              .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+              .disabled(viewModel.tableOfContents.isEmpty)
+            }
+
+            Button {
+              showingPreferencesSheet = true
+            } label: {
+              HStack {
+                Text("Themes & Settings")
+                  .font(.callout)
+                Image(systemName: "textformat")
+              }
+            }
+            .adaptiveButtonStyle(buttonStyle)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+
+            Button {
+              showingDetailSheet = true
+            } label: {
+              HStack {
+                Text("Book Info")
+                  .font(.callout)
+                Image(systemName: "info.circle")
+              }
+            }
+            .adaptiveButtonStyle(buttonStyle)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+          }
+        }
+      }
+      .transition(.opacity.combined(with: .move(edge: .trailing)))
+    }
+
     private func toggleControls(autoHide: Bool = true) {
       withAnimation {
         showingControls.toggle()
       }
       if showingControls {
-        // Only auto-hide if autoHide is true
         if autoHide {
           resetControlsTimer(timeout: 3)
         } else {
-          // Cancel any existing timer when manually opened
           controlsTimer?.invalidate()
         }
+      } else {
+        showingQuickActions = false
       }
     }
 
@@ -378,7 +417,6 @@
     }
 
     private func resetControlsTimer(timeout: TimeInterval) {
-      // Don't start timer if auto-hide is disabled
       if !autoHideControls {
         return
       }
@@ -392,31 +430,49 @@
     }
 
     private var chapterStatusOverlay: some View {
-      let chapterProgression = viewModel.currentLocator?.locations.progression
-      let totalProgression = viewModel.currentLocator?.locations.totalProgression
+      let chapterPageIndex = viewModel.currentLocation?.pageIndex
+      let chapterPageCount = viewModel.currentLocation?.pageCount
+      let totalProgression = viewModel.currentLocation?.totalProgression
 
       return VStack {
+        HStack {
+          Spacer()
+          Text(titleText)
+            .font(.footnote)
+            .foregroundStyle(.gray)
+            .lineLimit(1)
+          Spacer()
+        }
+        .padding(.horizontal, 16)
         Spacer()
         VStack(alignment: .leading, spacing: 8) {
-          HStack {
-            if let chapterTitle = viewModel.currentLocator?.title, !chapterTitle.isEmpty {
-              HStack(spacing: 6) {
-                Image(systemName: "list.bullet.rectangle")
-                  .font(.caption2)
-                  .foregroundStyle(.gray)
-                Text(chapterTitle)
+          if shouldShowControls {
+            if let chapterPageIndex, let chapterPageCount, chapterPageCount > 0 {
+              HStack {
+                Spacer()
+                Text("\(chapterPageIndex + 1) / \(chapterPageCount)")
                   .font(.caption)
                   .foregroundStyle(.gray)
-                  .lineLimit(1)
+                  .monospacedDigit()
+                Spacer()
               }
             }
-            Spacer()
-            if let chapterProgression {
-              HStack(spacing: 4) {
-                Image(systemName: "doc.text.fill")
-                  .font(.caption2)
-                  .foregroundStyle(.gray)
-                Text("\(Int(chapterProgression * 100))%")
+          } else {
+            HStack {
+              if let chapterTitle = viewModel.currentLocation?.title, !chapterTitle.isEmpty {
+                HStack(spacing: 6) {
+                  Image(systemName: "list.bullet.rectangle")
+                    .font(.caption2)
+                    .foregroundStyle(.gray)
+                  Text(chapterTitle)
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+                    .lineLimit(1)
+                }
+              }
+              Spacer()
+              if let chapterPageIndex, let chapterPageCount, chapterPageCount > 0 {
+                Text("\(chapterPageIndex + 1)")
                   .font(.caption)
                   .foregroundStyle(.gray)
                   .monospacedDigit()
@@ -426,7 +482,7 @@
 
           if let totalProgression {
             ReadingProgressBar(progress: totalProgression, type: .reader)
-              .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+              .shadow(color: .black.opacity(0.4), radius: 2, x: 0, y: 1)
               .opacity(shouldShowControls ? 1.0 : 0.0)
               .allowsHitTesting(false)
           }
@@ -435,12 +491,12 @@
       .allowsHitTesting(false)
     }
 
-    private var currentChapterLink: ReadiumShared.Link? {
-      guard let currentLocator = viewModel.currentLocator else {
+    private var currentChapterLink: WebPubLink? {
+      guard let currentLocation = viewModel.currentLocation else {
         return nil
       }
       return viewModel.tableOfContents.first { link in
-        link.url().isEquivalentTo(currentLocator.href)
+        link.href == currentLocation.href
       }
     }
 
@@ -472,103 +528,16 @@
     }
 
     private func triggerTapZoneDisplay() {
-      guard viewModel.navigatorViewController != nil else { return }
-      showTapZoneOverlay = false
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-        withAnimation {
-          showTapZoneOverlay = true
-        }
-      }
+      if tapZoneMode == .none { return }
+      showTapZoneOverlay = true
     }
 
     private func resetOverlayTimer() {
       overlayTimer?.invalidate()
-      overlayTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
+      overlayTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: false) { _ in
         withAnimation {
           showTapZoneOverlay = false
         }
-      }
-    }
-  }
-
-  import UIKit
-
-  struct NavigatorView: UIViewControllerRepresentable {
-    let navigatorViewController: EPUBNavigatorViewController
-    let onTap: (CGPoint) -> Void
-
-    func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
-      return navigatorViewController
-    }
-
-    func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {
-      context.coordinator.onTap = onTap
-      context.coordinator.setupGestures(for: uiViewController.view)
-    }
-
-    func makeCoordinator() -> Coordinator {
-      Coordinator()
-    }
-
-    class Coordinator: NSObject, UIGestureRecognizerDelegate {
-      var onTap: ((CGPoint) -> Void)?
-      var isLongPressing = false
-      private weak var installedView: UIView?
-
-      func setupGestures(for view: UIView) {
-        guard installedView != view else { return }
-
-        cleanup()
-        installedView = view
-
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        tap.numberOfTapsRequired = 1
-        // Allow touches to pass through to Readium for scrolling and link clicking.
-        tap.cancelsTouchesInView = false
-        tap.delegate = self
-        view.addGestureRecognizer(tap)
-
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPress.minimumPressDuration = 0.5
-        longPress.cancelsTouchesInView = false
-        longPress.delegate = self
-        view.addGestureRecognizer(longPress)
-      }
-
-      private func cleanup() {
-        if let view = installedView {
-          view.gestureRecognizers?.filter {
-            $0 is UITapGestureRecognizer || $0 is UILongPressGestureRecognizer
-          }.forEach {
-            if $0.delegate === self { view.removeGestureRecognizer($0) }
-          }
-        }
-      }
-
-      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        if gesture.state == .began {
-          isLongPressing = true
-        } else if gesture.state == .ended || gesture.state == .cancelled {
-          // Delay resetting to ensure handleTap can see the flag.
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.isLongPressing = false
-          }
-        }
-      }
-
-      @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-        // Skip navigation if it was a long press.
-        guard !isLongPressing, let view = gesture.view else { return }
-        let location = gesture.location(in: view)
-        onTap?(location)
-      }
-
-      func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
-      ) -> Bool {
-        // Allow simultaneous recognition with Readium's internal gestures.
-        return true
       }
     }
   }

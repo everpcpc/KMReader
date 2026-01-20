@@ -10,10 +10,6 @@
 		193F57782EFA1C1D003362E1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57772EFA1C1D003362E1 /* WidgetKit.framework */; };
 		193F577A2EFA1C1D003362E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57792EFA1C1D003362E1 /* SwiftUI.framework */; };
 		193F578B2EFA1C1F003362E1 /* KMReaderWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B382ED616010066E8A4 /* ReadiumShared */; };
-		19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3A2ED616080066E8A4 /* ReadiumStreamer */; };
-		19600B3D2ED6160E0066E8A4 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */; };
-		19600B3F2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */; };
 		196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 196028582ED9F7980066E8A4 /* SwiftSoup */; };
 		19AEC07F2EE714150073EB5F /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 19AEC07E2EE714150073EB5F /* Flow */; };
 		19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19AEFE562EFC62E200EC7D3B /* StoreKit.framework */; };
@@ -97,12 +93,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				19600B3D2ED6160E0066E8A4 /* ReadiumNavigator in Frameworks */,
-				19600B3F2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer in Frameworks */,
 				196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */,
-				19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */,
 				19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */,
-				19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */,
 				19AEC07F2EE714150073EB5F /* Flow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -172,10 +164,6 @@
 			);
 			name = KMReader;
 			packageProductDependencies = (
-				19600B382ED616010066E8A4 /* ReadiumShared */,
-				19600B3A2ED616080066E8A4 /* ReadiumStreamer */,
-				19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */,
-				19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */,
 				196028582ED9F7980066E8A4 /* SwiftSoup */,
 				19AEC07E2EE714150073EB5F /* Flow */,
 			);
@@ -240,7 +228,6 @@
 			mainGroup = 192E6F742EC4B4E20040D165;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				19600B362ED615C20066E8A4 /* XCRemoteSwiftPackageReference "swift-toolkit" */,
 				196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
 				19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
 			);
@@ -641,14 +628,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		19600B362ED615C20066E8A4 /* XCRemoteSwiftPackageReference "swift-toolkit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/readium/swift-toolkit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.5.0;
-			};
-		};
 		196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/scinfu/SwiftSoup";
@@ -668,26 +647,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		19600B382ED616010066E8A4 /* ReadiumShared */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 19600B362ED615C20066E8A4 /* XCRemoteSwiftPackageReference "swift-toolkit" */;
-			productName = ReadiumShared;
-		};
-		19600B3A2ED616080066E8A4 /* ReadiumStreamer */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 19600B362ED615C20066E8A4 /* XCRemoteSwiftPackageReference "swift-toolkit" */;
-			productName = ReadiumStreamer;
-		};
-		19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 19600B362ED615C20066E8A4 /* XCRemoteSwiftPackageReference "swift-toolkit" */;
-			productName = ReadiumNavigator;
-		};
-		19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 19600B362ED615C20066E8A4 /* XCRemoteSwiftPackageReference "swift-toolkit" */;
-			productName = ReadiumAdapterGCDWebServer;
-		};
 		196028582ED9F7980066E8A4 /* SwiftSoup */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */;

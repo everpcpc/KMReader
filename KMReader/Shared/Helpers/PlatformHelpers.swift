@@ -47,14 +47,29 @@ enum PlatformHelper {
     #else
       detectedModel = "Unknown"
     #endif
-    AppConfig.deviceModel = detectedModel
 
     // 2. Detect OS version
     let version = ProcessInfo.processInfo.operatingSystemVersion
     let detectedOS = "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
-    AppConfig.osVersion = detectedOS
 
-    // 3. Handle device identifier
+    // 3. Set User-Agent
+    let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
+    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+    #if os(iOS)
+      let platform = "iOS"
+    #elseif os(macOS)
+      let platform = "macOS"
+    #elseif os(tvOS)
+      let platform = "tvOS"
+    #else
+      let platform = "Unknown"
+    #endif
+
+    AppConfig.userAgent =
+      "\(appName)/\(appVersion) (\(detectedModel); \(platform) \(detectedOS); Build \(buildNumber))"
+
+    // 4. Handle device identifier
     let storedId = AppConfig.deviceIdentifier
     if storedId.isEmpty {
       var newId: String?
@@ -64,21 +79,6 @@ enum PlatformHelper {
       let finalId = newId ?? UUID().uuidString
       AppConfig.deviceIdentifier = finalId
     }
-  }
-
-  /// Get device model name
-  static nonisolated var deviceModel: String {
-    AppConfig.deviceModel
-  }
-
-  /// Get OS version string
-  static nonisolated var osVersion: String {
-    AppConfig.osVersion
-  }
-
-  /// Persistent, per-installation identifier used when reporting reading positions.
-  static nonisolated var deviceIdentifier: String {
-    AppConfig.deviceIdentifier
   }
 
   /// Check if running on iPad

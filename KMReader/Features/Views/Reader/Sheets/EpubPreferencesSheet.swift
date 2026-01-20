@@ -7,7 +7,6 @@
 
 #if os(iOS)
   import CoreText
-  import ReadiumNavigator
   import SwiftData
   import SwiftUI
   import UIKit
@@ -28,7 +27,12 @@
     }
 
     var body: some View {
-      SheetView(title: String(localized: "Reading Options"), size: .large) {
+      SheetView(
+        title: String(localized: "Reading Options"), size: .large,
+        onReset: {
+          draft = EpubReaderPreferences()
+        }
+      ) {
         VStack(spacing: 0) {
           VStack(alignment: .leading, spacing: 8) {
             EpubPreviewView(preferences: draft)
@@ -49,19 +53,6 @@
               .pickerStyle(.segmented)
             }
 
-            Section(String(localized: "Pagination")) {
-              Picker(String(localized: "Reading Mode"), selection: $draft.pagination) {
-                ForEach(PaginationMode.allCases) { mode in
-                  Label(mode.title, systemImage: mode.icon).tag(mode)
-                }
-              }
-              Picker(String(localized: "Page Layout"), selection: $draft.layout) {
-                ForEach(LayoutChoice.allCases) { layout in
-                  Label(layout.title, systemImage: layout.icon).tag(layout)
-                }
-              }
-            }
-
             Section(String(localized: "Font")) {
               Picker(String(localized: "Typeface"), selection: $draft.fontFamily) {
                 ForEach(FontProvider.allChoices, id: \.id) { choice in
@@ -70,8 +61,8 @@
               }
               .id(fontListRefreshId)
               VStack(alignment: .leading) {
-                Slider(value: $draft.fontSize, in: 0.5...2.0, step: 0.05)
-                Text(String(localized: "Size: \(String(format: "%.2f", draft.fontSize))"))
+                Slider(value: $draft.fontSize, in: 8...32, step: 1)
+                Text(String(localized: "Size: \(String(format: "%.0f", draft.fontSize))"))
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
@@ -101,19 +92,19 @@
 
             Section(String(localized: "Character & Word")) {
               VStack(alignment: .leading) {
-                Slider(value: $draft.letterSpacing, in: 0.0...2.0, step: 0.1)
+                Slider(value: $draft.letterSpacing, in: 0.00...1.0, step: 0.01)
                 Text(
                   String(
-                    localized: "Letter Spacing: \(String(format: "%.1f", draft.letterSpacing))")
+                    localized: "Letter Spacing: \(String(format: "%.2f", draft.letterSpacing))")
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
               }
 
               VStack(alignment: .leading) {
-                Slider(value: $draft.wordSpacing, in: 0.0...3.0, step: 0.1)
+                Slider(value: $draft.wordSpacing, in: 0.0...1.0, step: 0.01)
                 Text(
-                  String(localized: "Word Spacing: \(String(format: "%.1f", draft.wordSpacing))")
+                  String(localized: "Word Spacing: \(String(format: "%.2f", draft.wordSpacing))")
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -122,7 +113,7 @@
 
             Section(String(localized: "Line & Paragraph")) {
               VStack(alignment: .leading) {
-                Slider(value: $draft.lineHeight, in: 0.5...3.0, step: 0.1)
+                Slider(value: $draft.lineHeight, in: 0.5...2.0, step: 0.1)
                 Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
                   .font(.caption)
                   .foregroundStyle(.secondary)
@@ -140,7 +131,7 @@
               }
 
               VStack(alignment: .leading) {
-                Slider(value: $draft.paragraphIndent, in: 0.0...2.0, step: 0.1)
+                Slider(value: $draft.paragraphIndent, in: 0.0...8.0, step: 0.5)
                 Text(
                   String(
                     localized: "Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
@@ -216,36 +207,25 @@
   }
 
   private func generatePreviewHTML(preferences: EpubReaderPreferences) -> String {
-    let theme = preferences.theme.resolvedTheme(for: nil) ?? .light
-    let backgroundColor: String
-    let textColor: String
+    let theme = preferences.resolvedTheme(for: nil)
+    let backgroundColor = theme.backgroundColor
+    let textColor = theme.textColor
 
-    switch theme {
-    case .light:
-      backgroundColor = "#FFFFFF"
-      textColor = "#000000"
-    case .sepia:
-      backgroundColor = "#F4ECD8"
-      textColor = "#5C4A37"
-    case .dark:
-      backgroundColor = "#1E1E1E"
-      textColor = "#E0E0E0"
-    }
-
-    let baseFontSize = 16.0
-    let fontSize = baseFontSize * preferences.fontSize
+    let fontSize = preferences.fontSize
     let fontFamily =
-      preferences.fontFamily.fontFamily?.rawValue ?? "system-ui, -apple-system, sans-serif"
+      preferences.fontFamily.fontName ?? "system-ui, -apple-system, sans-serif"
 
     // Calculate font weight (0.0 to 2.5 maps to 300 to 700)
     let fontWeightValue = 300 + Int(preferences.fontWeight * 160)
-
-    let letterSpacingEm = (preferences.letterSpacing - 1.0) * 0.1
-    let wordSpacingEm = (preferences.wordSpacing - 1.0) * 0.1
+    let letterSpacingEm = preferences.letterSpacing
+    let wordSpacingEm = preferences.wordSpacing
     let lineHeightValue = preferences.lineHeight
-    let paragraphSpacingEm = (preferences.paragraphSpacing - 1.0) * 0.5
-    let paragraphIndentEm = (preferences.paragraphIndent - 1.0) * 1.0
-    let pageMarginEm = (preferences.pageMargins - 1.0) * 0.5
+    let paragraphSpacingEm = preferences.paragraphSpacing
+    let paragraphIndentEm = preferences.paragraphIndent
+
+    // Use fixed padding in preview as well
+    let basePadding = 10.0
+    let internalPadding = Int(basePadding * preferences.pageMargins)
 
     return """
       <!DOCTYPE html>
@@ -255,7 +235,7 @@
         <style>
           body {
             margin: 0;
-            padding: \(max(0.5, pageMarginEm + 0.5))em;
+            padding: \(internalPadding)px;
             background-color: \(backgroundColor);
             color: \(textColor);
             font-family: \(fontFamily);
@@ -269,9 +249,6 @@
             margin: 0;
             margin-bottom: \(max(0, paragraphSpacingEm))em;
             text-indent: \(max(0, paragraphIndentEm))em;
-          }
-          p:first-child {
-            text-indent: 0;
           }
         </style>
       </head>

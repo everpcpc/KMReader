@@ -133,7 +133,7 @@ class SyncService {
       let instanceId = AppConfig.current.instanceId
       await db.deleteSeries(id: seriesId, instanceId: instanceId)
       await db.commit()
-      throw APIError.notFound(message: "Series not found", url: nil, response: nil)
+      throw APIError.notFound(message: "Series not found", url: nil, response: nil, request: nil)
     }
   }
 
@@ -309,7 +309,7 @@ class SyncService {
       let instanceId = AppConfig.current.instanceId
       await db.deleteBook(id: bookId, instanceId: instanceId)
       await db.commit()
-      throw APIError.notFound(message: "Book not found", url: nil, response: nil)
+      throw APIError.notFound(message: "Book not found", url: nil, response: nil, request: nil)
     }
   }
 
@@ -420,7 +420,7 @@ class SyncService {
       let instanceId = AppConfig.current.instanceId
       await db.deleteCollection(id: id, instanceId: instanceId)
       await db.commit()
-      throw APIError.notFound(message: "Collection not found", url: nil, response: nil)
+      throw APIError.notFound(message: "Collection not found", url: nil, response: nil, request: nil)
     }
   }
 
@@ -490,7 +490,7 @@ class SyncService {
       let instanceId = AppConfig.current.instanceId
       await db.deleteReadList(id: id, instanceId: instanceId)
       await db.commit()
-      throw APIError.notFound(message: "Read list not found", url: nil, response: nil)
+      throw APIError.notFound(message: "Read list not found", url: nil, response: nil, request: nil)
     }
   }
 

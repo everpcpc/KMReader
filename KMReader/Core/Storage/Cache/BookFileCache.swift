@@ -7,6 +7,7 @@
 
 import Foundation
 
+// DEPRECATED: Use offline WebPub resources stored in OfflineBooks instead.
 @globalActor
 actor BookFileCache {
   static let shared = BookFileCache()
@@ -58,6 +59,36 @@ actor BookFileCache {
   func cachedEpubFileURL(bookId: String) async -> URL? {
     let fileURL = await epubFileURL(bookId: bookId)
     return cachedFileURL(at: fileURL)
+  }
+
+  // MARK: - WebPub Resource Cache
+
+  func webPubRootURL(bookId: String) async -> URL {
+    let base = await bookRootURL(bookId: bookId)
+    let url = base.appendingPathComponent("webpub", isDirectory: true)
+    if !fileManager.fileExists(atPath: url.path) {
+      try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+    }
+    return url
+  }
+
+  func cachedWebPubResourceURL(bookId: String, href: String) async -> URL? {
+    let fileURL = await webPubResourceURL(bookId: bookId, href: href)
+    return cachedFileURL(at: fileURL)
+  }
+
+  func ensureWebPubResource(
+    bookId: String,
+    href: String,
+    downloader: @escaping () async throws -> Data
+  ) async throws -> URL {
+    let destination = await webPubResourceURL(bookId: bookId, href: href)
+    return try await ensureFile(
+      bookId: bookId,
+      cacheKey: "webpub#\(bookId)#\(href)",
+      destination: destination,
+      downloader: downloader
+    )
   }
 
   func ensureEpubFile(
@@ -132,6 +163,61 @@ actor BookFileCache {
   private func epubFileURL(bookId: String) async -> URL {
     let base = await bookRootURL(bookId: bookId)
     return base.appendingPathComponent("book.epub", isDirectory: false)
+  }
+
+  private func webPubResourceURL(bookId: String, href: String) async -> URL {
+    let root = await webPubRootURL(bookId: bookId)
+    let relativePath = webPubRelativePath(from: href)
+    return root.appendingPathComponent(relativePath, isDirectory: false)
+  }
+
+  private func webPubRelativePath(from href: String) -> String {
+    let cleaned = href.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !cleaned.isEmpty else {
+      return FileNameHelper.sanitizedFileName("resource", defaultBaseName: "resource")
+    }
+
+    let hrefURL = URL(string: cleaned)
+    let rawPath = hrefURL?.path.isEmpty == false ? hrefURL!.path : cleaned
+    let trimmedPath = rawPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    let components = trimmedPath.split(separator: "/").map(String.init)
+
+    var sanitized = components.enumerated().compactMap { index, component -> String? in
+      if component == "." || component == ".." {
+        return nil
+      }
+      let fallback = index == components.count - 1 ? "resource" : "dir"
+      return sanitizePathComponent(component, fallback: fallback)
+    }
+
+    if sanitized.isEmpty {
+      return FileNameHelper.sanitizedFileName("resource", defaultBaseName: "resource")
+    }
+
+    let query = URLComponents(string: cleaned)?.query
+    if let query, !query.isEmpty {
+      let suffix = "--q-" + sanitizePathComponent(query, fallback: "q")
+      sanitized[sanitized.count - 1] += suffix
+    }
+
+    return sanitized.joined(separator: "/")
+  }
+
+  private func sanitizePathComponent(_ value: String, fallback: String) -> String {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
+    var sanitized = trimmed.components(separatedBy: invalidCharacters).joined(separator: "-")
+    sanitized = sanitized.replacingOccurrences(of: " ", with: "-")
+
+    while sanitized.contains("--") {
+      sanitized = sanitized.replacingOccurrences(of: "--", with: "-")
+    }
+
+    if sanitized.isEmpty {
+      return fallback
+    }
+
+    return sanitized
   }
 
   private func originalFileURL(bookId: String, fileName: String) async -> URL {

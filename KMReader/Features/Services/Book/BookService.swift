@@ -70,6 +70,13 @@ class BookService {
     )
   }
 
+  func getBookWebPubManifest(bookId: String) async throws -> WebPubPublication {
+    return try await apiClient.request(
+      path: "/api/v1/books/\(bookId)/manifest",
+      headers: ["Accept": "application/webpub+json"]
+    )
+  }
+
   func getWebPubProgression(bookId: String) async throws -> R2Progression? {
     return try await apiClient.requestOptional(path: "/api/v1/books/\(bookId)/progression")
   }

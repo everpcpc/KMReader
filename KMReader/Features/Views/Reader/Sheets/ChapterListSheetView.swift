@@ -6,13 +6,12 @@
 //
 
 #if os(iOS)
-  import ReadiumShared
   import SwiftUI
 
   struct ChapterListSheetView: View {
-    let chapters: [ReadiumShared.Link]
-    let currentLink: ReadiumShared.Link?
-    let goToChapter: (ReadiumShared.Link) -> Void
+    let chapters: [WebPubLink]
+    let currentLink: WebPubLink?
+    let goToChapter: (WebPubLink) -> Void
 
     var body: some View {
       SheetView(title: String(localized: "title.chapters"), size: .large, applyFormStyle: true) {
@@ -40,7 +39,6 @@
           }
           .optimizedListStyle()
           .onAppear {
-            // Wait for the List to fully render before scrolling
             DispatchQueue.main.async {
               if let target = currentLink {
                 proxy.scrollTo(target.href, anchor: .center)

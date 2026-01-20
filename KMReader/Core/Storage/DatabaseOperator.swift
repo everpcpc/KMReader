@@ -277,6 +277,26 @@ actor DatabaseOperator {
     }
   }
 
+  func updateBookWebPubManifest(bookId: String, manifest: WebPubPublication) async {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      let data = await MainActor.run { try? JSONEncoder().encode(manifest) }
+      book.webPubManifestRaw = data
+    }
+  }
+
+  func fetchWebPubManifest(bookId: String) async -> WebPubPublication? {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    guard let data = try? modelContext.fetch(descriptor).first?.webPubManifestRaw else {
+      return nil
+    }
+    return await MainActor.run { try? JSONDecoder().decode(WebPubPublication.self, from: data) }
+  }
+
   // MARK: - Series Operations
 
   func upsertSeries(dto: Series, instanceId: String) {
@@ -607,6 +627,7 @@ actor DatabaseOperator {
     if case .notDownloaded = status {
       book.pagesRaw = nil
       book.tocRaw = nil
+      book.webPubManifestRaw = nil
     }
 
     // Sync series status

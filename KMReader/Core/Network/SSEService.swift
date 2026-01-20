@@ -89,23 +89,7 @@ actor SSEService {
     var request = URLRequest(url: url)
     request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
 
-    let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
-    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
-    let device = PlatformHelper.deviceModel
-    let osVersion = PlatformHelper.osVersion
-    #if os(iOS)
-      let platform = "iOS"
-    #elseif os(macOS)
-      let platform = "macOS"
-    #elseif os(tvOS)
-      let platform = "tvOS"
-    #else
-      let platform = "Unknown"
-    #endif
-    let userAgent =
-      "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
-    request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+    request.setValue(AppConfig.userAgent, forHTTPHeaderField: "User-Agent")
 
     do {
       let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)

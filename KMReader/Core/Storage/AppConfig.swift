@@ -54,14 +54,9 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "deviceIdentifier") }
   }
 
-  static nonisolated var deviceModel: String {
-    get { UserDefaults.standard.string(forKey: "deviceModel") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "deviceModel") }
-  }
-
-  static nonisolated var osVersion: String {
-    get { UserDefaults.standard.string(forKey: "osVersion") ?? "" }
-    set { UserDefaults.standard.set(newValue, forKey: "osVersion") }
+  static nonisolated var userAgent: String {
+    get { UserDefaults.standard.string(forKey: "userAgent") ?? "" }
+    set { UserDefaults.standard.set(newValue, forKey: "userAgent") }
   }
 
   static nonisolated var isolateCoverPage: Bool {

@@ -70,6 +70,7 @@ final class KomgaBook {
   // Metadata storage
   var pagesRaw: Data?
   var tocRaw: Data?
+  var webPubManifestRaw: Data?
 
   // Track offline download status (managed locally)
   var downloadStatusRaw: String = "notDownloaded"

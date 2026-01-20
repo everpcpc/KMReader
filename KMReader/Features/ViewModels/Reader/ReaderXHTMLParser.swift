@@ -16,7 +16,38 @@ struct ReaderXHTMLImageInfo {
 }
 
 enum ReaderXHTMLParser {
-  static func firstImageInfo(from data: Data, baseURL: URL) -> ReaderXHTMLImageInfo? {
+  static nonisolated func textLength(from data: Data, baseURL: URL) -> Int? {
+    // Try different encodings to decode the data
+    let encodings: [String.Encoding] = [
+      .utf8,
+      .utf16,
+      .utf16LittleEndian,
+      .utf16BigEndian,
+      .isoLatin1,
+      .windowsCP1252,
+    ]
+
+    for encoding in encodings {
+      guard let htmlString = String(data: data, encoding: encoding) else {
+        continue
+      }
+
+      do {
+        let doc = try SwiftSoup.parse(htmlString, baseURL.absoluteString)
+        let text = try doc.text()
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+          return trimmed.count
+        }
+      } catch {
+        continue
+      }
+    }
+
+    return nil
+  }
+
+  static nonisolated func firstImageInfo(from data: Data, baseURL: URL) -> ReaderXHTMLImageInfo? {
     // Try different encodings to decode the data
     let encodings: [String.Encoding] = [
       .utf8,
@@ -71,7 +102,7 @@ enum ReaderXHTMLParser {
     return nil
   }
 
-  private static func createImageInfo(element: Element, url: URL) -> ReaderXHTMLImageInfo {
+  private static nonisolated func createImageInfo(element: Element, url: URL) -> ReaderXHTMLImageInfo {
     let width = parseDimension(from: try? element.attr("width"))
     let height = parseDimension(from: try? element.attr("height"))
     let explicitType = try? element.attr("type")
@@ -85,7 +116,7 @@ enum ReaderXHTMLParser {
     )
   }
 
-  private static func parseDimension(from value: String?) -> Int? {
+  private static nonisolated func parseDimension(from value: String?) -> Int? {
     guard let rawValue = value, !rawValue.isEmpty else { return nil }
     // Extract numeric value (handle cases like "100px", "100", "100.5")
     let filtered = rawValue.filter { "0123456789.".contains($0) }

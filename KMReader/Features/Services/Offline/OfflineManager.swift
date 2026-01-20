@@ -120,6 +120,68 @@ actor OfflineManager {
     return url
   }
 
+  private func webPubRootURL(bookDir: URL) -> URL {
+    let url = bookDir.appendingPathComponent("webpub", isDirectory: true)
+    if !FileManager.default.fileExists(atPath: url.path) {
+      try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    }
+    return url
+  }
+
+  private static func webPubResourceURL(root: URL, href: String) -> URL {
+    let relativePath = webPubRelativePath(from: href)
+    return root.appendingPathComponent(relativePath, isDirectory: false)
+  }
+
+  private static func webPubRelativePath(from href: String) -> String {
+    let cleaned = href.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !cleaned.isEmpty else {
+      return FileNameHelper.sanitizedFileName("resource", defaultBaseName: "resource")
+    }
+
+    let hrefURL = URL(string: cleaned)
+    let rawPath = hrefURL?.path.isEmpty == false ? hrefURL!.path : cleaned
+    let trimmedPath = rawPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    let components = trimmedPath.split(separator: "/").map(String.init)
+
+    var sanitized = components.enumerated().compactMap { index, component -> String? in
+      if component == "." || component == ".." {
+        return nil
+      }
+      let fallback = index == components.count - 1 ? "resource" : "dir"
+      return sanitizePathComponent(component, fallback: fallback)
+    }
+
+    if sanitized.isEmpty {
+      return FileNameHelper.sanitizedFileName("resource", defaultBaseName: "resource")
+    }
+
+    let query = URLComponents(string: cleaned)?.query
+    if let query, !query.isEmpty {
+      let suffix = "--q-" + sanitizePathComponent(query, fallback: "q")
+      sanitized[sanitized.count - 1] += suffix
+    }
+
+    return sanitized.joined(separator: "/")
+  }
+
+  private static func sanitizePathComponent(_ value: String, fallback: String) -> String {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
+    var sanitized = trimmed.components(separatedBy: invalidCharacters).joined(separator: "-")
+    sanitized = sanitized.replacingOccurrences(of: " ", with: "-")
+
+    while sanitized.contains("--") {
+      sanitized = sanitized.replacingOccurrences(of: "--", with: "-")
+    }
+
+    if sanitized.isEmpty {
+      return fallback
+    }
+
+    return sanitized
+  }
+
   // MARK: - Public API
 
   /// Get the download status of a book from SwiftData.
@@ -133,6 +195,24 @@ actor OfflineManager {
       return true
     }
     return false
+  }
+
+  func getOfflineWebPubRootURL(instanceId: String, bookId: String) async -> URL? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    return webPubRootURL(bookDir: bookDir)
+  }
+
+  func cachedOfflineWebPubResourceURL(
+    instanceId: String,
+    bookId: String,
+    href: String
+  ) async -> URL? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    let root = webPubRootURL(bookDir: bookDir)
+    let destination = Self.webPubResourceURL(root: root, href: href)
+    return FileManager.default.fileExists(atPath: destination.path) ? destination : nil
   }
 
   func toggleDownload(instanceId: String, info: DownloadInfo) async {
@@ -506,8 +586,12 @@ actor OfflineManager {
     let bookDir = bookDirectory(instanceId: instanceId, bookId: info.bookId)
 
     #if os(iOS)
-      // Use background downloads on iOS
-      await startBackgroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
+      if info.isEpub && !info.epubDivinaCompatible {
+        await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
+      } else {
+        // Use background downloads on iOS
+        await startBackgroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
+      }
     #else
       // Use in-process downloads on macOS/tvOS
       await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
@@ -549,18 +633,8 @@ actor OfflineManager {
 
         let isEpub = info.isEpub && !info.epubDivinaCompatible
         if isEpub {
-          let destination = bookDir.appendingPathComponent("book.epub")
-          if await copyCachedEpubIfAvailable(bookId: info.bookId, destination: destination) {
-            logger.info("✅ Using cached EPUB for book: \(info.bookId)")
-            await finalizeDownload(
-              instanceId: instanceId,
-              bookId: info.bookId,
-              bookDir: bookDir,
-              isEpub: true
-            )
-            await syncDownloadQueue(instanceId: instanceId)
-            return
-          }
+          await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
+          return
         }
 
         // Store download info for completion handling
@@ -568,111 +642,85 @@ actor OfflineManager {
           instanceId: instanceId,
           seriesTitle: info.seriesTitle,
           bookInfo: info.bookInfo,
-          isEpub: isEpub,
+          isEpub: false,
           totalPages: pages.count
         )
 
         let serverURL = await MainActor.run { AppConfig.current.serverURL }
 
-        if isEpub {
-          // EPUB: single file download
+        // Pages: multiple downloads, skip already downloaded pages
+        var pagesToDownload: [BookPage] = []
+
+        for page in pages {
+          let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
+          let destination = bookDir.appendingPathComponent("page-\(page.number).\(ext)")
+
+          // Skip if page already exists
+          if FileManager.default.fileExists(atPath: destination.path) {
+            continue
+          }
+          if await copyCachedPageIfAvailable(
+            bookId: info.bookId,
+            page: page,
+            destination: destination
+          ) {
+            continue
+          }
+          pagesToDownload.append(page)
+        }
+
+        let completedCount = pages.count - pagesToDownload.count
+        if pages.count > 0, completedCount > 0 {
+          let progress = Double(completedCount) / Double(pages.count)
+          await MainActor.run {
+            DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: progress)
+          }
+          await LiveActivityManager.shared.updateActivity(
+            seriesTitle: info.seriesTitle,
+            bookInfo: info.bookInfo,
+            progress: progress,
+            pendingCount: pendingBooks.count,
+            failedCount: failedCount
+          )
+        }
+
+        // If all pages already exist, mark as complete
+        if pagesToDownload.isEmpty {
+          logger.info("✅ All pages already downloaded for book: \(info.bookId)")
+          await finalizeDownload(
+            instanceId: instanceId,
+            bookId: info.bookId,
+            bookDir: bookDir
+          )
+          backgroundDownloadInfo.removeValue(forKey: info.bookId)
+          await syncDownloadQueue(instanceId: instanceId)
+          return
+        }
+
+        pendingBackgroundPages[info.bookId] = Set(pagesToDownload.map { $0.number })
+
+        activeTasks[info.bookId] = Task {
+          // Wait indefinitely until explicitly cancelled via removeActiveTask
+          try? await Task.sleep(nanoseconds: UInt64.max)
+        }
+
+        for page in pagesToDownload {
           guard
             let downloadURL = URL(
-              string: serverURL + "/api/v1/books/\(info.bookId)/file")
-          else {
-            throw APIError.invalidURL
-          }
-          let destPath = bookDir.appendingPathComponent("book.epub").path
+              string: serverURL + "/api/v1/books/\(info.bookId)/pages/\(page.number)")
+          else { continue }
 
-          activeTasks[info.bookId] = Task {
-            // Wait indefinitely until explicitly cancelled via removeActiveTask
-            try? await Task.sleep(nanoseconds: UInt64.max)
-          }
+          let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
+          let destPath = bookDir.appendingPathComponent("page-\(page.number).\(ext)").path
 
           await MainActor.run {
-            BackgroundDownloadManager.shared.downloadEpub(
+            BackgroundDownloadManager.shared.downloadPage(
               bookId: info.bookId,
               instanceId: instanceId,
+              pageNumber: page.number,
               url: downloadURL,
               destinationPath: destPath
             )
-          }
-        } else {
-          // Pages: multiple downloads, skip already downloaded pages
-          var pagesToDownload: [BookPage] = []
-
-          for page in pages {
-            let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-            let destination = bookDir.appendingPathComponent("page-\(page.number).\(ext)")
-
-            // Skip if page already exists
-            if FileManager.default.fileExists(atPath: destination.path) {
-              continue
-            }
-            if await copyCachedPageIfAvailable(
-              bookId: info.bookId,
-              page: page,
-              destination: destination
-            ) {
-              continue
-            }
-            pagesToDownload.append(page)
-          }
-
-          let completedCount = pages.count - pagesToDownload.count
-          if pages.count > 0, completedCount > 0 {
-            let progress = Double(completedCount) / Double(pages.count)
-            await MainActor.run {
-              DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: progress)
-            }
-            await LiveActivityManager.shared.updateActivity(
-              seriesTitle: info.seriesTitle,
-              bookInfo: info.bookInfo,
-              progress: progress,
-              pendingCount: pendingBooks.count,
-              failedCount: failedCount
-            )
-          }
-
-          // If all pages already exist, mark as complete
-          if pagesToDownload.isEmpty {
-            logger.info("✅ All pages already downloaded for book: \(info.bookId)")
-            await finalizeDownload(
-              instanceId: instanceId,
-              bookId: info.bookId,
-              bookDir: bookDir,
-              isEpub: false
-            )
-            backgroundDownloadInfo.removeValue(forKey: info.bookId)
-            await syncDownloadQueue(instanceId: instanceId)
-            return
-          }
-
-          pendingBackgroundPages[info.bookId] = Set(pagesToDownload.map { $0.number })
-
-          activeTasks[info.bookId] = Task {
-            // Wait indefinitely until explicitly cancelled via removeActiveTask
-            try? await Task.sleep(nanoseconds: UInt64.max)
-          }
-
-          for page in pagesToDownload {
-            guard
-              let downloadURL = URL(
-                string: serverURL + "/api/v1/books/\(info.bookId)/pages/\(page.number)")
-            else { continue }
-
-            let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-            let destPath = bookDir.appendingPathComponent("page-\(page.number).\(ext)").path
-
-            await MainActor.run {
-              BackgroundDownloadManager.shared.downloadPage(
-                bookId: info.bookId,
-                instanceId: instanceId,
-                pageNumber: page.number,
-                url: downloadURL,
-                destinationPath: destPath
-              )
-            }
           }
         }
       } catch {
@@ -707,8 +755,7 @@ actor OfflineManager {
         await finalizeDownload(
           instanceId: instanceId,
           bookId: info.bookId,
-          bookDir: bookDir,
-          isEpub: isEpub
+          bookDir: bookDir
         )
         logger.info("✅ Download complete for book: \(info.bookId)")
 
@@ -973,8 +1020,7 @@ actor OfflineManager {
       await finalizeDownload(
         instanceId: info.instanceId,
         bookId: bookId,
-        bookDir: bookDir,
-        isEpub: info.isEpub
+        bookDir: bookDir
       )
       logger.info("✅ All background downloads complete for book: \(bookId)")
 
@@ -1023,13 +1069,113 @@ actor OfflineManager {
       await DatabaseOperator.shared.commit()
     }
 
-    let destination = bookDir.appendingPathComponent("book.epub")
-    if await copyCachedEpubIfAvailable(bookId: bookId, destination: destination) {
+    let webPubManifest = try await BookService.shared.getBookWebPubManifest(bookId: bookId)
+    await DatabaseOperator.shared.updateBookWebPubManifest(bookId: bookId, manifest: webPubManifest)
+    await DatabaseOperator.shared.commit()
+
+    try await downloadWebPubResources(manifest: webPubManifest, bookId: bookId, bookDir: bookDir)
+  }
+
+  private func downloadWebPubResources(
+    manifest: WebPubPublication,
+    bookId: String,
+    bookDir: URL
+  ) async throws {
+    let resourceLinks = collectWebPubResourceLinks(from: manifest)
+    let hrefs = Array(Set(resourceLinks))
+    guard !hrefs.isEmpty else {
+      await MainActor.run {
+        DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
+      }
       return
     }
 
-    let result = try await BookService.shared.downloadBookFile(bookId: bookId)
-    try result.data.write(to: destination)
+    let root = webPubRootURL(bookDir: bookDir)
+    let baseURLString = AppConfig.current.serverURL
+    let total = Double(hrefs.count)
+    var completedCount = 0
+
+    await MainActor.run {
+      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.0)
+    }
+
+    try await withThrowingTaskGroup(of: Void.self) { group in
+      let maxConcurrent = 4
+      var active = 0
+      var iterator = hrefs.makeIterator()
+
+      func submitNext() {
+        if let href = iterator.next() {
+          group.addTask {
+            try Task.checkCancellation()
+            guard let resourceURL = Self.resolveResourceURL(href: href, baseURLString: baseURLString)
+            else {
+              throw AppErrorType.invalidFileURL(url: href)
+            }
+
+            let destination = Self.webPubResourceURL(root: root, href: href)
+            if FileManager.default.fileExists(atPath: destination.path) {
+              return
+            }
+
+            let directory = destination.deletingLastPathComponent()
+            if !FileManager.default.fileExists(atPath: directory.path) {
+              try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            }
+
+            let result = try await BookService.shared.downloadResource(at: resourceURL)
+            try result.data.write(to: destination, options: [.atomic])
+          }
+          active += 1
+        }
+      }
+
+      for _ in 0..<maxConcurrent {
+        submitNext()
+      }
+
+      while active > 0 {
+        try await group.next()
+        active -= 1
+        completedCount += 1
+
+        let progress = Double(completedCount) / total
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: progress)
+        }
+
+        submitNext()
+      }
+    }
+  }
+
+  private func collectWebPubResourceLinks(from manifest: WebPubPublication) -> [String] {
+    let collections = [
+      manifest.readingOrder,
+      manifest.resources,
+      manifest.images,
+      manifest.links,
+      manifest.pageList,
+      manifest.toc,
+      manifest.landmarks,
+    ]
+
+    return collections.flatMap { links in
+      links.compactMap { link in
+        guard !link.href.isEmpty else { return nil }
+        if link.templated == true { return nil }
+        if link.href.hasPrefix("#") || link.href.hasPrefix("data:") { return nil }
+        return link.href
+      }
+    }
+  }
+
+  private static func resolveResourceURL(href: String, baseURLString: String) -> URL? {
+    if let url = URL(string: href), url.scheme != nil {
+      return url
+    }
+    guard let baseURL = URL(string: baseURLString) else { return nil }
+    return URL(string: href, relativeTo: baseURL)?.absoluteURL
   }
 
   private func downloadPages(bookId: String, to bookDir: URL) async throws {
@@ -1151,39 +1297,14 @@ actor OfflineManager {
     }
   }
 
-  private func copyCachedEpubIfAvailable(
-    bookId: String,
-    destination: URL
-  ) async -> Bool {
-    if FileManager.default.fileExists(atPath: destination.path) {
-      return true
-    }
-
-    guard let cachedURL = await BookFileCache.shared.cachedEpubFileURL(bookId: bookId) else {
-      return false
-    }
-
-    do {
-      try FileManager.default.copyItem(at: cachedURL, to: destination)
-      return true
-    } catch {
-      logger.error("❌ Failed to copy cached EPUB for book \(bookId): \(error)")
-      return false
-    }
-  }
-
-  private func clearCachesAfterDownload(bookId: String, isEpub: Bool) async {
+  private func clearCachesAfterDownload(bookId: String) async {
     await ImageCache.clearDiskCache(forBookId: bookId)
-    if isEpub {
-      await BookFileCache.clearDiskCache(forBookId: bookId)
-    }
   }
 
   private func finalizeDownload(
     instanceId: String,
     bookId: String,
-    bookDir: URL,
-    isEpub: Bool
+    bookDir: URL
   ) async {
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId,
@@ -1191,7 +1312,7 @@ actor OfflineManager {
       status: .downloaded
     )
     await DatabaseOperator.shared.commit()
-    await clearCachesAfterDownload(bookId: bookId, isEpub: isEpub)
+    await clearCachesAfterDownload(bookId: bookId)
     removeActiveTask(bookId)
     scheduleDownloadedSizeUpdate(instanceId: instanceId, bookId: bookId, bookDir: bookDir)
   }

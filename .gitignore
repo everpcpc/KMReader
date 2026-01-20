@@ -8,6 +8,7 @@ xcshareddata/
 Package.resolved
 
 /buildServer.json
+/packages/
 
 .DS_Store
 
@@ -20,6 +21,7 @@ misc/exportOptions.plist
 archives/
 exports/
 artifacts/
+
 
 # App Store Connect API Keys (never commit these!)
 *.p8

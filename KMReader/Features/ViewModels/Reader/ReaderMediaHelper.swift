@@ -9,7 +9,7 @@ import Foundation
 import UniformTypeIdentifiers
 
 enum ReaderMediaHelper {
-  static func normalizedMimeType(_ original: String?) -> String {
+  static nonisolated func normalizedMimeType(_ original: String?) -> String {
     guard
       let original = original,
       !original.isEmpty
@@ -18,7 +18,7 @@ enum ReaderMediaHelper {
     return base?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
   }
 
-  static func guessMediaType(for url: URL, fallback: String? = nil) -> String {
+  static nonisolated func guessMediaType(for url: URL, fallback: String? = nil) -> String {
     let fileExtension = url.pathExtension.lowercased()
     if !fileExtension.isEmpty,
       let type = UTType(filenameExtension: fileExtension),
