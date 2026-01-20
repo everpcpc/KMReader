@@ -27,3 +27,5 @@ AuthKey_*.p8
 ~/.appstoreconnect/
 .env
 .env.local
+
+/packages/
