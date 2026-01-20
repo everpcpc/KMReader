@@ -1,14 +1,14 @@
 :root {
-  --bg: #f1f6ff;
+  --bg: #fdfafd;
   --panel: #ffffff;
-  --text: #1f2a44;
-  --muted: #5f6887;
-  --heading: #041431;
-  --accent: #005ed1;
-  --accent-strong: #ff0335;
-  --accent-soft: #ffdf47;
-  --border: #d8e3ff;
-  --shadow: 0 12px 40px rgba(8, 29, 74, 0.12);
+  --text: #2a1b3d;
+  --muted: #7d6b91;
+  --heading: #1a0b2e;
+  --accent: #a62ca3;
+  --accent-strong: #642891;
+  --accent-soft: #f28e33;
+  --border: #f0e6f5;
+  --shadow: 0 12px 40px rgba(42, 11, 46, 0.08);
 }
 
 *,
@@ -19,14 +19,14 @@
 
 body {
   margin: 0;
-  font-family: "Avenir Next", Avenir, "Helvetica Neue", Arial, Helvetica,
+  font-family: "Inter", "Avenir Next", Avenir, "Helvetica Neue", Arial, Helvetica,
     sans-serif;
   font-size: 16px;
   line-height: 1.75;
   color: var(--text);
   background: radial-gradient(
       circle at top,
-      rgba(0, 94, 209, 0.18),
+      rgba(166, 44, 163, 0.12),
       transparent 60%
     )
     var(--bg);
@@ -94,7 +94,7 @@ img {
   gap: 0.5rem;
   padding: 0.3rem 0.9rem;
   border-radius: 999px;
-  background: rgba(0, 94, 209, 0.08);
+  background: rgba(166, 44, 163, 0.08);
   color: var(--accent);
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -138,13 +138,13 @@ h1 {
 }
 
 .button.primary {
-  background: linear-gradient(135deg, #1f7dff, #0050c8);
+  background: linear-gradient(135deg, #f28e33, #a62ca3, #642891);
   color: #ffffff;
-  border-color: rgba(0, 80, 200, 0.3);
+  border: none;
 }
 
 .button.secondary {
-  background: rgba(4, 20, 49, 0.08);
+  background: rgba(166, 44, 163, 0.06);
   color: var(--accent);
 }
 
@@ -264,13 +264,13 @@ section {
 }
 
 .privacy-contact {
-  border: 1px solid rgba(0, 94, 209, 0.18);
+  border: 1px solid rgba(166, 44, 163, 0.15);
   border-radius: 24px;
   padding: 2rem;
   background: linear-gradient(
     135deg,
-    rgba(0, 94, 209, 0.12),
-    rgba(0, 94, 209, 0.04)
+    rgba(166, 44, 163, 0.08),
+    rgba(242, 142, 51, 0.04)
   );
   box-shadow: var(--shadow);
   margin-top: 2.5rem;
@@ -323,7 +323,7 @@ section {
   padding: 0.15rem 0.65rem;
   font-size: 0.7rem;
   border-radius: 999px;
-  background: rgba(0, 94, 209, 0.1);
+  background: rgba(166, 44, 163, 0.1);
   color: var(--accent);
   margin-bottom: 0.8rem;
   text-transform: uppercase;

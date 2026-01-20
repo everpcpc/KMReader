@@ -6,7 +6,7 @@
   <img src="icon.svg" alt="KMReader Icon" width="128" height="128">
 </div>
 
-**Native iOS, macOS, and tvOS client for [Komga](https://github.com/gotson/komga) with comic and EPUB readers**
+**A full-featured, native Komga client for iOS, macOS, and tvOS — featuring powerful comic/EPUB readers and live admin tools.**
 
 [![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)](https://www.apple.com/ios/)
 [![macOS](https://img.shields.io/badge/macOS-14.0+-blue.svg)](https://www.apple.com/macos/)
