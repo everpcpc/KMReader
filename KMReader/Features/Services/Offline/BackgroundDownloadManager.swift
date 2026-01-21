@@ -128,26 +128,31 @@ import OSLog
     func cancelDownloads(forBookId bookId: String) {
       backgroundSession.getAllTasks { [weak self] tasks in
         guard let self = self else { return }
-        for task in tasks {
-          if let info = self.activeTasks[task.taskIdentifier], info.bookId == bookId {
-            task.cancel()
-            self.activeTasks.removeValue(forKey: task.taskIdentifier)
+        Task { @MainActor in
+          for task in tasks {
+            if let info = self.activeTasks[task.taskIdentifier], info.bookId == bookId {
+              task.cancel()
+              self.activeTasks.removeValue(forKey: task.taskIdentifier)
+            }
           }
+          self.saveTaskInfo()
+          self.logger.info("⛔ Cancelled all background downloads for book: \(bookId)")
         }
-        self.saveTaskInfo()
-        self.logger.info("⛔ Cancelled all background downloads for book: \(bookId)")
       }
     }
 
     /// Cancel all active downloads
     func cancelAllDownloads() {
       backgroundSession.getAllTasks { [weak self] tasks in
-        for task in tasks {
-          task.cancel()
+        guard let self = self else { return }
+        Task { @MainActor in
+          for task in tasks {
+            task.cancel()
+          }
+          self.activeTasks.removeAll()
+          self.saveTaskInfo()
+          self.logger.info("⛔ Cancelled all background downloads")
         }
-        self?.activeTasks.removeAll()
-        self?.saveTaskInfo()
-        self?.logger.info("⛔ Cancelled all background downloads")
       }
     }
 
@@ -253,26 +258,28 @@ import OSLog
 
   extension BackgroundDownloadManager: URLSessionDownloadDelegate {
 
-    func urlSession(
+    nonisolated func urlSession(
       _ session: URLSession,
       downloadTask: URLSessionDownloadTask,
       didFinishDownloadingTo location: URL
     ) {
-      handleDownloadComplete(taskIdentifier: downloadTask.taskIdentifier, location: location)
+      Task { @MainActor in
+        self.handleDownloadComplete(taskIdentifier: downloadTask.taskIdentifier, location: location)
+      }
     }
 
-    func urlSession(
+    nonisolated func urlSession(
       _ session: URLSession,
       task: URLSessionTask,
       didCompleteWithError error: Error?
     ) {
-      if let error = error {
-        handleDownloadError(taskIdentifier: task.taskIdentifier, error: error)
-      }
+      Task { @MainActor in
+        if let error = error {
+          self.handleDownloadError(taskIdentifier: task.taskIdentifier, error: error)
+        }
 
-      // Call the background completion handler if all tasks are done
-      if activeTasks.isEmpty, let handler = backgroundCompletionHandler {
-        DispatchQueue.main.async {
+        // Call the background completion handler if all tasks are done
+        if self.activeTasks.isEmpty, let handler = self.backgroundCompletionHandler {
           handler()
           self.backgroundCompletionHandler = nil
           self.logger.info("✅ Background session events processed")
@@ -280,29 +287,29 @@ import OSLog
       }
     }
 
-    func urlSession(
+    nonisolated func urlSession(
       _ session: URLSession,
       downloadTask: URLSessionDownloadTask,
       didWriteData bytesWritten: Int64,
       totalBytesWritten: Int64,
       totalBytesExpectedToWrite: Int64
     ) {
-      guard let taskInfo = activeTasks[downloadTask.taskIdentifier] else { return }
+      Task { @MainActor in
+        guard let taskInfo = self.activeTasks[downloadTask.taskIdentifier] else { return }
 
-      // Only update progress for EPUB downloads (single file)
-      // Page downloads are tracked by completed count in OfflineManager
-      if taskInfo.isEpub, totalBytesExpectedToWrite > 0 {
-        let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-        Task { @MainActor in
+        // Only update progress for EPUB downloads (single file)
+        // Page downloads are tracked by completed count in OfflineManager
+        if taskInfo.isEpub, totalBytesExpectedToWrite > 0 {
+          let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
           DownloadProgressTracker.shared.updateProgress(bookId: taskInfo.bookId, value: progress)
         }
       }
     }
 
-    func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
+    nonisolated func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
       // Called when all background session events have been delivered
-      if let handler = backgroundCompletionHandler {
-        DispatchQueue.main.async {
+      Task { @MainActor in
+        if let handler = self.backgroundCompletionHandler {
           handler()
           self.backgroundCompletionHandler = nil
           self.logger.info("✅ All background session events finished")

@@ -7,18 +7,18 @@
 
 import Foundation
 
-enum TriStateSelection: String, Codable {
+nonisolated enum TriStateSelection: String, Codable {
   case off
   case include
   case exclude
 }
 
-enum FilterLogic: String, Codable {
+nonisolated enum FilterLogic: String, Codable {
   case all = "ALL"
   case any = "ANY"
 }
 
-enum BoolTriStateFlag: String {
+nonisolated enum BoolTriStateFlag: String {
   case yes = "true"
 
   var boolValue: Bool {
@@ -26,7 +26,7 @@ enum BoolTriStateFlag: String {
   }
 }
 
-struct TriStateFilter<Value: RawRepresentable & Equatable>: Equatable
+nonisolated struct TriStateFilter<Value: RawRepresentable & Equatable>: Equatable
 where Value.RawValue == String {
   var state: TriStateSelection
   var value: Value?
@@ -142,16 +142,16 @@ extension TriStateFilter where Value == SeriesStatus {
 }
 
 extension TriStateFilter where Value == BoolTriStateFlag {
-  var includedBool: Bool? {
+  nonisolated var includedBool: Bool? {
     includedValue?.boolValue
   }
 
-  var excludedBool: Bool? {
+  nonisolated var excludedBool: Bool? {
     excludedValue?.boolValue
   }
 
   /// Prefer an explicit include value; otherwise flip the excluded value if present.
-  var effectiveBool: Bool? {
+  nonisolated var effectiveBool: Bool? {
     if let include = includedBool {
       return include
     }

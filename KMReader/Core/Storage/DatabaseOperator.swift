@@ -9,9 +9,24 @@ import Foundation
 import OSLog
 import SwiftData
 
+struct InstanceSummary: Sendable {
+  let id: UUID
+  let displayName: String
+}
+
+struct PendingProgressSummary: Sendable {
+  let id: String
+  let instanceId: String
+  let bookId: String
+  let page: Int
+  let completed: Bool
+  let createdAt: Date
+  let progressionData: Data?
+}
+
 @ModelActor
 actor DatabaseOperator {
-  static var shared: DatabaseOperator!
+  @MainActor static var shared: DatabaseOperator!
 
   private let logger = AppLogger(.database)
   private var pendingCommitTask: Task<Void, Never>?
@@ -180,12 +195,12 @@ actor DatabaseOperator {
   }
 
   func fetchBook(id: String) async -> Book? {
-    await KomgaBookStore.fetchBook(context: modelContext, id: id)
+    KomgaBookStore.fetchBook(context: modelContext, id: id)
   }
 
   func getNextBook(instanceId: String, bookId: String, readListId: String?) async -> Book? {
     if let readListId = readListId {
-      let books = await KomgaBookStore.fetchReadListBooks(
+      let books = KomgaBookStore.fetchReadListBooks(
         context: modelContext, readListId: readListId, page: 0, size: 1000,
         browseOpts: ReadListBookBrowseOptions())
       if let currentIndex = books.firstIndex(where: { $0.id == bookId }),
@@ -194,7 +209,7 @@ actor DatabaseOperator {
         return books[currentIndex + 1]
       }
     } else if let currentBook = await fetchBook(id: bookId) {
-      let seriesBooks = await KomgaBookStore.fetchSeriesBooks(
+      let seriesBooks = KomgaBookStore.fetchSeriesBooks(
         context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000,
         browseOpts: BookBrowseOptions())
       if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
@@ -208,7 +223,7 @@ actor DatabaseOperator {
 
   func getPreviousBook(instanceId: String, bookId: String, readListId: String? = nil) async -> Book? {
     if let readListId = readListId {
-      let books = await KomgaBookStore.fetchReadListBooks(
+      let books = KomgaBookStore.fetchReadListBooks(
         context: modelContext, readListId: readListId, page: 0, size: 1000,
         browseOpts: ReadListBookBrowseOptions())
       if let currentIndex = books.firstIndex(where: { $0.id == bookId }),
@@ -217,7 +232,7 @@ actor DatabaseOperator {
         return books[currentIndex - 1]
       }
     } else if let currentBook = await fetchBook(id: bookId) {
-      let seriesBooks = await KomgaBookStore.fetchSeriesBooks(
+      let seriesBooks = KomgaBookStore.fetchSeriesBooks(
         context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000,
         browseOpts: BookBrowseOptions())
       if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
@@ -465,7 +480,7 @@ actor DatabaseOperator {
   }
 
   func fetchSeries(id: String) async -> Series? {
-    await KomgaSeriesStore.fetchOne(context: modelContext, seriesId: id)
+    KomgaSeriesStore.fetchOne(context: modelContext, seriesId: id)
   }
 
   func updateSeriesCollectionIds(seriesId: String, collectionIds: [String], instanceId: String) {
@@ -773,10 +788,11 @@ actor DatabaseOperator {
     if !booksToDelete.isEmpty {
       let instanceId = series.instanceId
       let seriesId = series.seriesId
+      let bookIdsToDelete = booksToDelete.map { $0.bookId }
       Task {
-        for book in booksToDelete {
+        for bookId in bookIdsToDelete {
           await OfflineManager.shared.deleteBook(
-            instanceId: instanceId, bookId: book.bookId, commit: false, syncSeriesStatus: false)
+            instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
         }
         await DatabaseOperator.shared.syncSeriesDownloadStatus(
           seriesId: seriesId, instanceId: instanceId)
@@ -1349,7 +1365,7 @@ actor DatabaseOperator {
     authMethod: AuthenticationMethod = .basicAuth,
     displayName: String? = nil,
     instanceId: UUID? = nil
-  ) throws -> KomgaInstance {
+  ) throws -> InstanceSummary {
     let trimmedDisplayName = displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
     let descriptor = FetchDescriptor<KomgaInstance>(
       predicate: #Predicate { instance in
@@ -1366,7 +1382,7 @@ actor DatabaseOperator {
       } else if existing.name.isEmpty {
         existing.name = Self.defaultName(serverURL: serverURL, username: username)
       }
-      return existing
+      return InstanceSummary(id: existing.id, displayName: existing.displayName)
     } else {
       let resolvedName = Self.resolvedName(
         displayName: trimmedDisplayName, serverURL: serverURL, username: username)
@@ -1380,7 +1396,7 @@ actor DatabaseOperator {
         authMethod: authMethod
       )
       modelContext.insert(instance)
-      return instance
+      return InstanceSummary(id: instance.id, displayName: instance.displayName)
     }
   }
 
@@ -1589,7 +1605,7 @@ actor DatabaseOperator {
     }
   }
 
-  func fetchPendingProgress(instanceId: String, limit: Int? = nil) -> [PendingProgress] {
+  func fetchPendingProgress(instanceId: String, limit: Int? = nil) -> [PendingProgressSummary] {
     var descriptor = FetchDescriptor<PendingProgress>(
       predicate: #Predicate { $0.instanceId == instanceId },
       sortBy: [SortDescriptor(\.createdAt, order: .forward)]
@@ -1599,7 +1615,18 @@ actor DatabaseOperator {
       descriptor.fetchLimit = limit
     }
 
-    return (try? modelContext.fetch(descriptor)) ?? []
+    let results = (try? modelContext.fetch(descriptor)) ?? []
+    return results.map {
+      PendingProgressSummary(
+        id: $0.id,
+        instanceId: $0.instanceId,
+        bookId: $0.bookId,
+        page: $0.page,
+        completed: $0.completed,
+        createdAt: $0.createdAt,
+        progressionData: $0.progressionData
+      )
+    }
   }
 
   func deletePendingProgress(id: String) {

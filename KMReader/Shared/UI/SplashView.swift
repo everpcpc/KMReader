@@ -11,6 +11,7 @@ struct SplashView: View {
   @State private var isVisible = false
   @State private var loadingMessageIndex = 0
   @State private var pulseProgress = 1.0
+  @State private var messageRotationTask: Task<Void, Never>?
 
   var initializer: InstanceInitializer?
 
@@ -118,11 +119,21 @@ struct SplashView: View {
       }
 
       // Rotate loading messages
-      Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-        withAnimation(.easeInOut(duration: 0.5)) {
-          loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.count
+      messageRotationTask?.cancel()
+      messageRotationTask = Task {
+        while !Task.isCancelled {
+          try? await Task.sleep(nanoseconds: 2_000_000_000)
+          await MainActor.run {
+            withAnimation(.easeInOut(duration: 0.5)) {
+              loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.count
+            }
+          }
         }
       }
+    }
+    .onDisappear {
+      messageRotationTask?.cancel()
+      messageRotationTask = nil
     }
   }
 }

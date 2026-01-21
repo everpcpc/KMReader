@@ -62,26 +62,9 @@ final class StoreManager {
   }
 
   func purchase(_ product: Product) async throws -> Transaction? {
-    try await withThrowingTaskGroup(of: Transaction?.self) { group in
-      group.addTask { @MainActor in
-        let result = try await product.purchase()
-
-        switch result {
-        case .success(let verification):
-          let transaction = try self.checkVerified(verification)
-          await self.updatePurchasedProducts()
-          await transaction.finish()
-          return transaction
-
-        case .userCancelled:
-          return nil
-
-        case .pending:
-          return nil
-
-        @unknown default:
-          return nil
-        }
+    try await withThrowingTaskGroup(of: Product.PurchaseResult.self) { group in
+      group.addTask {
+        try await product.purchase()
       }
 
       group.addTask {
@@ -91,7 +74,25 @@ final class StoreManager {
 
       let result = try await group.next()
       group.cancelAll()
-      return result ?? nil
+
+      guard let result else { return nil }
+
+      switch result {
+      case .success(let verification):
+        let transaction = try checkVerified(verification)
+        await updatePurchasedProducts()
+        await transaction.finish()
+        return transaction
+
+      case .userCancelled:
+        return nil
+
+      case .pending:
+        return nil
+
+      @unknown default:
+        return nil
+      }
     }
   }
 

@@ -12,7 +12,7 @@ import SwiftData
 /// All View-facing fetch methods require a ModelContext from the caller.
 enum KomgaBookStore {
 
-  static func fetchSeriesBooks(
+  nonisolated static func fetchSeriesBooks(
     context: ModelContext,
     seriesId: String,
     page: Int,
@@ -89,7 +89,7 @@ enum KomgaBookStore {
     }
   }
 
-  static func fetchBook(context: ModelContext, id: String) -> Book? {
+  nonisolated static func fetchBook(context: ModelContext, id: String) -> Book? {
     let compositeId = CompositeID.generate(id: id)
 
     let descriptor = FetchDescriptor<KomgaBook>(
@@ -99,7 +99,7 @@ enum KomgaBookStore {
     return try? context.fetch(descriptor).first?.toBook()
   }
 
-  static func fetchReadListBooks(
+  nonisolated static func fetchReadListBooks(
     context: ModelContext,
     readListId: String,
     page: Int,
@@ -290,7 +290,7 @@ enum KomgaBookStore {
     }
   }
 
-  static func fetchBooksByIds(
+  nonisolated static func fetchBooksByIds(
     context: ModelContext,
     ids: [String],
     instanceId: String

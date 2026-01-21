@@ -8,14 +8,14 @@
 import Foundation
 import SwiftUI
 
-enum MediaProfile: String, Codable, Hashable, Sendable {
+nonisolated enum MediaProfile: String, Codable, Hashable, Sendable {
   case divina = "DIVINA"
   case pdf = "PDF"
   case epub = "EPUB"
   case unknown = ""
 }
 
-enum MediaStatus: String, Codable, Hashable, Sendable {
+nonisolated enum MediaStatus: String, Codable, Hashable, Sendable {
   case ready = "READY"
   case unknown = "UNKNOWN"
   case error = "ERROR"
@@ -83,7 +83,7 @@ enum MediaStatus: String, Codable, Hashable, Sendable {
   }
 }
 
-struct Media: Equatable, Hashable, Sendable {
+nonisolated struct Media: Equatable, Hashable, Sendable {
   var statusRaw: String
   var mediaType: String
   var pagesCount: Int

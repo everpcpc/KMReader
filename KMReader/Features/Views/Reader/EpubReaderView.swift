@@ -410,8 +410,10 @@
     private func forceInitialAutoHide(timeout: TimeInterval) {
       controlsTimer?.invalidate()
       controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-        withAnimation {
-          showingControls = false
+        Task { @MainActor in
+          withAnimation {
+            showingControls = false
+          }
         }
       }
     }
@@ -423,8 +425,10 @@
 
       controlsTimer?.invalidate()
       controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-        withAnimation {
-          showingControls = false
+        Task { @MainActor in
+          withAnimation {
+            showingControls = false
+          }
         }
       }
     }
@@ -535,8 +539,10 @@
     private func resetOverlayTimer() {
       overlayTimer?.invalidate()
       overlayTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: false) { _ in
-        withAnimation {
-          showTapZoneOverlay = false
+        Task { @MainActor in
+          withAnimation {
+            showTapZoneOverlay = false
+          }
         }
       }
     }

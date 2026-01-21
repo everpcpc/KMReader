@@ -119,6 +119,7 @@
       Coordinator(self)
     }
 
+    @MainActor
     class Coordinator: NSObject, UICollectionViewDelegate, UICollectionViewDataSource,
       UICollectionViewDelegateFlowLayout, UIGestureRecognizerDelegate
     {
@@ -180,8 +181,15 @@
         requestInitialScroll(currentPage, delay: WebtoonConstants.initialScrollDelay)
       }
 
-      func executeAfterDelay(_ delay: TimeInterval, _ block: @escaping () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: block)
+      @MainActor
+      func executeAfterDelay(
+        _ delay: TimeInterval,
+        _ block: @MainActor @Sendable @escaping () -> Void
+      ) {
+        Task { @MainActor in
+          try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+          block()
+        }
       }
 
       func requestInitialScroll(_ pageIndex: Int, delay: TimeInterval) {

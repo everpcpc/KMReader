@@ -892,8 +892,10 @@ struct DivinaReaderView: View {
   private func forceInitialAutoHide(timeout: TimeInterval) {
     controlsTimer?.invalidate()
     controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-      withAnimation {
-        showingControls = false
+      Task { @MainActor in
+        withAnimation {
+          showingControls = false
+        }
       }
     }
   }
@@ -911,8 +913,10 @@ struct DivinaReaderView: View {
 
     controlsTimer?.invalidate()
     controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-      withAnimation {
-        showingControls = false
+      Task { @MainActor in
+        withAnimation {
+          showingControls = false
+        }
       }
     }
   }

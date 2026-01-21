@@ -16,10 +16,11 @@ struct InitialScrollRetrier {
     attempts = 0
   }
 
+  @MainActor
   mutating func schedule(
     after delay: TimeInterval,
-    using scheduler: (TimeInterval, @escaping () -> Void) -> Void,
-    action: @escaping () -> Void
+    using scheduler: @MainActor (TimeInterval, @MainActor @Sendable @escaping () -> Void) -> Void,
+    action: @MainActor @Sendable @escaping () -> Void
   ) {
     guard attempts < maxRetries else { return }
     attempts += 1

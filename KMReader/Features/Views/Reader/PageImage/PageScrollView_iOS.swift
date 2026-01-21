@@ -87,6 +87,7 @@
       }
     }
 
+    @MainActor
     class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
       var lastResetID: AnyHashable?
       var isUpdatingFromSwiftUI = false
@@ -105,7 +106,9 @@
       private var pageViews: [NativePageItemiOS] = []
 
       deinit {
-        prepareForDismantle()
+        Task { @MainActor [weak self] in
+          self?.prepareForDismantle()
+        }
       }
 
       func prepareForDismantle() {

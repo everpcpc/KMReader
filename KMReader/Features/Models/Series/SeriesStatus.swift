@@ -8,22 +8,22 @@
 import Foundation
 import SwiftUI
 
-enum SeriesStatus: String, CaseIterable, Hashable, Codable {
+nonisolated enum SeriesStatus: String, CaseIterable, Hashable, Codable {
   case ongoing = "ONGOING"
   case ended = "ENDED"
   case hiatus = "HIATUS"
   case abandoned = "ABANDONED"
 
-  static func fromString(_ status: String?) -> SeriesStatus {
+  nonisolated static func fromString(_ status: String?) -> SeriesStatus {
     fromAPIValue(status) ?? .ongoing
   }
 
-  static func fromAPIValue(_ status: String?) -> SeriesStatus? {
+  nonisolated static func fromAPIValue(_ status: String?) -> SeriesStatus? {
     guard let status else { return nil }
     return SeriesStatus(rawValue: status.uppercased())
   }
 
-  var displayName: String {
+  nonisolated var displayName: String {
     switch self {
     case .ongoing:
       return String(localized: "series.status.ongoing")
@@ -36,7 +36,7 @@ enum SeriesStatus: String, CaseIterable, Hashable, Codable {
     }
   }
 
-  var icon: String {
+  nonisolated var icon: String {
     switch self {
     case .ongoing:
       return "bolt.circle"
@@ -49,7 +49,7 @@ enum SeriesStatus: String, CaseIterable, Hashable, Codable {
     }
   }
 
-  var apiValue: String {
+  nonisolated var apiValue: String {
     rawValue
   }
 }

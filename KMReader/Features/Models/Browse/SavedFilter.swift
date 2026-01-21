@@ -71,26 +71,31 @@ final class SavedFilterV1 {
     self.updatedAt = updatedAt
   }
 
+  @MainActor
   func getSeriesBrowseOptions() -> SeriesBrowseOptions? {
     guard filterType == .series else { return nil }
     return SeriesBrowseOptions(rawValue: filterDataJSON)
   }
 
+  @MainActor
   func getBookBrowseOptions() -> BookBrowseOptions? {
     guard filterType == .books || filterType == .seriesBooks else { return nil }
     return BookBrowseOptions(rawValue: filterDataJSON)
   }
 
+  @MainActor
   func getCollectionSeriesBrowseOptions() -> CollectionSeriesBrowseOptions? {
     guard filterType == .collectionSeries else { return nil }
     return CollectionSeriesBrowseOptions(rawValue: filterDataJSON)
   }
 
+  @MainActor
   func getReadListBookBrowseOptions() -> ReadListBookBrowseOptions? {
     guard filterType == .readListBooks else { return nil }
     return ReadListBookBrowseOptions(rawValue: filterDataJSON)
   }
 
+  @MainActor
   static func create(
     name: String,
     filterType: SavedFilterType,

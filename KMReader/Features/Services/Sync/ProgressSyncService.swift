@@ -82,7 +82,7 @@ actor ProgressSyncService {
     }
   }
 
-  private func syncProgressItem(_ item: PendingProgress) async throws {
+  private func syncProgressItem(_ item: PendingProgressSummary) async throws {
     // Check if this is EPUB progression or page-based progress
     if let progressionData = item.progressionData {
       // EPUB progression - decode on MainActor

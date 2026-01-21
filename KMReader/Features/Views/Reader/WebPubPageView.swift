@@ -473,6 +473,7 @@
     }
   }
 
+  @MainActor
   final class EpubPageViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler {
     private var webView: WKWebView!
     var chapterIndex: Int
@@ -521,7 +522,10 @@
     }
 
     deinit {
-      webView?.configuration.userContentController.removeScriptMessageHandler(forName: "readerBridge")
+      let webView = webView
+      Task { @MainActor in
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "readerBridge")
+      }
     }
 
     override func viewDidLoad() {
@@ -695,17 +699,18 @@
     func webView(
       _ webView: WKWebView,
       decidePolicyFor navigationAction: WKNavigationAction,
-      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+      preferences: WKWebpagePreferences,
+      decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
       // Allow initial page load
       guard let url = navigationAction.request.url else {
-        decisionHandler(.allow)
+        decisionHandler(.allow, preferences)
         return
       }
 
       // Allow file:// URLs for the same domain (CSS, images, etc.)
       if navigationAction.navigationType == .other {
-        decisionHandler(.allow)
+        decisionHandler(.allow, preferences)
         return
       }
 
@@ -714,15 +719,15 @@
         // Check if this is an internal link (same book navigation)
         if url.scheme == "file" {
           onLinkTap?(url)
-          decisionHandler(.cancel)
+          decisionHandler(.cancel, preferences)
           return
         }
         // For external links, could open in Safari later
-        decisionHandler(.cancel)
+        decisionHandler(.cancel, preferences)
         return
       }
 
-      decisionHandler(.allow)
+      decisionHandler(.allow, preferences)
     }
 
     private func applyPagination(scrollToPage pageIndex: Int) {

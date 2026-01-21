@@ -230,7 +230,7 @@ class AuthViewModel {
 
     // Persist instance if this is a new login
     if shouldPersistInstance {
-      let instance = try await DatabaseOperator.shared.upsertInstance(
+      let instanceSummary = try await DatabaseOperator.shared.upsertInstance(
         serverURL: serverURL,
         username: username,
         authToken: authToken,
@@ -238,8 +238,8 @@ class AuthViewModel {
         authMethod: authMethod,
         displayName: displayName
       )
-      finalInstanceId = instance.id.uuidString
-      finalDisplayName = instance.displayName
+      finalInstanceId = instanceSummary.id.uuidString
+      finalDisplayName = instanceSummary.displayName
     } else {
       finalInstanceId = instanceId ?? AppConfig.current.instanceId
       finalDisplayName = displayName ?? ""

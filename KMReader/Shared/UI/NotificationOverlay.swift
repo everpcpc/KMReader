@@ -72,17 +72,63 @@ import SwiftUI
     }
   }
 
+  @MainActor
+  private protocol StatusBarObservationHandling: AnyObject {
+    func handleObservationChange()
+  }
+
+  @MainActor
+  private final class WeakStatusBarObserver {
+    weak var value: (any StatusBarObservationHandling)?
+
+    init(_ value: any StatusBarObservationHandling) {
+      self.value = value
+    }
+  }
+
+  @MainActor
+  private final class StatusBarObservationStore {
+    static let shared = StatusBarObservationStore()
+    private var observers: [ObjectIdentifier: WeakStatusBarObserver] = [:]
+
+    func register(_ observer: any StatusBarObservationHandling) -> ObjectIdentifier {
+      let id = ObjectIdentifier(observer)
+      observers[id] = WeakStatusBarObserver(observer)
+      return id
+    }
+
+    func unregister(_ id: ObjectIdentifier) {
+      observers[id] = nil
+    }
+
+    func notify(_ id: ObjectIdentifier) {
+      observers[id]?.value?.handleObservationChange()
+    }
+  }
+
   // A hosting controller that observes ReaderPresentationManager for UI preferences.
-  private class StatusBarObservingHostingController<Content: View>: UIHostingController<Content> {
+  @MainActor
+  private class StatusBarObservingHostingController<Content: View>: UIHostingController<Content>,
+    StatusBarObservationHandling
+  {
     private let readerPresentation: ReaderPresentationManager
+    private var observerID: ObjectIdentifier?
 
     init(rootView: Content, readerPresentation: ReaderPresentationManager) {
       self.readerPresentation = readerPresentation
       super.init(rootView: rootView)
+      self.observerID = StatusBarObservationStore.shared.register(self)
 
       // Observe hideStatusBar changes using withObservationTracking
-      Task { @MainActor [weak self] in
-        self?.startObserving()
+      startObserving()
+    }
+
+    deinit {
+      let observerID = observerID
+      Task { @MainActor in
+        if let observerID {
+          StatusBarObservationStore.shared.unregister(observerID)
+        }
       }
     }
 
@@ -91,18 +137,22 @@ import SwiftUI
     }
 
     private func startObserving() {
+      guard let observerID = observerID else { return }
       withObservationTracking {
         _ = readerPresentation.hideStatusBar
-      } onChange: { [weak self] in
-        guard let self = self else { return }
-        Task { @MainActor [weak self] in
-          #if os(iOS)
-            self?.setNeedsStatusBarAppearanceUpdate()
-            self?.setNeedsUpdateOfHomeIndicatorAutoHidden()
-          #endif
-          self?.startObserving()
+      } onChange: { [observerID] in
+        Task { @MainActor in
+          StatusBarObservationStore.shared.notify(observerID)
         }
       }
+    }
+
+    func handleObservationChange() {
+      #if os(iOS)
+        setNeedsStatusBarAppearanceUpdate()
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
+      #endif
+      startObserving()
     }
 
     #if os(iOS)

@@ -119,10 +119,16 @@
       }
     }
 
+    @MainActor
+    static func dismantleNSView(_ nsView: NSScrollView, coordinator: Coordinator) {
+      coordinator.teardown()
+    }
+
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
     }
 
+    @MainActor
     class Coordinator: NSObject, NSCollectionViewDelegate, NSCollectionViewDataSource,
       NSCollectionViewDelegateFlowLayout, NSGestureRecognizerDelegate
     {
@@ -170,9 +176,16 @@
       }
 
       deinit {
+        Task { @MainActor [weak self] in
+          self?.teardown()
+        }
+      }
+
+      func teardown() {
         NotificationCenter.default.removeObserver(self)
         if let monitor = keyMonitor {
           NSEvent.removeMonitor(monitor)
+          keyMonitor = nil
         }
       }
 
@@ -208,12 +221,21 @@
         requestInitialScroll(currentPage, delay: WebtoonConstants.initialScrollDelay)
       }
 
+      @MainActor
+      func executeAfterDelay(
+        _ delay: TimeInterval,
+        _ block: @MainActor @Sendable @escaping () -> Void
+      ) {
+        Task { @MainActor in
+          try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+          block()
+        }
+      }
+
       func requestInitialScroll(_ pageIndex: Int, delay: TimeInterval) {
         initialScrollRetrier.schedule(
           after: delay,
-          using: { delay, action in
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: action)
-          }
+          using: executeAfterDelay
         ) { [weak self] in
           guard let self = self, !self.hasScrolledToInitialPage,
             self.pages.count > 0, self.isValidPageIndex(pageIndex)
@@ -304,12 +326,14 @@
               $0.duration = 0.3
               cv.animator().scroll(attr.frame.origin)
             } completionHandler: { [weak self] in
-              self?.isProgrammaticScrolling = false
+              Task { @MainActor [weak self] in
+                self?.isProgrammaticScrolling = false
+              }
             }
           } else {
             cv.scroll(attr.frame.origin)
             // Reset flag after immediate scroll
-            DispatchQueue.main.async { [weak self] in
+            Task { @MainActor [weak self] in
               self?.isProgrammaticScrolling = false
             }
           }
@@ -329,7 +353,7 @@
           isProgrammaticScrolling = true
           cv.scroll(attr.frame.origin)
           // Reset flag after immediate scroll
-          DispatchQueue.main.async { [weak self] in
+          Task { @MainActor [weak self] in
             self?.isProgrammaticScrolling = false
           }
         }
@@ -560,9 +584,11 @@
           context.allowsImplicitAnimation = true
           clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
         } completionHandler: { [weak self, weak sv] in
-          self?.isProgrammaticScrolling = false
-          guard let sv = sv else { return }
-          sv.reflectScrolledClipView(clipView)
+          Task { @MainActor [weak self, weak sv] in
+            self?.isProgrammaticScrolling = false
+            guard let sv = sv else { return }
+            sv.reflectScrolledClipView(clipView)
+          }
         }
       }
 
@@ -583,9 +609,11 @@
           context.allowsImplicitAnimation = true
           clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
         } completionHandler: { [weak self, weak sv] in
-          self?.isProgrammaticScrolling = false
-          guard let sv = sv else { return }
-          sv.reflectScrolledClipView(clipView)
+          Task { @MainActor [weak self, weak sv] in
+            self?.isProgrammaticScrolling = false
+            guard let sv = sv else { return }
+            sv.reflectScrolledClipView(clipView)
+          }
         }
       }
 

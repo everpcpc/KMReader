@@ -230,7 +230,7 @@ enum KomgaSeriesStore {
     }
   }
 
-  static func fetchOne(context: ModelContext, seriesId: String) -> Series? {
+  nonisolated static func fetchOne(context: ModelContext, seriesId: String) -> Series? {
     let compositeId = CompositeID.generate(id: seriesId)
 
     let descriptor = FetchDescriptor<KomgaSeries>(

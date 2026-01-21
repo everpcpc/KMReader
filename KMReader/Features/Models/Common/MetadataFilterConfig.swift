@@ -8,7 +8,7 @@
 import Foundation
 
 /// Configuration for metadata-based filtering
-struct MetadataFilterConfig: Equatable, RawRepresentable {
+nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable {
   typealias RawValue = String
 
   var publishers: [String]?

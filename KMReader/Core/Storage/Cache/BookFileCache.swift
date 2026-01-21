@@ -80,7 +80,7 @@ actor BookFileCache {
   func ensureWebPubResource(
     bookId: String,
     href: String,
-    downloader: @escaping () async throws -> Data
+    downloader: @Sendable @escaping () async throws -> Data
   ) async throws -> URL {
     let destination = await webPubResourceURL(bookId: bookId, href: href)
     return try await ensureFile(
@@ -93,7 +93,7 @@ actor BookFileCache {
 
   func ensureEpubFile(
     bookId: String,
-    downloader: @escaping () async throws -> Data
+    downloader: @Sendable @escaping () async throws -> Data
   ) async throws -> URL {
     let destination = await epubFileURL(bookId: bookId)
     return try await ensureFile(
@@ -115,7 +115,7 @@ actor BookFileCache {
     bookId: String,
     cacheKey: String,
     destination: URL,
-    downloader: @escaping () async throws -> Data
+    downloader: @Sendable @escaping () async throws -> Data
   ) async throws -> URL {
     if let existing = cachedFileURL(at: destination) {
       return existing

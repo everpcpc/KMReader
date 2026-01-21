@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct SeriesBrowseOptions: Equatable, RawRepresentable {
+nonisolated struct SeriesBrowseOptions: Equatable, RawRepresentable {
   typealias RawValue = String
 
   var includeReadStatuses: Set<ReadStatus> = []

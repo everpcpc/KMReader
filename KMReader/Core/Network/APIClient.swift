@@ -403,7 +403,7 @@ class APIClient {
     isTemporary: Bool = false,
     retryCount: Int = 0,
     skipOfflineSwitch: Bool = false,
-    onProgress: ((_ received: Int64, _ expected: Int64?) -> Void)? = nil
+    onProgress: (@MainActor @Sendable (_ received: Int64, _ expected: Int64?) -> Void)? = nil
   ) async throws -> (data: Data, response: HTTPURLResponse) {
     let method = request.httpMethod ?? "GET"
     let urlString = request.url?.absoluteString ?? ""
@@ -420,10 +420,10 @@ class APIClient {
     }
 
     func fetchWithProgress(
-      _ onProgress: @escaping (_ received: Int64, _ expected: Int64?) -> Void
+      _ onProgress: @MainActor @Sendable @escaping (_ received: Int64, _ expected: Int64?) -> Void
     ) async throws -> FetchResult {
       actor ProgressState {
-        let onProgress: (_ received: Int64, _ expected: Int64?) -> Void
+        let onProgress: @Sendable (_ received: Int64, _ expected: Int64?) -> Void
         let urlString: String
         var data = Data()
         var response: HTTPURLResponse?
@@ -434,7 +434,7 @@ class APIClient {
         let updateInterval: TimeInterval = 0.1
 
         init(
-          onProgress: @escaping (_ received: Int64, _ expected: Int64?) -> Void,
+          onProgress: @Sendable @escaping (_ received: Int64, _ expected: Int64?) -> Void,
           urlString: String
         ) {
           self.onProgress = onProgress
@@ -533,7 +533,13 @@ class APIClient {
       }
 
       logger.debug("Streaming download started: url=\(urlString)")
-      let state = ProgressState(onProgress: onProgress, urlString: urlString)
+      let onProgressHandler: @Sendable (_ received: Int64, _ expected: Int64?) -> Void = {
+        received, expected in
+        Task { @MainActor in
+          onProgress(received, expected)
+        }
+      }
+      let state = ProgressState(onProgress: onProgressHandler, urlString: urlString)
       let delegate = ProgressDelegate(state: state, urlString: urlString)
       let delegateQueue = OperationQueue()
       delegateQueue.maxConcurrentOperationCount = 1
@@ -937,7 +943,7 @@ class APIClient {
 }
 
 private enum APIClientDateParser {
-  static func parse(_ value: String) -> Date? {
+  nonisolated static func parse(_ value: String) -> Date? {
     if let date = makeISO8601WithFractional().date(from: value) {
       return date
     }
@@ -950,19 +956,19 @@ private enum APIClientDateParser {
     return makeLocalFormatter().date(from: value)
   }
 
-  private static func makeISO8601WithFractional() -> ISO8601DateFormatter {
+  nonisolated private static func makeISO8601WithFractional() -> ISO8601DateFormatter {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return formatter
   }
 
-  private static func makeISO8601Basic() -> ISO8601DateFormatter {
+  nonisolated private static func makeISO8601Basic() -> ISO8601DateFormatter {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime]
     return formatter
   }
 
-  private static func makeLocalFormatterWithFractional() -> DateFormatter {
+  nonisolated private static func makeLocalFormatterWithFractional() -> DateFormatter {
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.timeZone = .current
@@ -970,7 +976,7 @@ private enum APIClientDateParser {
     return formatter
   }
 
-  private static func makeLocalFormatter() -> DateFormatter {
+  nonisolated private static func makeLocalFormatter() -> DateFormatter {
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.timeZone = .current

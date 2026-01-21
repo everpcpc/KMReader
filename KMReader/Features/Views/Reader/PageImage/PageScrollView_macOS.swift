@@ -74,6 +74,7 @@
       return scrollView
     }
 
+    @MainActor
     static func dismantleNSView(_ nsView: NSScrollView, coordinator: Coordinator) {
       coordinator.prepareForDismantle()
     }
@@ -129,6 +130,7 @@
       }
     }
 
+    @MainActor
     class Coordinator: NSObject, NSGestureRecognizerDelegate {
       var lastResetID: AnyHashable?
       var isUpdatingFromSwiftUI = false
@@ -145,7 +147,9 @@
       private var pageViews: [NativePageItemMacOS] = []
 
       deinit {
-        prepareForDismantle()
+        Task { @MainActor [weak self] in
+          self?.prepareForDismantle()
+        }
       }
 
       func prepareForDismantle() {

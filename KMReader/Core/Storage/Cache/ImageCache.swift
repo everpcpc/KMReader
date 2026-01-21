@@ -194,14 +194,12 @@ actor ImageCache {
   /// Cleanup disk cache if needed (static method for use from anywhere)
   /// Checks current cache size against configured max size and cleans up if needed
   static func cleanupDiskCacheIfNeeded() async {
-    let fileManager = FileManager.default
     let diskCacheURL = await namespacedDiskCacheURL()
     let maxCacheSize = getMaxPageCacheSize()
 
     await Task.detached(priority: .utility) {
       await performDiskCacheCleanup(
         diskCacheURL: diskCacheURL,
-        fileManager: fileManager,
         maxCacheSize: maxCacheSize
       )
     }.value
@@ -306,9 +304,9 @@ actor ImageCache {
   /// Uses high/low watermark strategy: trigger at 90%, clean down to 80%
   static func performDiskCacheCleanup(
     diskCacheURL: URL,
-    fileManager: FileManager,
     maxCacheSize: Int
   ) async {
+    let fileManager = FileManager.default
     let maxSize = Int64(maxCacheSize) * 1024 * 1024 * 1024
     let targetSize = maxSize * 80 / 100  // Clean down to 80% for buffer
     let (_, fileInfo, totalSize) = collectFileInfo(
@@ -389,10 +387,10 @@ actor ImageCache {
   private func cleanupDiskCache() async {
     // Calculate total disk cache size and clean up in background task
     let maxCacheSize = Self.getMaxPageCacheSize()
-    await Task.detached(priority: .utility) { [diskCacheURL, fileManager, maxCacheSize] in
+    let diskCacheURL = self.diskCacheURL
+    await Task.detached(priority: .utility) { [diskCacheURL, maxCacheSize] in
       await Self.performDiskCacheCleanup(
         diskCacheURL: diskCacheURL,
-        fileManager: fileManager,
         maxCacheSize: maxCacheSize
       )
     }.value
