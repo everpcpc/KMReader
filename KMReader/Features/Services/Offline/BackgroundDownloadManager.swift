@@ -82,6 +82,7 @@ import OSLog
       addAuthHeaders(to: &request)
 
       let task = backgroundSession.downloadTask(with: request)
+      task.taskDescription = destinationPath
       let taskInfo = BackgroundDownloadTaskInfo(
         bookId: bookId,
         instanceId: instanceId,
@@ -109,6 +110,7 @@ import OSLog
       addAuthHeaders(to: &request)
 
       let task = backgroundSession.downloadTask(with: request)
+      task.taskDescription = destinationPath
       let taskInfo = BackgroundDownloadTaskInfo(
         bookId: bookId,
         instanceId: instanceId,
@@ -192,14 +194,9 @@ import OSLog
       logger.info("📂 Loaded \(tasks.count) pending background download tasks")
     }
 
-    private func handleDownloadComplete(taskIdentifier: Int, location: URL) {
-      guard let taskInfo = activeTasks[taskIdentifier] else {
-        logger.warning("⚠️ Completed download for unknown task: \(taskIdentifier)")
-        return
-      }
-
-      // Move file to destination
-      let destinationURL = URL(fileURLWithPath: taskInfo.destinationPath)
+    nonisolated private func moveDownloadedFile(from location: URL, to destinationURL: URL)
+      -> Error?
+    {
       let destinationDir = destinationURL.deletingLastPathComponent()
 
       do {
@@ -216,17 +213,30 @@ import OSLog
 
         // Move downloaded file
         try FileManager.default.moveItem(at: location, to: destinationURL)
+        return nil
+      } catch {
+        return error
+      }
+    }
 
+    private func handleDownloadCompletion(
+      taskIdentifier: Int,
+      destinationURL: URL,
+      moveError: Error?
+    ) {
+      guard let taskInfo = activeTasks[taskIdentifier] else {
+        logger.warning("⚠️ Completed download for unknown task: \(taskIdentifier)")
+        return
+      }
+
+      if let moveError {
+        logger.error(
+          "❌ Failed to move downloaded file: \(moveError.localizedDescription)")
+        onDownloadFailed?(taskInfo.bookId, taskInfo.pageNumber, moveError)
+      } else {
         logger.info(
           "✅ Background download complete: \(taskInfo.bookId) page \(taskInfo.pageNumber ?? -1)")
-
-        // Notify completion
         onDownloadComplete?(taskInfo.bookId, taskInfo.pageNumber, destinationURL)
-
-      } catch {
-        logger.error(
-          "❌ Failed to move downloaded file: \(error.localizedDescription)")
-        onDownloadFailed?(taskInfo.bookId, taskInfo.pageNumber, error)
       }
 
       // Remove from active tasks
@@ -263,8 +273,30 @@ import OSLog
       downloadTask: URLSessionDownloadTask,
       didFinishDownloadingTo location: URL
     ) {
+      // Move the temp file before returning; iOS can purge it after this delegate finishes.
+      guard let destinationPath = downloadTask.taskDescription, !destinationPath.isEmpty else {
+        let error = AppErrorType.missingRequiredData(
+          message: "Missing destination path for download task."
+        )
+        Task { @MainActor in
+          self.handleDownloadCompletion(
+            taskIdentifier: downloadTask.taskIdentifier,
+            destinationURL: location,
+            moveError: error
+          )
+        }
+        return
+      }
+
+      let destinationURL = URL(fileURLWithPath: destinationPath)
+      let moveError = moveDownloadedFile(from: location, to: destinationURL)
+
       Task { @MainActor in
-        self.handleDownloadComplete(taskIdentifier: downloadTask.taskIdentifier, location: location)
+        self.handleDownloadCompletion(
+          taskIdentifier: downloadTask.taskIdentifier,
+          destinationURL: destinationURL,
+          moveError: moveError
+        )
       }
     }
 
