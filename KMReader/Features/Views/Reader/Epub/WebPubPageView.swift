@@ -71,6 +71,15 @@
       tapRecognizer.delegate = context.coordinator
       pageVC.view.addGestureRecognizer(tapRecognizer)
 
+      let longPress = UILongPressGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleLongPress(_:))
+      )
+      longPress.minimumPressDuration = 0.5
+      longPress.delegate = context.coordinator
+      longPress.cancelsTouchesInView = false
+      pageVC.view.addGestureRecognizer(longPress)
+
       if let initialLocation = viewModel.pageLocation(at: viewModel.currentPageIndex),
         let initialVC = context.coordinator.pageViewController(
           chapterIndex: initialLocation.chapterIndex,
@@ -171,6 +180,9 @@
       var parent: WebPubPageView
       var currentPageIndex: Int
       var isAnimating = false
+      var isLongPressing = false
+      var lastLongPressEndTime: Date = .distantPast
+      var lastTouchStartTime: Date = .distantPast
       weak var pageViewController: UIPageViewController?
       private let maxCachedControllers = 3
       private var cachedControllers: [Int: EpubPageViewController] = [:]
@@ -376,7 +388,22 @@
         }
       }
 
+      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+          isLongPressing = true
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.isLongPressing = false
+          }
+        }
+      }
+
       @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+        let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
+        guard !isLongPressing && holdDuration < 0.3 else { return }
+        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
+
         let location = recognizer.location(in: recognizer.view)
         let size = recognizer.view?.bounds.size ?? .zero
         parent.onTap(location, size)
@@ -469,6 +496,11 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         true
+      }
+
+      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        lastTouchStartTime = Date()
+        return true
       }
     }
   }
@@ -601,8 +633,11 @@
     }
 
     private var containerView: UIView?
-    private var containerConstraints: (top: NSLayoutConstraint, leading: NSLayoutConstraint,
-      trailing: NSLayoutConstraint, bottom: NSLayoutConstraint)?
+    private var containerConstraints:
+      (
+        top: NSLayoutConstraint, leading: NSLayoutConstraint,
+        trailing: NSLayoutConstraint, bottom: NSLayoutConstraint
+      )?
 
     private func setupWebView() {
       let config = WKWebViewConfiguration()
