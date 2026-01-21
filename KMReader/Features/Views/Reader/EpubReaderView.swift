@@ -160,6 +160,7 @@
       await viewModel.load(bookId: bookId)
     }
 
+    @ViewBuilder
     private var readerBody: some View {
       GeometryReader { geometry in
         ZStack {
@@ -433,12 +434,12 @@
       }
     }
 
+    @ViewBuilder
     private var chapterStatusOverlay: some View {
       let chapterPageIndex = viewModel.currentLocation?.pageIndex
       let chapterPageCount = viewModel.currentLocation?.pageCount
-      let totalProgression = viewModel.currentLocation?.totalProgression
 
-      return VStack {
+      VStack {
         HStack {
           Spacer()
           Text(titleText)
@@ -482,13 +483,6 @@
                   .monospacedDigit()
               }
             }
-          }
-
-          if let totalProgression {
-            ReadingProgressBar(progress: totalProgression, type: .reader)
-              .shadow(color: .black.opacity(0.4), radius: 2, x: 0, y: 1)
-              .opacity(shouldShowControls ? 1.0 : 0.0)
-              .allowsHitTesting(false)
           }
         }.padding(.horizontal, 16)
       }
