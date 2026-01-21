@@ -105,12 +105,6 @@
       weak var contentStack: UIStackView?
       private var pageViews: [NativePageItemiOS] = []
 
-      deinit {
-        Task { @MainActor [weak self] in
-          self?.prepareForDismantle()
-        }
-      }
-
       func prepareForDismantle() {
         pageViews.forEach { view in
           view.prepareForDismantle()

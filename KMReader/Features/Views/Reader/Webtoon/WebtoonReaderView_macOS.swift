@@ -175,12 +175,6 @@
         self.tapZoneMode = parent.tapZoneMode
       }
 
-      deinit {
-        Task { @MainActor [weak self] in
-          self?.teardown()
-        }
-      }
-
       func teardown() {
         NotificationCenter.default.removeObserver(self)
         if let monitor = keyMonitor {

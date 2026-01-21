@@ -146,12 +146,6 @@
       weak var contentStack: NSStackView?
       private var pageViews: [NativePageItemMacOS] = []
 
-      deinit {
-        Task { @MainActor [weak self] in
-          self?.prepareForDismantle()
-        }
-      }
-
       func prepareForDismantle() {
         if let scrollView = scrollView {
           NotificationCenter.default.removeObserver(
