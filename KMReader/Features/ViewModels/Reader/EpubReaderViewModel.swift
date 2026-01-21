@@ -472,23 +472,6 @@
       return max(0, offset + pageIndex)
     }
 
-    private func estimatedTotalPageCount() -> Int {
-      guard !readingOrder.isEmpty else { return 0 }
-      var total = 0
-      for idx in 0..<readingOrder.count {
-        total += max(1, chapterPageCounts[idx] ?? 1)
-      }
-      return total
-    }
-
-    private func estimatedGlobalPosition(for location: WebPubPageLocation) -> Int {
-      var offset = 0
-      for idx in 0..<location.chapterIndex {
-        offset += max(1, chapterPageCounts[idx] ?? 1)
-      }
-      return max(0, offset + location.pageIndex)
-    }
-
     func updateChapterPageCount(_ pageCount: Int, for chapterIndex: Int) {
       guard chapterIndex >= 0, chapterIndex < readingOrder.count else { return }
       let normalizedCount = max(1, pageCount)
@@ -534,7 +517,7 @@
     }
 
     func pageInsets(for prefs: EpubReaderPreferences) -> UIEdgeInsets {
-      return UIEdgeInsets(top: 72, left: 16, bottom: 72, right: 16)
+      return UIEdgeInsets(top: 80, left: 16, bottom: 60, right: 16)
     }
 
     // MARK: - Private Methods
@@ -593,7 +576,7 @@
       let location = pageLocations[index]
       let chapterProgress =
         location.pageCount > 0
-        ? Double(location.pageIndex + 1) / Double(location.pageCount)
+        ? Double(location.pageIndex) / Double(location.pageCount)
         : nil
       let totalProgression = Float(
         totalProgression(
@@ -607,7 +590,7 @@
       let r2Location = R2Locator.Location(
         fragments: nil,
         progression: chapterProgression,
-        position: index + 1,
+        position: nil,
         totalProgression: totalProgression
       )
 
