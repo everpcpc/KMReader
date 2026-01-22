@@ -18,7 +18,7 @@
     static let defaultParagraphSpacing: Double = 0.5
     static let defaultParagraphIndent: Double = 2.0
 
-    static let defaultPageMargins: Double = 1.0
+    static let defaultPageMargins: Double = 16.0
     static let defaultFontWeight: Double = 1.0
   }
 
@@ -138,16 +138,15 @@
       // Only set font-family if user selected a specific font, otherwise use EPUB's default
       let fontFamilyCSS = fontFamily.fontName.map { "font-family: \($0);" } ?? ""
 
-      // Internal CSS padding controlled by user's pageMargins setting
-      let basePadding = 10.0
-      let internalPadding = Int(basePadding * pageMargins)
+      // Internal CSS padding controlled by user's pageMargins setting (in pixels)
+      let internalPadding = Int(pageMargins)
 
       return """
           body {
             margin: 0;
             padding: \(internalPadding)px;
-            background-color: \(theme.backgroundColor);
-            color: \(theme.textColor);
+            background-color: \(theme.backgroundColorHex);
+            color: \(theme.textColorHex);
             \(fontFamilyCSS)
             font-size: \(fontSize)px;
             font-weight: \(fontWeightValue);
@@ -196,7 +195,7 @@
     case sepia
     case dark
 
-    var backgroundColor: String {
+    var backgroundColorHex: String {
       switch self {
       case .light: return "#FFFFFF"
       case .sepia: return "#F4ECD8"
@@ -204,7 +203,7 @@
       }
     }
 
-    var textColor: String {
+    var textColorHex: String {
       switch self {
       case .light: return "#000000"
       case .sepia: return "#5C4A37"

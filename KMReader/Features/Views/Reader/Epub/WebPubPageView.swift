@@ -11,8 +11,8 @@
   import WebKit
 
   extension ReaderTheme {
-    var uiColorBackground: UIColor { UIColor(hex: backgroundColor) ?? .white }
-    var uiColorText: UIColor { UIColor(hex: textColor) ?? .black }
+    var uiColorBackground: UIColor { UIColor(hex: backgroundColorHex) ?? .white }
+    var uiColorText: UIColor { UIColor(hex: textColorHex) ?? .black }
   }
 
   extension UIColor {
@@ -35,6 +35,8 @@
     let colorScheme: ColorScheme
     let onTap: (CGPoint, CGSize) -> Void
     let transitionStyle: UIPageViewController.TransitionStyle
+    let showingControls: Bool
+    let bookTitle: String?
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -156,6 +158,15 @@
         let pageInsets = viewModel.pageInsets(for: preferences)
         let theme = preferences.resolvedTheme(for: colorScheme)
         let contentCSS = preferences.makeCSS(theme: theme)
+
+        guard let globalIndex = viewModel.globalIndexForChapter(chapterIndex, pageIndex: currentVC.currentSubPageIndex),
+          globalIndex < viewModel.pageLocations.count
+        else { return }
+        let location = viewModel.pageLocations[globalIndex]
+        let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
+        let totalProgression = viewModel.totalProgression(
+          for: globalIndex, location: location, chapterProgress: chapterProgress)
+
         currentVC.configure(
           chapterURL: viewModel.chapterURL(at: chapterIndex),
           rootURL: viewModel.resourceRootURL,
@@ -165,6 +176,13 @@
           chapterIndex: chapterIndex,
           subPageIndex: currentVC.currentSubPageIndex,
           totalPages: currentVC.totalPagesInChapter,
+          bookTitle: bookTitle,
+          chapterTitle: location.title,
+          totalProgression: totalProgression,
+          showingControls: showingControls,
+          labelTopOffset: viewModel.labelTopOffset,
+          labelBottomOffset: viewModel.labelBottomOffset,
+          useSafeArea: viewModel.useSafeArea,
           onPageCountReady: { [weak viewModel] pageCount in
             Task { @MainActor in
               viewModel?.updateChapterPageCount(pageCount, for: chapterIndex)
@@ -220,7 +238,6 @@
         guard let pageCount = parent.viewModel.chapterPageCount(at: chapterIndex) else { return nil }
         guard subPageIndex >= 0, subPageIndex < pageCount else { return nil }
 
-        let globalIndex = parent.viewModel.globalIndexForChapter(chapterIndex, pageIndex: subPageIndex) ?? 0
         let pageInsets = parent.viewModel.pageInsets(for: parent.preferences)
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
         let contentCSS = parent.preferences.makeCSS(theme: theme)
@@ -233,6 +250,14 @@
           }
         }
 
+        guard let globalIndex = parent.viewModel.globalIndexForChapter(chapterIndex, pageIndex: subPageIndex),
+          globalIndex < parent.viewModel.pageLocations.count
+        else { return nil }
+        let location = parent.viewModel.pageLocations[globalIndex]
+        let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
+        let totalProgression = parent.viewModel.totalProgression(
+          for: globalIndex, location: location, chapterProgress: chapterProgress)
+
         if let cached = cachedControllers[globalIndex] {
           cached.configure(
             chapterURL: chapterURL,
@@ -243,6 +268,13 @@
             chapterIndex: chapterIndex,
             subPageIndex: subPageIndex,
             totalPages: pageCount,
+            bookTitle: parent.bookTitle,
+            chapterTitle: location.title,
+            totalProgression: totalProgression,
+            showingControls: parent.showingControls,
+            labelTopOffset: parent.viewModel.labelTopOffset,
+            labelBottomOffset: parent.viewModel.labelBottomOffset,
+            useSafeArea: parent.viewModel.useSafeArea,
             onPageCountReady: onPageCountReady
           )
           configureController(cached, preferLastPageOnReady: preferLastPageOnReady)
@@ -264,6 +296,13 @@
             chapterIndex: chapterIndex,
             subPageIndex: subPageIndex,
             totalPages: pageCount,
+            bookTitle: parent.bookTitle,
+            chapterTitle: location.title,
+            totalProgression: totalProgression,
+            showingControls: parent.showingControls,
+            labelTopOffset: parent.viewModel.labelTopOffset,
+            labelBottomOffset: parent.viewModel.labelBottomOffset,
+            useSafeArea: parent.viewModel.useSafeArea,
             onPageCountReady: onPageCountReady
           )
           configureController(reusable, preferLastPageOnReady: preferLastPageOnReady)
@@ -285,6 +324,13 @@
           chapterIndex: chapterIndex,
           subPageIndex: subPageIndex,
           totalPages: pageCount,
+          bookTitle: parent.bookTitle,
+          chapterTitle: location.title,
+          totalProgression: totalProgression,
+          showingControls: parent.showingControls,
+          labelTopOffset: parent.viewModel.labelTopOffset,
+          labelBottomOffset: parent.viewModel.labelBottomOffset,
+          useSafeArea: parent.viewModel.useSafeArea,
           onPageCountReady: onPageCountReady
         )
         configureController(controller, preferLastPageOnReady: preferLastPageOnReady)
@@ -525,6 +571,21 @@
     var onPageIndexAdjusted: ((Int) -> Void)?
     var preferLastPageOnReady = false
 
+    private var bookTitle: String?
+    private var chapterTitle: String?
+    private var totalProgression: Double?
+    private var showingControls: Bool = false
+    private var labelTopOffset: CGFloat
+    private var labelBottomOffset: CGFloat
+    private var useSafeArea: Bool
+
+    // Overlay labels
+    private var topBookTitleLabel: UILabel?
+    private var topProgressLabel: UILabel?
+    private var bottomChapterLabel: UILabel?
+    private var bottomPageCenterLabel: UILabel?
+    private var bottomPageRightLabel: UILabel?
+
     init(
       chapterURL: URL?,
       rootURL: URL?,
@@ -534,6 +595,13 @@
       chapterIndex: Int,
       subPageIndex: Int,
       totalPages: Int,
+      bookTitle: String?,
+      chapterTitle: String?,
+      totalProgression: Double?,
+      showingControls: Bool,
+      labelTopOffset: CGFloat,
+      labelBottomOffset: CGFloat,
+      useSafeArea: Bool,
       onPageCountReady: ((Int) -> Void)?
     ) {
       self.chapterURL = chapterURL
@@ -544,6 +612,13 @@
       self.chapterIndex = chapterIndex
       self.currentSubPageIndex = subPageIndex
       self.totalPagesInChapter = totalPages
+      self.bookTitle = bookTitle
+      self.chapterTitle = chapterTitle
+      self.totalProgression = totalProgression
+      self.showingControls = showingControls
+      self.labelTopOffset = labelTopOffset
+      self.labelBottomOffset = labelBottomOffset
+      self.useSafeArea = useSafeArea
       self.onPageCountReady = onPageCountReady
       self.onLinkTap = nil
       super.init(nibName: nil, bundle: nil)
@@ -563,12 +638,14 @@
     override func viewDidLoad() {
       super.viewDidLoad()
       setupWebView()
+      setupOverlayLabels()
       loadContentIfNeeded(force: true)
     }
 
     override func viewWillAppear(_ animated: Bool) {
       super.viewWillAppear(animated)
       refreshDisplay()
+      updateOverlayLabels()
     }
 
     override func viewDidLayoutSubviews() {
@@ -578,6 +655,7 @@
       if size != lastLayoutSize {
         lastLayoutSize = size
         refreshDisplay()
+        updateOverlayLabels()
       }
     }
 
@@ -590,6 +668,13 @@
       chapterIndex: Int,
       subPageIndex: Int,
       totalPages: Int,
+      bookTitle: String?,
+      chapterTitle: String?,
+      totalProgression: Double?,
+      showingControls: Bool,
+      labelTopOffset: CGFloat,
+      labelBottomOffset: CGFloat,
+      useSafeArea: Bool,
       onPageCountReady: ((Int) -> Void)?
     ) {
       let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
@@ -597,6 +682,9 @@
         theme != self.theme
         || pageInsets != self.pageInsets
         || contentCSS != self.contentCSS
+        || labelTopOffset != self.labelTopOffset
+        || labelBottomOffset != self.labelBottomOffset
+        || useSafeArea != self.useSafeArea
 
       self.chapterURL = chapterURL
       self.rootURL = rootURL
@@ -606,9 +694,18 @@
       self.chapterIndex = chapterIndex
       self.currentSubPageIndex = subPageIndex
       self.totalPagesInChapter = totalPages
+      self.bookTitle = bookTitle
+      self.chapterTitle = chapterTitle
+      self.totalProgression = totalProgression
+      self.showingControls = showingControls
+      self.labelTopOffset = labelTopOffset
+      self.labelBottomOffset = labelBottomOffset
+      self.useSafeArea = useSafeArea
       self.onPageCountReady = onPageCountReady
 
       guard isViewLoaded else { return }
+
+      updateOverlayLabels()
 
       if appearanceChanged {
         applyContainerInsets()
@@ -628,6 +725,149 @@
       applyPagination(scrollToPage: currentSubPageIndex)
     }
 
+    private var topAnchor: NSLayoutYAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.topAnchor : view.topAnchor
+    }
+    private var bottomAnchor: NSLayoutYAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.bottomAnchor : view.bottomAnchor
+    }
+    private var leadingAnchor: NSLayoutXAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.leadingAnchor : view.leadingAnchor
+    }
+    private var trailingAnchor: NSLayoutXAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.trailingAnchor : view.trailingAnchor
+    }
+
+    func setupOverlayLabels() {
+      let topOffset = labelTopOffset
+      let bottomOffset = -labelBottomOffset
+
+      // Top book title label
+      let bookTitleLabel = UILabel()
+      bookTitleLabel.font = .systemFont(ofSize: 13)
+      bookTitleLabel.textColor = .systemGray
+      bookTitleLabel.textAlignment = .center
+      bookTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+      bookTitleLabel.isUserInteractionEnabled = false
+      bookTitleLabel.alpha = 0
+      view.addSubview(bookTitleLabel)
+      NSLayoutConstraint.activate([
+        bookTitleLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
+        bookTitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+        bookTitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+      ])
+      self.topBookTitleLabel = bookTitleLabel
+
+      // Top progress label
+      let progressLabel = UILabel()
+      progressLabel.font = .systemFont(ofSize: 13)
+      progressLabel.textColor = .systemGray
+      progressLabel.textAlignment = .center
+      progressLabel.translatesAutoresizingMaskIntoConstraints = false
+      progressLabel.isUserInteractionEnabled = false
+      progressLabel.alpha = 0
+      view.addSubview(progressLabel)
+      NSLayoutConstraint.activate([
+        progressLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
+        progressLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+        progressLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+      ])
+      self.topProgressLabel = progressLabel
+
+      // Bottom chapter label
+      let chapterLabel = UILabel()
+      chapterLabel.font = .systemFont(ofSize: 12)
+      chapterLabel.textColor = .systemGray
+      chapterLabel.textAlignment = .left
+      chapterLabel.translatesAutoresizingMaskIntoConstraints = false
+      chapterLabel.isUserInteractionEnabled = false
+      chapterLabel.alpha = 0
+      view.addSubview(chapterLabel)
+      NSLayoutConstraint.activate([
+        chapterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
+        chapterLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+      ])
+      self.bottomChapterLabel = chapterLabel
+
+      // Bottom page label (centered)
+      let pageCenterLabel = UILabel()
+      pageCenterLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+      pageCenterLabel.textColor = .systemGray
+      pageCenterLabel.textAlignment = .center
+      pageCenterLabel.translatesAutoresizingMaskIntoConstraints = false
+      pageCenterLabel.isUserInteractionEnabled = false
+      pageCenterLabel.alpha = 0
+      view.addSubview(pageCenterLabel)
+      NSLayoutConstraint.activate([
+        pageCenterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
+        pageCenterLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      ])
+      self.bottomPageCenterLabel = pageCenterLabel
+
+      // Bottom page label (right side)
+      let pageRightLabel = UILabel()
+      pageRightLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+      pageRightLabel.textColor = .systemGray
+      pageRightLabel.textAlignment = .right
+      pageRightLabel.translatesAutoresizingMaskIntoConstraints = false
+      pageRightLabel.isUserInteractionEnabled = false
+      pageRightLabel.alpha = 0
+      view.addSubview(pageRightLabel)
+      NSLayoutConstraint.activate([
+        pageRightLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
+        pageRightLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+        pageRightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chapterLabel.trailingAnchor, constant: 8),
+      ])
+      self.bottomPageRightLabel = pageRightLabel
+    }
+
+    func updateOverlayLabels() {
+      UIView.animate {
+        // Top labels
+        if self.showingControls {
+          self.topBookTitleLabel?.alpha = 0.0
+          if let totalProgression = self.totalProgression {
+            self.topProgressLabel?.text = String(format: "%.2f%%", totalProgression * 100)
+            self.topProgressLabel?.alpha = 1.0
+          } else {
+            self.topProgressLabel?.alpha = 0.0
+          }
+        } else {
+          self.topProgressLabel?.alpha = 0.0
+          if let bookTitle = self.bookTitle, !bookTitle.isEmpty {
+            self.topBookTitleLabel?.text = bookTitle
+            self.topBookTitleLabel?.alpha = 1.0
+          } else {
+            self.topBookTitleLabel?.alpha = 0.0
+          }
+        }
+
+        // Bottom labels
+        if self.totalPagesInChapter > 0 {
+          if self.showingControls {
+            self.bottomChapterLabel?.alpha = 0.0
+            self.bottomPageCenterLabel?.text = "\(self.currentSubPageIndex + 1) / \(self.totalPagesInChapter)"
+            self.bottomPageCenterLabel?.alpha = 1.0
+            self.bottomPageRightLabel?.alpha = 0.0
+          } else {
+            if let chapterTitle = self.chapterTitle, !chapterTitle.isEmpty {
+              self.bottomChapterLabel?.text = chapterTitle
+              self.bottomChapterLabel?.alpha = 1.0
+            } else {
+              self.bottomChapterLabel?.alpha = 0.0
+            }
+            self.bottomPageCenterLabel?.alpha = 0.0
+            self.bottomPageRightLabel?.text = "\(self.currentSubPageIndex + 1)"
+            self.bottomPageRightLabel?.alpha = 1.0
+          }
+        } else {
+          self.bottomChapterLabel?.alpha = 0.0
+          self.bottomPageCenterLabel?.alpha = 0.0
+          self.bottomPageRightLabel?.alpha = 0.0
+        }
+      }
+    }
+
     func forceEnsureContentLoaded() {
       loadContentIfNeeded(force: true)
     }
@@ -645,14 +885,19 @@
       controller.add(self, name: "readerBridge")
       config.userContentController = controller
 
+      // Set background to fill entire view (including safe area)
+      view.backgroundColor = theme.uiColorBackground
+
       let container = UIView()
       container.backgroundColor = .clear
       view.addSubview(container)
       container.translatesAutoresizingMaskIntoConstraints = false
-      let top = container.topAnchor.constraint(equalTo: view.topAnchor, constant: pageInsets.top)
-      let leading = container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: pageInsets.left)
-      let trailing = view.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: pageInsets.right)
-      let bottom = view.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: pageInsets.bottom)
+
+      // Container respects safe area (or view edges based on policy), with additional pageInsets
+      let top = container.topAnchor.constraint(equalTo: topAnchor, constant: pageInsets.top)
+      let leading = container.leadingAnchor.constraint(equalTo: leadingAnchor, constant: pageInsets.left)
+      let trailing = trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: pageInsets.right)
+      let bottom = bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: pageInsets.bottom)
       containerConstraints = (top, leading, trailing, bottom)
       NSLayoutConstraint.activate([top, leading, trailing, bottom])
       containerView = container
@@ -682,6 +927,7 @@
     }
 
     private func applyTheme() {
+      // Background fills entire view (including safe area)
       view.backgroundColor = theme.uiColorBackground
       containerView?.backgroundColor = .clear
       if webView != nil {
@@ -788,8 +1034,8 @@
             column-width: \(columnWidth)px !important;
             column-gap: 0 !important;
             column-fill: auto !important;
-            background-color: \(theme.backgroundColor) !important;
-            color: \(theme.textColor) !important;
+            background-color: \(theme.backgroundColorHex) !important;
+            color: \(theme.textColorHex) !important;
             widows: 2;
             orphans: 2;
           }

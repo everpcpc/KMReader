@@ -143,9 +143,9 @@
 
             Section(String(localized: "Page Layout")) {
               VStack(alignment: .leading) {
-                Slider(value: $draft.pageMargins, in: 0.0...2.0, step: 0.1)
+                Slider(value: $draft.pageMargins, in: 8.0...32.0, step: 1.0)
                 Text(
-                  String(localized: "Page Margins: \(String(format: "%.1f", draft.pageMargins))")
+                  String(localized: "Page Margins: \(String(format: "%.0f", draft.pageMargins))px")
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -208,8 +208,8 @@
 
   private func generatePreviewHTML(preferences: EpubReaderPreferences) -> String {
     let theme = preferences.resolvedTheme(for: nil)
-    let backgroundColor = theme.backgroundColor
-    let textColor = theme.textColor
+    let backgroundColor = theme.backgroundColorHex
+    let textColor = theme.textColorHex
 
     let fontSize = preferences.fontSize
     let fontFamily =
@@ -223,9 +223,8 @@
     let paragraphSpacingEm = preferences.paragraphSpacing
     let paragraphIndentEm = preferences.paragraphIndent
 
-    // Use fixed padding in preview as well
-    let basePadding = 10.0
-    let internalPadding = Int(basePadding * preferences.pageMargins)
+    // Use pixel-based padding in preview
+    let internalPadding = Int(preferences.pageMargins)
 
     return """
       <!DOCTYPE html>

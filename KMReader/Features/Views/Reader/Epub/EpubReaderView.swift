@@ -184,8 +184,7 @@
               }
           }
 
-          chapterStatusOverlay.iPadIgnoresSafeArea(paddingTop: 24)
-          controlsOverlay.iPadIgnoresSafeArea(paddingTop: 24)
+          controlsOverlay
         }
         .onAppear {
           viewModel.updateViewport(size: geometry.size)
@@ -229,9 +228,10 @@
           onTap: { location, containerSize in
             handleTap(location: location, in: containerSize)
           },
-          transitionStyle: .pageCurl
-        )
-        .readerIgnoresSafeArea()
+          transitionStyle: .pageCurl,
+          showingControls: shouldShowControls,
+          bookTitle: currentBook?.metadata.title
+        ).readerIgnoresSafeArea()
       } else {
         Text("No content available.")
           .foregroundStyle(.secondary)
@@ -440,61 +440,6 @@
           }
         }
       }
-    }
-
-    @ViewBuilder
-    private var chapterStatusOverlay: some View {
-      let chapterPageIndex = viewModel.currentLocation?.pageIndex
-      let chapterPageCount = viewModel.currentLocation?.pageCount
-
-      VStack {
-        HStack {
-          Spacer()
-          Text(titleText)
-            .font(.footnote)
-            .foregroundStyle(.gray)
-            .lineLimit(1)
-          Spacer()
-        }
-        .padding(.horizontal, 16)
-        Spacer()
-        VStack(alignment: .leading, spacing: 8) {
-          if shouldShowControls {
-            if let chapterPageIndex, let chapterPageCount, chapterPageCount > 0 {
-              HStack {
-                Spacer()
-                Text("\(chapterPageIndex + 1) / \(chapterPageCount)")
-                  .font(.caption)
-                  .foregroundStyle(.gray)
-                  .monospacedDigit()
-                Spacer()
-              }
-            }
-          } else {
-            HStack {
-              if let chapterTitle = viewModel.currentLocation?.title, !chapterTitle.isEmpty {
-                HStack(spacing: 6) {
-                  Image(systemName: "list.bullet.rectangle")
-                    .font(.caption2)
-                    .foregroundStyle(.gray)
-                  Text(chapterTitle)
-                    .font(.caption)
-                    .foregroundStyle(.gray)
-                    .lineLimit(1)
-                }
-              }
-              Spacer()
-              if let chapterPageIndex, let chapterPageCount, chapterPageCount > 0 {
-                Text("\(chapterPageIndex + 1)")
-                  .font(.caption)
-                  .foregroundStyle(.gray)
-                  .monospacedDigit()
-              }
-            }
-          }
-        }.padding(.horizontal, 16)
-      }
-      .allowsHitTesting(false)
     }
 
     private var currentChapterLink: WebPubLink? {

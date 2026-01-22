@@ -507,8 +507,16 @@
       savePageCountCache()
     }
 
+    var labelTopOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 24 : 8 }
+    var labelBottomOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 16 : 8 }
+    var useSafeArea: Bool { UIDevice.current.userInterfaceIdiom != .pad }
+
     func pageInsets(for prefs: EpubReaderPreferences) -> UIEdgeInsets {
-      return UIEdgeInsets(top: 80, left: 16, bottom: 60, right: 16)
+      let horizontalPadding = CGFloat(prefs.pageMargins)
+      // Reserve space for overlay labels
+      let topPadding = horizontalPadding + labelTopOffset
+      let bottomPadding = horizontalPadding + labelBottomOffset
+      return UIEdgeInsets(top: topPadding, left: horizontalPadding, bottom: bottomPadding, right: horizontalPadding)
     }
 
     // MARK: - Private Methods
@@ -537,7 +545,7 @@
       )
     }
 
-    private func totalProgression(
+    func totalProgression(
       for index: Int,
       location: WebPubPageLocation,
       chapterProgress: Double?
