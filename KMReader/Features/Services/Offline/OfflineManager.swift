@@ -848,12 +848,23 @@ actor OfflineManager {
   }
 
   private nonisolated static func calculateDirectorySize(_ url: URL) throws -> Int64 {
-    let contents = try FileManager.default.contentsOfDirectory(
-      at: url, includingPropertiesForKeys: [.fileSizeKey])
+    guard
+      let enumerator = FileManager.default.enumerator(
+        at: url,
+        includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return 0
+    }
+
     var total: Int64 = 0
-    for file in contents {
-      let attrs = try file.resourceValues(forKeys: [.fileSizeKey])
-      total += Int64(attrs.fileSize ?? 0)
+    for case let fileURL as URL in enumerator {
+      let attrs = try fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey])
+      // Only count files, not directories
+      if attrs.isDirectory == false {
+        total += Int64(attrs.fileSize ?? 0)
+      }
     }
     return total
   }
