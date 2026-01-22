@@ -12,6 +12,7 @@ struct SettingsAppearanceView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
+  @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
 
   private var themeColorBinding: Binding<Color> {
     Binding(
@@ -66,6 +67,15 @@ struct SettingsAppearanceView: View {
             selection: themeColorBinding,
             supportsOpacity: false)
         #endif
+
+        Toggle(isOn: $dashboardShowGradient) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "dashboard.gradient.title"))
+            Text(String(localized: "dashboard.gradient.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
       }
 
       Section(header: Text(String(localized: "settings.appearance.privacy"))) {
