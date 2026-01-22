@@ -508,7 +508,11 @@
     }
 
     func pageInsets(for prefs: EpubReaderPreferences) -> UIEdgeInsets {
-      return UIEdgeInsets(top: 80, left: 16, bottom: 60, right: 16)
+      let horizontalPadding = CGFloat(prefs.pageMargins)
+      // Reserve space for overlay labels: top for title/progress, bottom for chapter info
+      let topPadding = horizontalPadding + 24  // Extra space for top label
+      let bottomPadding = horizontalPadding + 16  // Extra space for bottom labels
+      return UIEdgeInsets(top: topPadding, left: horizontalPadding, bottom: bottomPadding, right: horizontalPadding)
     }
 
     // MARK: - Private Methods

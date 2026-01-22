@@ -403,13 +403,13 @@
     },
     "%lld / %lld" : {
       "localizations" : {
-        "en" : {
+        "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld / %lld"
           }
         },
-        "de" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld / %lld"
@@ -4772,16 +4772,16 @@
     },
     "Book File (Deprecated)" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Book File (Deprecated)"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buchdatei (Veraltet)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Book File (Deprecated)"
           }
         },
         "fr" : {
@@ -4910,16 +4910,16 @@
     },
     "Book Info" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Book Info"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buchinfo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Book Info"
           }
         },
         "fr" : {
@@ -6474,16 +6474,16 @@
     },
     "Calculating chapter pages" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calculating chapter pages"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kapitelseiten werden berechnet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calculating chapter pages"
           }
         },
         "fr" : {
@@ -8774,16 +8774,16 @@
     },
     "Contents · %.1f%%" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contents · %.1f%%"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inhalt · %.1f%%"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contents · %.1f%%"
           }
         },
         "fr" : {
@@ -12088,16 +12088,16 @@
     },
     "Downloading book content" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloading book content"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buchinhalt wird heruntergeladen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading book content"
           }
         },
         "fr" : {
@@ -15125,16 +15125,16 @@
     },
     "Fetching book metadata" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fetching book metadata"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buch-Metadaten werden abgerufen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetching book metadata"
           }
         },
         "fr" : {
@@ -27317,6 +27317,7 @@
       }
     },
     "Page Margins: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -27361,6 +27362,9 @@
           }
         }
       }
+    },
+    "Page Margins: %@px" : {
+
     },
     "Page Navigation" : {
       "localizations" : {
@@ -27549,16 +27553,16 @@
     },
     "Paginating chapters..." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paginating chapters..."
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kapitel werden paginiert..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paginating chapters..."
           }
         },
         "fr" : {
@@ -28378,16 +28382,16 @@
     },
     "Preparing reader view" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparing reader view"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reader-Ansicht wird vorbereitet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing reader view"
           }
         },
         "fr" : {
@@ -41122,16 +41126,16 @@
     },
     "Themes & Settings" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Themes & Settings"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Themes & Einstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Themes & Settings"
           }
         },
         "fr" : {
@@ -41168,16 +41172,16 @@
     },
     "This cache is deprecated. EPUB now reads from offline downloads." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This cache is deprecated. EPUB now reads from offline downloads."
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dieser Cache ist veraltet. EPUB liest jetzt aus Offline-Downloads."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cache is deprecated. EPUB now reads from offline downloads."
           }
         },
         "fr" : {

@@ -18,7 +18,7 @@
     static let defaultParagraphSpacing: Double = 0.5
     static let defaultParagraphIndent: Double = 2.0
 
-    static let defaultPageMargins: Double = 1.0
+    static let defaultPageMargins: Double = 16.0
     static let defaultFontWeight: Double = 1.0
   }
 
@@ -138,9 +138,8 @@
       // Only set font-family if user selected a specific font, otherwise use EPUB's default
       let fontFamilyCSS = fontFamily.fontName.map { "font-family: \($0);" } ?? ""
 
-      // Internal CSS padding controlled by user's pageMargins setting
-      let basePadding = 10.0
-      let internalPadding = Int(basePadding * pageMargins)
+      // Internal CSS padding controlled by user's pageMargins setting (in pixels)
+      let internalPadding = Int(pageMargins)
 
       return """
           body {

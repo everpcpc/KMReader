@@ -35,6 +35,8 @@
     let colorScheme: ColorScheme
     let onTap: (CGPoint, CGSize) -> Void
     let transitionStyle: UIPageViewController.TransitionStyle
+    let showingControls: Bool
+    let bookTitle: String?
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -79,6 +81,9 @@
       longPress.delegate = context.coordinator
       longPress.cancelsTouchesInView = false
       pageVC.view.addGestureRecognizer(longPress)
+
+      // Setup overlay labels
+      context.coordinator.setupOverlayLabels(in: pageVC)
 
       if let initialLocation = viewModel.pageLocation(at: viewModel.currentPageIndex),
         let initialVC = context.coordinator.pageViewController(
@@ -172,6 +177,9 @@
           }
         )
       }
+
+      // Update overlay labels
+      context.coordinator.updateOverlayLabels()
     }
 
     class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
@@ -187,6 +195,13 @@
       private let maxCachedControllers = 3
       private var cachedControllers: [Int: EpubPageViewController] = [:]
       private var controllerKeys: [ObjectIdentifier: Int] = [:]
+
+      // Overlay labels
+      private var topBookTitleLabel: UILabel?  // Book title when controls hidden
+      private var topProgressLabel: UILabel?  // Progress percentage when controls showing
+      private var bottomChapterLabel: UILabel?
+      private var bottomPageCenterLabel: UILabel?  // Centered page count when controls showing
+      private var bottomPageRightLabel: UILabel?  // Right-aligned page number when controls hidden
 
       init(_ parent: WebPubPageView) {
         self.parent = parent
@@ -384,6 +399,8 @@
           preloadAdjacentPages(for: currentVC, in: pageViewController)
           Task { @MainActor in
             parent.viewModel.pageDidChange(to: newIndex)
+            bringLabelsToFront()
+            updateOverlayLabels()
           }
         }
       }
@@ -488,6 +505,166 @@
               controller.forceEnsureContentLoaded()
             }
           }
+        }
+      }
+
+      func setupOverlayLabels(in pageVC: UIPageViewController) {
+        // Top book title label - shown when controls are hidden
+        let bookTitleLabel = UILabel()
+        bookTitleLabel.font = .systemFont(ofSize: 13)
+        bookTitleLabel.textColor = .systemGray
+        bookTitleLabel.textAlignment = .center
+        bookTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        bookTitleLabel.isUserInteractionEnabled = false
+        bookTitleLabel.alpha = 0  // Start hidden for smooth animation
+        pageVC.view.addSubview(bookTitleLabel)
+        NSLayoutConstraint.activate([
+          bookTitleLabel.topAnchor.constraint(equalTo: pageVC.view.safeAreaLayoutGuide.topAnchor, constant: 8),
+          bookTitleLabel.leadingAnchor.constraint(equalTo: pageVC.view.leadingAnchor, constant: 16),
+          bookTitleLabel.trailingAnchor.constraint(equalTo: pageVC.view.trailingAnchor, constant: -16),
+        ])
+        topBookTitleLabel = bookTitleLabel
+
+        // Top progress label - shown when controls are visible
+        let progressLabel = UILabel()
+        progressLabel.font = .systemFont(ofSize: 13)
+        progressLabel.textColor = .systemGray
+        progressLabel.textAlignment = .center
+        progressLabel.translatesAutoresizingMaskIntoConstraints = false
+        progressLabel.isUserInteractionEnabled = false
+        progressLabel.alpha = 0  // Start hidden for smooth animation
+        pageVC.view.addSubview(progressLabel)
+        NSLayoutConstraint.activate([
+          progressLabel.topAnchor.constraint(equalTo: pageVC.view.safeAreaLayoutGuide.topAnchor, constant: 8),
+          progressLabel.leadingAnchor.constraint(equalTo: pageVC.view.leadingAnchor, constant: 16),
+          progressLabel.trailingAnchor.constraint(equalTo: pageVC.view.trailingAnchor, constant: -16),
+        ])
+        topProgressLabel = progressLabel
+
+        // Bottom chapter label (left-aligned for chapter title)
+        let chapterLabel = UILabel()
+        chapterLabel.font = .systemFont(ofSize: 12)
+        chapterLabel.textColor = .systemGray
+        chapterLabel.textAlignment = .left
+        chapterLabel.translatesAutoresizingMaskIntoConstraints = false
+        chapterLabel.isUserInteractionEnabled = false
+        chapterLabel.alpha = 0  // Start hidden for smooth animation
+        pageVC.view.addSubview(chapterLabel)
+        NSLayoutConstraint.activate([
+          chapterLabel.bottomAnchor.constraint(equalTo: pageVC.view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+          chapterLabel.leadingAnchor.constraint(equalTo: pageVC.view.leadingAnchor, constant: 16),
+        ])
+        bottomChapterLabel = chapterLabel
+
+        // Bottom page label (centered) - shown when controls are visible
+        let pageCenterLabel = UILabel()
+        pageCenterLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        pageCenterLabel.textColor = .systemGray
+        pageCenterLabel.textAlignment = .center
+        pageCenterLabel.translatesAutoresizingMaskIntoConstraints = false
+        pageCenterLabel.isUserInteractionEnabled = false
+        pageCenterLabel.alpha = 0  // Start hidden for smooth animation
+        pageVC.view.addSubview(pageCenterLabel)
+        NSLayoutConstraint.activate([
+          pageCenterLabel.bottomAnchor.constraint(equalTo: pageVC.view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+          pageCenterLabel.centerXAnchor.constraint(equalTo: pageVC.view.centerXAnchor),
+        ])
+        bottomPageCenterLabel = pageCenterLabel
+
+        // Bottom page label (right side) - shown when controls are hidden
+        let pageRightLabel = UILabel()
+        pageRightLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        pageRightLabel.textColor = .systemGray
+        pageRightLabel.textAlignment = .right
+        pageRightLabel.translatesAutoresizingMaskIntoConstraints = false
+        pageRightLabel.isUserInteractionEnabled = false
+        pageRightLabel.alpha = 0  // Start hidden for smooth animation
+        pageVC.view.addSubview(pageRightLabel)
+        NSLayoutConstraint.activate([
+          pageRightLabel.bottomAnchor.constraint(equalTo: pageVC.view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+          pageRightLabel.trailingAnchor.constraint(equalTo: pageVC.view.trailingAnchor, constant: -16),
+          pageRightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chapterLabel.trailingAnchor, constant: 8),
+        ])
+        bottomPageRightLabel = pageRightLabel
+
+        updateOverlayLabels()
+      }
+
+      func updateOverlayLabels() {
+        let location = parent.viewModel.currentLocation
+        let showingControls = parent.showingControls
+        let bookTitle = parent.bookTitle
+
+        UIView.animate {
+          // Update top labels
+          if showingControls {
+            // Show progress when controls are visible
+            self.topBookTitleLabel?.alpha = 0.0
+            if let totalProgression = location?.totalProgression {
+              self.topProgressLabel?.text = String(format: "%.2f%%", totalProgression * 100)
+              self.topProgressLabel?.alpha = 1.0
+            } else {
+              self.topProgressLabel?.alpha = 0.0
+            }
+          } else {
+            // Show book title when controls are hidden
+            self.topProgressLabel?.alpha = 0.0
+            if let bookTitle, !bookTitle.isEmpty {
+              self.topBookTitleLabel?.text = bookTitle
+              self.topBookTitleLabel?.alpha = 1.0
+            } else {
+              self.topBookTitleLabel?.alpha = 0.0
+            }
+          }
+
+          // Update bottom labels
+          if let chapterPageIndex = location?.pageIndex,
+            let chapterPageCount = location?.pageCount,
+            chapterPageCount > 0
+          {
+            if showingControls {
+              // Show centered page count when controls are visible
+              self.bottomChapterLabel?.alpha = 0.0
+              self.bottomPageCenterLabel?.text = "\(chapterPageIndex + 1) / \(chapterPageCount)"
+              self.bottomPageCenterLabel?.alpha = 1.0
+              self.bottomPageRightLabel?.alpha = 0.0
+            } else {
+              // Show chapter title on left, page number on right when controls are hidden
+              if let chapterTitle = location?.title, !chapterTitle.isEmpty {
+                self.bottomChapterLabel?.text = "\(chapterTitle)"
+                self.bottomChapterLabel?.textAlignment = .left
+                self.bottomChapterLabel?.alpha = 1.0
+              } else {
+                self.bottomChapterLabel?.alpha = 0.0
+              }
+              self.bottomPageCenterLabel?.alpha = 0.0
+              self.bottomPageRightLabel?.text = "\(chapterPageIndex + 1)"
+              self.bottomPageRightLabel?.alpha = 1.0
+            }
+          } else {
+            self.bottomChapterLabel?.alpha = 0.0
+            self.bottomPageCenterLabel?.alpha = 0.0
+            self.bottomPageRightLabel?.alpha = 0.0
+          }
+        }
+      }
+
+      func bringLabelsToFront() {
+        guard let pageVC = pageViewController else { return }
+        if let bookTitleLabel = topBookTitleLabel {
+          pageVC.view.bringSubviewToFront(bookTitleLabel)
+        }
+        if let progressLabel = topProgressLabel {
+          pageVC.view.bringSubviewToFront(progressLabel)
+        }
+        if let chapterLabel = bottomChapterLabel {
+          pageVC.view.bringSubviewToFront(chapterLabel)
+        }
+        if let pageCenterLabel = bottomPageCenterLabel {
+          pageVC.view.bringSubviewToFront(pageCenterLabel)
+        }
+        if let pageRightLabel = bottomPageRightLabel {
+          pageVC.view.bringSubviewToFront(pageRightLabel)
         }
       }
 
@@ -645,14 +822,22 @@
       controller.add(self, name: "readerBridge")
       config.userContentController = controller
 
+      // Set background to fill entire view (including safe area)
+      view.backgroundColor = theme.uiColorBackground
+
       let container = UIView()
       container.backgroundColor = .clear
       view.addSubview(container)
       container.translatesAutoresizingMaskIntoConstraints = false
-      let top = container.topAnchor.constraint(equalTo: view.topAnchor, constant: pageInsets.top)
-      let leading = container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: pageInsets.left)
-      let trailing = view.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: pageInsets.right)
-      let bottom = view.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: pageInsets.bottom)
+
+      // Container respects safe area, with additional pageInsets
+      let top = container.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: pageInsets.top)
+      let leading = container.leadingAnchor.constraint(
+        equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: pageInsets.left)
+      let trailing = view.safeAreaLayoutGuide.trailingAnchor.constraint(
+        equalTo: container.trailingAnchor, constant: pageInsets.right)
+      let bottom = view.safeAreaLayoutGuide.bottomAnchor.constraint(
+        equalTo: container.bottomAnchor, constant: pageInsets.bottom)
       containerConstraints = (top, leading, trailing, bottom)
       NSLayoutConstraint.activate([top, leading, trailing, bottom])
       containerView = container
@@ -682,6 +867,7 @@
     }
 
     private func applyTheme() {
+      // Background fills entire view (including safe area)
       view.backgroundColor = theme.uiColorBackground
       containerView?.backgroundColor = .clear
       if webView != nil {
