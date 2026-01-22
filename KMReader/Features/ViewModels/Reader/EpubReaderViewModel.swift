@@ -74,7 +74,7 @@
     private let logger = AppLogger(.reader)
     private var viewportSize: CGSize = .zero
     private var preferences: EpubReaderPreferences = .init()
-    private var theme: ReaderTheme = .light
+    private var theme: ReaderTheme = .lightSepia
 
     let incognito: Bool
 
