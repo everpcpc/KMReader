@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct DivinaReaderView: View {
+  let book: Book
   let incognito: Bool
   let readList: ReadList?
   let onClose: (() -> Void)?
@@ -67,15 +68,17 @@ struct DivinaReaderView: View {
   #endif
 
   init(
-    bookId: String,
+    book: Book,
     incognito: Bool = false,
     readList: ReadList? = nil,
     onClose: (() -> Void)? = nil
   ) {
+    self.book = book
     self.incognito = incognito
     self.readList = readList
     self.onClose = onClose
-    self._currentBookId = State(initialValue: bookId)
+    self._currentBookId = State(initialValue: book.id)
+    self._currentBook = State(initialValue: book)
     self._readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
     self._isolateCoverPage = State(initialValue: AppConfig.isolateCoverPage)
@@ -683,8 +686,12 @@ struct DivinaReaderView: View {
     // Load book info to get read progress page and series reading direction
     var initialPageNumber: Int? = nil
 
-    // 1. Try to get book from DB
-    if let book = await DatabaseOperator.shared.fetchBook(id: bookId) {
+    // 1. Use current book if it matches, otherwise try DB/network
+    if let book = currentBook, book.id == bookId {
+      seriesId = book.seriesId
+      readerPresentation.trackVisitedBook(bookId: book.id, seriesId: book.seriesId)
+      initialPageNumber = incognito ? nil : book.readProgress?.page
+    } else if let book = await DatabaseOperator.shared.fetchBook(id: bookId) {
       currentBook = book
       seriesId = book.seriesId
       readerPresentation.trackVisitedBook(bookId: book.id, seriesId: book.seriesId)

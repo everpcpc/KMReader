@@ -9,7 +9,7 @@
   import SwiftUI
 
   struct EpubReaderView: View {
-    private let bookId: String
+    private let book: Book
     private let incognito: Bool
     private let readList: ReadList?
     private let onClose: (() -> Void)?
@@ -36,16 +36,17 @@
     @State private var showingQuickActions = false
 
     init(
-      bookId: String,
+      book: Book,
       incognito: Bool = false,
       readList: ReadList? = nil,
       onClose: (() -> Void)? = nil
     ) {
-      self.bookId = bookId
+      self.book = book
       self.incognito = incognito
       self.readList = readList
       self.onClose = onClose
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
+      _currentBook = State(initialValue: book)
     }
 
     private func closeReader() {
@@ -72,7 +73,7 @@
           return String(localized: "\(totalProgression * 100, specifier: "%.1f")%")
         }
       } else {
-        if let title = viewModel.book?.metadata.title {
+        if let title = currentBook?.metadata.title {
           return title
         }
       }
@@ -82,7 +83,7 @@
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()
-        .task(id: bookId) {
+        .task(id: book.id) {
           await loadBook()
           triggerTapZoneDisplay()
         }
@@ -136,28 +137,35 @@
     private func loadBook() async {
       viewModel.beginLoading()
 
-      // Load book info
+      currentBook = book
       do {
-        currentBook = try await SyncService.shared.syncBook(bookId: bookId)
+        currentBook = try await SyncService.shared.syncBook(bookId: book.id)
       } catch {
-        // Silently fail
       }
 
-      if let activeBook = currentBook {
-        var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
-        if series == nil && !AppConfig.isOffline {
-          do {
-            series = try await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
-          } catch {
-            // Silently fail
-          }
-        }
-        if let series = series {
-          currentSeries = series
-        }
+      guard let activeBook = currentBook else {
+        viewModel.errorMessage =
+          AppErrorType.missingRequiredData(
+            message: "Missing book metadata. Please try again."
+          ).localizedDescription
+        viewModel.loadingStage = .idle
+        viewModel.isLoading = false
+        return
       }
 
-      await viewModel.load(bookId: bookId)
+      var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
+      if series == nil && !AppConfig.isOffline {
+        do {
+          series = try await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
+        } catch {
+          // Silently fail
+        }
+      }
+      if let series = series {
+        currentSeries = series
+      }
+
+      await viewModel.load(book: activeBook)
     }
 
     @ViewBuilder
@@ -208,7 +216,7 @@
             .multilineTextAlignment(.center)
           Button("Retry") {
             Task {
-              await viewModel.retry()
+              await loadBook()
             }
           }
         }

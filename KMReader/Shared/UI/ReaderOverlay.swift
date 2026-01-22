@@ -25,12 +25,10 @@ import SwiftUI
             #if os(iOS)
               .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
             #endif
-            .ifLet(readerPresentation.sourceBookId) { view, sourceID in
-              view.navigationTransitionZoomIfAvailable(
-                sourceID: sourceID,
-                in: namespace
-              )
-            }
+            .navigationTransitionZoomIfAvailable(
+              sourceID: readerPresentation.sourceBookId,
+              in: namespace
+            )
             #if os(iOS)
               .tint(themeColor.color)
               .accentColor(themeColor.color)
@@ -61,9 +59,6 @@ import SwiftUI
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .onAppear {
-        readerPresentation.clearTransitionSource()
-      }
       #if os(iOS)
         .statusBarHidden(readerPresentation.hideStatusBar)
       #endif

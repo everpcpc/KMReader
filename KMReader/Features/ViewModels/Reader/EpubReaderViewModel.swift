@@ -56,6 +56,7 @@
     var resourceRootURL: URL?
 
     private var bookId: String = ""
+    private var downloadInfo: DownloadInfo? = nil
     private var readingOrder: [WebPubLink] = []
     private var pageCountCache: [String: Int] = [:]
     private var chapterPageCounts: [Int: Int] = [:]
@@ -76,7 +77,6 @@
     private var theme: ReaderTheme = .light
 
     let incognito: Bool
-    var book: Book? = nil
 
     init(incognito: Bool) {
       self.incognito = incognito
@@ -127,7 +127,12 @@
       downloadBytesExpected = nil
     }
 
-    func load(bookId: String) async {
+    func load(book: Book) async {
+      downloadInfo = book.downloadInfo
+      await load(bookId: book.id)
+    }
+
+    private func load(bookId: String) async {
       downloadResumeTask?.cancel()
       downloadResumeTask = nil
 
@@ -159,13 +164,12 @@
         logger.debug("WebPub load started for bookId=\(bookId)")
 
         let instanceId = AppConfig.current.instanceId
-        try await ensureBook()
-        guard let book = self.book else {
+        guard let downloadInfo = downloadInfo else {
           throw AppErrorType.missingRequiredData(
             message: "Missing book metadata for offline download."
           )
         }
-        try await ensureOfflineReady(book: book, instanceId: instanceId)
+        try await ensureOfflineReady(downloadInfo: downloadInfo, instanceId: instanceId)
 
         guard let manifest = await DatabaseOperator.shared.fetchWebPubManifest(bookId: bookId) else {
           throw AppErrorType.missingRequiredData(
@@ -260,24 +264,11 @@
       }
     }
 
-    func retry() async {
-      await load(bookId: bookId)
-    }
-
-    private func ensureBook() async throws {
-      if let book = await DatabaseOperator.shared.fetchBook(id: bookId) {
-        self.book = book
-      } else if let book = try? await BookService.shared.getBook(id: bookId) {
-        self.book = book
-      } else {
-        throw AppErrorType.missingRequiredData(
-          message: "Missing book metadata for offline download."
-        )
-      }
-    }
-
-    private func ensureOfflineReady(book: Book, instanceId: String) async throws {
-      let status = await OfflineManager.shared.getDownloadStatus(bookId: book.id)
+    private func ensureOfflineReady(
+      downloadInfo: DownloadInfo,
+      instanceId: String
+    ) async throws {
+      let status = await OfflineManager.shared.getDownloadStatus(bookId: downloadInfo.bookId)
       if case .downloaded = status {
         return
       }
@@ -295,7 +286,7 @@
       case .notDownloaded:
         await OfflineManager.shared.toggleDownload(
           instanceId: instanceId,
-          info: book.downloadInfo
+          info: downloadInfo
         )
       case .failed:
         await OfflineManager.shared.retryDownload(instanceId: instanceId, bookId: bookId)

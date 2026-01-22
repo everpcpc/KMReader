@@ -56,9 +56,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     content()
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
       .overlay { borderOverlay }
-      .ifLet(isTransitionSource ? zoomNamespace : nil) { view, namespace in
-        view.matchedTransitionSourceIfAvailable(id: id, in: namespace)
-      }
+      .matchedTransitionSourceIfAvailable(id: id, in: isTransitionSource ? zoomNamespace : nil)
       #if os(iOS)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
       #endif

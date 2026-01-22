@@ -78,7 +78,6 @@ final class ReaderPresentationManager {
     }
 
     hideStatusBar = false
-    sourceBookId = nil
 
     #if os(macOS)
       if !isWindowDrivenClose {
@@ -96,9 +95,6 @@ final class ReaderPresentationManager {
     }
 
     readerState = nil
-  }
-
-  func clearTransitionSource() {
     sourceBookId = nil
   }
 
