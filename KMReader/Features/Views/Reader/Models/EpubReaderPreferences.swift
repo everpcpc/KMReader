@@ -123,7 +123,7 @@
     }
 
     func resolvedTheme(for colorScheme: ColorScheme? = nil) -> ReaderTheme {
-      theme.resolvedTheme(for: colorScheme) ?? .light
+      theme.resolvedTheme(for: colorScheme)
     }
 
     func makeCSS(theme: ReaderTheme) -> String {
@@ -169,49 +169,72 @@
 
   enum ThemeChoice: String, CaseIterable, Identifiable {
     case system
-    case light
+    case gray
     case sepia
-    case dark
+    case green
 
     var id: String { rawValue }
+
     var title: String {
       switch self {
       case .system: return String(localized: "System")
-      case .light: return String(localized: "Light")
+      case .gray: return String(localized: "Gray")
       case .sepia: return String(localized: "Sepia")
-      case .dark: return String(localized: "Dark")
+      case .green: return String(localized: "Green")
       }
     }
-    func resolvedTheme(for colorScheme: ColorScheme?) -> ReaderTheme? {
+
+    func resolvedTheme(for colorScheme: ColorScheme?) -> ReaderTheme {
+      let isDark = colorScheme == .dark
       switch self {
-      case .system:
-        guard let colorScheme else { return nil }
-        return colorScheme == .dark ? .dark : .light
-      case .light: return .light
-      case .sepia: return .sepia
-      case .dark: return .dark
+      case .system: return isDark ? .black : .white
+      case .gray: return isDark ? .darkGray : .lightGray
+      case .sepia: return isDark ? .darkSepia : .lightSepia
+      case .green: return isDark ? .darkGreen : .lightGreen
       }
     }
   }
 
   enum ReaderTheme: String, CaseIterable {
-    case light
-    case sepia
-    case dark
+    case white
+    case black
+    case lightGray
+    case darkGray
+    case lightSepia
+    case darkSepia
+    case lightGreen
+    case darkGreen
 
     var backgroundColorHex: String {
       switch self {
-      case .light: return "#FFFFFF"
-      case .sepia: return "#F4ECD8"
-      case .dark: return "#1E1E1E"
+      case .white: return "#FFFFFF"
+      case .black: return "#000000"
+      case .lightGray: return "#F5F5F5"
+      case .darkGray: return "#2D2D2D"
+      case .lightSepia: return "#F4ECD8"
+      case .darkSepia: return "#382E25"
+      case .lightGreen: return "#C7EDCC"
+      case .darkGreen: return "#1B261B"
       }
     }
 
     var textColorHex: String {
       switch self {
-      case .light: return "#000000"
-      case .sepia: return "#5C4A37"
-      case .dark: return "#E0E0E0"
+      case .white: return "#000000"
+      case .black: return "#E0E0E0"
+      case .lightGray: return "#333333"
+      case .darkGray: return "#CCCCCC"
+      case .lightSepia: return "#5C4A37"
+      case .darkSepia: return "#E3D5C1"
+      case .lightGreen: return "#1A3A1F"
+      case .darkGreen: return "#D1E0D1"
+      }
+    }
+
+    var isDark: Bool {
+      switch self {
+      case .white, .lightGray, .lightSepia, .lightGreen: return false
+      case .black, .darkGray, .darkSepia, .darkGreen: return true
       }
     }
   }
