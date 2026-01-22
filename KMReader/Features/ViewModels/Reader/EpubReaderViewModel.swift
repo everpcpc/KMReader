@@ -541,7 +541,7 @@
       )
     }
 
-    private func totalProgression(
+    func totalProgression(
       for index: Int,
       location: WebPubPageLocation,
       chapterProgress: Double?
