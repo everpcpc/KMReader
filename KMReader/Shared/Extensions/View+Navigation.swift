@@ -47,9 +47,7 @@ private struct NavigationHandlingModifier: ViewModifier {
       .navigationDestination(for: NavDestination.self) { destination in
         destination.content
           .environment(\.browseLibrarySelection, browseLibrarySelection)
-          .ifLet(destination.zoomSourceID) { view, sourceID in
-            view.navigationTransitionZoomIfAvailable(sourceID: sourceID, in: zoomNamespace)
-          }
+          .navigationTransitionZoomIfAvailable(sourceID: destination.zoomSourceID, in: zoomNamespace)
       }
   }
 }

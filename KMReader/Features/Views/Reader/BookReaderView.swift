@@ -47,7 +47,7 @@ struct BookReaderView: View {
           case .ready:
             if shouldUseDivinaReader {
               DivinaReaderView(
-                bookId: book.id,
+                book: book,
                 incognito: incognito,
                 readList: readList,
                 onClose: closeReader
@@ -55,7 +55,7 @@ struct BookReaderView: View {
             } else {
               #if os(iOS)
                 EpubReaderView(
-                  bookId: book.id,
+                  book: book,
                   incognito: incognito,
                   readList: readList,
                   onClose: closeReader
