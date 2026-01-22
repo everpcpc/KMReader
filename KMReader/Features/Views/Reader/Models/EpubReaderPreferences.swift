@@ -146,8 +146,8 @@
           body {
             margin: 0;
             padding: \(internalPadding)px;
-            background-color: \(theme.backgroundColor);
-            color: \(theme.textColor);
+            background-color: \(theme.backgroundColorHex);
+            color: \(theme.textColorHex);
             \(fontFamilyCSS)
             font-size: \(fontSize)px;
             font-weight: \(fontWeightValue);
@@ -196,7 +196,7 @@
     case sepia
     case dark
 
-    var backgroundColor: String {
+    var backgroundColorHex: String {
       switch self {
       case .light: return "#FFFFFF"
       case .sepia: return "#F4ECD8"
@@ -204,7 +204,7 @@
       }
     }
 
-    var textColor: String {
+    var textColorHex: String {
       switch self {
       case .light: return "#000000"
       case .sepia: return "#5C4A37"

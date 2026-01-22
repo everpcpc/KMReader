@@ -174,7 +174,7 @@
         ZStack {
           Color.clear.readerIgnoresSafeArea()
 
-          contentView(for: geometry.size, viewModel: viewModel)
+          contentView(for: geometry.size, viewModel: viewModel).iPadIgnoresSafeArea(paddingTop: 24)
 
           if !viewModel.pageLocations.isEmpty {
             TapZoneOverlay(isVisible: $showTapZoneOverlay, readingDirection: .ltr)
@@ -231,7 +231,6 @@
           },
           transitionStyle: .pageCurl
         )
-        .readerIgnoresSafeArea()
       } else {
         Text("No content available.")
           .foregroundStyle(.secondary)

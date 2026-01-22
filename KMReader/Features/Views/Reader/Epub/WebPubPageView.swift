@@ -11,8 +11,8 @@
   import WebKit
 
   extension ReaderTheme {
-    var uiColorBackground: UIColor { UIColor(hex: backgroundColor) ?? .white }
-    var uiColorText: UIColor { UIColor(hex: textColor) ?? .black }
+    var uiColorBackground: UIColor { UIColor(hex: backgroundColorHex) ?? .white }
+    var uiColorText: UIColor { UIColor(hex: textColorHex) ?? .black }
   }
 
   extension UIColor {
@@ -788,8 +788,8 @@
             column-width: \(columnWidth)px !important;
             column-gap: 0 !important;
             column-fill: auto !important;
-            background-color: \(theme.backgroundColor) !important;
-            color: \(theme.textColor) !important;
+            background-color: \(theme.backgroundColorHex) !important;
+            color: \(theme.textColorHex) !important;
             widows: 2;
             orphans: 2;
           }
