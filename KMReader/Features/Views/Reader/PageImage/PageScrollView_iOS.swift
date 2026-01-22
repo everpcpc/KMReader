@@ -382,10 +382,9 @@
       imageTrailingBoundConstraint = imageView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
 
       NSLayoutConstraint.activate([
-        // Center imageView vertically
-        imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-        imageView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
-        imageView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
+        // Fill the container vertically and horizontally
+        imageView.topAnchor.constraint(equalTo: topAnchor),
+        imageView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
         // Always enforce bounds constraints
         imageLeadingBoundConstraint!,
