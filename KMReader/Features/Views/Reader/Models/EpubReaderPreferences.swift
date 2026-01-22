@@ -136,7 +136,7 @@
       let paragraphIndentEm = paragraphIndent
 
       // Only set font-family if user selected a specific font, otherwise use EPUB's default
-      let fontFamilyCSS = fontFamily.fontName.map { "font-family: \($0);" } ?? ""
+      let fontFamilyCSS = fontFamily.fontName.map { "font-family: '\($0)' !important;" } ?? ""
 
       // Internal CSS padding controlled by user's pageMargins setting (in pixels)
       let internalPadding = Int(pageMargins)
@@ -148,11 +148,15 @@
             background-color: \(theme.backgroundColorHex);
             color: \(theme.textColorHex);
             \(fontFamilyCSS)
-            font-size: \(fontSize)px;
+            font-size: \(fontSize)px !important;
             font-weight: \(fontWeightValue);
             letter-spacing: \(letterSpacingEm)em;
             word-spacing: \(wordSpacingEm)em;
             line-height: \(lineHeightValue);
+          }
+          p, div, span, li {
+            \(fontFamilyCSS.isEmpty ? "" : "font-family: inherit !important;")
+            font-size: inherit !important;
           }
           p {
             margin: 0 !important;

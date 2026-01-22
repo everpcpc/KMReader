@@ -213,7 +213,7 @@
 
     let fontSize = preferences.fontSize
     let fontFamily =
-      preferences.fontFamily.fontName ?? "system-ui, -apple-system, sans-serif"
+      preferences.fontFamily.fontName.map { "'\($0)'" } ?? "system-ui, -apple-system, sans-serif"
 
     // Calculate font weight (0.0 to 2.5 maps to 300 to 700)
     let fontWeightValue = 300 + Int(preferences.fontWeight * 160)
