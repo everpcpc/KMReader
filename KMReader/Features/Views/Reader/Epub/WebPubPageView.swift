@@ -180,6 +180,9 @@
           chapterTitle: location.title,
           totalProgression: totalProgression,
           showingControls: showingControls,
+          labelTopOffset: viewModel.labelTopOffset,
+          labelBottomOffset: viewModel.labelBottomOffset,
+          useSafeArea: viewModel.useSafeArea,
           onPageCountReady: { [weak viewModel] pageCount in
             Task { @MainActor in
               viewModel?.updateChapterPageCount(pageCount, for: chapterIndex)
@@ -269,6 +272,9 @@
             chapterTitle: location.title,
             totalProgression: totalProgression,
             showingControls: parent.showingControls,
+            labelTopOffset: parent.viewModel.labelTopOffset,
+            labelBottomOffset: parent.viewModel.labelBottomOffset,
+            useSafeArea: parent.viewModel.useSafeArea,
             onPageCountReady: onPageCountReady
           )
           configureController(cached, preferLastPageOnReady: preferLastPageOnReady)
@@ -294,6 +300,9 @@
             chapterTitle: location.title,
             totalProgression: totalProgression,
             showingControls: parent.showingControls,
+            labelTopOffset: parent.viewModel.labelTopOffset,
+            labelBottomOffset: parent.viewModel.labelBottomOffset,
+            useSafeArea: parent.viewModel.useSafeArea,
             onPageCountReady: onPageCountReady
           )
           configureController(reusable, preferLastPageOnReady: preferLastPageOnReady)
@@ -319,6 +328,9 @@
           chapterTitle: location.title,
           totalProgression: totalProgression,
           showingControls: parent.showingControls,
+          labelTopOffset: parent.viewModel.labelTopOffset,
+          labelBottomOffset: parent.viewModel.labelBottomOffset,
+          useSafeArea: parent.viewModel.useSafeArea,
           onPageCountReady: onPageCountReady
         )
         configureController(controller, preferLastPageOnReady: preferLastPageOnReady)
@@ -563,6 +575,9 @@
     private var chapterTitle: String?
     private var totalProgression: Double?
     private var showingControls: Bool = false
+    private var labelTopOffset: CGFloat
+    private var labelBottomOffset: CGFloat
+    private var useSafeArea: Bool
 
     // Overlay labels
     private var topBookTitleLabel: UILabel?
@@ -584,6 +599,9 @@
       chapterTitle: String?,
       totalProgression: Double?,
       showingControls: Bool,
+      labelTopOffset: CGFloat,
+      labelBottomOffset: CGFloat,
+      useSafeArea: Bool,
       onPageCountReady: ((Int) -> Void)?
     ) {
       self.chapterURL = chapterURL
@@ -598,6 +616,9 @@
       self.chapterTitle = chapterTitle
       self.totalProgression = totalProgression
       self.showingControls = showingControls
+      self.labelTopOffset = labelTopOffset
+      self.labelBottomOffset = labelBottomOffset
+      self.useSafeArea = useSafeArea
       self.onPageCountReady = onPageCountReady
       self.onLinkTap = nil
       super.init(nibName: nil, bundle: nil)
@@ -651,6 +672,9 @@
       chapterTitle: String?,
       totalProgression: Double?,
       showingControls: Bool,
+      labelTopOffset: CGFloat,
+      labelBottomOffset: CGFloat,
+      useSafeArea: Bool,
       onPageCountReady: ((Int) -> Void)?
     ) {
       let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
@@ -658,6 +682,9 @@
         theme != self.theme
         || pageInsets != self.pageInsets
         || contentCSS != self.contentCSS
+        || labelTopOffset != self.labelTopOffset
+        || labelBottomOffset != self.labelBottomOffset
+        || useSafeArea != self.useSafeArea
 
       self.chapterURL = chapterURL
       self.rootURL = rootURL
@@ -671,6 +698,9 @@
       self.chapterTitle = chapterTitle
       self.totalProgression = totalProgression
       self.showingControls = showingControls
+      self.labelTopOffset = labelTopOffset
+      self.labelBottomOffset = labelBottomOffset
+      self.useSafeArea = useSafeArea
       self.onPageCountReady = onPageCountReady
 
       guard isViewLoaded else { return }
@@ -695,7 +725,23 @@
       applyPagination(scrollToPage: currentSubPageIndex)
     }
 
+    private var topAnchor: NSLayoutYAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.topAnchor : view.topAnchor
+    }
+    private var bottomAnchor: NSLayoutYAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.bottomAnchor : view.bottomAnchor
+    }
+    private var leadingAnchor: NSLayoutXAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.leadingAnchor : view.leadingAnchor
+    }
+    private var trailingAnchor: NSLayoutXAxisAnchor {
+      useSafeArea ? view.safeAreaLayoutGuide.trailingAnchor : view.trailingAnchor
+    }
+
     func setupOverlayLabels() {
+      let topOffset = labelTopOffset
+      let bottomOffset = -labelBottomOffset
+
       // Top book title label
       let bookTitleLabel = UILabel()
       bookTitleLabel.font = .systemFont(ofSize: 13)
@@ -706,7 +752,7 @@
       bookTitleLabel.alpha = 0
       view.addSubview(bookTitleLabel)
       NSLayoutConstraint.activate([
-        bookTitleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+        bookTitleLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
         bookTitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
         bookTitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
       ])
@@ -722,7 +768,7 @@
       progressLabel.alpha = 0
       view.addSubview(progressLabel)
       NSLayoutConstraint.activate([
-        progressLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+        progressLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
         progressLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
         progressLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
       ])
@@ -738,7 +784,7 @@
       chapterLabel.alpha = 0
       view.addSubview(chapterLabel)
       NSLayoutConstraint.activate([
-        chapterLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+        chapterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
         chapterLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
       ])
       self.bottomChapterLabel = chapterLabel
@@ -753,7 +799,7 @@
       pageCenterLabel.alpha = 0
       view.addSubview(pageCenterLabel)
       NSLayoutConstraint.activate([
-        pageCenterLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+        pageCenterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
         pageCenterLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
       ])
       self.bottomPageCenterLabel = pageCenterLabel
@@ -768,7 +814,7 @@
       pageRightLabel.alpha = 0
       view.addSubview(pageRightLabel)
       NSLayoutConstraint.activate([
-        pageRightLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+        pageRightLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
         pageRightLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
         pageRightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chapterLabel.trailingAnchor, constant: 8),
       ])
@@ -847,14 +893,11 @@
       view.addSubview(container)
       container.translatesAutoresizingMaskIntoConstraints = false
 
-      // Container respects safe area, with additional pageInsets
-      let top = container.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: pageInsets.top)
-      let leading = container.leadingAnchor.constraint(
-        equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: pageInsets.left)
-      let trailing = view.safeAreaLayoutGuide.trailingAnchor.constraint(
-        equalTo: container.trailingAnchor, constant: pageInsets.right)
-      let bottom = view.safeAreaLayoutGuide.bottomAnchor.constraint(
-        equalTo: container.bottomAnchor, constant: pageInsets.bottom)
+      // Container respects safe area (or view edges based on policy), with additional pageInsets
+      let top = container.topAnchor.constraint(equalTo: topAnchor, constant: pageInsets.top)
+      let leading = container.leadingAnchor.constraint(equalTo: leadingAnchor, constant: pageInsets.left)
+      let trailing = trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: pageInsets.right)
+      let bottom = bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: pageInsets.bottom)
       containerConstraints = (top, leading, trailing, bottom)
       NSLayoutConstraint.activate([top, leading, trailing, bottom])
       containerView = container
