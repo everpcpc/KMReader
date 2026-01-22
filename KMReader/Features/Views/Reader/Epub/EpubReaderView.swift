@@ -288,7 +288,6 @@
           .controlSize(.large)
           .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
         }
 
         Spacer()
@@ -311,11 +310,10 @@
           .controlSize(.large)
           .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
         }
       }
       .tint(.primary)
-      .padding()
+      .padding(24)
       .iPadIgnoresSafeArea(paddingTop: 24)
       .opacity(shouldShowControls ? 1.0 : 0.0)
       .allowsHitTesting(shouldShowControls)
@@ -344,61 +342,60 @@
 
     @ViewBuilder
     private var quickActionsPanel: some View {
-      VStack {
+      HStack {
         Spacer()
-        HStack {
-          Spacer()
-          VStack(alignment: .trailing, spacing: 6) {
-            if let currentLocation = viewModel.currentLocation,
-              let totalProgression = currentLocation.totalProgression
-            {
-              Button {
-                showingChapterSheet = true
-              } label: {
-                HStack {
-                  Text("Contents · \(totalProgression * 100, specifier: "%.1f")%")
-                    .font(.callout)
-                  Image(systemName: "list.bullet")
-                }
-              }
-              .adaptiveButtonStyle(buttonStyle)
-              .buttonBorderShape(.capsule)
-              .controlSize(.large)
-              .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
-              .disabled(viewModel.tableOfContents.isEmpty)
-            }
-
+        VStack(alignment: .trailing, spacing: 6) {
+          if let currentLocation = viewModel.currentLocation,
+            let totalProgression = currentLocation.totalProgression
+          {
             Button {
-              showingPreferencesSheet = true
+              showingChapterSheet = true
             } label: {
               HStack {
-                Text("Themes & Settings")
+                Text("Contents · \(totalProgression * 100, specifier: "%.1f")%")
                   .font(.callout)
-                Image(systemName: "textformat")
+                Image(systemName: "list.bullet")
               }
             }
             .adaptiveButtonStyle(buttonStyle)
             .buttonBorderShape(.capsule)
             .controlSize(.large)
-            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
-
-            Button {
-              showingDetailSheet = true
-            } label: {
-              HStack {
-                Text("Book Info")
-                  .font(.callout)
-                Image(systemName: "info.circle")
-              }
-            }
-            .adaptiveButtonStyle(buttonStyle)
-            .buttonBorderShape(.capsule)
-            .controlSize(.large)
-            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+            .disabled(viewModel.tableOfContents.isEmpty)
           }
+
+          Button {
+            showingPreferencesSheet = true
+          } label: {
+            HStack {
+              Text("Themes & Settings")
+                .font(.callout)
+              Image(systemName: "textformat")
+            }
+          }
+          .adaptiveButtonStyle(buttonStyle)
+          .buttonBorderShape(.capsule)
+          .controlSize(.large)
+
+          Button {
+            showingDetailSheet = true
+          } label: {
+            HStack {
+              Text("Book Info")
+                .font(.callout)
+              Image(systemName: "info.circle")
+            }
+          }
+          .adaptiveButtonStyle(buttonStyle)
+          .buttonBorderShape(.capsule)
+          .controlSize(.large)
         }
       }
-      .transition(.opacity.combined(with: .move(edge: .trailing)))
+      .transition(
+        .asymmetric(
+          insertion: .move(edge: .trailing).combined(with: .opacity),
+          removal: .move(edge: .trailing).combined(with: .opacity)
+        )
+      )
     }
 
     private func toggleControls(autoHide: Bool = true) {

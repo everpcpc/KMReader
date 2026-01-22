@@ -124,7 +124,6 @@ struct ReaderControlsView: View {
         .controlSize(.large)
         .buttonBorderShape(.circle)
         .adaptiveButtonStyle(buttonStyle)
-        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         #if os(tvOS)
           .focused($focusedControl, equals: .close)
           .id("closeButton")
@@ -162,7 +161,6 @@ struct ReaderControlsView: View {
           .contentShape(RoundedRectangle(cornerRadius: 12))
           .optimizedControlSize()
           .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
             .focused($focusedControl, equals: .title)
             .id("titleLabel")
@@ -208,7 +206,6 @@ struct ReaderControlsView: View {
           }
           .contentShape(Rectangle())
           .adaptiveButtonStyle(buttonStyle)
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           #if os(tvOS)
             .focused($focusedControl, equals: .pageNumber)
           #endif

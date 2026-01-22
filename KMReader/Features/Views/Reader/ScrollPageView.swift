@@ -57,42 +57,43 @@ struct ScrollPageView: View {
   var body: some View {
     GeometryReader { geometry in
       ScrollViewReader { proxy in
-        scrollViewContent(proxy: proxy, geometry: geometry)
-          .frame(width: geometry.size.width, height: geometry.size.height)
-          .scrollTargetBehavior(.paging)
-          .scrollIndicators(.hidden)
-          .scrollPosition(id: $scrollPosition)
-          .scrollDisabled(viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil)
-          #if os(tvOS)
-            .focusable(false)
-          #endif
-          .onAppear {
-            synchronizeInitialScrollIfNeeded(proxy: proxy)
-          }
-          .onChange(of: viewModel.targetPageIndex) { _, newTarget in
-            if let newTarget = newTarget {
-              handleTargetPageChange(newTarget, proxy: proxy)
-              // Reset targetPageIndex to allow consecutive taps to the same target if we swiped away
-              Task { @MainActor in
-                viewModel.targetPageIndex = nil
-              }
+        scrollViewContent(
+          proxy: proxy, geometry: geometry,
+          isScrollDisabled: viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil
+        )
+        .frame(width: geometry.size.width, height: geometry.size.height)
+        .scrollTargetBehavior(.paging)
+        .scrollPosition(id: $scrollPosition)
+        #if os(tvOS)
+          .focusable(false)
+        #endif
+        .onAppear {
+          synchronizeInitialScrollIfNeeded(proxy: proxy)
+        }
+        .onChange(of: viewModel.targetPageIndex) { _, newTarget in
+          if let newTarget = newTarget {
+            handleTargetPageChange(newTarget, proxy: proxy)
+            // Reset targetPageIndex to allow consecutive taps to the same target if we swiped away
+            Task { @MainActor in
+              viewModel.targetPageIndex = nil
             }
           }
-          .onChange(of: scrollPosition) { _, newPosition in
-            if let newPosition {
-              viewModel.currentPageIndex = newPosition
-              // Clear targetPageIndex if the user manually scrolled
-              if viewModel.targetPageIndex != nil {
-                viewModel.targetPageIndex = nil
-              }
+        }
+        .onChange(of: scrollPosition) { _, newPosition in
+          if let newPosition {
+            viewModel.currentPageIndex = newPosition
+            // Clear targetPageIndex if the user manually scrolled
+            if viewModel.targetPageIndex != nil {
+              viewModel.targetPageIndex = nil
             }
           }
+        }
       }
     }
   }
 
   @ViewBuilder
-  private func scrollViewContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
+  private func scrollViewContent(proxy: ScrollViewProxy, geometry: GeometryProxy, isScrollDisabled: Bool) -> some View {
     ScrollView(mode.isVertical ? .vertical : .horizontal) {
       if mode.isVertical {
         LazyVStack(spacing: 0) {
@@ -110,6 +111,8 @@ struct ScrollPageView: View {
         .scrollTargetLayout()
       }
     }
+    .scrollIndicators(.never)
+    .scrollDisabled(isScrollDisabled)
     .environment(\.layoutDirection, mode.isRTL ? .rightToLeft : .leftToRight)
   }
 
