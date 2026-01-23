@@ -763,7 +763,11 @@ actor DatabaseOperator {
       }
 
       if AppConfig.offlineAutoDeleteRead && isRead {
-        shouldBeOffline = false
+        if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+          // Keep recently downloaded for at least 5 minutes to avoid immediate deletion
+        } else {
+          shouldBeOffline = false
+        }
       }
 
       if shouldBeOffline {
@@ -774,9 +778,13 @@ actor DatabaseOperator {
           needsSyncQueue = true
         }
       } else if (isDownloaded || isPending) && policy == .unreadOnlyAndCleanupRead && isRead {
-        // Check if any other policy wants to keep this book
-        if !shouldKeepBookDueToOtherPolicies(book: book, excludeSeriesId: series.seriesId) {
-          booksToDelete.append(book)
+        if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+          // Keep recently downloaded
+        } else {
+          // Check if any other policy wants to keep this book
+          if !shouldKeepBookDueToOtherPolicies(book: book, excludeSeriesId: series.seriesId) {
+            booksToDelete.append(book)
+          }
         }
       }
     }
@@ -1533,6 +1541,24 @@ actor DatabaseOperator {
       return results.map { $0.toBook() }
     } catch {
       return []
+    }
+  }
+
+  func fetchReadBooksEligibleForAutoDelete(instanceId: String) -> [(id: String, seriesId: String)] {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate {
+        $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded"
+          && $0.progressCompleted == true
+      }
+    )
+
+    guard let results = try? modelContext.fetch(descriptor) else { return [] }
+    let now = Date.now
+    return results.compactMap { book in
+      if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+        return nil
+      }
+      return (id: book.bookId, seriesId: book.seriesId)
     }
   }
 

@@ -223,12 +223,6 @@ actor OfflineManager {
     case .pending:
       await cancelDownload(bookId: info.bookId, instanceId: instanceId)
     case .notDownloaded, .failed:
-      if AppConfig.offlineAutoDeleteRead,
-        await DatabaseOperator.shared.isBookReadCompleted(
-          bookId: info.bookId, instanceId: instanceId)
-      {
-        return
-      }
       await DatabaseOperator.shared.updateBookDownloadStatus(
         bookId: info.bookId,
         instanceId: instanceId,
@@ -241,12 +235,6 @@ actor OfflineManager {
   }
 
   func retryDownload(instanceId: String, bookId: String) async {
-    if AppConfig.offlineAutoDeleteRead,
-      await DatabaseOperator.shared.isBookReadCompleted(
-        bookId: bookId, instanceId: instanceId)
-    {
-      return
-    }
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId,
       instanceId: instanceId,
@@ -351,8 +339,10 @@ actor OfflineManager {
   /// Delete all read (completed) downloaded books for the current instance.
   func deleteReadBooks() async {
     let instanceId = AppConfig.current.instanceId
-    let books = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
-    let readBooks = books.filter { $0.readProgress?.completed == true }
+    let readBooks = await DatabaseOperator.shared.fetchReadBooksEligibleForAutoDelete(
+      instanceId: instanceId)
+
+    if readBooks.isEmpty { return }
 
     // Group by series to update policies
     let seriesIds = Set(readBooks.map { $0.seriesId })
@@ -559,15 +549,7 @@ actor OfflineManager {
 
       guard let nextBook = pending.first else { return }
 
-      if AppConfig.offlineAutoDeleteRead, nextBook.readProgress?.completed == true {
-        await DatabaseOperator.shared.updateBookDownloadStatus(
-          bookId: nextBook.id,
-          instanceId: instanceId,
-          status: .notDownloaded
-        )
-        await DatabaseOperator.shared.commit()
-        continue
-      }
+      // Proceed to download even if it's read, as it was likely manually requested or reader is opening it.
 
       await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
       return
