@@ -124,11 +124,9 @@ final class KomgaBook {
       case .downloaded:
         downloadStatusRaw = "downloaded"
         downloadError = nil
-        downloadAt = nil
       case .failed(let error):
         downloadStatusRaw = "failed"
         downloadError = error
-        downloadAt = nil
       }
     }
   }
