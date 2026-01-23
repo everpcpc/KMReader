@@ -167,7 +167,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
 
 nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
   case system
-  case gray
+  case quiet
   case sepia
   case green
 
@@ -176,7 +176,7 @@ nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
   var title: String {
     switch self {
     case .system: return String(localized: "System")
-    case .gray: return String(localized: "Gray")
+    case .quiet: return String(localized: "Quiet")
     case .sepia: return String(localized: "Sepia")
     case .green: return String(localized: "Green")
     }
@@ -186,7 +186,7 @@ nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
     let isDark = colorScheme == .dark
     switch self {
     case .system: return isDark ? .black : .white
-    case .gray: return isDark ? .darkGray : .lightGray
+    case .quiet: return isDark ? .darkQuiet : .lightQuiet
     case .sepia: return isDark ? .darkSepia : .lightSepia
     case .green: return isDark ? .darkGreen : .lightGreen
     }
@@ -196,8 +196,8 @@ nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
 nonisolated enum ReaderTheme: String, CaseIterable {
   case white
   case black
-  case lightGray
-  case darkGray
+  case lightQuiet
+  case darkQuiet
   case lightSepia
   case darkSepia
   case lightGreen
@@ -207,8 +207,8 @@ nonisolated enum ReaderTheme: String, CaseIterable {
     switch self {
     case .white: return "#FFFFFF"
     case .black: return "#000000"
-    case .lightGray: return "#F5F5F5"
-    case .darkGray: return "#2D2D2D"
+    case .lightQuiet: return "#FAFAFA"
+    case .darkQuiet: return "#1E1E1E"
     case .lightSepia: return "#F4ECD8"
     case .darkSepia: return "#382E25"
     case .lightGreen: return "#C7EDCC"
@@ -220,19 +220,12 @@ nonisolated enum ReaderTheme: String, CaseIterable {
     switch self {
     case .white: return "#000000"
     case .black: return "#E0E0E0"
-    case .lightGray: return "#333333"
-    case .darkGray: return "#CCCCCC"
+    case .lightQuiet: return "#111111"
+    case .darkQuiet: return "#BDBDBD"
     case .lightSepia: return "#5C4A37"
     case .darkSepia: return "#E3D5C1"
     case .lightGreen: return "#1A3A1F"
     case .darkGreen: return "#D1E0D1"
-    }
-  }
-
-  var isDark: Bool {
-    switch self {
-    case .white, .lightGray, .lightSepia, .lightGreen: return false
-    case .black, .darkGray, .darkSepia, .darkGreen: return true
     }
   }
 }
