@@ -65,9 +65,9 @@
 
       let scrollView = NSScrollView()
       scrollView.documentView = collectionView
-      scrollView.hasVerticalScroller = true
+      scrollView.hasVerticalScroller = false
       scrollView.hasHorizontalScroller = false
-      scrollView.autohidesScrollers = true
+      // scrollView.autohidesScrollers = true
       scrollView.backgroundColor = NSColor(readerBackground.color)
       scrollView.contentView.postsBoundsChangedNotifications = true
 
