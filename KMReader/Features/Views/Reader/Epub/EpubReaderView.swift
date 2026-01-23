@@ -331,8 +331,8 @@
         )
       }
       .sheet(isPresented: $showingPreferencesSheet) {
-        EpubPreferencesSheet(readerPrefs) { newPreferences in
-          readerPrefs = newPreferences
+        NavigationStack {
+          EpubPreferencesView(inSheet: true)
         }
       }
       .readerDetailSheet(

@@ -12,7 +12,10 @@ enum SettingsSection: String, CaseIterable {
   case browse
   case dashboard
   case cache
-  case reader
+  case divinaReader
+  #if os(iOS)
+    case epubReader
+  #endif
   case sse
   case logs
   case network
@@ -40,8 +43,12 @@ enum SettingsSection: String, CaseIterable {
       return "house"
     case .cache:
       return "externaldrive"
-    case .reader:
+    case .divinaReader:
       return "book.pages"
+    #if os(iOS)
+      case .epubReader:
+        return "character.book.closed"
+    #endif
     case .sse:
       return "antenna.radiowaves.left.and.right"
     case .network:
@@ -85,8 +92,12 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Dashboard")
     case .cache:
       return String(localized: "Cache")
-    case .reader:
-      return String(localized: "Reader")
+    case .divinaReader:
+      return String(localized: "Divina Reader")
+    #if os(iOS)
+      case .epubReader:
+        return String(localized: "EPUB Reader")
+    #endif
     case .sse:
       return String(localized: "Real-time Updates")
     case .network:

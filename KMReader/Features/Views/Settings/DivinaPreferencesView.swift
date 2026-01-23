@@ -1,5 +1,5 @@
 //
-//  SettingsReaderView.swift
+//  DivinaPreferencesView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsReaderView: View {
+struct DivinaPreferencesView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
@@ -331,6 +331,6 @@ struct SettingsReaderView: View {
     }
     .animation(.default, value: tapZoneMode)
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(SettingsSection.reader.title)
+    .inlineNavigationBarTitle(SettingsSection.divinaReader.title)
   }
 }

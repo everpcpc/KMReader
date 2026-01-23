@@ -30,9 +30,14 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsCache) {
           SettingsSectionRow(section: .cache)
         }
-        NavigationLink(value: NavDestination.settingsReader) {
-          SettingsSectionRow(section: .reader)
+        NavigationLink(value: NavDestination.settingsDivinaReader) {
+          SettingsSectionRow(section: .divinaReader)
         }
+        #if os(iOS)
+          NavigationLink(value: NavDestination.settingsEpubReader) {
+            SettingsSectionRow(section: .epubReader)
+          }
+        #endif
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }

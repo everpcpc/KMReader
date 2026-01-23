@@ -24,7 +24,7 @@ import SwiftUI
             SettingsSectionRow(section: .browse)
             SettingsSectionRow(section: .dashboard)
             SettingsSectionRow(section: .cache)
-            SettingsSectionRow(section: .reader)
+            SettingsSectionRow(section: .divinaReader)
             SettingsSectionRow(section: .sse)
             SettingsSectionRow(section: .network)
             SettingsSectionRow(section: .logs)
@@ -81,8 +81,8 @@ import SwiftUI
               SettingsDashboardView()
             case .cache:
               SettingsCacheView()
-            case .reader:
-              SettingsReaderView()
+            case .divinaReader:
+              DivinaPreferencesView()
             case .sse:
               SettingsSSEView()
             case .network:

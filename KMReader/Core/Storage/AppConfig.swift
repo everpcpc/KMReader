@@ -649,6 +649,20 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var epubPreferences: EpubReaderPreferences {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "epubPreferences"),
+        let prefs = EpubReaderPreferences(rawValue: stored)
+      {
+        return prefs
+      }
+      return EpubReaderPreferences()
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "epubPreferences")
+    }
+  }
+
   // MARK: - Dashboard
   static nonisolated var dashboard: DashboardConfiguration {
     get {
