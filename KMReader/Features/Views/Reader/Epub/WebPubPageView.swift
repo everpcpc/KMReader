@@ -83,6 +83,7 @@
       pageVC.isDoubleSided = false
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
+      pageVC.view.backgroundColor = .clear
       context.coordinator.pageViewController = pageVC
 
       if transitionStyle == .pageCurl {
@@ -1245,95 +1246,92 @@
             var target = \(targetPageIndex);
             var preferLast = \(preferLastPage ? "true" : "false");
 
-            var waitForImages = function() {
-              var images = Array.prototype.slice.call(document.images || []);
-              if (!images.length) { return Promise.resolve(); }
-              return Promise.all(images.map(function(img) {
-                if (img.complete) { return Promise.resolve(); }
-                return new Promise(function(resolve) {
-                  img.addEventListener('load', resolve, { once: true });
-                  img.addEventListener('error', resolve, { once: true });
-                });
-              }));
+            var finalize = function() {
+              var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+              if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
+
+              var currentWidth = document.body.scrollWidth;
+              var total = Math.max(1, Math.ceil(currentWidth / pageWidth));
+              var maxScroll = Math.max(0, currentWidth - pageWidth);
+
+              // Recalculate target to ensure we land on the actual last page if requested.
+              var finalTarget = preferLast ? (total - 1) : target;
+              var offset = Math.min(pageWidth * finalTarget, maxScroll);
+
+              // Apply scroll position immediately.
+              window.scrollTo(offset, 0);
+              if (document.documentElement) { document.documentElement.scrollLeft = offset; }
+              if (document.body) { document.body.scrollLeft = offset; }
+
+              // Small delay to ensure WebKit commits the paint before signaling readiness.
+              setTimeout(function() {
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
+                  window.webkit.messageHandlers.readerBridge.postMessage({
+                    type: 'ready',
+                    totalPages: total,
+                    currentPage: finalTarget
+                  });
+                }
+              }, 60);
             };
 
-            var fontReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-            var readiness = Promise.all([fontReady, waitForImages()]);
-            var timeout = new Promise(function(resolve) { setTimeout(resolve, 800); });
-
-            Promise.race([readiness, timeout]).then(function() {
-              var lastWidth = 0;
+            var startLayoutCheck = function() {
+              var lastW = document.body.scrollWidth;
               var stableCount = 0;
-              var maxAttempts = 60; // Increased to ~1 second of polling at 60fps
               var attempt = 0;
 
-              var checkLayout = function() {
+              var check = function() {
                 attempt++;
+                var currentW = document.body.scrollWidth;
                 var pageWidth = window.innerWidth || document.documentElement.clientWidth;
-                if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
 
-                var currentWidth = document.body.scrollWidth;
-
-                // Layout is stable if scrollWidth remains constant.
-                // Multi-column layout is incremental, so we wait for growth to stop.
-                if (currentWidth === lastWidth && currentWidth > 0) {
+                // Readium-style stability check:
+                // Wait for the multi-column layout to expand beyond 1 page if we expect more.
+                if (currentW === lastW && currentW > 0) {
                   stableCount++;
                 } else {
                   stableCount = 0;
-                  lastWidth = currentWidth;
+                  lastW = currentW;
                 }
 
-                // If we are looking for the last page, we must wait for at least 15 frames 
-                // to give the multi-column engine time to expand from the initial 1-page width.
-                var isReady = (stableCount >= 5);
-                if (preferLast && currentWidth <= pageWidth && attempt < 30) {
-                  isReady = false;
+                // If jumping to a deep page (preferLast or target > 0),
+                // we must wait for the width to actually represent multiple pages.
+                var isProbablyReady = (stableCount >= 4);
+                if ((preferLast || target > 0) && currentW <= pageWidth && attempt < 40) {
+                  isProbablyReady = false;
                 }
 
-                if (isReady || attempt >= maxAttempts) {
-                  var total = Math.max(1, Math.ceil(currentWidth / pageWidth));
-                  var maxScroll = Math.max(0, currentWidth - pageWidth);
-                  var finalTarget = preferLast ? (total - 1) : target;
-                  var offset = Math.min(pageWidth * finalTarget, maxScroll);
-
-                  window.scrollTo(offset, 0);
-                  if (document.documentElement) { document.documentElement.scrollLeft = offset; }
-                  if (document.body) { document.body.scrollLeft = offset; }
-
-                  setTimeout(function() {
-                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
-                      window.webkit.messageHandlers.readerBridge.postMessage({
-                        type: 'ready',
-                        totalPages: total,
-                        currentPage: finalTarget
-                      });
-                    }
-                  }, 50);
-
-                  // Restore ResizeObserver to handle late layout shifts (e.g. lazy-loaded images)
-                  if (window.ResizeObserver) {
-                    var lastW = currentWidth;
-                    var ro = new ResizeObserver(function() {
-                      var newW = document.body.scrollWidth;
-                      if (Math.abs(newW - lastW) > 5) {
-                        lastW = newW;
-                        var newTotal = Math.max(1, Math.ceil(newW / pageWidth));
-                        window.webkit.messageHandlers.readerBridge.postMessage({
-                          type: 'pageCountUpdate',
-                          totalPages: newTotal
-                        });
-                      }
-                    });
-                    ro.observe(document.body);
-                  }
+                if (isProbablyReady || attempt >= 60) {
+                  finalize();
                 } else {
-                  requestAnimationFrame(checkLayout);
+                  window.requestAnimationFrame(check);
                 }
               };
+              window.requestAnimationFrame(check);
+            };
 
-              // Start the layout heartbeat
-              requestAnimationFrame(checkLayout);
-            });
+            // Use the 'load' event to ensure all resources are fetched before calculating layout.
+            if (document.readyState === 'complete') {
+              startLayoutCheck();
+            } else {
+              window.addEventListener('load', startLayoutCheck);
+            }
+
+            // Continuous monitoring for late-loading resources (like gaiji or large images).
+            if (window.ResizeObserver) {
+              var ro = new ResizeObserver(function() {
+                var w = document.body.scrollWidth;
+                var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+                if (pageWidth > 0 && w > 0) {
+                  var t = Math.max(1, Math.ceil(w / pageWidth));
+                  window.webkit.messageHandlers.readerBridge.postMessage({
+                    type: 'pageCountUpdate',
+                    totalPages: t
+                  });
+                }
+              });
+              ro.observe(document.body);
+            }
           })();
         """
 
