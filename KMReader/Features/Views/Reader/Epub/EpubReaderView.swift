@@ -304,6 +304,7 @@
             }
           } label: {
             Image(systemName: showingQuickActions ? "xmark" : "line.3.horizontal")
+              .padding(2)
               .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
           }
           .contentShape(Circle())
@@ -313,7 +314,8 @@
         }
       }
       .tint(.primary)
-      .padding(24)
+      .padding(.vertical, 24)
+      .padding(.horizontal, 12)
       .iPadIgnoresSafeArea(paddingTop: 24)
       .opacity(shouldShowControls ? 1.0 : 0.0)
       .allowsHitTesting(shouldShowControls)

@@ -13,9 +13,9 @@
     static let defaultLetterSpacing: Double = 0.0
     static let defaultWordSpacing: Double = 0.0
 
-    static let defaultLineHeight: Double = 1.2
+    static let defaultLineHeight: Double = 1.5
 
-    static let defaultParagraphSpacing: Double = 0.5
+    static let defaultParagraphSpacing: Double = 1.0
     static let defaultParagraphIndent: Double = 2.0
 
     static let defaultPageMargins: Double = 16.0

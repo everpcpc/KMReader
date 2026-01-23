@@ -28,9 +28,16 @@
       self.onApply = onApply
     }
 
+    private var readerTheme: ReaderTheme {
+      draft.theme.resolvedTheme(for: colorScheme)
+    }
+
+    private var backgroundColor: Color {
+      Color(hex: readerTheme.backgroundColorHex) ?? .white
+    }
+
     private var textColor: Color {
-      let readerTheme = draft.theme.resolvedTheme(for: colorScheme)
-      return Color(hex: readerTheme.textColorHex) ?? .primary
+      Color(hex: readerTheme.textColorHex) ?? .primary
     }
 
     var body: some View {
@@ -87,9 +94,25 @@
               .buttonBorderShape(.circle)
             }
             .adaptiveButtonStyle(.bordered)
+            .padding(8)
 
             Spacer()
-          }.padding(8)
+          }
+          .background {
+            LinearGradient(
+              colors: [
+                backgroundColor,
+                backgroundColor,
+                backgroundColor.opacity(0.5),
+                Color.clear,
+                Color.clear,
+                Color.clear,
+              ],
+              startPoint: .top,
+              endPoint: .bottom
+            )
+          }
+
         }.frame(height: 240)
 
         Form {
@@ -162,7 +185,7 @@
 
           Section(String(localized: "Line & Paragraph")) {
             VStack(alignment: .leading) {
-              Slider(value: $draft.lineHeight, in: 0.5...2.0, step: 0.1)
+              Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
               Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -276,7 +299,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           body {
-            margin-top: 40px;
             padding: \(internalPadding)px;
             background-color: \(backgroundColor);
             color: \(textColor);
