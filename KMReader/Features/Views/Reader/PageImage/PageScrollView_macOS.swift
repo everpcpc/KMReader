@@ -46,8 +46,8 @@
 
     func makeNSView(context: Context) -> NSScrollView {
       let scrollView = FocusScrollView()
-      scrollView.hasVerticalScroller = true
-      scrollView.hasHorizontalScroller = true
+      scrollView.hasVerticalScroller = false
+      scrollView.hasHorizontalScroller = false
       scrollView.allowsMagnification = true
       scrollView.minMagnification = minScale
       scrollView.maxMagnification = maxScale
