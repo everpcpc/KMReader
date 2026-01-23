@@ -86,6 +86,11 @@
       pageVC.view.backgroundColor = .clear
       context.coordinator.pageViewController = pageVC
 
+      // Allow simultaneous gesture recognition for zoom transition return gesture
+      pageVC.gestureRecognizers.forEach { recognizer in
+        recognizer.delegate = context.coordinator
+      }
+
       if transitionStyle == .pageCurl {
         pageVC.view.gestureRecognizers?.forEach { recognizer in
           if recognizer is UITapGestureRecognizer {
