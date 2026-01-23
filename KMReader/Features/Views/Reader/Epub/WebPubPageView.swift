@@ -27,6 +27,34 @@
       let blue = CGFloat(value & 0xFF) / 255.0
       self.init(red: red, green: green, blue: blue, alpha: 1.0)
     }
+
+    var brightness: CGFloat {
+      var r: CGFloat = 0
+      var g: CGFloat = 0
+      var b: CGFloat = 0
+      var a: CGFloat = 0
+      guard getRed(&r, green: &g, blue: &b, alpha: &a) else { return 0 }
+      return (r * 299 + g * 587 + b * 114) / 1000
+    }
+  }
+
+  /// A weak wrapper for WKScriptMessageHandler to avoid retain cycles.
+  /// WKUserContentController retains its message handlers strongly, so we use this
+  /// wrapper to prevent the view controller from being retained by the web view.
+  private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private weak var delegate: WKScriptMessageHandler?
+
+    init(delegate: WKScriptMessageHandler) {
+      self.delegate = delegate
+      super.init()
+    }
+
+    func userContentController(
+      _ userContentController: WKUserContentController,
+      didReceive message: WKScriptMessage
+    ) {
+      delegate?.userContentController(userContentController, didReceive: message)
+    }
   }
 
   struct WebPubPageView: UIViewControllerRepresentable {
@@ -212,10 +240,8 @@
       }
 
       private func configureController(
-        _ controller: EpubPageViewController,
-        preferLastPageOnReady: Bool
+        _ controller: EpubPageViewController
       ) {
-        controller.preferLastPageOnReady = preferLastPageOnReady
         controller.onPageIndexAdjusted = { [weak self, weak controller] pageIndex in
           guard let self, let controller else { return }
           guard self.pageViewController?.viewControllers?.first === controller else { return }
@@ -235,8 +261,8 @@
         in pageViewController: UIPageViewController?,
         preferLastPageOnReady: Bool = false
       ) -> UIViewController? {
-        guard let pageCount = parent.viewModel.chapterPageCount(at: chapterIndex) else { return nil }
-        guard subPageIndex >= 0, subPageIndex < pageCount else { return nil }
+        let pageCount = parent.viewModel.chapterPageCount(at: chapterIndex) ?? 1
+        guard subPageIndex >= 0, subPageIndex < pageCount || preferLastPageOnReady else { return nil }
 
         let pageInsets = parent.viewModel.pageInsets(for: parent.preferences)
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
@@ -257,6 +283,7 @@
         let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = parent.viewModel.totalProgression(
           for: globalIndex, location: location, chapterProgress: chapterProgress)
+        let initialProgression = parent.viewModel.initialProgression(for: chapterIndex)
 
         if let cached = cachedControllers[globalIndex] {
           cached.configure(
@@ -275,9 +302,11 @@
             labelTopOffset: parent.viewModel.labelTopOffset,
             labelBottomOffset: parent.viewModel.labelBottomOffset,
             useSafeArea: parent.viewModel.useSafeArea,
+            preferLastPageOnReady: preferLastPageOnReady,
+            targetProgressionOnReady: initialProgression,
             onPageCountReady: onPageCountReady
           )
-          configureController(cached, preferLastPageOnReady: preferLastPageOnReady)
+          configureController(cached)
           cached.loadViewIfNeeded()
           cached.view.tag = globalIndex
           return cached
@@ -303,9 +332,11 @@
             labelTopOffset: parent.viewModel.labelTopOffset,
             labelBottomOffset: parent.viewModel.labelBottomOffset,
             useSafeArea: parent.viewModel.useSafeArea,
+            preferLastPageOnReady: preferLastPageOnReady,
+            targetProgressionOnReady: initialProgression,
             onPageCountReady: onPageCountReady
           )
-          configureController(reusable, preferLastPageOnReady: preferLastPageOnReady)
+          configureController(reusable)
           reusable.onLinkTap = { [weak self] url in
             self?.parent.viewModel.navigateToURL(url)
           }
@@ -333,7 +364,9 @@
           useSafeArea: parent.viewModel.useSafeArea,
           onPageCountReady: onPageCountReady
         )
-        configureController(controller, preferLastPageOnReady: preferLastPageOnReady)
+        controller.preferLastPageOnReady = preferLastPageOnReady
+        controller.targetProgressionOnReady = initialProgression
+        configureController(controller)
         controller.onLinkTap = { [weak self] url in
           self?.parent.viewModel.navigateToURL(url)
         }
@@ -361,13 +394,12 @@
         let previousChapter = current.chapterIndex - 1
         guard previousChapter >= 0 else { return nil }
         let previousCount = parent.viewModel.chapterPageCount(at: previousChapter) ?? 1
-        let preferLastPageOnReady = previousCount <= 1
 
         let controller = self.pageViewController(
           chapterIndex: previousChapter,
           subPageIndex: max(0, previousCount - 1),
           in: pageViewController,
-          preferLastPageOnReady: preferLastPageOnReady
+          preferLastPageOnReady: true
         )
         return controller
       }
@@ -570,6 +602,7 @@
     var onLinkTap: ((URL) -> Void)?
     var onPageIndexAdjusted: ((Int) -> Void)?
     var preferLastPageOnReady = false
+    var targetProgressionOnReady: Double?
 
     private var bookTitle: String?
     private var chapterTitle: String?
@@ -585,6 +618,8 @@
     private var bottomChapterLabel: UILabel?
     private var bottomPageCenterLabel: UILabel?
     private var bottomPageRightLabel: UILabel?
+
+    private var loadingIndicator: UIActivityIndicatorView?
 
     init(
       chapterURL: URL?,
@@ -629,21 +664,29 @@
     }
 
     deinit {
-      let webView = webView
-      Task { @MainActor in
-        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "readerBridge")
-      }
+      NotificationCenter.default.removeObserver(self)
     }
 
     override func viewDidLoad() {
       super.viewDidLoad()
       setupWebView()
       setupOverlayLabels()
+      NotificationCenter.default.addObserver(
+        self,
+        selector: #selector(handleAppDidBecomeActive),
+        name: UIApplication.didBecomeActiveNotification,
+        object: nil
+      )
       loadContentIfNeeded(force: true)
     }
 
     override func viewWillAppear(_ animated: Bool) {
       super.viewWillAppear(animated)
+      refreshDisplay()
+      updateOverlayLabels()
+    }
+
+    @objc private func handleAppDidBecomeActive() {
       refreshDisplay()
       updateOverlayLabels()
     }
@@ -675,6 +718,8 @@
       labelTopOffset: CGFloat,
       labelBottomOffset: CGFloat,
       useSafeArea: Bool,
+      preferLastPageOnReady: Bool = false,
+      targetProgressionOnReady: Double? = nil,
       onPageCountReady: ((Int) -> Void)?
     ) {
       let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
@@ -701,6 +746,8 @@
       self.labelTopOffset = labelTopOffset
       self.labelBottomOffset = labelBottomOffset
       self.useSafeArea = useSafeArea
+      self.preferLastPageOnReady = preferLastPageOnReady
+      self.targetProgressionOnReady = targetProgressionOnReady
       self.onPageCountReady = onPageCountReady
 
       guard isViewLoaded else { return }
@@ -882,7 +929,8 @@
     private func setupWebView() {
       let config = WKWebViewConfiguration()
       let controller = WKUserContentController()
-      controller.add(self, name: "readerBridge")
+      // Use weak wrapper to avoid retain cycle (WKUserContentController retains handlers strongly)
+      controller.add(WeakScriptMessageHandler(delegate: self), name: "readerBridge")
       config.userContentController = controller
 
       // Set background to fill entire view (including safe area)
@@ -924,6 +972,16 @@
         webView.topAnchor.constraint(equalTo: container.topAnchor),
         webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
       ])
+
+      let indicator = UIActivityIndicatorView(style: .medium)
+      indicator.hidesWhenStopped = true
+      indicator.translatesAutoresizingMaskIntoConstraints = false
+      view.addSubview(indicator)
+      NSLayoutConstraint.activate([
+        indicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        indicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      ])
+      self.loadingIndicator = indicator
     }
 
     private func applyTheme() {
@@ -934,6 +992,7 @@
         webView.backgroundColor = theme.uiColorBackground
         webView.scrollView.backgroundColor = .clear
       }
+      loadingIndicator?.color = theme.uiColorText
     }
 
     private func applyContainerInsets() {
@@ -950,11 +1009,11 @@
       let currentURL = webView.url?.standardizedFileURL
       let urlMatches = currentURL == chapterURL.standardizedFileURL
 
-      // If URL matches and content is loaded, just refresh pagination without reloading
+      // If URL matches and content is loaded, just update pagination.
+      // We don't hide the webview or show the loader here to avoid flickering
+      // when just transitioning within the same chapter.
       if urlMatches && isContentLoaded {
         applyPagination(scrollToPage: currentSubPageIndex)
-        // Ensure webView is visible for already-loaded content
-        webView.alpha = 1
         return
       }
 
@@ -963,10 +1022,15 @@
         return
       }
 
+      // New content loading - show indicator and keep webview active but hidden
       isContentLoaded = false
       pendingPageIndex = currentSubPageIndex
       readyToken += 1
-      webView.alpha = 0
+
+      // Use a near-zero alpha instead of exactly 0.
+      // WebKit sometimes throttles layout/JS execution for elements with alpha=0.
+      webView.alpha = 0.01
+      loadingIndicator?.startAnimating()
       webView.loadFileURL(chapterURL, allowingReadAccessTo: rootURL)
     }
 
@@ -1017,75 +1081,120 @@
       let size = webView.bounds.size
       guard size.width > 0, size.height > 0 else { return }
 
-      // With outer insets, the webView bounds already represent the content area.
+      // Use a near-zero alpha to indicate transition if not already showing.
+      // This prevents WebKit from throttling layout while keeping the view hidden from users.
+      if webView.alpha < 0.1 {
+        webView.alpha = 0.01
+        loadingIndicator?.startAnimating()
+      }
+
       let columnWidth = max(1, Int(size.width))
+
+      // Standardized Readium-based structural CSS
       let paginationCSS = """
-          html, body {
+          /* Base Viewport & Root */
+          html {
             height: 100vh !important;
             width: 100vw !important;
             margin: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
             -webkit-text-size-adjust: 100% !important;
-            text-size-adjust: 100% !important;
           }
+
           body {
-            box-sizing: border-box !important;
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100vh !important;
+            width: 100vw !important;
             column-width: \(columnWidth)px !important;
             column-gap: 0 !important;
             column-fill: auto !important;
             background-color: \(theme.backgroundColorHex) !important;
             color: \(theme.textColorHex) !important;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            /* Widows/Orphans from Readium standard */
             widows: 2;
             orphans: 2;
           }
-          *, *::before, *::after { box-sizing: border-box; }
 
-          /* Fragmentation: prevent awkward breaks */
+          /* Reset all potential document margins that break columns */
+          body > *, html > * {
+            max-width: 100%;
+          }
+
+          /* High-Fidelity Image Handling (Based on Readium Standard) */
+          img, svg, video, canvas {
+            display: inline-block;
+            max-width: 100% !important;
+            max-height: 95vh !important;
+            height: auto !important;
+            object-fit: contain;
+            background: transparent !important;
+            /* Prevent image splitting between columns */
+            -webkit-column-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          /* Light/Sepia themes: Use multiply to remove white backgrounds from illustrations.
+             This is the standard Readium approach for non-dark themes. */
+          :root[data-kmreader-theme="light"] img,
+          :root[data-kmreader-theme="light"] svg {
+            mix-blend-mode: multiply;
+          }
+
+          /* Dark themes: Disable multiply to prevent content from disappearing on black.
+             Apply a subtle brightness filter to reduce eye strain from bright images in the dark. */
+          :root[data-kmreader-theme="dark"] img,
+          :root[data-kmreader-theme="dark"] svg {
+            mix-blend-mode: normal;
+            filter: brightness(80%);
+          }
+
+          /* Fragmentation Control for Headings and Structure */
           h1, h2, h3, h4, h5, h6, dt, figure, tr {
             -webkit-column-break-inside: avoid;
             break-inside: avoid;
           }
-          h2, h3, h4, h5, h6, dt, hr, caption {
+          h1, h2, h3, h4, h5, h6 {
             -webkit-column-break-after: avoid;
             break-after: avoid;
           }
 
-          /* CJK language support */
+          /* CJK Support (from Readium horizontal patches) */
           :lang(ja), :lang(zh), :lang(ko) {
             word-wrap: break-word;
             -webkit-line-break: strict;
             line-break: strict;
+            text-align: justify;
+            /* Better ruby character alignment */
+            ruby-align: center;
           }
+          /* Reset unwanted italics for CJK emphasis */
           *:lang(ja), *:lang(zh), *:lang(ko),
-          :lang(ja) cite, :lang(ja) dfn, :lang(ja) em, :lang(ja) i,
-          :lang(zh) cite, :lang(zh) dfn, :lang(zh) em, :lang(zh) i,
-          :lang(ko) cite, :lang(ko) dfn, :lang(ko) em, :lang(ko) i {
+          :lang(ja) i, :lang(zh) i, :lang(ko) i,
+          :lang(ja) em, :lang(zh) em, :lang(ko) em {
             font-style: normal;
           }
-
-          /* Images and media */
-          img, svg, video, canvas {
-            max-width: 100% !important;
-            height: auto !important;
-            max-height: 95vh !important;
-            object-fit: contain;
-            background: transparent !important;
-            mix-blend-mode: multiply;
-            -webkit-column-break-inside: avoid;
-            break-inside: avoid;
+          /* Standard vertical-in-horizontal for numbers/short text */
+          span.tcy, span.tate-chu-yoko {
+            -webkit-text-combine: horizontal;
+            text-combine-upright: all;
           }
 
-          /* Wrap long links and headings */
-          a, h1, h2, h3, h4, h5, h6 {
-            word-wrap: break-word;
-          }
-
-          /* Selection styling */
+          /* Selection & UI Elements */
           ::selection {
             background-color: #b4d8fe;
           }
+          a {
+            color: inherit;
+            text-decoration: underline;
+            overflow-wrap: break-word;
+          }
         """
+
       let css = contentCSS + "\n" + paginationCSS
 
       injectCSS(css) { [weak self] in
@@ -1094,10 +1203,18 @@
     }
 
     private func injectCSS(_ css: String, completion: (() -> Void)? = nil) {
-      let sanitized = css.replacingOccurrences(of: "\\", with: "\\\\")
-        .replacingOccurrences(of: "`", with: "\\`")
+      // Determine if the current theme is dark based on the background color brightness.
+      // This allows the CSS to apply theme-specific rules (like image blending).
+      let isDark = theme.uiColorBackground.brightness < 0.5
+      let themeName = isDark ? "dark" : "light"
+
+      // Use Base64 encoding for the CSS content to avoid any JS string escaping/parsing issues.
+      let base64 = Data(css.utf8).base64EncodedString()
       let js = """
           (function() {
+            var root = document.documentElement;
+            root.setAttribute('data-kmreader-theme', '\(themeName)');
+
             var meta = document.querySelector('meta[name=viewport]');
             if (!meta) {
               meta = document.createElement('meta');
@@ -1112,7 +1229,7 @@
               style.id = 'kmreader-style';
               document.head.appendChild(style);
             }
-            style.innerHTML = `\(sanitized)`;
+            style.textContent = atob('\(base64)');
             return true;
           })();
         """
@@ -1127,33 +1244,95 @@
           (function() {
             var target = \(targetPageIndex);
             var preferLast = \(preferLastPage ? "true" : "false");
-            document.fonts.ready.then(function() {
-              requestAnimationFrame(function() {
+
+            var waitForImages = function() {
+              var images = Array.prototype.slice.call(document.images || []);
+              if (!images.length) { return Promise.resolve(); }
+              return Promise.all(images.map(function(img) {
+                if (img.complete) { return Promise.resolve(); }
+                return new Promise(function(resolve) {
+                  img.addEventListener('load', resolve, { once: true });
+                  img.addEventListener('error', resolve, { once: true });
+                });
+              }));
+            };
+
+            var fontReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+            var readiness = Promise.all([fontReady, waitForImages()]);
+            var timeout = new Promise(function(resolve) { setTimeout(resolve, 800); });
+
+            Promise.race([readiness, timeout]).then(function() {
+              var lastWidth = 0;
+              var stableCount = 0;
+              var maxAttempts = 60; // Increased to ~1 second of polling at 60fps
+              var attempt = 0;
+
+              var checkLayout = function() {
+                attempt++;
                 var pageWidth = window.innerWidth || document.documentElement.clientWidth;
                 if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-                var total = Math.max(1, Math.ceil(document.body.scrollWidth / pageWidth));
-                if (preferLast) {
-                  target = Math.max(0, total - 1);
+
+                var currentWidth = document.body.scrollWidth;
+
+                // Layout is stable if scrollWidth remains constant.
+                // Multi-column layout is incremental, so we wait for growth to stop.
+                if (currentWidth === lastWidth && currentWidth > 0) {
+                  stableCount++;
+                } else {
+                  stableCount = 0;
+                  lastWidth = currentWidth;
                 }
-                var maxScroll = Math.max(0, document.body.scrollWidth - pageWidth);
-                var desired = pageWidth * target;
-                var offset = Math.min(desired, maxScroll);
-                window.scrollTo(offset, 0);
-                if (document.documentElement) { document.documentElement.scrollLeft = offset; }
-                if (document.body) { document.body.scrollLeft = offset; }
-                requestAnimationFrame(function() {
+
+                // If we are looking for the last page, we must wait for at least 15 frames 
+                // to give the multi-column engine time to expand from the initial 1-page width.
+                var isReady = (stableCount >= 5);
+                if (preferLast && currentWidth <= pageWidth && attempt < 30) {
+                  isReady = false;
+                }
+
+                if (isReady || attempt >= maxAttempts) {
+                  var total = Math.max(1, Math.ceil(currentWidth / pageWidth));
+                  var maxScroll = Math.max(0, currentWidth - pageWidth);
+                  var finalTarget = preferLast ? (total - 1) : target;
+                  var offset = Math.min(pageWidth * finalTarget, maxScroll);
+
                   window.scrollTo(offset, 0);
                   if (document.documentElement) { document.documentElement.scrollLeft = offset; }
                   if (document.body) { document.body.scrollLeft = offset; }
-                  // Send ready message AFTER scroll is complete
-                  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
-                    window.webkit.messageHandlers.readerBridge.postMessage({
-                      type: 'ready',
-                      totalPages: total
+
+                  setTimeout(function() {
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
+                      window.webkit.messageHandlers.readerBridge.postMessage({
+                        type: 'ready',
+                        totalPages: total,
+                        currentPage: finalTarget
+                      });
+                    }
+                  }, 50);
+
+                  // Restore ResizeObserver to handle late layout shifts (e.g. lazy-loaded images)
+                  if (window.ResizeObserver) {
+                    var lastW = currentWidth;
+                    var ro = new ResizeObserver(function() {
+                      var newW = document.body.scrollWidth;
+                      if (Math.abs(newW - lastW) > 5) {
+                        lastW = newW;
+                        var newTotal = Math.max(1, Math.ceil(newW / pageWidth));
+                        window.webkit.messageHandlers.readerBridge.postMessage({
+                          type: 'pageCountUpdate',
+                          totalPages: newTotal
+                        });
+                      }
                     });
+                    ro.observe(document.body);
                   }
-                });
-              });
+                } else {
+                  requestAnimationFrame(checkLayout);
+                }
+              };
+
+              // Start the layout heartbeat
+              requestAnimationFrame(checkLayout);
             });
           })();
         """
@@ -1183,23 +1362,47 @@
     ) {
       guard let body = message.body as? [String: Any] else { return }
       guard let type = body["type"] as? String else { return }
-      if type == "ready", let total = body["totalPages"] as? Int {
-        let normalized = max(1, total)
-        totalPagesInChapter = normalized
-        onPageCountReady?(normalized)
 
-        if preferLastPageOnReady, normalized > 1 {
-          let lastIndex = normalized - 1
-          if currentSubPageIndex != lastIndex {
-            currentSubPageIndex = lastIndex
-            scrollToPage(lastIndex)
-            onPageIndexAdjusted?(lastIndex)
+      if type == "ready" {
+        if let total = body["totalPages"] as? Int {
+          let normalizedTotal = max(1, total)
+          var actualPage = body["currentPage"] as? Int ?? currentSubPageIndex
+
+          totalPagesInChapter = normalizedTotal
+          onPageCountReady?(normalizedTotal)
+
+          // Handle target progression jump if requested (e.g. on initial book open).
+          // We ignore this if preferLastPageOnReady is true, as that takes precedence.
+          if let progression = targetProgressionOnReady, !preferLastPageOnReady {
+            let targetIndex = max(0, min(normalizedTotal - 1, Int(floor(Double(normalizedTotal) * progression))))
+            if targetIndex != actualPage {
+              actualPage = targetIndex
+              scrollToPage(targetIndex)
+            }
+            targetProgressionOnReady = nil
           }
+
+          // Sync the current sub-page index with the actual page landed on by JS or progression calculation.
+          if currentSubPageIndex != actualPage {
+            currentSubPageIndex = actualPage
+            onPageIndexAdjusted?(actualPage)
+          }
+
           preferLastPageOnReady = false
+          updateOverlayLabels()
         }
 
-        // Show immediately without animation to prevent white flash
+        // Stop the loading indicator and finally show the WebView content.
+        loadingIndicator?.stopAnimating()
         webView.alpha = 1
+      } else if type == "pageCountUpdate", let total = body["totalPages"] as? Int {
+        // Handle incremental layout updates from ResizeObserver
+        let normalizedTotal = max(1, total)
+        if totalPagesInChapter != normalizedTotal {
+          totalPagesInChapter = normalizedTotal
+          onPageCountReady?(normalizedTotal)
+          updateOverlayLabels()
+        }
       }
     }
   }

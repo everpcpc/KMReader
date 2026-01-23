@@ -454,6 +454,11 @@
       chapterPageCounts[index]
     }
 
+    func initialProgression(for chapterIndex: Int) -> Double? {
+      guard initialChapterIndex == chapterIndex else { return nil }
+      return initialProgression
+    }
+
     func globalIndexForChapter(_ chapterIndex: Int, pageIndex: Int) -> Int? {
       guard chapterIndex >= 0, chapterIndex < readingOrder.count else { return nil }
       var offset = 0
@@ -468,22 +473,34 @@
       let normalizedCount = max(1, pageCount)
       if chapterPageCounts[chapterIndex] == normalizedCount { return }
 
-      let currentLocation =
-        (currentPageIndex >= 0 && currentPageIndex < pageLocations.count)
-        ? pageLocations[currentPageIndex]
-        : nil
+      // Capture the stable current location before rebuilding the map
+      let oldChapterIndex: Int
+      let oldSubPageIndex: Int
+      if currentPageIndex >= 0 && currentPageIndex < pageLocations.count {
+        let loc = pageLocations[currentPageIndex]
+        oldChapterIndex = loc.chapterIndex
+        oldSubPageIndex = loc.pageIndex
+      } else {
+        oldChapterIndex = -1
+        oldSubPageIndex = -1
+      }
 
       chapterPageCounts[chapterIndex] = normalizedCount
       pageLocations = buildPageLocationsFromPaginatedChapters()
 
-      if let currentLocation, currentLocation.chapterIndex == chapterIndex,
-        let newIndex = globalIndexForChapter(
-          chapterIndex,
-          pageIndex: min(currentLocation.pageIndex, normalizedCount - 1)
-        )
-      {
-        currentPageIndex = newIndex
-        updateLocation(for: newIndex)
+      // If we had a valid location, restore it by recalculating the global index
+      if oldChapterIndex >= 0 {
+        let targetSubPage =
+          (oldChapterIndex == chapterIndex)
+          ? min(oldSubPageIndex, normalizedCount - 1)
+          : oldSubPageIndex
+
+        if let newIndex = globalIndexForChapter(oldChapterIndex, pageIndex: targetSubPage) {
+          if currentPageIndex != newIndex {
+            currentPageIndex = newIndex
+            updateLocation(for: newIndex)
+          }
+        }
       }
 
       if chapterIndex == initialChapterIndex, let progression = initialProgression {
