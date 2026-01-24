@@ -61,10 +61,10 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
-    let onTap: (CGPoint, CGSize) -> Void
     let transitionStyle: UIPageViewController.TransitionStyle
     let showingControls: Bool
     let bookTitle: String?
+    let onCenterTap: () -> Void
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -91,30 +91,15 @@
         recognizer.delegate = context.coordinator
       }
 
-      if transitionStyle == .pageCurl {
-        pageVC.view.gestureRecognizers?.forEach { recognizer in
-          if recognizer is UITapGestureRecognizer {
-            recognizer.isEnabled = false
-          }
-        }
-      }
-
-      let tapRecognizer = UITapGestureRecognizer(
+      // Use UIPageViewController's native tap gesture for left/right edge page turning
+      // Add custom tap gesture for center area to toggle controls
+      let centerTapRecognizer = UITapGestureRecognizer(
         target: context.coordinator,
-        action: #selector(Coordinator.handleTap(_:))
+        action: #selector(Coordinator.handleCenterTap(_:))
       )
-      tapRecognizer.cancelsTouchesInView = false
-      tapRecognizer.delegate = context.coordinator
-      pageVC.view.addGestureRecognizer(tapRecognizer)
-
-      let longPress = UILongPressGestureRecognizer(
-        target: context.coordinator,
-        action: #selector(Coordinator.handleLongPress(_:))
-      )
-      longPress.minimumPressDuration = 0.5
-      longPress.delegate = context.coordinator
-      longPress.cancelsTouchesInView = false
-      pageVC.view.addGestureRecognizer(longPress)
+      centerTapRecognizer.cancelsTouchesInView = false
+      centerTapRecognizer.delegate = context.coordinator
+      pageVC.view.addGestureRecognizer(centerTapRecognizer)
 
       if let initialLocation = viewModel.pageLocation(at: viewModel.currentPageIndex),
         let initialVC = context.coordinator.pageViewController(
@@ -232,13 +217,11 @@
       var parent: WebPubPageView
       var currentPageIndex: Int
       var isAnimating = false
-      var isLongPressing = false
-      var lastLongPressEndTime: Date = .distantPast
-      var lastTouchStartTime: Date = .distantPast
       weak var pageViewController: UIPageViewController?
-      private let maxCachedControllers = 3
+      private let maxCachedControllers = 5  // Increased from 3 to 5 to reduce eviction during transitions
       private var cachedControllers: [Int: EpubPageViewController] = [:]
       private var controllerKeys: [ObjectIdentifier: Int] = [:]
+      private var pendingControllers: Set<ObjectIdentifier> = []  // Track controllers in transition
 
       init(_ parent: WebPubPageView) {
         self.parent = parent
@@ -268,7 +251,15 @@
         preferLastPageOnReady: Bool = false
       ) -> UIViewController? {
         let pageCount = parent.viewModel.chapterPageCount(at: chapterIndex) ?? 1
-        guard subPageIndex >= 0, subPageIndex < pageCount || preferLastPageOnReady else { return nil }
+
+        // Only validate bounds if we're not using preferLastPageOnReady
+        // preferLastPageOnReady allows any subPageIndex and will adjust when content loads
+        if !preferLastPageOnReady {
+          guard subPageIndex >= 0, subPageIndex < pageCount else { return nil }
+        } else {
+          // For preferLastPageOnReady, ensure subPageIndex is at least 0
+          guard subPageIndex >= 0 else { return nil }
+        }
 
         let pageInsets = parent.viewModel.pageInsets(for: parent.preferences)
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
@@ -282,16 +273,33 @@
           }
         }
 
-        guard let globalIndex = parent.viewModel.globalIndexForChapter(chapterIndex, pageIndex: subPageIndex),
-          globalIndex < parent.viewModel.pageLocations.count
-        else { return nil }
-        let location = parent.viewModel.pageLocations[globalIndex]
+        // Try to get globalIndex. If it fails and we're using preferLastPageOnReady,
+        // try with page 0 as a fallback (the actual page will be adjusted when content loads)
+        var effectiveSubPageIndex = subPageIndex
+        var globalIndex = parent.viewModel.globalIndexForChapter(chapterIndex, pageIndex: subPageIndex)
+
+        if globalIndex == nil || (globalIndex != nil && globalIndex! >= parent.viewModel.pageLocations.count) {
+          // If preferLastPageOnReady is true and globalIndex calculation failed,
+          // try with page 0 as fallback
+          if preferLastPageOnReady,
+            let fallbackIndex = parent.viewModel.globalIndexForChapter(chapterIndex, pageIndex: 0),
+            fallbackIndex < parent.viewModel.pageLocations.count
+          {
+            globalIndex = fallbackIndex
+            effectiveSubPageIndex = 0
+          } else {
+            return nil
+          }
+        }
+
+        guard let finalGlobalIndex = globalIndex else { return nil }
+        let location = parent.viewModel.pageLocations[finalGlobalIndex]
         let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = parent.viewModel.totalProgression(
-          for: globalIndex, location: location, chapterProgress: chapterProgress)
+          for: finalGlobalIndex, location: location, chapterProgress: chapterProgress)
         let initialProgression = parent.viewModel.initialProgression(for: chapterIndex)
 
-        if let cached = cachedControllers[globalIndex] {
+        if let cached = cachedControllers[finalGlobalIndex] {
           cached.configure(
             chapterURL: chapterURL,
             rootURL: rootURL,
@@ -299,7 +307,7 @@
             theme: theme,
             contentCSS: contentCSS,
             chapterIndex: chapterIndex,
-            subPageIndex: subPageIndex,
+            subPageIndex: effectiveSubPageIndex,
             totalPages: pageCount,
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
@@ -314,7 +322,7 @@
           )
           configureController(cached)
           cached.loadViewIfNeeded()
-          cached.view.tag = globalIndex
+          cached.view.tag = finalGlobalIndex
           return cached
         }
 
@@ -329,7 +337,7 @@
             theme: theme,
             contentCSS: contentCSS,
             chapterIndex: chapterIndex,
-            subPageIndex: subPageIndex,
+            subPageIndex: effectiveSubPageIndex,
             totalPages: pageCount,
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
@@ -347,8 +355,8 @@
             self?.parent.viewModel.navigateToURL(url)
           }
           reusable.loadViewIfNeeded()
-          reusable.view.tag = globalIndex
-          storeController(reusable, for: globalIndex)
+          reusable.view.tag = finalGlobalIndex
+          storeController(reusable, for: finalGlobalIndex)
           return reusable
         }
 
@@ -359,7 +367,7 @@
           theme: theme,
           contentCSS: contentCSS,
           chapterIndex: chapterIndex,
-          subPageIndex: subPageIndex,
+          subPageIndex: effectiveSubPageIndex,
           totalPages: pageCount,
           bookTitle: parent.bookTitle,
           chapterTitle: location.title,
@@ -377,8 +385,8 @@
           self?.parent.viewModel.navigateToURL(url)
         }
         controller.loadViewIfNeeded()
-        controller.view.tag = globalIndex
-        storeController(controller, for: globalIndex)
+        controller.view.tag = finalGlobalIndex
+        storeController(controller, for: finalGlobalIndex)
         return controller
       }
 
@@ -442,7 +450,9 @@
         _ pageViewController: UIPageViewController,
         willTransitionTo pendingViewControllers: [UIViewController]
       ) {
+        // Track pending controllers to prevent them from being evicted during transition
         for controller in pendingViewControllers {
+          pendingControllers.insert(ObjectIdentifier(controller))
           if let pending = controller as? EpubPageViewController {
             pending.loadViewIfNeeded()
             pending.forceEnsureContentLoaded()
@@ -456,6 +466,9 @@
         previousViewControllers: [UIViewController],
         transitionCompleted completed: Bool
       ) {
+        // Clear pending controllers tracking
+        pendingControllers.removeAll()
+
         guard completed,
           let currentVC = pageViewController.viewControllers?.first as? EpubPageViewController
         else { return }
@@ -472,25 +485,15 @@
         }
       }
 
-      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        if gesture.state == .began {
-          isLongPressing = true
-        } else if gesture.state == .ended || gesture.state == .cancelled {
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLongPressing = false
-          }
-        }
-      }
-
-      @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
-        let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
-        guard !isLongPressing && holdDuration < 0.3 else { return }
-        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
-
+      @objc func handleCenterTap(_ recognizer: UITapGestureRecognizer) {
         let location = recognizer.location(in: recognizer.view)
         let size = recognizer.view?.bounds.size ?? .zero
-        parent.onTap(location, size)
+
+        // Only handle taps in the center 40% of the screen
+        let normalizedX = location.x / size.width
+        if normalizedX > 0.3 && normalizedX < 0.7 {
+          parent.onCenterTap()
+        }
       }
 
       private func storeController(_ controller: EpubPageViewController, for globalIndex: Int) {
@@ -506,13 +509,18 @@
       }
 
       private func evictUnusedControllers() {
+        // Protect currently visible controllers
         let protectedIDs = Set((pageViewController?.viewControllers ?? []).map { ObjectIdentifier($0) })
+
+        // Also protect pending controllers (those in transition)
+        let allProtectedIDs = protectedIDs.union(pendingControllers)
+
         for (key, controller) in cachedControllers {
           if cachedControllers.count <= maxCachedControllers {
             break
           }
           let identifier = ObjectIdentifier(controller)
-          if !protectedIDs.contains(identifier) {
+          if !allProtectedIDs.contains(identifier) {
             cachedControllers.removeValue(forKey: key)
             controllerKeys.removeValue(forKey: identifier)
           }
@@ -580,11 +588,6 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         true
-      }
-
-      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        lastTouchStartTime = Date()
-        return true
       }
     }
   }
@@ -770,7 +773,11 @@
       } else if appearanceChanged || preferLastPageOnReady {
         applyPagination(scrollToPage: currentSubPageIndex)
       } else {
-        scrollToPage(currentSubPageIndex)
+        if isContentLoaded {
+          scrollToPage(currentSubPageIndex)
+        } else {
+          pendingPageIndex = currentSubPageIndex
+        }
       }
     }
 
@@ -1250,6 +1257,8 @@
           (function() {
             var target = \(targetPageIndex);
             var preferLast = \(preferLastPage ? "true" : "false");
+            var lastReportedPageCount = 0;
+            var resizeDebounceTimer = null;
 
             var finalize = function() {
               var pageWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -1267,6 +1276,9 @@
               window.scrollTo(offset, 0);
               if (document.documentElement) { document.documentElement.scrollLeft = offset; }
               if (document.body) { document.body.scrollLeft = offset; }
+
+              // Store initial page count for ResizeObserver comparison
+              lastReportedPageCount = total;
 
               // Small delay to ensure WebKit commits the paint before signaling readiness.
               setTimeout(function() {
@@ -1323,19 +1335,62 @@
             }
 
             // Continuous monitoring for late-loading resources (like gaiji or large images).
+            // Only enable during initial load phase, then lock the page count once stable.
             if (window.ResizeObserver) {
+              var stableScrollWidth = 0;
+              var stableCheckCount = 0;
+              var isPageCountLocked = false;
+              var resizeDebounceTimer = null;
+
               var ro = new ResizeObserver(function() {
-                var w = document.body.scrollWidth;
-                var pageWidth = window.innerWidth || document.documentElement.clientWidth;
-                if (pageWidth > 0 && w > 0) {
-                  var t = Math.max(1, Math.ceil(w / pageWidth));
-                  window.webkit.messageHandlers.readerBridge.postMessage({
-                    type: 'pageCountUpdate',
-                    totalPages: t
-                  });
+                // Once locked, stop monitoring
+                if (isPageCountLocked) {
+                  return;
                 }
+
+                // Debounce: wait for 1000ms of stability before checking
+                if (resizeDebounceTimer) {
+                  clearTimeout(resizeDebounceTimer);
+                }
+
+                resizeDebounceTimer = setTimeout(function() {
+                  var w = document.body.scrollWidth;
+                  var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+
+                  if (pageWidth > 0 && w > 0) {
+                    // Check if scrollWidth has stabilized
+                    if (w === stableScrollWidth) {
+                      stableCheckCount++;
+                      // After 3 consecutive stable checks (3 seconds total), lock the page count
+                      if (stableCheckCount >= 3) {
+                        isPageCountLocked = true;
+                        ro.disconnect();
+                        return;
+                      }
+                    } else {
+                      // ScrollWidth changed, reset stability counter
+                      stableCheckCount = 0;
+                      stableScrollWidth = w;
+
+                      var t = Math.max(1, Math.ceil(w / pageWidth));
+                      // Only report if page count changed significantly (more than 1 page difference)
+                      if (Math.abs(t - lastReportedPageCount) > 1) {
+                        lastReportedPageCount = t;
+                        window.webkit.messageHandlers.readerBridge.postMessage({
+                          type: 'pageCountUpdate',
+                          totalPages: t
+                        });
+                      }
+                    }
+                  }
+                }, 1000);
               });
-              ro.observe(document.body);
+
+              // Start observing after a delay to let initial layout settle
+              setTimeout(function() {
+                stableScrollWidth = document.body.scrollWidth;
+                ro.observe(document.body);
+              }, 1500);
             }
           })();
         """

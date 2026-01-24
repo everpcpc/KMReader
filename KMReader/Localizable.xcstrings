@@ -13370,6 +13370,53 @@
         }
       }
     },
+    "error.epubExtensionNotFound" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to sync reading progress. This book may need to be re-analyzed on the server."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehler beim Synchronisieren des Lesefortschritts. Dieses Buch muss möglicherweise auf dem Server erneut analysiert werden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la synchronisation de la progression de lecture. Ce livre doit peut-être être réanalysé sur le serveur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書進捗の同期に失敗しました。この本はサーバーで再分析する必要があるかもしれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽기 진행 상황 동기화에 실패했습니다. 이 책은 서버에서 다시 분석해야 할 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步阅读进度失败。这本书可能需要在服务器上重新分析。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步閱讀進度失敗。這本書可能需要在伺服器上重新分析。"
+          }
+        }
+      }
+    },
     "error.failedToLoadImageData" : {
       "localizations" : {
         "de" : {

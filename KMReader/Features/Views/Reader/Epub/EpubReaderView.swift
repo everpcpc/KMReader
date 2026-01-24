@@ -19,15 +19,11 @@
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @AppStorage("epubPreferences") private var readerPrefs: EpubReaderPreferences = .init()
-    @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-    @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
     @AppStorage("autoHideControls") private var autoHideControls: Bool = false
 
     @State private var viewModel: EpubReaderViewModel
     @State private var showingControls = true
     @State private var controlsTimer: Timer?
-    @State private var showTapZoneOverlay = false
-    @State private var overlayTimer: Timer?
     @State private var currentSeries: Series?
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
@@ -85,7 +81,6 @@
         .iPadIgnoresSafeArea()
         .task(id: book.id) {
           await loadBook()
-          triggerTapZoneDisplay()
         }
         .onAppear {
           viewModel.applyPreferences(readerPrefs, colorScheme: colorScheme)
@@ -103,7 +98,6 @@
         }
         .onDisappear {
           controlsTimer?.invalidate()
-          overlayTimer?.invalidate()
           withAnimation {
             readerPresentation.hideStatusBar = false
           }
@@ -111,13 +105,6 @@
         .onChange(of: shouldShowControls) { _, newValue in
           withAnimation {
             readerPresentation.hideStatusBar = !newValue
-          }
-        }
-        .onChange(of: showTapZoneOverlay) { _, newValue in
-          if newValue {
-            resetOverlayTimer()
-          } else {
-            overlayTimer?.invalidate()
           }
         }
         .onChange(of: viewModel.isLoading) { _, newValue in
@@ -176,14 +163,6 @@
 
           contentView(for: geometry.size, viewModel: viewModel)
 
-          if !viewModel.pageLocations.isEmpty {
-            TapZoneOverlay(isVisible: $showTapZoneOverlay, readingDirection: .ltr)
-              .readerIgnoresSafeArea()
-              .onChange(of: tapZoneMode) {
-                triggerTapZoneDisplay()
-              }
-          }
-
           controlsOverlay
         }
         .onAppear {
@@ -225,12 +204,12 @@
           viewModel: viewModel,
           preferences: readerPrefs,
           colorScheme: colorScheme,
-          onTap: { location, containerSize in
-            handleTap(location: location, in: containerSize)
-          },
           transitionStyle: .pageCurl,
           showingControls: shouldShowControls,
-          bookTitle: currentBook?.metadata.title
+          bookTitle: currentBook?.metadata.title,
+          onCenterTap: {
+            toggleControls()
+          }
         ).readerIgnoresSafeArea()
       } else {
         Text("No content available.")
@@ -447,49 +426,6 @@
       }
       return viewModel.tableOfContents.first { link in
         link.href == currentLocation.href
-      }
-    }
-
-    private func handleTap(location: CGPoint, in size: CGSize) {
-      if showingControls {
-        toggleControls()
-        return
-      }
-
-      let normalizedX = location.x / size.width
-      let normalizedY = location.y / size.height
-
-      let action = TapZoneHelper.action(
-        normalizedX: normalizedX,
-        normalizedY: normalizedY,
-        tapZoneMode: tapZoneMode,
-        readingDirection: .ltr,
-        zoneThreshold: tapZoneSize.value
-      )
-
-      switch action {
-      case .previous:
-        viewModel.goToPreviousPage()
-      case .next:
-        viewModel.goToNextPage()
-      case .toggleControls:
-        toggleControls()
-      }
-    }
-
-    private func triggerTapZoneDisplay() {
-      if tapZoneMode == .none { return }
-      showTapZoneOverlay = true
-    }
-
-    private func resetOverlayTimer() {
-      overlayTimer?.invalidate()
-      overlayTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: false) { _ in
-        Task { @MainActor in
-          withAnimation {
-            showTapZoneOverlay = false
-          }
-        }
       }
     }
   }
