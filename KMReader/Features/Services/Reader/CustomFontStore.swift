@@ -56,6 +56,9 @@ final class CustomFontStore {
       }
     )
     guard let font = try? context.fetch(descriptor).first else { return nil }
-    return font.path
+    guard let relativePath = font.path else { return nil }
+
+    // Resolve relative path to absolute path using FontFileManager
+    return FontFileManager.resolvePath(relativePath)
   }
 }

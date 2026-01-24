@@ -55,7 +55,11 @@
         rootURL: viewModel.resourceRootURL,
         pageInsets: viewModel.pageInsets(for: preferences),
         theme: theme,
-        contentCSS: preferences.makeCSS(theme: theme, fontPath: fontPath),
+        contentCSS: preferences.makeCSS(
+          theme: theme,
+          fontPath: fontPath,
+          rootURL: viewModel.resourceRootURL
+        ),
         chapterIndex: chapterIndex,
         totalChapters: viewModel.chapterCount,
         bookTitle: bookTitle,
@@ -137,8 +141,18 @@
 
       let pageInsets = viewModel.pageInsets(for: preferences)
       let theme = preferences.resolvedTheme(for: colorScheme)
+
+      // Ensure the selected font is copied to the resource directory
+      if let fontName = preferences.fontFamily.fontName {
+        viewModel.ensureFontCopied(fontName: fontName)
+      }
+
       let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
-      let contentCSS = preferences.makeCSS(theme: theme, fontPath: fontPath)
+      let contentCSS = preferences.makeCSS(
+        theme: theme,
+        fontPath: fontPath,
+        rootURL: viewModel.resourceRootURL
+      )
 
       let chapterProgress =
         currentLocation?.pageCount ?? 0 > 0

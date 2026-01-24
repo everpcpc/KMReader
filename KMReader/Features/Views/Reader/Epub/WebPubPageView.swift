@@ -174,8 +174,18 @@
         let chapterIndex = currentVC.chapterIndex
         let pageInsets = viewModel.pageInsets(for: preferences)
         let theme = preferences.resolvedTheme(for: colorScheme)
+
+        // Ensure the selected font is copied to the resource directory
+        if let fontName = preferences.fontFamily.fontName {
+          viewModel.ensureFontCopied(fontName: fontName)
+        }
+
         let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
-        let contentCSS = preferences.makeCSS(theme: theme, fontPath: fontPath)
+        let contentCSS = preferences.makeCSS(
+          theme: theme,
+          fontPath: fontPath,
+          rootURL: viewModel.resourceRootURL
+        )
 
         guard let globalIndex = viewModel.globalIndexForChapter(chapterIndex, pageIndex: currentVC.currentSubPageIndex),
           globalIndex < viewModel.pageLocations.count
@@ -262,10 +272,20 @@
 
         let pageInsets = parent.viewModel.pageInsets(for: parent.preferences)
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
+
+        // Ensure the selected font is copied to the resource directory
+        if let fontName = parent.preferences.fontFamily.fontName {
+          parent.viewModel.ensureFontCopied(fontName: fontName)
+        }
+
         let fontPath = parent.preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
-        let contentCSS = parent.preferences.makeCSS(theme: theme, fontPath: fontPath)
         let chapterURL = parent.viewModel.chapterURL(at: chapterIndex)
         let rootURL = parent.viewModel.resourceRootURL
+        let contentCSS = parent.preferences.makeCSS(
+          theme: theme,
+          fontPath: fontPath,
+          rootURL: rootURL
+        )
         let chapterIndexForCallback = chapterIndex
         let onPageCountReady: (Int) -> Void = { [weak viewModel = parent.viewModel] pageCount in
           Task { @MainActor in

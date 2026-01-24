@@ -214,34 +214,22 @@
         return
       }
 
-      // Create fonts directory in app support if it doesn't exist
-      guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-      else {
-        showFontInputError = true
-        fontInputErrorMessage = "Failed to access app storage"
-        return
-      }
-
-      let fontsDirectory = appSupportURL.appendingPathComponent("CustomFonts", isDirectory: true)
+      // Copy font file to app storage using FontFileManager
+      let relativePath: String
       do {
-        try FileManager.default.createDirectory(at: fontsDirectory, withIntermediateDirectories: true)
-      } catch {
-        showFontInputError = true
-        fontInputErrorMessage = "Failed to create fonts directory: \(error.localizedDescription)"
-        return
-      }
-
-      // Copy font file to app storage
-      let destinationURL = fontsDirectory.appendingPathComponent(fileName)
-      do {
-        // Remove existing file if it exists
-        if FileManager.default.fileExists(atPath: destinationURL.path) {
-          try FileManager.default.removeItem(at: destinationURL)
-        }
-        try FileManager.default.copyItem(at: url, to: destinationURL)
+        relativePath = try FontFileManager.copyFont(from: url, fileName: fileName)
       } catch {
         showFontInputError = true
         fontInputErrorMessage = "Failed to copy font file: \(error.localizedDescription)"
+        return
+      }
+
+      // Get absolute path for font registration
+      guard let absolutePath = FontFileManager.resolvePath(relativePath),
+        let destinationURL = URL(string: "file://\(absolutePath)")
+      else {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to resolve font file path"
         return
       }
 
@@ -252,7 +240,7 @@
         showFontInputError = true
         fontInputErrorMessage = "Failed to load font file"
         // Clean up the copied file
-        try? FileManager.default.removeItem(at: destinationURL)
+        FontFileManager.deleteFont(at: relativePath)
         return
       }
 
@@ -265,7 +253,7 @@
           if !errorDescription.contains("already registered") {
             showFontInputError = true
             fontInputErrorMessage = "Failed to register font: \(errorDescription)"
-            try? FileManager.default.removeItem(at: destinationURL)
+            FontFileManager.deleteFont(at: relativePath)
             return
           }
         }
@@ -282,13 +270,13 @@
       if customFonts.contains(where: { $0.name == actualFontName }) {
         showFontInputError = true
         fontInputErrorMessage = "Font already added"
-        try? FileManager.default.removeItem(at: destinationURL)
+        FontFileManager.deleteFont(at: relativePath)
         return
       }
 
-      // Add font to custom fonts list with path, fileName, and fileSize
+      // Add font to custom fonts list with relative path, fileName, and fileSize
       let customFont = CustomFont(
-        name: actualFontName, path: destinationURL.path, fileName: fileName, fileSize: fileSize)
+        name: actualFontName, path: relativePath, fileName: fileName, fileSize: fileSize)
       modelContext.insert(customFont)
       do {
         try modelContext.save()
@@ -296,7 +284,7 @@
         showFontInputError = true
         fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
         // Clean up
-        try? FileManager.default.removeItem(at: destinationURL)
+        FontFileManager.deleteFont(at: relativePath)
         return
       }
 
@@ -359,9 +347,8 @@
 
     private func removeCustomFont(_ font: CustomFont) {
       // If this is an imported font, clean up the file
-      if let path = font.path {
-        let fileURL = URL(fileURLWithPath: path)
-        try? FileManager.default.removeItem(at: fileURL)
+      if let relativePath = font.path {
+        FontFileManager.deleteFont(at: relativePath)
       }
 
       modelContext.delete(font)

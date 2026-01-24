@@ -124,7 +124,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     theme.resolvedTheme(for: colorScheme)
   }
 
-  func makeCSS(theme: ReaderTheme, fontPath: String? = nil) -> String {
+  func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {
     let fontSize = fontSize
     let fontWeightValue = 300 + Int(fontWeight * 160)
     let letterSpacingEm = letterSpacing
@@ -141,16 +141,19 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
 
     // Generate @font-face rule for imported fonts
     var fontFaceCSS = ""
-    if let fontName = fontFamily.fontName, let path = fontPath {
-      // Use relative path to .fonts directory
+    if let fontName = fontFamily.fontName, let path = fontPath, let rootURL = rootURL {
+      // Font files are copied to {rootURL}/.fonts/ directory
+      // Use absolute file:// URL since fonts are within the allowingReadAccessTo scope
       let fileName = URL(fileURLWithPath: path).lastPathComponent
-      let relativePath = ".fonts/\(fileName)"
+      let fontURL = rootURL.appendingPathComponent(".fonts").appendingPathComponent(fileName)
+      let fileURLString = fontURL.absoluteString
+
       // Determine font format from file extension
       let fontFormat = path.hasSuffix(".otf") ? "opentype" : "truetype"
       fontFaceCSS = """
         @font-face {
           font-family: '\(fontName)';
-          src: url('\(relativePath)') format('\(fontFormat)');
+          src: url('\(fileURLString)') format('\(fontFormat)');
         }
 
         """
