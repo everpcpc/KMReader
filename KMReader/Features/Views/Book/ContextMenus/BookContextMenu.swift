@@ -119,16 +119,18 @@ struct BookContextMenu: View {
         }
       }
 
-      Divider()
-      Button(role: .destructive) {
-        Task {
-          await CacheManager.clearCache(forBookId: book.id)
-          await MainActor.run {
-            ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
+      if book.isDivina {
+        Divider()
+        Button(role: .destructive) {
+          Task {
+            await CacheManager.clearCache(forBookId: book.id)
+            await MainActor.run {
+              ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
+            }
           }
+        } label: {
+          Label("Clear Cache", systemImage: "xmark.circle")
         }
-      } label: {
-        Label("Clear Cache", systemImage: "xmark.circle")
       }
     }
   }

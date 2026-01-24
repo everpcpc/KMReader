@@ -319,7 +319,7 @@ struct BookDetailView: View {
         }
 
         // Only show Clear Cache for non-EPUB books
-        if let book = book, book.media.mediaProfile != .epub {
+        if let book = book, book.isDivina {
           Button(role: .destructive) {
             clearCache()
           } label: {
