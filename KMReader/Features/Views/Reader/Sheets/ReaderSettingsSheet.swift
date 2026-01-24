@@ -29,6 +29,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
   var body: some View {
     SheetView(
@@ -76,6 +77,10 @@ struct ReaderSettingsSheet: View {
           #if os(iOS)
             Toggle(isOn: $autoHideControls) {
               Text("Auto Hide Controls")
+            }
+
+            Toggle(isOn: $readerControlsGradientBackground) {
+              Text("Controls Gradient Background")
             }
           #endif
 

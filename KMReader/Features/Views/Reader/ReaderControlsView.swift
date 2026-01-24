@@ -19,6 +19,8 @@ struct ReaderControlsView: View {
   @Binding var showingReaderSettingsSheet: Bool
   @Binding var showingDetailSheet: Bool
 
+  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
+
   let viewModel: ReaderViewModel
   let currentBook: Book?
   let currentSeries: Series?
@@ -184,6 +186,22 @@ struct ReaderControlsView: View {
         #endif
       }
       .allowsHitTesting(true)
+      .padding()
+      .iPadIgnoresSafeArea(paddingTop: 24)
+      .background {
+        if readerControlsGradientBackground {
+          LinearGradient(
+            gradient: Gradient(colors: [
+              Color.black.opacity(0.4),
+              Color.black.opacity(0.2),
+              Color.clear,
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+          )
+          .ignoresSafeArea(edges: .top)
+        }
+      }
 
       Spacer()
 
@@ -218,14 +236,33 @@ struct ReaderControlsView: View {
         // Bottom slider
         ReadingProgressBar(progress: progress, type: .reader)
           .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
-          .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+          .shadow(
+            color: readerControlsGradientBackground ? .clear : .black.opacity(0.4),
+            radius: readerControlsGradientBackground ? 0 : 4,
+            x: 0,
+            y: readerControlsGradientBackground ? 0 : 2
+          )
+      }
+      .padding()
+      .iPadIgnoresSafeArea(paddingTop: 24)
+      .background {
+        if readerControlsGradientBackground {
+          LinearGradient(
+            gradient: Gradient(colors: [
+              Color.clear,
+              Color.black.opacity(0.2),
+              Color.black.opacity(0.4),
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+          )
+          .ignoresSafeArea(edges: .bottom)
+        }
       }
     }
     #if os(iOS)
       .tint(.primary)
     #endif
-    .padding()
-    .iPadIgnoresSafeArea(paddingTop: 24)
     .transition(.opacity)
     #if os(tvOS)
       .onAppear {
