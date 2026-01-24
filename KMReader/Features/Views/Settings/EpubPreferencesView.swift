@@ -22,7 +22,7 @@
     @State private var newPresetName: String = ""
     @State private var fontListRefreshId: UUID = UUID()
 
-    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .pageCurl
+    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
