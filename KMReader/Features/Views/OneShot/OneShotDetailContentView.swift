@@ -244,8 +244,8 @@ struct OneShotDetailContentView: View {
         )
       }
 
-      Divider()
       if let downloadStatus = downloadStatus {
+        Divider()
         BookDownloadActionsSection(book: book, status: downloadStatus)
       }
 
