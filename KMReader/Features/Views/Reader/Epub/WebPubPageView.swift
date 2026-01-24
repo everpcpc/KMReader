@@ -116,7 +116,6 @@
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: pageVC)
         }
-        context.coordinator.updateGestureRecognizerStates()
       }
 
       return pageVC
@@ -138,7 +137,6 @@
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: pageVC)
         }
-        context.coordinator.updateGestureRecognizerStates()
       }
 
       if let targetIndex = viewModel.targetPageIndex,
@@ -166,7 +164,6 @@
             if let currentVC = pageVC.viewControllers?.first as? EpubPageViewController {
               context.coordinator.preloadAdjacentPages(for: currentVC, in: pageVC)
             }
-            context.coordinator.updateGestureRecognizerStates()
             Task { @MainActor in
               viewModel.targetPageIndex = nil
               viewModel.pageDidChange(to: targetIndex)
@@ -505,7 +502,6 @@
         ) {
           currentPageIndex = newIndex
           preloadAdjacentPages(for: currentVC, in: pageViewController)
-          updateGestureRecognizerStates()
           Task { @MainActor in
             parent.viewModel.pageDidChange(to: newIndex)
           }
@@ -617,33 +613,6 @@
         true
       }
 
-      /// Update gesture recognizer states based on current page position
-      /// Disables backward gestures at first page and forward gestures at last page
-      func updateGestureRecognizerStates() {
-        guard let pageVC = pageViewController,
-          let currentVC = pageVC.viewControllers?.first as? EpubPageViewController
-        else {
-          return
-        }
-
-        let isAtFirstPage = currentVC.chapterIndex == 0 && currentVC.currentSubPageIndex <= 0
-        let lastChapterIndex = parent.viewModel.chapterCount - 1
-        let isAtLastPage: Bool = {
-          if currentVC.chapterIndex == lastChapterIndex {
-            let pageCount = parent.viewModel.chapterPageCount(at: lastChapterIndex) ?? 1
-            return currentVC.currentSubPageIndex >= pageCount - 1
-          }
-          return false
-        }()
-
-        // Disable all UIPageViewController gestures at boundaries
-        // This prevents the crash by not allowing any page turn attempts
-        let shouldDisableGestures = isAtFirstPage || isAtLastPage
-
-        for recognizer in pageVC.gestureRecognizers {
-          recognizer.isEnabled = !shouldDisableGestures
-        }
-      }
 
     }
   }
