@@ -102,8 +102,8 @@
 
       // Handle TOC navigation via targetPageIndex
       if let targetIndex = viewModel.targetPageIndex,
-         targetIndex != viewModel.currentPageIndex,
-         let targetLocation = viewModel.pageLocation(at: targetIndex)
+        targetIndex != viewModel.currentPageIndex,
+        let targetLocation = viewModel.pageLocation(at: targetIndex)
       {
         let targetChapterIndex = targetLocation.chapterIndex
         let targetSubPageIndex = targetLocation.pageIndex
@@ -136,7 +136,8 @@
       let theme = preferences.resolvedTheme(for: colorScheme)
       let contentCSS = preferences.makeCSS(theme: theme)
 
-      let chapterProgress = currentLocation?.pageCount ?? 0 > 0
+      let chapterProgress =
+        currentLocation?.pageCount ?? 0 > 0
         ? Double((currentLocation?.pageIndex ?? 0) + 1) / Double(currentLocation?.pageCount ?? 1)
         : nil
       let totalProgression = currentLocation.flatMap { location in
@@ -180,7 +181,9 @@
   /// A view controller that displays a single EPUB chapter with horizontal scrolling
   /// Reuses the exact same CSS system as EpubPageViewController, just enables horizontal scrolling
   @MainActor
-  final class ScrollEpubViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler, UIScrollViewDelegate, UIGestureRecognizerDelegate {
+  final class ScrollEpubViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler,
+    UIScrollViewDelegate, UIGestureRecognizerDelegate
+  {
     private var webView: WKWebView!
     private var chapterIndex: Int
     private var currentSubPageIndex: Int = 0
@@ -317,7 +320,8 @@
       webView.scrollView.delegate = self
       webView.scrollView.isScrollEnabled = true
       webView.scrollView.bounces = true
-      webView.scrollView.showsHorizontalScrollIndicator = true
+      webView.scrollView.alwaysBounceVertical = false
+      webView.scrollView.showsHorizontalScrollIndicator = false
       webView.scrollView.showsVerticalScrollIndicator = false
       webView.scrollView.contentInsetAdjustmentBehavior = .never
       webView.scrollView.isPagingEnabled = true
@@ -813,20 +817,16 @@
       }
     }
 
-    private func scrollToPage(_ pageIndex: Int) {
+    private func scrollToPage(_ pageIndex: Int, animated: Bool = true) {
       guard isContentLoaded else { return }
-      let js = """
-          (function() {
-            var pageWidth = window.innerWidth || document.documentElement.clientWidth;
-            if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-            var maxScroll = Math.max(0, document.body.scrollWidth - pageWidth);
-            var offset = Math.min(pageWidth * \(pageIndex), maxScroll);
-            window.scrollTo(offset, 0);
-            if (document.documentElement) { document.documentElement.scrollLeft = offset; }
-            if (document.body) { document.body.scrollLeft = offset; }
-          })();
-        """
-      webView.evaluateJavaScript(js, completionHandler: nil)
+      let pageWidth = webView.bounds.width
+      guard pageWidth > 0 else { return }
+
+      let contentWidth = webView.scrollView.contentSize.width
+      let maxOffset = max(0, contentWidth - pageWidth)
+      let targetOffset = min(pageWidth * CGFloat(pageIndex), maxOffset)
+
+      webView.scrollView.setContentOffset(CGPoint(x: targetOffset, y: 0), animated: animated)
     }
 
     private func injectPaginationJS(targetPageIndex: Int) {
@@ -947,7 +947,7 @@
           // If we need to jump to last page after loading, do it now
           if pendingJumpToLastPage {
             actualPage = max(0, normalizedTotal - 1)
-            scrollToPage(actualPage)
+            scrollToPage(actualPage, animated: false)
             pendingJumpToLastPage = false
           }
 
@@ -1005,6 +1005,48 @@
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
       if !decelerate {
         updateCurrentPageFromScroll()
+      }
+    }
+
+    func scrollViewWillEndDragging(
+      _ scrollView: UIScrollView,
+      withVelocity velocity: CGPoint,
+      targetContentOffset: UnsafeMutablePointer<CGPoint>
+    ) {
+      guard isContentLoaded else { return }
+      let pageWidth = webView.bounds.width
+      guard pageWidth > 0 else { return }
+
+      let targetOffset = targetContentOffset.pointee.x
+
+      // Check if user is trying to scroll left from the first page
+      if currentSubPageIndex == 0 {
+        // Detect leftward scroll attempt (negative velocity or trying to scroll before start)
+        if velocity.x < -0.1 || targetOffset < -pageWidth * 0.3 {
+          if chapterIndex > 0 {
+            // Cancel the scroll animation
+            targetContentOffset.pointee = CGPoint(x: 0, y: 0)
+            // Navigate to previous chapter
+            onChapterNavigationNeeded?(chapterIndex - 1)
+          }
+          return
+        }
+      }
+
+      // Check if user is trying to scroll right from the last page
+      if currentSubPageIndex == totalPagesInChapter - 1 {
+        let contentWidth = scrollView.contentSize.width
+        let maxOffset = contentWidth - pageWidth
+        // Detect rightward scroll attempt (positive velocity or trying to scroll past end)
+        if velocity.x > 0.1 || targetOffset > maxOffset + pageWidth * 0.3 {
+          if chapterIndex < totalChapters - 1 {
+            // Cancel the scroll animation
+            targetContentOffset.pointee = CGPoint(x: maxOffset, y: 0)
+            // Navigate to next chapter
+            onChapterNavigationNeeded?(chapterIndex + 1)
+          }
+          return
+        }
       }
     }
 
