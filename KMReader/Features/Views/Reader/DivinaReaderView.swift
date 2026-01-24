@@ -315,8 +315,8 @@ struct DivinaReaderView: View {
       // Show helper overlay when pages are first loaded (iOS and macOS)
       if oldCount == 0 && newCount > 0 {
         triggerTapZoneOverlay(timeout: 1)
-        triggerKeyboardHelp(timeout: 2)
-        forceInitialAutoHide(timeout: 2)
+        triggerKeyboardHelp(timeout: 1.5)
+        forceInitialAutoHide(timeout: 1.5)
       }
     }
     .onDisappear {
