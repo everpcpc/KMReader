@@ -204,9 +204,7 @@ actor SSEService {
   }
 
   private func handleTaskQueueStatus(data: String) {
-    guard let jsonData = data.data(using: .utf8),
-      let dto = try? JSONDecoder().decode(TaskQueueSSEDto.self, from: jsonData)
-    else { return }
+    guard let dto = TaskQueueSSEDto(rawValue: data) else { return }
 
     let previousStatus = AppConfig.taskQueueStatus
     guard previousStatus != dto else { return }

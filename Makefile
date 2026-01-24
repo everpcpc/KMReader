@@ -60,50 +60,62 @@ build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS
 build-ios: ## Build for iOS
 	@echo "$(GREEN)Building for iOS...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk iphoneos build -quiet
+	@echo "$(GREEN)iOS built successfully!$(NC)"
 
 build-macos: ## Build for macOS
 	@echo "$(GREEN)Building for macOS...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk macosx build -quiet
+	@echo "$(GREEN)macOS built successfully!$(NC)"
 
 build-tvos: ## Build for tvOS
 	@echo "$(GREEN)Building for tvOS...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvos build -quiet
+	@echo "$(GREEN)tvOS built successfully!$(NC)"
 
 build-ios-ci: ## Build for iOS (CI, uses simulator, no code signing)
 	@echo "$(GREEN)Building for iOS (CI)...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+	@echo "$(GREEN)iOS (CI) built successfully!$(NC)"
 
 build-macos-ci: ## Build for macOS (CI, no code signing)
 	@echo "$(GREEN)Building for macOS (CI)...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk macosx -destination 'platform=macOS' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+	@echo "$(GREEN)macOS (CI) built successfully!$(NC)"
 
 build-tvos-ci: ## Build for tvOS (CI, uses simulator, no code signing)
 	@echo "$(GREEN)Building for tvOS (CI)...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvsimulator -destination 'generic/platform=tvOS Simulator' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+	@echo "$(GREEN)tvOS (CI) built successfully!$(NC)"
 
 archive-ios: ## Archive for iOS
 	@echo "$(GREEN)Archiving for iOS...$(NC)"
 	@$(MISC_DIR)/archive.sh ios $(ARCHIVES_DIR)
+	@echo "$(GREEN)iOS archived successfully!$(NC)"
 
 archive-macos: ## Archive for macOS
 	@echo "$(GREEN)Archiving for macOS...$(NC)"
 	@$(MISC_DIR)/archive.sh macos $(ARCHIVES_DIR)
+	@echo "$(GREEN)macOS archived successfully!$(NC)"
 
 archive-tvos: ## Archive for tvOS
 	@echo "$(GREEN)Archiving for tvOS...$(NC)"
 	@$(MISC_DIR)/archive.sh tvos $(ARCHIVES_DIR)
+	@echo "$(GREEN)tvOS archived successfully!$(NC)"
 
 archive-ios-organizer: ## Archive for iOS (appears in Xcode Organizer)
 	@echo "$(GREEN)Archiving for iOS (will appear in Organizer)...$(NC)"
 	@$(MISC_DIR)/archive.sh ios --show-in-organizer
+	@echo "$(GREEN)iOS archived successfully!$(NC)"
 
 archive-macos-organizer: ## Archive for macOS (appears in Xcode Organizer)
 	@echo "$(GREEN)Archiving for macOS (will appear in Organizer)...$(NC)"
 	@$(MISC_DIR)/archive.sh macos --show-in-organizer
+	@echo "$(GREEN)macOS archived successfully!$(NC)"
 
 archive-tvos-organizer: ## Archive for tvOS (appears in Xcode Organizer)
 	@echo "$(GREEN)Archiving for tvOS (will appear in Organizer)...$(NC)"
 	@$(MISC_DIR)/archive.sh tvos --show-in-organizer
+	@echo "$(GREEN)tvOS archived successfully!$(NC)"
 
 export: ## Export archive (requires ARCHIVE=<path>)
 	@if [ -z "$(ARCHIVE)" ]; then \
@@ -112,56 +124,72 @@ export: ## Export archive (requires ARCHIVE=<path>)
 		exit 1; \
 	fi
 	@$(MISC_DIR)/export.sh "$(ARCHIVE)" "$(OPTIONS)" "$(DEST)"
+	@echo "$(GREEN)Exported successfully!$(NC)"
 
 release: ## Archive and export all platforms (iOS, macOS, tvOS)
 	@echo "$(GREEN)Building all platforms...$(NC)"
 	@$(MISC_DIR)/release.sh
+	@echo "$(GREEN)All platforms built successfully!$(NC)"
 
 release-organizer: ## Archive and export all platforms (appears in Xcode Organizer)
 	@echo "$(GREEN)Building all platforms (will appear in Organizer)...$(NC)"
 	@$(MISC_DIR)/release.sh --show-in-organizer
+	@echo "$(GREEN)All platforms built successfully!$(NC)"
 
 release-ios: ## Archive and export iOS only
 	@echo "$(GREEN)Building iOS...$(NC)"
 	@$(MISC_DIR)/release.sh --platform ios
+	@echo "$(GREEN)iOS built successfully!$(NC)"
 
 release-macos: ## Archive and export macOS only
 	@echo "$(GREEN)Building macOS...$(NC)"
 	@$(MISC_DIR)/release.sh --platform macos
+	@echo "$(GREEN)macOS built successfully!$(NC)"
 
 release-tvos: ## Archive and export tvOS only
 	@echo "$(GREEN)Building tvOS...$(NC)"
 	@$(MISC_DIR)/release.sh --platform tvos
+	@echo "$(GREEN)tvOS built successfully!$(NC)"
 
 artifacts: ## Prepare artifacts (ipa + dmg) for GitHub Release
 	@echo "$(GREEN)Preparing artifacts for GitHub Release...$(NC)"
 	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts
+	@echo "$(GREEN)Artifacts prepared successfully!$(NC)"
 
 artifact-ios: ## Prepare iOS artifact for GitHub Release
 	@echo "$(GREEN)Preparing iOS artifact for GitHub Release...$(NC)"
 	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts ios
+	@echo "$(GREEN)iOS artifact prepared successfully!$(NC)"
 
 artifact-macos: ## Prepare macOS artifact for GitHub Release
 	@echo "$(GREEN)Preparing macOS artifact for GitHub Release...$(NC)"
 	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts macos
+	@echo "$(GREEN)macOS artifact prepared successfully!$(NC)"
 
 artifact-tvos: ## Prepare tvOS artifact for GitHub Release
 	@echo "$(GREEN)Preparing tvOS artifact for GitHub Release...$(NC)"
 	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts tvos
+	@echo "$(GREEN)tvOS artifact prepared successfully!$(NC)"
 
 clean-archives: ## Remove all archives
 	@echo "$(YELLOW)Cleaning archives...$(NC)"
 	@rm -rf $(ARCHIVES_DIR)
+	@echo "$(GREEN)Archives cleaned successfully!$(NC)"
 
 clean-exports: ## Remove all exports
 	@echo "$(YELLOW)Cleaning exports...$(NC)"
 	@rm -rf $(EXPORTS_DIR)
+	@echo "$(GREEN)Exports cleaned successfully!$(NC)"
 
 clean-artifacts: ## Remove prepared artifacts
 	@echo "$(YELLOW)Cleaning artifacts...$(NC)"
 	@rm -rf artifacts
+	@echo "$(GREEN)Artifacts cleaned successfully!$(NC)"
 
 clean: clean-archives clean-exports clean-artifacts ## Remove archives, exports, and artifacts
+	@echo "$(GREEN)Cleaned archives, exports, and artifacts successfully!$(NC)"
+	
+	
 
 bump: ## Increment CURRENT_PROJECT_VERSION in project.pbxproj
 	@$(MISC_DIR)/bump.sh
@@ -175,9 +203,10 @@ minor: ## Increment minor version (MARKETING_VERSION)
 format: ## Format Swift files with swift-format
 	@echo "$(GREEN)Formatting Swift files...$(NC)"
 	@find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./.build/*" -not -path "./packages/*" | xargs swift-format -i
+	@echo "$(GREEN)Formatted Swift files successfully!$(NC)"
 
 localize: ## Scan source code and update Localizable.xcstrings
 	@echo "$(GREEN)Scanning source code for new strings...$(NC)"
 	@xcodebuild -exportLocalizations -localizationPath ./temp_localization -project $(PROJECT) -quiet
 	@rm -rf ./temp_localization
-	@echo "$(GREEN)Sync completed!$(NC)"
+	@echo "$(GREEN)Sync localizable strings successfully!$(NC)"

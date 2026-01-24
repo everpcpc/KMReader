@@ -44,4 +44,9 @@ extension Book {
     guard !media.mediaType.isEmpty else { return nil }
     return media.mediaType.split(separator: ";").first?.trimmingCharacters(in: .whitespaces)
   }
+
+  var isDivina: Bool {
+    guard let mediaProfile = media.mediaProfile else { return true }
+    return mediaProfile != .epub
+  }
 }

@@ -383,10 +383,12 @@ struct OneshotDetailView: View {
           }
         }
 
-        Button(role: .destructive) {
-          clearCache()
-        } label: {
-          Label("Clear Cache", systemImage: "xmark")
+        if let book = book, book.isDivina {
+          Button(role: .destructive) {
+            clearCache()
+          } label: {
+            Label("Clear Cache", systemImage: "xmark")
+          }
         }
       } label: {
         Image(systemName: "ellipsis")

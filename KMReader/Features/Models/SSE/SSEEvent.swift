@@ -111,7 +111,7 @@ struct SessionExpiredSSEDto: Codable, Sendable {
   let userId: String
 }
 
-struct TaskQueueSSEDto: Codable, Equatable, RawRepresentable, Sendable {
+struct TaskQueueSSEDto: Equatable, RawRepresentable, Sendable {
   typealias RawValue = String
 
   let count: Int
