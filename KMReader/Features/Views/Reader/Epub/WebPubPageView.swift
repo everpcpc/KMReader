@@ -61,7 +61,6 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
-    let transitionStyle: UIPageViewController.TransitionStyle
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -72,11 +71,10 @@
 
     func makeUIViewController(context: Context) -> UIPageViewController {
       let spineLocation: UIPageViewController.SpineLocation = .min
-      let options: [UIPageViewController.OptionsKey: Any]? =
-        transitionStyle == .pageCurl ? [.spineLocation: NSNumber(value: spineLocation.rawValue)] : nil
+      let options: [UIPageViewController.OptionsKey: Any] = [.spineLocation: NSNumber(value: spineLocation.rawValue)]
 
       let pageVC = UIPageViewController(
-        transitionStyle: transitionStyle,
+        transitionStyle: .pageCurl,
         navigationOrientation: .horizontal,
         options: options
       )
@@ -121,21 +119,21 @@
       return pageVC
     }
 
-    func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
+    func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
       context.coordinator.parent = self
 
-      if pageVC.viewControllers?.isEmpty ?? true,
+      if uiViewController.viewControllers?.isEmpty ?? true,
         let initialLocation = viewModel.pageLocation(at: viewModel.currentPageIndex),
         let initialVC = context.coordinator.pageViewController(
           chapterIndex: initialLocation.chapterIndex,
           subPageIndex: initialLocation.pageIndex,
-          in: pageVC
+          in: uiViewController
         )
       {
-        pageVC.setViewControllers([initialVC], direction: .forward, animated: false)
+        uiViewController.setViewControllers([initialVC], direction: .forward, animated: false)
         context.coordinator.currentPageIndex = viewModel.currentPageIndex
         if let initialVC = initialVC as? EpubPageViewController {
-          context.coordinator.preloadAdjacentPages(for: initialVC, in: pageVC)
+          context.coordinator.preloadAdjacentPages(for: initialVC, in: uiViewController)
         }
       }
 
@@ -146,14 +144,14 @@
         let targetVC = context.coordinator.pageViewController(
           chapterIndex: targetLocation.chapterIndex,
           subPageIndex: targetLocation.pageIndex,
-          in: pageVC
+          in: uiViewController
         )
       {
         let direction: UIPageViewController.NavigationDirection =
           targetIndex > context.coordinator.currentPageIndex ? .forward : .reverse
 
         context.coordinator.isAnimating = true
-        pageVC.setViewControllers(
+        uiViewController.setViewControllers(
           [targetVC],
           direction: direction,
           animated: true
@@ -161,8 +159,8 @@
           context.coordinator.isAnimating = false
           if completed {
             context.coordinator.currentPageIndex = targetIndex
-            if let currentVC = pageVC.viewControllers?.first as? EpubPageViewController {
-              context.coordinator.preloadAdjacentPages(for: currentVC, in: pageVC)
+            if let currentVC = uiViewController.viewControllers?.first as? EpubPageViewController {
+              context.coordinator.preloadAdjacentPages(for: currentVC, in: uiViewController)
             }
             Task { @MainActor in
               viewModel.targetPageIndex = nil
@@ -172,7 +170,7 @@
         }
       }
 
-      if let currentVC = pageVC.viewControllers?.first as? EpubPageViewController {
+      if let currentVC = uiViewController.viewControllers?.first as? EpubPageViewController {
         let chapterIndex = currentVC.chapterIndex
         let pageInsets = viewModel.pageInsets(for: preferences)
         let theme = preferences.resolvedTheme(for: colorScheme)

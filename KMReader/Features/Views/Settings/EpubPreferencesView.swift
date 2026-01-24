@@ -22,6 +22,8 @@
     @State private var newPresetName: String = ""
     @State private var fontListRefreshId: UUID = UUID()
 
+    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .pageCurl
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -47,6 +49,15 @@
 
     var body: some View {
       Form {
+        Section(String(localized: "Page Turn")) {
+          Picker(String(localized: "Page Transition Style"), selection: $epubPageTransitionStyle) {
+            ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+              Text(style.displayName).tag(style)
+            }
+          }
+          .pickerStyle(.menu)
+        }
+
         Section(String(localized: "Presets")) {
           Button {
             showPresetsSheet = true

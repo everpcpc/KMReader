@@ -20,6 +20,7 @@
 
     @AppStorage("epubPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @AppStorage("autoHideControls") private var autoHideControls: Bool = false
+    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .pageCurl
 
     @State private var viewModel: EpubReaderViewModel
     @State private var showingControls = true
@@ -210,17 +211,30 @@
         }
         .padding()
       } else if !viewModel.pageLocations.isEmpty {
-        WebPubPageView(
-          viewModel: viewModel,
-          preferences: readerPrefs,
-          colorScheme: colorScheme,
-          transitionStyle: .pageCurl,
-          showingControls: shouldShowControls,
-          bookTitle: currentBook?.metadata.title,
-          onCenterTap: {
-            toggleControls()
-          }
-        ).readerIgnoresSafeArea()
+        switch epubPageTransitionStyle {
+        case .scroll:
+          WebPubScrollView(
+            viewModel: viewModel,
+            preferences: readerPrefs,
+            colorScheme: colorScheme,
+            showingControls: shouldShowControls,
+            bookTitle: currentBook?.metadata.title,
+            onCenterTap: {
+              toggleControls()
+            }
+          ).readerIgnoresSafeArea()
+        case .pageCurl:
+          WebPubPageView(
+            viewModel: viewModel,
+            preferences: readerPrefs,
+            colorScheme: colorScheme,
+            showingControls: shouldShowControls,
+            bookTitle: currentBook?.metadata.title,
+            onCenterTap: {
+              toggleControls()
+            }
+          ).readerIgnoresSafeArea()
+        }
       } else {
         Text("No content available.")
           .foregroundStyle(.secondary)
