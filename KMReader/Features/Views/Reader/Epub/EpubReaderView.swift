@@ -280,7 +280,7 @@
               Image(systemName: "xmark")
             }
             .contentShape(Circle())
-            .controlSize(.large)
+            .controlSize(.extraLarge)
             .buttonBorderShape(.circle)
             .adaptiveButtonStyle(buttonStyle)
             .padding(.top, 24)
@@ -315,7 +315,7 @@
                   .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
               }
               .contentShape(Circle())
-              .controlSize(.large)
+              .controlSize(.extraLarge)
               .buttonBorderShape(.circle)
               .adaptiveButtonStyle(buttonStyle)
               .padding(.bottom, 24)

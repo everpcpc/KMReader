@@ -101,7 +101,7 @@
           }
 
           VStack(alignment: .leading) {
-            Slider(value: $draft.fontWeight, in: 0.0...2.5, step: 0.1)
+            Slider(value: $draft.fontWeight, in: 0.0...4.0, step: 0.1)
             Text(String(localized: "Weight: \(String(format: "%.1f", draft.fontWeight))"))
               .font(.caption)
               .foregroundStyle(.secondary)

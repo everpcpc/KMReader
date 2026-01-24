@@ -932,7 +932,7 @@
       // Top book title label
       let bookTitleLabel = UILabel()
       bookTitleLabel.font = .systemFont(ofSize: 13)
-      bookTitleLabel.textColor = .systemGray
+      bookTitleLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
       bookTitleLabel.textAlignment = .center
       bookTitleLabel.translatesAutoresizingMaskIntoConstraints = false
       bookTitleLabel.isUserInteractionEnabled = false
@@ -948,7 +948,7 @@
       // Top progress label
       let progressLabel = UILabel()
       progressLabel.font = .systemFont(ofSize: 13)
-      progressLabel.textColor = .systemGray
+      progressLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
       progressLabel.textAlignment = .center
       progressLabel.translatesAutoresizingMaskIntoConstraints = false
       progressLabel.isUserInteractionEnabled = false
@@ -964,7 +964,7 @@
       // Bottom chapter label
       let chapterLabel = UILabel()
       chapterLabel.font = .systemFont(ofSize: 12)
-      chapterLabel.textColor = .systemGray
+      chapterLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
       chapterLabel.textAlignment = .left
       chapterLabel.translatesAutoresizingMaskIntoConstraints = false
       chapterLabel.isUserInteractionEnabled = false
@@ -979,7 +979,7 @@
       // Bottom page label (centered)
       let pageCenterLabel = UILabel()
       pageCenterLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-      pageCenterLabel.textColor = .systemGray
+      pageCenterLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
       pageCenterLabel.textAlignment = .center
       pageCenterLabel.translatesAutoresizingMaskIntoConstraints = false
       pageCenterLabel.isUserInteractionEnabled = false
@@ -994,7 +994,7 @@
       // Bottom page label (right side)
       let pageRightLabel = UILabel()
       pageRightLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-      pageRightLabel.textColor = .systemGray
+      pageRightLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
       pageRightLabel.textAlignment = .right
       pageRightLabel.translatesAutoresizingMaskIntoConstraints = false
       pageRightLabel.isUserInteractionEnabled = false
@@ -1133,6 +1133,14 @@
         webView.scrollView.backgroundColor = .clear
       }
       loadingIndicator?.color = theme.uiColorText
+
+      // Update overlay label colors
+      let labelColor = theme.uiColorText.withAlphaComponent(0.6)
+      topBookTitleLabel?.textColor = labelColor
+      topProgressLabel?.textColor = labelColor
+      bottomChapterLabel?.textColor = labelColor
+      bottomPageCenterLabel?.textColor = labelColor
+      bottomPageRightLabel?.textColor = labelColor
     }
 
     private func applyContainerInsets() {

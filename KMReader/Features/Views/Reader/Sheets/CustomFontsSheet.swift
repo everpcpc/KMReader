@@ -70,7 +70,7 @@
                   .textInputAutocapitalization(.never)
                   .padding(.horizontal, 12)
                   .padding(.vertical, 10)
-                  .background(Color(.systemGray6))
+                  .background(.secondary.opacity(0.1))
                   .cornerRadius(10)
                   .onSubmit {
                     addCustomFont()
