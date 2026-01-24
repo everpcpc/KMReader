@@ -19,23 +19,26 @@ import SwiftUI
     var body: some View {
       NavigationSplitView(columnVisibility: $columnVisibility) {
         List(selection: $selectedSection) {
-          Section("General") {
+          Section(String(localized: "Reader")) {
+            SettingsSectionRow(section: .divinaReader)
+          }
+
+          Section(String(localized: "Appearance & Behavior")) {
             SettingsSectionRow(section: .appearance)
             SettingsSectionRow(section: .browse)
             SettingsSectionRow(section: .dashboard)
             SettingsSectionRow(section: .cache)
-            SettingsSectionRow(section: .divinaReader)
             SettingsSectionRow(section: .sse)
             SettingsSectionRow(section: .network)
             SettingsSectionRow(section: .logs)
           }
 
-          Section("Offline") {
+          Section(String(localized: "Offline")) {
             SettingsOfflineTasksRow()
             SettingsSectionRow(section: .offlineBooks)
           }
 
-          Section("Management") {
+          Section(String(localized: "Management")) {
             SettingsSectionRow(section: .libraries)
             if current.isAdmin {
               SettingsSectionRow(section: .serverInfo)
@@ -48,7 +51,7 @@ import SwiftUI
             }
           }
 
-          Section("Account") {
+          Section(String(localized: "Account")) {
             SettingsSectionRow(
               section: .servers,
               subtitle: current.serverDisplayName.isEmpty ? nil : current.serverDisplayName
