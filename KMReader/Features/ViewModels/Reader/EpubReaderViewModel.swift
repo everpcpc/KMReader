@@ -530,11 +530,11 @@
     var useSafeArea: Bool { UIDevice.current.userInterfaceIdiom != .pad }
 
     func pageInsets(for prefs: EpubReaderPreferences) -> UIEdgeInsets {
-      let horizontalPadding = CGFloat(prefs.pageMargins)
+      let pageMargins = CGFloat(prefs.pageMargins)
       // Reserve space for overlay labels
-      let topPadding = horizontalPadding + labelTopOffset
-      let bottomPadding = horizontalPadding + labelBottomOffset
-      return UIEdgeInsets(top: topPadding, left: horizontalPadding, bottom: bottomPadding, right: horizontalPadding)
+      let topPadding = pageMargins + labelTopOffset + 8
+      let bottomPadding = pageMargins + labelBottomOffset + 8
+      return UIEdgeInsets(top: topPadding, left: pageMargins, bottom: bottomPadding, right: pageMargins)
     }
 
     // MARK: - Private Methods
