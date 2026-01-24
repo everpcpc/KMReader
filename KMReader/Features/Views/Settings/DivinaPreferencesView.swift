@@ -29,6 +29,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
   var body: some View {
     Form {
@@ -59,6 +60,15 @@ struct DivinaPreferencesView: View {
             VStack(alignment: .leading, spacing: 4) {
               Text("Auto Hide Controls")
               Text("Automatically hide reader controls after a short delay")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+
+          Toggle(isOn: $readerControlsGradientBackground) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Controls Gradient Background")
+              Text("Add gradient background to improve button visibility")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }

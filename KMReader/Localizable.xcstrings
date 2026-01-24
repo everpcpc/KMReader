@@ -2100,6 +2100,52 @@
         }
       }
     },
+    "Add gradient background to improve button visibility" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add gradient background to improve button visibility"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlaufshintergrund hinzufügen, um die Sichtbarkeit der Schaltflächen zu verbessern"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un arrière-plan dégradé pour améliorer la visibilité des boutons"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ボタンの視認性を向上させるためにグラデーション背景を追加"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "버튼 가시성을 향상시키기 위해 그라데이션 배경 추가"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加渐变背景以提高按钮可见度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增漸變背景以提高按鈕可見度"
+          }
+        }
+      }
+    },
     "Add Link" : {
       "localizations" : {
         "de" : {
@@ -8674,6 +8720,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目錄 · %.1f%%"
+          }
+        }
+      }
+    },
+    "Controls Gradient Background" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controls Gradient Background"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steuerungsleiste mit Verlaufshintergrund"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrière-plan dégradé des contrôles"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コントロールのグラデーション背景"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컨트롤 그라데이션 배경"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制栏渐变背景"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制列漸變背景"
           }
         }
       }
