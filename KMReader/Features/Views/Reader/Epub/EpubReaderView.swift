@@ -140,6 +140,16 @@
         return
       }
 
+      // Refresh WebPub manifest if online
+      if !AppConfig.isOffline {
+        do {
+          let manifest = try await BookService.shared.getBookWebPubManifest(bookId: activeBook.id)
+          await DatabaseOperator.shared.updateBookWebPubManifest(bookId: activeBook.id, manifest: manifest)
+        } catch {
+          // Silently fail - we'll use cached manifest
+        }
+      }
+
       var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
       if series == nil && !AppConfig.isOffline {
         do {
