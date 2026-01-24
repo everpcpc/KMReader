@@ -50,6 +50,7 @@ struct MainApp: App {
         CustomFont.self,
         PendingProgress.self,
         SavedFilter.self,
+        EpubThemePreset.self,
       ])
 
       let configuration = ModelConfiguration(schema: schema)

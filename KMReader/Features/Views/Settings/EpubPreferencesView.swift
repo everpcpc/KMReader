@@ -17,10 +17,14 @@
 
     @State private var draft: EpubReaderPreferences
     @State private var showCustomFontsSheet: Bool = false
+    @State private var showPresetsSheet: Bool = false
+    @State private var showSavePresetAlert: Bool = false
+    @State private var newPresetName: String = ""
     @State private var fontListRefreshId: UUID = UUID()
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
 
@@ -43,6 +47,25 @@
 
     var body: some View {
       Form {
+        Section(String(localized: "Presets")) {
+          Button {
+            showPresetsSheet = true
+          } label: {
+            HStack {
+              Label(String(localized: "Load Preset"), systemImage: "bookmark")
+              Spacer()
+              Image(systemName: "chevron.right")
+                .foregroundStyle(.secondary)
+            }
+          }
+
+          Button {
+            showSavePresetAlert = true
+          } label: {
+            Label(String(localized: "Save as Preset"), systemImage: "bookmark.fill")
+          }
+        }
+
         Section(String(localized: "Theme")) {
           Picker(String(localized: "Appearance"), selection: $draft.theme) {
             ForEach(ThemeChoice.allCases) { choice in
@@ -217,6 +240,41 @@
             }
           }
       }
+      .sheet(isPresented: $showPresetsSheet) {
+        EpubThemePresetsView()
+          .onDisappear {
+            draft = AppConfig.epubPreferences
+          }
+      }
+      .alert(
+        "Save Preset",
+        isPresented: $showSavePresetAlert
+      ) {
+        TextField("Preset Name", text: $newPresetName)
+        Button("Cancel", role: .cancel) {
+          newPresetName = ""
+        }
+        Button("Save") {
+          savePreset()
+        }
+      } message: {
+        Text("Enter a name for this theme preset")
+      }
+    }
+
+    private func savePreset() {
+      let trimmed = newPresetName.trimmingCharacters(in: .whitespaces)
+      guard !trimmed.isEmpty else { return }
+
+      let preset = EpubThemePreset.create(
+        name: trimmed,
+        preferences: draft
+      )
+      modelContext.insert(preset)
+      try? modelContext.save()
+
+      ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
+      newPresetName = ""
     }
   }
 

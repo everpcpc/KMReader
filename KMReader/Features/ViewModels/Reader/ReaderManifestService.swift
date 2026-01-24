@@ -65,11 +65,12 @@ struct ReaderManifestService {
         ? localizedPageLabel(pageNumber)
         : trimmedTitle
 
-      let children: [ReaderTOCEntry]? = if let itemChildren = item.children, !itemChildren.isEmpty {
-        buildTOCEntries(manifestTOC: itemChildren, hrefPageMap: hrefPageMap)
-      } else {
-        nil
-      }
+      let children: [ReaderTOCEntry]? =
+        if let itemChildren = item.children, !itemChildren.isEmpty {
+          buildTOCEntries(manifestTOC: itemChildren, hrefPageMap: hrefPageMap)
+        } else {
+          nil
+        }
 
       entries.append(ReaderTOCEntry(title: title, pageIndex: pageIndex, children: children))
     }
