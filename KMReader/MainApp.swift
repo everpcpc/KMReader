@@ -48,6 +48,7 @@ struct MainApp: App {
         KomgaCollection.self,
         KomgaReadList.self,
         CustomFont.self,
+        CustomFont.self,
         PendingProgress.self,
         SavedFilter.self,
         EpubThemePreset.self,

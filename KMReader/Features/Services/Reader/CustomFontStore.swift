@@ -5,6 +5,9 @@
 //  Created by Komga iOS Client
 //
 
+#if os(iOS)
+  import CoreText
+#endif
 import Foundation
 import SwiftData
 
@@ -18,34 +21,6 @@ final class CustomFontStore {
 
   func configure(with container: ModelContainer) {
     self.container = container
-    migrateFromUserDefaults()
-  }
-
-  private func migrateFromUserDefaults() {
-    // Migrate custom fonts from UserDefaults to SwiftData
-    let userDefaultsFonts = AppConfig.customFontNames
-    guard !userDefaultsFonts.isEmpty, let container else { return }
-
-    let context = ModelContext(container)
-    let descriptor = FetchDescriptor<CustomFont>()
-    let existingFonts = (try? context.fetch(descriptor)) ?? []
-
-    // Get existing font names
-    let existingNames = Set(existingFonts.map { $0.name })
-
-    // Add fonts from UserDefaults that don't exist in SwiftData
-    for fontName in userDefaultsFonts {
-      if !existingNames.contains(fontName) {
-        let customFont = CustomFont(name: fontName)
-        context.insert(customFont)
-      }
-    }
-
-    // Save changes
-    try? context.save()
-
-    // Clear UserDefaults after migration
-    AppConfig.customFontNames = []
   }
 
   private func makeContext() throws -> ModelContext {
@@ -70,5 +45,17 @@ final class CustomFontStore {
     let context = ModelContext(container)
     let descriptor = FetchDescriptor<CustomFont>()
     return (try? context.fetchCount(descriptor)) ?? 0
+  }
+
+  func getFontPath(for fontName: String) -> String? {
+    guard let container else { return nil }
+    let context = ModelContext(container)
+    let descriptor = FetchDescriptor<CustomFont>(
+      predicate: #Predicate<CustomFont> { font in
+        font.name == fontName
+      }
+    )
+    guard let font = try? context.fetch(descriptor).first else { return nil }
+    return font.path
   }
 }

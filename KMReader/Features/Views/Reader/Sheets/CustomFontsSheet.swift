@@ -10,12 +10,14 @@
   import SwiftData
   import SwiftUI
   import UIKit
+  import UniformTypeIdentifiers
 
   struct CustomFontsSheet: View {
     @State private var customFontInput: String = ""
     @State private var showFontInputError: Bool = false
     @State private var fontInputErrorMessage: String = ""
     @State private var showFontPicker: Bool = false
+    @State private var showDocumentPicker: Bool = false
 
     @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
     @Environment(\.modelContext) private var modelContext
@@ -39,6 +41,24 @@
             Text("System Font Picker")
           } footer: {
             Text("Select from the system preinstalled fonts")
+          }
+
+          Section {
+            Button {
+              showDocumentPicker = true
+            } label: {
+              HStack {
+                Label("Import Font from Files", systemImage: "doc.badge.plus")
+                Spacer()
+                Image(systemName: "chevron.right")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
+          } header: {
+            Text("Import Custom Font")
+          } footer: {
+            Text("Import .ttf or .otf font files from Files app")
           }
 
           Section {
@@ -83,16 +103,41 @@
           if !customFonts.isEmpty {
             Section {
               ForEach(customFonts) { font in
-                Text(font.name)
-                  .font(.system(size: 14, design: .monospaced))
-                  .textSelectionIfAvailable()
-                  .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                      removeCustomFont(font)
-                    } label: {
-                      Label("Delete", systemImage: "trash")
+                HStack {
+                  VStack(alignment: .leading, spacing: 4) {
+                    Text(font.name)
+                      .font(.system(size: 14, design: .monospaced))
+                    if font.path != nil {
+                      HStack(spacing: 4) {
+                        Image(systemName: "arrow.down.doc.fill")
+                          .font(.caption2)
+                          .foregroundStyle(.secondary)
+                        if let fileName = font.fileName {
+                          Text(fileName)
+                            .font(.caption)
+                            .lineLimit(1)
+                        }
+                        if let fileSize = font.fileSize {
+                          Text("•")
+                            .font(.caption)
+                          Text(formatFileSize(fileSize))
+                            .font(.caption2)
+                            .lineLimit(1)
+                        }
+                      }
+                      .foregroundStyle(.secondary)
                     }
                   }
+                  Spacer()
+                }
+                .textSelectionIfAvailable()
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                  Button(role: .destructive) {
+                    removeCustomFont(font)
+                  } label: {
+                    Label("Delete", systemImage: "trash")
+                  }
+                }
               }
             } header: {
               Text("Custom Fonts")
@@ -105,6 +150,11 @@
       .sheet(isPresented: $showFontPicker) {
         FontPickerView(isPresented: $showFontPicker) { selectedFont in
           handleFontPickerSelection(selectedFont)
+        }
+      }
+      .sheet(isPresented: $showDocumentPicker) {
+        FontDocumentPicker(isPresented: $showDocumentPicker) { url in
+          handleFontFileImport(url)
         }
       }
     }
@@ -130,6 +180,123 @@
       } catch {
         showFontInputError = true
         fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
+        return
+      }
+
+      // Refresh font provider
+      FontProvider.refresh()
+
+      // Clear any error
+      showFontInputError = false
+      fontInputErrorMessage = ""
+    }
+
+    private func handleFontFileImport(_ url: URL) {
+      // Start accessing the security-scoped resource
+      guard url.startAccessingSecurityScopedResource() else {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to access font file"
+        return
+      }
+      defer { url.stopAccessingSecurityScopedResource() }
+
+      // Get the font file name and size
+      let fileName = url.lastPathComponent
+      var fileSize: Int64 = 0
+      do {
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        if let size = attributes[.size] as? NSNumber {
+          fileSize = size.int64Value
+        }
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to read font file attributes: \(error.localizedDescription)"
+        return
+      }
+
+      // Create fonts directory in app support if it doesn't exist
+      guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+      else {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to access app storage"
+        return
+      }
+
+      let fontsDirectory = appSupportURL.appendingPathComponent("CustomFonts", isDirectory: true)
+      do {
+        try FileManager.default.createDirectory(at: fontsDirectory, withIntermediateDirectories: true)
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to create fonts directory: \(error.localizedDescription)"
+        return
+      }
+
+      // Copy font file to app storage
+      let destinationURL = fontsDirectory.appendingPathComponent(fileName)
+      do {
+        // Remove existing file if it exists
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+          try FileManager.default.removeItem(at: destinationURL)
+        }
+        try FileManager.default.copyItem(at: url, to: destinationURL)
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to copy font file: \(error.localizedDescription)"
+        return
+      }
+
+      // Register the font with CoreText
+      guard let fontDataProvider = CGDataProvider(url: destinationURL as CFURL),
+        let cgFont = CGFont(fontDataProvider)
+      else {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to load font file"
+        // Clean up the copied file
+        try? FileManager.default.removeItem(at: destinationURL)
+        return
+      }
+
+      var error: Unmanaged<CFError>?
+      if !CTFontManagerRegisterGraphicsFont(cgFont, &error) {
+        // Font might already be registered, which is okay
+        if let error = error?.takeRetainedValue() {
+          let errorDescription = CFErrorCopyDescription(error) as String
+          // Only show error if it's not about the font already being registered
+          if !errorDescription.contains("already registered") {
+            showFontInputError = true
+            fontInputErrorMessage = "Failed to register font: \(errorDescription)"
+            try? FileManager.default.removeItem(at: destinationURL)
+            return
+          }
+        }
+      }
+
+      // Get the actual font full name from the registered font (includes style like "Regular", "Bold")
+      let ctFont = CTFontCreateWithGraphicsFont(cgFont, 12, nil, nil)
+      let actualFontName = CTFontCopyFullName(ctFont) as String
+
+      // Unregister the font immediately after getting its name (we use CSS @font-face for WKWebView)
+      CTFontManagerUnregisterGraphicsFont(cgFont, nil)
+
+      // Check if font with this full name already exists
+      if customFonts.contains(where: { $0.name == actualFontName }) {
+        showFontInputError = true
+        fontInputErrorMessage = "Font already added"
+        try? FileManager.default.removeItem(at: destinationURL)
+        return
+      }
+
+      // Add font to custom fonts list with path, fileName, and fileSize
+      let customFont = CustomFont(
+        name: actualFontName, path: destinationURL.path, fileName: fileName, fileSize: fileSize)
+      modelContext.insert(customFont)
+      do {
+        try modelContext.save()
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
+        // Clean up
+        try? FileManager.default.removeItem(at: destinationURL)
         return
       }
 
@@ -191,6 +358,12 @@
     }
 
     private func removeCustomFont(_ font: CustomFont) {
+      // If this is an imported font, clean up the file
+      if let path = font.path {
+        let fileURL = URL(fileURLWithPath: path)
+        try? FileManager.default.removeItem(at: fileURL)
+      }
+
       modelContext.delete(font)
       do {
         try modelContext.save()
@@ -221,6 +394,13 @@
         return true
       }
       return false
+    }
+
+    private func formatFileSize(_ bytes: Int64) -> String {
+      let formatter = ByteCountFormatter()
+      formatter.allowedUnits = [.useKB, .useMB]
+      formatter.countStyle = .file
+      return formatter.string(fromByteCount: bytes)
     }
   }
 
@@ -261,6 +441,54 @@
         onFontSelected(font)
 
         // Dismiss the picker
+        DispatchQueue.main.async {
+          self.isPresented.wrappedValue = false
+        }
+      }
+    }
+  }
+
+  struct FontDocumentPicker: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
+    let onFontSelected: (URL) -> Void
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+      let picker = UIDocumentPickerViewController(forOpeningContentTypes: [
+        .init(filenameExtension: "ttf")!, .init(filenameExtension: "otf")!,
+      ])
+      picker.delegate = context.coordinator
+      picker.allowsMultipleSelection = false
+      return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {
+      context.coordinator.isPresented = $isPresented
+    }
+
+    func makeCoordinator() -> Coordinator {
+      Coordinator(isPresented: $isPresented, onFontSelected: onFontSelected)
+    }
+
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+      var isPresented: Binding<Bool>
+      let onFontSelected: (URL) -> Void
+
+      init(isPresented: Binding<Bool>, onFontSelected: @escaping (URL) -> Void) {
+        self.isPresented = isPresented
+        self.onFontSelected = onFontSelected
+      }
+
+      func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+        onFontSelected(url)
+
+        // Dismiss the picker
+        DispatchQueue.main.async {
+          self.isPresented.wrappedValue = false
+        }
+      }
+
+      func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         DispatchQueue.main.async {
           self.isPresented.wrappedValue = false
         }

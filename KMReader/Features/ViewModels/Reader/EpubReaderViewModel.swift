@@ -195,6 +195,7 @@
         tableOfContents = manifest.toc.isEmpty ? manifest.readingOrder : manifest.toc
 
         resourceRootURL = offlineRoot
+        copyCustomFontsToResourceDirectory()
         // Page count cache is memory-only, no file loading needed
         loadTextLengthCache()
         try await cacheChapterURLs()
@@ -845,6 +846,28 @@
     private func chapterIndexForHref(_ href: String) -> Int? {
       let normalized = Self.normalizedHref(href)
       return readingOrder.firstIndex { Self.normalizedHref($0.href) == normalized }
+    }
+
+    private func copyCustomFontsToResourceDirectory() {
+      guard let rootURL = resourceRootURL else { return }
+
+      // Create .fonts directory
+      let fontsDirectory = rootURL.appendingPathComponent(".fonts", isDirectory: true)
+      try? FileManager.default.createDirectory(at: fontsDirectory, withIntermediateDirectories: true)
+
+      // Get all custom fonts with paths
+      let customFonts = CustomFontStore.shared.fetchCustomFonts()
+      for fontName in customFonts {
+        guard let sourcePath = CustomFontStore.shared.getFontPath(for: fontName) else { continue }
+        let sourceURL = URL(fileURLWithPath: sourcePath)
+        let fileName = sourceURL.lastPathComponent
+        let destinationURL = fontsDirectory.appendingPathComponent(fileName)
+
+        // Copy font file if it doesn't already exist
+        if !FileManager.default.fileExists(atPath: destinationURL.path) {
+          try? FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+        }
+      }
     }
 
     private func indexForHref(_ href: String, pageIndex: Int) -> Int? {

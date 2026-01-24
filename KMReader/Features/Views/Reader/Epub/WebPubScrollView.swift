@@ -47,12 +47,15 @@
       let currentLocation = viewModel.pageLocation(at: viewModel.currentPageIndex)
       let chapterIndex = currentLocation?.chapterIndex ?? 0
 
+      let theme = preferences.resolvedTheme(for: colorScheme)
+      let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
+
       let vc = ScrollEpubViewController(
         chapterURL: viewModel.chapterURL(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
         pageInsets: viewModel.pageInsets(for: preferences),
-        theme: preferences.resolvedTheme(for: colorScheme),
-        contentCSS: preferences.makeCSS(theme: preferences.resolvedTheme(for: colorScheme)),
+        theme: theme,
+        contentCSS: preferences.makeCSS(theme: theme, fontPath: fontPath),
         chapterIndex: chapterIndex,
         totalChapters: viewModel.chapterCount,
         bookTitle: bookTitle,
@@ -134,7 +137,8 @@
 
       let pageInsets = viewModel.pageInsets(for: preferences)
       let theme = preferences.resolvedTheme(for: colorScheme)
-      let contentCSS = preferences.makeCSS(theme: theme)
+      let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
+      let contentCSS = preferences.makeCSS(theme: theme, fontPath: fontPath)
 
       let chapterProgress =
         currentLocation?.pageCount ?? 0 > 0

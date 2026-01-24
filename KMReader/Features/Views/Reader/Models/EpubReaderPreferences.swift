@@ -124,7 +124,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     theme.resolvedTheme(for: colorScheme)
   }
 
-  func makeCSS(theme: ReaderTheme) -> String {
+  func makeCSS(theme: ReaderTheme, fontPath: String? = nil) -> String {
     let fontSize = fontSize
     let fontWeightValue = 300 + Int(fontWeight * 160)
     let letterSpacingEm = letterSpacing
@@ -139,8 +139,25 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     // Internal CSS padding controlled by user's pageMargins setting (in pixels)
     let internalPadding = Int(pageMargins)
 
+    // Generate @font-face rule for imported fonts
+    var fontFaceCSS = ""
+    if let fontName = fontFamily.fontName, let path = fontPath {
+      // Use relative path to .fonts directory
+      let fileName = URL(fileURLWithPath: path).lastPathComponent
+      let relativePath = ".fonts/\(fileName)"
+      // Determine font format from file extension
+      let fontFormat = path.hasSuffix(".otf") ? "opentype" : "truetype"
+      fontFaceCSS = """
+        @font-face {
+          font-family: '\(fontName)';
+          src: url('\(relativePath)') format('\(fontFormat)');
+        }
+
+        """
+    }
+
     return """
-        body {
+        \(fontFaceCSS)body {
           margin: 0;
           padding: \(internalPadding)px;
           background-color: \(theme.backgroundColorHex);
