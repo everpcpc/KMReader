@@ -19,7 +19,6 @@
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @AppStorage("epubPreferences") private var readerPrefs: EpubReaderPreferences = .init()
-    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .pageCurl
 
     @State private var viewModel: EpubReaderViewModel
@@ -110,14 +109,7 @@
         }
         .onChange(of: viewModel.isLoading) { _, newValue in
           if !newValue {
-            forceInitialAutoHide(timeout: 2)
-          }
-        }
-        .onChange(of: autoHideControls) { _, newValue in
-          if newValue {
-            resetControlsTimer(timeout: 3)
-          } else {
-            controlsTimer?.invalidate()
+            forceInitialAutoHide(timeout: 1.5)
           }
         }
     }
@@ -279,121 +271,135 @@
 
     @ViewBuilder
     private var controlsOverlay: some View {
-      VStack {
-        HStack {
-          Spacer()
-          Button {
-            closeReader()
-          } label: {
-            Image(systemName: "xmark")
-          }
-          .contentShape(Circle())
-          .controlSize(.large)
-          .buttonBorderShape(.circle)
-          .adaptiveButtonStyle(buttonStyle)
-        }
-
-        Spacer()
-
-        if showingQuickActions {
-          quickActionsPanel
-        }
-
-        HStack {
-          Spacer()
-          Button {
-            withAnimation {
-              showingQuickActions.toggle()
+      Color.clear
+        .overlay(alignment: .topTrailing) {
+          if shouldShowControls {
+            Button {
+              closeReader()
+            } label: {
+              Image(systemName: "xmark")
             }
-          } label: {
-            Image(systemName: showingQuickActions ? "xmark" : "line.3.horizontal")
-              .padding(2)
-              .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
+            .contentShape(Circle())
+            .controlSize(.large)
+            .buttonBorderShape(.circle)
+            .adaptiveButtonStyle(buttonStyle)
+            .padding(.top, 24)
+            .padding(.trailing, 12)
+            .transition(
+              .asymmetric(
+                insertion: .scale(scale: 0).combined(with: .opacity),
+                removal: .scale(scale: 0).combined(with: .opacity)
+              )
+            )
           }
-          .contentShape(Circle())
-          .controlSize(.large)
-          .buttonBorderShape(.circle)
-          .adaptiveButtonStyle(buttonStyle)
         }
-      }
-      .tint(.primary)
-      .padding(.vertical, 24)
-      .padding(.horizontal, 12)
-      .iPadIgnoresSafeArea(paddingTop: 24)
-      .opacity(shouldShowControls ? 1.0 : 0.0)
-      .allowsHitTesting(shouldShowControls)
-      .transition(.opacity)
-      .sheet(isPresented: $showingChapterSheet) {
-        ChapterListSheetView(
-          chapters: viewModel.tableOfContents,
-          currentLink: currentChapterLink,
-          goToChapter: { link in
-            showingChapterSheet = false
-            viewModel.goToChapter(link: link)
+        .overlay(alignment: .bottomTrailing) {
+          VStack(alignment: .trailing) {
+            if shouldShowControls && showingQuickActions {
+              quickActionsPanel
+                .transition(
+                  .asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                  )
+                )
+            }
+            if shouldShowControls {
+              Button {
+                withAnimation {
+                  showingQuickActions.toggle()
+                }
+              } label: {
+                Image(systemName: showingQuickActions ? "xmark" : "line.3.horizontal")
+                  .padding(2)
+                  .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
+              }
+              .contentShape(Circle())
+              .controlSize(.large)
+              .buttonBorderShape(.circle)
+              .adaptiveButtonStyle(buttonStyle)
+              .padding(.bottom, 24)
+              .padding(.trailing, 12)
+              .transition(
+                .asymmetric(
+                  insertion: .scale(scale: 0).combined(with: .opacity),
+                  removal: .scale(scale: 0).combined(with: .opacity)
+                )
+              )
+            }
           }
+        }
+        .tint(.primary)
+        .iPadIgnoresSafeArea(paddingTop: 24)
+        .allowsHitTesting(shouldShowControls)
+        .sheet(isPresented: $showingChapterSheet) {
+          ChapterListSheetView(
+            chapters: viewModel.tableOfContents,
+            currentLink: currentChapterLink,
+            goToChapter: { link in
+              showingChapterSheet = false
+              viewModel.goToChapter(link: link)
+            }
+          )
+        }
+        .sheet(isPresented: $showingPreferencesSheet) {
+          NavigationStack {
+            EpubPreferencesView(inSheet: true)
+          }
+        }
+        .readerDetailSheet(
+          isPresented: $showingDetailSheet,
+          book: currentBook,
+          series: currentSeries
         )
-      }
-      .sheet(isPresented: $showingPreferencesSheet) {
-        NavigationStack {
-          EpubPreferencesView(inSheet: true)
-        }
-      }
-      .readerDetailSheet(
-        isPresented: $showingDetailSheet,
-        book: currentBook,
-        series: currentSeries
-      )
     }
 
     @ViewBuilder
     private var quickActionsPanel: some View {
-      HStack {
-        Spacer()
-        VStack(alignment: .trailing, spacing: 6) {
-          if let currentLocation = viewModel.currentLocation,
-            let totalProgression = currentLocation.totalProgression
-          {
-            Button {
-              showingChapterSheet = true
-            } label: {
-              HStack {
-                Text("Contents · \(totalProgression * 100, specifier: "%.1f")%")
-                  .font(.callout)
-                Image(systemName: "list.bullet")
-              }
-            }
-            .adaptiveButtonStyle(buttonStyle)
-            .buttonBorderShape(.capsule)
-            .controlSize(.large)
-            .disabled(viewModel.tableOfContents.isEmpty)
-          }
-
+      VStack(alignment: .trailing, spacing: 6) {
+        if let currentLocation = viewModel.currentLocation,
+          let totalProgression = currentLocation.totalProgression
+        {
           Button {
-            showingPreferencesSheet = true
+            showingChapterSheet = true
           } label: {
             HStack {
-              Text("Themes & Settings")
+              Text("Contents · \(totalProgression * 100, specifier: "%.1f")%")
                 .font(.callout)
-              Image(systemName: "textformat")
+              Image(systemName: "list.bullet")
             }
           }
           .adaptiveButtonStyle(buttonStyle)
           .buttonBorderShape(.capsule)
           .controlSize(.large)
-
-          Button {
-            showingDetailSheet = true
-          } label: {
-            HStack {
-              Text("Book Info")
-                .font(.callout)
-              Image(systemName: "info.circle")
-            }
-          }
-          .adaptiveButtonStyle(buttonStyle)
-          .buttonBorderShape(.capsule)
-          .controlSize(.large)
+          .disabled(viewModel.tableOfContents.isEmpty)
         }
+
+        Button {
+          showingPreferencesSheet = true
+        } label: {
+          HStack {
+            Text("Themes & Settings")
+              .font(.callout)
+            Image(systemName: "textformat")
+          }
+        }
+        .adaptiveButtonStyle(buttonStyle)
+        .buttonBorderShape(.capsule)
+        .controlSize(.large)
+
+        Button {
+          showingDetailSheet = true
+        } label: {
+          HStack {
+            Text("Book Info")
+              .font(.callout)
+            Image(systemName: "info.circle")
+          }
+        }
+        .adaptiveButtonStyle(buttonStyle)
+        .buttonBorderShape(.capsule)
+        .controlSize(.large)
       }
       .transition(
         .asymmetric(
@@ -403,37 +409,16 @@
       )
     }
 
-    private func toggleControls(autoHide: Bool = true) {
+    private func toggleControls() {
       withAnimation {
         showingControls.toggle()
       }
-      if showingControls {
-        if autoHide {
-          resetControlsTimer(timeout: 3)
-        } else {
-          controlsTimer?.invalidate()
-        }
-      } else {
+      if !showingControls {
         showingQuickActions = false
       }
     }
 
     private func forceInitialAutoHide(timeout: TimeInterval) {
-      controlsTimer?.invalidate()
-      controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-        Task { @MainActor in
-          withAnimation {
-            showingControls = false
-          }
-        }
-      }
-    }
-
-    private func resetControlsTimer(timeout: TimeInterval) {
-      if !autoHideControls {
-        return
-      }
-
       controlsTimer?.invalidate()
       controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
         Task { @MainActor in
