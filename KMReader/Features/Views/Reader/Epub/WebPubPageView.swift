@@ -1138,17 +1138,43 @@
             max-width: 100%;
           }
 
+          /* CSS Variables for media sizing (Readium standard) */
+          :root {
+            --RS__maxMediaWidth: 100%;
+            --RS__maxMediaHeight: 95vh;
+            --RS__boxSizingMedia: border-box;
+            --RS__boxSizingTable: border-box;
+          }
+
           /* High-Fidelity Image Handling (Based on Readium Standard) */
-          img, svg, video, canvas {
-            display: inline-block;
-            max-width: 100% !important;
-            max-height: 95vh !important;
-            height: auto !important;
+          img, svg, video, canvas, audio {
+            /* Object-fit allows us to keep the correct aspect-ratio */
             object-fit: contain;
-            background: transparent !important;
+            /* Width and height auto to respect intrinsic dimensions */
+            width: auto;
+            height: auto;
+            /* Max dimensions - no !important to allow author overrides */
+            max-width: var(--RS__maxMediaWidth);
+            /* Max-height with !important to prevent vertical overflow */
+            max-height: var(--RS__maxMediaHeight) !important;
+            /* Box-sizing to include borders in dimensions */
+            box-sizing: var(--RS__boxSizingMedia);
             /* Prevent image splitting between columns */
             -webkit-column-break-inside: avoid;
+            page-break-inside: avoid;
             break-inside: avoid;
+          }
+
+          /* Fix for audio controls positioning */
+          audio[controls] {
+            width: revert;
+            height: revert;
+          }
+
+          /* Table handling to prevent overflow */
+          table {
+            max-width: var(--RS__maxMediaWidth);
+            box-sizing: var(--RS__boxSizingTable);
           }
 
           /* Light/Sepia themes: Use multiply to remove white backgrounds from illustrations.

@@ -13371,18 +13371,17 @@
       }
     },
     "error.epubExtensionNotFound" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to sync reading progress. This book may need to be re-analyzed on the server."
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fehler beim Synchronisieren des Lesefortschritts. Dieses Buch muss möglicherweise auf dem Server erneut analysiert werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to sync reading progress. This book may need to be re-analyzed on the server."
           }
         },
         "fr" : {
