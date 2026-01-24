@@ -28,17 +28,16 @@ struct SettingsBrowseView: View {
   var body: some View {
     Form {
       Section(header: Text(String(localized: "settings.appearance.browse"))) {
-        Picker(selection: gridDensityBinding) {
-          ForEach(GridDensity.allCases, id: \.self) { density in
-            Text(density.label).tag(density)
+        VStack(alignment: .leading, spacing: 8) {
+          Picker(String(localized: "settings.appearance.gridDensity.label"), selection: gridDensityBinding) {
+            ForEach(GridDensity.allCases, id: \.self) { density in
+              Text(density.label).tag(density)
+            }
           }
-        } label: {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "settings.appearance.gridDensity.label"))
-            Text(String(localized: "settings.appearance.gridDensity.caption"))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
+          .pickerStyle(.menu)
+          Text(String(localized: "settings.appearance.gridDensity.caption"))
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
       }
 

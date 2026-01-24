@@ -17,7 +17,18 @@ struct SettingsView: View {
     Form {
       SettingsSyncSection()
 
-      Section {
+      Section(header: Text(String(localized: "Reader"))) {
+        NavigationLink(value: NavDestination.settingsDivinaReader) {
+          SettingsSectionRow(section: .divinaReader)
+        }
+        #if os(iOS)
+          NavigationLink(value: NavDestination.settingsEpubReader) {
+            SettingsSectionRow(section: .epubReader)
+          }
+        #endif
+      }
+
+      Section(header: Text(String(localized: "Appearance & Behavior"))) {
         NavigationLink(value: NavDestination.settingsAppearance) {
           SettingsSectionRow(section: .appearance)
         }
@@ -30,14 +41,6 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsCache) {
           SettingsSectionRow(section: .cache)
         }
-        NavigationLink(value: NavDestination.settingsDivinaReader) {
-          SettingsSectionRow(section: .divinaReader)
-        }
-        #if os(iOS)
-          NavigationLink(value: NavDestination.settingsEpubReader) {
-            SettingsSectionRow(section: .epubReader)
-          }
-        #endif
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
