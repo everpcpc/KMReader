@@ -776,6 +776,17 @@
       updateOverlayLabels()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+      super.viewDidAppear(animated)
+      // Force layout and refresh if WebView size was 0 before
+      // This handles cases where UIPageViewController hasn't laid out the WebView yet
+      let webViewSize = webView?.bounds.size ?? .zero
+      if webViewSize.width > 0 && webViewSize.height > 0 && webViewSize != lastLayoutSize {
+        lastLayoutSize = webViewSize
+        refreshDisplay()
+      }
+    }
+
     @objc private func handleAppDidBecomeActive() {
       refreshDisplay()
       updateOverlayLabels()
@@ -784,11 +795,21 @@
     override func viewDidLayoutSubviews() {
       super.viewDidLayoutSubviews()
       let size = view.bounds.size
-      guard size.width > 0, size.height > 0 else { return }
-      if size != lastLayoutSize {
-        lastLayoutSize = size
-        refreshDisplay()
-        updateOverlayLabels()
+      let webViewSize = webView?.bounds.size ?? .zero
+      guard size.width > 0, size.height > 0 else {
+        return
+      }
+
+      // Always track WebView size changes, even if it's currently 0x0
+      // This ensures we detect when WebView transitions from 0x0 to valid size
+      if webViewSize != lastLayoutSize {
+        lastLayoutSize = webViewSize
+
+        // Only refresh if WebView has valid size
+        if webViewSize.width > 0 && webViewSize.height > 0 {
+          refreshDisplay()
+          updateOverlayLabels()
+        }
       }
     }
 
@@ -820,6 +841,11 @@
         || labelTopOffset != self.labelTopOffset
         || labelBottomOffset != self.labelBottomOffset
         || useSafeArea != self.useSafeArea
+
+      // Reset layout size when chapter changes to ensure proper size detection
+      if chapterIndex != self.chapterIndex {
+        lastLayoutSize = .zero
+      }
 
       self.chapterURL = chapterURL
       self.rootURL = rootURL
@@ -1124,7 +1150,14 @@
       // Use a near-zero alpha instead of exactly 0.
       // WebKit sometimes throttles layout/JS execution for elements with alpha=0.
       webView.alpha = 0.01
-      loadingIndicator?.startAnimating()
+
+      // Only show loading indicator if WebView has valid size (is visible)
+      // For pre-loaded pages with 0x0 size, don't show indicator
+      let webViewSize = webView.bounds.size
+      if webViewSize.width > 0 && webViewSize.height > 0 {
+        loadingIndicator?.startAnimating()
+      }
+
       webView.loadFileURL(chapterURL, allowingReadAccessTo: rootURL)
     }
 
@@ -1366,8 +1399,12 @@
             var preferLast = \(preferLastPage ? "true" : "false");
             var lastReportedPageCount = 0;
             var resizeDebounceTimer = null;
+            var hasFinalized = false;
 
             var finalize = function() {
+              if (hasFinalized) return;
+              hasFinalized = true;
+
               var pageWidth = window.innerWidth || document.documentElement.clientWidth;
               if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
 
@@ -1405,6 +1442,8 @@
               var attempt = 0;
 
               var check = function() {
+                if (hasFinalized) return;
+
                 attempt++;
                 var currentW = document.body.scrollWidth;
                 var pageWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -1434,11 +1473,35 @@
               window.requestAnimationFrame(check);
             };
 
+            // Global timeout: force finalize after 10 seconds regardless of load state
+            var globalTimeout = setTimeout(function() {
+              finalize();
+            }, 10000);
+
             // Use the 'load' event to ensure all resources are fetched before calculating layout.
-            if (document.readyState === 'complete') {
+            // But also start on DOMContentLoaded as a fallback if load takes too long
+            var loadStarted = false;
+            var startOnce = function() {
+              if (loadStarted) return;
+              loadStarted = true;
+              clearTimeout(globalTimeout);
               startLayoutCheck();
+            };
+
+            if (document.readyState === 'complete') {
+              startOnce();
             } else {
-              window.addEventListener('load', startLayoutCheck);
+              // Start on DOMContentLoaded (DOM ready, images may still be loading)
+              if (document.readyState === 'interactive' || document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                  // Give images a brief moment to start loading
+                  setTimeout(startOnce, 500);
+                });
+              }
+              // Also listen for full load (all resources including images)
+              window.addEventListener('load', function() {
+                startOnce();
+              });
             }
 
             // Continuous monitoring for late-loading resources (like gaiji or large images).
