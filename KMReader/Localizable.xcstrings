@@ -16500,28 +16500,16 @@
     },
     "Import .ttf or .otf font files from Files app" : {
       "localizations" : {
-        "zh-Hans" : {
+        "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从文件 App 导入 .ttf 或 .otf 字体文件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "從檔案 App 匯入 .ttf 或 .otf 字型檔案"
+            "value" : ".ttf- oder .otf-Schriftdateien aus der Dateien-App importieren"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import .ttf or .otf font files from Files app"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : ".ttf- oder .otf-Schriftdateien aus der Dateien-App importieren"
           }
         },
         "fr" : {
@@ -16541,33 +16529,33 @@
             "state" : "translated",
             "value" : "파일 앱에서 .ttf 또는 .otf 폰트 파일 가져오기"
           }
-        }
-      }
-    },
-    "Import Custom Font" : {
-      "localizations" : {
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导入自定义字体"
+            "value" : "从文件 App 导入 .ttf 或 .otf 字体文件"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "匯入自訂字型"
+            "value" : "從檔案 App 匯入 .ttf 或 .otf 字型檔案"
+          }
+        }
+      }
+    },
+    "Import Custom Font" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benutzerdefinierte Schriftart importieren"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import Custom Font"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Benutzerdefinierte Schriftart importieren"
           }
         },
         "fr" : {
@@ -16587,33 +16575,33 @@
             "state" : "translated",
             "value" : "사용자 정의 폰트 가져오기"
           }
-        }
-      }
-    },
-    "Import Font from Files" : {
-      "localizations" : {
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从文件导入字体"
+            "value" : "导入自定义字体"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "從檔案匯入字型"
+            "value" : "匯入自訂字型"
+          }
+        }
+      }
+    },
+    "Import Font from Files" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schriftart aus Dateien importieren"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import Font from Files"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schriftart aus Dateien importieren"
           }
         },
         "fr" : {
@@ -16632,6 +16620,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "파일에서 폰트 가져오기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从文件导入字体"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從檔案匯入字型"
           }
         }
       }
@@ -31082,6 +31082,52 @@
         }
       }
     },
+    "Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesen sollte bequem und angenehm sein. Nehmen Sie sich Zeit, diese Einstellungen anzupassen, bis Sie die perfekte Kombination gefunden haben."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lecture doit être confortable et agréable. Prenez le temps de personnaliser ces paramètres jusqu'à trouver la combinaison parfaite."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書は快適で楽しいものであるべきです。完璧な組み合わせが見つかるまで、時間をかけてこれらの設定をカスタマイズしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "독서는 편안하고 즐거워야 합니다. 완벽한 조합을 찾을 때까지 시간을 들여 이러한 설정을 사용자 지정하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读应该是舒适和愉快的。请花时间自定义这些设置，直到找到完美的组合。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀應該是舒適和愉快的。請花時間自定義這些設定，直到找到完美的組合。"
+          }
+        }
+      }
+    },
     "reading_direction.ltr" : {
       "localizations" : {
         "de" : {
@@ -41524,6 +41570,52 @@
         }
       }
     },
+    "The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der schnelle braune Fuchs springt über den faulen Hund. Dies ist ein Beispieltext zur Vorschau Ihrer Leseeinstellungen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le rapide renard brun saute par-dessus le chien paresseux. Ceci est un exemple de texte pour prévisualiser vos préférences de lecture."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "素早い茶色のキツネが怠け者の犬を飛び越えます。これは読書設定をプレビューするためのサンプルテキストです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 갈색 여우가 게으른 개를 뛰어넘습니다. 이것은 읽기 설정을 미리 보기 위한 샘플 텍스트입니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速的棕色狐狸跳过懒狗。这是一段示例文本，用于预览您的阅读偏好设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速的棕色狐狸跳過懶狗。這是一段示例文本，用於預覽您的閱讀偏好設定。"
+          }
+        }
+      }
+    },
     "Theme" : {
       "localizations" : {
         "de" : {
@@ -44694,6 +44786,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "詞間距: %@"
+          }
+        }
+      }
+    },
+    "You can adjust the font size, spacing, and other settings to find what works best for you. Each paragraph demonstrates how the text will appear with your current choices." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can adjust the font size, spacing, and other settings to find what works best for you. Each paragraph demonstrates how the text will appear with your current choices."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie können Schriftgröße, Abstand und andere Einstellungen anpassen, um die beste Darstellung für Sie zu finden. Jeder Absatz zeigt, wie der Text mit Ihren aktuellen Einstellungen aussehen wird."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous pouvez ajuster la taille de la police, l'espacement et d'autres paramètres pour trouver ce qui vous convient le mieux. Chaque paragraphe montre comment le texte apparaîtra avec vos choix actuels."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォントサイズ、間隔、その他の設定を調整して、最適な表示を見つけることができます。各段落は、現在の選択でテキストがどのように表示されるかを示しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "글꼴 크기, 간격 및 기타 설정을 조정하여 가장 적합한 것을 찾을 수 있습니다. 각 단락은 현재 선택한 설정으로 텍스트가 어떻게 표시되는지 보여줍니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您可以调整字体大小、间距和其他设置，以找到最适合您的效果。每个段落都展示了文本在当前设置下的显示效果。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您可以調整字體大小、間距和其他設定，以找到最適合您的效果。每個段落都展示了文本在當前設定下的顯示效果。"
           }
         }
       }

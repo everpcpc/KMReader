@@ -11,7 +11,8 @@ import Foundation
 enum FontFileManager {
   /// Returns the base directory for custom fonts
   static func fontsDirectory() -> URL? {
-    guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+    guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+    else {
       return nil
     }
     let fontsDir = appSupportURL.appendingPathComponent("CustomFonts", isDirectory: true)
@@ -23,7 +24,8 @@ enum FontFileManager {
   /// - Parameter relativePath: Relative path like "CustomFonts/font.ttf"
   /// - Returns: Absolute file path, or nil if resolution fails
   static func resolvePath(_ relativePath: String) -> String? {
-    guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+    guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+    else {
       return nil
     }
     return appSupportURL.appendingPathComponent(relativePath).path

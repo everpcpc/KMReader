@@ -5,11 +5,12 @@
 //  Created by Komga iOS Client
 //
 
+import Foundation
+import SwiftData
+
 #if os(iOS)
   import CoreText
 #endif
-import Foundation
-import SwiftData
 
 @MainActor
 final class CustomFontStore {
