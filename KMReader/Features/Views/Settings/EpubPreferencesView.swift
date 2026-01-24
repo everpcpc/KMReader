@@ -101,7 +101,7 @@
           }
 
           VStack(alignment: .leading) {
-            Slider(value: $draft.fontWeight, in: 0.0...4.0, step: 0.1)
+            Slider(value: $draft.fontWeight, in: 0.0...5.0, step: 0.1)
             Text(String(localized: "Weight: \(String(format: "%.1f", draft.fontWeight))"))
               .font(.caption)
               .foregroundStyle(.secondary)
@@ -355,8 +355,8 @@
     let fontFamily =
       preferences.fontFamily.fontName.map { "'\($0)'" } ?? "system-ui, -apple-system, sans-serif"
 
-    // Calculate font weight (0.0 to 2.5 maps to 300 to 700)
-    let fontWeightValue = 300 + Int(preferences.fontWeight * 160)
+    // Calculate font weight (0.0 to 5.0 maps to 240 to 960)
+    let fontWeightValue = 240 + Int(preferences.fontWeight * 160)
     let letterSpacingEm = preferences.letterSpacing
     let wordSpacingEm = preferences.wordSpacing
     let lineHeightValue = preferences.lineHeight

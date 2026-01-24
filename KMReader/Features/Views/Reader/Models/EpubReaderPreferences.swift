@@ -126,7 +126,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
 
   func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {
     let fontSize = fontSize
-    let fontWeightValue = 300 + Int(fontWeight * 160)
+    let fontWeightValue = 240 + Int(fontWeight * 160)
     let letterSpacingEm = letterSpacing
     let wordSpacingEm = wordSpacing
     let lineHeightValue = lineHeight
