@@ -606,13 +606,69 @@
         }
       }
 
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let pageVC = pageViewController,
+          let currentVC = pageVC.viewControllers?.first as? EpubPageViewController
+        else {
+          return true
+        }
+
+        // Check if this is UIPageViewController's internal gesture
+        guard gestureRecognizer.view === pageVC.view || gestureRecognizer.view?.superview === pageVC.view else {
+          return true
+        }
+
+        // Determine if we're at a boundary
+        let isAtFirstPage = currentVC.chapterIndex == 0 && currentVC.currentSubPageIndex <= 0
+        let lastChapterIndex = parent.viewModel.chapterCount - 1
+        let isAtLastPage: Bool = {
+          if currentVC.chapterIndex == lastChapterIndex {
+            let pageCount = parent.viewModel.chapterPageCount(at: lastChapterIndex) ?? 1
+            return currentVC.currentSubPageIndex >= pageCount - 1
+          }
+          return false
+        }()
+
+        // For tap gestures, check tap location
+        if let tapGesture = gestureRecognizer as? UITapGestureRecognizer {
+          let location = tapGesture.location(in: pageVC.view)
+          let viewWidth = pageVC.view.bounds.width
+          let tapZoneWidth = viewWidth * 0.3
+
+          // Block left tap at first page
+          if isAtFirstPage && location.x < tapZoneWidth {
+            return false
+          }
+
+          // Block right tap at last page
+          if isAtLastPage && location.x > viewWidth - tapZoneWidth {
+            return false
+          }
+        }
+        // For pan gestures, check the translation direction
+        else if let panGesture = gestureRecognizer as? UIPanGestureRecognizer {
+          let translation = panGesture.translation(in: pageVC.view)
+
+          // Block backward swipe (left to right, positive translation) at first page
+          if isAtFirstPage && translation.x > 0 {
+            return false
+          }
+
+          // Block forward swipe (right to left, negative translation) at last page
+          if isAtLastPage && translation.x < 0 {
+            return false
+          }
+        }
+
+        return true
+      }
+
       func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         true
       }
-
 
     }
   }
