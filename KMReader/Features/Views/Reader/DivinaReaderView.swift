@@ -710,6 +710,17 @@ struct DivinaReaderView: View {
     }
 
     if let activeBook = currentBook {
+      // Refresh Divina manifest if online
+      if !AppConfig.isOffline {
+        do {
+          let manifest = try await BookService.shared.getBookManifest(id: activeBook.id)
+          let toc = await ReaderManifestService(bookId: activeBook.id).parseTOC(manifest: manifest)
+          await DatabaseOperator.shared.updateBookTOC(bookId: activeBook.id, toc: toc)
+        } catch {
+          // Silently fail - we'll use cached manifest
+        }
+      }
+
       // 3. Try to get series from DB
       var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
       if series == nil && !AppConfig.isOffline {

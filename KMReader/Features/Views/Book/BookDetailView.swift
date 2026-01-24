@@ -318,10 +318,13 @@ struct BookDetailView: View {
           }
         }
 
-        Button(role: .destructive) {
-          clearCache()
-        } label: {
-          Label("Clear Cache", systemImage: "xmark")
+        // Only show Clear Cache for non-EPUB books
+        if let book = book, book.media.mediaProfile != .epub {
+          Button(role: .destructive) {
+            clearCache()
+          } label: {
+            Label("Clear Cache", systemImage: "xmark")
+          }
         }
       } label: {
         Image(systemName: "ellipsis")

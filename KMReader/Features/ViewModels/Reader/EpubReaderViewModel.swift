@@ -195,7 +195,7 @@
         tableOfContents = manifest.toc.isEmpty ? manifest.readingOrder : manifest.toc
 
         resourceRootURL = offlineRoot
-        loadPageCountCache()
+        // Page count cache is memory-only, no file loading needed
         loadTextLengthCache()
         try await cacheChapterURLs()
 
@@ -517,11 +517,11 @@
         initialProgression = nil
       }
 
+      // Store in memory cache only (no file persistence)
       let effectiveViewport = viewportSize.width > 0 ? viewportSize : UIScreen.main.bounds.size
       let href = readingOrder[chapterIndex].href
       let cacheKey = pageCountCacheKey(for: href, viewport: effectiveViewport)
       pageCountCache[cacheKey] = normalizedCount
-      savePageCountCache()
     }
 
     var labelTopOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 24 : 8 }
@@ -657,6 +657,25 @@
               progression: progression
             )
           }
+        } catch let apiError as APIError {
+          // Check for specific EPUB extension error
+          if case .badRequest(let message, _, _, _) = apiError,
+            message.lowercased().contains("epub extension not found")
+          {
+            logger.error("Failed to update progression: EPUB extension not found")
+            await MainActor.run {
+              ErrorManager.shared.alert(
+                error: AppErrorType.operationFailed(
+                  message: String(
+                    localized: "error.epubExtensionNotFound",
+                    defaultValue: "Failed to sync reading progress. This book may need to be re-analyzed on the server."
+                  )
+                )
+              )
+            }
+          } else {
+            logger.error("Failed to update progression: \(apiError.localizedDescription)")
+          }
         } catch {
           logger.error("Failed to update progression: \(error.localizedDescription)")
         }
@@ -791,23 +810,6 @@
       }
 
       return results
-    }
-
-    private func loadPageCountCache() {
-      guard let rootURL = resourceRootURL else { return }
-      let cacheURL = rootURL.appendingPathComponent("pagination.json", isDirectory: false)
-      guard let data = try? Data(contentsOf: cacheURL) else { return }
-      if let decoded = try? JSONDecoder().decode([String: Int].self, from: data) {
-        pageCountCache = decoded
-      }
-    }
-
-    private func savePageCountCache() {
-      guard let rootURL = resourceRootURL else { return }
-      let cacheURL = rootURL.appendingPathComponent("pagination.json", isDirectory: false)
-      if let data = try? JSONEncoder().encode(pageCountCache) {
-        try? data.write(to: cacheURL, options: [.atomic])
-      }
     }
 
     private func loadTextLengthCache() {
