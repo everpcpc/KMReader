@@ -92,6 +92,7 @@ struct WebPubLink: Codable, Sendable {
   let properties: [String: JSONAny]?
   let height: Int?
   let width: Int?
+  let children: [WebPubLink]?
 }
 
 struct WebPubMetadata: Codable, Sendable {

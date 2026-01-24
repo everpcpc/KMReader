@@ -10,10 +10,18 @@ import OSLog
 import UniformTypeIdentifiers
 
 struct ReaderTOCEntry: Codable, Identifiable, Hashable, Sendable {
-  var id: Int { pageIndex }
+  let id: UUID
   let title: String
   let pageIndex: Int
+  let children: [ReaderTOCEntry]?
   var pageNumber: Int { pageIndex + 1 }
+
+  init(title: String, pageIndex: Int, children: [ReaderTOCEntry]? = nil) {
+    self.id = UUID()
+    self.title = title
+    self.pageIndex = pageIndex
+    self.children = children
+  }
 }
 
 struct ReaderManifestService {
@@ -57,7 +65,13 @@ struct ReaderManifestService {
         ? localizedPageLabel(pageNumber)
         : trimmedTitle
 
-      entries.append(ReaderTOCEntry(title: title, pageIndex: pageIndex))
+      let children: [ReaderTOCEntry]? = if let itemChildren = item.children, !itemChildren.isEmpty {
+        buildTOCEntries(manifestTOC: itemChildren, hrefPageMap: hrefPageMap)
+      } else {
+        nil
+      }
+
+      entries.append(ReaderTOCEntry(title: title, pageIndex: pageIndex, children: children))
     }
 
     return entries

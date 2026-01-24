@@ -782,10 +782,17 @@
       var results: [WebPubPageLocation] = []
 
       var tocTitleByHref: [String: String] = [:]
-      for tocLink in tableOfContents {
-        guard let title = tocLink.title, !title.isEmpty else { continue }
-        tocTitleByHref[Self.normalizedHref(tocLink.href)] = title
+      func collectTOCTitles(_ links: [WebPubLink]) {
+        for tocLink in links {
+          if let title = tocLink.title, !title.isEmpty {
+            tocTitleByHref[Self.normalizedHref(tocLink.href)] = title
+          }
+          if let children = tocLink.children {
+            collectTOCTitles(children)
+          }
+        }
       }
+      collectTOCTitles(tableOfContents)
 
       for (chapterIndex, link) in readingOrder.enumerated() {
         let pageCount = max(1, chapterPageCounts[chapterIndex] ?? 1)

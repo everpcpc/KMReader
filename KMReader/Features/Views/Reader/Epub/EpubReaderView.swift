@@ -434,9 +434,19 @@
       guard let currentLocation = viewModel.currentLocation else {
         return nil
       }
-      return viewModel.tableOfContents.first { link in
-        link.href == currentLocation.href
+      return findLink(href: currentLocation.href, in: viewModel.tableOfContents)
+    }
+
+    private func findLink(href: String, in links: [WebPubLink]) -> WebPubLink? {
+      for link in links {
+        if link.href == href {
+          return link
+        }
+        if let children = link.children, let found = findLink(href: href, in: children) {
+          return found
+        }
       }
+      return nil
     }
   }
 #endif

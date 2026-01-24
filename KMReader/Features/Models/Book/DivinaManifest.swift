@@ -22,4 +22,5 @@ struct DivinaManifestResource: Codable, Sendable {
 struct DivinaManifestLink: Codable, Sendable {
   let title: String?
   let href: String
+  let children: [DivinaManifestLink]?
 }
