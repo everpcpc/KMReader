@@ -51,17 +51,21 @@
 
       let theme = preferences.resolvedTheme(for: colorScheme)
       let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
+      let readiumPayload = preferences.makeReadiumPayload(
+        theme: theme,
+        fontPath: fontPath,
+        rootURL: viewModel.resourceRootURL
+      )
 
       let vc = ScrollEpubViewController(
         chapterURL: viewModel.chapterURL(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
         pageInsets: viewModel.pageInsets(for: preferences),
         theme: theme,
-        contentCSS: preferences.makeCSS(
-          theme: theme,
-          fontPath: fontPath,
-          rootURL: viewModel.resourceRootURL
-        ),
+        contentCSS: readiumPayload.css,
+        readiumProperties: readiumPayload.properties,
+        publicationLanguage: viewModel.publicationLanguage,
+        publicationReadingProgression: viewModel.publicationReadingProgression,
         chapterIndex: chapterIndex,
         totalChapters: viewModel.chapterCount,
         bookTitle: bookTitle,
@@ -175,7 +179,7 @@
       }
 
       let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
-      let contentCSS = preferences.makeCSS(
+      let readiumPayload = preferences.makeReadiumPayload(
         theme: theme,
         fontPath: fontPath,
         rootURL: viewModel.resourceRootURL
@@ -197,7 +201,10 @@
         rootURL: viewModel.resourceRootURL,
         pageInsets: pageInsets,
         theme: theme,
-        contentCSS: contentCSS,
+        contentCSS: readiumPayload.css,
+        readiumProperties: readiumPayload.properties,
+        publicationLanguage: viewModel.publicationLanguage,
+        publicationReadingProgression: viewModel.publicationReadingProgression,
         chapterIndex: chapterIndex,
         totalChapters: viewModel.chapterCount,
         bookTitle: bookTitle,
@@ -235,6 +242,9 @@
     private var pageInsets: UIEdgeInsets
     private var theme: ReaderTheme
     private var contentCSS: String
+    private var readiumProperties: [String: String?]
+    private var publicationLanguage: String?
+    private var publicationReadingProgression: WebPubReadingProgression?
     private var chapterURL: URL?
     private var rootURL: URL?
     private var lastLayoutSize: CGSize = .zero
@@ -284,6 +294,9 @@
       pageInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
+      readiumProperties: [String: String?],
+      publicationLanguage: String?,
+      publicationReadingProgression: WebPubReadingProgression?,
       chapterIndex: Int,
       totalChapters: Int,
       bookTitle: String?,
@@ -299,6 +312,9 @@
       self.pageInsets = pageInsets
       self.theme = theme
       self.contentCSS = contentCSS
+      self.readiumProperties = readiumProperties
+      self.publicationLanguage = publicationLanguage
+      self.publicationReadingProgression = publicationReadingProgression
       self.chapterIndex = chapterIndex
       self.totalChapters = totalChapters
       self.bookTitle = bookTitle
@@ -642,6 +658,9 @@
       pageInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
+      readiumProperties: [String: String?],
+      publicationLanguage: String?,
+      publicationReadingProgression: WebPubReadingProgression?,
       chapterIndex: Int,
       totalChapters: Int,
       bookTitle: String?,
@@ -657,6 +676,9 @@
         theme != self.theme
         || pageInsets != self.pageInsets
         || contentCSS != self.contentCSS
+        || readiumProperties != self.readiumProperties
+        || publicationLanguage != self.publicationLanguage
+        || publicationReadingProgression != self.publicationReadingProgression
         || labelTopOffset != self.labelTopOffset
         || labelBottomOffset != self.labelBottomOffset
         || useSafeArea != self.useSafeArea
@@ -666,6 +688,9 @@
       self.pageInsets = pageInsets
       self.theme = theme
       self.contentCSS = contentCSS
+      self.readiumProperties = readiumProperties
+      self.publicationLanguage = publicationLanguage
+      self.publicationReadingProgression = publicationReadingProgression
       self.chapterIndex = chapterIndex
       self.totalChapters = totalChapters
       self.bookTitle = bookTitle
@@ -753,9 +778,32 @@
 
       let columnWidth = max(1, Int(size.width))
 
-      // Use the exact same CSS as WebPubPageView, but allow horizontal scrolling
+      // Minimal pagination CSS, horizontal scrolling enabled.
       let paginationCSS = """
-          /* Base Viewport & Root */
+          /* Pagination Layout */
+          :root {
+            height: 100vh !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            -webkit-columns: auto auto !important;
+            -moz-columns: auto auto !important;
+            columns: auto auto !important;
+            -webkit-column-width: auto !important;
+            -moz-column-width: auto !important;
+            column-width: auto !important;
+            -webkit-column-count: auto !important;
+            -moz-column-count: auto !important;
+            column-count: auto !important;
+            -webkit-column-gap: 0 !important;
+            -moz-column-gap: 0 !important;
+            column-gap: 0 !important;
+          }
+
           html {
             height: 100vh !important;
             width: 100vw !important;
@@ -775,103 +823,17 @@
             column-width: \(columnWidth)px !important;
             column-gap: 0 !important;
             column-fill: auto !important;
-            background-color: \(theme.backgroundColorHex) !important;
-            color: \(theme.textColorHex) !important;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            widows: 2;
-            orphans: 2;
-          }
-
-          /* Reset all potential document margins that break columns */
-          body > *, html > * {
-            max-width: 100%;
-          }
-
-          /* CSS Variables for media sizing (Readium standard) */
-          :root {
-            --RS__maxMediaWidth: 100%;
-            --RS__maxMediaHeight: 95vh;
-            --RS__boxSizingMedia: border-box;
-            --RS__boxSizingTable: border-box;
-          }
-
-          /* High-Fidelity Image Handling (Based on Readium Standard) */
-          img, svg, video, canvas, audio {
-            object-fit: contain;
-            width: auto;
-            height: auto;
-            max-width: var(--RS__maxMediaWidth);
-            max-height: var(--RS__maxMediaHeight) !important;
-            box-sizing: var(--RS__boxSizingMedia);
-            -webkit-column-break-inside: avoid;
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-
-          audio[controls] {
-            width: revert;
-            height: revert;
-          }
-
-          table {
-            max-width: var(--RS__maxMediaWidth);
-            box-sizing: var(--RS__boxSizingTable);
-          }
-
-          :root[data-kmreader-theme="light"] img,
-          :root[data-kmreader-theme="light"] svg {
-            mix-blend-mode: multiply;
-          }
-
-          :root[data-kmreader-theme="dark"] img,
-          :root[data-kmreader-theme="dark"] svg {
-            mix-blend-mode: normal;
-            filter: brightness(80%);
-          }
-
-          /* Fragmentation Control for Headings and Structure */
-          h1, h2, h3, h4, h5, h6, dt, figure, tr {
-            -webkit-column-break-inside: avoid;
-            break-inside: avoid;
-          }
-          h1, h2, h3, h4, h5, h6 {
-            -webkit-column-break-after: avoid;
-            break-after: avoid;
-          }
-
-          /* CJK Support */
-          :lang(ja), :lang(zh), :lang(ko) {
-            word-wrap: break-word;
-            -webkit-line-break: strict;
-            line-break: strict;
-            text-align: justify;
-            ruby-align: center;
-          }
-          *:lang(ja), *:lang(zh), *:lang(ko),
-          :lang(ja) i, :lang(zh) i, :lang(ko) i,
-          :lang(ja) em, :lang(zh) em, :lang(ko) em {
-            font-style: normal;
-          }
-          span.tcy, span.tate-chu-yoko {
-            -webkit-text-combine: horizontal;
-            text-combine-upright: all;
-          }
-
-          /* Selection & UI Elements */
-          ::selection {
-            background-color: #b4d8fe;
-          }
-          a {
-            color: inherit;
-            text-decoration: underline;
-            overflow-wrap: break-word;
           }
         """
 
       let css = contentCSS + "\n" + paginationCSS
 
-      injectCSS(css) { [weak self] in
+      injectCSS(
+        css,
+        readiumProperties: readiumProperties,
+        language: publicationLanguage,
+        readingProgression: publicationReadingProgression
+      ) { [weak self] in
         self?.injectPaginationJS(targetPageIndex: pageIndex)
       }
     }
@@ -1023,15 +985,92 @@
       }
     }
 
-    private func injectCSS(_ css: String, completion: (() -> Void)? = nil) {
+    private func injectCSS(
+      _ css: String,
+      readiumProperties: [String: String?],
+      language: String?,
+      readingProgression: WebPubReadingProgression?,
+      completion: (() -> Void)? = nil
+    ) {
       let isDark = theme.uiColorBackground.brightness < 0.5
       let themeName = isDark ? "dark" : "light"
 
-      let base64 = Data(css.utf8).base64EncodedString()
+      let readiumAssets = ReadiumCSSLoader.cssAssets(
+        language: language,
+        readingProgression: readingProgression
+      )
+      let readiumVariant = ReadiumCSSLoader.resolveVariantSubdirectory(
+        language: language,
+        readingProgression: readingProgression
+      )
+      let shouldSetDir = readiumVariant == "rtl"
+
+      let readiumBefore = Data(readiumAssets.before.utf8).base64EncodedString()
+      let readiumDefault = Data(readiumAssets.defaultCSS.utf8).base64EncodedString()
+      let readiumAfter = Data(readiumAssets.after.utf8).base64EncodedString()
+      let customCSS = Data(css.utf8).base64EncodedString()
+
+      var properties: [String: Any] = [:]
+      for (key, value) in readiumProperties {
+        properties[key] = value ?? NSNull()
+      }
+      let propertiesJSON: String = {
+        guard
+          let data = try? JSONSerialization.data(withJSONObject: properties, options: []),
+          let json = String(data: data, encoding: .utf8)
+        else {
+          return "{}"
+        }
+        return json
+      }()
+      let languageJSON: String = {
+        guard let language else { return "null" }
+        var escaped = language
+        escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\")
+        escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"")
+        escaped = escaped.replacingOccurrences(of: "\n", with: "\\n")
+        escaped = escaped.replacingOccurrences(of: "\r", with: "\\r")
+        escaped = escaped.replacingOccurrences(of: "\t", with: "\\t")
+        return "\"\(escaped)\""
+      }()
+
       let js = """
           (function() {
             var root = document.documentElement;
             root.setAttribute('data-kmreader-theme', '\(themeName)');
+            var lang = \(languageJSON);
+            if (lang) {
+              if (!root.hasAttribute('lang')) {
+                root.setAttribute('lang', lang);
+              }
+              if (!root.hasAttribute('xml:lang')) {
+                root.setAttribute('xml:lang', lang);
+              }
+              if (document.body) {
+                if (!document.body.hasAttribute('lang')) {
+                  document.body.setAttribute('lang', lang);
+                }
+                if (!document.body.hasAttribute('xml:lang')) {
+                  document.body.setAttribute('xml:lang', lang);
+                }
+              }
+            }
+            if (\(shouldSetDir ? "true" : "false")) {
+              root.setAttribute('dir', 'rtl');
+              if (document.body) {
+                document.body.setAttribute('dir', 'rtl');
+              }
+            }
+
+            var props = \(propertiesJSON);
+            Object.keys(props).forEach(function(key) {
+              var value = props[key];
+              if (value === null || value === undefined) {
+                root.style.removeProperty(key);
+              } else {
+                root.style.setProperty(key, value, 'important');
+              }
+            });
 
             var meta = document.querySelector('meta[name=viewport]');
             if (!meta) {
@@ -1047,7 +1086,12 @@
               style.id = 'kmreader-style';
               document.head.appendChild(style);
             }
-            style.textContent = atob('\(base64)');
+            var hasStyles = document.querySelector("link[rel~='stylesheet'], style:not(#kmreader-style)") !== null;
+            var css = atob('\(readiumBefore)') + "\\n"
+              + (hasStyles ? "" : atob('\(readiumDefault)') + "\\n")
+              + atob('\(readiumAfter)') + "\\n"
+              + atob('\(customCSS)');
+            style.textContent = css;
             return true;
           })();
         """

@@ -55,6 +55,8 @@
     var targetPageIndex: Int?
     var currentLocation: WebPubLocation?
     var resourceRootURL: URL?
+    var publicationLanguage: String?
+    var publicationReadingProgression: WebPubReadingProgression?
 
     private var bookId: String = ""
     private var downloadInfo: DownloadInfo? = nil
@@ -154,6 +156,8 @@
       targetPageIndex = nil
       currentLocation = nil
       resourceRootURL = nil
+      publicationLanguage = nil
+      publicationReadingProgression = nil
       chapterPageCounts = [:]
       chapterURLCache = [:]
       textLengthCache = [:]
@@ -186,6 +190,8 @@
           )
         }
         logger.debug("WebPub manifest loaded from offline storage")
+        publicationLanguage = manifest.metadata?.language
+        publicationReadingProgression = manifest.metadata?.readingProgression
 
         guard
           let offlineRoot = await OfflineManager.shared.getOfflineWebPubRootURL(

@@ -124,64 +124,101 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     theme.resolvedTheme(for: colorScheme)
   }
 
-  func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {
-    let fontSize = fontSize
-    let fontWeightValue = 240 + Int(fontWeight * 160)
-    let letterSpacingEm = letterSpacing
-    let wordSpacingEm = wordSpacing
-    let lineHeightValue = lineHeight
-    let paragraphSpacingEm = paragraphSpacing
-    let paragraphIndentEm = paragraphIndent
+  func makeReadiumPayload(
+    theme: ReaderTheme,
+    fontPath: String? = nil,
+    rootURL: URL? = nil
+  ) -> (css: String, properties: [String: String?]) {
+    let fontName = fontFamily.fontName
+    let fontWeightValue = readiumFontWeightValue()
+    let fontSizePercent = (fontSize / EpubConstants.defaultFontSize) * 100
+    let letterSpacingRem = max(0, letterSpacing)
+    let wordSpacingRem = max(0, wordSpacing)
+    let paragraphSpacingRem = max(0, paragraphSpacing)
+    let paragraphIndentRem = max(0, paragraphIndent)
 
-    // Only set font-family if user selected a specific font, otherwise use EPUB's default
-    let fontFamilyCSS = fontFamily.fontName.map { "font-family: '\($0)' !important;" } ?? ""
+    var properties: [String: String?] = [
+      "--USER__advancedSettings": "readium-advanced-on",
+      "--USER__fontSize": String(format: "%.2f%%", fontSizePercent),
+      "--USER__lineHeight": String(format: "%.2f", lineHeight),
+      "--USER__paraSpacing": String(format: "%.2frem", paragraphSpacingRem),
+      "--USER__paraIndent": String(format: "%.2frem", paragraphIndentRem),
+      "--USER__wordSpacing": String(format: "%.2frem", wordSpacingRem),
+      "--USER__letterSpacing": String(format: "%.2frem", letterSpacingRem),
+      "--RS__textColor": theme.textColorHex,
+      "--RS__backgroundColor": theme.backgroundColorHex,
+      "font-weight": "\(fontWeightValue)",
+    ]
 
-    // Internal CSS padding controlled by user's pageMargins setting (in pixels)
-    let internalPadding = Int(pageMargins)
+    let fontFamilyValue = fontName.map(cssFontFamilyValue)
+    properties["--USER__fontOverride"] = fontFamilyValue == nil ? nil : "readium-font-on"
+    properties["--USER__fontFamily"] = fontFamilyValue
 
-    // Generate @font-face rule for imported fonts
-    var fontFaceCSS = ""
-    if let fontName = fontFamily.fontName, let path = fontPath, let rootURL = rootURL {
-      // Font files are copied to {rootURL}/.fonts/ directory
-      // Use absolute file:// URL since fonts are within the allowingReadAccessTo scope
-      let fileName = URL(fileURLWithPath: path).lastPathComponent
-      let fontURL = rootURL.appendingPathComponent(".fonts").appendingPathComponent(fileName)
-      let fileURLString = fontURL.absoluteString
+    if theme.isDark {
+      properties["--USER__appearance"] = "readium-night-on"
+    } else {
+      properties["--USER__appearance"] = nil
+    }
 
-      // Determine font format from file extension
-      let fontFormat = path.hasSuffix(".otf") ? "opentype" : "truetype"
-      fontFaceCSS = """
-        @font-face {
-          font-family: '\(fontName)';
-          src: url('\(fileURLString)') format('\(fontFormat)');
+    let fontFaceCSS = makeFontFaceCSS(
+      fontName: fontName,
+      fontPath: fontPath,
+      rootURL: rootURL
+    )
+
+    let imageBlendCSS = shouldUseLightImageBlend(for: theme)
+      ? """
+        :root[data-kmreader-theme="light"] img,
+        :root[data-kmreader-theme="light"] svg {
+          mix-blend-mode: multiply;
         }
 
         """
+      : ""
+
+    return (css: fontFaceCSS + imageBlendCSS, properties: properties)
+  }
+
+  func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {
+    makeReadiumPayload(theme: theme, fontPath: fontPath, rootURL: rootURL).css
+  }
+
+  private func readiumFontWeightValue() -> Int {
+    let rawValue = 240 + Int(fontWeight * 160)
+    return min(max(rawValue, 1), 1000)
+  }
+
+  private func cssFontFamilyValue(_ name: String) -> String {
+    if name.contains("\"") || name.contains(" ") {
+      return "\"" + name.replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
+    return name
+  }
+
+  private func makeFontFaceCSS(fontName: String?, fontPath: String?, rootURL: URL?) -> String {
+    guard let fontName, let path = fontPath, let rootURL else {
+      return ""
     }
 
+    let fileName = URL(fileURLWithPath: path).lastPathComponent
+    let fontURL = rootURL.appendingPathComponent(".fonts").appendingPathComponent(fileName)
+    let fileURLString = fontURL.absoluteString
+    let fontFormat = path.hasSuffix(".otf") ? "opentype" : "truetype"
+
     return """
-        \(fontFaceCSS)body {
-          margin: 0;
-          padding: \(internalPadding)px;
-          background-color: \(theme.backgroundColorHex);
-          color: \(theme.textColorHex);
-          \(fontFamilyCSS)
-          font-size: \(fontSize)px !important;
-          font-weight: \(fontWeightValue);
-          letter-spacing: \(letterSpacingEm)em;
-          word-spacing: \(wordSpacingEm)em;
-          line-height: \(lineHeightValue);
-        }
-        p, div, span, li {
-          \(fontFamilyCSS.isEmpty ? "" : "font-family: inherit !important;")
-          font-size: inherit !important;
-        }
-        p {
-          margin: 0 !important;
-          margin-bottom: \(max(0, paragraphSpacingEm))em !important;
-          text-indent: \(max(0, paragraphIndentEm))em !important;
-        }
+      @font-face {
+        font-family: '\(fontName)';
+        src: url('\(fileURLString)') format('\(fontFormat)');
+      }
+
       """
+  }
+
+  private func shouldUseLightImageBlend(for theme: ReaderTheme) -> Bool {
+    if self.theme == .system {
+      return false
+    }
+    return !theme.isDark
   }
 }
 
@@ -246,6 +283,24 @@ nonisolated enum ReaderTheme: String, CaseIterable {
     case .darkSepia: return "#E3D5C1"
     case .lightGreen: return "#1A3A1F"
     case .darkGreen: return "#D1E0D1"
+    }
+  }
+
+  var isDark: Bool {
+    switch self {
+    case .black, .darkQuiet, .darkSepia, .darkGreen:
+      return true
+    default:
+      return false
+    }
+  }
+
+  var isSepia: Bool {
+    switch self {
+    case .lightSepia, .darkSepia, .lightGreen, .darkGreen:
+      return true
+    default:
+      return false
     }
   }
 
