@@ -7,6 +7,7 @@
 
 #if os(iOS)
   import CoreText
+  import Foundation
   import SwiftData
   import SwiftUI
   import UIKit
@@ -316,37 +317,165 @@
     let colorScheme: ColorScheme
     let customFontPath: String?
 
+    func makeCoordinator() -> Coordinator {
+      Coordinator()
+    }
+
     func makeUIView(context: Context) -> WKWebView {
       let webView = WKWebView()
       webView.isOpaque = false
       webView.backgroundColor = .clear
       webView.scrollView.isScrollEnabled = false
+      webView.navigationDelegate = context.coordinator
+      context.coordinator.loadBaseHTMLIfNeeded(in: webView)
       return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-      let html = generatePreviewHTML(
+      context.coordinator.update(
+        webView: webView,
         preferences: preferences,
         colorScheme: colorScheme,
         customFontPath: customFontPath
       )
+    }
 
-      let baseURL: URL?
-      if let path = customFontPath {
-        baseURL = URL(fileURLWithPath: path).deletingLastPathComponent()
-      } else {
-        baseURL = nil
+    final class Coordinator: NSObject, WKNavigationDelegate {
+      private var isLoaded = false
+      private var previewURL: URL?
+      private var lastAppliedPayload: PreviewPayload?
+      private var pendingPayload: PreviewPayload?
+
+      func loadBaseHTMLIfNeeded(in webView: WKWebView) {
+        guard let previewURL = preparePreviewFile() else { return }
+        if webView.url?.standardizedFileURL != previewURL.standardizedFileURL {
+          isLoaded = false
+          webView.loadFileURL(
+            previewURL,
+            allowingReadAccessTo: previewURL.deletingLastPathComponent()
+          )
+        }
       }
 
-      webView.loadHTMLString(html, baseURL: baseURL)
+      func update(
+        webView: WKWebView,
+        preferences: EpubReaderPreferences,
+        colorScheme: ColorScheme,
+        customFontPath: String?
+      ) {
+        pendingPayload = makePreviewPayload(
+          preferences: preferences,
+          colorScheme: colorScheme,
+          customFontPath: customFontPath
+        )
+        loadBaseHTMLIfNeeded(in: webView)
+        applyPendingPayloadIfPossible(in: webView)
+      }
+
+      func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        isLoaded = true
+        applyPendingPayloadIfPossible(in: webView)
+      }
+
+      private func applyPendingPayloadIfPossible(in webView: WKWebView) {
+        guard isLoaded, let payload = pendingPayload else { return }
+        if lastAppliedPayload == payload { return }
+        guard let payloadJSON = encodePreviewPayload(payload) else { return }
+
+        let js = """
+          (function() {
+            var payload = \(payloadJSON);
+            var root = document.documentElement;
+            var body = document.body;
+            if (!root || !body) { return false; }
+
+            if (payload.lang) {
+              root.setAttribute('lang', payload.lang);
+              body.setAttribute('lang', payload.lang);
+            }
+
+            if (payload.dir) {
+              root.setAttribute('dir', payload.dir);
+              body.setAttribute('dir', payload.dir);
+            } else {
+              root.removeAttribute('dir');
+              body.removeAttribute('dir');
+            }
+
+            var style = document.getElementById('kmreader-preview-style');
+            if (!style) {
+              style = document.createElement('style');
+              style.id = 'kmreader-preview-style';
+              document.head.appendChild(style);
+            }
+            style.textContent = payload.css || '';
+
+            var p1 = document.getElementById('kmreader-preview-1');
+            var p2 = document.getElementById('kmreader-preview-2');
+            var p3 = document.getElementById('kmreader-preview-3');
+            if (p1) { p1.textContent = payload.text1 || ''; }
+            if (p2) { p2.textContent = payload.text2 || ''; }
+            if (p3) { p3.textContent = payload.text3 || ''; }
+            return true;
+          })();
+          """
+
+        webView.evaluateJavaScript(js) { [weak self] _, _ in
+          self?.lastAppliedPayload = payload
+        }
+      }
+
+      private func preparePreviewFile() -> URL? {
+        let directory = FontFileManager.fontsDirectory() ?? FileManager.default.temporaryDirectory
+        let previewURL = directory.appendingPathComponent("preview.html")
+        if previewURL == self.previewURL, FileManager.default.fileExists(atPath: previewURL.path) {
+          return previewURL
+        }
+
+        let html = basePreviewHTML()
+        guard let data = html.data(using: .utf8) else { return nil }
+        do {
+          try data.write(to: previewURL, options: [.atomic])
+          self.previewURL = previewURL
+          return previewURL
+        } catch {
+          return nil
+        }
+      }
     }
   }
 
-  private func generatePreviewHTML(
+  private struct PreviewPayload: Equatable {
+    let css: String
+    let text1: String
+    let text2: String
+    let text3: String
+    let language: String
+    let direction: String?
+  }
+
+  private func basePreviewHTML() -> String {
+    """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style id="kmreader-preview-style"></style>
+    </head>
+    <body>
+      <p id="kmreader-preview-1"></p>
+      <p id="kmreader-preview-2"></p>
+      <p id="kmreader-preview-3"></p>
+    </body>
+    </html>
+    """
+  }
+
+  private func makePreviewPayload(
     preferences: EpubReaderPreferences,
     colorScheme: ColorScheme,
     customFontPath: String?
-  ) -> String {
+  ) -> PreviewPayload {
     let theme = preferences.resolvedTheme(for: colorScheme)
     let backgroundColor = theme.backgroundColorHex
     let textColor = theme.textColorHex
@@ -378,6 +507,12 @@
         """
     }
 
+    let language = Locale.current.identifier
+    let languageCode = Locale.current.language.languageCode?.identifier ?? language
+    let direction: String? = Locale.characterDirection(forLanguage: languageCode) == .rightToLeft
+      ? "rtl"
+      : nil
+
     let previewText1 = String(
       localized:
         "The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences.")
@@ -390,37 +525,52 @@
         "Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination."
     )
 
-    return """
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          \(fontFaceCSS)body {
-            padding: \(internalPadding)px;
-            background-color: \(backgroundColor);
-            color: \(textColor);
-            font-family: \(fontFamily);
-            font-size: \(fontSize)px;
-            font-weight: \(fontWeightValue);
-            letter-spacing: \(letterSpacingEm)em;
-            word-spacing: \(wordSpacingEm)em;
-            line-height: \(lineHeightValue);
-          }
-          p {
-            margin: 0;
-            margin-bottom: \(max(0, paragraphSpacingEm))em;
-            text-indent: \(max(0, paragraphIndentEm))em;
-          }
-        </style>
-      </head>
-      <body>
-        <p>\(previewText1)</p>
-        <p>\(previewText2)</p>
-        <p>\(previewText3)</p>
-      </body>
-      </html>
+    let css = """
+      \(fontFaceCSS)body {
+        padding: \(internalPadding)px;
+        margin: 0;
+        background-color: \(backgroundColor);
+        color: \(textColor);
+        font-family: \(fontFamily);
+        font-size: \(fontSize)px;
+        font-weight: \(fontWeightValue);
+        letter-spacing: \(letterSpacingEm)em;
+        word-spacing: \(wordSpacingEm)em;
+        line-height: \(lineHeightValue);
+      }
+      p {
+        margin: 0;
+        margin-bottom: \(max(0, paragraphSpacingEm))em;
+        text-indent: \(max(0, paragraphIndentEm))em;
+      }
       """
+
+    return PreviewPayload(
+      css: css,
+      text1: previewText1,
+      text2: previewText2,
+      text3: previewText3,
+      language: language,
+      direction: direction
+    )
+  }
+
+  private func encodePreviewPayload(_ payload: PreviewPayload) -> String? {
+    let dict: [String: Any] = [
+      "css": payload.css,
+      "text1": payload.text1,
+      "text2": payload.text2,
+      "text3": payload.text3,
+      "lang": payload.language,
+      "dir": payload.direction ?? NSNull(),
+    ]
+    guard
+      let data = try? JSONSerialization.data(withJSONObject: dict, options: []),
+      let json = String(data: data, encoding: .utf8)
+    else {
+      return nil
+    }
+    return json
   }
 
   enum FontProvider {

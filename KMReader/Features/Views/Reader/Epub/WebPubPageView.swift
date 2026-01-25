@@ -1357,6 +1357,8 @@
             padding: 0 !important;
             height: 100vh !important;
             width: 100vw !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
             column-width: \(columnWidth)px !important;
             column-gap: 0 !important;
             column-fill: auto !important;
