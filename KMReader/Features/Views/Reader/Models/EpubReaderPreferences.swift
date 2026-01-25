@@ -166,14 +166,15 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       rootURL: rootURL
     )
 
-    let imageBlendCSS = shouldUseLightImageBlend(for: theme)
+    let imageBlendCSS =
+      shouldUseLightImageBlend(for: theme)
       ? """
-        :root[data-kmreader-theme="light"] img,
-        :root[data-kmreader-theme="light"] svg {
-          mix-blend-mode: multiply;
-        }
+      :root[data-kmreader-theme="light"] img,
+      :root[data-kmreader-theme="light"] svg {
+        mix-blend-mode: multiply;
+      }
 
-        """
+      """
       : ""
 
     return (css: fontFaceCSS + imageBlendCSS, properties: properties)
@@ -215,10 +216,12 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   }
 
   private func shouldUseLightImageBlend(for theme: ReaderTheme) -> Bool {
-    if self.theme == .system {
+    switch theme {
+    case .white, .lightQuiet, .lightSepia:
+      return true
+    default:
       return false
     }
-    return !theme.isDark
   }
 }
 

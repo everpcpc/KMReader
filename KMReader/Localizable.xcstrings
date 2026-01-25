@@ -493,48 +493,48 @@
         }
       }
     },
-    "%lld custom font%@ added" : {
+    "%lld custom font added" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld benutzerdefinierte Schriftart%@ hinzugefügt"
+            "value" : "%lld benutzerdefinierte Schriftart hinzugefügt"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld custom font%2$@ added"
+            "value" : "%lld custom font added"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld police personnalisée%2$@ ajoutée"
+            "value" : "%lld police personnalisée ajoutée"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld 個のカスタムフォント%2$@を追加"
+            "value" : "%lld 個のカスタムフォントを追加"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld개의 사용자 지정 글꼴%2$@ 추가됨"
+            "value" : "%lld개의 사용자 지정 글꼴 추가됨"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已添加 %1$lld 个自定义字体%2$@"
+            "value" : "已添加 %lld 个自定义字体"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已新增 %1$lld 個自訂字體%2$@"
+            "value" : "已新增 %lld 個自訂字體"
           }
         }
       }
@@ -4820,6 +4820,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buch beendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Book Finished"
           }
         },
         "fr" : {
@@ -11570,48 +11576,48 @@
         }
       }
     },
-    "Divina Reader" : {
+    "DIVINA Reader" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Divina-Reader"
+            "value" : "DIVINA-Reader"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Divina Reader"
+            "value" : "DIVINA Reader"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lecteur Divina"
+            "value" : "Lecteur DIVINA"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Divina リーダー"
+            "value" : "DIVINA リーダー"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Divina 리더"
+            "value" : "DIVINA 리더"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Divina 阅读器"
+            "value" : "DIVINA 阅读器"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Divina 閱讀器"
+            "value" : "DIVINA 閱讀器"
           }
         }
       }
@@ -32554,6 +32560,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zurück"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return"
           }
         },
         "fr" : {
