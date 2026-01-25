@@ -233,15 +233,6 @@ nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
 
   var id: String { rawValue }
 
-  var title: String {
-    switch self {
-    case .system: return String(localized: "System")
-    case .quiet: return String(localized: "Quiet")
-    case .sepia: return String(localized: "Sepia")
-    case .green: return String(localized: "Green")
-    }
-  }
-
   func resolvedTheme(for colorScheme: ColorScheme?) -> ReaderTheme {
     let isDark = colorScheme == .dark
     switch self {

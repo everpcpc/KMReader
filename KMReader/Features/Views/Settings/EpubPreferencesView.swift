@@ -48,6 +48,44 @@
       Color(hex: readerTheme.textColorHex) ?? .primary
     }
 
+    private var themePicker: some View {
+      let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+      ]
+
+      return LazyVGrid(columns: columns, spacing: 12) {
+        ForEach(ThemeChoice.allCases) { choice in
+          themePreviewButton(for: choice)
+        }
+      }
+      .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func themePreviewButton(for choice: ThemeChoice) -> some View {
+      let previewTheme = choice.resolvedTheme(for: colorScheme)
+      let isSelected = draft.theme == choice
+
+      Button {
+        draft.theme = choice
+      } label: {
+        Image(systemName: "textformat")
+          .font(.system(size: 20, weight: .semibold))
+          .foregroundStyle(previewTheme.textColor)
+          .frame(maxWidth: .infinity, minHeight: 54, alignment: .center)
+          .padding(8)
+        .background(previewTheme.backgroundColor)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+          RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+        )
+      }
+      .buttonStyle(.plain)
+      .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
     var body: some View {
       Form {
         Section(String(localized: "Page Turn")) {
@@ -79,12 +117,7 @@
         }
 
         Section(String(localized: "Theme")) {
-          Picker(String(localized: "Appearance"), selection: $draft.theme) {
-            ForEach(ThemeChoice.allCases) { choice in
-              Text(choice.title).tag(choice)
-            }
-          }
-          .pickerStyle(.segmented)
+          themePicker
         }
 
         Section(String(localized: "Font")) {
@@ -445,6 +478,7 @@
     }
   }
 
+
   private struct PreviewPayload: Equatable {
     let css: String
     let text1: String
@@ -509,7 +543,7 @@
 
     let language = Locale.current.identifier
     let languageCode = Locale.current.language.languageCode?.identifier ?? language
-    let direction: String? = Locale.characterDirection(forLanguage: languageCode) == .rightToLeft
+    let direction: String? = Locale.Language(identifier: languageCode).characterDirection == .rightToLeft
       ? "rtl"
       : nil
 
