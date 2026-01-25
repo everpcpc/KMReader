@@ -797,7 +797,8 @@ class APIClient {
       method: method,
       body: body,
       queryItems: queryItems,
-      headers: headers
+      headers: headers,
+      timeout: timeout
     )
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
