@@ -75,12 +75,12 @@
           .foregroundStyle(previewTheme.textColor)
           .frame(maxWidth: .infinity, minHeight: 54, alignment: .center)
           .padding(8)
-        .background(previewTheme.backgroundColor)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-          RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
-        )
+          .background(previewTheme.backgroundColor)
+          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+          .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+              .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+          )
       }
       .buttonStyle(.plain)
       .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -478,7 +478,6 @@
     }
   }
 
-
   private struct PreviewPayload: Equatable {
     let css: String
     let text1: String
@@ -543,7 +542,8 @@
 
     let language = Locale.current.identifier
     let languageCode = Locale.current.language.languageCode?.identifier ?? language
-    let direction: String? = Locale.Language(identifier: languageCode).characterDirection == .rightToLeft
+    let direction: String? =
+      Locale.Language(identifier: languageCode).characterDirection == .rightToLeft
       ? "rtl"
       : nil
 

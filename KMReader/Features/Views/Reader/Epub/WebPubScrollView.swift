@@ -134,12 +134,13 @@
         let targetPageIndex = viewModel.targetPageIndex,
         targetChapterIndex >= 0,
         targetChapterIndex < viewModel.chapterCount,
-        (targetChapterIndex != viewModel.currentChapterIndex
-          || targetPageIndex != viewModel.currentPageIndex)
+        targetChapterIndex != viewModel.currentChapterIndex
+          || targetPageIndex != viewModel.currentPageIndex
       {
         let pageCount = viewModel.chapterPageCount(at: targetChapterIndex) ?? 1
         let isLastPageRequest = targetPageIndex < 0
-        let normalizedPageIndex = isLastPageRequest
+        let normalizedPageIndex =
+          isLastPageRequest
           ? max(0, pageCount - 1)
           : max(0, min(targetPageIndex, pageCount - 1))
 

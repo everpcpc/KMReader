@@ -30,10 +30,10 @@ struct ReadiumCSSLoader {
     let assets = (
       before: loadCSS(named: "\(filePrefix)-before\(suffix)")
         ?? (useFallback ? loadCSS(named: "\(filePrefix)-before") : nil)
-        ?? "",
+          ?? "",
       defaultCSS: loadCSS(named: "\(filePrefix)-default\(suffix)")
         ?? (useFallback ? loadCSS(named: "\(filePrefix)-default") : nil)
-        ?? "",
+          ?? "",
       after: loadCSS(named: "\(filePrefix)-after\(suffix)")
         ?? (useFallback ? loadCSS(named: "\(filePrefix)-after") : nil)
         ?? ""
@@ -74,11 +74,13 @@ struct ReadiumCSSLoader {
 
   private static func normalizedLanguageCode(_ language: String?) -> String? {
     guard let language, !language.isEmpty else { return nil }
-    let normalized = language
+    let normalized =
+      language
       .trimmingCharacters(in: .whitespacesAndNewlines)
       .lowercased()
 
-    return normalized
+    return
+      normalized
       .split(whereSeparator: { $0 == "-" || $0 == "_" })
       .first
       .map(String.init)
