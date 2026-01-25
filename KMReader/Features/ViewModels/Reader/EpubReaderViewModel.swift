@@ -543,10 +543,19 @@
         let pageIndex = max(0, min(normalizedCount - 1, Int(floor(Double(normalizedCount) * progression))))
         logger.debug(
           "Applying initial progression to chapterIndex=\(chapterIndex): pageIndex=\(pageIndex)/\(normalizedCount)")
+        let wasSamePosition = currentChapterIndex == chapterIndex && currentPageIndex == pageIndex
         currentChapterIndex = chapterIndex
         currentPageIndex = pageIndex
-        targetChapterIndex = chapterIndex
-        targetPageIndex = pageIndex
+        if wasSamePosition {
+          if targetChapterIndex == chapterIndex && targetPageIndex == pageIndex {
+            // Avoid keeping a no-op target that can cause a late snap-back.
+            targetChapterIndex = nil
+            targetPageIndex = nil
+          }
+        } else {
+          targetChapterIndex = chapterIndex
+          targetPageIndex = pageIndex
+        }
         initialChapterIndex = nil
         initialProgression = nil
       }

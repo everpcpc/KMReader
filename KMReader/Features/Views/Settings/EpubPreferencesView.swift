@@ -71,7 +71,7 @@
         draft.theme = choice
       } label: {
         Image(systemName: "textformat")
-          .font(.system(size: 20, weight: .semibold))
+          .font(.system(size: 20))
           .foregroundStyle(previewTheme.textColor)
           .frame(maxWidth: .infinity, minHeight: 54, alignment: .center)
           .padding(8)
@@ -230,7 +230,7 @@
       .formStyle(.grouped)
       .safeAreaInset(edge: .top, spacing: 0) {
         EpubPreviewView(preferences: draft)
-          .frame(height: 200)
+          .frame(height: 160)
           .background(backgroundColor)
           .overlay(alignment: .bottom) {
             LinearGradient(
@@ -241,8 +241,8 @@
               startPoint: .top,
               endPoint: .bottom
             )
-            .frame(height: 40)
-            .offset(y: 40)
+            .frame(height: 20)
+            .offset(y: 20)
             .allowsHitTesting(false)
           }
       }
