@@ -114,21 +114,23 @@ struct DivinaPreferencesView: View {
             }
           }
           .pickerStyle(.menu)
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              Text("Double Tap Zoom Scale")
-              Spacer()
-              Text(String(format: "%.1fx", doubleTapZoomScale))
+          if doubleTapZoomMode != .disabled {
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text("Double Tap Zoom Scale")
+                Spacer()
+                Text(String(format: "%.1fx", doubleTapZoomScale))
+                  .foregroundColor(.secondary)
+              }
+              Slider(
+                value: $doubleTapZoomScale,
+                in: 1.0...8.0,
+                step: 0.5
+              )
+              Text("Zoom level when double-tapping on a page")
+                .font(.caption)
                 .foregroundColor(.secondary)
             }
-            Slider(
-              value: $doubleTapZoomScale,
-              in: 1.0...8.0,
-              step: 0.5
-            )
-            Text("Zoom level when double-tapping on a page")
-              .font(.caption)
-              .foregroundColor(.secondary)
           }
         }
       #endif
@@ -340,6 +342,7 @@ struct DivinaPreferencesView: View {
       }
     }
     .animation(.default, value: tapZoneMode)
+    .animation(.default, value: doubleTapZoomMode)
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.divinaReader.title)
   }

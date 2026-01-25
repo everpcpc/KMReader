@@ -93,7 +93,7 @@ enum SettingsSection: String, CaseIterable {
     case .cache:
       return String(localized: "Cache")
     case .divinaReader:
-      return String(localized: "Divina Reader")
+      return String(localized: "DIVINA Reader")
     #if os(iOS)
       case .epubReader:
         return String(localized: "EPUB Reader")

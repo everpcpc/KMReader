@@ -142,7 +142,7 @@
             } header: {
               Text("Custom Fonts")
             } footer: {
-              Text("\(customFonts.count) custom font\(customFonts.count == 1 ? "" : "s") added")
+              Text("\(customFonts.count) custom font added")
             }
           }
         }
