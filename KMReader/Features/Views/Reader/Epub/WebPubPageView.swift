@@ -203,7 +203,7 @@
 
       if let currentVC = uiViewController.viewControllers?.first as? EpubPageViewController {
         let chapterIndex = currentVC.chapterIndex
-        let pageInsets = viewModel.pageInsets(for: preferences)
+        let containerInsets = viewModel.containerInsetsForLabels()
         let theme = preferences.resolvedTheme(for: colorScheme)
 
         // Ensure the selected font is copied to the resource directory
@@ -233,7 +233,7 @@
         currentVC.configure(
           chapterURL: viewModel.chapterURL(at: chapterIndex),
           rootURL: viewModel.resourceRootURL,
-          pageInsets: pageInsets,
+          containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
           readiumProperties: readiumPayload.properties,
@@ -320,7 +320,7 @@
           guard subPageIndex >= 0 else { return nil }
         }
 
-        let pageInsets = parent.viewModel.pageInsets(for: parent.preferences)
+        let containerInsets = parent.viewModel.containerInsetsForLabels()
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
 
         // Ensure the selected font is copied to the resource directory
@@ -362,7 +362,7 @@
           cached.configure(
             chapterURL: chapterURL,
             rootURL: rootURL,
-            pageInsets: pageInsets,
+            containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
             readiumProperties: readiumPayload.properties,
@@ -394,7 +394,7 @@
           reusable.configure(
             chapterURL: chapterURL,
             rootURL: rootURL,
-            pageInsets: pageInsets,
+            containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
             readiumProperties: readiumPayload.properties,
@@ -426,7 +426,7 @@
         let controller = EpubPageViewController(
           chapterURL: chapterURL,
           rootURL: rootURL,
-          pageInsets: pageInsets,
+          containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
           readiumProperties: readiumPayload.properties,
@@ -752,7 +752,7 @@
     var chapterIndex: Int
     var currentSubPageIndex: Int
     var totalPagesInChapter: Int
-    private var pageInsets: UIEdgeInsets
+    private var containerInsets: UIEdgeInsets
     private var theme: ReaderTheme
     private var contentCSS: String
     private var readiumProperties: [String: String?]
@@ -790,7 +790,7 @@
     init(
       chapterURL: URL?,
       rootURL: URL?,
-      pageInsets: UIEdgeInsets,
+      containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -810,7 +810,7 @@
     ) {
       self.chapterURL = chapterURL
       self.rootURL = rootURL
-      self.pageInsets = pageInsets
+      self.containerInsets = containerInsets
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -898,7 +898,7 @@
     func configure(
       chapterURL: URL?,
       rootURL: URL?,
-      pageInsets: UIEdgeInsets,
+      containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -921,7 +921,7 @@
       let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
       let appearanceChanged =
         theme != self.theme
-        || pageInsets != self.pageInsets
+        || containerInsets != self.containerInsets
         || contentCSS != self.contentCSS
         || readiumProperties != self.readiumProperties
         || publicationLanguage != self.publicationLanguage
@@ -937,7 +937,7 @@
 
       self.chapterURL = chapterURL
       self.rootURL = rootURL
-      self.pageInsets = pageInsets
+      self.containerInsets = containerInsets
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -1152,11 +1152,11 @@
       view.addSubview(container)
       container.translatesAutoresizingMaskIntoConstraints = false
 
-      // Container respects safe area (or view edges based on policy), with additional pageInsets
-      let top = container.topAnchor.constraint(equalTo: topAnchor, constant: pageInsets.top)
-      let leading = container.leadingAnchor.constraint(equalTo: leadingAnchor, constant: pageInsets.left)
-      let trailing = trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: pageInsets.right)
-      let bottom = bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: pageInsets.bottom)
+      // Container respects safe area (or view edges based on policy), with additional label spacing
+      let top = container.topAnchor.constraint(equalTo: topAnchor, constant: containerInsets.top)
+      let leading = container.leadingAnchor.constraint(equalTo: leadingAnchor, constant: containerInsets.left)
+      let trailing = trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: containerInsets.right)
+      let bottom = bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: containerInsets.bottom)
       containerConstraints = (top, leading, trailing, bottom)
       NSLayoutConstraint.activate([top, leading, trailing, bottom])
       containerView = container
@@ -1216,10 +1216,10 @@
 
     private func applyContainerInsets() {
       guard let containerConstraints else { return }
-      containerConstraints.top.constant = pageInsets.top
-      containerConstraints.leading.constant = pageInsets.left
-      containerConstraints.trailing.constant = pageInsets.right
-      containerConstraints.bottom.constant = pageInsets.bottom
+      containerConstraints.top.constant = containerInsets.top
+      containerConstraints.leading.constant = containerInsets.left
+      containerConstraints.trailing.constant = containerInsets.right
+      containerConstraints.bottom.constant = containerInsets.bottom
       view.layoutIfNeeded()
     }
 
@@ -1314,34 +1314,9 @@
         loadingIndicator?.startAnimating()
       }
 
-      let columnWidth = max(1, Int(size.width))
-
       // Standardized Readium-based structural CSS
       let paginationCSS = """
           /* Pagination Layout */
-          :root {
-            height: 100vh !important;
-            width: 100vw !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            min-width: 100vw !important;
-            min-height: 100vh !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            -webkit-columns: auto auto !important;
-            -moz-columns: auto auto !important;
-            columns: auto auto !important;
-            -webkit-column-width: auto !important;
-            -moz-column-width: auto !important;
-            column-width: auto !important;
-            -webkit-column-count: auto !important;
-            -moz-column-count: auto !important;
-            column-count: auto !important;
-            -webkit-column-gap: 0 !important;
-            -moz-column-gap: 0 !important;
-            column-gap: 0 !important;
-          }
-
           html {
             height: 100vh !important;
             width: 100vw !important;
@@ -1351,18 +1326,6 @@
             -webkit-text-size-adjust: 100% !important;
           }
 
-          body {
-            display: block !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: 100vh !important;
-            width: 100vw !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            column-width: \(columnWidth)px !important;
-            column-gap: 0 !important;
-            column-fill: auto !important;
-          }
         """
 
       let css = contentCSS + "\n" + paginationCSS
@@ -1508,10 +1471,11 @@
               if (hasFinalized) return;
               hasFinalized = true;
 
-              var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+              var root = document.documentElement;
+              var pageWidth = root.clientWidth || window.innerWidth;
               if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
 
-              var currentWidth = document.body.scrollWidth;
+              var currentWidth = root.scrollWidth || document.body.scrollWidth;
               var total = Math.max(1, Math.ceil(currentWidth / pageWidth));
               var maxScroll = Math.max(0, currentWidth - pageWidth);
 
@@ -1540,7 +1504,8 @@
             };
 
             var startLayoutCheck = function() {
-              var lastW = document.body.scrollWidth;
+              var root = document.documentElement;
+              var lastW = root.scrollWidth || document.body.scrollWidth;
               var stableCount = 0;
               var attempt = 0;
 
@@ -1548,8 +1513,9 @@
                 if (hasFinalized) return;
 
                 attempt++;
-                var currentW = document.body.scrollWidth;
-                var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+                var currentW = root.scrollWidth || document.body.scrollWidth;
+                var pageWidth = root.clientWidth || window.innerWidth;
+                if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
 
                 // Readium-style stability check:
                 // Wait for the multi-column layout to expand beyond 1 page if we expect more.
@@ -1627,8 +1593,9 @@
                 }
 
                 resizeDebounceTimer = setTimeout(function() {
-                  var w = document.body.scrollWidth;
-                  var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+                  var w = document.documentElement.scrollWidth || document.body.scrollWidth;
+                  var pageWidth = document.documentElement.clientWidth || window.innerWidth;
+                  if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
 
                   if (pageWidth > 0 && w > 0) {
                     // Check if scrollWidth has stabilized
@@ -1661,8 +1628,8 @@
 
               // Start observing after a delay to let initial layout settle
               setTimeout(function() {
-                stableScrollWidth = document.body.scrollWidth;
-                ro.observe(document.body);
+                stableScrollWidth = document.documentElement.scrollWidth || document.body.scrollWidth;
+                ro.observe(document.documentElement);
               }, 1500);
             }
           })();
@@ -1675,9 +1642,10 @@
       guard isContentLoaded else { return }
       let js = """
           (function() {
-            var pageWidth = window.innerWidth || document.documentElement.clientWidth;
+            var root = document.documentElement;
+            var pageWidth = root.clientWidth || window.innerWidth;
             if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-            var maxScroll = Math.max(0, document.body.scrollWidth - pageWidth);
+            var maxScroll = Math.max(0, (root.scrollWidth || document.body.scrollWidth) - pageWidth);
             var offset = Math.min(pageWidth * \(pageIndex), maxScroll);
             window.scrollTo(offset, 0);
             if (document.documentElement) { document.documentElement.scrollLeft = offset; }

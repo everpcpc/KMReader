@@ -114,7 +114,10 @@
     }
 
     func updateViewport(size: CGSize) {
-      let normalized = CGSize(width: floor(size.width), height: floor(size.height))
+      let containerInsets = containerInsetsForLabels()
+      let adjustedWidth = size.width - containerInsets.left - containerInsets.right
+      let adjustedHeight = size.height - containerInsets.top - containerInsets.bottom
+      let normalized = CGSize(width: floor(adjustedWidth), height: floor(adjustedHeight))
       guard normalized.width > 0, normalized.height > 0 else { return }
       guard normalized != viewportSize else { return }
       viewportSize = normalized
@@ -563,12 +566,10 @@
     var labelBottomOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 16 : 8 }
     var useSafeArea: Bool { UIDevice.current.userInterfaceIdiom != .pad }
 
-    func pageInsets(for prefs: EpubReaderPreferences) -> UIEdgeInsets {
-      let pageMargins = CGFloat(prefs.pageMargins)
-      // Reserve space for overlay labels
-      let topPadding = pageMargins + labelTopOffset + 8
-      let bottomPadding = pageMargins + labelBottomOffset + 8
-      return UIEdgeInsets(top: topPadding, left: pageMargins, bottom: bottomPadding, right: pageMargins)
+    func containerInsetsForLabels() -> UIEdgeInsets {
+      let topPadding = labelTopOffset + 24
+      let bottomPadding = labelBottomOffset + 24
+      return UIEdgeInsets(top: topPadding, left: 0, bottom: bottomPadding, right: 0)
     }
 
     // MARK: - Private Methods

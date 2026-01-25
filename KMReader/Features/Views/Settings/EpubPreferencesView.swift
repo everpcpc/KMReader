@@ -209,10 +209,18 @@
         }
 
         Section(String(localized: "Page Layout")) {
+          Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
+            ForEach(EpubColumnCount.allCases) { option in
+              Text(option.label)
+                .tag(option)
+            }
+          }
+          .pickerStyle(.segmented)
+
           VStack(alignment: .leading) {
-            Slider(value: $draft.pageMargins, in: 8.0...32.0, step: 1.0)
+            Slider(value: $draft.pageMargins, in: 0.25...2.0, step: 0.05)
             Text(
-              String(localized: "Page Margins: \(String(format: "%.0f", draft.pageMargins))px")
+              String(localized: "Page Margins: \(String(format: "%.2f", draft.pageMargins))x")
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -525,7 +533,7 @@
     let paragraphSpacingEm = preferences.paragraphSpacing
     let paragraphIndentEm = preferences.paragraphIndent
 
-    let internalPadding = Int(preferences.pageMargins)
+    let internalPadding = Int(round(max(0, preferences.pageMargins) * 20.0))
 
     var fontFaceCSS = ""
     if let fontName = preferences.fontFamily.fontName, let path = customFontPath {

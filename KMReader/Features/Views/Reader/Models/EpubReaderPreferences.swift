@@ -19,7 +19,7 @@ nonisolated enum EpubConstants {
   static let defaultParagraphSpacing: Double = 0.5
   static let defaultParagraphIndent: Double = 2.0
 
-  static let defaultPageMargins: Double = 16.0
+  static let defaultPageMargins: Double = 1.0
   static let defaultFontWeight: Double = 1.0
 }
 
@@ -33,6 +33,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   var paragraphSpacing: Double
   var paragraphIndent: Double
   var pageMargins: Double
+  var columnCount: EpubColumnCount
   var letterSpacing: Double
   var lineHeight: Double
   var fontWeight: Double
@@ -45,6 +46,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     paragraphSpacing: Double = EpubConstants.defaultParagraphSpacing,
     paragraphIndent: Double = EpubConstants.defaultParagraphIndent,
     pageMargins: Double = EpubConstants.defaultPageMargins,
+    columnCount: EpubColumnCount = .auto,
     letterSpacing: Double = EpubConstants.defaultLetterSpacing,
     lineHeight: Double = EpubConstants.defaultLineHeight,
     fontWeight: Double = EpubConstants.defaultFontWeight
@@ -56,6 +58,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     self.paragraphSpacing = paragraphSpacing
     self.paragraphIndent = paragraphIndent
     self.pageMargins = pageMargins
+    self.columnCount = columnCount
     self.letterSpacing = letterSpacing
     self.lineHeight = lineHeight
     self.fontWeight = fontWeight
@@ -81,7 +84,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let wordSpacing = dict["wordSpacing"] as? Double ?? EpubConstants.defaultWordSpacing
     let paragraphSpacing = dict["paragraphSpacing"] as? Double ?? EpubConstants.defaultParagraphSpacing
     let paragraphIndent = dict["paragraphIndent"] as? Double ?? EpubConstants.defaultParagraphIndent
-    let pageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
+    let rawPageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
+    let pageMargins = Self.normalizedPageMargins(rawPageMargins)
+    let columnCountRaw = dict["columnCount"] as? String ?? EpubColumnCount.auto.rawValue
+    let columnCount = EpubColumnCount(rawValue: columnCountRaw) ?? .auto
     let letterSpacing = dict["letterSpacing"] as? Double ?? EpubConstants.defaultLetterSpacing
     let lineHeight = dict["lineHeight"] as? Double ?? EpubConstants.defaultLineHeight
     let fontWeight = dict["fontWeight"] as? Double ?? EpubConstants.defaultFontWeight
@@ -93,6 +99,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       paragraphSpacing: paragraphSpacing,
       paragraphIndent: paragraphIndent,
       pageMargins: pageMargins,
+      columnCount: columnCount,
       letterSpacing: letterSpacing,
       lineHeight: lineHeight,
       fontWeight: fontWeight
@@ -108,6 +115,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       "paragraphSpacing": paragraphSpacing,
       "paragraphIndent": paragraphIndent,
       "pageMargins": pageMargins,
+      "columnCount": columnCount.rawValue,
       "letterSpacing": letterSpacing,
       "lineHeight": lineHeight,
       "fontWeight": fontWeight,
@@ -153,6 +161,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let fontFamilyValue = fontName.map(cssFontFamilyValue)
     properties["--USER__fontOverride"] = fontFamilyValue == nil ? nil : "readium-font-on"
     properties["--USER__fontFamily"] = fontFamilyValue
+    properties["--USER__pageMargins"] = String(format: "%.2f", max(0, pageMargins))
+    properties["--USER__colCount"] = columnCount.readiumValue
 
     if theme.isDark {
       properties["--USER__appearance"] = "readium-night-on"
@@ -222,6 +232,11 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     default:
       return false
     }
+  }
+
+  private static func normalizedPageMargins(_ value: Double) -> Double {
+    let normalized = value > 4.0 ? value / 20.0 : value
+    return max(0, normalized)
   }
 }
 
