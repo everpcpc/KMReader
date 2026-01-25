@@ -637,51 +637,6 @@ body {
 }
 
 /* Readium CSS
-   A11y font pref
-
-   A submodule managing a11y text normalization for user settings
-   Part of “User Overrides” class – “font override” flag required.
-
-   Repo: https://github.com/readium/readium-css */
-
-/* A11y font normalization remains available through readium-a11y-on */
-
-:root[style*="readium-font-on"][style*="readium-a11y-on"] {
-  font-family: var(--USER__fontFamily) !important;
-  --RS__lineHeightCompensation: 1.167;
-}
-
-/* Maybe users want a setting to normalize any font offered so there is a “a11y Normalize” flag for it */
-
-:root[style*="readium-font-on"][style*="readium-a11y-on"] {
-  font-style: normal !important;
-  font-weight: normal !important;
-}
-
-/* Targeting everything except code. Note that Open Dyslexic has a monospaced font for code */
-
-:root[style*="readium-font-on"][style*="readium-a11y-on"] *:not(code):not(var):not(kbd):not(samp) {
-  font-family: inherit !important;
-  font-style: inherit !important;
-  font-weight: inherit !important;
-}
-
-/* Normalizing text-decoration, subs and sups */
-
-:root[style*="readium-font-on"][style*="readium-a11y-on"] * {
-  text-decoration: none !important;
-  font-variant-caps: normal !important;
-  font-variant-numeric: normal !important;
-  font-variant-position: normal !important;
-}
-
-:root[style*="readium-font-on"][style*="readium-a11y-on"] sup,
-:root[style*="readium-font-on"][style*="readium-a11y-on"] sub {
-  font-size: 1rem !important;
-  vertical-align: baseline !important;
-}
-
-/* Readium CSS
    Font size pref
 
    A submodule managing font-size for user settings
