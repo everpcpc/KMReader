@@ -64,6 +64,7 @@
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
+    let onEndReached: () -> Void
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -99,10 +100,14 @@
       centerTapRecognizer.delegate = context.coordinator
       pageVC.view.addGestureRecognizer(centerTapRecognizer)
 
-      if let initialLocation = viewModel.pageLocation(at: viewModel.currentPageIndex),
+      let initialChapterIndex = viewModel.currentChapterIndex
+      let initialPageCount = viewModel.chapterPageCount(at: initialChapterIndex) ?? 1
+      let initialPageIndex = max(0, min(viewModel.currentPageIndex, initialPageCount - 1))
+      if initialChapterIndex >= 0,
+        initialChapterIndex < viewModel.chapterCount,
         let initialVC = context.coordinator.pageViewController(
-          chapterIndex: initialLocation.chapterIndex,
-          subPageIndex: initialLocation.pageIndex,
+          chapterIndex: initialChapterIndex,
+          subPageIndex: initialPageIndex,
           in: pageVC
         )
       {
@@ -122,33 +127,55 @@
     func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
       context.coordinator.parent = self
 
+      let initialChapterIndex = viewModel.currentChapterIndex
+      let initialPageCount = viewModel.chapterPageCount(at: initialChapterIndex) ?? 1
+      let initialPageIndex = max(0, min(viewModel.currentPageIndex, initialPageCount - 1))
+
       if uiViewController.viewControllers?.isEmpty ?? true,
-        let initialLocation = viewModel.pageLocation(at: viewModel.currentPageIndex),
+        initialChapterIndex >= 0,
+        initialChapterIndex < viewModel.chapterCount,
         let initialVC = context.coordinator.pageViewController(
-          chapterIndex: initialLocation.chapterIndex,
-          subPageIndex: initialLocation.pageIndex,
+          chapterIndex: initialChapterIndex,
+          subPageIndex: initialPageIndex,
           in: uiViewController
         )
       {
         uiViewController.setViewControllers([initialVC], direction: .forward, animated: false)
-        context.coordinator.currentPageIndex = viewModel.currentPageIndex
+        context.coordinator.currentChapterIndex = initialChapterIndex
+        context.coordinator.currentPageIndex = initialPageIndex
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: uiViewController)
         }
       }
 
-      if let targetIndex = viewModel.targetPageIndex,
-        targetIndex != context.coordinator.currentPageIndex,
+      if let targetChapterIndex = viewModel.targetChapterIndex,
+        let targetPageIndex = viewModel.targetPageIndex,
         !context.coordinator.isAnimating,
-        let targetLocation = viewModel.pageLocation(at: targetIndex),
-        let targetVC = context.coordinator.pageViewController(
-          chapterIndex: targetLocation.chapterIndex,
-          subPageIndex: targetLocation.pageIndex,
-          in: uiViewController
-        )
+        targetChapterIndex >= 0,
+        targetChapterIndex < viewModel.chapterCount,
+        targetChapterIndex != context.coordinator.currentChapterIndex
+          || targetPageIndex != context.coordinator.currentPageIndex
       {
-        let direction: UIPageViewController.NavigationDirection =
-          targetIndex > context.coordinator.currentPageIndex ? .forward : .reverse
+        let pageCount = viewModel.chapterPageCount(at: targetChapterIndex) ?? 1
+        let isLastPageRequest = targetPageIndex < 0
+        let normalizedPageIndex =
+          isLastPageRequest
+          ? max(0, pageCount - 1)
+          : max(0, min(targetPageIndex, pageCount - 1))
+        guard
+          let targetVC = context.coordinator.pageViewController(
+            chapterIndex: targetChapterIndex,
+            subPageIndex: normalizedPageIndex,
+            in: uiViewController,
+            preferLastPageOnReady: isLastPageRequest
+          )
+        else { return }
+
+        let isForward =
+          targetChapterIndex > context.coordinator.currentChapterIndex
+          || (targetChapterIndex == context.coordinator.currentChapterIndex
+            && normalizedPageIndex > context.coordinator.currentPageIndex)
+        let direction: UIPageViewController.NavigationDirection = isForward ? .forward : .reverse
 
         context.coordinator.isAnimating = true
         uiViewController.setViewControllers(
@@ -158,13 +185,17 @@
         ) { completed in
           context.coordinator.isAnimating = false
           if completed {
-            context.coordinator.currentPageIndex = targetIndex
+            context.coordinator.currentChapterIndex = targetChapterIndex
+            context.coordinator.currentPageIndex = normalizedPageIndex
             if let currentVC = uiViewController.viewControllers?.first as? EpubPageViewController {
               context.coordinator.preloadAdjacentPages(for: currentVC, in: uiViewController)
             }
             Task { @MainActor in
+              viewModel.currentChapterIndex = targetChapterIndex
+              viewModel.currentPageIndex = normalizedPageIndex
+              viewModel.targetChapterIndex = nil
               viewModel.targetPageIndex = nil
-              viewModel.pageDidChange(to: targetIndex)
+              viewModel.pageDidChange()
             }
           }
         }
@@ -187,13 +218,17 @@
           rootURL: viewModel.resourceRootURL
         )
 
-        guard let globalIndex = viewModel.globalIndexForChapter(chapterIndex, pageIndex: currentVC.currentSubPageIndex),
-          globalIndex < viewModel.pageLocations.count
+        guard
+          let location = viewModel.pageLocation(
+            chapterIndex: chapterIndex,
+            pageIndex: currentVC.currentSubPageIndex
+          )
         else { return }
-        let location = viewModel.pageLocations[globalIndex]
         let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = viewModel.totalProgression(
-          for: globalIndex, location: location, chapterProgress: chapterProgress)
+          location: location,
+          chapterProgress: chapterProgress
+        )
 
         currentVC.configure(
           chapterURL: viewModel.chapterURL(at: chapterIndex),
@@ -224,17 +259,23 @@
       UIGestureRecognizerDelegate
     {
       var parent: WebPubPageView
+      var currentChapterIndex: Int
       var currentPageIndex: Int
       var isAnimating = false
       weak var pageViewController: UIPageViewController?
       private let maxCachedControllers = 5  // Increased from 3 to 5 to reduce eviction during transitions
-      private var cachedControllers: [Int: EpubPageViewController] = [:]
-      private var controllerKeys: [ObjectIdentifier: Int] = [:]
+      private var cachedControllers: [String: EpubPageViewController] = [:]
+      private var controllerKeys: [ObjectIdentifier: String] = [:]
       private var pendingControllers: Set<ObjectIdentifier> = []  // Track controllers in transition
 
       init(_ parent: WebPubPageView) {
         self.parent = parent
+        self.currentChapterIndex = parent.viewModel.currentChapterIndex
         self.currentPageIndex = parent.viewModel.currentPageIndex
+      }
+
+      private func cacheKey(chapterIndex: Int, pageIndex: Int) -> String {
+        "\(chapterIndex)-\(pageIndex)"
       }
 
       private func configureController(
@@ -243,13 +284,18 @@
         controller.onPageIndexAdjusted = { [weak self, weak controller] pageIndex in
           guard let self, let controller else { return }
           guard self.pageViewController?.viewControllers?.first === controller else { return }
-          if let globalIndex = self.parent.viewModel.globalIndexForChapter(
-            controller.chapterIndex,
-            pageIndex: pageIndex
-          ) {
-            self.currentPageIndex = globalIndex
-            self.parent.viewModel.pageDidChange(to: globalIndex)
+          let chapterIndex = controller.chapterIndex
+          let storedCount = self.parent.viewModel.chapterPageCount(at: chapterIndex) ?? 1
+          let effectiveCount = max(storedCount, controller.totalPagesInChapter)
+          let normalizedPageIndex = max(0, min(pageIndex, effectiveCount - 1))
+          if effectiveCount != storedCount {
+            self.parent.viewModel.updateChapterPageCount(effectiveCount, for: chapterIndex)
           }
+          self.parent.viewModel.currentChapterIndex = chapterIndex
+          self.parent.viewModel.currentPageIndex = normalizedPageIndex
+          self.currentChapterIndex = chapterIndex
+          self.currentPageIndex = normalizedPageIndex
+          self.parent.viewModel.pageDidChange()
         }
       }
 
@@ -259,6 +305,7 @@
         in pageViewController: UIPageViewController?,
         preferLastPageOnReady: Bool = false
       ) -> UIViewController? {
+        guard chapterIndex >= 0, chapterIndex < parent.viewModel.chapterCount else { return nil }
         let pageCount = parent.viewModel.chapterPageCount(at: chapterIndex) ?? 1
 
         // Only validate bounds if we're not using preferLastPageOnReady
@@ -293,33 +340,22 @@
           }
         }
 
-        // Try to get globalIndex. If it fails and we're using preferLastPageOnReady,
-        // try with page 0 as a fallback (the actual page will be adjusted when content loads)
-        var effectiveSubPageIndex = subPageIndex
-        var globalIndex = parent.viewModel.globalIndexForChapter(chapterIndex, pageIndex: subPageIndex)
-
-        if globalIndex == nil || (globalIndex != nil && globalIndex! >= parent.viewModel.pageLocations.count) {
-          // If preferLastPageOnReady is true and globalIndex calculation failed,
-          // try with page 0 as fallback
-          if preferLastPageOnReady,
-            let fallbackIndex = parent.viewModel.globalIndexForChapter(chapterIndex, pageIndex: 0),
-            fallbackIndex < parent.viewModel.pageLocations.count
-          {
-            globalIndex = fallbackIndex
-            effectiveSubPageIndex = 0
-          } else {
-            return nil
-          }
-        }
-
-        guard let finalGlobalIndex = globalIndex else { return nil }
-        let location = parent.viewModel.pageLocations[finalGlobalIndex]
+        let locationPageIndex = min(max(subPageIndex, 0), max(0, pageCount - 1))
+        guard
+          let location = parent.viewModel.pageLocation(
+            chapterIndex: chapterIndex,
+            pageIndex: locationPageIndex
+          )
+        else { return nil }
         let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = parent.viewModel.totalProgression(
-          for: finalGlobalIndex, location: location, chapterProgress: chapterProgress)
+          location: location,
+          chapterProgress: chapterProgress
+        )
         let initialProgression = parent.viewModel.initialProgression(for: chapterIndex)
 
-        if let cached = cachedControllers[finalGlobalIndex] {
+        let key = cacheKey(chapterIndex: chapterIndex, pageIndex: subPageIndex)
+        if let cached = cachedControllers[key] {
           cached.configure(
             chapterURL: chapterURL,
             rootURL: rootURL,
@@ -327,7 +363,7 @@
             theme: theme,
             contentCSS: contentCSS,
             chapterIndex: chapterIndex,
-            subPageIndex: effectiveSubPageIndex,
+            subPageIndex: subPageIndex,
             totalPages: pageCount,
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
@@ -342,7 +378,6 @@
           )
           configureController(cached)
           cached.loadViewIfNeeded()
-          cached.view.tag = finalGlobalIndex
           return cached
         }
 
@@ -357,7 +392,7 @@
             theme: theme,
             contentCSS: contentCSS,
             chapterIndex: chapterIndex,
-            subPageIndex: effectiveSubPageIndex,
+            subPageIndex: subPageIndex,
             totalPages: pageCount,
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
@@ -375,8 +410,7 @@
             self?.parent.viewModel.navigateToURL(url)
           }
           reusable.loadViewIfNeeded()
-          reusable.view.tag = finalGlobalIndex
-          storeController(reusable, for: finalGlobalIndex)
+          storeController(reusable, for: key)
           return reusable
         }
 
@@ -387,7 +421,7 @@
           theme: theme,
           contentCSS: contentCSS,
           chapterIndex: chapterIndex,
-          subPageIndex: effectiveSubPageIndex,
+          subPageIndex: subPageIndex,
           totalPages: pageCount,
           bookTitle: parent.bookTitle,
           chapterTitle: location.title,
@@ -405,8 +439,7 @@
           self?.parent.viewModel.navigateToURL(url)
         }
         controller.loadViewIfNeeded()
-        controller.view.tag = finalGlobalIndex
-        storeController(controller, for: finalGlobalIndex)
+        storeController(controller, for: key)
         return controller
       }
 
@@ -464,8 +497,8 @@
       ) -> UIViewController? {
         guard let current = viewController as? EpubPageViewController else { return nil }
 
-        let chapterPageCount =
-          parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? current.totalPagesInChapter
+        let storedCount = parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? 1
+        let chapterPageCount = max(storedCount, current.totalPagesInChapter)
         if current.currentSubPageIndex < chapterPageCount - 1 {
           let controller = self.pageViewController(
             chapterIndex: current.chapterIndex,
@@ -516,15 +549,20 @@
           let currentVC = pageViewController.viewControllers?.first as? EpubPageViewController
         else { return }
 
-        if let newIndex = parent.viewModel.globalIndexForChapter(
-          currentVC.chapterIndex,
-          pageIndex: currentVC.currentSubPageIndex
-        ) {
-          currentPageIndex = newIndex
-          preloadAdjacentPages(for: currentVC, in: pageViewController)
-          Task { @MainActor in
-            parent.viewModel.pageDidChange(to: newIndex)
-          }
+        let chapterIndex = currentVC.chapterIndex
+        let storedCount = parent.viewModel.chapterPageCount(at: chapterIndex) ?? 1
+        let effectiveCount = max(storedCount, currentVC.totalPagesInChapter)
+        let normalizedPageIndex = max(0, min(currentVC.currentSubPageIndex, effectiveCount - 1))
+        if effectiveCount != storedCount {
+          parent.viewModel.updateChapterPageCount(effectiveCount, for: chapterIndex)
+        }
+        currentChapterIndex = chapterIndex
+        currentPageIndex = normalizedPageIndex
+        preloadAdjacentPages(for: currentVC, in: pageViewController)
+        Task { @MainActor in
+          parent.viewModel.currentChapterIndex = chapterIndex
+          parent.viewModel.currentPageIndex = normalizedPageIndex
+          parent.viewModel.pageDidChange()
         }
       }
 
@@ -539,13 +577,13 @@
         }
       }
 
-      private func storeController(_ controller: EpubPageViewController, for globalIndex: Int) {
+      private func storeController(_ controller: EpubPageViewController, for key: String) {
         let identifier = ObjectIdentifier(controller)
         if let existingKey = controllerKeys[identifier] {
           cachedControllers.removeValue(forKey: existingKey)
         }
-        controllerKeys[identifier] = globalIndex
-        cachedControllers[globalIndex] = controller
+        controllerKeys[identifier] = key
+        cachedControllers[key] = controller
         if cachedControllers.count > maxCachedControllers {
           evictUnusedControllers()
         }
@@ -571,8 +609,8 @@
       }
 
       func preloadAdjacentPages(for current: EpubPageViewController, in pageVC: UIPageViewController) {
-        let chapterPageCount =
-          parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? current.totalPagesInChapter
+        let storedCount = parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? 1
+        let chapterPageCount = max(storedCount, current.totalPagesInChapter)
         let nextSubPage = current.currentSubPageIndex + 1
         let prevSubPage = current.currentSubPageIndex - 1
 
@@ -643,7 +681,8 @@
         let lastChapterIndex = parent.viewModel.chapterCount - 1
         let isAtLastPage: Bool = {
           if currentVC.chapterIndex == lastChapterIndex {
-            let pageCount = parent.viewModel.chapterPageCount(at: lastChapterIndex) ?? 1
+            let storedCount = parent.viewModel.chapterPageCount(at: lastChapterIndex) ?? 1
+            let pageCount = max(storedCount, currentVC.totalPagesInChapter)
             return currentVC.currentSubPageIndex >= pageCount - 1
           }
           return false
@@ -662,6 +701,7 @@
 
           // Block right tap at last page
           if isAtLastPage && location.x > viewWidth - tapZoneWidth {
+            parent.onEndReached()
             return false
           }
         }
@@ -676,6 +716,7 @@
 
           // Block forward swipe (right to left, negative translation) at last page
           if isAtLastPage && translation.x < 0 {
+            parent.onEndReached()
             return false
           }
         }

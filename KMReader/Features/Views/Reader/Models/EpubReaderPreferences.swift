@@ -248,6 +248,16 @@ nonisolated enum ReaderTheme: String, CaseIterable {
     case .darkGreen: return "#D1E0D1"
     }
   }
+
+  @MainActor
+  var backgroundColor: Color {
+    Color(hex: backgroundColorHex) ?? .black
+  }
+
+  @MainActor
+  var textColor: Color {
+    Color(hex: textColorHex) ?? .white
+  }
 }
 
 nonisolated enum FontFamilyChoice: Hashable, Identifiable {

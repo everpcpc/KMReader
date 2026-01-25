@@ -30,6 +30,7 @@
     @State private var showingPreferencesSheet = false
     @State private var showingDetailSheet = false
     @State private var showingQuickActions = false
+    @State private var showingEndPage = false
 
     init(
       book: Book,
@@ -182,7 +183,30 @@
 
     @ViewBuilder
     private func contentView(for size: CGSize, viewModel: EpubReaderViewModel) -> some View {
-      if viewModel.isLoading {
+      if showingEndPage {
+        EpubEndPageView(
+          bookTitle: currentBook?.metadata.title,
+          preferences: readerPrefs,
+          colorScheme: colorScheme,
+          onReturn: {
+            // Hide end page first, then navigate to last page
+            showingEndPage = false
+
+            // Navigate back to the last page of the last chapter
+            Task { @MainActor in
+              // Small delay to ensure view hierarchy is updated
+              try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1 seconds
+              if let lastPosition = viewModel.lastPagePosition() {
+                viewModel.targetChapterIndex = lastPosition.chapterIndex
+                viewModel.targetPageIndex = lastPosition.pageIndex
+              }
+            }
+          },
+          onClose: {
+            closeReader()
+          }
+        )
+      } else if viewModel.isLoading {
         ReaderLoadingView(
           title: loadingTitle,
           detail: loadingDetail,
@@ -202,7 +226,7 @@
           }
         }
         .padding()
-      } else if !viewModel.pageLocations.isEmpty {
+      } else if viewModel.hasContent {
         switch epubPageTransitionStyle {
         case .scroll:
           WebPubScrollView(
@@ -213,6 +237,12 @@
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {
               toggleControls()
+            },
+            onEndReached: {
+              if !showingEndPage {
+                viewModel.syncEndProgression()
+                showingEndPage = true
+              }
             }
           ).readerIgnoresSafeArea()
         case .pageCurl:
@@ -224,6 +254,12 @@
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {
               toggleControls()
+            },
+            onEndReached: {
+              if !showingEndPage {
+                viewModel.syncEndProgression()
+                showingEndPage = true
+              }
             }
           ).readerIgnoresSafeArea()
         }

@@ -39,3 +39,8 @@ struct R2Progression: Codable, Equatable {
   let device: R2Device
   let locator: R2Locator
 }
+
+struct R2Positions: Codable, Equatable {
+  let positions: [R2Locator]
+  let total: Int
+}

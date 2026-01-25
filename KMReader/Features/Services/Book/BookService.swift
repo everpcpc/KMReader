@@ -81,6 +81,10 @@ class BookService {
     return try await apiClient.requestOptional(path: "/api/v1/books/\(bookId)/progression")
   }
 
+  func getWebPubPositions(bookId: String) async throws -> R2Positions {
+    return try await apiClient.request(path: "/api/v1/books/\(bookId)/positions")
+  }
+
   func updateWebPubProgression(bookId: String, progression: R2Progression) async throws {
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601

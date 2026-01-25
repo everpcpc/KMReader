@@ -4814,6 +4814,46 @@
         }
       }
     },
+    "Book Finished" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buch beendet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Livre terminé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "독서 완료"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已读完"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已讀完"
+          }
+        }
+      }
+    },
     "Book has been deleted" : {
       "localizations" : {
         "de" : {
@@ -31084,16 +31124,16 @@
     },
     "Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination."
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lesen sollte bequem und angenehm sein. Nehmen Sie sich Zeit, diese Einstellungen anzupassen, bis Sie die perfekte Kombination gefunden haben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination."
           }
         },
         "fr" : {
@@ -32504,6 +32544,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部重試"
+          }
+        }
+      }
+    },
+    "Return" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "戻る"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "돌아가기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回"
           }
         }
       }
@@ -41572,16 +41652,16 @@
     },
     "The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences."
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Der schnelle braune Fuchs springt über den faulen Hund. Dies ist ein Beispieltext zur Vorschau Ihrer Leseeinstellungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences."
           }
         },
         "fr" : {
@@ -44792,16 +44872,16 @@
     },
     "You can adjust the font size, spacing, and other settings to find what works best for you. Each paragraph demonstrates how the text will appear with your current choices." : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can adjust the font size, spacing, and other settings to find what works best for you. Each paragraph demonstrates how the text will appear with your current choices."
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sie können Schriftgröße, Abstand und andere Einstellungen anpassen, um die beste Darstellung für Sie zu finden. Jeder Absatz zeigt, wie der Text mit Ihren aktuellen Einstellungen aussehen wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can adjust the font size, spacing, and other settings to find what works best for you. Each paragraph demonstrates how the text will appear with your current choices."
           }
         },
         "fr" : {

@@ -38,14 +38,16 @@
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
+    let onEndReached: () -> Void
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
     }
 
     func makeUIViewController(context: Context) -> ScrollEpubViewController {
-      let currentLocation = viewModel.pageLocation(at: viewModel.currentPageIndex)
-      let chapterIndex = currentLocation?.chapterIndex ?? 0
+      let chapterIndex = viewModel.currentChapterIndex
+      let pageIndex = viewModel.currentPageIndex
+      let currentLocation = viewModel.pageLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
 
       let theme = preferences.resolvedTheme(for: colorScheme)
       let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
@@ -66,7 +68,6 @@
         chapterTitle: currentLocation?.title,
         totalProgression: currentLocation.flatMap { location in
           viewModel.totalProgression(
-            for: viewModel.currentPageIndex,
             location: location,
             chapterProgress: nil
           )
@@ -78,25 +79,41 @@
       )
 
       vc.onCenterTap = onCenterTap
+      vc.onEndReached = onEndReached
       vc.onChapterNavigationNeeded = { [weak viewModel] targetChapterIndex in
         guard let viewModel = viewModel else { return }
 
         // Determine if we're going forward or backward
-        let currentChapterIndex = viewModel.pageLocation(at: viewModel.currentPageIndex)?.chapterIndex ?? 0
+        let currentChapterIndex = viewModel.currentChapterIndex
         let isGoingBackward = targetChapterIndex < currentChapterIndex
 
         if isGoingBackward {
           // Going to previous chapter - jump to last page
-          let pageCount = viewModel.chapterPageCount(at: targetChapterIndex) ?? 1
-          let lastPageIndex = max(0, pageCount - 1)
-          if let targetGlobalIndex = viewModel.globalIndexForChapter(targetChapterIndex, pageIndex: lastPageIndex) {
-            viewModel.targetPageIndex = targetGlobalIndex
-          }
+          viewModel.targetChapterIndex = targetChapterIndex
+          viewModel.targetPageIndex = -1
         } else {
           // Going to next chapter - jump to first page
-          if let targetGlobalIndex = viewModel.globalIndexForChapter(targetChapterIndex, pageIndex: 0) {
-            viewModel.targetPageIndex = targetGlobalIndex
-          }
+          viewModel.targetChapterIndex = targetChapterIndex
+          viewModel.targetPageIndex = 0
+        }
+        Task { @MainActor in
+          viewModel.pageDidChange()
+        }
+      }
+      vc.onPageDidChange = { [weak viewModel] chapterIndex, pageIndex in
+        guard let viewModel = viewModel else { return }
+        let normalizedPageIndex = max(0, pageIndex)
+        viewModel.currentChapterIndex = chapterIndex
+        viewModel.currentPageIndex = normalizedPageIndex
+        let pageCount = viewModel.chapterPageCount(at: chapterIndex) ?? 1
+        if normalizedPageIndex >= pageCount {
+          viewModel.updateChapterPageCount(normalizedPageIndex + 1, for: chapterIndex)
+        }
+        viewModel.pageDidChange()
+      }
+      vc.onPageCountReady = { [weak viewModel] chapterIndex, pageCount in
+        Task { @MainActor in
+          viewModel?.updateChapterPageCount(pageCount, for: chapterIndex)
         }
       }
       context.coordinator.viewController = vc
@@ -106,38 +123,48 @@
 
     func updateUIViewController(_ uiViewController: ScrollEpubViewController, context: Context) {
       context.coordinator.parent = self
+      uiViewController.onEndReached = onEndReached
 
       // Handle TOC navigation via targetPageIndex
-      if let targetIndex = viewModel.targetPageIndex,
-        targetIndex != viewModel.currentPageIndex,
-        let targetLocation = viewModel.pageLocation(at: targetIndex)
+      if let targetChapterIndex = viewModel.targetChapterIndex,
+        let targetPageIndex = viewModel.targetPageIndex,
+        targetChapterIndex >= 0,
+        targetChapterIndex < viewModel.chapterCount,
+        (targetChapterIndex != viewModel.currentChapterIndex
+          || targetPageIndex != viewModel.currentPageIndex)
       {
-        let targetChapterIndex = targetLocation.chapterIndex
-        let targetSubPageIndex = targetLocation.pageIndex
+        let pageCount = viewModel.chapterPageCount(at: targetChapterIndex) ?? 1
+        let isLastPageRequest = targetPageIndex < 0
+        let normalizedPageIndex = isLastPageRequest
+          ? max(0, pageCount - 1)
+          : max(0, min(targetPageIndex, pageCount - 1))
 
         // Check if this is a jump to the last page of a chapter (backward navigation)
-        let currentChapterIndex = viewModel.pageLocation(at: viewModel.currentPageIndex)?.chapterIndex ?? 0
+        let currentChapterIndex = viewModel.currentChapterIndex
         let isGoingBackward = targetChapterIndex < currentChapterIndex
-        let isLastPageOfChapter = targetLocation.pageCount > 0 && targetSubPageIndex == targetLocation.pageCount - 1
+        let isLastPageOfChapter = isLastPageRequest || normalizedPageIndex == max(0, pageCount - 1)
 
         // Navigate to target chapter and page
         uiViewController.navigateToPage(
           chapterIndex: targetChapterIndex,
-          subPageIndex: targetSubPageIndex,
+          subPageIndex: normalizedPageIndex,
           jumpToLastPage: isGoingBackward && isLastPageOfChapter
         )
 
         // Clear targetPageIndex and update current page
         Task { @MainActor in
-          viewModel.currentPageIndex = targetIndex
+          viewModel.currentChapterIndex = targetChapterIndex
+          viewModel.currentPageIndex = normalizedPageIndex
+          viewModel.targetChapterIndex = nil
           viewModel.targetPageIndex = nil
-          viewModel.pageDidChange(to: targetIndex)
+          viewModel.pageDidChange()
         }
         return
       }
 
-      let currentLocation = viewModel.pageLocation(at: viewModel.currentPageIndex)
-      let chapterIndex = currentLocation?.chapterIndex ?? 0
+      let chapterIndex = viewModel.currentChapterIndex
+      let pageIndex = viewModel.currentPageIndex
+      let currentLocation = viewModel.pageLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
 
       let pageInsets = viewModel.pageInsets(for: preferences)
       let theme = preferences.resolvedTheme(for: colorScheme)
@@ -160,7 +187,6 @@
         : nil
       let totalProgression = currentLocation.flatMap { location in
         viewModel.totalProgression(
-          for: viewModel.currentPageIndex,
           location: location,
           chapterProgress: chapterProgress
         )
@@ -228,6 +254,8 @@
     // Chapter navigation
     private var totalChapters: Int = 1
     var onChapterNavigationNeeded: ((Int) -> Void)?
+    var onPageDidChange: ((Int, Int) -> Void)?
+    var onPageCountReady: ((Int, Int) -> Void)?
 
     private var containerView: UIView?
     private var containerConstraints:
@@ -247,6 +275,7 @@
 
     // Tap gesture handling
     var onCenterTap: (() -> Void)?
+    var onEndReached: (() -> Void)?
     private var tapGestureRecognizer: UITapGestureRecognizer?
 
     init(
@@ -540,6 +569,7 @@
       scrollToPage(newIndex)
       currentSubPageIndex = newIndex
       updateOverlayLabels()
+      onPageDidChange?(chapterIndex, currentSubPageIndex)
     }
 
     private func scrollToNextPage() {
@@ -549,6 +579,8 @@
       if currentSubPageIndex >= totalPagesInChapter - 1 {
         if chapterIndex < totalChapters - 1 {
           onChapterNavigationNeeded?(chapterIndex + 1)
+        } else {
+          onEndReached?()
         }
         return
       }
@@ -557,6 +589,7 @@
       scrollToPage(newIndex)
       currentSubPageIndex = newIndex
       updateOverlayLabels()
+      onPageDidChange?(chapterIndex, currentSubPageIndex)
     }
 
     func navigateToPage(chapterIndex: Int, subPageIndex: Int, jumpToLastPage: Bool = false) {
@@ -969,6 +1002,7 @@
           var actualPage = body["currentPage"] as? Int ?? currentSubPageIndex
 
           totalPagesInChapter = normalizedTotal
+          onPageCountReady?(chapterIndex, normalizedTotal)
 
           // If we need to jump to last page after loading, do it now
           if pendingJumpToLastPage {
@@ -985,6 +1019,7 @@
         updateOverlayLabels()
         loadingIndicator?.stopAnimating()
         webView.alpha = 1
+        onPageDidChange?(chapterIndex, currentSubPageIndex)
       }
     }
 
@@ -1070,6 +1105,8 @@
             targetContentOffset.pointee = CGPoint(x: maxOffset, y: 0)
             // Navigate to next chapter
             onChapterNavigationNeeded?(chapterIndex + 1)
+          } else {
+            onEndReached?()
           }
           return
         }
@@ -1088,6 +1125,7 @@
       if clampedIndex != currentSubPageIndex {
         currentSubPageIndex = clampedIndex
         updateOverlayLabels()
+        onPageDidChange?(chapterIndex, currentSubPageIndex)
       }
     }
 

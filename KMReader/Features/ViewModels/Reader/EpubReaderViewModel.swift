@@ -30,17 +30,17 @@
     let url: URL
   }
 
+  enum LoadingStage: String {
+    case idle
+    case fetchingMetadata
+    case downloading
+    case preparingReader
+    case paginating
+  }
+
   @MainActor
   @Observable
   class EpubReaderViewModel {
-    enum LoadingStage: String {
-      case idle
-      case fetchingMetadata
-      case downloading
-      case preparingReader
-      case paginating
-    }
-
     var isLoading = false
     var errorMessage: String?
     var loadingStage: LoadingStage = .idle
@@ -48,9 +48,10 @@
     var downloadBytesReceived: Int64 = 0
     var downloadBytesExpected: Int64?
 
-    var pageLocations: [WebPubPageLocation] = []
     var tableOfContents: [WebPubLink] = []
+    var currentChapterIndex: Int = 0
     var currentPageIndex: Int = 0
+    var targetChapterIndex: Int?
     var targetPageIndex: Int?
     var currentLocation: WebPubLocation?
     var resourceRootURL: URL?
@@ -65,6 +66,9 @@
     private var chapterTextWeights: [Int: Int] = [:]
     private var totalTextWeight: Int = 0
     private var hasFullTextWeights = false
+    private var tocTitleByHref: [String: String] = [:]
+    private var maxProgressionByHref: [String: Float] = [:]
+    private var positionsLoadTask: Task<[String: Float], Never>?
     private var textLengthTask: Task<Void, Never>?
     private var initialChapterIndex: Int?
     private var initialProgression: Double?
@@ -143,9 +147,10 @@
       downloadProgress = 0.0
       downloadBytesReceived = 0
       downloadBytesExpected = nil
-      pageLocations = []
       tableOfContents = []
+      currentChapterIndex = 0
       currentPageIndex = 0
+      targetChapterIndex = nil
       targetPageIndex = nil
       currentLocation = nil
       resourceRootURL = nil
@@ -155,6 +160,10 @@
       chapterTextWeights = [:]
       totalTextWeight = 0
       hasFullTextWeights = false
+      tocTitleByHref = [:]
+      maxProgressionByHref = [:]
+      positionsLoadTask?.cancel()
+      positionsLoadTask = nil
       textLengthTask?.cancel()
       textLengthTask = nil
       initialChapterIndex = nil
@@ -193,6 +202,7 @@
         loadingStage = .preparingReader
         readingOrder = manifest.readingOrder
         tableOfContents = manifest.toc.isEmpty ? manifest.readingOrder : manifest.toc
+        tocTitleByHref = buildTOCTitleMap(from: tableOfContents)
 
         resourceRootURL = offlineRoot
         copyCustomFontsToResourceDirectory()
@@ -221,20 +231,25 @@
         refreshChapterPageCounts(keepingCurrent: false)
         refreshChapterTextWeights()
 
-        if let chapterIndex = initialChapterIndex {
+        if let chapterIndex = initialChapterIndex,
+          chapterIndex >= 0,
+          chapterIndex < readingOrder.count
+        {
           let pageCount = chapterPageCounts[chapterIndex] ?? 1
           let progression = initialProgression ?? 0
           let pageIndex = max(0, min(pageCount - 1, Int(floor(Double(pageCount) * progression))))
-          if let globalIndex = globalIndexForChapter(chapterIndex, pageIndex: pageIndex) {
-            currentPageIndex = globalIndex
-            targetPageIndex = globalIndex
-          }
-        } else if let index = globalIndexForChapter(initialChapterIndex ?? 0, pageIndex: 0) {
-          currentPageIndex = index
-          targetPageIndex = index
+          currentChapterIndex = chapterIndex
+          currentPageIndex = pageIndex
+          targetChapterIndex = chapterIndex
+          targetPageIndex = pageIndex
+        } else if !readingOrder.isEmpty {
+          currentChapterIndex = 0
+          currentPageIndex = 0
+          targetChapterIndex = 0
+          targetPageIndex = 0
         }
 
-        updateLocation(for: currentPageIndex)
+        updateLocation(chapterIndex: currentChapterIndex, pageIndex: currentPageIndex)
 
         loadingStage = .idle
         isLoading = false
@@ -361,22 +376,29 @@
     }
 
     func goToNextPage() {
-      let nextIndex = currentPageIndex + 1
-      guard nextIndex < pageLocations.count else { return }
-      targetPageIndex = nextIndex
+      guard !readingOrder.isEmpty else { return }
+      let pageCount = chapterPageCount(at: currentChapterIndex) ?? 1
+      if currentPageIndex + 1 < pageCount {
+        setTarget(chapterIndex: currentChapterIndex, pageIndex: currentPageIndex + 1)
+      } else if currentChapterIndex + 1 < chapterCount {
+        setTarget(chapterIndex: currentChapterIndex + 1, pageIndex: 0)
+      }
     }
 
     func goToPreviousPage() {
-      let previousIndex = currentPageIndex - 1
-      guard previousIndex >= 0 else { return }
-      targetPageIndex = previousIndex
+      guard !readingOrder.isEmpty else { return }
+      if currentPageIndex > 0 {
+        setTarget(chapterIndex: currentChapterIndex, pageIndex: currentPageIndex - 1)
+      } else if currentChapterIndex > 0 {
+        let previousChapterIndex = currentChapterIndex - 1
+        targetChapterIndex = previousChapterIndex
+        targetPageIndex = -1
+      }
     }
 
     func goToChapter(link: WebPubLink) {
-      guard chapterIndexForHref(link.href) != nil else { return }
-      if let index = indexForHref(link.href, pageIndex: 0) {
-        targetPageIndex = index
-      }
+      guard let chapterIndex = chapterIndexForHref(link.href) else { return }
+      setTarget(chapterIndex: chapterIndex, pageIndex: 0)
     }
 
     func navigateToURL(_ url: URL) {
@@ -400,17 +422,18 @@
       possibleHrefs.append(path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
 
       for href in possibleHrefs {
-        if let index = indexForHref(href, pageIndex: 0) {
-          targetPageIndex = index
+        if let chapterIndex = chapterIndexForHref(href) {
+          setTarget(chapterIndex: chapterIndex, pageIndex: 0)
           return
         }
       }
     }
 
-    func pageDidChange(to index: Int) {
-      guard index >= 0, index < pageLocations.count else { return }
-      currentPageIndex = index
-      updateLocation(for: index)
+    func pageDidChange() {
+      let chapterIndex = currentChapterIndex
+      let pageIndex = currentPageIndex
+      updateLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
+      guard currentLocation != nil else { return }
 
       guard !incognito, !bookId.isEmpty else {
         return
@@ -423,7 +446,7 @@
       lastUpdateTime = now
 
       Task {
-        await updateProgression(for: index)
+        await updateProgression(chapterIndex: chapterIndex, pageIndex: pageIndex)
       }
     }
 
@@ -431,16 +454,56 @@
       readingOrder.count
     }
 
-    func pageLocation(at index: Int) -> WebPubPageLocation? {
-      guard index >= 0, index < pageLocations.count else { return nil }
-      return pageLocations[index]
+    var hasContent: Bool {
+      !readingOrder.isEmpty
     }
 
-    func pageLocationForChapter(_ chapterIndex: Int, pageIndex: Int) -> WebPubPageLocation? {
-      guard chapterIndex >= 0, chapterIndex < readingOrder.count else { return nil }
-      return pageLocations.first {
-        $0.chapterIndex == chapterIndex && $0.pageIndex == pageIndex
+    func lastPagePosition() -> (chapterIndex: Int, pageIndex: Int)? {
+      guard !readingOrder.isEmpty else { return nil }
+      let lastChapterIndex = readingOrder.count - 1
+      let pageCount = chapterPageCount(at: lastChapterIndex) ?? 1
+      return (lastChapterIndex, max(0, pageCount - 1))
+    }
+
+    func syncEndProgression() {
+      guard !incognito, !bookId.isEmpty else { return }
+      guard !AppConfig.isOffline else { return }
+      guard let lastPosition = lastPagePosition() else { return }
+
+      updateLocation(chapterIndex: lastPosition.chapterIndex, pageIndex: lastPosition.pageIndex)
+
+      Task {
+        let href = readingOrder[lastPosition.chapterIndex].href
+        let overrideProgression = await maxProgressionOverride(for: href)
+        guard let overrideProgression else { return }
+        await updateProgression(
+          chapterIndex: lastPosition.chapterIndex,
+          pageIndex: lastPosition.pageIndex,
+          chapterProgressOverride: Double(overrideProgression),
+          totalProgressOverride: nil
+        )
       }
+    }
+
+    func pageLocation(chapterIndex: Int, pageIndex: Int) -> WebPubPageLocation? {
+      guard chapterIndex >= 0, chapterIndex < readingOrder.count else { return nil }
+      let pageCount = max(1, chapterPageCounts[chapterIndex] ?? 1)
+      guard pageIndex >= 0, pageIndex < pageCount else { return nil }
+      guard let cachedURL = chapterURLCache[chapterIndex] else { return nil }
+
+      let link = readingOrder[chapterIndex]
+      let normalizedHref = Self.normalizedHref(link.href)
+      let title = link.title ?? tocTitleByHref[normalizedHref]
+
+      return WebPubPageLocation(
+        href: link.href,
+        title: title,
+        type: link.type,
+        chapterIndex: chapterIndex,
+        pageIndex: pageIndex,
+        pageCount: pageCount,
+        url: cachedURL
+      )
     }
 
     func prepareChapter(_ chapterIndex: Int) async {
@@ -460,63 +523,28 @@
       return initialProgression
     }
 
-    func globalIndexForChapter(_ chapterIndex: Int, pageIndex: Int) -> Int? {
-      guard chapterIndex >= 0, chapterIndex < readingOrder.count else { return nil }
-      var offset = 0
-      for idx in 0..<chapterIndex {
-        offset += max(1, chapterPageCounts[idx] ?? 1)
-      }
-      return max(0, offset + pageIndex)
-    }
-
     func updateChapterPageCount(_ pageCount: Int, for chapterIndex: Int) {
       guard chapterIndex >= 0, chapterIndex < readingOrder.count else { return }
       let normalizedCount = max(1, pageCount)
       if chapterPageCounts[chapterIndex] == normalizedCount { return }
 
-      // Capture the stable current location before rebuilding the map
-      let oldChapterIndex: Int
-      let oldSubPageIndex: Int
-      if currentPageIndex >= 0 && currentPageIndex < pageLocations.count {
-        let loc = pageLocations[currentPageIndex]
-        oldChapterIndex = loc.chapterIndex
-        oldSubPageIndex = loc.pageIndex
-      } else {
-        oldChapterIndex = -1
-        oldSubPageIndex = -1
-      }
-
       chapterPageCounts[chapterIndex] = normalizedCount
-      pageLocations = buildPageLocationsFromPaginatedChapters()
-
-      // If we had a valid location, restore it by recalculating the global index
-      if oldChapterIndex >= 0 {
-        let targetSubPage =
-          (oldChapterIndex == chapterIndex)
-          ? min(oldSubPageIndex, normalizedCount - 1)
-          : oldSubPageIndex
-
-        if let newIndex = globalIndexForChapter(oldChapterIndex, pageIndex: targetSubPage) {
-          if currentPageIndex != newIndex {
-            currentPageIndex = newIndex
-            updateLocation(for: newIndex)
-          }
-        }
-      }
 
       if chapterIndex == initialChapterIndex, let progression = initialProgression {
         let pageIndex = max(0, min(normalizedCount - 1, Int(floor(Double(normalizedCount) * progression))))
         logger.debug(
           "Applying initial progression to chapterIndex=\(chapterIndex): pageIndex=\(pageIndex)/\(normalizedCount)")
-        if let globalIndex = globalIndexForChapter(chapterIndex, pageIndex: pageIndex) {
-          logger.debug("Jump to globalIndex=\(globalIndex)")
-          currentPageIndex = globalIndex
-          targetPageIndex = globalIndex
-          updateLocation(for: globalIndex)
-        }
+        currentChapterIndex = chapterIndex
+        currentPageIndex = pageIndex
+        targetChapterIndex = chapterIndex
+        targetPageIndex = pageIndex
         initialChapterIndex = nil
         initialProgression = nil
       }
+
+      normalizeCurrentPosition(adjustPageCount: false)
+      normalizeTargetPosition(adjustPageCount: false)
+      updateLocation(chapterIndex: currentChapterIndex, pageIndex: currentPageIndex)
 
       // Store in memory cache only (no file persistence)
       let effectiveViewport = viewportSize.width > 0 ? viewportSize : UIScreen.main.bounds.size
@@ -539,19 +567,116 @@
 
     // MARK: - Private Methods
 
-    private func updateLocation(for index: Int) {
-      guard index >= 0, index < pageLocations.count else {
+    private func setTarget(chapterIndex: Int, pageIndex: Int) {
+      guard !readingOrder.isEmpty else { return }
+      let normalizedChapterIndex = max(0, min(chapterIndex, readingOrder.count - 1))
+      let normalizedPageIndex = normalizedPageIndex(
+        pageIndex,
+        chapterIndex: normalizedChapterIndex,
+        adjustPageCount: true
+      )
+      targetChapterIndex = normalizedChapterIndex
+      targetPageIndex = normalizedPageIndex
+    }
+
+    private func normalizeCurrentPosition(adjustPageCount: Bool = true) {
+      guard !readingOrder.isEmpty else {
+        currentChapterIndex = 0
+        currentPageIndex = 0
+        return
+      }
+      let chapterIndex = max(0, min(currentChapterIndex, readingOrder.count - 1))
+      let pageIndex = normalizedPageIndex(
+        currentPageIndex,
+        chapterIndex: chapterIndex,
+        adjustPageCount: adjustPageCount
+      )
+      currentChapterIndex = chapterIndex
+      currentPageIndex = pageIndex
+    }
+
+    private func normalizeTargetPosition(adjustPageCount: Bool = true) {
+      guard let targetChapterIndex, let targetPageIndex else { return }
+      guard !readingOrder.isEmpty else {
+        self.targetChapterIndex = nil
+        self.targetPageIndex = nil
+        return
+      }
+      let chapterIndex = max(0, min(targetChapterIndex, readingOrder.count - 1))
+      if targetPageIndex < 0 {
+        self.targetChapterIndex = chapterIndex
+        self.targetPageIndex = -1
+        return
+      }
+      let pageIndex = normalizedPageIndex(
+        targetPageIndex,
+        chapterIndex: chapterIndex,
+        adjustPageCount: adjustPageCount
+      )
+      self.targetChapterIndex = chapterIndex
+      self.targetPageIndex = pageIndex
+    }
+
+    private func normalizedPageIndex(
+      _ pageIndex: Int,
+      chapterIndex: Int,
+      adjustPageCount: Bool
+    ) -> Int {
+      let safeIndex = max(0, pageIndex)
+      let storedCount = chapterPageCounts[chapterIndex] ?? 1
+      let effectiveCount = adjustPageCount ? max(storedCount, safeIndex + 1) : storedCount
+      if adjustPageCount, effectiveCount != storedCount {
+        chapterPageCounts[chapterIndex] = effectiveCount
+      }
+      return min(safeIndex, effectiveCount - 1)
+    }
+
+    private func pageOffsetBeforeChapter(_ chapterIndex: Int) -> Int {
+      guard chapterIndex > 0 else { return 0 }
+      var offset = 0
+      for idx in 0..<chapterIndex {
+        offset += max(1, chapterPageCounts[idx] ?? 1)
+      }
+      return offset
+    }
+
+    private func totalPageCount() -> Int {
+      guard !readingOrder.isEmpty else { return 0 }
+      var total = 0
+      for idx in 0..<readingOrder.count {
+        total += max(1, chapterPageCounts[idx] ?? 1)
+      }
+      return total
+    }
+
+    private func buildTOCTitleMap(from links: [WebPubLink]) -> [String: String] {
+      var map: [String: String] = [:]
+      func collect(_ links: [WebPubLink]) {
+        for link in links {
+          if let title = link.title, !title.isEmpty {
+            map[Self.normalizedHref(link.href)] = title
+          }
+          if let children = link.children {
+            collect(children)
+          }
+        }
+      }
+      collect(links)
+      return map
+    }
+
+    private func updateLocation(chapterIndex: Int, pageIndex: Int) {
+      guard let location = pageLocation(chapterIndex: chapterIndex, pageIndex: pageIndex) else {
         currentLocation = nil
         return
       }
-      let location = pageLocations[index]
       let chapterProgress =
         location.pageCount > 0
         ? Double(location.pageIndex + 1) / Double(location.pageCount)
         : nil
       let total =
         hasFullTextWeights
-        ? totalProgression(for: index, location: location, chapterProgress: chapterProgress)
+        ? totalProgression(location: location, chapterProgress: chapterProgress)
         : nil
       currentLocation = WebPubLocation(
         href: location.href,
@@ -564,7 +689,6 @@
     }
 
     func totalProgression(
-      for index: Int,
       location: WebPubPageLocation,
       chapterProgress: Double?
     ) -> Double? {
@@ -583,25 +707,34 @@
         return progressed / Double(totalTextWeight)
       }
 
-      let totalPages = pageLocations.count
+      let totalPages = totalPageCount()
       guard totalPages > 0 else { return nil }
-      return Double(index + 1) / Double(totalPages)
+      let pageOffset = pageOffsetBeforeChapter(location.chapterIndex)
+      let overallIndex = pageOffset + location.pageIndex
+      return Double(overallIndex + 1) / Double(totalPages)
     }
 
-    private func updateProgression(for index: Int) async {
-      guard index >= 0, index < pageLocations.count else { return }
-      let location = pageLocations[index]
+    private func updateProgression(
+      chapterIndex: Int,
+      pageIndex: Int,
+      chapterProgressOverride: Double? = nil,
+      totalProgressOverride: Double? = nil
+    ) async {
+      guard let location = pageLocation(chapterIndex: chapterIndex, pageIndex: pageIndex) else { return }
       let chapterProgress =
-        location.pageCount > 0
-        ? Double(location.pageIndex) / Double(location.pageCount)
-        : nil
-      let totalProgression = Float(
-        totalProgression(
-          for: index,
+        chapterProgressOverride
+        ?? (location.pageCount > 0
+          ? Double(location.pageIndex) / Double(location.pageCount)
+          : nil)
+      let totalProgressionValue =
+        totalProgressOverride
+        ?? totalProgression(
           location: location,
           chapterProgress: chapterProgress
-        ) ?? 0)
+        )
+        ?? 0
 
+      let totalProgression = Float(totalProgressionValue)
       let chapterProgression: Float? = chapterProgress.map(Float.init)
 
       let r2Location = R2Locator.Location(
@@ -641,13 +774,19 @@
         progressionData = nil
       }
 
+      logger.debug(
+        "Updating progression: href=\(locator.href), progression=\(locator.locations?.progression ?? 0), totalProgression=\(locator.locations?.totalProgression ?? 0)"
+      )
+      let pageOffset = pageOffsetBeforeChapter(chapterIndex)
+      let globalPageNumber = pageOffset + pageIndex + 1
+
       Task.detached(priority: .utility) {
         do {
           if AppConfig.isOffline {
             await DatabaseOperator.shared.queuePendingProgress(
               instanceId: AppConfig.current.instanceId,
               bookId: activeBookId,
-              page: index + 1,
+              page: globalPageNumber,
               completed: false,
               progressionData: progressionData
             )
@@ -696,22 +835,11 @@
         let cachedCount = pageCountCache[cacheKey]
         chapterPageCounts[index] = max(1, cachedCount ?? 1)
       }
-
-      rebuildPageLocations(keepingCurrent: keepingCurrent)
-    }
-
-    private func rebuildPageLocations(keepingCurrent: Bool) {
-      let currentHref = keepingCurrent ? currentLocation?.href : nil
-      let currentPageInChapter = keepingCurrent ? currentLocation?.pageIndex ?? 0 : 0
-
-      pageLocations = buildPageLocationsFromPaginatedChapters()
-
-      if let currentHref,
-        let newIndex = indexForHref(currentHref, pageIndex: currentPageInChapter)
-      {
-        currentPageIndex = newIndex
+      if keepingCurrent {
+        normalizeCurrentPosition()
+        normalizeTargetPosition()
       }
-      updateLocation(for: currentPageIndex)
+      updateLocation(chapterIndex: currentChapterIndex, pageIndex: currentPageIndex)
     }
 
     private func refreshChapterTextWeights() {
@@ -757,7 +885,7 @@
             self.chapterTextWeights[index] = normalizedLength
             self.recomputeTextWeightState()
             self.saveTextLengthCache()
-            self.updateLocation(for: self.currentPageIndex)
+            self.updateLocation(chapterIndex: self.currentChapterIndex, pageIndex: self.currentPageIndex)
           }
         }
       }
@@ -777,47 +905,6 @@
         }
         chapterURLCache[index] = cachedURL
       }
-    }
-
-    private func buildPageLocationsFromPaginatedChapters() -> [WebPubPageLocation] {
-      var results: [WebPubPageLocation] = []
-
-      var tocTitleByHref: [String: String] = [:]
-      func collectTOCTitles(_ links: [WebPubLink]) {
-        for tocLink in links {
-          if let title = tocLink.title, !title.isEmpty {
-            tocTitleByHref[Self.normalizedHref(tocLink.href)] = title
-          }
-          if let children = tocLink.children {
-            collectTOCTitles(children)
-          }
-        }
-      }
-      collectTOCTitles(tableOfContents)
-
-      for (chapterIndex, link) in readingOrder.enumerated() {
-        let pageCount = max(1, chapterPageCounts[chapterIndex] ?? 1)
-        guard let cachedURL = chapterURLCache[chapterIndex] else { continue }
-
-        let normalizedHref = Self.normalizedHref(link.href)
-        let title = link.title ?? tocTitleByHref[normalizedHref]
-
-        for pageIndex in 0..<pageCount {
-          results.append(
-            WebPubPageLocation(
-              href: link.href,
-              title: title,
-              type: link.type,
-              chapterIndex: chapterIndex,
-              pageIndex: pageIndex,
-              pageCount: pageCount,
-              url: cachedURL
-            )
-          )
-        }
-      }
-
-      return results
     }
 
     private func loadTextLengthCache() {
@@ -911,18 +998,50 @@
       }
     }
 
-    private func indexForHref(_ href: String, pageIndex: Int) -> Int? {
-      let normalized = Self.normalizedHref(href)
-      return pageLocations.firstIndex {
-        Self.normalizedHref($0.href) == normalized && $0.pageIndex == pageIndex
-      }
-    }
-
     private func stripResourcePrefix(_ href: String) -> String {
       if let range = href.range(of: "/resource/", options: .backwards) {
         return String(href[range.upperBound...])
       }
       return href
+    }
+
+    private func maxProgressionOverride(for href: String) async -> Float? {
+      let normalizedHref = Self.normalizedHref(href)
+      if let cached = maxProgressionByHref[normalizedHref] {
+        return cached
+      }
+      guard !AppConfig.isOffline, !bookId.isEmpty else { return nil }
+
+      if let task = positionsLoadTask {
+        let map = await task.value
+        return map[normalizedHref]
+      }
+
+      let task = Task { [bookId] in
+        do {
+          let positions = try await BookService.shared.getWebPubPositions(bookId: bookId)
+          var map: [String: Float] = [:]
+          for locator in positions.positions {
+            guard let progression = locator.locations?.progression else { continue }
+            let key = Self.normalizedHref(locator.href)
+            let existing = map[key] ?? -1
+            if progression > existing {
+              map[key] = progression
+            }
+          }
+          return map
+        } catch {
+          return [:]
+        }
+      }
+
+      positionsLoadTask = task
+      let map = await task.value
+      positionsLoadTask = nil
+      if !map.isEmpty {
+        maxProgressionByHref = map
+      }
+      return map[normalizedHref]
     }
 
     nonisolated private static func normalizedHref(_ href: String) -> String {
