@@ -281,31 +281,31 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
 
   private func makeFontWeightCSS() -> String {
     """
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] {
-        font-weight: var(--USER__fontWeight) !important;
-      }
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] body,
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] p,
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] li,
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] div,
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dt,
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dd,
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([xml\\:lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([xml\\:lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([xml\\:lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([xml\\:lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([xml\\:lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([lang]),
-      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([xml\\:lang]) {
-        font-weight: var(--USER__fontWeight) !important;
-      }
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] {
+      font-weight: var(--USER__fontWeight) !important;
+    }
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] body,
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] p,
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] li,
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] div,
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dt,
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dd,
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([xml\\:lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([xml\\:lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([xml\\:lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([xml\\:lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([xml\\:lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([lang]),
+    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([xml\\:lang]) {
+      font-weight: var(--USER__fontWeight) !important;
+    }
 
-      """
+    """
   }
 
   private func shouldUseLightImageBlend(for theme: ReaderTheme) -> Bool {
