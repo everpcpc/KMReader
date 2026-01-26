@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 nonisolated enum EpubConstants {
-  static let defaultFontSize: Double = 16.0
+  static let defaultFontScale: Double = 1.0
 
   static let defaultLetterSpacing: Double = 0.0
   static let defaultWordSpacing: Double = 0.0
@@ -20,6 +20,7 @@ nonisolated enum EpubConstants {
   static let defaultParagraphIndent: Double = 2.0
 
   static let defaultPageMargins: Double = 1.0
+
   static let defaultFontWeight: Double = 1.0
 }
 
@@ -28,28 +29,30 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
 
   var theme: ThemeChoice
   var fontFamily: FontFamilyChoice
+  var fontWeight: Double
+  var advancedLayout: Bool
   var fontSize: Double
   var wordSpacing: Double
   var paragraphSpacing: Double
   var paragraphIndent: Double
-  var pageMargins: Double
-  var columnCount: EpubColumnCount
   var letterSpacing: Double
   var lineHeight: Double
-  var fontWeight: Double
+  var columnCount: EpubColumnCount
+  var pageMargins: Double
 
   init(
     theme: ThemeChoice = .system,
     fontFamily: FontFamilyChoice = .publisher,
-    fontSize: Double = EpubConstants.defaultFontSize,
+    fontWeight: Double = EpubConstants.defaultFontWeight,
+    advancedLayout: Bool = false,
+    fontSize: Double = EpubConstants.defaultFontScale,
     wordSpacing: Double = EpubConstants.defaultWordSpacing,
     paragraphSpacing: Double = EpubConstants.defaultParagraphSpacing,
     paragraphIndent: Double = EpubConstants.defaultParagraphIndent,
-    pageMargins: Double = EpubConstants.defaultPageMargins,
-    columnCount: EpubColumnCount = .auto,
     letterSpacing: Double = EpubConstants.defaultLetterSpacing,
     lineHeight: Double = EpubConstants.defaultLineHeight,
-    fontWeight: Double = EpubConstants.defaultFontWeight
+    columnCount: EpubColumnCount = .auto,
+    pageMargins: Double = EpubConstants.defaultPageMargins,
   ) {
     self.theme = theme
     self.fontFamily = fontFamily
@@ -62,6 +65,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     self.letterSpacing = letterSpacing
     self.lineHeight = lineHeight
     self.fontWeight = fontWeight
+    self.advancedLayout = advancedLayout
   }
 
   init?(rawValue: String) {
@@ -80,29 +84,32 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
     let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
     let font = FontFamilyChoice(rawValue: fontString)
-    let fontSize = dict["fontSize"] as? Double ?? EpubConstants.defaultFontSize
+    let fontWeight = dict["fontWeight"] as? Double ?? EpubConstants.defaultFontWeight
+    let advancedLayout = dict["advancedLayout"] as? Bool ?? false
+    let fontSize = dict["fontSize"] as? Double ?? EpubConstants.defaultFontScale
     let wordSpacing = dict["wordSpacing"] as? Double ?? EpubConstants.defaultWordSpacing
     let paragraphSpacing = dict["paragraphSpacing"] as? Double ?? EpubConstants.defaultParagraphSpacing
     let paragraphIndent = dict["paragraphIndent"] as? Double ?? EpubConstants.defaultParagraphIndent
-    let rawPageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
-    let pageMargins = Self.normalizedPageMargins(rawPageMargins)
-    let columnCountRaw = dict["columnCount"] as? String ?? EpubColumnCount.auto.rawValue
-    let columnCount = EpubColumnCount(rawValue: columnCountRaw) ?? .auto
     let letterSpacing = dict["letterSpacing"] as? Double ?? EpubConstants.defaultLetterSpacing
     let lineHeight = dict["lineHeight"] as? Double ?? EpubConstants.defaultLineHeight
-    let fontWeight = dict["fontWeight"] as? Double ?? EpubConstants.defaultFontWeight
+    let columnCountRaw = dict["columnCount"] as? String ?? EpubColumnCount.auto.rawValue
+    let columnCount = EpubColumnCount(rawValue: columnCountRaw) ?? .auto
+    let rawPageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
+    let pageMargins = Self.normalizedPageMargins(rawPageMargins)
+
     self.init(
       theme: theme,
       fontFamily: font,
+      fontWeight: fontWeight,
+      advancedLayout: advancedLayout,
       fontSize: fontSize,
       wordSpacing: wordSpacing,
       paragraphSpacing: paragraphSpacing,
       paragraphIndent: paragraphIndent,
-      pageMargins: pageMargins,
-      columnCount: columnCount,
       letterSpacing: letterSpacing,
       lineHeight: lineHeight,
-      fontWeight: fontWeight
+      columnCount: columnCount,
+      pageMargins: pageMargins,
     )
   }
 
@@ -110,15 +117,16 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let dict: [String: Any] = [
       "theme": theme.rawValue,
       "fontFamily": fontFamily.rawValue,
+      "fontWeight": fontWeight,
+      "advancedLayout": advancedLayout,
       "fontSize": fontSize,
       "wordSpacing": wordSpacing,
       "paragraphSpacing": paragraphSpacing,
       "paragraphIndent": paragraphIndent,
-      "pageMargins": pageMargins,
-      "columnCount": columnCount.rawValue,
       "letterSpacing": letterSpacing,
       "lineHeight": lineHeight,
-      "fontWeight": fontWeight,
+      "columnCount": columnCount.rawValue,
+      "pageMargins": pageMargins,
     ]
     if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys]),
       let json = String(data: data, encoding: .utf8)
@@ -139,20 +147,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   ) -> (css: String, properties: [String: String?]) {
     let fontName = fontFamily.fontName
     let fontWeightValue = readiumFontWeightValue()
-    let fontSizePercent = (fontSize / EpubConstants.defaultFontSize) * 100
-    let letterSpacingRem = max(0, letterSpacing)
-    let wordSpacingRem = max(0, wordSpacing)
-    let paragraphSpacingRem = max(0, paragraphSpacing)
-    let paragraphIndentRem = max(0, paragraphIndent)
 
     var properties: [String: String?] = [
-      "--USER__advancedSettings": "readium-advanced-on",
-      "--USER__fontSize": String(format: "%.2f%%", fontSizePercent),
-      "--USER__lineHeight": String(format: "%.2f", lineHeight),
-      "--USER__paraSpacing": String(format: "%.2frem", paragraphSpacingRem),
-      "--USER__paraIndent": String(format: "%.2frem", paragraphIndentRem),
-      "--USER__wordSpacing": String(format: "%.2frem", wordSpacingRem),
-      "--USER__letterSpacing": String(format: "%.2frem", letterSpacingRem),
       "--RS__textColor": theme.textColorHex,
       "--RS__backgroundColor": theme.backgroundColorHex,
       "font-weight": "\(fontWeightValue)",
@@ -161,13 +157,37 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let fontFamilyValue = fontName.map(cssFontFamilyValue)
     properties["--USER__fontOverride"] = fontFamilyValue == nil ? nil : "readium-font-on"
     properties["--USER__fontFamily"] = fontFamilyValue
-    properties["--USER__pageMargins"] = String(format: "%.2f", max(0, pageMargins))
     properties["--USER__colCount"] = columnCount.readiumValue
+    properties["--USER__pageMargins"] = String(format: "%.2f", max(0, pageMargins))
 
     if theme.isDark {
       properties["--USER__appearance"] = "readium-night-on"
     } else {
       properties["--USER__appearance"] = nil
+    }
+
+    if advancedLayout {
+      let fontSizePercent = fontSize * 100
+      let letterSpacingRem = max(0, letterSpacing)
+      let wordSpacingRem = max(0, wordSpacing)
+      let paragraphSpacingRem = max(0, paragraphSpacing)
+      let paragraphIndentRem = max(0, paragraphIndent)
+
+      properties["--USER__advancedSettings"] = "readium-advanced-on"
+      properties["--USER__fontSize"] = String(format: "%.2f%%", fontSizePercent)
+      properties["--USER__lineHeight"] = String(format: "%.2f", lineHeight)
+      properties["--USER__paraSpacing"] = String(format: "%.2frem", paragraphSpacingRem)
+      properties["--USER__paraIndent"] = String(format: "%.2frem", paragraphIndentRem)
+      properties["--USER__wordSpacing"] = String(format: "%.2frem", wordSpacingRem)
+      properties["--USER__letterSpacing"] = String(format: "%.2frem", letterSpacingRem)
+    } else {
+      properties["--USER__advancedSettings"] = nil
+      properties["--USER__fontSize"] = nil
+      properties["--USER__lineHeight"] = nil
+      properties["--USER__paraSpacing"] = nil
+      properties["--USER__paraIndent"] = nil
+      properties["--USER__wordSpacing"] = nil
+      properties["--USER__letterSpacing"] = nil
     }
 
     let fontFaceCSS = makeFontFaceCSS(
