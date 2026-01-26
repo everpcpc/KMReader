@@ -1,28 +1,31 @@
-Search & Discovery
+New Features
 
-- Advanced metadata filtering system for publishers, authors, genres, tags, and languages
-- Flexible filtering logic allowing you to match all or any selected criteria
-- Integrated search support within filters to quickly navigate large libraries
-- Interactive metadata chips that let you jump to related content with a single tap
+- Replaced the reading engine with a custom native version for a more lightweight, stable, and customizable experience
+- Added support for one or two column layouts in the EPUB reader
+- You can now import your own fonts (.ttf/.otf) directly from the Files app
+- New EPUB theme presets and an optimized theme selection menu
+- Full support for nested and hierarchical Table of Contents
+- Added a "Resume" button to series pages to quickly jump back into your reading
+- Enhanced reader controls with new gradient background options and a streamlined interface
+- Improved navigation with gesture-based chapter switching in scroll mode
+- Multi-language preview for custom fonts to help you choose the best look
 
-Reader Experience
+Improvements
 
-- Natural page curl transition for a more immersive reading feel on iOS
-- Customizable double-tap zoom sensitivity to perfectly match your reading pace
-- Brand new loading interface with glassmorphism effects and real-time progress
-- Redesigned book-end page featuring cover art display and smoother navigation
-- Optimized gesture handling for seamless switching between zooming and page turns
+- More accurate reading progress tracking for EPUB books
+- Faster and more reliable page loading and layout rendering
+- Better accessibility with larger control buttons and improved label visibility
+- Redesigned settings menu for easier navigation and better organization
+- Enhanced offline download management and more accurate file size reporting
+- Specific UI optimizations for a better experience on macOS
+- Upgraded core system for improved overall app performance
 
-Dashboard & Customization
+Bug Fixes
 
-- Completely overhauled dashboard management with native drag-and-drop to reorder or hide sections
-- Streamlined interface by moving layout and density controls into a unified menu
-- New appearance setting to toggle glass effects on library thumbnails
-- Refined visual components including more consistent icons, badges, and progress bars
-- Brand new app icon and visual assets with a refreshed modern design
-
-Platform Enhancements
-
-- Major optimizations for tvOS including native list reordering and improved focus behavior
-- Enhanced cursor and hover effects for a more responsive experience on macOS and iPadOS
-- Improved layout stability and safe area handling across all device orientations
+- Fixed an issue where the reader might snap back during the first page turn
+- Resolved issues with zoom transitions and page animations
+- Fixed custom font previews and improved font rendering across all book content
+- Smoother page turns with improved tap zone logic and gesture handling
+- Fixed a bug that prevented re-downloading books that were already marked as read
+- Improved network reliability and timeout handling
+- Fixed various styling issues with images, tables, and CSS in EPUB books

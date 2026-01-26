@@ -24,8 +24,8 @@
 
 - **Multi-server vault**: Save unlimited Komga servers with password or API key authentication.
 - **Cloud-drive-like offline**: Background downloads with Live Activity on iOS. Offline policies (manual, latest, all) per series. Read lists and collections stay available offline. Progress syncs when connection restores.
-- **Browse + dashboards**: Search, advanced metadata filters (all/any logic für authors, genres, tags, etc.), and grid/list layouts. Customizable dashboard sections with native drag-and-drop reordering.
-- **Readers**: DIVINA (LTR/RTL/vertical/Webtoon) with spreads, zoom, customizable tap zones, page isolation, and transition styles (including native page curl). EPUB with custom fonts/themes, pagination, TOC navigation, and incognito mode. Interactive metadata chips for quick navigation. Live Text support with shake-to-open on iOS.
+- **Browse + dashboards**: Search, advanced metadata filters (all/any logic for authors, genres, tags, etc.), and grid/list layouts. Customizable dashboard sections with native drag-and-drop reordering.
+- **Readers**: DIVINA (LTR/RTL/vertical/Webtoon) with spreads, zoom, customizable tap zones, and transition styles (including native page curl). High-performance **Native EPUB engine** with custom font importing (.ttf/.otf), multi-column layouts, theme presets, nested TOC, and chapter navigation gestures. Interactive metadata chips for quick navigation. Live Text support with shake-to-open on iOS.
 - **Privacy protection**: Optional blur overlay to protect reading content from prying eyes. Toggleable glass effects for thumbnails.
 - **Admin tools**: Metadata editing, scans, task management, live metrics via SSE, and an in-app log viewer with filtering.
 - **Caching**: Three-tier caches (pages, books, thumbnails) with adjustable limits and auto-cleanup.
@@ -35,6 +35,7 @@
 ## 🧭 Overview
 
 - Shared SwiftUI scenes cover browsing, reading, dashboards, and admin tasks across iPhone, iPad, Mac, and Apple TV.
+- Swift 6 & strict concurrency: Built with the latest Swift language features for safety and performance.
 - SwiftData stores Komga instances, libraries, and custom fonts so server profiles, cache budgets, and dashboard preferences stay local per device.
 - Services centralize API access, authentication, caching, SSE subscriptions, and error handling for consistent behavior on every platform.
 - Local storage keeps profiles, recent activity, and cached downloads so switching servers does not reset your state.

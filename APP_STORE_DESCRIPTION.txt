@@ -6,7 +6,7 @@ HIGHLIGHTS
 
 • Full-Featured Multi-Platform Support: A consistent, premium native experience across iOS, macOS, and tvOS.
 • Multi-Server Vault: Save unlimited Komga servers with instant switching and secure authentication.
-• Ultimate Readers: DIVINA (LTR/RTL/Vertical/Webtoon) with native page-curls and smooth zoom. EPUB with custom typography, themes, and full navigation.
+• Ultimate Readers: DIVINA (LTR/RTL/Vertical/Webtoon) with native page-curls and smooth zoom. High-performance native EPUB engine with custom typography import (.ttf/.otf), theme presets, and multi-column layouts.
 • Cloud-Drive Offline Experience: Smart background downloads with Live Activity. Keep series, read lists, and collections available anywhere; progress syncs automatically when you're back online.
 • Advanced Library Discovery: Deep metadata filtering (Publisher, Author, Genre, Tags) with complex "All/Any" logic and global search.
 • Adaptive Dashboards: Custom-tailored layouts with native drag-and-drop reordering to make your library feel like your own.
