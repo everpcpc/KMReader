@@ -497,6 +497,13 @@
       imageView.imageScaling = .scaleProportionallyUpOrDown
       imageView.translatesAutoresizingMaskIntoConstraints = true
       imageView.wantsLayer = true
+
+      // Add shadow for premium look
+      imageView.layer?.shadowColor = NSColor.black.cgColor
+      imageView.layer?.shadowOpacity = 0.25
+      imageView.layer?.shadowOffset = CGSize(width: 0, height: -2)
+      imageView.layer?.shadowRadius = 2
+
       addSubview(imageView)
 
       overlayView.isHidden = true
@@ -567,6 +574,7 @@
       self.readerViewModel = viewModel
       self.readingDirection = readingDirection
       imageView.image = image
+      imageView.layer?.shadowOpacity = image == nil ? 0 : 0.25
 
       if image != nil, showPageNumber {
         pageNumberLabel.stringValue = "\(data.pageNumber + 1)"
@@ -700,6 +708,21 @@
     override func layout() {
       super.layout()
       updateOverlaysPosition()
+
+      // Update shadow path for performance and remove shadow at spine in dual-page mode
+      let radius = imageView.layer?.shadowRadius ?? 0
+      var shadowRect = imageView.bounds
+      if let alignment = currentData?.alignment {
+        if alignment == .trailing {
+          // Spine is on the trailing side (right in LTR)
+          shadowRect.size.width -= radius
+        } else if alignment == .leading {
+          // Spine is on the leading side (left in LTR)
+          shadowRect.origin.x += radius
+          shadowRect.size.width -= radius
+        }
+      }
+      imageView.layer?.shadowPath = CGPath(rect: shadowRect, transform: nil)
 
       if AppConfig.enableLiveText, currentData != nil,
         let image = imageView.image,

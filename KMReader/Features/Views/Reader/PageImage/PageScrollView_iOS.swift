@@ -349,7 +349,15 @@
       imageView.contentMode = .scaleAspectFit
       imageView.translatesAutoresizingMaskIntoConstraints = false
       imageView.isUserInteractionEnabled = true
-      imageView.clipsToBounds = true
+      imageView.clipsToBounds = false
+
+      // Add shadow for premium look
+      imageView.layer.shadowColor = UIColor.black.cgColor
+      imageView.layer.shadowOpacity = 0.25
+      imageView.layer.shadowOffset = CGSize(width: 0, height: 2)
+      imageView.layer.shadowRadius = 2
+      imageView.layer.masksToBounds = false
+
       addSubview(imageView)
 
       loadingIndicator.hidesWhenStopped = true
@@ -382,9 +390,10 @@
       imageTrailingBoundConstraint = imageView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
 
       NSLayoutConstraint.activate([
-        // Fill the container vertically and horizontally
-        imageView.topAnchor.constraint(equalTo: topAnchor),
-        imageView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        // Center vertically and stay within bounds
+        imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
+        imageView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
+        imageView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
 
         // Always enforce bounds constraints
         imageLeadingBoundConstraint!,
@@ -416,6 +425,7 @@
       self.viewModel = viewModel
       self.readingDirection = readingDirection
       imageView.image = image
+      imageView.layer.shadowOpacity = image == nil ? 0 : 0.25
 
       updateImageAlignment()
 
@@ -535,6 +545,21 @@
     override func layoutSubviews() {
       super.layoutSubviews()
       updateOverlaysPosition()
+
+      // Update shadow path for performance and remove shadow at spine in dual-page mode
+      let radius = imageView.layer.shadowRadius
+      var shadowRect = imageView.bounds
+      if let alignment = currentData?.alignment {
+        if alignment == .trailing {
+          // Spine is on the trailing side (right in LTR)
+          shadowRect.size.width -= radius
+        } else if alignment == .leading {
+          // Spine is on the leading side (left in LTR)
+          shadowRect.origin.x += radius
+          shadowRect.size.width -= radius
+        }
+      }
+      imageView.layer.shadowPath = UIBezierPath(rect: shadowRect).cgPath
 
       #if !os(tvOS)
         // When layout happens (e.g. during scroll),
