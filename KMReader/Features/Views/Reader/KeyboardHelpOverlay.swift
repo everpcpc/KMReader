@@ -43,6 +43,7 @@ import SwiftUI
 
             HelpRow(key: "F / Return", description: "Toggle fullscreen")
             HelpRow(key: "C / Space", description: "Toggle controls")
+            HelpRow(key: "L", description: "Toggle Live Text")
             if hasTOC {
               HelpRow(key: "T", description: "Table of Contents")
             }
