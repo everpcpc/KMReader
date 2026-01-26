@@ -49,7 +49,7 @@ struct DirectoryBrowserSheet: View {
               .font(.caption)
               .foregroundColor(.secondary)
               .multilineTextAlignment(.center)
-            Button(String(localized: "common.retry")) {
+            Button(String(localized: "Retry")) {
               loadDirectory(path: currentPath)
             }
           }
@@ -100,7 +100,7 @@ struct DirectoryBrowserSheet: View {
         selectedPath = currentPath
         dismiss()
       } label: {
-        Label(String(localized: "common.select"), systemImage: "checkmark")
+        Label(String(localized: "Select"), systemImage: "checkmark")
       }
       .disabled(currentPath.isEmpty)
     }

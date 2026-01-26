@@ -173,7 +173,7 @@ struct SettingsOfflineBooksView: View {
         ForEach(groupedBooks) { lGroup in
           Section(
             header: HStack {
-              Text(lGroup.library?.name ?? String(localized: "common.unknown"))
+              Text(lGroup.library?.name ?? String(localized: "Unknown"))
               Spacer()
               Text(formatter.string(fromByteCount: totalSize(for: lGroup)))
                 .font(.caption)
@@ -184,7 +184,7 @@ struct SettingsOfflineBooksView: View {
               #if os(tvOS)
                 Section(
                   header: HStack {
-                    Text(sGroup.series?.name ?? String(localized: "common.unknown"))
+                    Text(sGroup.series?.name ?? String(localized: "Unknown"))
                     Spacer()
                     Text(formatter.string(fromByteCount: seriesSize(for: sGroup.books)))
                       .font(.caption)
@@ -235,7 +235,7 @@ struct SettingsOfflineBooksView: View {
                   }
                 } label: {
                   HStack {
-                    Text(sGroup.series?.name ?? String(localized: "common.unknown"))
+                    Text(sGroup.series?.name ?? String(localized: "Unknown"))
                     Spacer()
                     Text(formatter.string(fromByteCount: seriesSize(for: sGroup.books)))
                       .font(.caption)
@@ -334,8 +334,8 @@ struct SettingsOfflineBooksView: View {
       String(localized: "settings.offline_books.remove_all"),
       isPresented: $showRemoveAllAlert
     ) {
-      Button(String(localized: "common.cancel"), role: .cancel) {}
-      Button(String(localized: "common.delete"), role: .destructive) {
+      Button(String(localized: "Cancel"), role: .cancel) {}
+      Button(String(localized: "Delete"), role: .destructive) {
         removeAllBooks()
       }
     } message: {
@@ -345,8 +345,8 @@ struct SettingsOfflineBooksView: View {
       String(localized: "settings.offline_books.remove_read"),
       isPresented: $showRemoveReadAlert
     ) {
-      Button(String(localized: "common.cancel"), role: .cancel) {}
-      Button(String(localized: "common.delete"), role: .destructive) {
+      Button(String(localized: "Cancel"), role: .cancel) {}
+      Button(String(localized: "Delete"), role: .destructive) {
         removeReadBooks()
       }
     } message: {
@@ -356,7 +356,7 @@ struct SettingsOfflineBooksView: View {
       String(localized: "settings.offline_books.cleanup_orphaned"),
       isPresented: $showCleanupAlert
     ) {
-      Button(String(localized: "common.ok"), role: .cancel) {}
+      Button(String(localized: "OK")) {}
     } message: {
       if let result = cleanupResult {
         if result.deletedCount > 0 {

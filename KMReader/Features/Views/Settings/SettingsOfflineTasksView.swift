@@ -215,8 +215,8 @@ struct SettingsOfflineTasksView: View {
       String(localized: "settings.offline.auto_delete_read"),
       isPresented: $showingAutoDeleteAlert
     ) {
-      Button(String(localized: "common.cancel"), role: .cancel) {}
-      Button(String(localized: "common.confirm"), role: .destructive) {
+      Button(String(localized: "Cancel"), role: .cancel) {}
+      Button(String(localized: "Confirm"), role: .destructive) {
         autoDeleteRead = true
         isPaused = true
         ErrorManager.shared.notify(

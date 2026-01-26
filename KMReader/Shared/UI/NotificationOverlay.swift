@@ -189,11 +189,11 @@ import SwiftUI
       .padding(.horizontal, 8)
       .padding(.bottom, 64)
       .alert(String(localized: "error.title"), isPresented: $errorManager.hasAlert) {
-        Button(String(localized: "common.ok")) {
+        Button(String(localized: "OK")) {
           ErrorManager.shared.vanishError()
         }
         #if os(iOS)
-          Button(String(localized: "common.copy")) {
+          Button(String(localized: "Copy")) {
             PlatformHelper.generalPasteboard.string = errorManager.currentError?.description
             ErrorManager.shared.notify(message: String(localized: "notification.copied"))
           }
@@ -255,10 +255,10 @@ import SwiftUI
       .padding(.horizontal, 8)
       .padding(.bottom, 64)
       .alert(String(localized: "error.title"), isPresented: $errorManager.hasAlert) {
-        Button(String(localized: "common.ok")) {
+        Button(String(localized: "OK")) {
           ErrorManager.shared.vanishError()
         }
-        Button(String(localized: "common.copy")) {
+        Button(String(localized: "Copy")) {
           PlatformHelper.generalPasteboard.string = errorManager.currentError?.description
           ErrorManager.shared.notify(message: String(localized: "notification.copied"))
         }

@@ -75,7 +75,7 @@ struct SettingsLibrariesView: View {
           deleteConfirmedLibrary(libraryPendingDelete)
         }
         .disabled(deleteConfirmationText != libraryPendingDelete.name)
-        Button(String(localized: "common.cancel"), role: .cancel) {
+        Button(String(localized: "Cancel"), role: .cancel) {
           deleteConfirmationText = ""
         }
       }

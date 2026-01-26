@@ -80,7 +80,7 @@ import SwiftUI
         Button {
           onClose()
         } label: {
-          Label(String(localized: "common.cancel"), systemImage: "xmark.circle")
+          Label(String(localized: "Cancel"), systemImage: "xmark.circle")
             .font(.headline)
         }
         .adaptiveButtonStyle(.bordered)

@@ -22,6 +22,7 @@ archives/
 exports/
 artifacts/
 
+__pycache__/
 
 # App Store Connect API Keys (never commit these!)
 *.p8

@@ -17,7 +17,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "Format commands:"
 	@echo "  make format           - Format Swift files with swift-format"
-	@echo "  make localize         - Scan source code and update Localizable.xcstrings"
+	@echo "  make localize         - Sync Localizable.xcstrings from stringsdata"
 	@echo ""
 	@echo "Build commands:"
 	@echo "  make build           - Build all platforms (iOS, macOS, tvOS)"
@@ -54,22 +54,25 @@ help: ## Show this help message
 	@echo "  make minor            - Increment minor version (MARKETING_VERSION)"
 	@echo ""
 
-build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS)
+build: build-ios build-macos build-tvos localize ## Build all platforms (iOS, macOS, tvOS)
 	@echo "$(GREEN)All platforms built successfully!$(NC)"
 
 build-ios: ## Build for iOS
 	@echo "$(GREEN)Building for iOS...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk iphoneos build -quiet
+	@$(MAKE) localize
 	@echo "$(GREEN)iOS built successfully!$(NC)"
 
 build-macos: ## Build for macOS
 	@echo "$(GREEN)Building for macOS...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk macosx build -quiet
+	@$(MAKE) localize
 	@echo "$(GREEN)macOS built successfully!$(NC)"
 
 build-tvos: ## Build for tvOS
 	@echo "$(GREEN)Building for tvOS...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvos build -quiet
+	@$(MAKE) localize
 	@echo "$(GREEN)tvOS built successfully!$(NC)"
 
 build-ios-ci: ## Build for iOS (CI, uses simulator, no code signing)
@@ -205,8 +208,7 @@ format: ## Format Swift files with swift-format
 	@find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./.build/*" -not -path "./packages/*" | xargs swift-format -i
 	@echo "$(GREEN)Formatted Swift files successfully!$(NC)"
 
-localize: ## Scan source code and update Localizable.xcstrings
-	@echo "$(GREEN)Scanning source code for new strings...$(NC)"
-	@xcodebuild -exportLocalizations -localizationPath ./temp_localization -project $(PROJECT) -quiet
-	@rm -rf ./temp_localization
+localize: ## Sync Localizable.xcstrings from stringsdata
+	@echo "$(GREEN)Syncing Localizable.xcstrings from stringsdata...$(NC)"
+	@python3 $(MISC_DIR)/localize.py
 	@echo "$(GREEN)Sync localizable strings successfully!$(NC)"

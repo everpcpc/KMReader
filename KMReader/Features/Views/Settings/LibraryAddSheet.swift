@@ -58,7 +58,7 @@ struct LibraryAddSheet: View {
         if isCreating {
           LoadingIcon()
         } else {
-          Label(String(localized: "common.create"), systemImage: "plus")
+          Label(String(localized: "Create"), systemImage: "plus")
         }
       }
       .disabled(isCreating || !isValid)

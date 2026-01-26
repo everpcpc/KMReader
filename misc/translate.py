@@ -5,10 +5,12 @@ import os
 import argparse
 import sys
 
+from localize_sort import sort_keys
+
 
 # Path to the xcstrings file relative to the project root
 XISTRINGS_PATH = "KMReader/Localizable.xcstrings"
-REQUIRED_LANGUAGES = ["en", "fr", "de", "ja", "ko", "zh-Hans", "zh-Hant"]
+REQUIRED_LANGUAGES = ["de", "en", "fr", "ja", "ko", "zh-Hans", "zh-Hant"]
 
 
 def eprint(*args, **kwargs):
@@ -33,6 +35,13 @@ def save_data(file_path, data):
     with open(file_path, "w", encoding="utf-8") as f:
         # Match Xcode formatting: 2 space indent, space BEFORE and AFTER colon
         json.dump(data, f, indent=2, ensure_ascii=False, separators=(",", " : "))
+
+
+def sort_strings(data):
+    strings = data.get("strings")
+    if not isinstance(strings, dict):
+        return
+    data["strings"] = {key: strings[key] for key in sort_keys(strings.keys())}
 
 
 def find_missing(data):
@@ -75,13 +84,13 @@ def main():
         "update", help="Update translations for a key"
     )
     update_parser.add_argument("key", help="The key to update")
-    update_parser.add_argument("--zh-hans", help="Simplified Chinese translation")
-    update_parser.add_argument("--zh-hant", help="Traditional Chinese translation")
-    update_parser.add_argument("--en", help="English translation")
     update_parser.add_argument("--de", help="German translation")
+    update_parser.add_argument("--en", help="English translation")
     update_parser.add_argument("--fr", help="French translation")
     update_parser.add_argument("--ja", help="Japanese translation")
     update_parser.add_argument("--ko", help="Korean translation")
+    update_parser.add_argument("--zh-hans", help="Simplified Chinese translation")
+    update_parser.add_argument("--zh-hant", help="Traditional Chinese translation")
 
     args = parser.parse_args()
 
@@ -119,8 +128,8 @@ def main():
         eprint(f"Existing translations for '{key}': {list(localizations.keys())}")
 
         translations = {
-            "en": args.en,
             "de": args.de,
+            "en": args.en,
             "fr": args.fr,
             "ja": args.ja,
             "ko": args.ko,
@@ -137,6 +146,7 @@ def main():
                 updated_langs.append(lang)
 
         if updated_langs:
+            sort_strings(data)
             save_data(file_path, data)
             eprint(
                 f"Successfully updated {len(updated_langs)} translations for '{key}': {updated_langs}"
