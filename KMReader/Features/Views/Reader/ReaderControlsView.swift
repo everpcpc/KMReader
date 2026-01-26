@@ -192,8 +192,8 @@ struct ReaderControlsView: View {
         if readerControlsGradientBackground {
           LinearGradient(
             gradient: Gradient(colors: [
-              Color.black.opacity(0.4),
-              Color.black.opacity(0.2),
+              Color.black.opacity(0.6),
+              Color.black.opacity(0.3),
               Color.clear,
             ]),
             startPoint: .top,
@@ -250,8 +250,8 @@ struct ReaderControlsView: View {
           LinearGradient(
             gradient: Gradient(colors: [
               Color.clear,
-              Color.black.opacity(0.4),
-              Color.black.opacity(0.8),
+              Color.black.opacity(0.3),
+              Color.black.opacity(0.6),
             ]),
             startPoint: .top,
             endPoint: .bottom
