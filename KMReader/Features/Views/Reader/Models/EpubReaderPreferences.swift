@@ -176,16 +176,16 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       rootURL: rootURL
     )
 
-    let imageBlendCSS =
-      shouldUseLightImageBlend(for: theme)
-      ? """
-      :root[data-kmreader-theme="light"] img,
-      :root[data-kmreader-theme="light"] svg {
-        mix-blend-mode: multiply;
-      }
+    var imageBlendCSS = ""
+    if shouldUseLightImageBlend(for: theme) {
+      imageBlendCSS = """
+        :root[data-kmreader-theme="light"] img,
+        :root[data-kmreader-theme="light"] svg {
+          mix-blend-mode: multiply;
+        }
 
-      """
-      : ""
+        """
+    }
 
     return (css: fontFaceCSS + imageBlendCSS, properties: properties)
   }

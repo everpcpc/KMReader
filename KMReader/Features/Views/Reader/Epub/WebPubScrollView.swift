@@ -792,24 +792,8 @@
         loadingIndicator?.startAnimating()
       }
 
-      // Minimal pagination CSS, horizontal scrolling enabled.
-      let paginationCSS = """
-          html {
-            height: 100vh !important;
-            width: 100vw !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            -webkit-text-size-adjust: 100% !important;
-          }
-
-        """
-
-      let css = contentCSS + "\n" + paginationCSS
-
       injectCSS(
-        css,
+        contentCSS,
         readiumProperties: readiumProperties,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
