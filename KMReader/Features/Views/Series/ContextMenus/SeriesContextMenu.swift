@@ -24,8 +24,23 @@ struct SeriesContextMenu: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
+  @Environment(\.modelContext) private var modelContext
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
+
   private var status: SeriesDownloadStatus {
     downloadStatus
+  }
+
+  private var canRead: Bool {
+    booksUnreadCount + booksInProgressCount > 0
+  }
+
+  private var readLabel: String {
+    if booksReadCount > 0 {
+      return String(localized: "Resume Reading")
+    } else {
+      return String(localized: "Start Reading")
+    }
   }
 
   private var canMarkAsRead: Bool {
@@ -50,6 +65,15 @@ struct SeriesContextMenu: View {
       }
       .disabled(true)
       Divider()
+
+      if canRead {
+        Button {
+          continueReading()
+        } label: {
+          Label(readLabel, systemImage: "play")
+        }
+        Divider()
+      }
 
       if !isOffline {
         Button {
@@ -168,6 +192,19 @@ struct SeriesContextMenu: View {
         await MainActor.run {
           ErrorManager.shared.alert(error: error)
         }
+      }
+    }
+  }
+
+  private func continueReading() {
+    Task {
+      let book = await SeriesContinueReadingResolver.resolve(
+        seriesId: seriesId,
+        isOffline: isOffline,
+        context: modelContext
+      )
+      if let book {
+        readerPresentation.present(book: book, incognito: false)
       }
     }
   }

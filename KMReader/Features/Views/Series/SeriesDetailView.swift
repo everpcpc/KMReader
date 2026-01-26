@@ -13,9 +13,11 @@ struct SeriesDetailView: View {
   let seriesId: String
 
   @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.modelContext) private var modelContext
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @Query private var komgaSeriesList: [KomgaSeries]
@@ -53,6 +55,19 @@ struct SeriesDetailView: View {
     return (series.booksReadCount + series.booksInProgressCount) > 0
   }
 
+  private var canRead: Bool {
+    guard let series, !series.deleted else { return false }
+    return (series.booksUnreadCount + series.booksInProgressCount) > 0
+  }
+
+  private var readLabel: String {
+    if let readCount = series?.booksReadCount, readCount > 0 {
+      return String(localized: "Resume Reading")
+    } else {
+      return String(localized: "Start Reading")
+    }
+  }
+
   private var navigationTitle: String {
     series?.metadata.title ?? String(localized: "Series")
   }
@@ -68,6 +83,21 @@ struct SeriesDetailView: View {
             #endif
 
             SeriesDetailContentView(series: series)
+
+            if canRead {
+              HStack {
+                Button {
+                  continueReading()
+                } label: {
+                  Label(readLabel, systemImage: "play")
+                }
+                .adaptiveButtonStyle(.borderedProminent)
+                .optimizedControlSize()
+
+                Spacer()
+              }
+              .padding(.vertical, 8)
+            }
 
             if let komgaSeries = komgaSeries {
               SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
@@ -231,6 +261,19 @@ extension SeriesDetailView {
         await MainActor.run {
           ErrorManager.shared.alert(error: error)
         }
+      }
+    }
+  }
+
+  private func continueReading() {
+    Task {
+      let book = await SeriesContinueReadingResolver.resolve(
+        seriesId: seriesId,
+        isOffline: isOffline,
+        context: modelContext
+      )
+      if let book {
+        readerPresentation.present(book: book, incognito: false)
       }
     }
   }

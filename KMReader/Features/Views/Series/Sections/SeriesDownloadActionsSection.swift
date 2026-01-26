@@ -41,14 +41,16 @@ struct SeriesDownloadActionsSection: View {
   var body: some View {
     VStack(spacing: 12) {
       HStack(spacing: 12) {
-        InfoChip(
-          label: status.label,
-          systemImage: status.icon,
-          backgroundColor: status.color.opacity(0.2),
-          foregroundColor: status.color
-        )
-
-        Spacer()
+        Menu {
+          actionsView(actions: actions)
+        } label: {
+          HStack(spacing: 4) {
+            Text(String(localized: "Download"))
+            Image(systemName: "chevron.down")
+          }
+        }
+        .font(.caption)
+        .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
 
         Menu {
           Button {
@@ -96,13 +98,14 @@ struct SeriesDownloadActionsSection: View {
         .font(.caption)
         .adaptiveButtonStyle(.bordered)
 
-        Menu {
-          actionsView(actions: actions)
-        } label: {
-          Text(String(localized: "Download"))
-        }
-        .font(.caption)
-        .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+        Spacer()
+
+        InfoChip(
+          label: status.label,
+          systemImage: status.icon,
+          backgroundColor: status.color.opacity(0.2),
+          foregroundColor: status.color
+        )
       }
     }
     .animation(.easeInOut(duration: 0.2), value: status)

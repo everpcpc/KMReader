@@ -13,15 +13,6 @@ struct BookDownloadActionsSection: View {
 
   var body: some View {
     HStack {
-      InfoChip(
-        label: status.displayLabel,
-        systemImage: status.displayIcon,
-        backgroundColor: status.displayColor.opacity(0.2),
-        foregroundColor: status.displayColor
-      )
-
-      Spacer()
-
       Button {
         Task {
           await OfflineManager.shared.toggleDownload(
@@ -38,6 +29,15 @@ struct BookDownloadActionsSection: View {
       .font(.caption)
       .adaptiveButtonStyle(status.isDownloaded || status.isPending ? .bordered : .borderedProminent)
       .tint(status.menuColor)
+
+      Spacer()
+
+      InfoChip(
+        label: status.displayLabel,
+        systemImage: status.displayIcon,
+        backgroundColor: status.displayColor.opacity(0.2),
+        foregroundColor: status.displayColor
+      )
     }
     .animation(.default, value: status)
     .padding(.vertical, 4)
