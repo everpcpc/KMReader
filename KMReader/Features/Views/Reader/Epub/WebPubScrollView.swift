@@ -288,6 +288,10 @@
     var onCenterTap: (() -> Void)?
     var onEndReached: (() -> Void)?
     private var tapGestureRecognizer: UITapGestureRecognizer?
+    private var longPressGestureRecognizer: UILongPressGestureRecognizer?
+    private var isLongPressing = false
+    private var lastLongPressEndTime: Date = .distantPast
+    private var lastTouchStartTime: Date = .distantPast
 
     init(
       chapterURL: URL?,
@@ -427,8 +431,16 @@
     private func setupTapGesture() {
       let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
       tapRecognizer.delegate = self
+      tapRecognizer.cancelsTouchesInView = false
       view.addGestureRecognizer(tapRecognizer)
       self.tapGestureRecognizer = tapRecognizer
+
+      let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+      longPressRecognizer.minimumPressDuration = 0.5
+      longPressRecognizer.delegate = self
+      longPressRecognizer.cancelsTouchesInView = false
+      view.addGestureRecognizer(longPressRecognizer)
+      self.longPressGestureRecognizer = longPressRecognizer
     }
 
     private func setupOverlayLabels() {
@@ -570,22 +582,54 @@
     }
 
     @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
+      let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
+      guard !isLongPressing && holdDuration < 0.3 else { return }
+      if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
+
       let location = recognizer.location(in: view)
-      let viewWidth = view.bounds.width
+      let size = view.bounds.size
+      guard size.width > 0, size.height > 0 else { return }
 
-      // Define tap zones: left 30%, center 40%, right 30%
-      let leftZoneEnd = viewWidth * 0.3
-      let rightZoneStart = viewWidth * 0.7
+      let normalizedX = location.x / size.width
+      let normalizedY = location.y / size.height
 
-      if location.x < leftZoneEnd {
-        // Left tap - go to previous page
+      let action = TapZoneHelper.action(
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+        tapZoneMode: AppConfig.tapZoneMode,
+        readingDirection: tapReadingDirection(),
+        zoneThreshold: AppConfig.tapZoneSize.value
+      )
+
+      switch action {
+      case .previous:
         scrollToPreviousPage()
-      } else if location.x > rightZoneStart {
-        // Right tap - go to next page
+      case .next:
         scrollToNextPage()
-      } else {
-        // Center tap - toggle controls
+      case .toggleControls:
         onCenterTap?()
+      }
+    }
+
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+      if gesture.state == .began {
+        isLongPressing = true
+      } else if gesture.state == .ended || gesture.state == .cancelled {
+        lastLongPressEndTime = Date()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+          self?.isLongPressing = false
+        }
+      }
+    }
+
+    private func tapReadingDirection() -> ReadingDirection {
+      switch publicationReadingProgression {
+      case .rtl:
+        return .rtl
+      case .ttb, .btt:
+        return .vertical
+      case .ltr, .auto, .none:
+        return .ltr
       }
     }
 
@@ -1155,6 +1199,14 @@
       shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
       // Allow tap gesture to work alongside scroll view gestures
+      return true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+      lastTouchStartTime = Date()
+      if let view = touch.view, view is UIControl {
+        return false
+      }
       return true
     }
   }
