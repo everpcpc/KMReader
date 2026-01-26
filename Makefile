@@ -54,7 +54,7 @@ help: ## Show this help message
 	@echo "  make minor            - Increment minor version (MARKETING_VERSION)"
 	@echo ""
 
-build: build-ios build-macos build-tvos localize ## Build all platforms (iOS, macOS, tvOS)
+build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS)
 	@echo "$(GREEN)All platforms built successfully!$(NC)"
 
 build-ios: ## Build for iOS
