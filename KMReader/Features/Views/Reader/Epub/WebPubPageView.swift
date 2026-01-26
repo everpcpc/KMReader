@@ -1002,7 +1002,7 @@
 
       // Top book title label
       let bookTitleLabel = UILabel()
-      bookTitleLabel.font = .systemFont(ofSize: 13)
+      bookTitleLabel.font = .systemFont(ofSize: 14)
       bookTitleLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
       bookTitleLabel.textAlignment = .center
       bookTitleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -1018,7 +1018,7 @@
 
       // Top progress label
       let progressLabel = UILabel()
-      progressLabel.font = .systemFont(ofSize: 13)
+      progressLabel.font = .systemFont(ofSize: 14)
       progressLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
       progressLabel.textAlignment = .center
       progressLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -1085,7 +1085,8 @@
         if self.showingControls {
           self.topBookTitleLabel?.alpha = 0.0
           if let totalProgression = self.totalProgression {
-            self.topProgressLabel?.text = String(format: "%.2f%%", totalProgression * 100)
+            let percentage = String(format: "%.2f%%", totalProgression * 100)
+            self.topProgressLabel?.text = String(localized: "Book Progress: \(percentage)")
             self.topProgressLabel?.alpha = 1.0
           } else {
             self.topProgressLabel?.alpha = 0.0
@@ -1104,7 +1105,9 @@
         if self.totalPagesInChapter > 0 {
           if self.showingControls {
             self.bottomChapterLabel?.alpha = 0.0
-            self.bottomPageCenterLabel?.text = "\(self.currentSubPageIndex + 1) / \(self.totalPagesInChapter)"
+            let current = self.currentSubPageIndex + 1
+            let total = self.totalPagesInChapter
+            self.bottomPageCenterLabel?.text = String(localized: "Chapter Progress: \(current) / \(total)")
             self.bottomPageCenterLabel?.alpha = 1.0
             self.bottomPageRightLabel?.alpha = 0.0
           } else {
@@ -1115,7 +1118,12 @@
               self.bottomChapterLabel?.alpha = 0.0
             }
             self.bottomPageCenterLabel?.alpha = 0.0
-            self.bottomPageRightLabel?.text = "\(self.currentSubPageIndex + 1)"
+            let remainingPages = self.totalPagesInChapter - (self.currentSubPageIndex + 1)
+            if remainingPages > 0 {
+              self.bottomPageRightLabel?.text = String(localized: "\(remainingPages) pages left")
+            } else {
+              self.bottomPageRightLabel?.text = String(localized: "Last page")
+            }
             self.bottomPageRightLabel?.alpha = 1.0
           }
         } else {
