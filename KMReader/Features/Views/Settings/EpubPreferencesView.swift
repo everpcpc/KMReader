@@ -273,6 +273,14 @@
       .formStyle(.grouped)
       .animation(.easeInOut(duration: 0.2), value: draft.advancedLayout)
       .animation(.easeInOut(duration: 0.2), value: draft.fontWeight != nil)
+      .onChange(of: draft.advancedLayout) {
+        draft.fontSize = EpubConstants.defaultFontSize
+        draft.letterSpacing = EpubConstants.defaultLetterSpacing
+        draft.wordSpacing = EpubConstants.defaultWordSpacing
+        draft.lineHeight = EpubConstants.defaultLineHeight
+        draft.paragraphSpacing = EpubConstants.defaultParagraphSpacing
+        draft.paragraphIndent = EpubConstants.defaultParagraphIndent
+      }
       .safeAreaInset(edge: .top, spacing: 0) {
         EpubPreviewView(preferences: draft)
           .frame(height: 160)
