@@ -612,6 +612,13 @@ struct DivinaReaderView: View {
         return
       }
 
+      if keyCode == 37 {  // L key
+        enableLiveText.toggle()
+        let message = enableLiveText ? String(localized: "Live Text: ON") : String(localized: "Live Text: OFF")
+        ErrorManager.shared.notify(message: message)
+        return
+      }
+
       // Handle T key for TOC
       if keyCode == 17 {  // T key
         if !viewModel.tableOfContents.isEmpty {
