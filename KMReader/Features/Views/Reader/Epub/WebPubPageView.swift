@@ -88,17 +88,30 @@
       // Allow simultaneous gesture recognition for zoom transition return gesture
       pageVC.gestureRecognizers.forEach { recognizer in
         recognizer.delegate = context.coordinator
+        if recognizer is UITapGestureRecognizer {
+          recognizer.isEnabled = false
+        }
       }
 
-      // Use UIPageViewController's native tap gesture for left/right edge page turning
-      // Add custom tap gesture for center area to toggle controls
-      let centerTapRecognizer = UITapGestureRecognizer(
+      // Custom tap/long-press handling with TapZoneHelper
+      let tapRecognizer = UITapGestureRecognizer(
         target: context.coordinator,
-        action: #selector(Coordinator.handleCenterTap(_:))
+        action: #selector(Coordinator.handleTap(_:))
       )
-      centerTapRecognizer.cancelsTouchesInView = false
-      centerTapRecognizer.delegate = context.coordinator
-      pageVC.view.addGestureRecognizer(centerTapRecognizer)
+      tapRecognizer.cancelsTouchesInView = false
+      tapRecognizer.delegate = context.coordinator
+      pageVC.view.addGestureRecognizer(tapRecognizer)
+      context.coordinator.tapGestureRecognizer = tapRecognizer
+
+      let longPressRecognizer = UILongPressGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleLongPress(_:))
+      )
+      longPressRecognizer.minimumPressDuration = 0.5
+      longPressRecognizer.cancelsTouchesInView = false
+      longPressRecognizer.delegate = context.coordinator
+      pageVC.view.addGestureRecognizer(longPressRecognizer)
+      context.coordinator.longPressGestureRecognizer = longPressRecognizer
 
       let initialChapterIndex = viewModel.currentChapterIndex
       let initialPageCount = viewModel.chapterPageCount(at: initialChapterIndex) ?? 1
@@ -266,6 +279,11 @@
       var currentPageIndex: Int
       var isAnimating = false
       weak var pageViewController: UIPageViewController?
+      weak var tapGestureRecognizer: UITapGestureRecognizer?
+      weak var longPressGestureRecognizer: UILongPressGestureRecognizer?
+      private var isLongPressing = false
+      private var lastLongPressEndTime: Date = .distantPast
+      private var lastTouchStartTime: Date = .distantPast
       private let maxCachedControllers = 5  // Increased from 3 to 5 to reduce eviction during transitions
       private var cachedControllers: [String: EpubPageViewController] = [:]
       private var controllerKeys: [ObjectIdentifier: String] = [:]
@@ -578,15 +596,74 @@
         }
       }
 
-      @objc func handleCenterTap(_ recognizer: UITapGestureRecognizer) {
+      @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+        guard !isAnimating else { return }
+        let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
+        guard !isLongPressing && holdDuration < 0.3 else { return }
+        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
+
         let location = recognizer.location(in: recognizer.view)
         let size = recognizer.view?.bounds.size ?? .zero
+        guard size.width > 0, size.height > 0 else { return }
 
-        // Only handle taps in the center 40% of the screen
         let normalizedX = location.x / size.width
-        if normalizedX > 0.3 && normalizedX < 0.7 {
+        let normalizedY = location.y / size.height
+
+        let action = TapZoneHelper.action(
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          tapZoneMode: AppConfig.tapZoneMode,
+          readingDirection: tapReadingDirection(),
+          zoneThreshold: AppConfig.tapZoneSize.value
+        )
+
+        switch action {
+        case .previous:
+          parent.viewModel.goToPreviousPage()
+        case .next:
+          if isAtLastPage() {
+            parent.onEndReached()
+          } else {
+            parent.viewModel.goToNextPage()
+          }
+        case .toggleControls:
           parent.onCenterTap()
         }
+      }
+
+      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+          isLongPressing = true
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.isLongPressing = false
+          }
+        }
+      }
+
+      private func tapReadingDirection() -> ReadingDirection {
+        switch parent.viewModel.publicationReadingProgression {
+        case .rtl:
+          return .rtl
+        case .ttb, .btt:
+          return .vertical
+        case .ltr, .auto, .none:
+          return .ltr
+        }
+      }
+
+      private func isAtLastPage() -> Bool {
+        guard let pageVC = pageViewController,
+          let currentVC = pageVC.viewControllers?.first as? EpubPageViewController
+        else {
+          return false
+        }
+        let lastChapterIndex = parent.viewModel.chapterCount - 1
+        guard currentVC.chapterIndex == lastChapterIndex else { return false }
+        let storedCount = parent.viewModel.chapterPageCount(at: lastChapterIndex) ?? 1
+        let pageCount = max(storedCount, currentVC.totalPagesInChapter)
+        return currentVC.currentSubPageIndex >= pageCount - 1
       }
 
       private func storeController(_ controller: EpubPageViewController, for key: String) {
@@ -683,6 +760,10 @@
           return true
         }
 
+        if gestureRecognizer === tapGestureRecognizer || gestureRecognizer === longPressGestureRecognizer {
+          return true
+        }
+
         // Check if this is UIPageViewController's internal gesture
         guard gestureRecognizer.view === pageVC.view || gestureRecognizer.view?.superview === pageVC.view else {
           return true
@@ -741,6 +822,14 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         true
+      }
+
+      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        lastTouchStartTime = Date()
+        if let view = touch.view, view is UIControl {
+          return false
+        }
+        return true
       }
 
     }
