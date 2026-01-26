@@ -127,12 +127,6 @@
             }
           }
           .id(fontListRefreshId)
-          VStack(alignment: .leading) {
-            Slider(value: $draft.fontSize, in: 8...32, step: 1)
-            Text(String(localized: "Size: \(String(format: "%.0f", draft.fontSize))"))
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
 
           VStack(alignment: .leading) {
             Slider(value: $draft.fontWeight, in: 0.0...5.0, step: 0.1)
@@ -157,58 +151,7 @@
           }
         }
 
-        Section(String(localized: "Character & Word")) {
-          VStack(alignment: .leading) {
-            Slider(value: $draft.letterSpacing, in: 0.00...1.0, step: 0.01)
-            Text(
-              String(
-                localized: "Letter Spacing: \(String(format: "%.2f", draft.letterSpacing))")
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          }
-
-          VStack(alignment: .leading) {
-            Slider(value: $draft.wordSpacing, in: 0.0...1.0, step: 0.01)
-            Text(
-              String(localized: "Word Spacing: \(String(format: "%.2f", draft.wordSpacing))")
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          }
-        }
-
-        Section(String(localized: "Line & Paragraph")) {
-          VStack(alignment: .leading) {
-            Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
-            Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-
-          VStack(alignment: .leading) {
-            Slider(value: $draft.paragraphSpacing, in: 0.0...3.0, step: 0.1)
-            Text(
-              String(
-                localized:
-                  "Paragraph Spacing: \(String(format: "%.1f", draft.paragraphSpacing))")
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          }
-
-          VStack(alignment: .leading) {
-            Slider(value: $draft.paragraphIndent, in: 0.0...8.0, step: 0.5)
-            Text(
-              String(
-                localized: "Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          }
-        }
-
-        Section(String(localized: "Page Layout")) {
+        Section(String(localized: "Page")) {
           Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
             ForEach(EpubColumnCount.allCases) { option in
               Text(option.label)
@@ -226,8 +169,73 @@
             .foregroundStyle(.secondary)
           }
         }
+
+        Section {
+          Toggle(String(localized: "Advanced Layout"), isOn: $draft.advancedLayout)
+        }
+
+        if draft.advancedLayout {
+          Section(String(localized: "Character & Word")) {
+            VStack(alignment: .leading) {
+              Slider(value: $draft.fontSize, in: 0.25...4.0, step: 0.05)
+              Text(String(localized: "Font Size: \(String(format: "%.2f", draft.fontSize))x"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading) {
+              Slider(value: $draft.letterSpacing, in: 0.00...1.0, step: 0.01)
+              Text(
+                String(
+                  localized: "Letter Spacing: \(String(format: "%.2f", draft.letterSpacing))")
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading) {
+              Slider(value: $draft.wordSpacing, in: 0.0...1.0, step: 0.01)
+              Text(
+                String(localized: "Word Spacing: \(String(format: "%.2f", draft.wordSpacing))")
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            }
+          }
+
+          Section(String(localized: "Line & Paragraph")) {
+            VStack(alignment: .leading) {
+              Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
+              Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading) {
+              Slider(value: $draft.paragraphSpacing, in: 0.0...3.0, step: 0.1)
+              Text(
+                String(
+                  localized:
+                    "Paragraph Spacing: \(String(format: "%.1f", draft.paragraphSpacing))")
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading) {
+              Slider(value: $draft.paragraphIndent, in: 0.0...8.0, step: 0.5)
+              Text(
+                String(
+                  localized: "Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            }
+          }
+        }
       }
       .formStyle(.grouped)
+      .animation(.easeInOut(duration: 0.2), value: draft.advancedLayout)
       .safeAreaInset(edge: .top, spacing: 0) {
         EpubPreviewView(preferences: draft)
           .frame(height: 160)
@@ -521,17 +529,24 @@
     let backgroundColor = theme.backgroundColorHex
     let textColor = theme.textColorHex
 
-    let fontSize = preferences.fontSize
+    let useAdvancedLayout = preferences.advancedLayout
+    let fontScale = useAdvancedLayout ? preferences.fontSize : EpubConstants.defaultFontScale
+    let fontSize = fontScale * 100
     let fontFamily =
       preferences.fontFamily.fontName.map { "'\($0)'" } ?? "system-ui, -apple-system, sans-serif"
 
     // Calculate font weight (0.0 to 5.0 maps to 240 to 960)
     let fontWeightValue = 240 + Int(preferences.fontWeight * 160)
-    let letterSpacingEm = preferences.letterSpacing
-    let wordSpacingEm = preferences.wordSpacing
-    let lineHeightValue = preferences.lineHeight
-    let paragraphSpacingEm = preferences.paragraphSpacing
-    let paragraphIndentEm = preferences.paragraphIndent
+    let letterSpacingEm =
+      useAdvancedLayout ? preferences.letterSpacing : EpubConstants.defaultLetterSpacing
+    let wordSpacingEm =
+      useAdvancedLayout ? preferences.wordSpacing : EpubConstants.defaultWordSpacing
+    let lineHeightValue =
+      useAdvancedLayout ? preferences.lineHeight : EpubConstants.defaultLineHeight
+    let paragraphSpacingEm =
+      useAdvancedLayout ? preferences.paragraphSpacing : EpubConstants.defaultParagraphSpacing
+    let paragraphIndentEm =
+      useAdvancedLayout ? preferences.paragraphIndent : EpubConstants.defaultParagraphIndent
 
     let internalPadding = Int(round(max(0, preferences.pageMargins) * 20.0))
 
@@ -574,7 +589,7 @@
         background-color: \(backgroundColor);
         color: \(textColor);
         font-family: \(fontFamily);
-        font-size: \(fontSize)px;
+        font-size: \(fontSize)%;
         font-weight: \(fontWeightValue);
         letter-spacing: \(letterSpacingEm)em;
         word-spacing: \(wordSpacingEm)em;
