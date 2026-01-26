@@ -48,6 +48,38 @@
       Color(hex: readerTheme.textColorHex) ?? .primary
     }
 
+    private var fontWeightEnabled: Binding<Bool> {
+      Binding(
+        get: { draft.fontWeight != nil },
+        set: { isOn in
+          if isOn {
+            if draft.fontWeight == nil {
+              draft.fontWeight = EpubConstants.defaultFontWeight
+            }
+          } else {
+            draft.fontWeight = nil
+          }
+        }
+      )
+    }
+
+    private var fontWeightValue: Binding<Double> {
+      Binding(
+        get: { draft.fontWeight ?? EpubConstants.defaultFontWeight },
+        set: { draft.fontWeight = $0 }
+      )
+    }
+
+    private var fontWeightLabelText: String {
+      let valueText: String
+      if let fontWeight = draft.fontWeight {
+        valueText = String(format: "%.1f", fontWeight)
+      } else {
+        valueText = String(localized: "Default")
+      }
+      return String.localizedStringWithFormat(String(localized: "Weight: %@"), valueText)
+    }
+
     private var themePicker: some View {
       let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -128,11 +160,15 @@
           }
           .id(fontListRefreshId)
 
-          VStack(alignment: .leading) {
-            Slider(value: $draft.fontWeight, in: 0.0...5.0, step: 0.1)
-            Text(String(localized: "Weight: \(String(format: "%.1f", draft.fontWeight))"))
-              .font(.caption)
-              .foregroundStyle(.secondary)
+          HStack {
+            Text(fontWeightLabelText)
+            Spacer()
+            Toggle("", isOn: fontWeightEnabled)
+              .labelsHidden()
+          }
+
+          if draft.fontWeight != nil {
+            Slider(value: fontWeightValue, in: 0.0...5.0, step: 0.1)
           }
 
           Button {
@@ -236,6 +272,7 @@
       }
       .formStyle(.grouped)
       .animation(.easeInOut(duration: 0.2), value: draft.advancedLayout)
+      .animation(.easeInOut(duration: 0.2), value: draft.fontWeight != nil)
       .safeAreaInset(edge: .top, spacing: 0) {
         EpubPreviewView(preferences: draft)
           .frame(height: 160)
@@ -536,7 +573,7 @@
       preferences.fontFamily.fontName.map { "'\($0)'" } ?? "system-ui, -apple-system, sans-serif"
 
     // Calculate font weight (0.0 to 5.0 maps to 240 to 960)
-    let fontWeightValue = 240 + Int(preferences.fontWeight * 160)
+    let fontWeightValue = preferences.fontWeight.map { 240 + Int($0 * 160) }
     let letterSpacingEm =
       useAdvancedLayout ? preferences.letterSpacing : EpubConstants.defaultLetterSpacing
     let wordSpacingEm =
@@ -590,7 +627,7 @@
         color: \(textColor);
         font-family: \(fontFamily);
         font-size: \(fontSize)%;
-        font-weight: \(fontWeightValue);
+        \(fontWeightValue.map { "font-weight: \($0);" } ?? "")
         letter-spacing: \(letterSpacingEm)em;
         word-spacing: \(wordSpacingEm)em;
         line-height: \(lineHeightValue);

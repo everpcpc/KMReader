@@ -27,9 +27,29 @@ nonisolated enum EpubConstants {
 nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   typealias RawValue = String
 
+  // Keep this list in sync with makeReadiumPayload.
+  static let readiumPropertyKeys: [String] = [
+    "--RS__textColor",
+    "--RS__backgroundColor",
+    "--USER__fontOverride",
+    "--USER__fontFamily",
+    "--USER__fontWeightOverride",
+    "--USER__fontWeight",
+    "--USER__colCount",
+    "--USER__pageMargins",
+    "--USER__appearance",
+    "--USER__advancedSettings",
+    "--USER__fontSize",
+    "--USER__lineHeight",
+    "--USER__paraSpacing",
+    "--USER__paraIndent",
+    "--USER__wordSpacing",
+    "--USER__letterSpacing",
+  ]
+
   var theme: ThemeChoice
   var fontFamily: FontFamilyChoice
-  var fontWeight: Double
+  var fontWeight: Double?
   var advancedLayout: Bool
   var fontSize: Double
   var wordSpacing: Double
@@ -43,7 +63,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   init(
     theme: ThemeChoice = .system,
     fontFamily: FontFamilyChoice = .publisher,
-    fontWeight: Double = EpubConstants.defaultFontWeight,
+    fontWeight: Double? = nil,
     advancedLayout: Bool = false,
     fontSize: Double = EpubConstants.defaultFontScale,
     wordSpacing: Double = EpubConstants.defaultWordSpacing,
@@ -84,7 +104,11 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
     let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
     let font = FontFamilyChoice(rawValue: fontString)
-    let fontWeight = dict["fontWeight"] as? Double ?? EpubConstants.defaultFontWeight
+    let rawFontWeight = dict["fontWeight"] as? Double
+    let fontWeight: Double? = {
+      guard let rawFontWeight else { return nil }
+      return rawFontWeight == EpubConstants.defaultFontWeight ? nil : rawFontWeight
+    }()
     let advancedLayout = dict["advancedLayout"] as? Bool ?? false
     let fontSize = dict["fontSize"] as? Double ?? EpubConstants.defaultFontScale
     let wordSpacing = dict["wordSpacing"] as? Double ?? EpubConstants.defaultWordSpacing
@@ -114,10 +138,9 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   }
 
   var rawValue: String {
-    let dict: [String: Any] = [
+    var dict: [String: Any] = [
       "theme": theme.rawValue,
       "fontFamily": fontFamily.rawValue,
-      "fontWeight": fontWeight,
       "advancedLayout": advancedLayout,
       "fontSize": fontSize,
       "wordSpacing": wordSpacing,
@@ -128,6 +151,9 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       "columnCount": columnCount.rawValue,
       "pageMargins": pageMargins,
     ]
+    if let fontWeight {
+      dict["fontWeight"] = fontWeight
+    }
     if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys]),
       let json = String(data: data, encoding: .utf8)
     {
@@ -146,17 +172,24 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     rootURL: URL? = nil
   ) -> (css: String, properties: [String: String?]) {
     let fontName = fontFamily.fontName
-    let fontWeightValue = readiumFontWeightValue()
 
     var properties: [String: String?] = [
       "--RS__textColor": theme.textColorHex,
       "--RS__backgroundColor": theme.backgroundColorHex,
-      "font-weight": "\(fontWeightValue)",
     ]
+    properties["font-weight"] = nil
 
     let fontFamilyValue = fontName.map(cssFontFamilyValue)
     properties["--USER__fontOverride"] = fontFamilyValue == nil ? nil : "readium-font-on"
     properties["--USER__fontFamily"] = fontFamilyValue
+    if let fontWeight {
+      let fontWeightValue = readiumFontWeightValue(for: fontWeight)
+      properties["--USER__fontWeightOverride"] = "readium-font-weight-on"
+      properties["--USER__fontWeight"] = "\(fontWeightValue)"
+    } else {
+      properties["--USER__fontWeightOverride"] = nil
+      properties["--USER__fontWeight"] = nil
+    }
     properties["--USER__colCount"] = columnCount.readiumValue
     properties["--USER__pageMargins"] = String(format: "%.2f", max(0, pageMargins))
 
@@ -207,15 +240,16 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
         """
     }
 
-    return (css: fontFaceCSS + imageBlendCSS, properties: properties)
+    let fontWeightCSS = makeFontWeightCSS()
+    return (css: fontFaceCSS + fontWeightCSS + imageBlendCSS, properties: properties)
   }
 
   func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {
     makeReadiumPayload(theme: theme, fontPath: fontPath, rootURL: rootURL).css
   }
 
-  private func readiumFontWeightValue() -> Int {
-    let rawValue = 240 + Int(fontWeight * 160)
+  private func readiumFontWeightValue(for weight: Double) -> Int {
+    let rawValue = 240 + Int(weight * 160)
     return min(max(rawValue, 1), 1000)
   }
 
@@ -240,6 +274,35 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       @font-face {
         font-family: '\(fontName)';
         src: url('\(fileURLString)') format('\(fontFormat)');
+      }
+
+      """
+  }
+
+  private func makeFontWeightCSS() -> String {
+    """
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] {
+        font-weight: var(--USER__fontWeight) !important;
+      }
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] body,
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] p,
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] li,
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] div,
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dt,
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dd,
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([xml\\:lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([xml\\:lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([xml\\:lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([xml\\:lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([xml\\:lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([lang]),
+      :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([xml\\:lang]) {
+        font-weight: var(--USER__fontWeight) !important;
       }
 
       """

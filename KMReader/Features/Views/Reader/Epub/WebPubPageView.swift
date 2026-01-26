@@ -1175,7 +1175,7 @@
           self.topBookTitleLabel?.alpha = 0.0
           if let totalProgression = self.totalProgression {
             let percentage = String(format: "%.2f%%", totalProgression * 100)
-            self.topProgressLabel?.text = String(localized: "Book Progress: \(percentage)")
+            self.topProgressLabel?.text = String(localized: "Book Progress \(percentage)")
             self.topProgressLabel?.alpha = 1.0
           } else {
             self.topProgressLabel?.alpha = 0.0
@@ -1196,7 +1196,7 @@
             self.bottomChapterLabel?.alpha = 0.0
             let current = self.currentSubPageIndex + 1
             let total = self.totalPagesInChapter
-            self.bottomPageCenterLabel?.text = String(localized: "Chapter Progress: \(current) / \(total)")
+            self.bottomPageCenterLabel?.text = String(localized: "Chapter Progress \(current) / \(total)")
             self.bottomPageCenterLabel?.alpha = 1.0
             self.bottomPageRightLabel?.alpha = 0.0
           } else {
@@ -1414,6 +1414,7 @@
       injectCSS(
         contentCSS,
         readiumProperties: readiumProperties,
+        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       ) { [weak self] in
@@ -1424,6 +1425,7 @@
     private func injectCSS(
       _ css: String,
       readiumProperties: [String: String?],
+      readiumPropertyKeys: [String],
       language: String?,
       readingProgression: WebPubReadingProgression?,
       completion: (() -> Void)? = nil
@@ -1458,6 +1460,15 @@
           let json = String(data: data, encoding: .utf8)
         else {
           return "{}"
+        }
+        return json
+      }()
+      let propertyKeysJSON: String = {
+        guard
+          let data = try? JSONSerialization.data(withJSONObject: readiumPropertyKeys, options: []),
+          let json = String(data: data, encoding: .utf8)
+        else {
+          return "[]"
         }
         return json
       }()
@@ -1507,6 +1518,12 @@
                 root.style.removeProperty(key);
               } else {
                 root.style.setProperty(key, value, 'important');
+              }
+            });
+            var knownKeys = \(propertyKeysJSON);
+            knownKeys.forEach(function(key) {
+              if (!(key in props)) {
+                root.style.removeProperty(key);
               }
             });
 

@@ -5136,48 +5136,48 @@
         }
       }
     },
-    "Book Progress: %@" : {
+    "Book Progress %@" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fortschritt: %@"
+            "value" : "Fortschritt %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Progress: %@"
+            "value" : "Progress %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Progression: %@"
+            "value" : "Progression %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "読書進捗: %@"
+            "value" : "読書進捗 %@"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "독서 진도: %@"
+            "value" : "독서 진도 %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "本书进度: %@"
+            "value" : "本书进度 %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "本書進度: %@"
+            "value" : "本書進度 %@"
           }
         }
       }
@@ -6976,48 +6976,48 @@
         }
       }
     },
-    "Chapter Progress: %lld / %lld" : {
+    "Chapter Progress %lld / %lld" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kapitelfortschritt: %lld / %lld"
+            "value" : "Kapitelfortschritt %lld / %lld"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chapter Progress: %lld / %lld"
+            "value" : "Chapter Progress %lld / %lld"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Progression du chapitre : %lld / %lld"
+            "value" : "Progression du chapitre %lld / %lld"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "章の進捗: %lld / %lld"
+            "value" : "章の進捗 %lld / %lld"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "챕터 진도: %lld / %lld"
+            "value" : "챕터 진도 %lld / %lld"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "章节进度: %lld / %lld"
+            "value" : "章节进度 %lld / %lld"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "章節進度: %lld / %lld"
+            "value" : "章節進度 %lld / %lld"
           }
         }
       }
@@ -10100,6 +10100,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇移動按鈕並使用遙控器重新排序區塊。"
+          }
+        }
+      }
+    },
+    "Default" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par défaut"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기본"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "預設"
           }
         }
       }
