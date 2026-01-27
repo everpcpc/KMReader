@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+
 import os
 import subprocess
+
 from PIL import Image
 
 # Configuration
@@ -10,8 +13,8 @@ APP_ICON_DIR = "KMReader/Assets.xcassets/AppIcon.appiconset"
 LOGO_DIR = "KMReader/Assets.xcassets/logo.imageset"
 
 # Scale Factors
-SCALE_FACTOR_APP = 0.92  # iOS/Mac
-SCALE_FACTOR_TV = 1.08  # tvOS (Zoomed/Cropped)
+SCALE_FACTOR_APP = 1  # iOS/Mac
+SCALE_FACTOR_TV = 1  # tvOS (Zoomed/Cropped)
 
 # Maximum texture size
 MAX_RENDER_DIM = 8000
