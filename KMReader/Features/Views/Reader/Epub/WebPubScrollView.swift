@@ -133,38 +133,54 @@
       if let targetChapterIndex = viewModel.targetChapterIndex,
         let targetPageIndex = viewModel.targetPageIndex,
         targetChapterIndex >= 0,
-        targetChapterIndex < viewModel.chapterCount,
-        targetChapterIndex != viewModel.currentChapterIndex
-          || targetPageIndex != viewModel.currentPageIndex
+        targetChapterIndex < viewModel.chapterCount
       {
+        let uiChapterIndex = uiViewController.currentChapterIndex
+        let uiPageIndex = uiViewController.currentPageIndex
         let pageCount = viewModel.chapterPageCount(at: targetChapterIndex) ?? 1
         let isLastPageRequest = targetPageIndex < 0
         let normalizedPageIndex =
           isLastPageRequest
           ? max(0, pageCount - 1)
           : max(0, min(targetPageIndex, pageCount - 1))
+        let shouldNavigate =
+          targetChapterIndex != uiChapterIndex
+          || normalizedPageIndex != uiPageIndex
 
-        // Check if this is a jump to the last page of a chapter (backward navigation)
-        let currentChapterIndex = viewModel.currentChapterIndex
-        let isGoingBackward = targetChapterIndex < currentChapterIndex
-        let isLastPageOfChapter = isLastPageRequest || normalizedPageIndex == max(0, pageCount - 1)
+        if shouldNavigate {
+          // Check if this is a jump to the last page of a chapter (backward navigation)
+          let isGoingBackward = targetChapterIndex < uiChapterIndex
+          let isLastPageOfChapter = isLastPageRequest || normalizedPageIndex == max(0, pageCount - 1)
 
-        // Navigate to target chapter and page
-        uiViewController.navigateToPage(
-          chapterIndex: targetChapterIndex,
-          subPageIndex: normalizedPageIndex,
-          jumpToLastPage: isGoingBackward && isLastPageOfChapter
-        )
+          // Navigate to target chapter and page
+          uiViewController.navigateToPage(
+            chapterIndex: targetChapterIndex,
+            subPageIndex: normalizedPageIndex,
+            jumpToLastPage: isGoingBackward && isLastPageOfChapter
+          )
 
-        // Clear targetPageIndex and update current page
+          // Clear targetPageIndex and update current page
+          Task { @MainActor in
+            viewModel.currentChapterIndex = targetChapterIndex
+            viewModel.currentPageIndex = normalizedPageIndex
+            viewModel.targetChapterIndex = nil
+            viewModel.targetPageIndex = nil
+            viewModel.pageDidChange()
+          }
+          return
+        }
+
         Task { @MainActor in
-          viewModel.currentChapterIndex = targetChapterIndex
-          viewModel.currentPageIndex = normalizedPageIndex
+          if viewModel.currentChapterIndex != targetChapterIndex
+            || viewModel.currentPageIndex != normalizedPageIndex
+          {
+            viewModel.currentChapterIndex = targetChapterIndex
+            viewModel.currentPageIndex = normalizedPageIndex
+            viewModel.pageDidChange()
+          }
           viewModel.targetChapterIndex = nil
           viewModel.targetPageIndex = nil
-          viewModel.pageDidChange()
         }
-        return
       }
 
       let chapterIndex = viewModel.currentChapterIndex
@@ -267,6 +283,9 @@
     var onChapterNavigationNeeded: ((Int) -> Void)?
     var onPageDidChange: ((Int, Int) -> Void)?
     var onPageCountReady: ((Int, Int) -> Void)?
+
+    var currentChapterIndex: Int { chapterIndex }
+    var currentPageIndex: Int { currentSubPageIndex }
 
     private var containerView: UIView?
     private var containerConstraints:
