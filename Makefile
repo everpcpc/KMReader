@@ -1,4 +1,4 @@
-.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch format localize
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci list-device run-ios-sim run-ios-device run-macos run-tvos-sim run-tvos-device archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch format localize
 
 # Configuration
 SCHEME = KMReader
@@ -24,6 +24,14 @@ help: ## Show this help message
 	@echo "  make build-ios       - Build for iOS"
 	@echo "  make build-macos     - Build for macOS"
 	@echo "  make build-tvos      - Build for tvOS"
+	@echo ""
+	@echo "Run commands:"
+	@echo "  make list-device     - List available simulator devices"
+	@echo "  make run-ios-sim     - Build and run on iOS simulator (DEVICE=<name_or_udid>)"
+	@echo "  make run-ios-device  - Build and run on iOS device (DEVICE=<name_or_udid>)"
+	@echo "  make run-macos       - Build and run on macOS"
+	@echo "  make run-tvos-sim    - Build and run on tvOS simulator (DEVICE=<name_or_udid>)"
+	@echo "  make run-tvos-device - Build and run on tvOS device (DEVICE=<name_or_udid>)"
 	@echo ""
 	@echo "Archive commands:"
 	@echo "  make archive-ios      - Archive for iOS (custom location)"
@@ -89,6 +97,40 @@ build-tvos-ci: ## Build for tvOS (CI, uses simulator, no code signing)
 	@echo "$(GREEN)Building for tvOS (CI)...$(NC)"
 	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvsimulator -destination 'generic/platform=tvOS Simulator' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 	@echo "$(GREEN)tvOS (CI) built successfully!$(NC)"
+
+list-device: ## List available simulator devices
+	@xcrun simctl list devices
+
+run-ios-sim: ## Build and run on iOS simulator (requires DEVICE)
+	@if [ -z "$(DEVICE)" ]; then \
+		echo "Error: DEVICE is required (name or UDID)"; \
+		exit 1; \
+	fi
+	@xcede buildrun --scheme $(SCHEME) --platform sim --device "$(DEVICE)"
+
+run-ios-device: ## Build and run on iOS device (requires DEVICE)
+	@if [ -z "$(DEVICE)" ]; then \
+		echo "Error: DEVICE is required (name or UDID)"; \
+		exit 1; \
+	fi
+	@xcede buildrun --scheme $(SCHEME) --platform device --device "$(DEVICE)"
+
+run-macos: ## Build and run on macOS
+	@xcede buildrun --scheme $(SCHEME) --platform mac
+
+run-tvos-sim: ## Build and run on tvOS simulator (requires DEVICE)
+	@if [ -z "$(DEVICE)" ]; then \
+		echo "Error: DEVICE is required (name or UDID)"; \
+		exit 1; \
+	fi
+	@xcede buildrun --scheme $(SCHEME) --platform sim --device "$(DEVICE)"
+
+run-tvos-device: ## Build and run on tvOS device (requires DEVICE)
+	@if [ -z "$(DEVICE)" ]; then \
+		echo "Error: DEVICE is required (name or UDID)"; \
+		exit 1; \
+	fi
+	@xcede buildrun --scheme $(SCHEME) --platform device --device "$(DEVICE)"
 
 archive-ios: ## Archive for iOS
 	@echo "$(GREEN)Archiving for iOS...$(NC)"
@@ -191,8 +233,7 @@ clean-artifacts: ## Remove prepared artifacts
 
 clean: clean-archives clean-exports clean-artifacts ## Remove archives, exports, and artifacts
 	@echo "$(GREEN)Cleaned archives, exports, and artifacts successfully!$(NC)"
-	
-	
+
 
 bump: ## Increment CURRENT_PROJECT_VERSION in project.pbxproj
 	@$(MISC_DIR)/bump.sh

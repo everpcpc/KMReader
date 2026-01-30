@@ -29,7 +29,7 @@ struct EndPageView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
     @State private var hasTriggeredHaptic = false
-    private let swipeThreshold: CGFloat = 200
+    private let swipeThreshold: CGFloat = 120
   #endif
 
   #if os(tvOS)

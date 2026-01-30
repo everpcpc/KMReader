@@ -5,6 +5,7 @@
 xcshareddata/
 
 .build/
+.xcede/
 Package.resolved
 
 /buildServer.json
@@ -16,6 +17,7 @@ Package.resolved
 .claude/
 .cursor/
 .agent/
+.zed/
 
 misc/exportOptions.plist
 archives/
