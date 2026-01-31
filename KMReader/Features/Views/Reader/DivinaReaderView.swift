@@ -35,8 +35,7 @@ struct DivinaReaderView: View {
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
   @State private var isolateCoverPage: Bool
-  @State private var splitWidePages: Bool
-  @State private var swapSplitPageOrder: Bool
+  @State private var splitWidePageMode: SplitWidePageMode
 
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
@@ -84,8 +83,7 @@ struct DivinaReaderView: View {
     self._readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
     self._isolateCoverPage = State(initialValue: AppConfig.isolateCoverPage)
-    self._splitWidePages = State(initialValue: AppConfig.splitWidePages)
-    self._swapSplitPageOrder = State(initialValue: AppConfig.swapSplitPageOrder)
+    self._splitWidePageMode = State(initialValue: AppConfig.splitWidePageMode)
   }
 
   var shouldShowControls: Bool {
@@ -130,10 +128,8 @@ struct DivinaReaderView: View {
     pageLayout = AppConfig.pageLayout
     viewModel.updatePageLayout(pageLayout)
     isolateCoverPage = AppConfig.isolateCoverPage
-    splitWidePages = AppConfig.splitWidePages
-    viewModel.updateSplitWidePages(splitWidePages)
-    swapSplitPageOrder = AppConfig.swapSplitPageOrder
-    viewModel.updateSwapSplitPageOrder(swapSplitPageOrder)
+    splitWidePageMode = AppConfig.splitWidePageMode
+    viewModel.updateSplitWidePageMode(splitWidePageMode)
     readingDirection = AppConfig.defaultReadingDirection
   }
 
@@ -312,11 +308,8 @@ struct DivinaReaderView: View {
     .onChange(of: pageLayout) { _, newValue in
       viewModel.updatePageLayout(newValue)
     }
-    .onChange(of: splitWidePages) { _, newValue in
-      viewModel.updateSplitWidePages(newValue)
-    }
-    .onChange(of: swapSplitPageOrder) { _, newValue in
-      viewModel.updateSwapSplitPageOrder(newValue)
+    .onChange(of: splitWidePageMode) { _, newValue in
+      viewModel.updateSplitWidePageMode(newValue)
     }
     .task(id: currentBookId) {
       if !preserveReaderOptions {
@@ -426,6 +419,7 @@ struct DivinaReaderView: View {
               ScrollPageView(
                 mode: .vertical,
                 readingDirection: readingDirection,
+                splitWidePageMode: splitWidePageMode,
                 viewModel: viewModel,
                 nextBook: nextBook,
                 readList: readList,
@@ -462,6 +456,7 @@ struct DivinaReaderView: View {
                 ScrollPageView(
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
+                  splitWidePageMode: splitWidePageMode,
                   viewModel: viewModel,
                   nextBook: nextBook,
                   readList: readList,
@@ -482,6 +477,7 @@ struct DivinaReaderView: View {
               ScrollPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
+                splitWidePageMode: splitWidePageMode,
                 viewModel: viewModel,
                 nextBook: nextBook,
                 readList: readList,
@@ -545,8 +541,7 @@ struct DivinaReaderView: View {
       readingDirection: $readingDirection,
       pageLayout: $pageLayout,
       isolateCoverPage: $isolateCoverPage,
-      splitWidePages: $splitWidePages,
-      swapSplitPageOrder: $swapSplitPageOrder,
+      splitWidePageMode: $splitWidePageMode,
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
@@ -1056,7 +1051,11 @@ struct DivinaReaderView: View {
     preserveReaderOptions = true
     currentBookId = nextBookId
     // Reset viewModel state for new book
-    viewModel = ReaderViewModel(isolateCoverPage: isolateCoverPage, pageLayout: pageLayout)
+    viewModel = ReaderViewModel(
+      isolateCoverPage: isolateCoverPage,
+      pageLayout: pageLayout,
+      splitWidePageMode: splitWidePageMode
+    )
     // Preserve incognito mode for next book
     viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom
@@ -1072,7 +1071,11 @@ struct DivinaReaderView: View {
     preserveReaderOptions = true
     currentBookId = previousBookId
     // Reset viewModel state for new book
-    viewModel = ReaderViewModel(isolateCoverPage: isolateCoverPage, pageLayout: pageLayout)
+    viewModel = ReaderViewModel(
+      isolateCoverPage: isolateCoverPage,
+      pageLayout: pageLayout,
+      splitWidePageMode: splitWidePageMode
+    )
     // Preserve incognito mode for previous book
     viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom

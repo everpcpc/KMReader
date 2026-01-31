@@ -13,8 +13,7 @@ struct ReaderControlsView: View {
   @Binding var readingDirection: ReadingDirection
   @Binding var pageLayout: PageLayout
   @Binding var isolateCoverPage: Bool
-  @Binding var splitWidePages: Bool
-  @Binding var swapSplitPageOrder: Bool
+  @Binding var splitWidePageMode: SplitWidePageMode
 
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
@@ -318,26 +317,15 @@ struct ReaderControlsView: View {
       }
 
       // Wide page splitting options (not for webtoon)
-      if readingDirection != .webtoon {
-        Button {
-          splitWidePages.toggle()
-        } label: {
-          Label(
-            String(localized: "Split Wide Pages"),
-            systemImage: splitWidePages ? "rectangle.split.2x1.fill" : "rectangle.split.2x1"
-          )
-        }
-
-        if splitWidePages {
-          Button {
-            swapSplitPageOrder.toggle()
-          } label: {
-            Label(
-              String(localized: "Swap Split Page Order"),
-              systemImage: swapSplitPageOrder ? "arrow.left.arrow.right.circle.fill" : "arrow.left.arrow.right.circle"
-            )
+      if readingDirection != .webtoon && (pageLayout == .single || pageLayout == .auto) {
+        Picker(selection: $splitWidePageMode) {
+          ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
+            Label(mode.displayName, systemImage: mode.icon).tag(mode)
           }
+        } label: {
+          Label(String(localized: "Split Wide Pages"), systemImage: splitWidePageMode.icon)
         }
+        .pickerStyle(.menu)
       }
     } header: {
       Text(String(localized: "Current Reading Options"))

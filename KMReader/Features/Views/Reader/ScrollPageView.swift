@@ -8,6 +8,7 @@ import SwiftUI
 struct ScrollPageView: View {
   let mode: PageViewMode
   let readingDirection: ReadingDirection
+  let splitWidePageMode: SplitWidePageMode
   @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
   let readList: ReadList?
@@ -29,6 +30,7 @@ struct ScrollPageView: View {
   init(
     mode: PageViewMode,
     readingDirection: ReadingDirection,
+    splitWidePageMode: SplitWidePageMode,
     viewModel: ReaderViewModel,
     nextBook: Book?,
     readList: ReadList?,
@@ -42,6 +44,7 @@ struct ScrollPageView: View {
   ) {
     self.mode = mode
     self.readingDirection = readingDirection
+    self.splitWidePageMode = splitWidePageMode
     self.viewModel = viewModel
     self.nextBook = nextBook
     self.readList = readList
@@ -218,17 +221,8 @@ struct ScrollPageView: View {
             let isFirstHalf = offset == firstIndex
 
             // Determine the base order based on reading direction
-            var shouldShowLeftFirst: Bool
-            if readingDirection == .rtl {
-              shouldShowLeftFirst = false  // RTL: right half first by default
-            } else {
-              shouldShowLeftFirst = true  // LTR: left half first by default
-            }
-
-            // Apply swap if enabled
-            if pagePair.swapOrder {
-              shouldShowLeftFirst = !shouldShowLeftFirst
-            }
+            let effectiveDirection = splitWidePageMode.effectiveReadingDirection(for: readingDirection)
+            let shouldShowLeftFirst = effectiveDirection != .rtl
 
             // Return whether this position should show left half
             return shouldShowLeftFirst ? isFirstHalf : !isFirstHalf

@@ -69,24 +69,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "isolateCoverPage") }
   }
 
-  static nonisolated var splitWidePages: Bool {
+  static nonisolated var splitWidePageMode: SplitWidePageMode {
     get {
-      if UserDefaults.standard.object(forKey: "splitWidePages") != nil {
-        return UserDefaults.standard.bool(forKey: "splitWidePages")
+      if let stored = UserDefaults.standard.string(forKey: "splitWidePageMode"),
+        let mode = SplitWidePageMode(rawValue: stored)
+      {
+        return mode
       }
-      return false
+      return .none
     }
-    set { UserDefaults.standard.set(newValue, forKey: "splitWidePages") }
-  }
-
-  static nonisolated var swapSplitPageOrder: Bool {
-    get {
-      if UserDefaults.standard.object(forKey: "swapSplitPageOrder") != nil {
-        return UserDefaults.standard.bool(forKey: "swapSplitPageOrder")
-      }
-      return false
-    }
-    set { UserDefaults.standard.set(newValue, forKey: "swapSplitPageOrder") }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "splitWidePageMode") }
   }
 
   static nonisolated var isOffline: Bool {

@@ -15,15 +15,13 @@ struct PagePair: Hashable {
   let first: Int
   let second: Int?
   let isSplitPage: Bool  // true if this is a split wide page
-  let swapOrder: Bool    // true if the split order should be swapped
 
   var id: Int { first }
 
-  init(first: Int, second: Int?, isSplitPage: Bool = false, swapOrder: Bool = false) {
+  init(first: Int, second: Int?, isSplitPage: Bool = false) {
     self.first = first
     self.second = second
     self.isSplitPage = isSplitPage
-    self.swapOrder = swapOrder
   }
 
   func display(readingDirection: ReadingDirection) -> String {
@@ -70,8 +68,7 @@ class ReaderViewModel {
   var liveTextActivePageIndex: Int? = nil
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
-  private var splitWidePages: Bool
-  private var swapSplitPageOrder: Bool
+  private var splitWidePageMode: SplitWidePageMode
   private var isActuallyUsingDualPageMode: Bool = false
 
   private let logger = AppLogger(.reader)
@@ -99,17 +96,15 @@ class ReaderViewModel {
     self.init(
       isolateCoverPage: AppConfig.isolateCoverPage,
       pageLayout: AppConfig.pageLayout,
-      splitWidePages: AppConfig.splitWidePages,
-      swapSplitPageOrder: AppConfig.swapSplitPageOrder
+      splitWidePageMode: AppConfig.splitWidePageMode
     )
   }
 
-  init(isolateCoverPage: Bool, pageLayout: PageLayout, splitWidePages: Bool = false, swapSplitPageOrder: Bool = false) {
+  init(isolateCoverPage: Bool, pageLayout: PageLayout, splitWidePageMode: SplitWidePageMode = .none) {
     self.pageImageCache = ImageCache()
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
-    self.splitWidePages = splitWidePages
-    self.swapSplitPageOrder = swapSplitPageOrder
+    self.splitWidePageMode = splitWidePageMode
     regenerateDualPageState()
   }
 
@@ -493,27 +488,13 @@ class ReaderViewModel {
     regenerateDualPageState()
   }
 
-  func updateSplitWidePages(_ enabled: Bool) {
-    guard splitWidePages != enabled else { return }
+  func updateSplitWidePageMode(_ mode: SplitWidePageMode) {
+    guard splitWidePageMode != mode else { return }
 
     // currentPageIndex stores the actual page number in split mode
     let actualPageNumber = min(currentPageIndex, pages.count - 1)
 
-    splitWidePages = enabled
-    regenerateDualPageState()
-
-    // Set targetPageIndex to the actual page number (not pagePairs index)
-    // handleTargetPageChange will convert it to the correct pagePairs index
-    targetPageIndex = actualPageNumber
-  }
-
-  func updateSwapSplitPageOrder(_ enabled: Bool) {
-    guard swapSplitPageOrder != enabled else { return }
-
-    // currentPageIndex stores the actual page number
-    let actualPageNumber = min(currentPageIndex, pages.count - 1)
-
-    swapSplitPageOrder = enabled
+    splitWidePageMode = mode
     regenerateDualPageState()
 
     // Set targetPageIndex to the actual page number (not pagePairs index)
@@ -542,7 +523,7 @@ class ReaderViewModel {
 
   private func regenerateDualPageState() {
     // In actual dual page mode, disable split wide pages
-    let effectiveSplitWidePages = splitWidePages && !isActuallyUsingDualPageMode
+    let effectiveSplitWidePages = splitWidePageMode.isEnabled && !isActuallyUsingDualPageMode
 
     // Cover page isolation only applies when NOT in single page mode
     // In single page mode, every page is already isolated
@@ -553,7 +534,6 @@ class ReaderViewModel {
       noCover: !shouldIsolateCover,
       forceDualPairs: forceDualPagePairs,
       splitWidePages: effectiveSplitWidePages,
-      swapSplitOrder: swapSplitPageOrder,
       isolatePages: Set(isolatePages)
     )
     dualPageIndices = generateDualPageIndices(pairs: pagePairs)
@@ -565,7 +545,6 @@ private func generatePagePairs(
   noCover: Bool,
   forceDualPairs: Bool,
   splitWidePages: Bool,
-  swapSplitOrder: Bool,
   isolatePages: Set<Int> = []
 ) -> [PagePair] {
   guard pages.count > 0 else { return [] }
@@ -595,7 +574,8 @@ private func generatePagePairs(
     var shouldSplitPage = false
 
     // Check if wide page should be split (only if not already isolated or cover)
-    let isWidePageEligibleForSplit = !currentPage.isPortrait
+    let isWidePageEligibleForSplit =
+      !currentPage.isPortrait
       && splitWidePages
       && !isolatePages.contains(index)
       && (noCover || index != 0)  // Don't split cover page
@@ -622,8 +602,8 @@ private func generatePagePairs(
 
     if shouldSplitPage {
       // Split the wide page into two pages
-      pairs.append(PagePair(first: index, second: index, isSplitPage: true, swapOrder: swapSplitOrder))
-      pairs.append(PagePair(first: index, second: index, isSplitPage: true, swapOrder: swapSplitOrder))
+      pairs.append(PagePair(first: index, second: index, isSplitPage: true))
+      pairs.append(PagePair(first: index, second: index, isSplitPage: true))
       index += 1
     } else if useSinglePage {
       pairs.append(PagePair(first: index, second: nil))

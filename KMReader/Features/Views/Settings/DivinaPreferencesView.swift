@@ -16,8 +16,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
   @AppStorage("isolateCoverPage") private var isolateCoverPage: Bool = true
-  @AppStorage("splitWidePages") private var splitWidePages: Bool = false
-  @AppStorage("swapSplitPageOrder") private var swapSplitPageOrder: Bool = false
+  @AppStorage("splitWidePageMode") private var splitWidePageMode: SplitWidePageMode = .none
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
@@ -333,24 +332,16 @@ struct DivinaPreferencesView: View {
         }
 
         if pageLayout == .single || pageLayout == .auto {
-          Toggle(isOn: $splitWidePages) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Split Wide Pages")
-              Text("In single page mode, split landscape pages into two separate pages")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-
-          if splitWidePages {
-            Toggle(isOn: $swapSplitPageOrder) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Swap Split Page Order")
-                Text("Reverse the display order of split page halves")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Split Wide Pages", selection: $splitWidePageMode) {
+              ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
               }
             }
+            .pickerStyle(.menu)
+            Text("In single page mode, split landscape pages into two separate pages")
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
         }
 
