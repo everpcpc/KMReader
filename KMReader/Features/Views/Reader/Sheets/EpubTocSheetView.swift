@@ -1,5 +1,5 @@
 //
-//  ChapterListSheetView.swift
+//  EpubTocSheetView.swift
 //  KMReader
 //
 //  Created by Komga iOS Client
@@ -8,7 +8,7 @@
 #if os(iOS)
   import SwiftUI
 
-  struct ChapterListSheetView: View {
+  struct EpubTocSheetView: View {
     let chapters: [WebPubLink]
     let currentLink: WebPubLink?
     let goToChapter: (WebPubLink) -> Void
@@ -26,6 +26,7 @@
             }
           }
           .optimizedListStyle()
+          .adaptiveButtonStyle(.plain)
           .onAppear {
             DispatchQueue.main.async {
               if let target = currentLink {
@@ -68,21 +69,20 @@
             )
           }
         } label: {
-          Button(action: {
+          Button {
             goToChapter(link)
-          }) {
+          } label: {
             ChapterLabel(link: link, currentLink: currentLink)
           }
-          .adaptiveButtonStyle(.plain)
+          .contentShape(Rectangle())
         }
         .id(link.href)
       } else {
-        Button(action: {
+        Button {
           goToChapter(link)
-        }) {
+        } label: {
           ChapterLabel(link: link, currentLink: currentLink)
         }
-        .adaptiveButtonStyle(.plain)
         .contentShape(Rectangle())
         .id(link.href)
       }
@@ -105,17 +105,18 @@
     let link: WebPubLink
     let currentLink: WebPubLink?
 
+    var isCurrent: Bool {
+      guard let currentLink else { return false }
+      return currentLink.href == link.href
+    }
+
     var body: some View {
       HStack {
-        VStack(alignment: .leading, spacing: 4) {
-          Text(link.title ?? link.href)
-        }
+        Text(link.title ?? link.href)
+          .foregroundStyle(isCurrent ? .secondary : .primary)
         Spacer()
-        if let currentLink,
-          currentLink.href == link.href
-        {
+        if isCurrent {
           Image(systemName: "bookmark.fill")
-            .foregroundColor(Color.accentColor)
         }
       }
     }

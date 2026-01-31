@@ -42,7 +42,7 @@ struct ReaderLoadingView: View {
             .foregroundStyle(.secondary)
         } else {
           // Indeterminate State
-          LargeLoadingIcon()
+          LoadingIcon()
         }
       }
       .padding(.top, 8)

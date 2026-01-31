@@ -283,7 +283,7 @@ struct DivinaReaderView: View {
       )
     }
     .sheet(isPresented: $showingTOCSheet) {
-      ReaderTOCSheetView(
+      DivinaTOCSheetView(
         entries: viewModel.tableOfContents,
         currentPageIndex: viewModel.currentPageIndex,
         onSelect: { entry in
