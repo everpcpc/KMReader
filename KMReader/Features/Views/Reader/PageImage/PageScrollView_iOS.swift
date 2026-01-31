@@ -12,6 +12,7 @@
     let resetID: AnyHashable
     let minScale: CGFloat
     let maxScale: CGFloat
+    let displayMode: PageDisplayMode
     let readingDirection: ReadingDirection
     let doubleTapScale: CGFloat
     let doubleTapZoomMode: DoubleTapZoomMode
@@ -20,12 +21,61 @@
     let showPageNumber: Bool
     let readerBackground: ReaderBackground
     let enableLiveText: Bool
+    let initialZoomScale: CGFloat?
+    let initialZoomAnchor: CGPoint?
+    let initialZoomID: AnyHashable?
 
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
     let onToggleControls: () -> Void
 
     let pages: [NativePageData]
+
+    init(
+      viewModel: ReaderViewModel,
+      screenSize: CGSize,
+      resetID: AnyHashable,
+      minScale: CGFloat,
+      maxScale: CGFloat,
+      displayMode: PageDisplayMode = .fit,
+      readingDirection: ReadingDirection,
+      doubleTapScale: CGFloat,
+      doubleTapZoomMode: DoubleTapZoomMode,
+      tapZoneSize: TapZoneSize,
+      tapZoneMode: TapZoneMode,
+      showPageNumber: Bool,
+      readerBackground: ReaderBackground,
+      enableLiveText: Bool,
+      initialZoomScale: CGFloat? = nil,
+      initialZoomAnchor: CGPoint? = nil,
+      initialZoomID: AnyHashable? = nil,
+      onNextPage: @escaping () -> Void,
+      onPreviousPage: @escaping () -> Void,
+      onToggleControls: @escaping () -> Void,
+      pages: [NativePageData]
+    ) {
+      self.viewModel = viewModel
+      self.screenSize = screenSize
+      self.resetID = resetID
+      self.minScale = minScale
+      self.maxScale = maxScale
+      self.displayMode = displayMode
+      self.readingDirection = readingDirection
+      self.doubleTapScale = doubleTapScale
+      self.doubleTapZoomMode = doubleTapZoomMode
+      self.tapZoneSize = tapZoneSize
+      self.tapZoneMode = tapZoneMode
+      self.showPageNumber = showPageNumber
+      self.readerBackground = readerBackground
+      self.enableLiveText = enableLiveText
+      self.initialZoomScale = initialZoomScale
+      self.initialZoomAnchor = initialZoomAnchor
+      self.initialZoomID = initialZoomID
+      self.onNextPage = onNextPage
+      self.onPreviousPage = onPreviousPage
+      self.onToggleControls = onToggleControls
+      self.pages = pages
+    }
 
     func makeCoordinator() -> Coordinator {
       Coordinator()
@@ -57,10 +107,10 @@
         contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
         contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
         contentStack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-        contentStack.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
       ])
 
       context.coordinator.parent = self
+      context.coordinator.applyDisplayModeIfNeeded(in: scrollView)
       context.coordinator.setupNativeInteractions(on: scrollView)
       return scrollView
     }
@@ -72,16 +122,21 @@
     func updateUIView(_ uiView: UIScrollView, context: Context) {
       context.coordinator.isUpdatingFromSwiftUI = true
       defer {
-        DispatchQueue.main.async { context.coordinator.isUpdatingFromSwiftUI = false }
+        DispatchQueue.main.async {
+          context.coordinator.isUpdatingFromSwiftUI = false
+          context.coordinator.applyInitialZoomIfNeeded(in: uiView)
+        }
       }
 
       context.coordinator.parent = self
+      context.coordinator.applyDisplayModeIfNeeded(in: uiView)
       context.coordinator.updatePages()
 
       uiView.backgroundColor = UIColor(readerBackground.color)
 
       if context.coordinator.lastResetID != resetID {
         context.coordinator.lastResetID = resetID
+        context.coordinator.lastInitialZoomID = nil
         uiView.setZoomScale(minScale, animated: false)
         uiView.contentOffset = .zero
       }
@@ -90,6 +145,8 @@
     @MainActor
     class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
       var lastResetID: AnyHashable?
+      var lastInitialZoomID: AnyHashable?
+      var lastDisplayMode: PageDisplayMode?
       var isUpdatingFromSwiftUI = false
       var isMenuVisible = false
       var isLongPressing = false
@@ -103,6 +160,7 @@
       var parent: PageScrollView!
 
       weak var contentStack: UIStackView?
+      var contentHeightConstraint: NSLayoutConstraint?
       private var pageViews: [NativePageItemiOS] = []
 
       func prepareForDismantle() {
@@ -127,12 +185,15 @@
 
         for (index, data) in pages.enumerated() {
           let image = parent.viewModel.preloadedImages[data.pageNumber]
+          let targetHeight = targetHeight(for: data, image: image)
           pageViews[index].update(
             with: data,
             viewModel: parent.viewModel,
             image: image,
             showPageNumber: parent.showPageNumber,
-            readingDirection: parent.readingDirection
+            readingDirection: parent.readingDirection,
+            displayMode: parent.displayMode,
+            targetHeight: targetHeight
           )
         }
 
@@ -157,6 +218,27 @@
         }
       }
 
+      func applyInitialZoomIfNeeded(in scrollView: UIScrollView) {
+        guard let initialZoomID = parent.initialZoomID else { return }
+        guard initialZoomID != lastInitialZoomID else { return }
+        guard scrollView.bounds.width > 0, scrollView.bounds.height > 0 else { return }
+
+        scrollView.layoutIfNeeded()
+        let contentSize = scrollView.contentSize
+        guard contentSize.width > 0, contentSize.height > 0 else { return }
+
+        let scale = clampedScale(parent.initialZoomScale ?? parent.minScale)
+        let baseAnchor = clampedAnchor(parent.initialZoomAnchor ?? CGPoint(x: 0.5, y: 0.5))
+        let adjustedAnchor = clampedAnchor(adjustedAnchorForFillWidth(baseAnchor, contentSize: contentSize))
+        let center = CGPoint(
+          x: contentSize.width * adjustedAnchor.x,
+          y: contentSize.height * adjustedAnchor.y
+        )
+        let zoomRect = calculateZoomRect(scale: scale, center: center, scrollView: scrollView)
+        scrollView.zoom(to: zoomRect, animated: false)
+        lastInitialZoomID = initialZoomID
+      }
+
       func setupNativeInteractions(on scrollView: UIScrollView) {
         if parent.doubleTapZoomMode != .disabled {
           let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
@@ -176,6 +258,60 @@
         longPress.delegate = self
         longPress.cancelsTouchesInView = false
         scrollView.addGestureRecognizer(longPress)
+      }
+
+      func applyDisplayModeIfNeeded(in scrollView: UIScrollView) {
+        guard let stack = contentStack else { return }
+        guard lastDisplayMode != parent.displayMode else { return }
+
+        lastDisplayMode = parent.displayMode
+        contentHeightConstraint?.isActive = false
+        contentHeightConstraint = nil
+
+        switch parent.displayMode {
+        case .fit:
+          stack.alignment = .fill
+          stack.distribution = .fillEqually
+          contentHeightConstraint = stack.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
+        case .fillWidth:
+          stack.alignment = .top
+          stack.distribution = .fill
+          contentHeightConstraint = stack.heightAnchor.constraint(
+            greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor
+          )
+        }
+
+        contentHeightConstraint?.isActive = true
+      }
+
+      private func targetHeight(for data: NativePageData, image: PlatformImage?) -> CGFloat {
+        guard parent.displayMode == .fillWidth else { return parent.screenSize.height }
+        let width = parent.screenSize.width
+        guard width > 0 else { return parent.screenSize.height }
+
+        if let image = image {
+          let imageSize = image.size
+          if imageSize.width > 0, imageSize.height > 0 {
+            let height = width * imageSize.height / imageSize.width
+            if height.isFinite && height > 0 {
+              return height
+            }
+          }
+        }
+
+        if let page = parent.viewModel.pages.first(where: { $0.number == data.pageNumber }),
+          let pageWidth = page.width,
+          let pageHeight = page.height,
+          pageWidth > 0,
+          pageHeight > 0
+        {
+          let height = width * CGFloat(pageHeight) / CGFloat(pageWidth)
+          if height.isFinite && height > 0 {
+            return height
+          }
+        }
+
+        return parent.screenSize.height
       }
 
       @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
@@ -280,6 +416,27 @@
         let height = scrollView.frame.size.height / scale
         return CGRect(x: center.x - width / 2, y: center.y - height / 2, width: width, height: height)
       }
+
+      private func clampedScale(_ scale: CGFloat) -> CGFloat {
+        guard scale.isFinite else { return parent.minScale }
+        return min(max(scale, parent.minScale), parent.maxScale)
+      }
+
+      private func clampedAnchor(_ anchor: CGPoint) -> CGPoint {
+        let x = min(max(anchor.x, 0), 1)
+        let y = min(max(anchor.y, 0), 1)
+        return CGPoint(x: x, y: y)
+      }
+
+      private func adjustedAnchorForFillWidth(_ anchor: CGPoint, contentSize: CGSize) -> CGPoint {
+        guard parent.displayMode == .fillWidth else { return anchor }
+        guard let data = parent.pages.first else { return anchor }
+        let image = parent.viewModel.preloadedImages[data.pageNumber]
+        let imageHeight = targetHeight(for: data, image: image)
+        guard imageHeight > 0, contentSize.height > 0, imageHeight < contentSize.height else { return anchor }
+        let adjustedY = anchor.y * (imageHeight / contentSize.height)
+        return CGPoint(x: anchor.x, y: adjustedY)
+      }
     }
   }
 
@@ -291,6 +448,7 @@
     private var currentData: NativePageData?
     private weak var viewModel: ReaderViewModel?
     private var readingDirection: ReadingDirection = .ltr
+    private var displayMode: PageDisplayMode = .fit
 
     #if !os(tvOS)
       private let interaction = ImageAnalysisInteraction()
@@ -300,6 +458,7 @@
     #endif
 
     private var aspectConstraint: NSLayoutConstraint?
+    private var heightConstraint: NSLayoutConstraint?
     private var imageLeadingConstraint: NSLayoutConstraint?
     private var imageTrailingConstraint: NSLayoutConstraint?
     private var imageCenterXConstraint: NSLayoutConstraint?
@@ -307,6 +466,10 @@
     // Additional constraints for ensuring imageView doesn't exceed bounds
     private var imageLeadingBoundConstraint: NSLayoutConstraint?
     private var imageTrailingBoundConstraint: NSLayoutConstraint?
+    private var imageFillLeadingConstraint: NSLayoutConstraint?
+    private var imageFillTrailingConstraint: NSLayoutConstraint?
+    private var imageFillTopConstraint: NSLayoutConstraint?
+    private var imageFillBottomConstraint: NSLayoutConstraint?
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -388,6 +551,10 @@
       // Create inequality bounds for single-page mode (stay within bounds but centered)
       imageLeadingBoundConstraint = imageView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor)
       imageTrailingBoundConstraint = imageView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
+      imageFillLeadingConstraint = imageView.leadingAnchor.constraint(equalTo: leadingAnchor)
+      imageFillTrailingConstraint = imageView.trailingAnchor.constraint(equalTo: trailingAnchor)
+      imageFillTopConstraint = imageView.topAnchor.constraint(equalTo: topAnchor)
+      imageFillBottomConstraint = imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
 
       NSLayoutConstraint.activate([
         // Center vertically and stay within bounds
@@ -419,7 +586,9 @@
       viewModel: ReaderViewModel,
       image: PlatformImage?,
       showPageNumber: Bool,
-      readingDirection: ReadingDirection
+      readingDirection: ReadingDirection,
+      displayMode: PageDisplayMode,
+      targetHeight: CGFloat
     ) {
       self.currentData = data
       self.viewModel = viewModel
@@ -436,6 +605,7 @@
       imageView.image = displayImage
       imageView.layer.shadowOpacity = displayImage == nil ? 0 : 0.25
 
+      updateHeightConstraint(targetHeight)
       updateImageAlignment()
 
       if displayImage != nil, showPageNumber {
@@ -493,29 +663,71 @@
       }
 
       // Create cropped image
-      guard let cgImage = image.cgImage?.cropping(to: CGRect(
-        x: cropRect.origin.x * scale,
-        y: cropRect.origin.y * scale,
-        width: cropRect.size.width * scale,
-        height: cropRect.size.height * scale
-      )) else {
+      guard
+        let cgImage = image.cgImage?.cropping(
+          to: CGRect(
+            x: cropRect.origin.x * scale,
+            y: cropRect.origin.y * scale,
+            width: cropRect.size.width * scale,
+            height: cropRect.size.height * scale
+          ))
+      else {
         return image
       }
 
       return UIImage(cgImage: cgImage, scale: scale, orientation: image.imageOrientation)
     }
 
+    private func updateHeightConstraint(_ targetHeight: CGFloat) {
+      if displayMode == .fillWidth {
+        if heightConstraint == nil {
+          heightConstraint = heightAnchor.constraint(equalToConstant: targetHeight)
+          heightConstraint?.priority = .required
+          heightConstraint?.isActive = true
+        } else {
+          heightConstraint?.constant = targetHeight
+        }
+      } else {
+        heightConstraint?.isActive = false
+        heightConstraint = nil
+      }
+    }
+
     private func updateImageAlignment() {
+      if displayMode == .fillWidth {
+        aspectConstraint?.isActive = false
+
+        imageLeadingConstraint?.isActive = false
+        imageTrailingConstraint?.isActive = false
+        imageCenterXConstraint?.isActive = false
+
+        imageFillLeadingConstraint?.isActive = true
+        imageFillTrailingConstraint?.isActive = true
+        imageFillTopConstraint?.isActive = true
+        imageFillBottomConstraint?.isActive = true
+        return
+      }
+
+      imageFillLeadingConstraint?.isActive = false
+      imageFillTrailingConstraint?.isActive = false
+      imageFillTopConstraint?.isActive = false
+      imageFillBottomConstraint?.isActive = false
+
       guard let data = currentData, let image = imageView.image else {
         aspectConstraint?.isActive = false
+        imageLeadingConstraint?.isActive = false
+        imageTrailingConstraint?.isActive = false
+        imageCenterXConstraint?.isActive = false
         return
       }
 
       aspectConstraint?.isActive = false
       let ratio = image.size.width / image.size.height
-      aspectConstraint = imageView.widthAnchor.constraint(equalTo: imageView.heightAnchor, multiplier: ratio)
-      aspectConstraint?.priority = .required
-      aspectConstraint?.isActive = true
+      if ratio.isFinite && ratio > 0 {
+        aspectConstraint = imageView.widthAnchor.constraint(equalTo: imageView.heightAnchor, multiplier: ratio)
+        aspectConstraint?.priority = .required
+        aspectConstraint?.isActive = true
+      }
 
       imageLeadingConstraint?.isActive = false
       imageTrailingConstraint?.isActive = false
@@ -614,12 +826,18 @@
     private func updateOverlaysPosition() {
       guard let image = imageView.image else { return }
       let imageSize = image.size
+      guard imageSize.width > 0, imageSize.height > 0 else { return }
       let viewSize = bounds.size
       if viewSize.width == 0 || viewSize.height == 0 { return }
 
       let widthRatio = viewSize.width / imageSize.width
       let heightRatio = viewSize.height / imageSize.height
-      let scale = min(widthRatio, heightRatio)
+      let scale: CGFloat
+      if displayMode == .fillWidth {
+        scale = widthRatio
+      } else {
+        scale = min(widthRatio, heightRatio)
+      }
 
       let actualImageWidth = imageSize.width * scale
       let actualImageHeight = imageSize.height * scale

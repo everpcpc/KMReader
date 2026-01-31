@@ -17,6 +17,7 @@
     let onScrollToBottom: ((Bool) -> Void)?
     let onNextBookPanUpdate: ((CGFloat) -> Void)?
     let onNextBookPanEnd: ((CGFloat) -> Void)?
+    let onZoomRequest: ((Int, CGPoint) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let tapZoneMode: TapZoneMode
@@ -32,7 +33,8 @@
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil,
       onNextBookPanUpdate: ((CGFloat) -> Void)? = nil,
-      onNextBookPanEnd: ((CGFloat) -> Void)? = nil
+      onNextBookPanEnd: ((CGFloat) -> Void)? = nil,
+      onZoomRequest: ((Int, CGPoint) -> Void)? = nil
     ) {
       self.pages = pages
       self.viewModel = viewModel
@@ -45,6 +47,7 @@
       self.onScrollToBottom = onScrollToBottom
       self.onNextBookPanUpdate = onNextBookPanUpdate
       self.onNextBookPanEnd = onNextBookPanEnd
+      self.onZoomRequest = onZoomRequest
     }
 
     func makeUIView(context: Context) -> UICollectionView {
@@ -73,6 +76,15 @@
       tapGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(tapGesture)
 
+      let doubleTapGesture = UITapGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleDoubleTap(_:))
+      )
+      doubleTapGesture.numberOfTapsRequired = 2
+      doubleTapGesture.cancelsTouchesInView = false
+      doubleTapGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(doubleTapGesture)
+
       let longPressGesture = UILongPressGestureRecognizer(
         target: context.coordinator,
         action: #selector(Coordinator.handleLongPress(_:))
@@ -81,6 +93,13 @@
       longPressGesture.cancelsTouchesInView = false
       longPressGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(longPressGesture)
+
+      let pinchGesture = UIPinchGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handlePinch(_:))
+      )
+      pinchGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(pinchGesture)
 
       let nextBookPanGesture = UIPanGestureRecognizer(
         target: context.coordinator,
@@ -107,6 +126,7 @@
         onScrollToBottom: onScrollToBottom,
         onNextBookPanUpdate: onNextBookPanUpdate,
         onNextBookPanEnd: onNextBookPanEnd,
+        onZoomRequest: onZoomRequest,
         pageWidth: pageWidth,
         collectionView: collectionView,
         readerBackground: readerBackground,
@@ -134,6 +154,7 @@
       var onScrollToBottom: ((Bool) -> Void)?
       var onNextBookPanUpdate: ((CGFloat) -> Void)?
       var onNextBookPanEnd: ((CGFloat) -> Void)?
+      var onZoomRequest: ((Int, CGPoint) -> Void)?
       var nextBookPanGesture: UIPanGestureRecognizer?
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
@@ -148,6 +169,8 @@
       var tapZoneMode: TapZoneMode = .auto
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
+      var hasTriggeredZoomGesture: Bool = false
+      private var singleTapWorkItem: DispatchWorkItem?
 
       private let longPressThreshold: TimeInterval = 0.5
 
@@ -163,6 +186,7 @@
         self.onScrollToBottom = parent.onScrollToBottom
         self.onNextBookPanUpdate = parent.onNextBookPanUpdate
         self.onNextBookPanEnd = parent.onNextBookPanEnd
+        self.onZoomRequest = parent.onZoomRequest
         self.lastPagesCount = parent.pages.count
         self.hasScrolledToInitialPage = false
         self.pageWidth = parent.pageWidth
@@ -211,6 +235,7 @@
         onScrollToBottom: ((Bool) -> Void)?,
         onNextBookPanUpdate: ((CGFloat) -> Void)?,
         onNextBookPanEnd: ((CGFloat) -> Void)?,
+        onZoomRequest: ((Int, CGPoint) -> Void)?,
         pageWidth: CGFloat,
         collectionView: UICollectionView,
         readerBackground: ReaderBackground,
@@ -225,6 +250,7 @@
         self.onScrollToBottom = onScrollToBottom
         self.onNextBookPanUpdate = onNextBookPanUpdate
         self.onNextBookPanEnd = onNextBookPanEnd
+        self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
         self.tapZoneMode = tapZoneMode
@@ -601,6 +627,8 @@
       }
 
       @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+
         guard !isLongPress else { return }
 
         guard let collectionView = collectionView,
@@ -626,13 +654,56 @@
           zoneThreshold: AppConfig.tapZoneSize.value
         )
 
-        switch action {
-        case .previous:
-          scrollUp(collectionView: collectionView, screenHeight: screenHeight)
-        case .next:
-          scrollDown(collectionView: collectionView, screenHeight: screenHeight)
-        case .toggleControls:
-          onCenterTap?()
+        let workItem = DispatchWorkItem { [weak self] in
+          guard let self = self else { return }
+          switch action {
+          case .previous:
+            self.scrollUp(collectionView: collectionView, screenHeight: screenHeight)
+          case .next:
+            self.scrollDown(collectionView: collectionView, screenHeight: screenHeight)
+          case .toggleControls:
+            self.onCenterTap?()
+          }
+        }
+        singleTapWorkItem = workItem
+
+        let delay = tapDebounceDelay()
+        if delay <= 0 {
+          workItem.perform()
+        } else {
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        }
+      }
+
+      @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        guard !isLongPress else { return }
+        guard let collectionView = collectionView else { return }
+        if collectionView.isDragging || collectionView.isDecelerating { return }
+
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+
+        let location = gesture.location(in: collectionView)
+        requestZoom(at: location)
+      }
+
+      @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+        guard let collectionView = collectionView else { return }
+
+        switch gesture.state {
+        case .began:
+          hasTriggeredZoomGesture = false
+        case .changed:
+          if hasTriggeredZoomGesture { return }
+          let delta = gesture.scale - 1.0
+          guard delta > 0.05 else { return }
+          hasTriggeredZoomGesture = true
+          let location = gesture.location(in: collectionView)
+          requestZoom(at: location)
+        case .ended, .cancelled, .failed:
+          hasTriggeredZoomGesture = false
+        default:
+          break
         }
       }
 
@@ -672,6 +743,60 @@
         let velocity = pan.velocity(in: pan.view)
         // Only allow upward pan (negative y velocity)
         return velocity.y < 0 && abs(velocity.y) > abs(velocity.x)
+      }
+
+      private func tapDebounceDelay() -> TimeInterval {
+        switch AppConfig.doubleTapZoomMode {
+        case .disabled:
+          return 0
+        case .fast:
+          return 0.15
+        case .slow:
+          return 0.3
+        }
+      }
+
+      private func requestZoom(at location: CGPoint) {
+        guard let result = pageIndexAndAnchor(for: location) else { return }
+        onZoomRequest?(result.pageIndex, result.anchor)
+      }
+
+      private func pageIndexAndAnchor(for location: CGPoint) -> (pageIndex: Int, anchor: CGPoint)? {
+        guard let collectionView = collectionView else { return nil }
+
+        if let indexPath = collectionView.indexPathForItem(at: location),
+          isValidPageIndex(indexPath.item)
+        {
+          if let cell = collectionView.cellForItem(at: indexPath) {
+            let local = cell.contentView.convert(location, from: collectionView)
+            return (indexPath.item, normalizedAnchor(in: cell.contentView.bounds, location: local))
+          }
+          if let attributes = collectionView.layoutAttributesForItem(at: indexPath) {
+            return (indexPath.item, normalizedAnchor(in: attributes.frame, location: location))
+          }
+        }
+
+        guard !pages.isEmpty else { return nil }
+        let fallback = min(max(currentPage, 0), pages.count - 1)
+        guard isValidPageIndex(fallback) else { return nil }
+        let fallbackIndexPath = IndexPath(item: fallback, section: 0)
+        if let cell = collectionView.cellForItem(at: fallbackIndexPath) {
+          let local = cell.contentView.convert(location, from: collectionView)
+          return (fallback, normalizedAnchor(in: cell.contentView.bounds, location: local))
+        }
+        if let attributes = collectionView.layoutAttributesForItem(at: fallbackIndexPath) {
+          return (fallback, normalizedAnchor(in: attributes.frame, location: location))
+        }
+        return nil
+      }
+
+      private func normalizedAnchor(in frame: CGRect, location: CGPoint) -> CGPoint {
+        guard frame.width > 0, frame.height > 0 else { return CGPoint(x: 0.5, y: 0.5) }
+        let localX = location.x - frame.minX
+        let localY = location.y - frame.minY
+        let x = min(max(localX / frame.width, 0), 1)
+        let y = min(max(localY / frame.height, 0), 1)
+        return CGPoint(x: x, y: y)
       }
 
       private func scrollUp(collectionView: UICollectionView, screenHeight: CGFloat) {

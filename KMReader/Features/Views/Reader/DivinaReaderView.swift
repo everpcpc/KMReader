@@ -406,59 +406,79 @@ struct DivinaReaderView: View {
   ) -> some View {
     let _ = viewModel.updateActualDualPageMode(useDualPage)
 
-    return Group {
+    Group {
       if !viewModel.pages.isEmpty {
         Group {
           if readingDirection == .webtoon {
-          #if os(iOS) || os(macOS)
-            WebtoonPageView(
-              viewModel: viewModel,
-              isAtBottom: $isAtBottom,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: { closeReader() },
-              onNextBook: { openNextBook(nextBookId: $0) },
-              toggleControls: { toggleControls() },
-              pageWidthPercentage: webtoonPageWidthPercentage,
-              readerBackground: readerBackground
-            )
-          #else
-            ScrollPageView(
-              mode: .vertical,
-              readingDirection: readingDirection,
-              viewModel: viewModel,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: { closeReader() },
-              onNextBook: { openNextBook(nextBookId: $0) },
-              goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-              goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-              toggleControls: { toggleControls() },
-              onEndPageFocusChange: endPageFocusChangeHandler,
-              onScrollActivityChange: { isScrolling in
-                if isScrolling {
-                  resetControlsTimer(timeout: 1.5)
-                }
-              }
-            )
-          #endif
-        } else {
-          #if os(iOS)
-            if pageTransitionStyle == .pageCurl && !useDualPage {
-              CurlPageView(
+            #if os(iOS) || os(macOS)
+              WebtoonPageView(
                 viewModel: viewModel,
-                mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-                readingDirection: readingDirection,
+                isAtBottom: $isAtBottom,
                 nextBook: nextBook,
                 readList: readList,
                 onDismiss: { closeReader() },
                 onNextBook: { openNextBook(nextBookId: $0) },
-                goToNextPage: { goToNextPage(dualPageEnabled: false) },
-                goToPreviousPage: { goToPreviousPage(dualPageEnabled: false) },
                 toggleControls: { toggleControls() },
-                onEndPageFocusChange: endPageFocusChangeHandler
+                pageWidthPercentage: webtoonPageWidthPercentage,
+                readerBackground: readerBackground
               )
-            } else {
+            #else
+              ScrollPageView(
+                mode: .vertical,
+                readingDirection: readingDirection,
+                viewModel: viewModel,
+                nextBook: nextBook,
+                readList: readList,
+                onDismiss: { closeReader() },
+                onNextBook: { openNextBook(nextBookId: $0) },
+                goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+                toggleControls: { toggleControls() },
+                onEndPageFocusChange: endPageFocusChangeHandler,
+                onScrollActivityChange: { isScrolling in
+                  if isScrolling {
+                    resetControlsTimer(timeout: 1.5)
+                  }
+                }
+              )
+            #endif
+          } else {
+            #if os(iOS)
+              if pageTransitionStyle == .pageCurl && !useDualPage {
+                CurlPageView(
+                  viewModel: viewModel,
+                  mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                  readingDirection: readingDirection,
+                  nextBook: nextBook,
+                  readList: readList,
+                  onDismiss: { closeReader() },
+                  onNextBook: { openNextBook(nextBookId: $0) },
+                  goToNextPage: { goToNextPage(dualPageEnabled: false) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: false) },
+                  toggleControls: { toggleControls() },
+                  onEndPageFocusChange: endPageFocusChangeHandler
+                )
+              } else {
+                ScrollPageView(
+                  mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                  readingDirection: readingDirection,
+                  viewModel: viewModel,
+                  nextBook: nextBook,
+                  readList: readList,
+                  onDismiss: { closeReader() },
+                  onNextBook: { openNextBook(nextBookId: $0) },
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+                  toggleControls: { toggleControls() },
+                  onEndPageFocusChange: endPageFocusChangeHandler,
+                  onScrollActivityChange: { isScrolling in
+                    if isScrolling {
+                      resetControlsTimer(timeout: 1.5)
+                    }
+                  }
+                )
+              }
+            #else
               ScrollPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
@@ -477,42 +497,22 @@ struct DivinaReaderView: View {
                   }
                 }
               )
-            }
-          #else
-            ScrollPageView(
-              mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-              readingDirection: readingDirection,
-              viewModel: viewModel,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: { closeReader() },
-              onNextBook: { openNextBook(nextBookId: $0) },
-              goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-              goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-              toggleControls: { toggleControls() },
-              onEndPageFocusChange: endPageFocusChangeHandler,
-              onScrollActivityChange: { isScrolling in
-                if isScrolling {
-                  resetControlsTimer(timeout: 1.5)
-                }
-              }
-            )
-          #endif
+            #endif
+          }
         }
-      }
-      .readerIgnoresSafeArea()
-      .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
-      .onChange(of: viewModel.currentPageIndex) {
-        // Update progress and preload pages in background without blocking UI
-        Task(priority: .userInitiated) {
-          await viewModel.updateProgress()
-          await viewModel.preloadPages()
+        .readerIgnoresSafeArea()
+        .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
+        .onChange(of: viewModel.currentPageIndex) {
+          // Update progress and preload pages in background without blocking UI
+          Task(priority: .userInitiated) {
+            await viewModel.updateProgress()
+            await viewModel.preloadPages()
+          }
         }
-      }
-    } else if viewModel.isLoading {
-      ReaderLoadingView(
-        title: String(localized: "Loading book..."),
-        detail: nil,
+      } else if viewModel.isLoading {
+        ReaderLoadingView(
+          title: String(localized: "Loading book..."),
+          detail: nil,
           progress: nil
         )
       } else {

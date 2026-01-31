@@ -17,6 +17,7 @@
     let onScrollToBottom: ((Bool) -> Void)?
     let onNextBookPanUpdate: ((CGFloat) -> Void)?
     let onNextBookPanEnd: ((CGFloat) -> Void)?
+    let onZoomRequest: ((Int, CGPoint) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let tapZoneMode: TapZoneMode
@@ -32,7 +33,8 @@
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil,
       onNextBookPanUpdate: ((CGFloat) -> Void)? = nil,
-      onNextBookPanEnd: ((CGFloat) -> Void)? = nil
+      onNextBookPanEnd: ((CGFloat) -> Void)? = nil,
+      onZoomRequest: ((Int, CGPoint) -> Void)? = nil
     ) {
       self.pages = pages
       self.viewModel = viewModel
@@ -45,6 +47,7 @@
       self.onScrollToBottom = onScrollToBottom
       self.onNextBookPanUpdate = onNextBookPanUpdate
       self.onNextBookPanEnd = onNextBookPanEnd
+      self.onZoomRequest = onZoomRequest
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -76,11 +79,26 @@
       clickGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(clickGesture)
 
+      let doubleClickGesture = NSClickGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleDoubleClick(_:))
+      )
+      doubleClickGesture.numberOfClicksRequired = 2
+      doubleClickGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(doubleClickGesture)
+
       let pressGesture = NSPressGestureRecognizer(
         target: context.coordinator, action: #selector(Coordinator.handlePress(_:)))
       pressGesture.minimumPressDuration = 0.5
       pressGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(pressGesture)
+
+      let magnifyGesture = NSMagnificationGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleMagnify(_:))
+      )
+      magnifyGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(magnifyGesture)
 
       context.coordinator.collectionView = collectionView
       context.coordinator.scrollView = scrollView
@@ -112,6 +130,7 @@
           onPageChange: onPageChange,
           onCenterTap: onCenterTap,
           onScrollToBottom: onScrollToBottom,
+          onZoomRequest: onZoomRequest,
           pageWidth: pageWidth,
           collectionView: collectionView,
           readerBackground: readerBackground,
@@ -142,6 +161,7 @@
       var onPageChange: ((Int) -> Void)?
       var onCenterTap: (() -> Void)?
       var onScrollToBottom: ((Bool) -> Void)?
+      var onZoomRequest: ((Int, CGPoint) -> Void)?
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
       var isProgrammaticScrolling: Bool = false
@@ -159,6 +179,8 @@
       var heightCache = WebtoonPageHeightCache()
       var keyMonitor: Any?
       var lastScrollTime: TimeInterval = 0
+      var hasTriggeredZoomGesture: Bool = false
+      private var singleClickWorkItem: DispatchWorkItem?
 
       init(_ parent: WebtoonReaderView) {
         self.parent = parent
@@ -168,6 +190,7 @@
         self.onPageChange = parent.onPageChange
         self.onCenterTap = parent.onCenterTap
         self.onScrollToBottom = parent.onScrollToBottom
+        self.onZoomRequest = parent.onZoomRequest
         self.lastPagesCount = parent.pages.count
         self.pageWidth = parent.pageWidth
         self.heightCache.lastPageWidth = parent.pageWidth
@@ -244,6 +267,7 @@
         onPageChange: ((Int) -> Void)?,
         onCenterTap: (() -> Void)?,
         onScrollToBottom: ((Bool) -> Void)?,
+        onZoomRequest: ((Int, CGPoint) -> Void)?,
         pageWidth: CGFloat,
         collectionView: NSCollectionView,
         readerBackground: ReaderBackground,
@@ -254,6 +278,7 @@
         self.onPageChange = onPageChange
         self.onCenterTap = onCenterTap
         self.onScrollToBottom = onScrollToBottom
+        self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
 
@@ -527,6 +552,8 @@
       }
 
       @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+
         guard !isLongPress else { return }
 
         if isUserScrolling { return }
@@ -553,13 +580,57 @@
           zoneThreshold: AppConfig.tapZoneSize.value
         )
 
-        switch action {
-        case .previous:
-          scrollUp(h)
-        case .next:
-          scrollDown(h)
-        case .toggleControls:
-          onCenterTap?()
+        let workItem = DispatchWorkItem { [weak self] in
+          guard let self = self else { return }
+          switch action {
+          case .previous:
+            self.scrollUp(h)
+          case .next:
+            self.scrollDown(h)
+          case .toggleControls:
+            self.onCenterTap?()
+          }
+        }
+        singleClickWorkItem = workItem
+
+        let delay = clickDebounceDelay()
+        if delay <= 0 {
+          workItem.perform()
+        } else {
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        }
+      }
+
+      @objc func handleDoubleClick(_ gesture: NSClickGestureRecognizer) {
+        guard !isLongPress else { return }
+        if isUserScrolling { return }
+        if Date().timeIntervalSinceReferenceDate - lastScrollTime < 0.25 { return }
+        guard let cv = collectionView else { return }
+
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
+
+        let location = gesture.location(in: cv)
+        requestZoom(at: location)
+      }
+
+      @objc func handleMagnify(_ gesture: NSMagnificationGestureRecognizer) {
+        guard let cv = collectionView else { return }
+
+        switch gesture.state {
+        case .began:
+          hasTriggeredZoomGesture = false
+        case .changed:
+          if hasTriggeredZoomGesture { return }
+          let delta = gesture.magnification
+          guard delta > 0.05 else { return }
+          hasTriggeredZoomGesture = true
+          let location = gesture.location(in: cv)
+          requestZoom(at: location)
+        case .ended, .cancelled, .failed:
+          hasTriggeredZoomGesture = false
+        default:
+          break
         }
       }
 
@@ -634,6 +705,73 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
       ) -> Bool {
         return true
+      }
+
+      private func clickDebounceDelay() -> TimeInterval {
+        switch AppConfig.doubleTapZoomMode {
+        case .disabled:
+          return 0
+        case .fast:
+          return 0.15
+        case .slow:
+          return 0.3
+        }
+      }
+
+      private func requestZoom(at location: NSPoint) {
+        guard let result = pageIndexAndAnchor(for: location) else { return }
+        onZoomRequest?(result.pageIndex, result.anchor)
+      }
+
+      private func pageIndexAndAnchor(for location: NSPoint) -> (pageIndex: Int, anchor: CGPoint)? {
+        guard let cv = collectionView else { return nil }
+
+        if let indexPath = cv.indexPathForItem(at: location),
+          isValidPageIndex(indexPath.item)
+        {
+          if let item = cv.item(at: indexPath) {
+            let local = item.view.convert(location, from: cv)
+            return (
+              indexPath.item,
+              normalizedAnchor(in: item.view.bounds, location: local, isFlipped: item.view.isFlipped)
+            )
+          }
+          if let attributes = cv.layoutAttributesForItem(at: indexPath) {
+            return (
+              indexPath.item,
+              normalizedAnchor(in: attributes.frame, location: location, isFlipped: cv.isFlipped)
+            )
+          }
+        }
+
+        guard !pages.isEmpty else { return nil }
+        let fallback = min(max(currentPage, 0), pages.count - 1)
+        guard isValidPageIndex(fallback) else { return nil }
+        let fallbackIndexPath = IndexPath(item: fallback, section: 0)
+        if let item = cv.item(at: fallbackIndexPath) {
+          let local = item.view.convert(location, from: cv)
+          return (
+            fallback,
+            normalizedAnchor(in: item.view.bounds, location: local, isFlipped: item.view.isFlipped)
+          )
+        }
+        if let attributes = cv.layoutAttributesForItem(at: fallbackIndexPath) {
+          return (
+            fallback,
+            normalizedAnchor(in: attributes.frame, location: location, isFlipped: cv.isFlipped)
+          )
+        }
+        return nil
+      }
+
+      private func normalizedAnchor(in frame: NSRect, location: NSPoint, isFlipped: Bool) -> CGPoint {
+        guard frame.width > 0, frame.height > 0 else { return CGPoint(x: 0.5, y: 0.5) }
+        let localX = location.x - frame.minX
+        let localY = location.y - frame.minY
+        let x = min(max(localX / frame.width, 0), 1)
+        let rawY = min(max(localY / frame.height, 0), 1)
+        let y = isFlipped ? rawY : 1.0 - rawY
+        return CGPoint(x: x, y: y)
       }
     }
   }
