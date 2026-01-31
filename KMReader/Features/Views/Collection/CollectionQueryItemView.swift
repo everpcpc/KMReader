@@ -43,7 +43,7 @@ struct CollectionQueryItemView: View {
         )
       }
     } else {
-      CardPlaceholder(layout: layout)
+      CardPlaceholder(layout: layout, kind: .collection)
     }
   }
 }
