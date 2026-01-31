@@ -64,19 +64,6 @@
       return .bordered
     }
 
-    private var titleText: String {
-      if showingControls {
-        if let totalProgression = viewModel.currentLocation?.totalProgression {
-          return String(localized: "\(totalProgression * 100, specifier: "%.1f")%")
-        }
-      } else {
-        if let title = currentBook?.metadata.title {
-          return title
-        }
-      }
-      return String(localized: "")
-    }
-
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()

@@ -150,11 +150,11 @@ struct ReaderControlsView: View {
                   Text(book.metadata.title)
                     .lineLimit(2)
                 } else {
+                  Text("#\(book.metadata.number) - \(book.metadata.title)")
+                    .lineLimit(1)
                   Text(book.seriesTitle)
                     .foregroundStyle(.secondary)
                     .font(.caption)
-                    .lineLimit(1)
-                  Text("#\(book.metadata.number) - \(book.metadata.title)")
                     .lineLimit(1)
                 }
               }
