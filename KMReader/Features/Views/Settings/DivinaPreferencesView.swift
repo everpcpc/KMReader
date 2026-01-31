@@ -335,7 +335,7 @@ struct DivinaPreferencesView: View {
           VStack(alignment: .leading, spacing: 8) {
             Picker("Split Wide Pages", selection: $splitWidePageMode) {
               ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
+                Label(mode.displayName, systemImage: mode.icon).tag(mode)
               }
             }
             .pickerStyle(.menu)
