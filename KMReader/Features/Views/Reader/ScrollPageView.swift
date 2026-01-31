@@ -146,53 +146,52 @@ struct ScrollPageView: View {
     .environment(\.layoutDirection, mode.isRTL ? .rightToLeft : .leftToRight)
   }
 
+  @ViewBuilder
   private func singlePageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
     // Check if split wide pages is enabled by examining pagePairs
     let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
 
     if hasSplitPages {
       // Use pagePairs for rendering when split pages are enabled
-      return AnyView(splitPageContent(proxy: proxy, geometry: geometry))
+      splitPageContent(proxy: proxy, geometry: geometry)
     } else {
       // Use traditional page index iteration
-      return AnyView(
-        ForEach(0...viewModel.pages.count, id: \.self) { index in
-          Group {
-            if index == viewModel.pages.count {
-              EndPageView(
-                viewModel: viewModel,
-                nextBook: nextBook,
-                readList: readList,
-                onDismiss: onDismiss,
-                onNextBook: onNextBook,
-                readingDirection: readingDirection,
-                onPreviousPage: goToPreviousPage,
-                onFocusChange: onEndPageFocusChange,
-                showImage: true,
-              )
-            } else {
-              SinglePageImageView(
-                viewModel: viewModel,
-                pageIndex: index,
-                screenSize: geometry.size,
-                readingDirection: readingDirection,
-                onNextPage: goToNextPage,
-                onPreviousPage: goToPreviousPage,
-                onToggleControls: toggleControls
-              )
-            }
+      ForEach(0...viewModel.pages.count, id: \.self) { index in
+        Group {
+          if index == viewModel.pages.count {
+            EndPageView(
+              viewModel: viewModel,
+              nextBook: nextBook,
+              readList: readList,
+              onDismiss: onDismiss,
+              onNextBook: onNextBook,
+              readingDirection: readingDirection,
+              onPreviousPage: goToPreviousPage,
+              onFocusChange: onEndPageFocusChange,
+              showImage: true,
+            )
+          } else {
+            SinglePageImageView(
+              viewModel: viewModel,
+              pageIndex: index,
+              screenSize: geometry.size,
+              readingDirection: readingDirection,
+              onNextPage: goToNextPage,
+              onPreviousPage: goToPreviousPage,
+              onToggleControls: toggleControls
+            )
           }
-          .frame(width: geometry.size.width, height: geometry.size.height)
-          .id(index)
-          .readerPageScrollTransition()
         }
-      )
+        .frame(width: geometry.size.width, height: geometry.size.height)
+        .id(index)
+        .readerPageScrollTransition()
+      }
     }
   }
 
+  @ViewBuilder
   private func splitPageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
-    var pairIndex = 0
-    return ForEach(Array(viewModel.pagePairs.enumerated()), id: \.offset) { offset, pagePair in
+    ForEach(Array(viewModel.pagePairs.enumerated()), id: \.offset) { offset, pagePair in
       Group {
         if pagePair.first == viewModel.pages.count {
           EndPageView(
@@ -210,7 +209,9 @@ struct ScrollPageView: View {
           // Determine if this is the left or right half based on reading direction and swap setting
           let isLeftHalf: Bool = {
             // Find the first occurrence of this split page
-            guard let firstIndex = viewModel.pagePairs.firstIndex(where: { $0.first == pagePair.first && $0.isSplitPage }) else {
+            guard
+              let firstIndex = viewModel.pagePairs.firstIndex(where: { $0.first == pagePair.first && $0.isSplitPage })
+            else {
               return true
             }
 
@@ -221,7 +222,7 @@ struct ScrollPageView: View {
             if readingDirection == .rtl {
               shouldShowLeftFirst = false  // RTL: right half first by default
             } else {
-              shouldShowLeftFirst = true   // LTR: left half first by default
+              shouldShowLeftFirst = true  // LTR: left half first by default
             }
 
             // Apply swap if enabled
@@ -261,6 +262,7 @@ struct ScrollPageView: View {
     }
   }
 
+  @ViewBuilder
   private func dualPageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
     ForEach(Array(viewModel.pagePairs), id: \.self) { pagePair in
       Group {
@@ -402,12 +404,10 @@ struct ScrollPageView: View {
 
   // Helper function to find the view item index for a given page index in split mode
   private func findViewItemIndexForPage(_ pageIndex: Int) -> Int {
-    var viewItemIndex = 0
     for (index, pagePair) in viewModel.pagePairs.enumerated() {
       if pagePair.first == pageIndex {
         return index
       }
-      viewItemIndex = index
     }
     return min(pageIndex, viewModel.pagePairs.count - 1)
   }

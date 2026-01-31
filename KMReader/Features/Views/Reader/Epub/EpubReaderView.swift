@@ -369,7 +369,7 @@
         .iPadIgnoresSafeArea(paddingTop: 24)
         .allowsHitTesting(shouldShowControls)
         .sheet(isPresented: $showingChapterSheet) {
-          ChapterListSheetView(
+          EpubTocSheetView(
             chapters: viewModel.tableOfContents,
             currentLink: currentChapterLink,
             goToChapter: { link in

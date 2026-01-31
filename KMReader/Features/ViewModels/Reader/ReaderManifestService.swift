@@ -14,7 +14,10 @@ struct ReaderTOCEntry: Codable, Identifiable, Hashable, Sendable {
   let title: String
   let pageIndex: Int
   let children: [ReaderTOCEntry]?
-  var pageNumber: Int { pageIndex + 1 }
+
+  var pageNumber: String {
+    "\( pageIndex + 1)"
+  }
 
   init(title: String, pageIndex: Int, children: [ReaderTOCEntry]? = nil) {
     self.id = UUID()

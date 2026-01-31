@@ -1,5 +1,5 @@
 //
-//  ReaderTOCSheetView.swift
+//  DivinaTOCSheetView.swift
 //  KMReader
 //
 //  Created by Komga iOS Client
@@ -7,10 +7,36 @@
 
 import SwiftUI
 
-struct ReaderTOCSheetView: View {
+struct DivinaTOCSheetView: View {
   let entries: [ReaderTOCEntry]
   let currentPageIndex: Int
   let onSelect: (ReaderTOCEntry) -> Void
+
+  private var currentEntryIds: Set<UUID> {
+    var result: Set<UUID> = []
+    var currentEntries = entries
+
+    while true {
+      var found = false
+      for (index, entry) in currentEntries.enumerated() {
+        let nextPageIndex = index + 1 < currentEntries.count ? currentEntries[index + 1].pageIndex : Int.max
+        if currentPageIndex >= entry.pageIndex && currentPageIndex < nextPageIndex {
+          result.insert(entry.id)
+          if let children = entry.children, !children.isEmpty {
+            currentEntries = children
+            found = true
+            break
+          }
+          return result
+        }
+      }
+      if !found {
+        break
+      }
+    }
+
+    return result
+  }
 
   var body: some View {
     SheetView(title: String(localized: "Table of Contents"), size: .large, applyFormStyle: true) {
@@ -19,11 +45,12 @@ struct ReaderTOCSheetView: View {
           ForEach(entries) { entry in
             TOCEntryRow(
               entry: entry,
-              currentPageIndex: currentPageIndex,
+              currentEntryIds: currentEntryIds,
               onSelect: onSelect
             )
           }
         }
+        .adaptiveButtonStyle(.plain)
         .optimizedListStyle()
         .onAppear {
           DispatchQueue.main.async {
@@ -38,17 +65,25 @@ struct ReaderTOCSheetView: View {
 
 private struct TOCEntryRow: View {
   let entry: ReaderTOCEntry
-  let currentPageIndex: Int
+  let currentEntryIds: Set<UUID>
   let onSelect: (ReaderTOCEntry) -> Void
   let level: Int
 
   @State private var isExpanded: Bool = false
 
-  init(entry: ReaderTOCEntry, currentPageIndex: Int, onSelect: @escaping (ReaderTOCEntry) -> Void, level: Int = 0) {
+  init(
+    entry: ReaderTOCEntry, currentEntryIds: Set<UUID>,
+    onSelect: @escaping (ReaderTOCEntry) -> Void,
+    level: Int = 0
+  ) {
     self.entry = entry
-    self.currentPageIndex = currentPageIndex
+    self.currentEntryIds = currentEntryIds
     self.onSelect = onSelect
     self.level = level
+  }
+
+  private var isCurrent: Bool {
+    currentEntryIds.contains(entry.id)
   }
 
   var body: some View {
@@ -57,9 +92,9 @@ private struct TOCEntryRow: View {
         Button {
           onSelect(entry)
         } label: {
-          TOCEntryLabel(entry: entry, currentPageIndex: currentPageIndex, level: level)
+          TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
         }
-        .adaptiveButtonStyle(.plain)
+        .contentShape(Rectangle())
         .listRowInsets(EdgeInsets(top: 24, leading: 48 + CGFloat(level * 20), bottom: 24, trailing: 48))
         .id(entry.pageIndex)
 
@@ -67,7 +102,7 @@ private struct TOCEntryRow: View {
           ForEach(children) { child in
             TOCEntryRow(
               entry: child,
-              currentPageIndex: currentPageIndex,
+              currentEntryIds: currentEntryIds,
               onSelect: onSelect,
               level: level + 1
             )
@@ -80,18 +115,18 @@ private struct TOCEntryRow: View {
           ForEach(children) { child in
             TOCEntryRow(
               entry: child,
-              currentPageIndex: currentPageIndex,
+              currentEntryIds: currentEntryIds,
               onSelect: onSelect,
               level: level + 1
             )
           }
         } label: {
-          Button(action: {
+          Button {
             onSelect(entry)
-          }) {
-            TOCEntryLabel(entry: entry, currentPageIndex: currentPageIndex, level: level)
+          } label: {
+            TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
           }
-          .adaptiveButtonStyle(.plain)
+          .contentShape(Rectangle())
         }
         .id(entry.pageIndex)
         .onAppear {
@@ -103,9 +138,8 @@ private struct TOCEntryRow: View {
         Button {
           onSelect(entry)
         } label: {
-          TOCEntryLabel(entry: entry, currentPageIndex: currentPageIndex, level: level)
+          TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
         }
-        .adaptiveButtonStyle(.plain)
         .contentShape(Rectangle())
         .id(entry.pageIndex)
       }
@@ -113,15 +147,15 @@ private struct TOCEntryRow: View {
   }
 
   private func shouldExpand(entry: ReaderTOCEntry, children: [ReaderTOCEntry]) -> Bool {
-    return containsPageIndex(currentPageIndex, in: children)
+    return containsAnyEntryId(from: currentEntryIds, in: children)
   }
 
-  private func containsPageIndex(_ pageIndex: Int, in entries: [ReaderTOCEntry]) -> Bool {
+  private func containsAnyEntryId(from entryIds: Set<UUID>, in entries: [ReaderTOCEntry]) -> Bool {
     for entry in entries {
-      if entry.pageIndex == pageIndex {
+      if entryIds.contains(entry.id) {
         return true
       }
-      if let children = entry.children, containsPageIndex(pageIndex, in: children) {
+      if let children = entry.children, containsAnyEntryId(from: entryIds, in: children) {
         return true
       }
     }
@@ -131,26 +165,20 @@ private struct TOCEntryRow: View {
 
 private struct TOCEntryLabel: View {
   let entry: ReaderTOCEntry
-  let currentPageIndex: Int
+  let isCurrent: Bool
   let level: Int
 
   var body: some View {
     HStack(alignment: .center, spacing: 12) {
-      VStack(alignment: .leading, spacing: 4) {
-        Text(entry.title)
-        Text(
-          "Page \(entry.pageNumber)",
-          tableName: nil,
-          bundle: .main,
-          comment: "TOC page label"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      }
+      Text(entry.title)
+        .foregroundStyle(isCurrent ? .secondary : .primary)
       Spacer()
-      if entry.pageIndex == currentPageIndex {
+      if isCurrent {
         Image(systemName: "bookmark.fill")
       }
+      Text(entry.pageNumber)
+        .font(.footnote)
+        .foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .contentShape(Rectangle())
