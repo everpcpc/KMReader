@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import Flow
 import SwiftUI
 
 struct AccountDetailsView: View {
@@ -28,22 +29,17 @@ struct AccountDetailsView: View {
         if let user = user {
           VStack(alignment: .leading, spacing: 10) {
             Text(String(localized: "Roles"))
-              .font(.headline)
-
-            ForEach(user.userRoles, id: \.self) { role in
-              HStack {
-                Image(systemName: role.icon)
-                  .foregroundColor(.accentColor)
-                  .frame(width: 24)
-                Text(role.displayName)
-                Spacer()
-              }
-            }
 
             if user.userRoles.isEmpty {
               Text(String(localized: "user.role.none"))
                 .foregroundColor(.secondary)
                 .italic()
+            } else {
+              HFlow(spacing: 8) {
+                ForEach(user.userRoles, id: \.self) { role in
+                  RoleBadge(role: role)
+                }
+              }
             }
           }
           .padding(.vertical, 4)
@@ -64,6 +60,27 @@ struct AccountDetailsView: View {
       UpdatePasswordSheet()
         .presentationDetents([.medium])
     }
+  }
+}
+
+// MARK: - Role Badge
+
+struct RoleBadge: View {
+  let role: UserRole
+
+  var body: some View {
+    HStack(spacing: 4) {
+      Image(systemName: role.icon)
+        .font(.caption)
+      Text(role.displayName)
+        .font(.footnote)
+        .fontWeight(.medium)
+    }
+    .padding(.horizontal, 10)
+    .padding(.vertical, 6)
+    .background(Color.accentColor.opacity(0.15))
+    .foregroundColor(.accentColor)
+    .clipShape(Capsule())
   }
 }
 
