@@ -5,9 +5,9 @@
 //  Created by Komga iOS Client
 //
 
+// Split wide page image view - displays half of a wide page
 import SwiftUI
 
-// Split wide page image view - displays half of a wide page
 struct SplitWidePageImageView: View {
   var viewModel: ReaderViewModel
   let pageIndex: Int
