@@ -87,27 +87,25 @@ struct ReaderSettingsSheet: View {
         }
 
         #if os(iOS)
-          if readingDirection != .webtoon {
-            Section(header: Text("Zooming")) {
-              Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
-                ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
-                  Text(mode.displayName).tag(mode)
-                }
+          Section(header: Text("Zooming")) {
+            Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
+              ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
               }
-              .pickerStyle(.menu)
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text("Double Tap Zoom Scale")
-                  Spacer()
-                  Text(String(format: "%.1fx", doubleTapZoomScale))
-                    .foregroundColor(.secondary)
-                }
-                Slider(
-                  value: $doubleTapZoomScale,
-                  in: 1.0...8.0,
-                  step: 0.5
-                )
+            }
+            .pickerStyle(.menu)
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text("Double Tap Zoom Scale")
+                Spacer()
+                Text(String(format: "%.1fx", doubleTapZoomScale))
+                  .foregroundColor(.secondary)
               }
+              Slider(
+                value: $doubleTapZoomScale,
+                in: 1.0...8.0,
+                step: 0.5
+              )
             }
           }
         #endif
