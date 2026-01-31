@@ -124,9 +124,9 @@ struct ReaderControlsView: View {
         } label: {
           Image(systemName: "xmark")
         }
-        .contentShape(Circle())
-        .controlSize(.large)
         .buttonBorderShape(.circle)
+        .controlSize(.large)
+        .contentShape(Circle())
         .adaptiveButtonStyle(buttonStyle)
         #if os(tvOS)
           .focused($focusedControl, equals: .close)
@@ -162,8 +162,8 @@ struct ReaderControlsView: View {
             .padding(.vertical, 2)
             .padding(.horizontal, 4)
           }
-          .contentShape(RoundedRectangle(cornerRadius: 12))
           .optimizedControlSize()
+          .contentShape(Capsule())
           .adaptiveButtonStyle(buttonStyle)
           #if os(tvOS)
             .focused($focusedControl, equals: .title)
@@ -179,9 +179,9 @@ struct ReaderControlsView: View {
           Image(systemName: "ellipsis")
             .padding(4)
         }
-        .contentShape(Circle())
-        .controlSize(.large)
         .buttonBorderShape(.circle)
+        .controlSize(.large)
+        .contentShape(Circle())
         .adaptiveButtonStyle(buttonStyle)
         #if os(tvOS)
           .focused($focusedControl, equals: .settings)
@@ -224,7 +224,7 @@ struct ReaderControlsView: View {
                 .monospacedDigit()
             }
           }
-          .contentShape(Rectangle())
+          .contentShape(Capsule())
           .adaptiveButtonStyle(buttonStyle)
           #if os(tvOS)
             .focused($focusedControl, equals: .pageNumber)
