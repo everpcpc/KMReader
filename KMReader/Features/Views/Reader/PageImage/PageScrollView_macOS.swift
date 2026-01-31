@@ -573,10 +573,19 @@
       self.currentData = data
       self.readerViewModel = viewModel
       self.readingDirection = readingDirection
-      imageView.image = image
-      imageView.layer?.shadowOpacity = image == nil ? 0 : 0.25
 
-      if image != nil, showPageNumber {
+      // Handle split mode - crop the image if needed
+      let displayImage: PlatformImage?
+      if let image = image, data.splitMode != .none {
+        displayImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
+      } else {
+        displayImage = image
+      }
+
+      imageView.image = displayImage
+      imageView.layer?.shadowOpacity = displayImage == nil ? 0 : 0.25
+
+      if displayImage != nil, showPageNumber {
         pageNumberLabel.stringValue = "\(data.pageNumber + 1)"
         pageNumberContainer.isHidden = false
       } else {
@@ -588,7 +597,7 @@
         progressIndicator.stopAnimation(nil)
         errorLabel.stringValue = error
         errorLabel.isHidden = false
-      } else if image == nil || data.isLoading {
+      } else if displayImage == nil || data.isLoading {
         errorLabel.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {
@@ -596,7 +605,7 @@
         progressIndicator.stopAnimation(nil)
       }
 
-      if AppConfig.enableLiveText, let img = image, !visibleRect.isEmpty {
+      if AppConfig.enableLiveText, let img = displayImage, !visibleRect.isEmpty {
         analyzeImage(img)
         overlayView.isHidden = false
       } else if !AppConfig.enableLiveText {
@@ -604,6 +613,30 @@
       }
 
       updateOverlaysPosition()
+    }
+
+    private func cropImageForSplitMode(image: NSImage, splitMode: PageSplitMode) -> NSImage? {
+      guard splitMode != .none else { return image }
+      guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+        return image
+      }
+
+      let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+
+      // Calculate the crop rect for half the image
+      let cropRect: CGRect
+      if splitMode == .leftHalf {
+        cropRect = CGRect(x: 0, y: 0, width: imageSize.width / 2, height: imageSize.height)
+      } else {
+        cropRect = CGRect(x: imageSize.width / 2, y: 0, width: imageSize.width / 2, height: imageSize.height)
+      }
+
+      // Create cropped image
+      guard let croppedCGImage = cgImage.cropping(to: cropRect) else {
+        return image
+      }
+
+      return NSImage(cgImage: croppedCGImage, size: NSSize(width: cropRect.width, height: cropRect.height))
     }
 
     private func analyzeImage(_ image: NSImage) {

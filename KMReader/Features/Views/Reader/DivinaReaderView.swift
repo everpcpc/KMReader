@@ -35,6 +35,8 @@ struct DivinaReaderView: View {
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
   @State private var isolateCoverPage: Bool
+  @State private var splitWidePages: Bool
+  @State private var swapSplitPageOrder: Bool
 
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
@@ -82,6 +84,8 @@ struct DivinaReaderView: View {
     self._readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
     self._isolateCoverPage = State(initialValue: AppConfig.isolateCoverPage)
+    self._splitWidePages = State(initialValue: AppConfig.splitWidePages)
+    self._swapSplitPageOrder = State(initialValue: AppConfig.swapSplitPageOrder)
   }
 
   var shouldShowControls: Bool {
@@ -126,6 +130,10 @@ struct DivinaReaderView: View {
     pageLayout = AppConfig.pageLayout
     viewModel.updatePageLayout(pageLayout)
     isolateCoverPage = AppConfig.isolateCoverPage
+    splitWidePages = AppConfig.splitWidePages
+    viewModel.updateSplitWidePages(splitWidePages)
+    swapSplitPageOrder = AppConfig.swapSplitPageOrder
+    viewModel.updateSwapSplitPageOrder(swapSplitPageOrder)
     readingDirection = AppConfig.defaultReadingDirection
   }
 
@@ -304,6 +312,12 @@ struct DivinaReaderView: View {
     .onChange(of: pageLayout) { _, newValue in
       viewModel.updatePageLayout(newValue)
     }
+    .onChange(of: splitWidePages) { _, newValue in
+      viewModel.updateSplitWidePages(newValue)
+    }
+    .onChange(of: swapSplitPageOrder) { _, newValue in
+      viewModel.updateSwapSplitPageOrder(newValue)
+    }
     .task(id: currentBookId) {
       if !preserveReaderOptions {
         resetReaderPreferencesForCurrentBook()
@@ -390,9 +404,12 @@ struct DivinaReaderView: View {
     useDualPage: Bool,
     screenKey: String
   ) -> some View {
-    if !viewModel.pages.isEmpty {
-      Group {
-        if readingDirection == .webtoon {
+    let _ = viewModel.updateActualDualPageMode(useDualPage)
+
+    return Group {
+      if !viewModel.pages.isEmpty {
+        Group {
+          if readingDirection == .webtoon {
           #if os(iOS) || os(macOS)
             WebtoonPageView(
               viewModel: viewModel,
@@ -496,10 +513,11 @@ struct DivinaReaderView: View {
       ReaderLoadingView(
         title: String(localized: "Loading book..."),
         detail: nil,
-        progress: nil
-      )
-    } else {
-      NoPagesView(onDismiss: { closeReader() })
+          progress: nil
+        )
+      } else {
+        NoPagesView(onDismiss: { closeReader() })
+      }
     }
   }
 
@@ -527,6 +545,8 @@ struct DivinaReaderView: View {
       readingDirection: $readingDirection,
       pageLayout: $pageLayout,
       isolateCoverPage: $isolateCoverPage,
+      splitWidePages: $splitWidePages,
+      swapSplitPageOrder: $swapSplitPageOrder,
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
@@ -811,6 +831,9 @@ struct DivinaReaderView: View {
     guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
+      // Check if split pages are enabled
+      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
+
       // Use dual-page logic only when enabled
       if dualPageEnabled {
         // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
@@ -827,8 +850,17 @@ struct DivinaReaderView: View {
           let next = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
           viewModel.targetPageIndex = next
         }
+      } else if hasSplitPages {
+        // Single page mode with split pages: use targetViewItemIndex for precise navigation
+        let nextViewItemIndex = viewModel.currentViewItemIndex + 1
+        if nextViewItemIndex < viewModel.pagePairs.count {
+          viewModel.targetViewItemIndex = nextViewItemIndex
+        } else {
+          // Reached end
+          viewModel.targetPageIndex = viewModel.pages.count
+        }
       } else {
-        // Single page mode: simple increment
+        // Single page mode without split pages: simple increment
         let next = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
         viewModel.targetPageIndex = next
       }
@@ -845,7 +877,11 @@ struct DivinaReaderView: View {
     guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
-      guard viewModel.currentPageIndex > 0 else { return }
+      guard viewModel.currentPageIndex > 0 || viewModel.currentViewItemIndex > 0 else { return }
+
+      // Check if split pages are enabled
+      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
+
       if dualPageEnabled {
         // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
         let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
@@ -857,8 +893,14 @@ struct DivinaReaderView: View {
           let previous = viewModel.currentPageIndex - 1
           viewModel.targetPageIndex = previous
         }
+      } else if hasSplitPages {
+        // Single page mode with split pages: use targetViewItemIndex for precise navigation
+        let previousViewItemIndex = viewModel.currentViewItemIndex - 1
+        if previousViewItemIndex >= 0 {
+          viewModel.targetViewItemIndex = previousViewItemIndex
+        }
       } else {
-        // Single page mode: simple decrement
+        // Single page mode without split pages: simple decrement
         let previous = viewModel.currentPageIndex - 1
         viewModel.targetPageIndex = previous
       }

@@ -13,6 +13,8 @@ struct ReaderControlsView: View {
   @Binding var readingDirection: ReadingDirection
   @Binding var pageLayout: PageLayout
   @Binding var isolateCoverPage: Bool
+  @Binding var splitWidePages: Bool
+  @Binding var swapSplitPageOrder: Bool
 
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
@@ -312,6 +314,29 @@ struct ReaderControlsView: View {
 
         if enableDualPageOptions {
           pageIsolation()
+        }
+      }
+
+      // Wide page splitting options (not for webtoon)
+      if readingDirection != .webtoon {
+        Button {
+          splitWidePages.toggle()
+        } label: {
+          Label(
+            String(localized: "Split Wide Pages"),
+            systemImage: splitWidePages ? "rectangle.split.2x1.fill" : "rectangle.split.2x1"
+          )
+        }
+
+        if splitWidePages {
+          Button {
+            swapSplitPageOrder.toggle()
+          } label: {
+            Label(
+              String(localized: "Swap Split Page Order"),
+              systemImage: swapSplitPageOrder ? "arrow.left.arrow.right.circle.fill" : "arrow.left.arrow.right.circle"
+            )
+          }
         }
       }
     } header: {

@@ -424,12 +424,21 @@
       self.currentData = data
       self.viewModel = viewModel
       self.readingDirection = readingDirection
-      imageView.image = image
-      imageView.layer.shadowOpacity = image == nil ? 0 : 0.25
+
+      // Handle split mode - crop the image if needed
+      let displayImage: PlatformImage?
+      if let image = image, data.splitMode != .none {
+        displayImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
+      } else {
+        displayImage = image
+      }
+
+      imageView.image = displayImage
+      imageView.layer.shadowOpacity = displayImage == nil ? 0 : 0.25
 
       updateImageAlignment()
 
-      if image != nil, showPageNumber {
+      if displayImage != nil, showPageNumber {
         pageNumberLabel.text = "\(data.pageNumber + 1)"
         pageNumberLabel.isHidden = false
       } else {
@@ -441,7 +450,7 @@
         loadingIndicator.stopAnimating()
         errorLabel.text = error
         errorLabel.isHidden = false
-      } else if image == nil || data.isLoading {
+      } else if displayImage == nil || data.isLoading {
         errorLabel.isHidden = true
         loadingIndicator.startAnimating()
       } else {
@@ -467,6 +476,33 @@
       #endif
 
       setNeedsLayout()
+    }
+
+    private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {
+      guard splitMode != .none else { return image }
+
+      let imageSize = image.size
+      let scale = image.scale
+
+      // Calculate the crop rect for half the image
+      let cropRect: CGRect
+      if splitMode == .leftHalf {
+        cropRect = CGRect(x: 0, y: 0, width: imageSize.width / 2, height: imageSize.height)
+      } else {
+        cropRect = CGRect(x: imageSize.width / 2, y: 0, width: imageSize.width / 2, height: imageSize.height)
+      }
+
+      // Create cropped image
+      guard let cgImage = image.cgImage?.cropping(to: CGRect(
+        x: cropRect.origin.x * scale,
+        y: cropRect.origin.y * scale,
+        width: cropRect.size.width * scale,
+        height: cropRect.size.height * scale
+      )) else {
+        return image
+      }
+
+      return UIImage(cgImage: cgImage, scale: scale, orientation: image.imageOrientation)
     }
 
     private func updateImageAlignment() {
