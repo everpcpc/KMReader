@@ -44,7 +44,7 @@ struct SeriesQueryItemView: View {
         )
       }
     } else {
-      CardPlaceholder(layout: layout)
+      CardPlaceholder(layout: layout, kind: .series)
     }
   }
 }

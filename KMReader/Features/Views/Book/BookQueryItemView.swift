@@ -61,7 +61,7 @@ struct BookQueryItemView: View {
         )
       }
     } else {
-      CardPlaceholder(layout: layout)
+      CardPlaceholder(layout: layout, kind: .book)
     }
   }
 }

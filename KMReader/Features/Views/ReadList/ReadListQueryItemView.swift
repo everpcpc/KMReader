@@ -43,7 +43,7 @@ struct ReadListQueryItemView: View {
         )
       }
     } else {
-      CardPlaceholder(layout: layout)
+      CardPlaceholder(layout: layout, kind: .readList)
     }
   }
 }

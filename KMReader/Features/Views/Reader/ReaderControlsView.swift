@@ -21,6 +21,7 @@ struct ReaderControlsView: View {
   @Binding var showingDetailSheet: Bool
 
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
   let viewModel: ReaderViewModel
   let currentBook: Book?
@@ -191,16 +192,8 @@ struct ReaderControlsView: View {
       .iPadIgnoresSafeArea(paddingTop: 24)
       .background {
         if readerControlsGradientBackground {
-          LinearGradient(
-            gradient: Gradient(colors: [
-              Color.black.opacity(0.6),
-              Color.black.opacity(0.3),
-              Color.clear,
-            ]),
-            startPoint: .top,
-            endPoint: .bottom
-          )
-          .ignoresSafeArea(edges: .top)
+          gradientBackground(startPoint: .top, endPoint: .bottom)
+            .ignoresSafeArea(edges: .top)
         }
       }
 
@@ -248,16 +241,8 @@ struct ReaderControlsView: View {
       .iPadIgnoresSafeArea(paddingTop: 24)
       .background {
         if readerControlsGradientBackground {
-          LinearGradient(
-            gradient: Gradient(colors: [
-              Color.clear,
-              Color.black.opacity(0.3),
-              Color.black.opacity(0.6),
-            ]),
-            startPoint: .top,
-            endPoint: .bottom
-          )
-          .ignoresSafeArea(edges: .bottom)
+          gradientBackground(startPoint: .bottom, endPoint: .top)
+            .ignoresSafeArea(edges: .bottom)
         }
       }
     }
@@ -362,6 +347,22 @@ struct ReaderControlsView: View {
         }
       }
     #endif
+  }
+
+  @ViewBuilder
+  private func gradientBackground(
+    startPoint: UnitPoint,
+    endPoint: UnitPoint
+  ) -> some View {
+    LinearGradient(
+      gradient: Gradient(colors: [
+        Color.black.opacity(0.6),
+        Color.black.opacity(0.3),
+        Color.clear,
+      ]),
+      startPoint: startPoint,
+      endPoint: endPoint
+    )
   }
 
   @ViewBuilder
