@@ -267,6 +267,25 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchBookEpubPreferences(bookId: String) -> EpubReaderPreferences? {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    guard let raw = try? modelContext.fetch(descriptor).first?.epubPreferencesRaw else {
+      return nil
+    }
+    return EpubReaderPreferences(rawValue: raw)
+  }
+
+  func updateBookEpubPreferences(bookId: String, preferences: EpubReaderPreferences?) {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      book.epubPreferences = preferences
+    }
+  }
+
   func fetchTOC(id: String) -> [ReaderTOCEntry]? {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: id)

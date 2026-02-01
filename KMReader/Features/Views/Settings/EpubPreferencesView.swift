@@ -15,7 +15,12 @@
 
   struct EpubPreferencesView: View {
     let inSheet: Bool
+    let bookId: String?
+    let hasBookPreferences: Bool
+    let onPreferencesSaved: ((EpubReaderPreferences) -> Void)?
+    let onPreferencesCleared: (() -> Void)?
 
+    private let baselinePreferences: EpubReaderPreferences
     @State private var draft: EpubReaderPreferences
     @State private var showCustomFontsSheet: Bool = false
     @State private var showPresetsSheet: Bool = false
@@ -31,9 +36,41 @@
 
     @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
 
-    init(inSheet: Bool = false) {
+    init(
+      inSheet: Bool = false,
+      bookId: String? = nil,
+      hasBookPreferences: Bool = false,
+      initialPreferences: EpubReaderPreferences? = nil,
+      onPreferencesSaved: ((EpubReaderPreferences) -> Void)? = nil,
+      onPreferencesCleared: (() -> Void)? = nil
+    ) {
       self.inSheet = inSheet
-      self._draft = State(initialValue: AppConfig.epubPreferences)
+      self.bookId = bookId
+      self.hasBookPreferences = hasBookPreferences
+      self.onPreferencesSaved = onPreferencesSaved
+      self.onPreferencesCleared = onPreferencesCleared
+      let baseline = initialPreferences ?? AppConfig.epubPreferences
+      self.baselinePreferences = baseline
+      self._draft = State(initialValue: baseline)
+    }
+
+    private var isBookContext: Bool {
+      bookId != nil
+    }
+
+    private var navigationTitle: String {
+      if isBookContext {
+        return String(localized: "Current Book")
+      }
+      return SettingsSection.epubReader.title
+    }
+
+    private var shouldShowResetToGlobal: Bool {
+      isBookContext && hasBookPreferences
+    }
+
+    private var isSaveDisabled: Bool {
+      draft == baselinePreferences
     }
 
     private var readerTheme: ReaderTheme {
@@ -300,35 +337,37 @@
           }
       }
       .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          HStack(spacing: 4) {
-            if inSheet {
-              HStack(spacing: 4) {
-                Button {
-                  dismiss()
-                } label: {
-                  Image(systemName: "xmark")
-                    .padding(4)
-                }
-              }
-            }
+        ToolbarItemGroup(placement: .cancellationAction) {
+          if inSheet {
             Button {
-              draft = EpubReaderPreferences()
+              dismiss()
             } label: {
-              Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
+              Label(String(localized: "Close"), systemImage: "xmark")
             }
           }
-        }
-        ToolbarItem(placement: .confirmationAction) {
           Button {
-            AppConfig.epubPreferences = draft
-            dismiss()
+            draft = EpubReaderPreferences()
+          } label: {
+            Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
+          }
+        }
+        ToolbarItemGroup(placement: .confirmationAction) {
+          if shouldShowResetToGlobal {
+            Button {
+              clearBookPreferences()
+            } label: {
+              Label(String(localized: "Reset to Global"), systemImage: "trash")
+            }
+          }
+          Button {
+            savePreferences()
           } label: {
             Label(String(localized: "Done"), systemImage: "checkmark")
           }
+          .disabled(isSaveDisabled)
         }
       }
-      .inlineNavigationBarTitle(SettingsSection.epubReader.title)
+      .inlineNavigationBarTitle(navigationTitle)
       .sheet(isPresented: $showCustomFontsSheet) {
         CustomFontsSheet()
           .onDisappear {
@@ -347,10 +386,12 @@
           }
       }
       .sheet(isPresented: $showPresetsSheet) {
-        EpubThemePresetsView()
-          .onDisappear {
-            draft = AppConfig.epubPreferences
+        EpubThemePresetsView(onApply: { preferences in
+          draft = preferences
+          if !isBookContext {
+            AppConfig.epubPreferences = preferences
           }
+        })
       }
       .alert(
         "Save Preset",
@@ -381,6 +422,37 @@
 
       ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
       newPresetName = ""
+    }
+
+    private func savePreferences() {
+      if let bookId {
+        Task {
+          await DatabaseOperator.shared.updateBookEpubPreferences(
+            bookId: bookId,
+            preferences: draft
+          )
+          await DatabaseOperator.shared.commit()
+        }
+        onPreferencesSaved?(draft)
+        dismiss()
+        return
+      }
+
+      AppConfig.epubPreferences = draft
+      dismiss()
+    }
+
+    private func clearBookPreferences() {
+      guard let bookId else { return }
+      Task {
+        await DatabaseOperator.shared.updateBookEpubPreferences(
+          bookId: bookId,
+          preferences: nil
+        )
+        await DatabaseOperator.shared.commit()
+      }
+      onPreferencesCleared?()
+      dismiss()
     }
   }
 
