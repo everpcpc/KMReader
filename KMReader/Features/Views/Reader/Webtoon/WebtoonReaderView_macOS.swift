@@ -21,6 +21,7 @@
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let tapZoneMode: TapZoneMode
+    let doubleTapZoomMode: DoubleTapZoomMode
     let showPageNumber: Bool
 
     init(
@@ -28,6 +29,7 @@
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
       tapZoneMode: TapZoneMode = .auto,
+      doubleTapZoomMode: DoubleTapZoomMode = .fast,
       showPageNumber: Bool = true,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
@@ -41,6 +43,7 @@
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
       self.tapZoneMode = tapZoneMode
+      self.doubleTapZoomMode = doubleTapZoomMode
       self.showPageNumber = showPageNumber
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
@@ -78,14 +81,6 @@
         target: context.coordinator, action: #selector(Coordinator.handleClick(_:)))
       clickGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(clickGesture)
-
-      let doubleClickGesture = NSClickGestureRecognizer(
-        target: context.coordinator,
-        action: #selector(Coordinator.handleDoubleClick(_:))
-      )
-      doubleClickGesture.numberOfClicksRequired = 2
-      doubleClickGesture.delegate = context.coordinator
-      collectionView.addGestureRecognizer(doubleClickGesture)
 
       let pressGesture = NSPressGestureRecognizer(
         target: context.coordinator, action: #selector(Coordinator.handlePress(_:)))
@@ -134,6 +129,7 @@
           pageWidth: pageWidth,
           collectionView: collectionView,
           readerBackground: readerBackground,
+          tapZoneMode: tapZoneMode,
           showPageNumber: showPageNumber)
       }
     }
@@ -180,7 +176,6 @@
       var keyMonitor: Any?
       var lastScrollTime: TimeInterval = 0
       var hasTriggeredZoomGesture: Bool = false
-      private var singleClickWorkItem: DispatchWorkItem?
 
       init(_ parent: WebtoonReaderView) {
         self.parent = parent
@@ -271,6 +266,7 @@
         pageWidth: CGFloat,
         collectionView: NSCollectionView,
         readerBackground: ReaderBackground,
+        tapZoneMode: TapZoneMode,
         showPageNumber: Bool
       ) {
         self.pages = pages
@@ -281,6 +277,7 @@
         self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
+        self.tapZoneMode = tapZoneMode
 
         let currentPage = viewModel.currentPageIndex
 
@@ -552,8 +549,6 @@
       }
 
       @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
-        singleClickWorkItem?.cancel()
-
         guard !isLongPress else { return }
 
         if isUserScrolling { return }
@@ -580,38 +575,14 @@
           zoneThreshold: AppConfig.tapZoneSize.value
         )
 
-        let workItem = DispatchWorkItem { [weak self] in
-          guard let self = self else { return }
-          switch action {
-          case .previous:
-            self.scrollUp(h)
-          case .next:
-            self.scrollDown(h)
-          case .toggleControls:
-            self.onCenterTap?()
-          }
+        switch action {
+        case .previous:
+          scrollUp(h)
+        case .next:
+          scrollDown(h)
+        case .toggleControls:
+          onCenterTap?()
         }
-        singleClickWorkItem = workItem
-
-        let delay = clickDebounceDelay()
-        if delay <= 0 {
-          workItem.perform()
-        } else {
-          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
-        }
-      }
-
-      @objc func handleDoubleClick(_ gesture: NSClickGestureRecognizer) {
-        guard !isLongPress else { return }
-        if isUserScrolling { return }
-        if Date().timeIntervalSinceReferenceDate - lastScrollTime < 0.25 { return }
-        guard let cv = collectionView else { return }
-
-        singleClickWorkItem?.cancel()
-        singleClickWorkItem = nil
-
-        let location = gesture.location(in: cv)
-        requestZoom(at: location)
       }
 
       @objc func handleMagnify(_ gesture: NSMagnificationGestureRecognizer) {
@@ -705,17 +676,6 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
       ) -> Bool {
         return true
-      }
-
-      private func clickDebounceDelay() -> TimeInterval {
-        switch AppConfig.doubleTapZoomMode {
-        case .disabled:
-          return 0
-        case .fast:
-          return 0.15
-        case .slow:
-          return 0.3
-        }
       }
 
       private func requestZoom(at location: NSPoint) {

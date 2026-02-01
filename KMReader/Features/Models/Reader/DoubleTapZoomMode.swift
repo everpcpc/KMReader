@@ -21,4 +21,12 @@ enum DoubleTapZoomMode: String, CaseIterable, Identifiable {
     case .slow: return String(localized: "Slow")
     }
   }
+
+  var tapDebounceDelay: TimeInterval {
+    switch self {
+    case .disabled: return 0
+    case .fast: return 0.18
+    case .slow: return 0.3
+    }
+  }
 }

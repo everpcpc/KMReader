@@ -21,6 +21,7 @@
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
     let tapZoneMode: TapZoneMode
+    let doubleTapZoomMode: DoubleTapZoomMode
     let showPageNumber: Bool
 
     init(
@@ -28,6 +29,7 @@
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
       tapZoneMode: TapZoneMode = .auto,
+      doubleTapZoomMode: DoubleTapZoomMode = .fast,
       showPageNumber: Bool = true,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
@@ -41,6 +43,7 @@
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
       self.tapZoneMode = tapZoneMode
+      self.doubleTapZoomMode = doubleTapZoomMode
       self.showPageNumber = showPageNumber
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
@@ -131,6 +134,7 @@
         collectionView: collectionView,
         readerBackground: readerBackground,
         tapZoneMode: tapZoneMode,
+        doubleTapZoomMode: doubleTapZoomMode,
         showPageNumber: showPageNumber
       )
     }
@@ -167,6 +171,7 @@
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var tapZoneMode: TapZoneMode = .auto
+      var doubleTapZoomMode: DoubleTapZoomMode = .fast
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
       var hasTriggeredZoomGesture: Bool = false
@@ -192,6 +197,7 @@
         self.pageWidth = parent.pageWidth
         self.heightCache.lastPageWidth = parent.pageWidth
         self.readerBackground = parent.readerBackground
+        self.doubleTapZoomMode = parent.doubleTapZoomMode
       }
 
       // MARK: - Helper Methods
@@ -240,6 +246,7 @@
         collectionView: UICollectionView,
         readerBackground: ReaderBackground,
         tapZoneMode: TapZoneMode,
+        doubleTapZoomMode: DoubleTapZoomMode,
         showPageNumber: Bool
       ) {
         applySafeAreaInsetsIfNeeded(for: collectionView)
@@ -254,6 +261,7 @@
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
         self.tapZoneMode = tapZoneMode
+        self.doubleTapZoomMode = doubleTapZoomMode
         if self.showPageNumber != showPageNumber {
           self.showPageNumber = showPageNumber
           for cell in collectionView.visibleCells {
@@ -667,7 +675,7 @@
         }
         singleTapWorkItem = workItem
 
-        let delay = tapDebounceDelay()
+        let delay = doubleTapZoomMode.tapDebounceDelay
         if delay <= 0 {
           workItem.perform()
         } else {
@@ -679,6 +687,7 @@
         guard !isLongPress else { return }
         guard let collectionView = collectionView else { return }
         if collectionView.isDragging || collectionView.isDecelerating { return }
+        if doubleTapZoomMode == .disabled { return }
 
         singleTapWorkItem?.cancel()
         singleTapWorkItem = nil
@@ -743,17 +752,6 @@
         let velocity = pan.velocity(in: pan.view)
         // Only allow upward pan (negative y velocity)
         return velocity.y < 0 && abs(velocity.y) > abs(velocity.x)
-      }
-
-      private func tapDebounceDelay() -> TimeInterval {
-        switch AppConfig.doubleTapZoomMode {
-        case .disabled:
-          return 0
-        case .fast:
-          return 0.15
-        case .slow:
-          return 0.3
-        }
       }
 
       private func requestZoom(at location: CGPoint) {
