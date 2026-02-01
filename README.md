@@ -6,7 +6,7 @@
   <img src="icon.svg" alt="KMReader Icon" width="128" height="128">
 </div>
 
-**A full-featured, native Komga client for iOS, macOS, and tvOS — featuring powerful comic/EPUB readers and live admin tools.**
+**A full-featured native SwiftUI client for Komga — powerful readers, offline sync, library management, and admin tools.**
 
 [![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)](https://www.apple.com/ios/)
 [![macOS](https://img.shields.io/badge/macOS-14.0+-blue.svg)](https://www.apple.com/macos/)
@@ -20,58 +20,92 @@
 
 ---
 
-## ✨ Highlights
+## ✨ Features
 
-- **Multi-server vault**: Save unlimited Komga servers with password or API key authentication.
-- **Cloud-drive-like offline**: Background downloads with Live Activity on iOS. Offline policies (manual, latest, all) per series. Read lists and collections stay available offline. Progress syncs when connection restores.
-- **Browse + dashboards**: Search, advanced metadata filters (all/any logic for authors, genres, tags, etc.), and grid/list layouts. Customizable dashboard sections with native drag-and-drop reordering.
-- **Readers**: DIVINA (LTR/RTL/vertical/Webtoon) with spreads, zoom, customizable tap zones, and transition styles (including native page curl). High-performance **Native EPUB engine** with custom font importing (.ttf/.otf), multi-column layouts, theme presets, nested TOC, and chapter navigation gestures. Interactive metadata chips for quick navigation. Live Text support with shake-to-open on iOS.
-- **Privacy protection**: Optional blur overlay to protect reading content from prying eyes. Toggleable glass effects for thumbnails.
-- **Admin tools**: Metadata editing, scans, task management, live metrics via SSE, and an in-app log viewer with filtering.
-- **Caching**: Three-tier caches (pages, books, thumbnails) with adjustable limits and auto-cleanup.
+### Readers
 
----
+- **DIVINA Reader** (iOS, macOS, tvOS): LTR/RTL/vertical/Webtoon modes with spreads, zoom, customizable tap zones, and page curl transitions. Live Text support with shake-to-toggle on iOS.
+- **EPUB Reader** (iOS, macOS): Native engine with custom font importing (.ttf/.otf), theme presets, multi-column layouts, and nested TOC navigation.
+- **Per-Book Preferences**: Save reading direction, page layout, and theme settings per book.
+- **Incognito Mode**: Read without saving progress to server.
 
-## 🧭 Overview
+### Offline & Downloads
 
-- Shared SwiftUI scenes cover browsing, reading, dashboards, and admin tasks across iPhone, iPad, Mac, and Apple TV.
-- Swift 6 & strict concurrency: Built with the latest Swift language features for safety and performance.
-- SwiftData stores Komga instances, libraries, and custom fonts so server profiles, cache budgets, and dashboard preferences stay local per device.
-- Services centralize API access, authentication, caching, SSE subscriptions, and error handling for consistent behavior on every platform.
-- Local storage keeps profiles, recent activity, and cached downloads so switching servers does not reset your state.
+- **Background Downloads**: URLSession-based downloads with Live Activities on iOS.
+- **Series Policies**: Manual, unread-only, unread+cleanup, or all books per series.
+- **Offline Mode**: Full reader functionality with downloaded content. Progress syncs when reconnected.
+- **Three-Tier Caching**: Pages, book files, and thumbnails with adjustable limits and auto-cleanup.
+
+### Browse & Dashboards
+
+- **Dynamic Dashboards**: Keep Reading, On Deck, Recently Added, Recently Updated with real-time SSE updates.
+- **Advanced Filters**: Search with metadata filters (authors, genres, tags, publishers) using all/any logic.
+- **Grid/List Layouts**: Multiple density options (compact, standard, comfortable).
+- **Library Filtering**: Browse per-library or across all libraries.
+
+### Multi-Server Vault
+
+- **Unlimited Servers**: Save multiple Komga instances with password or API key authentication.
+- **Quick Switching**: Instant server switching with isolated data per instance.
+- **API Key Management**: Create, view, and revoke API keys.
+
+### Admin Tools
+
+- **Metadata Editing**: Edit series, books, collections, and read lists.
+- **Library Management**: Create, edit, scan libraries with directory browser.
+- **Task Management**: Monitor and cancel server tasks with live metrics.
+- **Logs Viewer**: View and export app logs with filtering.
+
+### Platform-Specific
+
+- **iOS**: Live Activities, background downloads, page curl transitions, shake gestures.
+- **macOS**: Separate reader windows, comprehensive keyboard shortcuts, keyboard help overlay.
+- **tvOS**: Remote control navigation, TV-optimized interface (DIVINA only).
 
 ---
 
 ## 🚀 Getting Started
 
-1. Prerequisites: iOS 17.0+, macOS 14.0+, tvOS 17.0+, Xcode 15.0+.
-2. Clone and open the project:
-   ```bash
-   git clone https://github.com/everpcpc/KMReader.git
-   cd KMReader
-   open KMReader.xcodeproj
-   ```
-3. Build and run on your target device or simulator, then enter your Komga server URL and credentials.
+### Prerequisites
 
-Build helpers (optional):
+- iOS 17.0+, macOS 14.0+, or tvOS 17.0+
+- Xcode 15.0+
+- Komga 1.19.0+ server
 
-- `make build-ios`, `make build-macos`, `make build-tvos` for device builds.
-- `make build-ios-ci`, `make build-macos-ci`, `make build-tvos-ci` for code-signing-free simulator builds.
-- `make release` archives/exports all platforms; see `Makefile` for archive/export targets.
+### Build & Run
 
-> tvOS currently supports DIVINA. EPUB and Webtoon modes are available on iOS/iPadOS/macOS.
+```bash
+git clone https://github.com/everpcpc/KMReader.git
+cd KMReader
+open KMReader.xcodeproj
+```
+
+Build commands:
+
+```bash
+make build-ios          # Build for iOS simulator
+make build-macos        # Build for macOS
+make build-tvos         # Build for tvOS simulator
+
+make run-ios-sim        # Run on iOS simulator
+make run-macos          # Run on macOS
+make run-tvos-sim       # Run on tvOS simulator
+```
+
+See `Makefile` for all available commands.
 
 ---
 
 ## 🔌 Compatibility
 
-- Requires **Komga 1.19.0** or later.
-- Works with **Komga API v1 and v2** (authentication, libraries/series/books, reading progress/pages, collections, and read lists).
-- SSE keeps dashboards and task analytics synchronized with toggles for auto-refresh and connection notifications.
+- Requires **Komga 1.19.0** or later
+- Works with **Komga API v1 and v2**
+- SSE support for real-time updates
+- EPUB and Webtoon readers available on iOS/macOS only
 
 ---
 
-## 💬 Discuss
+## 💬 Community
 
 Join the discussion on [Discord](https://discord.gg/komga-678794935368941569).
 
@@ -81,6 +115,6 @@ Join the discussion on [Discord](https://discord.gg/komga-678794935368941569).
 
 **Made with ❤️ for the Komga community**
 
-⭐ Star this repo if it helps you keep your library in sync!
+⭐ Star this repo if you find it useful!
 
 </div>
