@@ -82,6 +82,7 @@ final class KomgaBook {
   var readListIdsRaw: Data?
 
   var isolatePagesRaw: Data?
+  var epubPreferencesRaw: String?
 
   var metaTags: [String] {
     get { metaTagsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
@@ -96,6 +97,11 @@ final class KomgaBook {
   var isolatePages: [Int] {
     get { isolatePagesRaw.flatMap { try? JSONDecoder().decode([Int].self, from: $0) } ?? [] }
     set { isolatePagesRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var epubPreferences: EpubReaderPreferences? {
+    get { epubPreferencesRaw.flatMap { EpubReaderPreferences(rawValue: $0) } }
+    set { epubPreferencesRaw = newValue?.rawValue }
   }
 
   /// Computed property for download status.
@@ -209,6 +215,7 @@ final class KomgaBook {
     self.downloadedSize = downloadedSize
     self.readListIdsRaw = try? JSONEncoder().encode([] as [String])
     self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
+    self.epubPreferencesRaw = nil
   }
 
   var media: Media {

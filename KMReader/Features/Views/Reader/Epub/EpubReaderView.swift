@@ -18,10 +18,12 @@
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
-    @AppStorage("epubPreferences") private var readerPrefs: EpubReaderPreferences = .init()
+    @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
 
     @State private var viewModel: EpubReaderViewModel
+    @State private var activePreferences: EpubReaderPreferences
+    @State private var bookPreferences: EpubReaderPreferences?
     @State private var showingControls = true
     @State private var controlsTimer: Timer?
     @State private var currentSeries: Series?
@@ -43,6 +45,8 @@
       self.readList = readList
       self.onClose = onClose
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
+      _activePreferences = State(initialValue: AppConfig.epubPreferences)
+      _bookPreferences = State(initialValue: nil)
       _currentBook = State(initialValue: book)
     }
 
@@ -68,6 +72,10 @@
       .default
     }
 
+    private var isUsingBookPreferences: Bool {
+      bookPreferences != nil
+    }
+
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()
@@ -75,13 +83,17 @@
           await loadBook()
         }
         .onAppear {
-          viewModel.applyPreferences(readerPrefs, colorScheme: colorScheme)
+          viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
         }
-        .onChange(of: readerPrefs) { _, newPrefs in
+        .onChange(of: activePreferences) { _, newPrefs in
           viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)
         }
+        .onChange(of: globalPreferences) { _, newPrefs in
+          guard !isUsingBookPreferences else { return }
+          activePreferences = newPrefs
+        }
         .onChange(of: colorScheme) { _, newScheme in
-          viewModel.applyPreferences(readerPrefs, colorScheme: newScheme)
+          viewModel.applyPreferences(activePreferences, colorScheme: newScheme)
         }
         .onReceive(
           NotificationCenter.default.publisher(for: .fileDownloadProgress)
@@ -110,6 +122,10 @@
       viewModel.beginLoading()
 
       currentBook = book
+      await MainActor.run {
+        bookPreferences = nil
+        activePreferences = globalPreferences
+      }
       do {
         currentBook = try await SyncService.shared.syncBook(bookId: book.id)
       } catch {
@@ -123,6 +139,14 @@
         viewModel.loadingStage = .idle
         viewModel.isLoading = false
         return
+      }
+
+      let savedPreferences = await DatabaseOperator.shared.fetchBookEpubPreferences(
+        bookId: activeBook.id
+      )
+      await MainActor.run {
+        bookPreferences = savedPreferences
+        activePreferences = savedPreferences ?? globalPreferences
       }
 
       // Refresh WebPub manifest if online
@@ -177,7 +201,7 @@
       if showingEndPage {
         EpubEndPageView(
           bookTitle: currentBook?.metadata.title,
-          preferences: readerPrefs,
+          preferences: activePreferences,
           colorScheme: colorScheme,
           onReturn: {
             // Hide end page first, then navigate to last page
@@ -222,7 +246,7 @@
         case .scroll:
           WebPubScrollView(
             viewModel: viewModel,
-            preferences: readerPrefs,
+            preferences: activePreferences,
             colorScheme: colorScheme,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
@@ -239,7 +263,7 @@
         case .pageCurl:
           WebPubPageView(
             viewModel: viewModel,
-            preferences: readerPrefs,
+            preferences: activePreferences,
             colorScheme: colorScheme,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
@@ -371,7 +395,20 @@
         }
         .sheet(isPresented: $showingPreferencesSheet) {
           NavigationStack {
-            EpubPreferencesView(inSheet: true)
+            EpubPreferencesView(
+              inSheet: true,
+              bookId: currentBook?.id ?? book.id,
+              hasBookPreferences: bookPreferences != nil,
+              initialPreferences: activePreferences,
+              onPreferencesSaved: { newPreferences in
+                activePreferences = newPreferences
+                bookPreferences = newPreferences
+              },
+              onPreferencesCleared: {
+                activePreferences = globalPreferences
+                bookPreferences = nil
+              }
+            )
           }
         }
         .readerDetailSheet(

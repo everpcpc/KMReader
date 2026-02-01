@@ -9,12 +9,18 @@ import SwiftData
 import SwiftUI
 
 struct EpubThemePresetsView: View {
+  let onApply: ((EpubReaderPreferences) -> Void)?
+
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \EpubThemePreset.updatedAt, order: .reverse) private var presets: [EpubThemePreset]
 
   @State private var presetToRename: EpubThemePreset?
   @State private var newName: String = ""
+
+  init(onApply: ((EpubReaderPreferences) -> Void)? = nil) {
+    self.onApply = onApply
+  }
 
   var body: some View {
     SheetView(
@@ -126,7 +132,11 @@ struct EpubThemePresetsView: View {
 
   private func applyPreset(_ preset: EpubThemePreset) {
     if let preferences = preset.getPreferences() {
-      AppConfig.epubPreferences = preferences
+      if let onApply {
+        onApply(preferences)
+      } else {
+        AppConfig.epubPreferences = preferences
+      }
       ErrorManager.shared.notify(message: String(localized: "Preset applied: \(preset.name)"))
     }
   }
