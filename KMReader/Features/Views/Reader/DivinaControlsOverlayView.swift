@@ -1,15 +1,13 @@
 //
-//  ReaderControlsView.swift
+//  DivinaControlsOverlayView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
 //
 
 import SwiftUI
-import UniformTypeIdentifiers
 
-struct ReaderControlsView: View {
-  @Binding var showingControls: Bool
+struct DivinaControlsOverlayView: View {
   @Binding var readingDirection: ReadingDirection
   @Binding var pageLayout: PageLayout
   @Binding var isolateCoverPage: Bool
@@ -21,11 +19,9 @@ struct ReaderControlsView: View {
   @Binding var showingDetailSheet: Bool
 
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
-  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
   let viewModel: ReaderViewModel
   let currentBook: Book?
-  let currentSeries: Series?
   let dualPage: Bool
   let incognito: Bool
   let onDismiss: () -> Void
@@ -33,11 +29,8 @@ struct ReaderControlsView: View {
   let nextBook: Book?
   let onPreviousBook: ((String) -> Void)?
   let onNextBook: ((String) -> Void)?
-
-  @State private var saveImageResult: SaveImageResult?
-  @State private var showSaveAlert = false
-  @State private var showDocumentPicker = false
-  @State private var fileToSave: URL?
+  let controlsVisible: Bool
+  let showingControls: Bool
 
   #if os(tvOS)
     private enum ControlFocus: Hashable {
@@ -49,13 +42,12 @@ struct ReaderControlsView: View {
     @FocusState private var focusedControl: ControlFocus?
   #endif
 
-  enum SaveImageResult: Equatable {
-    case success
-    case failure(String)
-  }
-
   private var buttonStyle: AdaptiveButtonStyleType {
     return .bordered
+  }
+
+  private var animation: Animation {
+    .bouncy(duration: 0.25)
   }
 
   private var progress: Double {
@@ -114,142 +106,32 @@ struct ReaderControlsView: View {
   #endif
 
   var body: some View {
-    VStack {
-
-      // Top bar
-      HStack(alignment: .top) {
-        // Close button
-        Button {
-          onDismiss()
-        } label: {
-          Image(systemName: "xmark")
-        }
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
-        .contentShape(Circle())
-        .adaptiveButtonStyle(buttonStyle)
-        #if os(tvOS)
-          .focused($focusedControl, equals: .close)
-          .id("closeButton")
-        #endif
-
-        Spacer()
-
-        // Series and book title
-        if let book = currentBook {
-          Button {
-            showingDetailSheet = true
-          } label: {
-            HStack(spacing: 4) {
-              if incognito {
-                Image(systemName: "eye.slash.fill")
-                  .font(.callout)
-              }
-              VStack(alignment: incognito ? .leading : .center, spacing: 4) {
-                if book.oneshot {
-                  Text(book.metadata.title)
-                    .lineLimit(2)
-                } else {
-                  Text("#\(book.metadata.number) - \(book.metadata.title)")
-                    .lineLimit(1)
-                  Text(book.seriesTitle)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-                    .lineLimit(1)
-                }
-              }
-            }
-            .padding(.vertical, 2)
-            .padding(.horizontal, 4)
-          }
-          .optimizedControlSize()
-          .contentShape(Capsule())
-          .adaptiveButtonStyle(buttonStyle)
-          #if os(tvOS)
-            .focused($focusedControl, equals: .title)
-            .id("titleLabel")
-          #endif
-        }
-
-        Spacer()
-
-        Menu {
-          menuContent()
-        } label: {
-          Image(systemName: "ellipsis")
-            .padding(4)
-        }
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
-        .contentShape(Circle())
-        .adaptiveButtonStyle(buttonStyle)
-        #if os(tvOS)
-          .focused($focusedControl, equals: .settings)
-        #endif
-      }
-      .allowsHitTesting(true)
-      .padding()
-      .iPadIgnoresSafeArea(paddingTop: 24)
-      .background {
-        if readerControlsGradientBackground {
-          gradientBackground(startPoint: .top, endPoint: .bottom)
-            .ignoresSafeArea(edges: .top)
-        }
-      }
-
-      Spacer()
-
-      // Bottom section with page info and slider
-      VStack(spacing: 12) {
-        // Page info display with navigation buttons
-        HStack {
-          Spacer(minLength: 0)
-
-          // Page info - tappable to open jump sheet
-          Button {
-            guard !viewModel.pages.isEmpty else { return }
-            showingPageJumpSheet = true
-          } label: {
-            HStack(spacing: 6) {
-              Image(systemName: "bookmark")
-              Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
-                .monospacedDigit()
-            }
-          }
-          .contentShape(Capsule())
-          .adaptiveButtonStyle(buttonStyle)
-          #if os(tvOS)
-            .focused($focusedControl, equals: .pageNumber)
-          #endif
-
-          Spacer(minLength: 0)
-        }
-        .optimizedControlSize()
-        .allowsHitTesting(true)
-
-        // Bottom slider
-        ReadingProgressBar(progress: progress, type: .reader)
-          .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
-          .shadow(
-            color: readerControlsGradientBackground ? .clear : .black.opacity(0.4),
-            radius: readerControlsGradientBackground ? 0 : 4,
-            x: 0,
-            y: readerControlsGradientBackground ? 0 : 2
+    VStack(spacing: 0) {
+      if controlsVisible {
+        topBar
+          .transition(
+            .move(edge: .top)
+              .combined(with: .opacity)
+              .combined(with: .scale(scale: 0.8, anchor: .top))
           )
       }
-      .padding()
-      .iPadIgnoresSafeArea(paddingTop: 24)
-      .background {
-        if readerControlsGradientBackground {
-          gradientBackground(startPoint: .bottom, endPoint: .top)
-            .ignoresSafeArea(edges: .bottom)
-        }
+
+      Spacer(minLength: 0)
+
+      if controlsVisible {
+        bottomBar
+          .transition(
+            .move(edge: .bottom)
+              .combined(with: .opacity)
+              .combined(with: .scale(scale: 0.8, anchor: .bottom))
+          )
       }
     }
+    .animation(animation, value: controlsVisible)
+    .allowsHitTesting(controlsVisible)
     #if os(iOS)
       .tint(.primary)
     #endif
-    .transition(.opacity)
     #if os(tvOS)
       .onAppear {
         if showingControls {
@@ -257,11 +139,7 @@ struct ReaderControlsView: View {
         }
       }
       .onChange(of: showingControls) { _, newValue in
-        if newValue {
-          focusedControl = .close
-        } else {
-          focusedControl = nil
-        }
+        focusedControl = newValue ? .close : nil
       }
       .onChange(of: focusedControl) { _, newValue in
         if showingControls && newValue == nil {
@@ -270,6 +148,131 @@ struct ReaderControlsView: View {
       }
       .focusSection()
     #endif
+  }
+
+  private var topBar: some View {
+    HStack(alignment: .top) {
+      Button {
+        onDismiss()
+      } label: {
+        Image(systemName: "xmark")
+      }
+      .buttonBorderShape(.circle)
+      .controlSize(.large)
+      .contentShape(Circle())
+      .adaptiveButtonStyle(buttonStyle)
+      #if os(tvOS)
+        .focused($focusedControl, equals: .close)
+        .id("closeButton")
+      #endif
+
+      Spacer()
+
+      if let book = currentBook {
+        Button {
+          showingDetailSheet = true
+        } label: {
+          HStack(spacing: 4) {
+            if incognito {
+              Image(systemName: "eye.slash.fill")
+                .font(.callout)
+            }
+            VStack(alignment: incognito ? .leading : .center, spacing: 4) {
+              if book.oneshot {
+                Text(book.metadata.title)
+                  .lineLimit(2)
+              } else {
+                Text("#\(book.metadata.number) - \(book.metadata.title)")
+                  .lineLimit(1)
+                Text(book.seriesTitle)
+                  .foregroundStyle(.secondary)
+                  .font(.caption)
+                  .lineLimit(1)
+              }
+            }
+          }
+          .padding(.vertical, 2)
+          .padding(.horizontal, 4)
+        }
+        .optimizedControlSize()
+        .contentShape(Capsule())
+        .adaptiveButtonStyle(buttonStyle)
+        #if os(tvOS)
+          .focused($focusedControl, equals: .title)
+          .id("titleLabel")
+        #endif
+      }
+
+      Spacer()
+
+      Menu {
+        menuContent()
+      } label: {
+        Image(systemName: "ellipsis")
+          .padding(4)
+      }
+      .buttonBorderShape(.circle)
+      .controlSize(.large)
+      .contentShape(Circle())
+      .adaptiveButtonStyle(buttonStyle)
+      #if os(tvOS)
+        .focused($focusedControl, equals: .settings)
+      #endif
+    }
+    .allowsHitTesting(true)
+    .padding()
+    .iPadIgnoresSafeArea(paddingTop: 24)
+    .background {
+      if readerControlsGradientBackground {
+        gradientBackground(startPoint: .top, endPoint: .bottom)
+          .ignoresSafeArea(edges: .top)
+      }
+    }
+  }
+
+  private var bottomBar: some View {
+    VStack(spacing: 12) {
+      HStack {
+        Spacer(minLength: 0)
+
+        Button {
+          guard !viewModel.pages.isEmpty else { return }
+          showingPageJumpSheet = true
+        } label: {
+          HStack(spacing: 6) {
+            Image(systemName: "bookmark")
+            Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
+              .monospacedDigit()
+          }
+        }
+        .contentShape(Capsule())
+        .adaptiveButtonStyle(buttonStyle)
+        #if os(tvOS)
+          .focused($focusedControl, equals: .pageNumber)
+        #endif
+
+        Spacer(minLength: 0)
+      }
+      .optimizedControlSize()
+      .allowsHitTesting(true)
+
+      ReadingProgressBar(progress: progress, type: .reader)
+        .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+        .shadow(
+          color: readerControlsGradientBackground ? .clear : .black.opacity(0.4),
+          radius: readerControlsGradientBackground ? 0 : 4,
+          x: 0,
+          y: readerControlsGradientBackground ? 0 : 2
+        )
+    }
+    .padding()
+    .iPadIgnoresSafeArea(paddingTop: 24)
+    .background {
+      if readerControlsGradientBackground {
+        gradientBackground(startPoint: .bottom, endPoint: .top)
+          .ignoresSafeArea(edges: .bottom)
+      }
+    }
   }
 
   @ViewBuilder
@@ -301,7 +304,6 @@ struct ReaderControlsView: View {
         }
       }
 
-      // Wide page splitting options (not for webtoon)
       if readingDirection != .webtoon && (pageLayout == .single || pageLayout == .auto) {
         Picker(selection: $splitWidePageMode) {
           ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
@@ -378,7 +380,6 @@ struct ReaderControlsView: View {
 
     if isCurrentPageValid {
       if viewModel.isCurrentPageIsolated {
-        // Current page is already isolated, show cancel button
         Button {
           viewModel.toggleIsolatePage(viewModel.currentPageIndex)
         } label: {
@@ -389,7 +390,6 @@ struct ReaderControlsView: View {
         pair.first < viewModel.pages.count,
         secondPage < viewModel.pages.count
       {
-        // Dual page mode with two pages, show separate buttons
         let leftPage = readingDirection == .rtl ? secondPage : pair.first
         let rightPage = readingDirection == .rtl ? pair.first : secondPage
         Button {

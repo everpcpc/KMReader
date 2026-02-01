@@ -536,8 +536,7 @@ struct DivinaReaderView: View {
   }
 
   private func controlsOverlay(useDualPage: Bool) -> some View {
-    ReaderControlsView(
-      showingControls: $showingControls,
+    DivinaControlsOverlayView(
       readingDirection: $readingDirection,
       pageLayout: $pageLayout,
       isolateCoverPage: $isolateCoverPage,
@@ -548,18 +547,16 @@ struct DivinaReaderView: View {
       showingDetailSheet: $showingDetailSheet,
       viewModel: viewModel,
       currentBook: currentBook,
-      currentSeries: currentSeries,
       dualPage: useDualPage,
       incognito: incognito,
       onDismiss: { closeReader() },
       previousBook: previousBook,
       nextBook: nextBook,
       onPreviousBook: { openPreviousBook(previousBookId: $0) },
-      onNextBook: { openNextBook(nextBookId: $0) }
+      onNextBook: { openNextBook(nextBookId: $0) },
+      controlsVisible: shouldShowControls,
+      showingControls: showingControls
     )
-    .opacity(shouldShowControls ? 1.0 : 0.0)
-    .allowsHitTesting(shouldShowControls)
-    .animation(.default, value: shouldShowControls)
   }
 
   #if os(macOS)
