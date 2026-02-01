@@ -20,18 +20,22 @@ Key features:
 
 ### Build Commands
 
+All build and run commands use `misc/xcode.py` internally. The script manages device selection and persists preferences in `devices.json`.
+
+For iOS and tvOS builds, the script will select a specific simulator (using saved preference or prompting for selection).
+
 ```bash
 # Build for specific platforms
-# Used for local builds
-make build-ios          # Build for iOS device
+# Builds for a specific simulator (will use saved preference or prompt for selection)
+make build-ios          # Build for iOS simulator
 make build-macos        # Build for macOS
-make build-tvos         # Build for tvOS device
+make build-tvos         # Build for tvOS simulator
 
 # CI-friendly builds (no code signing, simulator targets)
 # Used by the CI workflow, do not use for local builds.
-make build-ios-ci       # iOS simulator
+make build-ios-ci       # iOS simulator (auto-selects first available)
 make build-macos-ci     # macOS without signing
-make build-tvos-ci      # tvOS simulator
+make build-tvos-ci      # tvOS simulator (auto-selects first available)
 
 # Other build commands
 make build              # Build all platforms
@@ -39,6 +43,49 @@ make release            # Archive and export all platforms
 make artifacts          # Prepare IPA/DMG for GitHub Release
 make clean              # Remove archives, exports, and artifacts
 ```
+
+### Run Commands
+
+Run commands support device selection with preferences stored in `devices.json`.
+
+```bash
+# List available devices (simulators and physical devices)
+make list-device
+
+# Run on simulators
+make run-ios-sim        # iOS simulator
+make run-tvos-sim       # tvOS simulator
+
+# Run on physical devices
+make run-ios-device     # iOS device
+make run-tvos-device    # tvOS device
+
+# Run on macOS
+make run-macos          # Build and run on macOS
+
+# Force device selection (ignore saved preference)
+make run-ios-sim-select      # iOS simulator with device selection prompt
+make run-ios-device-select   # iOS device with device selection prompt
+make run-tvos-sim-select     # tvOS simulator with device selection prompt
+make run-tvos-device-select  # tvOS device with device selection prompt
+
+# Direct script usage (alternative to make commands)
+python3 misc/xcode.py list                    # List all devices
+python3 misc/xcode.py list ios --simulators   # List iOS simulators only
+python3 misc/xcode.py build ios               # Build for iOS
+python3 misc/xcode.py run ios --simulator     # Run on iOS simulator
+python3 misc/xcode.py run ios --device        # Run on iOS device
+python3 misc/xcode.py run ios --simulator --select  # Force device selection
+```
+
+Device selection behavior:
+- **Interactive mode** (terminal): Prompts you to select from available devices and optionally save as default
+- **Non-interactive mode** (CI/scripts): Automatically selects the first available device and saves it
+- **Saved preference**: If a device is already saved in `devices.json`, it will be used automatically
+- **Unavailable saved device**: If the saved device is no longer available, falls back to selection/auto-selection
+- **Force selection** (`--select` or `-select` suffix): Always shows device selection prompt, ignoring saved preference
+
+Device preferences are stored in `devices.json` (gitignored) with keys like `ios_simulator`, `ios_device`, `tvos_simulator`, etc.
 
 ### Version Management
 

@@ -26,12 +26,13 @@ help: ## Show this help message
 	@echo "  make build-tvos      - Build for tvOS"
 	@echo ""
 	@echo "Run commands:"
-	@echo "  make list-device     - List available simulator devices"
-	@echo "  make run-ios-sim     - Build and run on iOS simulator (DEVICE=<name_or_udid>)"
-	@echo "  make run-ios-device  - Build and run on iOS device (DEVICE=<name_or_udid>)"
+	@echo "  make list-device     - List available devices (simulators and physical)"
+	@echo "  make run-ios-sim     - Build and run on iOS simulator"
+	@echo "  make run-ios-device  - Build and run on iOS device"
 	@echo "  make run-macos       - Build and run on macOS"
-	@echo "  make run-tvos-sim    - Build and run on tvOS simulator (DEVICE=<name_or_udid>)"
-	@echo "  make run-tvos-device - Build and run on tvOS device (DEVICE=<name_or_udid>)"
+	@echo "  make run-tvos-sim    - Build and run on tvOS simulator"
+	@echo "  make run-tvos-device - Build and run on tvOS device"
+	@echo "  (Add '-select' suffix to force device selection, e.g., run-ios-sim-select)"
 	@echo ""
 	@echo "Archive commands:"
 	@echo "  make archive-ios      - Archive for iOS (custom location)"
@@ -66,71 +67,55 @@ build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS
 	@echo "$(GREEN)All platforms built successfully!$(NC)"
 
 build-ios: ## Build for iOS
-	@echo "$(GREEN)Building for iOS...$(NC)"
-	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk iphoneos build -quiet
+	@python3 $(MISC_DIR)/xcode.py build ios
 	@$(MAKE) localize
-	@echo "$(GREEN)iOS built successfully!$(NC)"
 
 build-macos: ## Build for macOS
-	@echo "$(GREEN)Building for macOS...$(NC)"
-	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk macosx build -quiet
+	@python3 $(MISC_DIR)/xcode.py build macos
 	@$(MAKE) localize
-	@echo "$(GREEN)macOS built successfully!$(NC)"
 
 build-tvos: ## Build for tvOS
-	@echo "$(GREEN)Building for tvOS...$(NC)"
-	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvos build -quiet
+	@python3 $(MISC_DIR)/xcode.py build tvos
 	@$(MAKE) localize
-	@echo "$(GREEN)tvOS built successfully!$(NC)"
 
 build-ios-ci: ## Build for iOS (CI, uses simulator, no code signing)
-	@echo "$(GREEN)Building for iOS (CI)...$(NC)"
-	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-	@echo "$(GREEN)iOS (CI) built successfully!$(NC)"
+	@python3 $(MISC_DIR)/xcode.py build ios --ci
 
 build-macos-ci: ## Build for macOS (CI, no code signing)
-	@echo "$(GREEN)Building for macOS (CI)...$(NC)"
-	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk macosx -destination 'platform=macOS' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-	@echo "$(GREEN)macOS (CI) built successfully!$(NC)"
+	@python3 $(MISC_DIR)/xcode.py build macos --ci
 
 build-tvos-ci: ## Build for tvOS (CI, uses simulator, no code signing)
-	@echo "$(GREEN)Building for tvOS (CI)...$(NC)"
-	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvsimulator -destination 'generic/platform=tvOS Simulator' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-	@echo "$(GREEN)tvOS (CI) built successfully!$(NC)"
+	@python3 $(MISC_DIR)/xcode.py build tvos --ci
 
-list-device: ## List available simulator devices
-	@xcrun simctl list devices
+list-device: ## List available devices
+	@python3 $(MISC_DIR)/xcode.py list
 
-run-ios-sim: ## Build and run on iOS simulator (requires DEVICE)
-	@if [ -z "$(DEVICE)" ]; then \
-		echo "Error: DEVICE is required (name or UDID)"; \
-		exit 1; \
-	fi
-	@xcede buildrun --scheme $(SCHEME) --platform sim --device "$(DEVICE)"
+run-ios-sim: ## Build and run on iOS simulator
+	@python3 $(MISC_DIR)/xcode.py run ios --simulator
 
-run-ios-device: ## Build and run on iOS device (requires DEVICE)
-	@if [ -z "$(DEVICE)" ]; then \
-		echo "Error: DEVICE is required (name or UDID)"; \
-		exit 1; \
-	fi
-	@xcede buildrun --scheme $(SCHEME) --platform device --device "$(DEVICE)"
+run-ios-sim-select: ## Build and run on iOS simulator (force device selection)
+	@python3 $(MISC_DIR)/xcode.py run ios --simulator --select
+
+run-ios-device: ## Build and run on iOS device
+	@python3 $(MISC_DIR)/xcode.py run ios --device
+
+run-ios-device-select: ## Build and run on iOS device (force device selection)
+	@python3 $(MISC_DIR)/xcode.py run ios --device --select
 
 run-macos: ## Build and run on macOS
-	@xcede buildrun --scheme $(SCHEME) --platform mac
+	@python3 $(MISC_DIR)/xcode.py run macos
 
-run-tvos-sim: ## Build and run on tvOS simulator (requires DEVICE)
-	@if [ -z "$(DEVICE)" ]; then \
-		echo "Error: DEVICE is required (name or UDID)"; \
-		exit 1; \
-	fi
-	@xcede buildrun --scheme $(SCHEME) --platform sim --device "$(DEVICE)"
+run-tvos-sim: ## Build and run on tvOS simulator
+	@python3 $(MISC_DIR)/xcode.py run tvos --simulator
 
-run-tvos-device: ## Build and run on tvOS device (requires DEVICE)
-	@if [ -z "$(DEVICE)" ]; then \
-		echo "Error: DEVICE is required (name or UDID)"; \
-		exit 1; \
-	fi
-	@xcede buildrun --scheme $(SCHEME) --platform device --device "$(DEVICE)"
+run-tvos-sim-select: ## Build and run on tvOS simulator (force device selection)
+	@python3 $(MISC_DIR)/xcode.py run tvos --simulator --select
+
+run-tvos-device: ## Build and run on tvOS device
+	@python3 $(MISC_DIR)/xcode.py run tvos --device
+
+run-tvos-device-select: ## Build and run on tvOS device (force device selection)
+	@python3 $(MISC_DIR)/xcode.py run tvos --device --select
 
 archive-ios: ## Archive for iOS
 	@echo "$(GREEN)Archiving for iOS...$(NC)"

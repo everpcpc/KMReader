@@ -1,31 +1,38 @@
-New Features
+Reading Experience Enhancements
 
-- Replaced the reading engine with a custom native version for a more lightweight, stable, and customizable experience
-- Added support for one or two column layouts in the EPUB reader
-- You can now import your own fonts (.ttf/.otf) directly from the Files app
-- New EPUB theme presets and an optimized theme selection menu
-- Full support for nested and hierarchical Table of Contents
-- Added a "Resume" button to series pages to quickly jump back into your reading
-- Enhanced reader controls with new gradient background options and a streamlined interface
-- Improved navigation with gesture-based chapter switching in scroll mode
-- Multi-language preview for custom fonts to help you choose the best look
+- Improved page turning with more responsive swipe gestures for smoother navigation
+- Added visual depth to pages with subtle shadows for a more natural reading feel
+- Enhanced double-tap zoom with smoother animations and better responsiveness
+- Wide pages now automatically split for easier reading on smaller screens
+- Added zoom overlay for Webtoon mode with double-tap and pinch gestures to view pages in detail
 
-Improvements
+EPUB Reader Improvements
 
-- More accurate reading progress tracking for EPUB books
-- Faster and more reliable page loading and layout rendering
-- Better accessibility with larger control buttons and improved label visibility
-- Redesigned settings menu for easier navigation and better organization
-- Enhanced offline download management and more accurate file size reporting
-- Specific UI optimizations for a better experience on macOS
-- Upgraded core system for improved overall app performance
+- Customize reading preferences for each book individually
+- Added advanced layout options for more control over text display
+- Made font weight customization optional for greater flexibility
+- Fixed page navigation in scroll mode to start at the correct position
+- Improved tap handling for more consistent control behavior
+- Better background color rendering for a more polished appearance
+
+Table of Contents
+
+- Enhanced navigation with improved highlighting of your current position
+- Added page numbers and bookmark indicators for easier reference
+- Redesigned layout for both comic and EPUB content
+
+macOS Features
+
+- Added keyboard shortcut (L key) to quickly toggle Live Text for selecting and copying text from images
+
+User Interface
+
+- Improved loading placeholders with better visual feedback
+- Enhanced user role display with badge indicators
+- Refined icon sizes throughout the app
+- Smoother control animations in the reader
 
 Bug Fixes
 
-- Fixed an issue where the reader might snap back during the first page turn
-- Resolved issues with zoom transitions and page animations
-- Fixed custom font previews and improved font rendering across all book content
-- Smoother page turns with improved tap zone logic and gesture handling
-- Fixed a bug that prevented re-downloading books that were already marked as read
-- Improved network reliability and timeout handling
-- Fixed various styling issues with images, tables, and CSS in EPUB books
+- Fixed various issues with EPUB tap handling and navigation
+- Improved zoom behavior consistency across different reading modes

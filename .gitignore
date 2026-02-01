@@ -9,6 +9,7 @@ xcshareddata/
 Package.resolved
 
 /buildServer.json
+/devices.json
 /packages/
 
 .DS_Store
