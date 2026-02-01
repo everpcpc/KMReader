@@ -347,6 +347,7 @@
           }
           Button {
             draft = EpubReaderPreferences()
+            ErrorManager.shared.notify(message: String(localized: "Reset"))
           } label: {
             Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
           }
@@ -452,6 +453,7 @@
         await DatabaseOperator.shared.commit()
       }
       onPreferencesCleared?()
+      ErrorManager.shared.notify(message: String(localized: "Reset to Global"))
       dismiss()
     }
   }
