@@ -64,6 +64,10 @@
       return .bordered
     }
 
+    private var animation: Animation {
+      .default
+    }
+
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()
@@ -329,7 +333,7 @@
             }
             if shouldShowControls {
               Button {
-                withAnimation {
+                withAnimation(animation) {
                   showingQuickActions.toggle()
                 }
               } label: {
@@ -433,7 +437,7 @@
     }
 
     private func toggleControls() {
-      withAnimation {
+      withAnimation(animation) {
         showingControls.toggle()
       }
       if !showingControls {
@@ -445,7 +449,7 @@
       controlsTimer?.invalidate()
       controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
         Task { @MainActor in
-          withAnimation {
+          withAnimation(animation) {
             showingControls = false
           }
         }
