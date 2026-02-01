@@ -53,6 +53,31 @@ struct SettingsBrowseView: View {
       }
 
       Section(header: Text(String(localized: "settings.appearance.cards"))) {
+        HStack(spacing: 12) {
+          SettingsBrowseCardPreview(
+            title: "Series Title",
+            detail: "12 books",
+            unreadCount: 3
+          )
+          .frame(maxWidth: .infinity)
+
+          SettingsBrowseCardPreview(
+            title: "#12 - Book Title",
+            subtitle: "Series Title",
+            detail: "200 pages",
+            progress: 0.45
+          )
+          .frame(maxWidth: .infinity)
+
+          SettingsBrowseCardPreview(
+            title: "#1 - Book Title",
+            subtitle: "Series Title",
+            detail: "200 pages",
+            showUnreadDot: true
+          )
+          .frame(maxWidth: .infinity)
+        }
+
         Toggle(isOn: $coverOnlyCards) {
           VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "settings.appearance.coverOnlyCards.title"))
