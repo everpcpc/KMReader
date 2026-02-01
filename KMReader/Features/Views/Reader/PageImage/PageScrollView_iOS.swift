@@ -356,13 +356,7 @@
         let item = DispatchWorkItem { [weak self] in
           self?.performSingleTapAction(location: location)
         }
-        // Determine delay based on mode
-        let delay: Double
-        switch parent.doubleTapZoomMode {
-        case .disabled: delay = 0
-        case .fast: delay = 0.15
-        case .slow: delay = 0.3
-        }
+        let delay = parent.doubleTapZoomMode.tapDebounceDelay
 
         if delay > 0 {
           singleTapWorkItem = item

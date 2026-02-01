@@ -20,6 +20,7 @@
     let readerBackground: ReaderBackground
 
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+    @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
     @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
     @State private var panUpdateHandler: ((CGFloat) -> Void)?
@@ -41,6 +42,7 @@
             pageWidth: pageWidth(geometry),
             readerBackground: readerBackground,
             tapZoneMode: tapZoneMode,
+            doubleTapZoomMode: doubleTapZoomMode,
             showPageNumber: showPageNumber,
             onPageChange: { pageIndex in
               viewModel.currentPageIndex = pageIndex
@@ -97,12 +99,14 @@
               readerBackground: readerBackground,
               onClose: {
                 viewModel.isZoomed = false
-                self.zoomTargetPageIndex = nil
-                self.zoomAnchor = nil
-                self.zoomRequestID = nil
+                withAnimation(.easeInOut(duration: 0.2)) {
+                  self.zoomTargetPageIndex = nil
+                  self.zoomAnchor = nil
+                  self.zoomRequestID = nil
+                }
               }
             )
-            .transition(.opacity)
+            .transition(.opacity.combined(with: .scale(scale: 0.98)))
             .zIndex(2)
           }
         }
@@ -113,9 +117,11 @@
       guard zoomTargetPageIndex == nil else { return }
       guard pageIndex >= 0, pageIndex < viewModel.pages.count else { return }
 
-      zoomTargetPageIndex = pageIndex
-      zoomAnchor = anchor
-      zoomRequestID = UUID()
+      withAnimation(.easeInOut(duration: 0.2)) {
+        zoomTargetPageIndex = pageIndex
+        zoomAnchor = anchor
+        zoomRequestID = UUID()
+      }
       if viewModel.preloadedImages[pageIndex] == nil {
         let page = viewModel.pages[pageIndex]
         Task {
