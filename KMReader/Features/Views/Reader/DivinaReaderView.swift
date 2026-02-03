@@ -405,14 +405,12 @@ struct DivinaReaderView: View {
     .environment(\.readerBackgroundPreference, readerBackground)
     .komgaHandoff(
       title: handoffTitle,
-      url: incognito
-        ? nil
-        : KomgaWebLinkBuilder.bookReader(
-          serverURL: current.serverURL,
-          bookId: handoffBookId,
-          pageNumber: handoffPageNumber,
-          incognito: incognito
-        )
+      url: KomgaWebLinkBuilder.bookReader(
+        serverURL: current.serverURL,
+        bookId: handoffBookId,
+        pageNumber: handoffPageNumber,
+        incognito: incognito
+      )
     )
   }
 

@@ -9,23 +9,23 @@ import Foundation
 
 enum KomgaWebLinkBuilder {
   static func series(serverURL: String, seriesId: String) -> URL? {
-    build(serverURL: serverURL, path: "/#/series/\(seriesId)")
+    build(serverURL: serverURL, path: "/series/\(seriesId)")
   }
 
   static func oneshot(serverURL: String, seriesId: String) -> URL? {
-    series(serverURL: serverURL, seriesId: seriesId)
+    build(serverURL: serverURL, path: "/oneshot/\(seriesId)")
   }
 
   static func book(serverURL: String, bookId: String) -> URL? {
-    build(serverURL: serverURL, path: "/#/book/\(bookId)")
+    build(serverURL: serverURL, path: "/book/\(bookId)")
   }
 
   static func collection(serverURL: String, collectionId: String) -> URL? {
-    build(serverURL: serverURL, path: "/#/collections/\(collectionId)")
+    build(serverURL: serverURL, path: "/collections/\(collectionId)")
   }
 
   static func readList(serverURL: String, readListId: String) -> URL? {
-    build(serverURL: serverURL, path: "/#/readlists/\(readListId)")
+    build(serverURL: serverURL, path: "/readlists/\(readListId)")
   }
 
   static func bookReader(
@@ -41,8 +41,9 @@ enum KomgaWebLinkBuilder {
     return build(serverURL: serverURL, path: "/book/\(bookId)/read", queryItems: queryItems)
   }
 
-  static func epubReader(serverURL: String, bookId: String) -> URL? {
-    build(serverURL: serverURL, path: "/book/\(bookId)/read-epub")
+  static func epubReader(serverURL: String, bookId: String, incognito: Bool) -> URL? {
+    let queryItems = [URLQueryItem(name: "incognito", value: incognito ? "true" : "false")]
+    return build(serverURL: serverURL, path: "/book/\(bookId)/read-epub", queryItems: queryItems)
   }
 
   private static func build(

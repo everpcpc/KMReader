@@ -90,9 +90,11 @@
         .iPadIgnoresSafeArea()
         .komgaHandoff(
           title: handoffTitle,
-          url: incognito
-            ? nil
-            : KomgaWebLinkBuilder.epubReader(serverURL: current.serverURL, bookId: handoffBookId)
+          url: KomgaWebLinkBuilder.epubReader(
+            serverURL: current.serverURL,
+            bookId: handoffBookId,
+            incognito: incognito
+          )
         )
         .task(id: book.id) {
           await loadBook()
