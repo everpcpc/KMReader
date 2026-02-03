@@ -16,6 +16,7 @@ struct DivinaReaderView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   #if os(iOS)
@@ -97,6 +98,14 @@ struct DivinaReaderView: View {
         && (viewModel.pages.isEmpty || showingControls || isShowingEndPage
           || (readingDirection == .webtoon && isAtBottom))
     #endif
+  }
+
+  private var handoffBookId: String {
+    currentBook?.id ?? book.id
+  }
+
+  private var handoffTitle: String {
+    currentBook?.metadata.title ?? book.metadata.title
   }
 
   private var isShowingEndPage: Bool {
@@ -911,6 +920,12 @@ struct DivinaReaderView: View {
           showingControls = false
         }
       }
+      .komgaHandoff(
+        title: handoffTitle,
+        url: incognito
+          ? nil
+          : KomgaWebLinkBuilder.book(serverURL: current.serverURL, bookId: handoffBookId)
+      )
     }
   }
 
