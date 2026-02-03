@@ -11,56 +11,23 @@ import Photos
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct PagePair: Hashable {
-  let first: Int
-  let second: Int?
-  let isSplitPage: Bool  // true if this is a split wide page
-
-  var id: Int { first }
-
-  init(first: Int, second: Int?, isSplitPage: Bool = false) {
-    self.first = first
-    self.second = second
-    self.isSplitPage = isSplitPage
-  }
-
-  func display(readingDirection: ReadingDirection) -> String {
-    // For split pages, show the same page number
-    if isSplitPage {
-      return "\(first + 1)"
-    }
-
-    guard let second = second else {
-      return "\(first + 1)"
-    }
-    // For RTL reading direction, first page is on the right, so display second,first
-    // For LTR reading direction, first page is on the left, so display first,second
-    if readingDirection == .rtl {
-      return "\(second + 1),\(first + 1)"
-    } else {
-      return "\(first + 1),\(second + 1)"
-    }
-  }
-}
-
 @MainActor
 @Observable
 class ReaderViewModel {
   var pages: [BookPage] = []
   var isolatePages: [Int] = []
   var currentPageIndex = 0
-  var currentViewItemIndex = 0  // Index in pagePairs array (for split pages)
+  var currentViewItemIndex = 0  // Index in viewItems array
   var targetPageIndex: Int? = nil
-  var targetViewItemIndex: Int? = nil  // Target index in pagePairs array (for split pages navigation)
+  var targetViewItemIndex: Int? = nil  // Target index in viewItems array navigation
   var isLoading = true
   var isDismissing = false
   var pageImageCache: ImageCache
   var incognitoMode: Bool = false
   var isZoomed: Bool = false
 
-  var pagePairs: [PagePair] = []
-  // map of page index to dual page index
-  var dualPageIndices: [Int: PagePair] = [:]
+  var viewItems: [ReaderViewItem] = []
+  var viewItemIndexByPage: [Int: Int] = [:]
   var tableOfContents: [ReaderTOCEntry] = []
   /// Cache of preloaded images keyed by page number for instant display
   var preloadedImages: [Int: PlatformImage] = [:]
@@ -105,7 +72,7 @@ class ReaderViewModel {
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
-    regenerateDualPageState()
+    regenerateViewState()
   }
 
   func loadPages(book: Book, initialPageNumber: Int? = nil) async {
@@ -146,7 +113,7 @@ class ReaderViewModel {
       pages = fetchedPages
 
       // Update page pairs and dual page indices after loading pages
-      regenerateDualPageState()
+      regenerateViewState()
 
       // For EPUB, fetch manifest and parse TOC
       if book.media.mediaProfile == .epub {
@@ -478,14 +445,14 @@ class ReaderViewModel {
     let newIsolateCover = !noCover
     guard isolateCoverPageEnabled != newIsolateCover else { return }
     isolateCoverPageEnabled = newIsolateCover
-    regenerateDualPageState()
+    regenerateViewState()
   }
 
   func updatePageLayout(_ layout: PageLayout) {
     let shouldForceDualPage = layout == .dual
     guard forceDualPagePairs != shouldForceDualPage else { return }
     forceDualPagePairs = shouldForceDualPage
-    regenerateDualPageState()
+    regenerateViewState()
   }
 
   func updateSplitWidePageMode(_ mode: SplitWidePageMode) {
@@ -495,17 +462,17 @@ class ReaderViewModel {
     let actualPageNumber = min(currentPageIndex, pages.count - 1)
 
     splitWidePageMode = mode
-    regenerateDualPageState()
+    regenerateViewState()
 
-    // Set targetPageIndex to the actual page number (not pagePairs index)
-    // handleTargetPageChange will convert it to the correct pagePairs index
+    // Set targetPageIndex to the actual page number (not viewItems index)
+    // handleTargetPageChange will convert it to the correct viewItems index
     targetPageIndex = actualPageNumber
   }
 
   func updateActualDualPageMode(_ isUsing: Bool) {
     guard isActuallyUsingDualPageMode != isUsing else { return }
     isActuallyUsingDualPageMode = isUsing
-    regenerateDualPageState()
+    regenerateViewState()
   }
 
   func toggleIsolatePage(_ pageIndex: Int) {
@@ -514,14 +481,14 @@ class ReaderViewModel {
     } else {
       isolatePages.append(pageIndex)
     }
-    regenerateDualPageState()
+    regenerateViewState()
     Task {
       await DatabaseOperator.shared.updateIsolatePages(bookId: bookId, pages: isolatePages)
       await DatabaseOperator.shared.commit()
     }
   }
 
-  private func regenerateDualPageState() {
+  private func regenerateViewState() {
     // In actual dual page mode, disable split wide pages
     let effectiveSplitWidePages = splitWidePageMode.isEnabled && !isActuallyUsingDualPageMode
 
@@ -529,40 +496,120 @@ class ReaderViewModel {
     // In single page mode, every page is already isolated
     let shouldIsolateCover = isolateCoverPageEnabled && (forceDualPagePairs || isActuallyUsingDualPageMode)
 
-    pagePairs = generatePagePairs(
+    viewItems = generateViewItems(
       pages: pages,
       noCover: !shouldIsolateCover,
+      allowDualPairs: isActuallyUsingDualPageMode,
       forceDualPairs: forceDualPagePairs,
       splitWidePages: effectiveSplitWidePages,
       isolatePages: Set(isolatePages)
     )
-    dualPageIndices = generateDualPageIndices(pairs: pagePairs)
+    viewItemIndexByPage = generateViewItemIndexMap(items: viewItems)
+    if !viewItems.isEmpty {
+      currentViewItemIndex = viewItemIndex(forPageIndex: currentPageIndex)
+    } else {
+      currentViewItemIndex = 0
+    }
+  }
+
+  func viewItem(at index: Int) -> ReaderViewItem? {
+    guard index >= 0 && index < viewItems.count else { return nil }
+    return viewItems[index]
+  }
+
+  func viewItemIndex(forPageIndex pageIndex: Int) -> Int {
+    guard !viewItems.isEmpty else { return 0 }
+    if pageIndex >= pages.count {
+      return viewItems.count - 1
+    }
+    if pageIndex < 0 {
+      return 0
+    }
+    if let mapped = viewItemIndexByPage[pageIndex] {
+      return mapped
+    }
+    return min(pageIndex, viewItems.count - 1)
+  }
+
+  func pageIndex(forViewItemIndex viewItemIndex: Int) -> Int {
+    guard let item = viewItem(at: viewItemIndex) else {
+      return max(0, min(viewItemIndex, pages.count))
+    }
+    switch item {
+    case .page(let index):
+      return index
+    case .split(let index, _):
+      return index
+    case .dual(let first, _):
+      return first
+    case .end:
+      return pages.count
+    }
+  }
+
+  func updateCurrentPosition(viewItemIndex: Int) {
+    currentViewItemIndex = viewItemIndex
+    currentPageIndex = pageIndex(forViewItemIndex: viewItemIndex)
+  }
+
+  func currentViewItem() -> ReaderViewItem? {
+    if let item = viewItem(at: currentViewItemIndex) {
+      return item
+    }
+    let fallbackIndex = viewItemIndex(forPageIndex: currentPageIndex)
+    return viewItem(at: fallbackIndex)
+  }
+
+  func currentPagePair() -> (first: Int, second: Int?)? {
+    guard let item = currentViewItem() else { return nil }
+    switch item {
+    case .page(let index):
+      return (first: index, second: nil)
+    case .split(let index, _):
+      return (first: index, second: nil)
+    case .dual(let first, let second):
+      return (first: first, second: second)
+    case .end:
+      return nil
+    }
+  }
+
+  func isLeftSplitHalf(
+    isFirstHalf: Bool,
+    readingDirection: ReadingDirection,
+    splitWidePageMode: SplitWidePageMode
+  ) -> Bool {
+    let effectiveDirection = splitWidePageMode.effectiveReadingDirection(for: readingDirection)
+    let shouldShowLeftFirst = effectiveDirection != .rtl
+    return shouldShowLeftFirst ? isFirstHalf : !isFirstHalf
   }
 }
 
-private func generatePagePairs(
+private func generateViewItems(
   pages: [BookPage],
   noCover: Bool,
+  allowDualPairs: Bool,
   forceDualPairs: Bool,
   splitWidePages: Bool,
   isolatePages: Set<Int> = []
-) -> [PagePair] {
+) -> [ReaderViewItem] {
   guard pages.count > 0 else { return [] }
 
-  var pairs: [PagePair] = []
+  var items: [ReaderViewItem] = []
+  let shouldForceDualPairs = allowDualPairs && forceDualPairs
 
   var index = 0
   while index < pages.count {
-    if forceDualPairs {
+    if shouldForceDualPairs {
       let shouldShowSingle =
         (!noCover && index == 0) || index == pages.count - 1
         || isolatePages.contains(index) || isolatePages.contains(index + 1)
       if shouldShowSingle {
-        pairs.append(PagePair(first: index, second: nil))
+        items.append(.page(index: index))
         index += 1
       } else {
         let nextIndex = index + 1
-        pairs.append(PagePair(first: index, second: nextIndex))
+        items.append(.dual(first: index, second: nextIndex))
         index += 2
       }
       continue
@@ -601,36 +648,46 @@ private func generatePagePairs(
     }
 
     if shouldSplitPage {
-      // Split the wide page into two pages
-      pairs.append(PagePair(first: index, second: index, isSplitPage: true))
-      pairs.append(PagePair(first: index, second: index, isSplitPage: true))
+      // Split the wide page into two items
+      items.append(.split(index: index, isFirstHalf: true))
+      items.append(.split(index: index, isFirstHalf: false))
       index += 1
     } else if useSinglePage {
-      pairs.append(PagePair(first: index, second: nil))
+      items.append(.page(index: index))
       index += 1
     } else {
       let nextPage = pages[index + 1]
-      if nextPage.isPortrait && !isolatePages.contains(index + 1) {
-        pairs.append(PagePair(first: index, second: index + 1))
+      if allowDualPairs && nextPage.isPortrait && !isolatePages.contains(index + 1) {
+        items.append(.dual(first: index, second: index + 1))
         index += 2
       } else {
-        pairs.append(PagePair(first: index, second: nil))
+        items.append(.page(index: index))
         index += 1
       }
     }
   }
-  // insert end page pair at the end
-  pairs.append(PagePair(first: pages.count, second: nil))
+  // insert end page item at the end
+  items.append(.end)
 
-  return pairs
+  return items
 }
 
-private func generateDualPageIndices(pairs: [PagePair]) -> [Int: PagePair] {
-  var indices: [Int: PagePair] = [:]
-  for pair in pairs {
-    indices[pair.first] = pair
-    if let second = pair.second {
-      indices[second] = pair
+private func generateViewItemIndexMap(items: [ReaderViewItem]) -> [Int: Int] {
+  var indices: [Int: Int] = [:]
+  for (index, item) in items.enumerated() {
+    switch item {
+    case .dual(let first, let second):
+      if indices[first] == nil {
+        indices[first] = index
+      }
+      if indices[second] == nil {
+        indices[second] = index
+      }
+    default:
+      guard let pageIndex = item.primaryPageIndex else { continue }
+      if indices[pageIndex] == nil {
+        indices[pageIndex] = index
+      }
     }
   }
   return indices

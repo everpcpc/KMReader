@@ -210,16 +210,16 @@ struct DivinaReaderView: View {
             case .left:
               // RTL: left means next, LTR: left means previous
               if readingDirection == .rtl {
-                goToNextPage(dualPageEnabled: useDualPage)
+                goToNextPage()
               } else {
-                goToPreviousPage(dualPageEnabled: useDualPage)
+                goToPreviousPage()
               }
             case .right:
               // RTL: right means previous, LTR: right means next
               if readingDirection == .rtl {
-                goToPreviousPage(dualPageEnabled: useDualPage)
+                goToPreviousPage()
               } else {
-                goToNextPage(dualPageEnabled: useDualPage)
+                goToNextPage()
               }
             default:
               break
@@ -228,9 +228,9 @@ struct DivinaReaderView: View {
             // Vertical navigation
             switch direction {
             case .up:
-              goToPreviousPage(dualPageEnabled: useDualPage)
+              goToPreviousPage()
             case .down:
-              goToNextPage(dualPageEnabled: useDualPage)
+              goToNextPage()
             default:
               break
             }
@@ -238,9 +238,9 @@ struct DivinaReaderView: View {
             // Webtoon navigation (vertical)
             switch direction {
             case .up:
-              goToPreviousPage(dualPageEnabled: useDualPage)
+              goToPreviousPage()
             case .down:
-              goToNextPage(dualPageEnabled: useDualPage)
+              goToNextPage()
             default:
               break
             }
@@ -252,7 +252,7 @@ struct DivinaReaderView: View {
           // Window-level keyboard event handler
           KeyboardEventHandler(
             onKeyPress: { keyCode, flags in
-              handleKeyCode(keyCode, flags: flags, dualPageEnabled: useDualPage)
+              handleKeyCode(keyCode, flags: flags)
             }
           )
         )
@@ -425,8 +425,8 @@ struct DivinaReaderView: View {
                 readList: readList,
                 onDismiss: { closeReader() },
                 onNextBook: { openNextBook(nextBookId: $0) },
-                goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+                goToNextPage: { goToNextPage() },
+                goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
                 onEndPageFocusChange: endPageFocusChangeHandler,
                 onScrollActivityChange: { isScrolling in
@@ -448,8 +448,8 @@ struct DivinaReaderView: View {
                   readList: readList,
                   onDismiss: { closeReader() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: false) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: false) },
+                  goToNextPage: { goToNextPage() },
+                  goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
                   onEndPageFocusChange: endPageFocusChangeHandler
                 )
@@ -463,8 +463,8 @@ struct DivinaReaderView: View {
                   readList: readList,
                   onDismiss: { closeReader() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+                  goToNextPage: { goToNextPage() },
+                  goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
                   onEndPageFocusChange: endPageFocusChangeHandler,
                   onScrollActivityChange: { isScrolling in
@@ -484,8 +484,8 @@ struct DivinaReaderView: View {
                 readList: readList,
                 onDismiss: { closeReader() },
                 onNextBook: { openNextBook(nextBookId: $0) },
-                goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
-                goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+                goToNextPage: { goToNextPage() },
+                goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
                 onEndPageFocusChange: endPageFocusChangeHandler,
                 onScrollActivityChange: { isScrolling in
@@ -575,7 +575,7 @@ struct DivinaReaderView: View {
       .animation(.default, value: showKeyboardHelp)
     }
 
-    private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags, dualPageEnabled: Bool) {
+    private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) {
       // Handle ESC key to close window
       if keyCode == 53 {  // ESC key
         closeReader()
@@ -662,27 +662,27 @@ struct DivinaReaderView: View {
       case .ltr:
         switch keyCode {
         case 124:  // Right arrow
-          goToNextPage(dualPageEnabled: dualPageEnabled)
+          goToNextPage()
         case 123:  // Left arrow
-          goToPreviousPage(dualPageEnabled: dualPageEnabled)
+          goToPreviousPage()
         default:
           break
         }
       case .rtl:
         switch keyCode {
         case 123:  // Left arrow
-          goToNextPage(dualPageEnabled: dualPageEnabled)
+          goToNextPage()
         case 124:  // Right arrow
-          goToPreviousPage(dualPageEnabled: dualPageEnabled)
+          goToPreviousPage()
         default:
           break
         }
       case .vertical:
         switch keyCode {
         case 125:  // Down arrow
-          goToNextPage(dualPageEnabled: dualPageEnabled)
+          goToNextPage()
         case 126:  // Up arrow
-          goToPreviousPage(dualPageEnabled: dualPageEnabled)
+          goToPreviousPage()
         default:
           break
         }
@@ -820,43 +820,17 @@ struct DivinaReaderView: View {
     jumpToPage(page: entry.pageIndex + 1)
   }
 
-  private func goToNextPage(dualPageEnabled: Bool) {
+  private func goToNextPage() {
     guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
-      // Check if split pages are enabled
-      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
-
-      // Use dual-page logic only when enabled
-      if dualPageEnabled {
-        // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
-        let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-        if let currentPair = currentPair {
-          // Dual page mode: calculate next page based on current pair
-          if let second = currentPair.second {
-            viewModel.targetPageIndex = min(viewModel.pages.count, second + 1)
-          } else {
-            viewModel.targetPageIndex = min(viewModel.pages.count, currentPair.first + 1)
-          }
-        } else {
-          // If pair info is missing, fallback to single-page increment
-          let next = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
-          viewModel.targetPageIndex = next
-        }
-      } else if hasSplitPages {
-        // Single page mode with split pages: use targetViewItemIndex for precise navigation
-        let nextViewItemIndex = viewModel.currentViewItemIndex + 1
-        if nextViewItemIndex < viewModel.pagePairs.count {
-          viewModel.targetViewItemIndex = nextViewItemIndex
-        } else {
-          // Reached end
-          viewModel.targetPageIndex = viewModel.pages.count
-        }
-      } else {
-        // Single page mode without split pages: simple increment
-        let next = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
-        viewModel.targetPageIndex = next
-      }
+      let currentIndex =
+        viewModel.currentViewItemIndex < viewModel.viewItems.count
+        ? viewModel.currentViewItemIndex
+        : viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
+      let nextIndex = currentIndex + 1
+      guard nextIndex < viewModel.viewItems.count else { return }
+      viewModel.targetViewItemIndex = nextIndex
     case .webtoon:
       // webtoon do not have an end page
       let next = min(viewModel.currentPageIndex + 1, viewModel.pages.count - 1)
@@ -866,37 +840,17 @@ struct DivinaReaderView: View {
     }
   }
 
-  private func goToPreviousPage(dualPageEnabled: Bool) {
+  private func goToPreviousPage() {
     guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
-      guard viewModel.currentPageIndex > 0 || viewModel.currentViewItemIndex > 0 else { return }
-
-      // Check if split pages are enabled
-      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
-
-      if dualPageEnabled {
-        // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
-        let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-        if let currentPair = currentPair {
-          // Dual page mode: go to previous pair's first page
-          viewModel.targetPageIndex = max(0, currentPair.first - 1)
-        } else {
-          // If pair info is missing, fallback to single-page decrement
-          let previous = viewModel.currentPageIndex - 1
-          viewModel.targetPageIndex = previous
-        }
-      } else if hasSplitPages {
-        // Single page mode with split pages: use targetViewItemIndex for precise navigation
-        let previousViewItemIndex = viewModel.currentViewItemIndex - 1
-        if previousViewItemIndex >= 0 {
-          viewModel.targetViewItemIndex = previousViewItemIndex
-        }
-      } else {
-        // Single page mode without split pages: simple decrement
-        let previous = viewModel.currentPageIndex - 1
-        viewModel.targetPageIndex = previous
-      }
+      let currentIndex =
+        viewModel.currentViewItemIndex < viewModel.viewItems.count
+        ? viewModel.currentViewItemIndex
+        : viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
+      let previousIndex = currentIndex - 1
+      guard previousIndex >= 0 else { return }
+      viewModel.targetViewItemIndex = previousIndex
     case .webtoon:
       guard viewModel.currentPageIndex > 0 else { return }
       withAnimation {
