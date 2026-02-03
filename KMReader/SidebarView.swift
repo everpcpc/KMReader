@@ -73,6 +73,7 @@ struct SidebarView: View {
     .animation(.default, value: libraries)
     .animation(.default, value: collections)
     .animation(.default, value: readLists)
+    .animation(.default, value: browseExpanded)
     .animation(.default, value: librariesExpanded)
     .animation(.default, value: collectionsExpanded)
     .animation(.default, value: readListsExpanded)
