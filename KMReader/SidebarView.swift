@@ -113,9 +113,6 @@ struct SidebarView: View {
       NavigationLink(value: NavDestination.home) {
         Label(String(localized: "tab.home"), systemImage: "house")
       }
-    }
-
-    Section {
       NavigationLink(value: NavDestination.offline) {
         Label(TabItem.offline.title, systemImage: TabItem.offline.icon)
       }
@@ -138,7 +135,7 @@ struct SidebarView: View {
         Label(String(localized: "tab.readLists"), systemImage: ContentIcon.readList)
       }
     } header: {
-      Label(String(localized: "Browse"), systemImage: ContentIcon.library)
+      Label(String(localized: "Browse"), systemImage: ContentIcon.browse)
     }
 
     if !libraries.isEmpty {

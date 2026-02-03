@@ -196,54 +196,82 @@ KMReader/
 │       ├── Cache/             # CacheManager, ImageCache, BookFileCache, ThumbnailCache
 │       └── Errors/            # AppErrorType, ErrorManager
 ├── Features/
-│   ├── Models/                # DTOs, SwiftData models
-│   │   ├── Auth/              # KomgaInstance, User, AuthenticationMethod, ApiKey
-│   │   ├── Author/            # Author models
-│   │   ├── Book/              # Book, BookPage, BookMetadata, ReadProgress, DownloadStatus
-│   │   ├── Collection/        # Collection
-│   │   ├── Common/            # TabItem, ThemeColor, BrowseContentType, BrowseLayoutMode, Metrics
-│   │   ├── Dashboard/         # Dashboard sections and metrics
-│   │   ├── History/           # Reading history models
-│   │   ├── Library/           # KomgaLibrary, Library
-│   │   ├── Reader/            # CustomFont, Page, PageLayout, ReadingDirection, ReaderBackground
-│   │   ├── ReadList/          # ReadList
-│   │   ├── Series/            # Series, SeriesMetadata, SeriesStatus, SeriesSortField
-│   │   ├── SSE/               # SSEEvent
-│   │   ├── Sync/              # PendingProgress
-│   │   └── WebPub/            # WebPub models
-│   ├── Services/              # Domain services
-│   │   ├── Auth/              # AuthService
-│   │   ├── Book/              # BookService, KomgaBookStore
-│   │   ├── Series/            # SeriesService
-│   │   ├── Collection/        # KomgaCollectionStore
-│   │   ├── History/           # HistoryService
-│   │   ├── ReadList/          # KomgaReadListStore
-│   │   ├── Library/           # LibraryService, LibraryManager, LibraryMetricsLoader
-│   │   ├── Reader/            # CustomFontStore
-│   │   ├── Offline/           # OfflineManager, BackgroundDownloadManager, DownloadProgressTracker, LiveActivityManager
-│   │   ├── Sync/              # SyncService, ProgressSyncService, InstanceInitializer
-│   │   └── Store/             # StoreManager
-│   ├── ViewModels/            # @Observable state objects
-│   │   ├── Auth/, Book/, Series/, Collection/, ReadList/, Reader/, Common/
-│   └── Views/                 # SwiftUI views by feature
-│       ├── Auth/              # LandingView
-│       ├── Dashboard/         # DashboardView, DashboardSectionView, DashboardSectionDetailView
-│       ├── Book/              # BookFilterView, BookEditSheet, BookBrowseOptionsSheet
-│       ├── Series/            # Series detail and filtering views
-│       ├── Collection/        # CollectionEditSheet, CollectionSeriesFilterView, CollectionSortView
-│       ├── ReadList/          # ReadListEditSheet, ReadListBookFilterView, ReadListSortView
-│       ├── OneShot/           # One-shot detail and edit views
-│       ├── Reader/            # DivinaReaderView, EpubReaderView, BookReaderView, ReaderControlsView
-│       │   ├── AppKit/        # KeyboardEventHandler (macOS)
-│       │   ├── Models/        # EpubReaderPreferences
-│       │   ├── Sheets/        # CustomFontsSheet, EpubPreferencesSheet
-│       │   ├── PageImage/     # SinglePageImageView, ZoomableImageContainer
-│       │   └── Webtoon/       # Webtoon reader components
-│       ├── Browse/            # Browse views for various content types
-│       ├── Components/        # Shared view components
-│       └── Settings/          # SettingsView, per-category settings sheets
+│   ├── Auth/
+│   │   ├── Models/            # KomgaInstance, User, AuthenticationMethod, ApiKey
+│   │   ├── Services/          # AuthService
+│   │   ├── ViewModels/
+│   │   └── Views/             # LandingView
+│   ├── Book/
+│   │   ├── Models/            # Book, BookPage, BookMetadata, ReadProgress, DownloadStatus
+│   │   ├── Services/          # BookService, KomgaBookStore
+│   │   ├── ViewModels/
+│   │   └── Views/             # BookFilterView, BookEditSheet, BookBrowseOptionsSheet
+│   ├── Browse/
+│   │   ├── Models/
+│   │   └── Views/             # Browse views for various content types
+│   ├── Collection/
+│   │   ├── Models/            # Collection
+│   │   ├── Services/          # KomgaCollectionStore
+│   │   ├── ViewModels/
+│   │   └── Views/             # CollectionEditSheet, CollectionSeriesFilterView, CollectionSortView
+│   ├── Dashboard/
+│   │   ├── Models/            # Dashboard sections and metrics
+│   │   └── Views/             # DashboardView, DashboardSectionView, DashboardSectionDetailView
+│   ├── Filesystem/
+│   │   ├── Models/
+│   │   └── Services/
+│   ├── History/
+│   │   ├── Models/            # Reading history models
+│   │   └── Services/
+│   ├── Library/
+│   │   ├── Models/            # KomgaLibrary, Library
+│   │   └── Services/          # LibraryService, LibraryManager, LibraryMetricsLoader
+│   ├── Offline/
+│   │   ├── Services/          # OfflineManager, BackgroundDownloadManager, DownloadProgressTracker, LiveActivityManager
+│   │   └── Views/
+│   ├── OneShot/
+│   │   └── Views/             # One-shot detail and edit views
+│   ├── Reader/
+│   │   ├── Models/            # CustomFont, Page, PageLayout, ReadingDirection, ReaderBackground
+│   │   ├── Services/          # CustomFontStore
+│   │   ├── ViewModels/
+│   │   └── Views/             # DivinaReaderView, EpubReaderView, BookReaderView, ReaderControlsView
+│   │       ├── Models/        # EpubReaderPreferences
+│   │       ├── Sheets/        # CustomFontsSheet, EpubPreferencesSheet
+│   │       ├── PageImage/     # SinglePageImageView, ZoomableImageContainer
+│   │       └── Webtoon/       # Webtoon reader components
+│   ├── ReadList/
+│   │   ├── Models/            # ReadList
+│   │   ├── Services/          # KomgaReadListStore
+│   │   ├── ViewModels/
+│   │   └── Views/             # ReadListEditSheet, ReadListBookFilterView, ReadListSortView
+│   ├── Series/
+│   │   ├── Models/            # Series, SeriesMetadata, SeriesStatus, SeriesSortField
+│   │   ├── Services/          # SeriesService
+│   │   ├── ViewModels/
+│   │   └── Views/             # Series detail and filtering views
+│   ├── Settings/
+│   │   └── Views/             # SettingsView, per-category settings sheets
+│   ├── Server/
+│   │   └── Views/
+│   ├── Sync/
+│   │   ├── Models/            # PendingProgress
+│   │   └── Services/          # SyncService, ProgressSyncService, InstanceInitializer
+│   ├── Store/
+│   │   └── Services/          # StoreManager
+│   ├── Author/
+│   │   └── Models/            # Author models
+│   ├── WebPub/
+│   │   └── Models/            # WebPub models
+│   ├── SSE/
+│   │   └── Models/            # SSEEvent
+│   └── Referential/
+│       └── Services/
 └── Shared/
     ├── Extensions/            # View extensions, helpers
+    ├── Foundation/
+    │   ├── Models/            # TabItem, ThemeColor, BrowseContentType, BrowseLayoutMode, Metrics
+    │   └── ViewModels/
     ├── Helpers/               # FileNameHelper, LanguageCodeHelper, PlatformHelpers
     └── UI/                    # Reusable UI components
         ├── ThumbnailImage.swift
