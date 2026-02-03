@@ -240,8 +240,19 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
         """
     }
 
+    let backgroundFillCSS = """
+      body {
+        min-height: 100vh;
+        display: flow-root;
+      }
+
+      """
+
     let fontWeightCSS = makeFontWeightCSS()
-    return (css: fontFaceCSS + fontWeightCSS + imageBlendCSS, properties: properties)
+    return (
+      css: fontFaceCSS + fontWeightCSS + imageBlendCSS + backgroundFillCSS,
+      properties: properties
+    )
   }
 
   func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {

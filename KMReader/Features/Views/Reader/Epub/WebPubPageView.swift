@@ -1548,27 +1548,6 @@
               + atob('\(customCSS)');
             style.textContent = css;
 
-            if (document.body) {
-              var computed = window.getComputedStyle(document.body);
-              var bgImage = computed.backgroundImage;
-              if (bgImage && bgImage !== 'none') {
-                root.style.backgroundImage = bgImage;
-                root.style.backgroundRepeat = computed.backgroundRepeat;
-                root.style.backgroundPosition = computed.backgroundPosition;
-                root.style.backgroundSize = computed.backgroundSize;
-                root.style.backgroundAttachment = computed.backgroundAttachment;
-                root.style.backgroundOrigin = computed.backgroundOrigin;
-                root.style.backgroundClip = computed.backgroundClip;
-              } else {
-                root.style.removeProperty('background-image');
-                root.style.removeProperty('background-repeat');
-                root.style.removeProperty('background-position');
-                root.style.removeProperty('background-size');
-                root.style.removeProperty('background-attachment');
-                root.style.removeProperty('background-origin');
-                root.style.removeProperty('background-clip');
-              }
-            }
             return true;
           })();
         """
