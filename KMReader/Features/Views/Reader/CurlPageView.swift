@@ -43,6 +43,9 @@
       // Allow simultaneous gesture recognition for zoom transition return gesture
       for recognizer in pageVC.gestureRecognizers {
         recognizer.delegate = context.coordinator
+        if recognizer is UITapGestureRecognizer {
+          recognizer.isEnabled = false
+        }
       }
       // isDoubleSided requires 2 VCs for animated transitions which complicates the logic
       // For single-page curl effect, keep it false
