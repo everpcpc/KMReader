@@ -13,7 +13,6 @@ struct SettingsAppearanceView: View {
   @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
   @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
-  @AppStorage("enableHandoff") private var enableHandoff: Bool = true
 
   private var themeColorBinding: Binding<Color> {
     Binding(
@@ -84,15 +83,6 @@ struct SettingsAppearanceView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "settings.appearance.privacyProtection.title"))
             Text(String(localized: "settings.appearance.privacyProtection.caption"))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-
-        Toggle(isOn: $enableHandoff) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "settings.appearance.handoff.title"))
-            Text(String(localized: "settings.appearance.handoff.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
