@@ -1,88 +1,11 @@
 //
-//  AccountDetailsView.swift
+//  UpdatePasswordSheet.swift
 //  KMReader
 //
 //  Created by Komga iOS Client
 //
 
-import Flow
 import SwiftUI
-
-struct AccountDetailsView: View {
-  @Environment(AuthViewModel.self) private var authViewModel
-  @State private var showingUpdatePassword = false
-
-  private var user: User? {
-    authViewModel.user
-  }
-
-  var body: some View {
-    Form {
-      Section(header: Text(String(localized: "account.details.info"))) {
-        HStack {
-          Text(String(localized: "User"))
-          Spacer()
-          Text(user?.email ?? "")
-            .foregroundColor(.secondary)
-        }
-
-        if let user = user {
-          VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "Roles"))
-
-            if user.userRoles.isEmpty {
-              Text(String(localized: "user.role.none"))
-                .foregroundColor(.secondary)
-                .italic()
-            } else {
-              HFlow(spacing: 8) {
-                ForEach(user.userRoles, id: \.self) { role in
-                  RoleBadge(role: role)
-                }
-              }
-            }
-          }
-          .padding(.vertical, 4)
-        }
-      }
-
-      Section {
-        Button(role: .destructive) {
-          showingUpdatePassword = true
-        } label: {
-          Text(String(localized: "account.details.changePassword"))
-        }
-      }
-    }
-    .formStyle(.grouped)
-    .inlineNavigationBarTitle(String(localized: "account.details.title"))
-    .sheet(isPresented: $showingUpdatePassword) {
-      UpdatePasswordSheet()
-        .presentationDetents([.medium])
-    }
-  }
-}
-
-// MARK: - Role Badge
-
-struct RoleBadge: View {
-  let role: UserRole
-
-  var body: some View {
-    HStack(spacing: 4) {
-      Image(systemName: role.icon)
-        .font(.caption)
-      Text(role.displayName)
-        .font(.footnote)
-        .fontWeight(.medium)
-    }
-    .padding(.horizontal, 10)
-    .padding(.vertical, 6)
-    .background(Color.accentColor.opacity(0.15))
-    .foregroundColor(.accentColor)
-    .clipShape(Capsule())
-  }
-}
 
 struct UpdatePasswordSheet: View {
   @Environment(\.dismiss) private var dismiss

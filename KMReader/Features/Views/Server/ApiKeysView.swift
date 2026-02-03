@@ -1,5 +1,5 @@
 //
-//  SettingsApiKeyView.swift
+//  ApiKeysView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsApiKeyView: View {
+struct ApiKeysView: View {
   @State private var apiKeys: [ApiKey] = []
   @State private var isLoading = false
   @State private var showingAddSheet = false
@@ -112,7 +112,7 @@ struct SettingsApiKeyView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(SettingsSection.apiKeys.title)
+    .inlineNavigationBarTitle(ServerSection.apiKeys.title)
     .animation(.default, value: apiKeys)
     .animation(.default, value: lastActivities)
     #if os(iOS)
@@ -147,7 +147,7 @@ struct SettingsApiKeyView: View {
       )
     }
     .sheet(isPresented: $showingAddSheet) {
-      SettingsApiKeyAddSheet {
+      ApiKeyAddSheet {
         Task { await loadApiKeys() }
       }
     }

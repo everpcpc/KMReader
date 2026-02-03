@@ -1,5 +1,5 @@
 //
-//  SettingsLibrariesView.swift
+//  ServerLibrariesView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsLibrariesView: View {
+struct ServerLibrariesView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var libraryPendingDelete: LibrarySelection?
@@ -46,7 +46,7 @@ struct SettingsLibrariesView: View {
         deleteConfirmationText = ""
       }
     )
-    .inlineNavigationBarTitle(SettingsSection.libraries.title)
+    .inlineNavigationBarTitle(ServerSection.libraries.title)
     .toolbar {
       if current.isAdmin && !isOffline {
         ToolbarItem(placement: .primaryAction) {

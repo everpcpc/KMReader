@@ -25,6 +25,20 @@ struct OldTabView: View {
       .tag(TabItem.browse)
 
       NavigationStack {
+        TabItem.offline.content
+          .handleNavigation()
+      }
+      .tabItem { TabItem.offline.label }
+      .tag(TabItem.offline)
+
+      NavigationStack {
+        TabItem.server.content
+          .handleNavigation()
+      }
+      .tabItem { TabItem.server.label }
+      .tag(TabItem.server)
+
+      NavigationStack {
         TabItem.settings.content
           .handleNavigation()
       }

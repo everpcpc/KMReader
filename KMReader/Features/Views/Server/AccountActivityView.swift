@@ -1,5 +1,5 @@
 //
-//  AuthenticationActivityView.swift
+//  AccountActivityView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AuthenticationActivityView: View {
+struct AccountActivityView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var pagination = PaginationState<AuthenticationActivity>(pageSize: 20)
   @State private var isLoading = false
@@ -59,7 +59,7 @@ struct AuthenticationActivityView: View {
     }
     // Cannot use Form for this, it would cause endless fetch on macOS.
     .optimizedListStyle()
-    .inlineNavigationBarTitle(SettingsSection.authenticationActivity.title)
+    .inlineNavigationBarTitle(ServerSection.authenticationActivity.title)
     .task {
       if current.isAdmin {
         await loadActivities(refresh: true)

@@ -9,10 +9,6 @@ import SwiftUI
 
 #if os(macOS)
   struct SettingsView_macOS: View {
-    @Environment(AuthViewModel.self) private var authViewModel
-    @AppStorage("currentAccount") private var current: Current = .init()
-    @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
-
     @State private var selectedSection: SettingsSection? = .appearance
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
@@ -31,39 +27,6 @@ import SwiftUI
             SettingsSectionRow(section: .sse)
             SettingsSectionRow(section: .network)
             SettingsSectionRow(section: .logs)
-          }
-
-          Section(String(localized: "Offline")) {
-            SettingsOfflineTasksRow()
-            SettingsSectionRow(section: .offlineBooks)
-          }
-
-          Section(String(localized: "Management")) {
-            SettingsSectionRow(section: .libraries)
-            if current.isAdmin {
-              SettingsSectionRow(section: .serverInfo)
-              SettingsSectionRow(
-                section: .tasks,
-                badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
-                badgeColor: Color.accentColor
-              )
-              SettingsSectionRow(section: .history)
-            }
-          }
-
-          Section(String(localized: "Account")) {
-            SettingsSectionRow(
-              section: .servers,
-              subtitle: current.serverDisplayName.isEmpty ? nil : current.serverDisplayName
-            )
-            if let user = authViewModel.user {
-              SettingsSectionRow(
-                section: .account,
-                subtitle: user.email
-              )
-            }
-            SettingsSectionRow(section: .apiKeys)
-            SettingsSectionRow(section: .authenticationActivity)
           }
 
           SettingsAboutSection()
@@ -92,29 +55,6 @@ import SwiftUI
               SettingsNetworkView()
             case .logs:
               SettingsLogsView()
-
-            case .offlineTasks:
-              SettingsOfflineTasksView()
-            case .offlineBooks:
-              SettingsOfflineBooksView()
-
-            case .libraries:
-              SettingsLibrariesView()
-            case .serverInfo:
-              SettingsServerInfoView()
-            case .tasks:
-              SettingsTasksView()
-            case .history:
-              SettingsHistoryView()
-
-            case .servers:
-              ServersView()
-            case .account:
-              AccountDetailsView()
-            case .apiKeys:
-              SettingsApiKeyView()
-            case .authenticationActivity:
-              AuthenticationActivityView()
             }
           }
           .frame(maxWidth: .infinity, maxHeight: .infinity)

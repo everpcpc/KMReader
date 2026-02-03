@@ -54,7 +54,7 @@ struct LandingView: View {
     #if os(iOS)
       .fullScreenCover(isPresented: $showGetStarted) {
         SheetView(title: "Get Started") {
-          ServersView(mode: .onboarding)
+          ServerListView(mode: .onboarding)
         }
         .tint(themeColor.color)
         .accentColor(themeColor.color)
@@ -62,7 +62,7 @@ struct LandingView: View {
     #else
       .sheet(isPresented: $showGetStarted) {
         SheetView(title: "Get Started", applyFormStyle: true) {
-          ServersView(mode: .onboarding)
+          ServerListView(mode: .onboarding)
         }
       }
     #endif

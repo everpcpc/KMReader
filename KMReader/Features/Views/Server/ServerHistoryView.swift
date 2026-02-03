@@ -1,5 +1,5 @@
 //
-//  SettingsHistoryView.swift
+//  ServerHistoryView.swift
 //  KMReader
 //
 //  Created by Komga iOS Client
@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-struct SettingsHistoryView: View {
+struct ServerHistoryView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.modelContext) private var modelContext
 
@@ -94,7 +94,7 @@ struct SettingsHistoryView: View {
       }
     }
     .optimizedListStyle()
-    .inlineNavigationBarTitle(SettingsSection.history.title)
+    .inlineNavigationBarTitle(ServerSection.history.title)
     #if os(iOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {

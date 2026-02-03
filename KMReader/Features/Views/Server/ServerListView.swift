@@ -1,5 +1,5 @@
 //
-//  ServersView.swift
+//  ServerListView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-struct ServersView: View {
+struct ServerListView: View {
   enum Mode {
     case management
     case onboarding
@@ -116,7 +116,7 @@ struct ServersView: View {
     #endif
     .inlineNavigationBarTitle(navigationTitle)
     .sheet(item: $editingInstance) { instance in
-      SettingsServerEditView(instance: instance)
+      ServerEditView(instance: instance)
     }
     .alert(
       String(localized: "Delete Server"),

@@ -1,5 +1,5 @@
 //
-//  SettingsApiKeyAddSheet.swift
+//  ApiKeyAddSheet.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsApiKeyAddSheet: View {
+struct ApiKeyAddSheet: View {
   let onSuccess: () -> Void
   @State private var comment = ""
   @State private var newKey: ApiKey?

@@ -16,6 +16,7 @@ struct SidebarView: View {
     var allCollections: [KomgaCollection]
   @Query(sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]) private var allReadLists: [KomgaReadList]
 
+  @AppStorage("sidebarBrowseExpanded") private var browseExpanded: Bool = true
   @AppStorage("sidebarLibrariesExpanded") private var librariesExpanded: Bool = true
   @AppStorage("sidebarCollectionsExpanded") private var collectionsExpanded: Bool = false
   @AppStorage("sidebarReadListsExpanded") private var readListsExpanded: Bool = false
@@ -112,6 +113,18 @@ struct SidebarView: View {
       NavigationLink(value: NavDestination.home) {
         Label(String(localized: "tab.home"), systemImage: "house")
       }
+    }
+
+    Section {
+      NavigationLink(value: NavDestination.offline) {
+        Label(TabItem.offline.title, systemImage: TabItem.offline.icon)
+      }
+      NavigationLink(value: NavDestination.server) {
+        Label(TabItem.server.title, systemImage: TabItem.server.icon)
+      }
+    }
+
+    Section(isExpanded: $browseExpanded) {
       NavigationLink(value: NavDestination.browseSeries) {
         Label(String(localized: "tab.series"), systemImage: ContentIcon.series)
       }
@@ -124,6 +137,8 @@ struct SidebarView: View {
       NavigationLink(value: NavDestination.browseReadLists) {
         Label(String(localized: "tab.readLists"), systemImage: ContentIcon.readList)
       }
+    } header: {
+      Label(String(localized: "Browse"), systemImage: ContentIcon.library)
     }
 
     if !libraries.isEmpty {

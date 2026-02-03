@@ -1,5 +1,5 @@
 //
-//  SettingsTasksView.swift
+//  ServerTasksView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsTasksView: View {
+struct ServerTasksView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
@@ -170,7 +170,7 @@ struct SettingsTasksView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(SettingsSection.tasks.title)
+    .inlineNavigationBarTitle(ServerSection.tasks.title)
     #if os(iOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {

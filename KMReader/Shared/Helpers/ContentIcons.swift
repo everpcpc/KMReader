@@ -6,6 +6,7 @@
 import Foundation
 
 enum ContentIcon {
+  static let browse = "globe"
   static let library = "books.vertical"
   static let series = "rectangle.stack"
   static let book = "book"
