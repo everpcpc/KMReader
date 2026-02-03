@@ -83,7 +83,8 @@ struct BookDetailView: View {
     .inlineNavigationBarTitle(navigationTitle)
     .komgaHandoff(
       title: navigationTitle,
-      url: KomgaWebLinkBuilder.book(serverURL: current.serverURL, bookId: bookId)
+      url: KomgaWebLinkBuilder.book(serverURL: current.serverURL, bookId: bookId),
+      scope: .browse
     )
     #if !os(tvOS)
       .toolbar {

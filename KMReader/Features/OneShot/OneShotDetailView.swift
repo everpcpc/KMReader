@@ -102,7 +102,8 @@ struct OneshotDetailView: View {
     .inlineNavigationBarTitle(navigationTitle)
     .komgaHandoff(
       title: navigationTitle,
-      url: KomgaWebLinkBuilder.oneshot(serverURL: current.serverURL, seriesId: seriesId)
+      url: KomgaWebLinkBuilder.oneshot(serverURL: current.serverURL, seriesId: seriesId),
+      scope: .browse
     )
     #if !os(tvOS)
       .toolbar {

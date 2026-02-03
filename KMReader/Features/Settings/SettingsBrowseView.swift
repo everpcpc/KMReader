@@ -16,7 +16,6 @@ struct SettingsBrowseView: View {
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
-  @AppStorage("enableHandoff") private var enableHandoff: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   private var gridDensityBinding: Binding<GridDensity> {
@@ -41,14 +40,6 @@ struct SettingsBrowseView: View {
             .foregroundColor(.secondary)
         }
 
-        Toggle(isOn: $enableHandoff) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "settings.appearance.handoff.title"))
-            Text(String(localized: "settings.appearance.handoff.caption"))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
       }
 
       Section(header: Text(String(localized: "settings.appearance.search"))) {

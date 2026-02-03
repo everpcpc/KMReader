@@ -128,7 +128,8 @@ struct SeriesDetailView: View {
     .inlineNavigationBarTitle(navigationTitle)
     .komgaHandoff(
       title: navigationTitle,
-      url: KomgaWebLinkBuilder.series(serverURL: current.serverURL, seriesId: seriesId)
+      url: KomgaWebLinkBuilder.series(serverURL: current.serverURL, seriesId: seriesId),
+      scope: .browse
     )
     #if !os(tvOS)
       .toolbar {

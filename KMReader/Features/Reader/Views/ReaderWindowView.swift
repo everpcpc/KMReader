@@ -49,7 +49,8 @@
       }
       .komgaHandoff(
         title: readerPresentation.handoffTitle,
-        url: readerPresentation.handoffURL
+        url: readerPresentation.handoffURL,
+        scope: .reader
       )
       .onAppear {
         // Get reader state from shared manager when view appears

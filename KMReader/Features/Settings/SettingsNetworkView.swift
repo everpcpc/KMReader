@@ -10,6 +10,8 @@ import SwiftUI
 struct SettingsNetworkView: View {
   @AppStorage("apiTimeout") private var apiTimeout: Double = 10
   @AppStorage("apiRetryCount") private var apiRetryCount: Int = 0
+  @AppStorage("enableBrowseHandoff") private var enableBrowseHandoff: Bool = true
+  @AppStorage("enableReaderHandoff") private var enableReaderHandoff: Bool = false
 
   var body: some View {
     Form {
@@ -66,6 +68,26 @@ struct SettingsNetworkView: View {
           Text(String(localized: "settings.network.api_retry_count.description"))
             .font(.caption)
             .foregroundStyle(.secondary)
+        }
+      }
+
+      Section(header: Text(String(localized: "settings.network.handoff"))) {
+        Toggle(isOn: $enableBrowseHandoff) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.network.handoff.browse.title"))
+            Text(String(localized: "settings.network.handoff.browse.caption"))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Toggle(isOn: $enableReaderHandoff) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.network.handoff.reader.title"))
+            Text(String(localized: "settings.network.handoff.reader.caption"))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
         }
       }
     }

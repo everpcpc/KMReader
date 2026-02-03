@@ -8,21 +8,37 @@
 import Foundation
 import SwiftUI
 
+enum HandoffScope {
+  case browse
+  case reader
+}
+
 extension View {
-  func komgaHandoff(title: String, url: URL?) -> some View {
-    modifier(HandoffActivityModifier(title: title, url: url))
+  func komgaHandoff(title: String, url: URL?, scope: HandoffScope) -> some View {
+    modifier(HandoffActivityModifier(title: title, url: url, scope: scope))
   }
 }
 
 private struct HandoffActivityModifier: ViewModifier {
   let title: String
   let url: URL?
+  let scope: HandoffScope
 
-  @AppStorage("enableHandoff") private var enableHandoff: Bool = true
+  @AppStorage("enableBrowseHandoff") private var enableBrowseHandoff: Bool = true
+  @AppStorage("enableReaderHandoff") private var enableReaderHandoff: Bool = false
+
+  private var isEnabled: Bool {
+    switch scope {
+    case .browse:
+      return enableBrowseHandoff
+    case .reader:
+      return enableReaderHandoff
+    }
+  }
 
   func body(content: Content) -> some View {
     content.userActivity(NSUserActivityTypeBrowsingWeb) { activity in
-      let isEligible = enableHandoff && url != nil
+      let isEligible = isEnabled && url != nil
       activity.title = title
       activity.webpageURL = url
       activity.isEligibleForHandoff = isEligible

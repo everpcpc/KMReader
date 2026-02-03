@@ -75,7 +75,8 @@ struct CollectionDetailView: View {
     .inlineNavigationBarTitle(navigationTitle)
     .komgaHandoff(
       title: navigationTitle,
-      url: KomgaWebLinkBuilder.collection(serverURL: current.serverURL, collectionId: collectionId)
+      url: KomgaWebLinkBuilder.collection(serverURL: current.serverURL, collectionId: collectionId),
+      scope: .browse
     )
     .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
