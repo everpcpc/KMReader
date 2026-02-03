@@ -21,7 +21,9 @@ class SeriesViewModel {
     browseOpts: SeriesBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
-    refresh: Bool = false
+    refresh: Bool = false,
+    useLocalOnly: Bool = false,
+    offlineOnly: Bool = false
   ) async {
     if refresh {
       pagination.reset()
@@ -40,14 +42,15 @@ class SeriesViewModel {
       }
     }
 
-    if AppConfig.isOffline {
+    if AppConfig.isOffline || useLocalOnly {
       let ids = KomgaSeriesStore.fetchSeriesIds(
         context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
         offset: pagination.currentPage * pagination.pageSize,
-        limit: pagination.pageSize
+        limit: pagination.pageSize,
+        offlineOnly: offlineOnly
       )
       guard loadID == pagination.loadID else { return }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)

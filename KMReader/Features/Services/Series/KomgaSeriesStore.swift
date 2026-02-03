@@ -82,7 +82,8 @@ enum KomgaSeriesStore {
     searchText: String,
     browseOpts: SeriesBrowseOptions,
     offset: Int,
-    limit: Int
+    limit: Int,
+    offlineOnly: Bool = false
   ) -> [String] {
     let instanceId = AppConfig.current.instanceId
     let ids = libraryIds ?? []
@@ -94,22 +95,38 @@ enum KomgaSeriesStore {
           series.instanceId == instanceId && ids.contains(series.libraryId)
             && (series.name.localizedStandardContains(searchText)
               || series.metaTitle.localizedStandardContains(searchText))
+            && (!offlineOnly
+              || series.downloadedBooks > 0
+              || series.pendingBooks > 0
+              || series.downloadStatusRaw == "downloaded")
         }
       } else {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.instanceId == instanceId
             && (series.name.localizedStandardContains(searchText)
               || series.metaTitle.localizedStandardContains(searchText))
+            && (!offlineOnly
+              || series.downloadedBooks > 0
+              || series.pendingBooks > 0
+              || series.downloadStatusRaw == "downloaded")
         }
       }
     } else {
       if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.instanceId == instanceId && ids.contains(series.libraryId)
+            && (!offlineOnly
+              || series.downloadedBooks > 0
+              || series.pendingBooks > 0
+              || series.downloadStatusRaw == "downloaded")
         }
       } else {
         descriptor.predicate = #Predicate<KomgaSeries> { series in
           series.instanceId == instanceId
+            && (!offlineOnly
+              || series.downloadedBooks > 0
+              || series.pendingBooks > 0
+              || series.downloadStatusRaw == "downloaded")
         }
       }
     }

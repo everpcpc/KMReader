@@ -1,5 +1,5 @@
 //
-//  SettingsOfflineBooksView.swift
+//  OfflineBooksView.swift
 //  KMReader
 //
 //  Created by Komga iOS Client
@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-struct SettingsOfflineBooksView: View {
+struct OfflineBooksView: View {
   @Environment(\.modelContext) private var modelContext
   @Query var downloadedBooks: [KomgaBook]
   @Query var libraries: [KomgaLibrary]
@@ -329,7 +329,7 @@ struct SettingsOfflineBooksView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(SettingsSection.offlineBooks.title)
+    .inlineNavigationBarTitle(OfflineSection.books.title)
     .alert(
       String(localized: "settings.offline_books.remove_all"),
       isPresented: $showRemoveAllAlert

@@ -1,5 +1,5 @@
 //
-//  SettingsServerInfoView.swift
+//  ServerInfoView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsServerInfoView: View {
+struct ServerInfoView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var serverInfo: ServerInfo?
   @State private var isLoading = false
@@ -251,7 +251,7 @@ struct SettingsServerInfoView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(SettingsSection.serverInfo.title)
+    .inlineNavigationBarTitle(ServerSection.serverInfo.title)
     .task {
       if current.isAdmin {
         await loadServerInfo()

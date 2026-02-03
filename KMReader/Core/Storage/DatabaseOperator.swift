@@ -24,6 +24,18 @@ struct PendingProgressSummary: Sendable {
   let progressionData: Data?
 }
 
+struct DownloadQueueSummary: Sendable {
+  let downloadingCount: Int
+  let pendingCount: Int
+  let failedCount: Int
+
+  static let empty = DownloadQueueSummary(downloadingCount: 0, pendingCount: 0, failedCount: 0)
+
+  var isEmpty: Bool {
+    return downloadingCount == 0 && pendingCount == 0 && failedCount == 0
+  }
+}
+
 @ModelActor
 actor DatabaseOperator {
   @MainActor static var shared: DatabaseOperator!
@@ -1550,6 +1562,30 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchDownloadQueueSummary(instanceId: String) -> DownloadQueueSummary {
+    let downloadingCount = fetchBooksCount(
+      instanceId: instanceId,
+      status: "downloading"
+    )
+    let pendingCount = fetchBooksCount(
+      instanceId: instanceId,
+      status: "pending"
+    )
+    let failedCount = fetchBooksCount(
+      instanceId: instanceId,
+      status: "failed"
+    )
+    return DownloadQueueSummary(
+      downloadingCount: downloadingCount,
+      pendingCount: pendingCount,
+      failedCount: failedCount
+    )
+  }
+
+  func fetchDownloadedBooksCount(instanceId: String) -> Int {
+    fetchBooksCount(instanceId: instanceId, status: "downloaded")
+  }
+
   func fetchDownloadedBooks(instanceId: String) -> [Book] {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded" }
@@ -1584,6 +1620,13 @@ actor DatabaseOperator {
   func fetchFailedBooksCount(instanceId: String) -> Int {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
+    )
+    return (try? modelContext.fetchCount(descriptor)) ?? 0
+  }
+
+  private func fetchBooksCount(instanceId: String, status: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == status }
     )
     return (try? modelContext.fetchCount(descriptor)) ?? 0
   }

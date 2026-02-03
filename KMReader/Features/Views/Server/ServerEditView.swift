@@ -1,5 +1,5 @@
 //
-//  SettingsServerEditView.swift
+//  ServerEditView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-struct SettingsServerEditView: View {
+struct ServerEditView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
   @Environment(AuthViewModel.self) private var authViewModel

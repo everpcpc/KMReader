@@ -8,7 +8,7 @@
 import Foundation
 
 /// Observable class for tracking download progress on MainActor.
-/// Used by SettingsOfflineTasksView to display progress percentage.
+/// Used by OfflineTasksView to display progress percentage.
 @MainActor
 @Observable
 class DownloadProgressTracker {

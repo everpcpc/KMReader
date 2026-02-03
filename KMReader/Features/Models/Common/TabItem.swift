@@ -10,12 +10,16 @@ import SwiftUI
 enum TabItem: Hashable, Identifiable {
   case home
   case browse
+  case offline
+  case server
   case settings
 
   var id: String {
     switch self {
     case .home: return "home"
     case .browse: return "browse"
+    case .offline: return "offline"
+    case .server: return "server"
     case .settings: return "settings"
     }
   }
@@ -26,6 +30,10 @@ enum TabItem: Hashable, Identifiable {
       return String(localized: "tab.home")
     case .browse:
       return String(localized: "tab.browse")
+    case .offline:
+      return String(localized: "tab.offline")
+    case .server:
+      return String(localized: "tab.server")
     case .settings:
       return String(localized: "tab.settings")
     }
@@ -37,6 +45,10 @@ enum TabItem: Hashable, Identifiable {
       return "house"
     case .browse:
       return ContentIcon.library
+    case .offline:
+      return "tray.and.arrow.down"
+    case .server:
+      return "server.rack"
     case .settings:
       return "gearshape"
     }
@@ -53,6 +65,10 @@ enum TabItem: Hashable, Identifiable {
       DashboardView()
     case .browse:
       BrowseView()
+    case .offline:
+      OfflineView()
+    case .server:
+      ServerView()
     case .settings:
       SettingsView()
     }

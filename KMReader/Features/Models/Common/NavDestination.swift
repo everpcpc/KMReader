@@ -14,6 +14,8 @@ enum NavDestination: Hashable {
   case browseBooks
   case browseCollections
   case browseReadLists
+  case offline
+  case server
   case settings
 
   case browseLibrary(selection: LibrarySelection)
@@ -54,7 +56,6 @@ enum NavDestination: Hashable {
   case settingsHistory
 
   case settingsServers
-  case settingsAccountDetails
   case settingsApiKey
   case settingsAuthenticationActivity
 
@@ -71,6 +72,10 @@ enum NavDestination: Hashable {
       BrowseView(fixedContent: .collections)
     case .browseReadLists:
       BrowseView(fixedContent: .readlists)
+    case .offline:
+      OfflineView()
+    case .server:
+      ServerView()
     case .settings:
       SettingsView()
 
@@ -126,27 +131,25 @@ enum NavDestination: Hashable {
       SettingsLogsView()
 
     case .settingsOfflineTasks:
-      SettingsOfflineTasksView()
+      OfflineTasksView()
     case .settingsOfflineBooks:
-      SettingsOfflineBooksView()
+      OfflineBooksView()
 
     case .settingsLibraries:
-      SettingsLibrariesView()
+      ServerLibrariesView()
     case .settingsServerInfo:
-      SettingsServerInfoView()
+      ServerInfoView()
     case .settingsTasks:
-      SettingsTasksView()
+      ServerTasksView()
     case .settingsHistory:
-      SettingsHistoryView()
+      ServerHistoryView()
 
     case .settingsServers:
-      ServersView()
-    case .settingsAccountDetails:
-      AccountDetailsView()
+      ServerListView()
     case .settingsApiKey:
-      SettingsApiKeyView()
+      ApiKeysView()
     case .settingsAuthenticationActivity:
-      AuthenticationActivityView()
+      AccountActivityView()
     }
   }
 

@@ -1,5 +1,5 @@
 //
-//  SettingsOfflineTasksView.swift
+//  OfflineTasksView.swift
 //  KMReader
 //
 //  Created by Komga iOS Client
@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-struct SettingsOfflineTasksView: View {
+struct OfflineTasksView: View {
   @Environment(\.modelContext) private var modelContext
   @AppStorage("currentAccount") private var current: Current = .init()
   private var instanceId: String { current.instanceId }
@@ -159,7 +159,7 @@ struct SettingsOfflineTasksView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle(SettingsSection.offlineTasks.title)
+    .inlineNavigationBarTitle(OfflineSection.tasks.title)
     .animation(.default, value: isPaused)
     .animation(.default, value: currentStatus)
     .animation(.default, value: books)

@@ -26,6 +26,20 @@ import SwiftUI
           }
         }
 
+        Tab(TabItem.offline.title, systemImage: TabItem.offline.icon, value: TabItem.offline) {
+          NavigationStack {
+            TabItem.offline.content
+              .handleNavigation()
+          }
+        }
+
+        Tab(TabItem.server.title, systemImage: TabItem.server.icon, value: TabItem.server) {
+          NavigationStack {
+            TabItem.server.content
+              .handleNavigation()
+          }
+        }
+
         TabSection(String(localized: "Settings")) {
           Tab(TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings) {
             NavigationStack {
