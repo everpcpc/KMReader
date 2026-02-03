@@ -92,7 +92,7 @@
           title: handoffTitle,
           url: incognito
             ? nil
-            : KomgaWebLinkBuilder.book(serverURL: current.serverURL, bookId: handoffBookId)
+            : KomgaWebLinkBuilder.epubReader(serverURL: current.serverURL, bookId: handoffBookId)
         )
         .task(id: book.id) {
           await loadBook()

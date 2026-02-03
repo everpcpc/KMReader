@@ -28,10 +28,35 @@ enum KomgaWebLinkBuilder {
     build(serverURL: serverURL, path: "/#/readlists/\(readListId)")
   }
 
-  private static func build(serverURL: String, path: String) -> URL? {
+  static func bookReader(
+    serverURL: String,
+    bookId: String,
+    pageNumber: Int?,
+    incognito: Bool
+  ) -> URL? {
+    var queryItems = [URLQueryItem(name: "incognito", value: incognito ? "true" : "false")]
+    if let pageNumber {
+      queryItems.append(URLQueryItem(name: "page", value: String(pageNumber)))
+    }
+    return build(serverURL: serverURL, path: "/book/\(bookId)/read", queryItems: queryItems)
+  }
+
+  static func epubReader(serverURL: String, bookId: String) -> URL? {
+    build(serverURL: serverURL, path: "/book/\(bookId)/read-epub")
+  }
+
+  private static func build(
+    serverURL: String,
+    path: String,
+    queryItems: [URLQueryItem]? = nil
+  ) -> URL? {
     let normalizedBase = normalizedServerURL(serverURL)
     guard !normalizedBase.isEmpty else { return nil }
-    return URL(string: normalizedBase + path)
+    guard var components = URLComponents(string: normalizedBase + path) else { return nil }
+    if let queryItems, !queryItems.isEmpty {
+      components.queryItems = queryItems
+    }
+    return components.url
   }
 
   private static func normalizedServerURL(_ serverURL: String) -> String {

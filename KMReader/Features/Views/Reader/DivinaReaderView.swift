@@ -108,6 +108,10 @@ struct DivinaReaderView: View {
     currentBook?.metadata.title ?? book.metadata.title
   }
 
+  private var handoffPageNumber: Int? {
+    viewModel.currentPage?.number
+  }
+
   private var isShowingEndPage: Bool {
     guard !viewModel.pages.isEmpty else { return false }
     return viewModel.currentPageIndex >= viewModel.pages.count
@@ -399,6 +403,17 @@ struct DivinaReaderView: View {
       }
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)
+    .komgaHandoff(
+      title: handoffTitle,
+      url: incognito
+        ? nil
+        : KomgaWebLinkBuilder.bookReader(
+          serverURL: current.serverURL,
+          bookId: handoffBookId,
+          pageNumber: handoffPageNumber,
+          incognito: incognito
+        )
+    )
   }
 
   @ViewBuilder
@@ -920,12 +935,6 @@ struct DivinaReaderView: View {
           showingControls = false
         }
       }
-      .komgaHandoff(
-        title: handoffTitle,
-        url: incognito
-          ? nil
-          : KomgaWebLinkBuilder.book(serverURL: current.serverURL, bookId: handoffBookId)
-      )
     }
   }
 
