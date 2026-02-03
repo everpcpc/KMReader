@@ -85,22 +85,27 @@
       bookPreferences != nil
     }
 
+    private func updateHandoff() {
+      let url = KomgaWebLinkBuilder.epubReader(
+        serverURL: current.serverURL,
+        bookId: handoffBookId,
+        incognito: incognito
+      )
+      readerPresentation.updateHandoff(title: handoffTitle, url: url)
+    }
+
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()
-        .komgaHandoff(
-          title: handoffTitle,
-          url: KomgaWebLinkBuilder.epubReader(
-            serverURL: current.serverURL,
-            bookId: handoffBookId,
-            incognito: incognito
-          )
-        )
         .task(id: book.id) {
           await loadBook()
         }
         .onAppear {
+          updateHandoff()
           viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
+        }
+        .onChange(of: currentBook?.id) { _, _ in
+          updateHandoff()
         }
         .onChange(of: activePreferences) { _, newPrefs in
           viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)

@@ -9,30 +9,25 @@ import Foundation
 import SwiftUI
 
 extension View {
-  @ViewBuilder
   func komgaHandoff(title: String, url: URL?) -> some View {
-    HandoffActivityView(base: self, title: title, url: url)
+    modifier(HandoffActivityModifier(title: title, url: url))
   }
 }
 
-private struct HandoffActivityView<Base: View>: View {
-  let base: Base
+private struct HandoffActivityModifier: ViewModifier {
   let title: String
   let url: URL?
 
   @AppStorage("enableHandoff") private var enableHandoff: Bool = true
 
-  var body: some View {
-    if enableHandoff, let url {
-      base.userActivity(NSUserActivityTypeBrowsingWeb) { activity in
-        activity.title = title
-        activity.webpageURL = url
-        activity.isEligibleForHandoff = true
-        activity.isEligibleForSearch = false
-        activity.isEligibleForPublicIndexing = false
-      }
-    } else {
-      base
+  func body(content: Content) -> some View {
+    content.userActivity(NSUserActivityTypeBrowsingWeb) { activity in
+      let isEligible = enableHandoff && url != nil
+      activity.title = title
+      activity.webpageURL = url
+      activity.isEligibleForHandoff = isEligible
+      activity.isEligibleForSearch = false
+      activity.isEligibleForPublicIndexing = false
     }
   }
 }

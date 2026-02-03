@@ -123,6 +123,16 @@ struct DivinaReaderView: View {
     return readingDirection != .vertical
   }
 
+  private func updateHandoff() {
+    let url = KomgaWebLinkBuilder.bookReader(
+      serverURL: current.serverURL,
+      bookId: handoffBookId,
+      pageNumber: handoffPageNumber,
+      incognito: incognito
+    )
+    readerPresentation.updateHandoff(title: handoffTitle, url: url)
+  }
+
   private func closeReader() {
     if let onClose {
       onClose()
@@ -311,6 +321,7 @@ struct DivinaReaderView: View {
     )
     .onAppear {
       viewModel.updateDualPageSettings(noCover: !isolateCoverPage)
+      updateHandoff()
       #if os(tvOS)
         updateContentFocusAnchor()
       #endif
@@ -330,6 +341,9 @@ struct DivinaReaderView: View {
       }
       await loadBook(bookId: currentBookId, preserveReaderOptions: preserveReaderOptions)
       preserveReaderOptions = false
+    }
+    .onChange(of: currentBook?.id) { _, _ in
+      updateHandoff()
     }
     .onChange(of: viewModel.pages.count) { oldCount, newCount in
       // Show helper overlay when pages are first loaded (iOS and macOS)
@@ -403,15 +417,6 @@ struct DivinaReaderView: View {
       }
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)
-    .komgaHandoff(
-      title: handoffTitle,
-      url: KomgaWebLinkBuilder.bookReader(
-        serverURL: current.serverURL,
-        bookId: handoffBookId,
-        pageNumber: handoffPageNumber,
-        incognito: incognito
-      )
-    )
   }
 
   @ViewBuilder
@@ -522,6 +527,7 @@ struct DivinaReaderView: View {
         .readerIgnoresSafeArea()
         .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
         .onChange(of: viewModel.currentPageIndex) {
+          updateHandoff()
           // Update progress and preload pages in background without blocking UI
           Task(priority: .userInitiated) {
             await viewModel.updateProgress()

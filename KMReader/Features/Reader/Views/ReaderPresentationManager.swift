@@ -15,6 +15,8 @@ final class ReaderPresentationManager {
 
   var hideStatusBar: Bool = false
   var readingDirection: ReadingDirection = .ltr
+  var handoffTitle: String = ""
+  var handoffURL: URL?
 
   /// Book ID used as source for zoom transition (iOS 18+)
   private(set) var sourceBookId: String?
@@ -78,6 +80,7 @@ final class ReaderPresentationManager {
     }
 
     hideStatusBar = false
+    clearHandoff()
 
     #if os(macOS)
       if !isWindowDrivenClose {
@@ -96,6 +99,16 @@ final class ReaderPresentationManager {
 
     readerState = nil
     sourceBookId = nil
+  }
+
+  func updateHandoff(title: String, url: URL?) {
+    handoffTitle = title
+    handoffURL = url
+  }
+
+  func clearHandoff() {
+    handoffTitle = ""
+    handoffURL = nil
   }
 
   #if os(macOS)

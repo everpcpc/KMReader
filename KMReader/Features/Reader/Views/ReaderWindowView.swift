@@ -10,6 +10,7 @@
   import AppKit
 
   struct ReaderWindowView: View {
+    @Environment(ReaderPresentationManager.self) private var readerPresentation
     @Environment(\.dismissWindow) private var dismissWindow
 
     @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
@@ -46,6 +47,10 @@
             )
         }
       }
+      .komgaHandoff(
+        title: readerPresentation.handoffTitle,
+        url: readerPresentation.handoffURL
+      )
       .onAppear {
         // Get reader state from shared manager when view appears
         readerState = ReaderWindowManager.shared.currentState
