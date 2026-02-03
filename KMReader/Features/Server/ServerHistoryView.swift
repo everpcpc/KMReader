@@ -134,8 +134,24 @@ struct ServerHistoryView: View {
         .frame(width: 24)
 
       VStack(alignment: .leading, spacing: 6) {
-        Text(event.type)
-          .lineLimit(1)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+          Text(event.type)
+            .lineLimit(1)
+
+          Spacer()
+
+          Text(event.timestamp.formattedMediumDateTime)
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+          Button {
+            selectedEvent = event
+          } label: {
+            Image(systemName: "info.circle")
+          }
+          .buttonStyle(.borderless)
+          .disabled(event.properties.isEmpty)
+        }
 
         if let seriesId = event.seriesId, !seriesId.isEmpty {
           HStack(spacing: 6) {
@@ -157,22 +173,7 @@ struct ServerHistoryView: View {
           }
         }
       }
-
-      Spacer()
-
-      VStack(alignment: .trailing, spacing: 8) {
-        Text(event.timestamp.formattedMediumDateTime)
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-        Button {
-          selectedEvent = event
-        } label: {
-          Image(systemName: "info.circle")
-        }
-        .buttonStyle(.borderless)
-        .disabled(event.properties.isEmpty)
-      }
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
     .tvFocusableHighlight()
     .padding(.vertical, 4)

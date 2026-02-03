@@ -27,14 +27,20 @@ struct ServerActionTile: View {
 
         Spacer()
 
-        if let badge {
-          Text(badge)
-            .font(.caption2)
-            .fontWeight(.semibold)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background((badgeColor ?? .secondary).opacity(0.15), in: Capsule())
-            .foregroundColor(badgeColor ?? .secondary)
+        HStack(spacing: 6) {
+          if let badge {
+            Text(badge)
+              .font(.caption2)
+              .fontWeight(.semibold)
+              .padding(.horizontal, 8)
+              .padding(.vertical, 4)
+              .background((badgeColor ?? .secondary).opacity(0.15), in: Capsule())
+              .foregroundColor(badgeColor ?? .secondary)
+          }
+
+          Image(systemName: "chevron.right")
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
       }
 
