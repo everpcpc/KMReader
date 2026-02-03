@@ -81,6 +81,10 @@ struct ReadListDetailView: View {
       }
     }
     .inlineNavigationBarTitle(navigationTitle)
+    .komgaHandoff(
+      title: navigationTitle,
+      url: KomgaWebLinkBuilder.readList(serverURL: current.serverURL, readListId: readListId)
+    )
     .alert("Delete Read List?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         Task {

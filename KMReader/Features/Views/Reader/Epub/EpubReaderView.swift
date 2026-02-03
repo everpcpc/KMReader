@@ -18,6 +18,7 @@
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
+    @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
 
@@ -64,6 +65,14 @@
       return showingControls
     }
 
+    private var handoffBookId: String {
+      currentBook?.id ?? book.id
+    }
+
+    private var handoffTitle: String {
+      currentBook?.metadata.title ?? book.metadata.title
+    }
+
     private var buttonStyle: AdaptiveButtonStyleType {
       return .bordered
     }
@@ -79,6 +88,14 @@
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()
+        .komgaHandoff(
+          title: handoffTitle,
+          url: KomgaWebLinkBuilder.epubReader(
+            serverURL: current.serverURL,
+            bookId: handoffBookId,
+            incognito: incognito
+          )
+        )
         .task(id: book.id) {
           await loadBook()
         }

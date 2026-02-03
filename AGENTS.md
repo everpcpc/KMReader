@@ -6,15 +6,45 @@ This file provides guidance to coding agents working with code in this repositor
 
 **KMReader** is a native SwiftUI client for [Komga](https://github.com/gotson/komga), a self-hosted digital comic/book library manager. The app supports iOS 17.0+, macOS 14.0+, and tvOS 17.0+ with Swift 6.0+ and Xcode 15.0+.
 
-Key features:
+### Readers
 
-- Multi-server vault with password or API key authentication
-- Cloud-drive-like offline with background downloads, Live Activities on iOS, and per-series policies
-- Browse and dashboards with search, filters, grid/list layouts, and per-library sections
-- Readers: DIVINA (LTR/RTL/vertical/Webtoon), spreads, zoom, tap zones, transitions, and exports
-- EPUB with custom fonts/themes, pagination, TOC navigation, and incognito mode
-- Admin tools for metadata editing, scans, task management, live SSE metrics, and log viewer
-- Three-tier caches (pages, books, thumbnails) with adjustable limits and cleanup
+- **DIVINA Reader** (iOS, macOS, tvOS): LTR/RTL/vertical/Webtoon modes with spreads, zoom, customizable tap zones, and page curl transitions. Live Text support with shake-to-toggle on iOS.
+- **EPUB Reader** (iOS, macOS): Native engine with custom font importing (.ttf/.otf), theme presets, multi-column layouts, and nested TOC navigation.
+- **Per-Book Preferences**: Save reading direction, page layout, and theme settings per book.
+- **Incognito Mode**: Read without saving progress to server.
+
+### Offline & Downloads
+
+- **Background Downloads**: URLSession-based downloads with Live Activities on iOS.
+- **Series Policies**: Manual, unread-only, unread+cleanup, or all books per series.
+- **Offline Mode**: Full reader functionality with downloaded content. Progress syncs when reconnected.
+- **Three-Tier Caching**: Pages, book files, and thumbnails with adjustable limits and auto-cleanup.
+
+### Browse & Dashboards
+
+- **Dynamic Dashboards**: Keep Reading, On Deck, Recently Added, Recently Updated with real-time SSE updates.
+- **Advanced Filters**: Search with metadata filters (authors, genres, tags, publishers) using all/any logic.
+- **Grid/List Layouts**: Multiple density options (compact, standard, comfortable).
+- **Library Filtering**: Browse per-library or across all libraries.
+
+### Multi-Server Vault
+
+- **Unlimited Servers**: Save multiple Komga instances with password or API key authentication.
+- **Quick Switching**: Instant server switching with isolated data per instance.
+- **API Key Management**: Create, view, and revoke API keys.
+
+### Admin Tools
+
+- **Metadata Editing**: Edit series, books, collections, and read lists.
+- **Library Management**: Create, edit, scan libraries with directory browser.
+- **Task Management**: Monitor and cancel server tasks with live metrics.
+- **Logs Viewer**: View and export app logs with filtering.
+
+### Platform-Specific
+
+- **iOS**: Live Activities, background downloads, page curl transitions, shake gestures.
+- **macOS**: Separate reader windows, comprehensive keyboard shortcuts, keyboard help overlay.
+- **tvOS**: Remote control navigation, TV-optimized interface (DIVINA only).
 
 ## Commands
 
