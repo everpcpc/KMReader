@@ -21,7 +21,7 @@ struct SettingsView: View {
         #endif
       }
 
-      Section(header: Text(String(localized: "Appearance & Behavior"))) {
+      Section(header: Text(String(localized: "Display"))) {
         NavigationLink(value: NavDestination.settingsAppearance) {
           SettingsSectionRow(section: .appearance)
         }
@@ -31,9 +31,9 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsDashboard) {
           SettingsSectionRow(section: .dashboard)
         }
-        NavigationLink(value: NavDestination.settingsCache) {
-          SettingsSectionRow(section: .cache)
-        }
+      }
+
+      Section(header: Text(String(localized: "Behavior"))) {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
@@ -42,6 +42,10 @@ struct SettingsView: View {
             SettingsSectionRow(section: .network)
           }
         #endif
+        NavigationLink(value: NavDestination.settingsCache) {
+          SettingsSectionRow(section: .cache)
+        }
+
         NavigationLink(value: NavDestination.settingsLogs) {
           SettingsSectionRow(section: .logs)
         }

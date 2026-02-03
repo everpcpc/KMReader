@@ -19,13 +19,16 @@ import SwiftUI
             SettingsSectionRow(section: .divinaReader)
           }
 
-          Section(String(localized: "Appearance & Behavior")) {
+          Section(String(localized: "Display")) {
             SettingsSectionRow(section: .appearance)
             SettingsSectionRow(section: .browse)
             SettingsSectionRow(section: .dashboard)
-            SettingsSectionRow(section: .cache)
+          }
+
+          Section(String(localized: "Behavior")) {
             SettingsSectionRow(section: .sse)
             SettingsSectionRow(section: .network)
+            SettingsSectionRow(section: .cache)
             SettingsSectionRow(section: .logs)
           }
 
