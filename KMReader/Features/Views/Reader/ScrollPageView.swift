@@ -61,7 +61,7 @@ struct ScrollPageView: View {
     GeometryReader { geometry in
       ScrollViewReader { proxy in
         scrollViewContent(
-          proxy: proxy, geometry: geometry,
+          geometry: geometry,
           isScrollDisabled: viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil
         )
         .frame(width: geometry.size.width, height: geometry.size.height)
@@ -91,20 +91,17 @@ struct ScrollPageView: View {
             }
           }
         }
+        .onChange(of: viewModel.viewItems.count) { _, _ in
+          guard hasSyncedInitialScroll else { return }
+          let target = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
+          if scrollPosition != target {
+            scrollPosition = target
+            proxy.scrollTo(target, anchor: .center)
+          }
+        }
         .onChange(of: scrollPosition) { _, newPosition in
-          if let newPosition {
-            // For split pages mode, convert view item index back to page index
-            let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
-            if hasSplitPages && !mode.isDualPage {
-              if newPosition < viewModel.pagePairs.count {
-                let pagePair = viewModel.pagePairs[newPosition]
-                viewModel.currentPageIndex = pagePair.first
-                viewModel.currentViewItemIndex = newPosition  // Track position in pagePairs array
-              }
-            } else {
-              viewModel.currentPageIndex = newPosition
-              viewModel.currentViewItemIndex = newPosition
-            }
+          if let newPosition, newPosition < viewModel.viewItems.count {
+            viewModel.updateCurrentPosition(viewItemIndex: newPosition)
 
             // Clear targetPageIndex if the user manually scrolled
             if viewModel.targetPageIndex != nil {
@@ -120,26 +117,16 @@ struct ScrollPageView: View {
   }
 
   @ViewBuilder
-  private func scrollViewContent(proxy: ScrollViewProxy, geometry: GeometryProxy, isScrollDisabled: Bool) -> some View {
+  private func scrollViewContent(geometry: GeometryProxy, isScrollDisabled: Bool) -> some View {
     ScrollView(mode.isVertical ? .vertical : .horizontal) {
       if mode.isVertical {
         LazyVStack(spacing: 0) {
-          // Check if split wide pages is enabled for vertical mode too
-          let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
-          if hasSplitPages {
-            splitPageContent(proxy: proxy, geometry: geometry)
-          } else {
-            singlePageContent(proxy: proxy, geometry: geometry)
-          }
+          viewItemContent(geometry: geometry)
         }
         .scrollTargetLayout()
       } else {
         LazyHStack(spacing: 0) {
-          if mode.isDualPage {
-            dualPageContent(proxy: proxy, geometry: geometry)
-          } else {
-            singlePageContent(proxy: proxy, geometry: geometry)
-          }
+          viewItemContent(geometry: geometry)
         }
         .scrollTargetLayout()
       }
@@ -150,53 +137,11 @@ struct ScrollPageView: View {
   }
 
   @ViewBuilder
-  private func singlePageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
-    // Check if split wide pages is enabled by examining pagePairs
-    let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
-
-    if hasSplitPages {
-      // Use pagePairs for rendering when split pages are enabled
-      splitPageContent(proxy: proxy, geometry: geometry)
-    } else {
-      // Use traditional page index iteration
-      ForEach(0...viewModel.pages.count, id: \.self) { index in
-        Group {
-          if index == viewModel.pages.count {
-            EndPageView(
-              viewModel: viewModel,
-              nextBook: nextBook,
-              readList: readList,
-              onDismiss: onDismiss,
-              onNextBook: onNextBook,
-              readingDirection: readingDirection,
-              onPreviousPage: goToPreviousPage,
-              onFocusChange: onEndPageFocusChange,
-              showImage: true,
-            )
-          } else {
-            SinglePageImageView(
-              viewModel: viewModel,
-              pageIndex: index,
-              screenSize: geometry.size,
-              readingDirection: readingDirection,
-              onNextPage: goToNextPage,
-              onPreviousPage: goToPreviousPage,
-              onToggleControls: toggleControls
-            )
-          }
-        }
-        .frame(width: geometry.size.width, height: geometry.size.height)
-        .id(index)
-        .readerPageScrollTransition()
-      }
-    }
-  }
-
-  @ViewBuilder
-  private func splitPageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
-    ForEach(Array(viewModel.pagePairs.enumerated()), id: \.offset) { offset, pagePair in
+  private func viewItemContent(geometry: GeometryProxy) -> some View {
+    ForEach(Array(viewModel.viewItems.enumerated()), id: \.offset) { offset, item in
       Group {
-        if pagePair.first == viewModel.pages.count {
+        switch item {
+        case .end:
           EndPageView(
             viewModel: viewModel,
             nextBook: nextBook,
@@ -208,40 +153,37 @@ struct ScrollPageView: View {
             onFocusChange: onEndPageFocusChange,
             showImage: true
           )
-        } else if pagePair.isSplitPage {
-          // Determine if this is the left or right half based on reading direction and swap setting
-          let isLeftHalf: Bool = {
-            // Find the first occurrence of this split page
-            guard
-              let firstIndex = viewModel.pagePairs.firstIndex(where: { $0.first == pagePair.first && $0.isSplitPage })
-            else {
-              return true
-            }
-
-            let isFirstHalf = offset == firstIndex
-
-            // Determine the base order based on reading direction
-            let effectiveDirection = splitWidePageMode.effectiveReadingDirection(for: readingDirection)
-            let shouldShowLeftFirst = effectiveDirection != .rtl
-
-            // Return whether this position should show left half
-            return shouldShowLeftFirst ? isFirstHalf : !isFirstHalf
-          }()
-
-          SplitWidePageImageView(
+        case .dual(let first, let second):
+          DualPageImageView(
             viewModel: viewModel,
-            pageIndex: pagePair.first,
-            isLeftHalf: isLeftHalf,
+            firstPageIndex: first,
+            secondPageIndex: second,
             screenSize: geometry.size,
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
             onToggleControls: toggleControls
           )
-        } else {
+        case .page(let index):
           SinglePageImageView(
             viewModel: viewModel,
-            pageIndex: pagePair.first,
+            pageIndex: index,
+            screenSize: geometry.size,
+            readingDirection: readingDirection,
+            onNextPage: goToNextPage,
+            onPreviousPage: goToPreviousPage,
+            onToggleControls: toggleControls
+          )
+        case .split(let index, let isFirstHalf):
+          let isLeftHalf = viewModel.isLeftSplitHalf(
+            isFirstHalf: isFirstHalf,
+            readingDirection: readingDirection,
+            splitWidePageMode: splitWidePageMode
+          )
+          SplitWidePageImageView(
+            viewModel: viewModel,
+            pageIndex: index,
+            isLeftHalf: isLeftHalf,
             screenSize: geometry.size,
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
@@ -256,53 +198,6 @@ struct ScrollPageView: View {
     }
   }
 
-  @ViewBuilder
-  private func dualPageContent(proxy: ScrollViewProxy, geometry: GeometryProxy) -> some View {
-    ForEach(Array(viewModel.pagePairs), id: \.self) { pagePair in
-      Group {
-        if pagePair.first == viewModel.pages.count {
-          EndPageView(
-            viewModel: viewModel,
-            nextBook: nextBook,
-            readList: readList,
-            onDismiss: onDismiss,
-            onNextBook: onNextBook,
-            readingDirection: readingDirection,
-            onPreviousPage: goToPreviousPage,
-            onFocusChange: onEndPageFocusChange,
-            showImage: readingDirection != .webtoon
-          )
-        } else {
-          if let second = pagePair.second {
-            DualPageImageView(
-              viewModel: viewModel,
-              firstPageIndex: pagePair.first,
-              secondPageIndex: second,
-              screenSize: geometry.size,
-              readingDirection: readingDirection,
-              onNextPage: goToNextPage,
-              onPreviousPage: goToPreviousPage,
-              onToggleControls: toggleControls
-            )
-          } else {
-            SinglePageImageView(
-              viewModel: viewModel,
-              pageIndex: pagePair.first,
-              screenSize: geometry.size,
-              readingDirection: readingDirection,
-              onNextPage: goToNextPage,
-              onPreviousPage: goToPreviousPage,
-              onToggleControls: toggleControls
-            )
-          }
-        }
-      }
-      .frame(width: geometry.size.width, height: geometry.size.height)
-      .id(pagePair.first)
-      .readerPageScrollTransition()
-    }
-  }
-
   // MARK: - Scroll Synchronization
 
   private func synchronizeInitialScrollIfNeeded(proxy: ScrollViewProxy) {
@@ -310,22 +205,7 @@ struct ScrollPageView: View {
     guard viewModel.currentPageIndex >= 0 else { return }
     guard !viewModel.pages.isEmpty else { return }
 
-    let target: Int
-    if mode.isDualPage {
-      guard let dualPageIndex = viewModel.dualPageIndices[viewModel.currentPageIndex] else {
-        return
-      }
-      target = dualPageIndex.first
-    } else {
-      // Check if split pages are enabled
-      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
-      if hasSplitPages {
-        // Find the view item index for this page
-        target = findViewItemIndexForPage(viewModel.currentPageIndex)
-      } else {
-        target = max(0, min(viewModel.currentPageIndex, viewModel.pages.count - 1))
-      }
-    }
+    let target = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
 
     DispatchQueue.main.async {
       scrollPosition = target
@@ -340,21 +220,7 @@ struct ScrollPageView: View {
     guard newTarget >= 0 else { return }
     guard !viewModel.pages.isEmpty else { return }
 
-    let targetScrollPosition: Int
-
-    if mode.isDualPage {
-      guard let targetPair = viewModel.dualPageIndices[newTarget] else { return }
-      targetScrollPosition = targetPair.first
-    } else {
-      // Check if split pages are enabled
-      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
-      if hasSplitPages {
-        // Find the view item index for this page
-        targetScrollPosition = findViewItemIndexForPage(newTarget)
-      } else {
-        targetScrollPosition = min(newTarget, viewModel.pages.count)
-      }
-    }
+    let targetScrollPosition = viewModel.viewItemIndex(forPageIndex: newTarget)
 
     if scrollPosition != targetScrollPosition {
       let animation: Animation? =
@@ -376,7 +242,7 @@ struct ScrollPageView: View {
     guard hasSyncedInitialScroll else { return }
     guard newTarget >= 0 else { return }
     guard !viewModel.pages.isEmpty else { return }
-    guard newTarget < viewModel.pagePairs.count else { return }
+    guard newTarget < viewModel.viewItems.count else { return }
 
     let targetScrollPosition = newTarget
 
@@ -394,15 +260,5 @@ struct ScrollPageView: View {
       await viewModel.updateProgress()
       await viewModel.preloadPages()
     }
-  }
-
-  // Helper function to find the view item index for a given page index in split mode
-  private func findViewItemIndexForPage(_ pageIndex: Int) -> Int {
-    for (index, pagePair) in viewModel.pagePairs.enumerated() {
-      if pagePair.first == pageIndex {
-        return index
-      }
-    }
-    return min(pageIndex, viewModel.pagePairs.count - 1)
   }
 }

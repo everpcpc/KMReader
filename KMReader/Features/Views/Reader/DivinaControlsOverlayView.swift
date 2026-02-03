@@ -61,12 +61,20 @@ struct DivinaControlsOverlayView: View {
     if viewModel.currentPageIndex >= viewModel.pages.count {
       return String(localized: "reader.page.end")
     } else {
-      if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
-        return pair.display(readingDirection: readingDirection)
+      if dualPage, let pair = viewModel.currentPagePair() {
+        return displayPagePair(first: pair.first, second: pair.second)
       } else {
         return String(viewModel.currentPageIndex + 1)
       }
     }
+  }
+
+  private func displayPagePair(first: Int, second: Int?) -> String {
+    guard let second else { return "\(first + 1)" }
+    if readingDirection == .rtl {
+      return "\(second + 1),\(first + 1)"
+    }
+    return "\(first + 1),\(second + 1)"
   }
 
   private var enableDualPageOptions: Bool {
@@ -339,7 +347,7 @@ struct DivinaControlsOverlayView: View {
     #if os(iOS) || os(macOS)
       if viewModel.currentPageIndex < viewModel.pages.count {
         Section {
-          if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
+          if dualPage, let pair = viewModel.currentPagePair() {
             share(firstPage: pair.first, secondPage: pair.second)
           } else {
             share(firstPage: viewModel.currentPageIndex, secondPage: nil)
@@ -385,7 +393,7 @@ struct DivinaControlsOverlayView: View {
         } label: {
           Label(String(localized: "Cancel Isolation"), systemImage: "rectangle.portrait.slash")
         }
-      } else if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex],
+      } else if dualPage, let pair = viewModel.currentPagePair(),
         let secondPage = pair.second,
         pair.first < viewModel.pages.count,
         secondPage < viewModel.pages.count
