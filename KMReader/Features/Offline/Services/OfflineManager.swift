@@ -230,6 +230,7 @@ actor OfflineManager {
         downloadAt: .now
       )
       await DatabaseOperator.shared.commit()
+      await refreshQueueStatus(instanceId: instanceId)
       await syncDownloadQueue(instanceId: instanceId)
     }
   }
@@ -242,6 +243,7 @@ actor OfflineManager {
       downloadAt: .now
     )
     await DatabaseOperator.shared.commit()
+    await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
   }
 
@@ -259,6 +261,7 @@ actor OfflineManager {
     )
     if commit {
       await DatabaseOperator.shared.commit()
+      await refreshQueueStatus(instanceId: instanceId)
     }
 
     // Then delete files
@@ -303,6 +306,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.syncReadListsContainingBooks(
       bookIds: bookIds, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
+    await refreshQueueStatus(instanceId: instanceId)
   }
 
   /// Delete all downloaded books for the current instance.
@@ -334,6 +338,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.syncReadListsContainingBooks(
       bookIds: books.map { $0.id }, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
+    await refreshQueueStatus(instanceId: instanceId)
   }
 
   /// Delete all read (completed) downloaded books for the current instance.
@@ -368,6 +373,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.syncReadListsContainingBooks(
       bookIds: readBooks.map { $0.id }, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
+    await refreshQueueStatus(instanceId: instanceId)
   }
 
   /// Cleanup orphaned offline files that no longer have corresponding SwiftData entries.
@@ -425,8 +431,7 @@ actor OfflineManager {
   func cancelDownload(
     bookId: String, instanceId: String? = nil, commit: Bool = true, syncSeriesStatus: Bool = true
   ) async {
-    activeTasks[bookId]?.cancel()
-    activeTasks[bookId] = nil
+    removeActiveTask(bookId)
     let resolvedInstanceId = instanceId ?? AppConfig.current.instanceId
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId, instanceId: resolvedInstanceId, status: .notDownloaded,
@@ -434,12 +439,14 @@ actor OfflineManager {
     )
     if commit {
       await DatabaseOperator.shared.commit()
+      await refreshQueueStatus(instanceId: resolvedInstanceId)
     }
   }
 
   /// Cancel all active downloads (used during cleanup).
   func cancelAllDownloads() async {
     let instanceId = AppConfig.current.instanceId
+    let bookIds = Array(activeTasks.keys)
     for (bookId, task) in activeTasks {
       task.cancel()
       await DatabaseOperator.shared.updateBookDownloadStatus(
@@ -448,20 +455,29 @@ actor OfflineManager {
       await DatabaseOperator.shared.commit()
     }
     activeTasks.removeAll()
+    await MainActor.run {
+      for bookId in bookIds {
+        DownloadProgressTracker.shared.clearProgress(bookId: bookId)
+      }
+      DownloadProgressTracker.shared.finishDownload()
+    }
     #if os(iOS)
       await LiveActivityManager.shared.endActivity()
     #endif
+    await refreshQueueStatus(instanceId: instanceId)
   }
 
   func retryFailedDownloads(instanceId: String) async {
     await DatabaseOperator.shared.retryFailedBooks(instanceId: instanceId)
     await DatabaseOperator.shared.commit()
+    await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
   }
 
   func cancelFailedDownloads(instanceId: String) async {
     await DatabaseOperator.shared.cancelFailedBooks(instanceId: instanceId)
     await DatabaseOperator.shared.commit()
+    await refreshQueueStatus(instanceId: instanceId)
   }
 
   /// Trigger the download queue processing in the background.
@@ -562,6 +578,7 @@ actor OfflineManager {
     logger.info("📥 Enqueue download: \(info.bookId)")
     // Initialize progress (status stays as pending during download)
     await MainActor.run {
+      DownloadProgressTracker.shared.startDownload(bookName: info.bookInfo)
       DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 0.0)
     }
 
@@ -713,6 +730,7 @@ actor OfflineManager {
           status: .failed(error: error.localizedDescription)
         )
         await DatabaseOperator.shared.commit()
+        await refreshQueueStatus(instanceId: instanceId)
         await syncDownloadQueue(instanceId: instanceId)
       }
     }
@@ -765,6 +783,7 @@ actor OfflineManager {
               status: .failed(error: error.localizedDescription)
             )
             await DatabaseOperator.shared.commit()
+            await self.refreshQueueStatus(instanceId: instanceId)
           }
         }
         await removeActiveTask(info.bookId)
@@ -776,13 +795,8 @@ actor OfflineManager {
   }
 
   func cancelDownload(bookId: String) async {
-    activeTasks[bookId]?.cancel()
-    activeTasks[bookId] = nil
     let instanceId = AppConfig.current.instanceId
-    await DatabaseOperator.shared.updateBookDownloadStatus(
-      bookId: bookId, instanceId: instanceId, status: .notDownloaded
-    )
-    await DatabaseOperator.shared.commit()
+    await cancelDownload(bookId: bookId, instanceId: instanceId)
   }
 
   // MARK: - Accessors for Reader
@@ -853,12 +867,26 @@ actor OfflineManager {
 
   // MARK: - Private Helpers
 
+  private func refreshQueueStatus(instanceId: String) async {
+    let summary = await DatabaseOperator.shared.fetchDownloadQueueSummary(instanceId: instanceId)
+    await MainActor.run {
+      DownloadProgressTracker.shared.updateQueueStatus(
+        pending: summary.pendingCount,
+        failed: summary.failedCount
+      )
+    }
+  }
+
   private func removeActiveTask(_ bookId: String) {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
+    let isQueueEmpty = activeTasks.isEmpty
     logger.info("🧹 Cleared active task for book: \(bookId)")
     Task { @MainActor in
       DownloadProgressTracker.shared.clearProgress(bookId: bookId)
+      if isQueueEmpty {
+        DownloadProgressTracker.shared.finishDownload()
+      }
     }
   }
 
@@ -963,6 +991,7 @@ actor OfflineManager {
         status: .failed(error: error.localizedDescription)
       )
       await DatabaseOperator.shared.commit()
+      await refreshQueueStatus(instanceId: info.instanceId)
 
       // Cancel remaining downloads for this book
       await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
@@ -1305,6 +1334,7 @@ actor OfflineManager {
       status: .downloaded
     )
     await DatabaseOperator.shared.commit()
+    await refreshQueueStatus(instanceId: instanceId)
     await clearCachesAfterDownload(bookId: bookId)
     removeActiveTask(bookId)
     scheduleDownloadedSizeUpdate(instanceId: instanceId, bookId: bookId, bookDir: bookDir)

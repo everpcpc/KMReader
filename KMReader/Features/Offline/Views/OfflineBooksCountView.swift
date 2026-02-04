@@ -19,6 +19,7 @@ struct OfflineBooksCountView: View {
         Text("\(downloadedCount)")
           .font(.caption2)
           .fontWeight(.semibold)
+          .monospacedDigit()
           .padding(.horizontal, 8)
           .padding(.vertical, 4)
           .background(Color.accentColor.opacity(0.15), in: Capsule())
@@ -30,24 +31,23 @@ struct OfflineBooksCountView: View {
     .task(id: current.instanceId) {
       await loadCount()
     }
-    .onChange(of: progressTracker.pendingCount) { _, _ in
-      Task { await loadCount() }
-    }
-    .onChange(of: progressTracker.failedCount) { _, _ in
-      Task { await loadCount() }
-    }
-    .onChange(of: progressTracker.currentBookName) { _, _ in
+    .onChange(of: progressTracker.queueUpdateToken) { _, _ in
       Task { await loadCount() }
     }
   }
 
+  @MainActor
   private func loadCount() async {
     let instanceId = current.instanceId
     guard !instanceId.isEmpty else {
-      downloadedCount = 0
+      withAnimation {
+        downloadedCount = 0
+      }
       return
     }
     let count = await DatabaseOperator.shared.fetchDownloadedBooksCount(instanceId: instanceId)
-    downloadedCount = count
+    withAnimation {
+      downloadedCount = count
+    }
   }
 }

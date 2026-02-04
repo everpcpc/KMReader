@@ -15,6 +15,7 @@ import Foundation
   final class LiveActivityManager {
     static let shared = LiveActivityManager()
 
+    private let logger = AppLogger(.offline)
     private var currentActivity: Activity<DownloadActivityAttributes>?
 
     private init() {}
@@ -23,11 +24,7 @@ import Foundation
     func startActivity(
       seriesTitle: String, bookInfo: String, totalBooks: Int, pendingCount: Int, failedCount: Int
     ) {
-      guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-        return
-      }
-
-      if currentActivity != nil {
+      if resolveActivity() != nil {
         updateActivity(
           seriesTitle: seriesTitle,
           bookInfo: bookInfo,
@@ -35,6 +32,11 @@ import Foundation
           pendingCount: pendingCount,
           failedCount: failedCount
         )
+        return
+      }
+
+      guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+        logger.info("Live Activities are disabled for this app.")
         return
       }
 
@@ -53,8 +55,9 @@ import Foundation
           content: .init(state: state, staleDate: nil),
           pushType: nil
         )
+        logger.info("✅ Live Activity started.")
       } catch {
-        print("Failed to start Live Activity: \(error)")
+        logger.error("❌ Failed to start Live Activity: \(error)")
       }
     }
 
@@ -66,7 +69,7 @@ import Foundation
       pendingCount: Int,
       failedCount: Int
     ) {
-      guard let activity = currentActivity else { return }
+      guard let activity = resolveActivity() else { return }
 
       let state = DownloadActivityAttributes.ContentState(
         seriesTitle: seriesTitle,
@@ -83,12 +86,23 @@ import Foundation
 
     /// End the current Live Activity
     func endActivity() {
-      guard let activity = currentActivity else { return }
+      guard let activity = resolveActivity() else { return }
 
       Task {
         await activity.end(nil, dismissalPolicy: .immediate)
       }
       currentActivity = nil
+    }
+
+    private func resolveActivity() -> Activity<DownloadActivityAttributes>? {
+      if let currentActivity {
+        return currentActivity
+      }
+      if let existing = Activity<DownloadActivityAttributes>.activities.first {
+        currentActivity = existing
+        return existing
+      }
+      return nil
     }
   }
 #endif

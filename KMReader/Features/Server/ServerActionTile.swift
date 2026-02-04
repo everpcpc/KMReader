@@ -46,6 +46,8 @@ struct ServerActionTile: View {
 
       Text(title)
         .font(.headline)
+        .lineLimit(1)
+        .truncationMode(.tail)
 
       if let subtitle {
         Text(subtitle)

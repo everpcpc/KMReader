@@ -26,6 +26,9 @@ class DownloadProgressTracker {
   /// Number of books that failed download
   var failedCount: Int = 0
 
+  /// Token to force UI refreshes when queue-related state changes
+  var queueUpdateToken: UUID = UUID()
+
   /// Whether a download is currently active
   var isDownloading: Bool {
     currentBookName != nil
@@ -75,5 +78,6 @@ class DownloadProgressTracker {
   func updateQueueStatus(pending: Int, failed: Int) {
     pendingCount = pending
     failedCount = failed
+    queueUpdateToken = UUID()
   }
 }

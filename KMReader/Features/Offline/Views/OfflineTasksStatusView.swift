@@ -56,13 +56,7 @@ struct OfflineTasksStatusView: View {
     .task(id: current.instanceId) {
       await loadSummary()
     }
-    .onChange(of: progressTracker.pendingCount) { _, _ in
-      Task { await loadSummary() }
-    }
-    .onChange(of: progressTracker.failedCount) { _, _ in
-      Task { await loadSummary() }
-    }
-    .onChange(of: progressTracker.currentBookName) { _, _ in
+    .onChange(of: progressTracker.queueUpdateToken) { _, _ in
       Task { await loadSummary() }
     }
   }
@@ -75,6 +69,7 @@ struct OfflineTasksStatusView: View {
       Text(title)
         .font(.caption2)
         .fontWeight(.semibold)
+        .monospacedDigit()
     }
     .padding(.horizontal, 8)
     .padding(.vertical, 4)
@@ -86,9 +81,16 @@ struct OfflineTasksStatusView: View {
   private func loadSummary() async {
     let instanceId = current.instanceId
     guard !instanceId.isEmpty else {
-      summary = .empty
+      withAnimation {
+        summary = .empty
+      }
       return
     }
-    summary = await DatabaseOperator.shared.fetchDownloadQueueSummary(instanceId: instanceId)
+    let newSummary = await DatabaseOperator.shared.fetchDownloadQueueSummary(
+      instanceId: instanceId
+    )
+    withAnimation {
+      summary = newSummary
+    }
   }
 }
