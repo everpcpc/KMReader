@@ -27,15 +27,13 @@ struct OfflineSeriesBrowseView: View {
   @State private var hasInitialized = false
 
   var body: some View {
-    VStack(spacing: 0) {
+    VStack {
       SeriesFilterView(
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
         libraryIds: libraryIds
-      )
-      .padding(.horizontal)
-      .padding(.vertical, 4)
+      ).padding(.horizontal)
 
       SeriesQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty)

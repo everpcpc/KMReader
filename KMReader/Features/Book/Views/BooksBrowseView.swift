@@ -26,16 +26,14 @@ struct BooksBrowseView: View {
   @State private var hasInitialized = false
 
   var body: some View {
-    VStack(spacing: 0) {
+    VStack {
       BookFilterView(
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
         filterType: .books,
         libraryIds: libraryIds
-      )
-      .padding(.horizontal)
-      .padding(.vertical, 4)
+      ).padding(.horizontal)
 
       BooksQueryView(
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
