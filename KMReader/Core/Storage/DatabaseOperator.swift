@@ -74,100 +74,7 @@ actor DatabaseOperator {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      if existing.name != dto.name { existing.name = dto.name }
-      if existing.url != dto.url { existing.url = dto.url }
-      if existing.number != dto.number { existing.number = dto.number }
-      if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
-      if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
-      if existing.size != dto.size { existing.size = dto.size }
-      // Media fields
-      if existing.mediaStatus != dto.media.statusRaw { existing.mediaStatus = dto.media.statusRaw }
-      if existing.mediaType != dto.media.mediaType { existing.mediaType = dto.media.mediaType }
-      if existing.mediaPagesCount != dto.media.pagesCount {
-        existing.mediaPagesCount = dto.media.pagesCount
-      }
-      if existing.mediaComment != dto.media.comment { existing.mediaComment = dto.media.comment }
-      if existing.mediaProfile != dto.media.mediaProfileRaw {
-        existing.mediaProfile = dto.media.mediaProfileRaw
-      }
-      if existing.mediaEpubDivinaCompatible != dto.media.epubDivinaCompatible {
-        existing.mediaEpubDivinaCompatible = dto.media.epubDivinaCompatible
-      }
-      if existing.mediaEpubIsKepub != dto.media.epubIsKepub {
-        existing.mediaEpubIsKepub = dto.media.epubIsKepub
-      }
-      // Metadata fields
-      if existing.metaCreated != dto.metadata.created {
-        existing.metaCreated = dto.metadata.created
-      }
-      if existing.metaLastModified != dto.metadata.lastModified {
-        existing.metaLastModified = dto.metadata.lastModified
-      }
-      if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
-      if existing.metaTitleLock != dto.metadata.titleLock {
-        existing.metaTitleLock = dto.metadata.titleLock
-      }
-      if existing.metaSummary != dto.metadata.summary {
-        existing.metaSummary = dto.metadata.summary
-      }
-      if existing.metaSummaryLock != dto.metadata.summaryLock {
-        existing.metaSummaryLock = dto.metadata.summaryLock
-      }
-      if existing.metaNumber != dto.metadata.number { existing.metaNumber = dto.metadata.number }
-      if existing.metaNumberLock != dto.metadata.numberLock {
-        existing.metaNumberLock = dto.metadata.numberLock
-      }
-      if existing.metaNumberSort != dto.metadata.numberSort {
-        existing.metaNumberSort = dto.metadata.numberSort
-      }
-      if existing.metaNumberSortLock != dto.metadata.numberSortLock {
-        existing.metaNumberSortLock = dto.metadata.numberSortLock
-      }
-      if existing.metaReleaseDate != dto.metadata.releaseDate {
-        existing.metaReleaseDate = dto.metadata.releaseDate
-      }
-      if existing.metaReleaseDateLock != dto.metadata.releaseDateLock {
-        existing.metaReleaseDateLock = dto.metadata.releaseDateLock
-      }
-      let newAuthorsRaw = try? JSONEncoder().encode(dto.metadata.authors)
-      if existing.metaAuthorsRaw != newAuthorsRaw { existing.metaAuthorsRaw = newAuthorsRaw }
-      if existing.metaAuthorsLock != dto.metadata.authorsLock {
-        existing.metaAuthorsLock = dto.metadata.authorsLock
-      }
-      if existing.metaTags != (dto.metadata.tags ?? []) {
-        existing.metaTags = dto.metadata.tags ?? []
-      }
-      if existing.metaTagsLock != dto.metadata.tagsLock {
-        existing.metaTagsLock = dto.metadata.tagsLock
-      }
-      if existing.metaIsbn != dto.metadata.isbn { existing.metaIsbn = dto.metadata.isbn }
-      if existing.metaIsbnLock != dto.metadata.isbnLock {
-        existing.metaIsbnLock = dto.metadata.isbnLock
-      }
-      let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
-      if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
-      if existing.metaLinksLock != dto.metadata.linksLock {
-        existing.metaLinksLock = dto.metadata.linksLock
-      }
-      // ReadProgress fields
-      if existing.progressPage != dto.readProgress?.page {
-        existing.progressPage = dto.readProgress?.page
-      }
-      if existing.progressCompleted != dto.readProgress?.completed {
-        existing.progressCompleted = dto.readProgress?.completed
-      }
-      if existing.progressReadDate != dto.readProgress?.readDate {
-        existing.progressReadDate = dto.readProgress?.readDate
-      }
-      if existing.progressCreated != dto.readProgress?.created {
-        existing.progressCreated = dto.readProgress?.created
-      }
-      if existing.progressLastModified != dto.readProgress?.lastModified {
-        existing.progressLastModified = dto.readProgress?.lastModified
-      }
-      if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
-      if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
-      if existing.seriesTitle != dto.seriesTitle { existing.seriesTitle = dto.seriesTitle }
+      applyBook(dto: dto, to: existing)
     } else {
       let newBook = KomgaBook(
         bookId: dto.id,
@@ -201,8 +108,43 @@ actor DatabaseOperator {
   }
 
   func upsertBooks(_ books: [Book], instanceId: String) {
+    guard !books.isEmpty else { return }
+
+    let compositeIds = Set(
+      books.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
+    )
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { compositeIds.contains($0.id) }
+    )
+    let existingBooks = (try? modelContext.fetch(descriptor)) ?? []
+    let existingById = Dictionary(uniqueKeysWithValues: existingBooks.map { ($0.id, $0) })
+
     for book in books {
-      upsertBook(dto: book, instanceId: instanceId)
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: book.id)
+      if let existing = existingById[compositeId] {
+        applyBook(dto: book, to: existing)
+      } else {
+        let newBook = KomgaBook(
+          bookId: book.id,
+          seriesId: book.seriesId,
+          libraryId: book.libraryId,
+          instanceId: instanceId,
+          name: book.name,
+          url: book.url,
+          number: book.number,
+          created: book.created,
+          lastModified: book.lastModified,
+          sizeBytes: book.sizeBytes,
+          size: book.size,
+          media: book.media,
+          metadata: book.metadata,
+          readProgress: book.readProgress,
+          isUnavailable: book.deleted,
+          oneshot: book.oneshot,
+          seriesTitle: book.seriesTitle
+        )
+        modelContext.insert(newBook)
+      }
     }
   }
 
@@ -349,131 +291,7 @@ actor DatabaseOperator {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      if existing.name != dto.name { existing.name = dto.name }
-      if existing.url != dto.url { existing.url = dto.url }
-      if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
-      if existing.booksCount != dto.booksCount { existing.booksCount = dto.booksCount }
-      if existing.booksReadCount != dto.booksReadCount {
-        existing.booksReadCount = dto.booksReadCount
-      }
-      if existing.booksUnreadCount != dto.booksUnreadCount {
-        existing.booksUnreadCount = dto.booksUnreadCount
-      }
-      if existing.booksInProgressCount != dto.booksInProgressCount {
-        existing.booksInProgressCount = dto.booksInProgressCount
-      }
-      // SeriesMetadata fields
-      if existing.metaStatus != dto.metadata.status { existing.metaStatus = dto.metadata.status }
-      if existing.metaStatusLock != dto.metadata.statusLock {
-        existing.metaStatusLock = dto.metadata.statusLock
-      }
-      if existing.metaCreated != dto.metadata.created {
-        existing.metaCreated = dto.metadata.created
-      }
-      if existing.metaLastModified != dto.metadata.lastModified {
-        existing.metaLastModified = dto.metadata.lastModified
-      }
-      if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
-      if existing.metaTitleLock != dto.metadata.titleLock {
-        existing.metaTitleLock = dto.metadata.titleLock
-      }
-      if existing.metaTitleSort != dto.metadata.titleSort {
-        existing.metaTitleSort = dto.metadata.titleSort
-      }
-      if existing.metaTitleSortLock != dto.metadata.titleSortLock {
-        existing.metaTitleSortLock = dto.metadata.titleSortLock
-      }
-      if existing.metaSummary != dto.metadata.summary {
-        existing.metaSummary = dto.metadata.summary
-      }
-      if existing.metaSummaryLock != dto.metadata.summaryLock {
-        existing.metaSummaryLock = dto.metadata.summaryLock
-      }
-      if existing.metaReadingDirection != dto.metadata.readingDirection {
-        existing.metaReadingDirection = dto.metadata.readingDirection
-      }
-      if existing.metaReadingDirectionLock != dto.metadata.readingDirectionLock {
-        existing.metaReadingDirectionLock = dto.metadata.readingDirectionLock
-      }
-      if existing.metaPublisher != dto.metadata.publisher {
-        existing.metaPublisher = dto.metadata.publisher
-      }
-      if existing.metaPublisherLock != dto.metadata.publisherLock {
-        existing.metaPublisherLock = dto.metadata.publisherLock
-      }
-      if existing.metaAgeRating != dto.metadata.ageRating {
-        existing.metaAgeRating = dto.metadata.ageRating
-      }
-      if existing.metaAgeRatingLock != dto.metadata.ageRatingLock {
-        existing.metaAgeRatingLock = dto.metadata.ageRatingLock
-      }
-      if existing.metaLanguage != dto.metadata.language {
-        existing.metaLanguage = dto.metadata.language
-      }
-      if existing.metaLanguageLock != dto.metadata.languageLock {
-        existing.metaLanguageLock = dto.metadata.languageLock
-      }
-      if existing.metaGenres != (dto.metadata.genres ?? []) {
-        existing.metaGenres = dto.metadata.genres ?? []
-      }
-      if existing.metaGenresLock != dto.metadata.genresLock {
-        existing.metaGenresLock = dto.metadata.genresLock
-      }
-      if existing.metaTags != (dto.metadata.tags ?? []) {
-        existing.metaTags = dto.metadata.tags ?? []
-      }
-      if existing.metaTagsLock != dto.metadata.tagsLock {
-        existing.metaTagsLock = dto.metadata.tagsLock
-      }
-      if existing.metaTotalBookCount != dto.metadata.totalBookCount {
-        existing.metaTotalBookCount = dto.metadata.totalBookCount
-      }
-      if existing.metaTotalBookCountLock != dto.metadata.totalBookCountLock {
-        existing.metaTotalBookCountLock = dto.metadata.totalBookCountLock
-      }
-      if existing.metaSharingLabels != (dto.metadata.sharingLabels ?? []) {
-        existing.metaSharingLabels = dto.metadata.sharingLabels ?? []
-      }
-      if existing.metaSharingLabelsLock != dto.metadata.sharingLabelsLock {
-        existing.metaSharingLabelsLock = dto.metadata.sharingLabelsLock
-      }
-      let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
-      if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
-      if existing.metaLinksLock != dto.metadata.linksLock {
-        existing.metaLinksLock = dto.metadata.linksLock
-      }
-      let newAlternateTitlesRaw = try? JSONEncoder().encode(dto.metadata.alternateTitles)
-      if existing.metaAlternateTitlesRaw != newAlternateTitlesRaw {
-        existing.metaAlternateTitlesRaw = newAlternateTitlesRaw
-      }
-      if existing.metaAlternateTitlesLock != dto.metadata.alternateTitlesLock {
-        existing.metaAlternateTitlesLock = dto.metadata.alternateTitlesLock
-      }
-      // SeriesBooksMetadata fields
-      if existing.booksMetaCreated != dto.booksMetadata.created {
-        existing.booksMetaCreated = dto.booksMetadata.created
-      }
-      if existing.booksMetaLastModified != dto.booksMetadata.lastModified {
-        existing.booksMetaLastModified = dto.booksMetadata.lastModified
-      }
-      let newAuthorsRaw = try? JSONEncoder().encode(dto.booksMetadata.authors)
-      if existing.booksMetaAuthorsRaw != newAuthorsRaw {
-        existing.booksMetaAuthorsRaw = newAuthorsRaw
-      }
-      if existing.booksMetaTags != (dto.booksMetadata.tags ?? []) {
-        existing.booksMetaTags = dto.booksMetadata.tags ?? []
-      }
-      if existing.booksMetaReleaseDate != dto.booksMetadata.releaseDate {
-        existing.booksMetaReleaseDate = dto.booksMetadata.releaseDate
-      }
-      if existing.booksMetaSummary != dto.booksMetadata.summary {
-        existing.booksMetaSummary = dto.booksMetadata.summary
-      }
-      if existing.booksMetaSummaryNumber != dto.booksMetadata.summaryNumber {
-        existing.booksMetaSummaryNumber = dto.booksMetadata.summaryNumber
-      }
-      if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
-      if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
+      applySeries(dto: dto, to: existing)
     } else {
       let newSeries = KomgaSeries(
         seriesId: dto.id,
@@ -505,8 +323,41 @@ actor DatabaseOperator {
   }
 
   func upsertSeriesList(_ seriesList: [Series], instanceId: String) {
+    guard !seriesList.isEmpty else { return }
+
+    let compositeIds = Set(
+      seriesList.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
+    )
+    let descriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { compositeIds.contains($0.id) }
+    )
+    let existingSeries = (try? modelContext.fetch(descriptor)) ?? []
+    let existingById = Dictionary(uniqueKeysWithValues: existingSeries.map { ($0.id, $0) })
+
     for series in seriesList {
-      upsertSeries(dto: series, instanceId: instanceId)
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: series.id)
+      if let existing = existingById[compositeId] {
+        applySeries(dto: series, to: existing)
+      } else {
+        let newSeries = KomgaSeries(
+          seriesId: series.id,
+          libraryId: series.libraryId,
+          instanceId: instanceId,
+          name: series.name,
+          url: series.url,
+          created: series.created,
+          lastModified: series.lastModified,
+          booksCount: series.booksCount,
+          booksReadCount: series.booksReadCount,
+          booksUnreadCount: series.booksUnreadCount,
+          booksInProgressCount: series.booksInProgressCount,
+          metadata: series.metadata,
+          booksMetadata: series.booksMetadata,
+          isUnavailable: series.deleted,
+          oneshot: series.oneshot
+        )
+        modelContext.insert(newSeries)
+      }
     }
   }
 
@@ -541,13 +392,7 @@ actor DatabaseOperator {
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      if existing.name != dto.name { existing.name = dto.name }
-      if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
-      if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
-      if existing.lastModifiedDate != dto.lastModifiedDate {
-        existing.lastModifiedDate = dto.lastModifiedDate
-      }
-      if existing.seriesIds != dto.seriesIds { existing.seriesIds = dto.seriesIds }
+      applyCollection(dto: dto, to: existing)
     } else {
       let newCollection = KomgaCollection(
         collectionId: dto.id,
@@ -573,8 +418,34 @@ actor DatabaseOperator {
   }
 
   func upsertCollections(_ collections: [SeriesCollection], instanceId: String) {
-    for col in collections {
-      upsertCollection(dto: col, instanceId: instanceId)
+    guard !collections.isEmpty else { return }
+
+    let compositeIds = Set(
+      collections.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
+    )
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { compositeIds.contains($0.id) }
+    )
+    let existingCollections = (try? modelContext.fetch(descriptor)) ?? []
+    let existingById = Dictionary(uniqueKeysWithValues: existingCollections.map { ($0.id, $0) })
+
+    for collection in collections {
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: collection.id)
+      if let existing = existingById[compositeId] {
+        applyCollection(dto: collection, to: existing)
+      } else {
+        let newCollection = KomgaCollection(
+          collectionId: collection.id,
+          instanceId: instanceId,
+          name: collection.name,
+          ordered: collection.ordered,
+          createdDate: collection.createdDate,
+          lastModifiedDate: collection.lastModifiedDate,
+          filtered: collection.filtered,
+          seriesIds: collection.seriesIds
+        )
+        modelContext.insert(newCollection)
+      }
     }
   }
 
@@ -584,14 +455,7 @@ actor DatabaseOperator {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
-      if existing.name != dto.name { existing.name = dto.name }
-      if existing.summary != dto.summary { existing.summary = dto.summary }
-      if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
-      if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
-      if existing.lastModifiedDate != dto.lastModifiedDate {
-        existing.lastModifiedDate = dto.lastModifiedDate
-      }
-      if existing.bookIds != dto.bookIds { existing.bookIds = dto.bookIds }
+      applyReadList(dto: dto, to: existing)
     } else {
       let newReadList = KomgaReadList(
         readListId: dto.id,
@@ -617,8 +481,488 @@ actor DatabaseOperator {
   }
 
   func upsertReadLists(_ readLists: [ReadList], instanceId: String) {
-    for rl in readLists {
-      upsertReadList(dto: rl, instanceId: instanceId)
+    guard !readLists.isEmpty else { return }
+
+    let compositeIds = Set(
+      readLists.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
+    )
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { compositeIds.contains($0.id) }
+    )
+    let existingReadLists = (try? modelContext.fetch(descriptor)) ?? []
+    let existingById = Dictionary(uniqueKeysWithValues: existingReadLists.map { ($0.id, $0) })
+
+    for readList in readLists {
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: readList.id)
+      if let existing = existingById[compositeId] {
+        applyReadList(dto: readList, to: existing)
+      } else {
+        let newReadList = KomgaReadList(
+          readListId: readList.id,
+          instanceId: instanceId,
+          name: readList.name,
+          summary: readList.summary,
+          ordered: readList.ordered,
+          createdDate: readList.createdDate,
+          lastModifiedDate: readList.lastModifiedDate,
+          filtered: readList.filtered,
+          bookIds: readList.bookIds
+        )
+        modelContext.insert(newReadList)
+      }
+    }
+  }
+
+  private func applyBook(dto: Book, to existing: KomgaBook) {
+    if existing.name != dto.name { existing.name = dto.name }
+    if existing.url != dto.url { existing.url = dto.url }
+    if existing.number != dto.number { existing.number = dto.number }
+    if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
+    if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
+    if existing.size != dto.size { existing.size = dto.size }
+    // Media fields
+    if existing.mediaStatus != dto.media.statusRaw { existing.mediaStatus = dto.media.statusRaw }
+    if existing.mediaType != dto.media.mediaType { existing.mediaType = dto.media.mediaType }
+    if existing.mediaPagesCount != dto.media.pagesCount {
+      existing.mediaPagesCount = dto.media.pagesCount
+    }
+    if existing.mediaComment != dto.media.comment { existing.mediaComment = dto.media.comment }
+    if existing.mediaProfile != dto.media.mediaProfileRaw {
+      existing.mediaProfile = dto.media.mediaProfileRaw
+    }
+    if existing.mediaEpubDivinaCompatible != dto.media.epubDivinaCompatible {
+      existing.mediaEpubDivinaCompatible = dto.media.epubDivinaCompatible
+    }
+    if existing.mediaEpubIsKepub != dto.media.epubIsKepub {
+      existing.mediaEpubIsKepub = dto.media.epubIsKepub
+    }
+    // Metadata fields
+    if existing.metaCreated != dto.metadata.created {
+      existing.metaCreated = dto.metadata.created
+    }
+    if existing.metaLastModified != dto.metadata.lastModified {
+      existing.metaLastModified = dto.metadata.lastModified
+    }
+    if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
+    if existing.metaTitleLock != dto.metadata.titleLock {
+      existing.metaTitleLock = dto.metadata.titleLock
+    }
+    if existing.metaSummary != dto.metadata.summary {
+      existing.metaSummary = dto.metadata.summary
+    }
+    if existing.metaSummaryLock != dto.metadata.summaryLock {
+      existing.metaSummaryLock = dto.metadata.summaryLock
+    }
+    if existing.metaNumber != dto.metadata.number { existing.metaNumber = dto.metadata.number }
+    if existing.metaNumberLock != dto.metadata.numberLock {
+      existing.metaNumberLock = dto.metadata.numberLock
+    }
+    if existing.metaNumberSort != dto.metadata.numberSort {
+      existing.metaNumberSort = dto.metadata.numberSort
+    }
+    if existing.metaNumberSortLock != dto.metadata.numberSortLock {
+      existing.metaNumberSortLock = dto.metadata.numberSortLock
+    }
+    if existing.metaReleaseDate != dto.metadata.releaseDate {
+      existing.metaReleaseDate = dto.metadata.releaseDate
+    }
+    if existing.metaReleaseDateLock != dto.metadata.releaseDateLock {
+      existing.metaReleaseDateLock = dto.metadata.releaseDateLock
+    }
+    let newAuthorsRaw = try? JSONEncoder().encode(dto.metadata.authors)
+    if existing.metaAuthorsRaw != newAuthorsRaw { existing.metaAuthorsRaw = newAuthorsRaw }
+    if existing.metaAuthorsLock != dto.metadata.authorsLock {
+      existing.metaAuthorsLock = dto.metadata.authorsLock
+    }
+    if existing.metaTags != (dto.metadata.tags ?? []) {
+      existing.metaTags = dto.metadata.tags ?? []
+    }
+    if existing.metaTagsLock != dto.metadata.tagsLock {
+      existing.metaTagsLock = dto.metadata.tagsLock
+    }
+    if existing.metaIsbn != dto.metadata.isbn { existing.metaIsbn = dto.metadata.isbn }
+    if existing.metaIsbnLock != dto.metadata.isbnLock {
+      existing.metaIsbnLock = dto.metadata.isbnLock
+    }
+    let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
+    if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
+    if existing.metaLinksLock != dto.metadata.linksLock {
+      existing.metaLinksLock = dto.metadata.linksLock
+    }
+    // ReadProgress fields
+    if existing.progressPage != dto.readProgress?.page {
+      existing.progressPage = dto.readProgress?.page
+    }
+    if existing.progressCompleted != dto.readProgress?.completed {
+      existing.progressCompleted = dto.readProgress?.completed
+    }
+    if existing.progressReadDate != dto.readProgress?.readDate {
+      existing.progressReadDate = dto.readProgress?.readDate
+    }
+    if existing.progressCreated != dto.readProgress?.created {
+      existing.progressCreated = dto.readProgress?.created
+    }
+    if existing.progressLastModified != dto.readProgress?.lastModified {
+      existing.progressLastModified = dto.readProgress?.lastModified
+    }
+    if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
+    if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
+    if existing.seriesTitle != dto.seriesTitle { existing.seriesTitle = dto.seriesTitle }
+  }
+
+  private func applySeries(dto: Series, to existing: KomgaSeries) {
+    if existing.name != dto.name { existing.name = dto.name }
+    if existing.url != dto.url { existing.url = dto.url }
+    if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
+    if existing.booksCount != dto.booksCount { existing.booksCount = dto.booksCount }
+    if existing.booksReadCount != dto.booksReadCount {
+      existing.booksReadCount = dto.booksReadCount
+    }
+    if existing.booksUnreadCount != dto.booksUnreadCount {
+      existing.booksUnreadCount = dto.booksUnreadCount
+    }
+    if existing.booksInProgressCount != dto.booksInProgressCount {
+      existing.booksInProgressCount = dto.booksInProgressCount
+    }
+    // SeriesMetadata fields
+    if existing.metaStatus != dto.metadata.status { existing.metaStatus = dto.metadata.status }
+    if existing.metaStatusLock != dto.metadata.statusLock {
+      existing.metaStatusLock = dto.metadata.statusLock
+    }
+    if existing.metaCreated != dto.metadata.created {
+      existing.metaCreated = dto.metadata.created
+    }
+    if existing.metaLastModified != dto.metadata.lastModified {
+      existing.metaLastModified = dto.metadata.lastModified
+    }
+    if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
+    if existing.metaTitleLock != dto.metadata.titleLock {
+      existing.metaTitleLock = dto.metadata.titleLock
+    }
+    if existing.metaTitleSort != dto.metadata.titleSort {
+      existing.metaTitleSort = dto.metadata.titleSort
+    }
+    if existing.metaTitleSortLock != dto.metadata.titleSortLock {
+      existing.metaTitleSortLock = dto.metadata.titleSortLock
+    }
+    if existing.metaSummary != dto.metadata.summary {
+      existing.metaSummary = dto.metadata.summary
+    }
+    if existing.metaSummaryLock != dto.metadata.summaryLock {
+      existing.metaSummaryLock = dto.metadata.summaryLock
+    }
+    if existing.metaReadingDirection != dto.metadata.readingDirection {
+      existing.metaReadingDirection = dto.metadata.readingDirection
+    }
+    if existing.metaReadingDirectionLock != dto.metadata.readingDirectionLock {
+      existing.metaReadingDirectionLock = dto.metadata.readingDirectionLock
+    }
+    if existing.metaPublisher != dto.metadata.publisher {
+      existing.metaPublisher = dto.metadata.publisher
+    }
+    if existing.metaPublisherLock != dto.metadata.publisherLock {
+      existing.metaPublisherLock = dto.metadata.publisherLock
+    }
+    if existing.metaAgeRating != dto.metadata.ageRating {
+      existing.metaAgeRating = dto.metadata.ageRating
+    }
+    if existing.metaAgeRatingLock != dto.metadata.ageRatingLock {
+      existing.metaAgeRatingLock = dto.metadata.ageRatingLock
+    }
+    if existing.metaLanguage != dto.metadata.language {
+      existing.metaLanguage = dto.metadata.language
+    }
+    if existing.metaLanguageLock != dto.metadata.languageLock {
+      existing.metaLanguageLock = dto.metadata.languageLock
+    }
+    if existing.metaGenres != (dto.metadata.genres ?? []) {
+      existing.metaGenres = dto.metadata.genres ?? []
+    }
+    if existing.metaGenresLock != dto.metadata.genresLock {
+      existing.metaGenresLock = dto.metadata.genresLock
+    }
+    if existing.metaTags != (dto.metadata.tags ?? []) {
+      existing.metaTags = dto.metadata.tags ?? []
+    }
+    if existing.metaTagsLock != dto.metadata.tagsLock {
+      existing.metaTagsLock = dto.metadata.tagsLock
+    }
+    if existing.metaTotalBookCount != dto.metadata.totalBookCount {
+      existing.metaTotalBookCount = dto.metadata.totalBookCount
+    }
+    if existing.metaTotalBookCountLock != dto.metadata.totalBookCountLock {
+      existing.metaTotalBookCountLock = dto.metadata.totalBookCountLock
+    }
+    if existing.metaSharingLabels != (dto.metadata.sharingLabels ?? []) {
+      existing.metaSharingLabels = dto.metadata.sharingLabels ?? []
+    }
+    if existing.metaSharingLabelsLock != dto.metadata.sharingLabelsLock {
+      existing.metaSharingLabelsLock = dto.metadata.sharingLabelsLock
+    }
+    let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
+    if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
+    if existing.metaLinksLock != dto.metadata.linksLock {
+      existing.metaLinksLock = dto.metadata.linksLock
+    }
+    let newAlternateTitlesRaw = try? JSONEncoder().encode(dto.metadata.alternateTitles)
+    if existing.metaAlternateTitlesRaw != newAlternateTitlesRaw {
+      existing.metaAlternateTitlesRaw = newAlternateTitlesRaw
+    }
+    if existing.metaAlternateTitlesLock != dto.metadata.alternateTitlesLock {
+      existing.metaAlternateTitlesLock = dto.metadata.alternateTitlesLock
+    }
+    // SeriesBooksMetadata fields
+    if existing.booksMetaCreated != dto.booksMetadata.created {
+      existing.booksMetaCreated = dto.booksMetadata.created
+    }
+    if existing.booksMetaLastModified != dto.booksMetadata.lastModified {
+      existing.booksMetaLastModified = dto.booksMetadata.lastModified
+    }
+    let newAuthorsRaw = try? JSONEncoder().encode(dto.booksMetadata.authors)
+    if existing.booksMetaAuthorsRaw != newAuthorsRaw {
+      existing.booksMetaAuthorsRaw = newAuthorsRaw
+    }
+    if existing.booksMetaTags != (dto.booksMetadata.tags ?? []) {
+      existing.booksMetaTags = dto.booksMetadata.tags ?? []
+    }
+    if existing.booksMetaReleaseDate != dto.booksMetadata.releaseDate {
+      existing.booksMetaReleaseDate = dto.booksMetadata.releaseDate
+    }
+    if existing.booksMetaSummary != dto.booksMetadata.summary {
+      existing.booksMetaSummary = dto.booksMetadata.summary
+    }
+    if existing.booksMetaSummaryNumber != dto.booksMetadata.summaryNumber {
+      existing.booksMetaSummaryNumber = dto.booksMetadata.summaryNumber
+    }
+    if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
+    if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
+  }
+
+  private func applyCollection(dto: SeriesCollection, to existing: KomgaCollection) {
+    if existing.name != dto.name { existing.name = dto.name }
+    if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
+    if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
+    if existing.lastModifiedDate != dto.lastModifiedDate {
+      existing.lastModifiedDate = dto.lastModifiedDate
+    }
+    if existing.seriesIds != dto.seriesIds { existing.seriesIds = dto.seriesIds }
+  }
+
+  private func applyReadList(dto: ReadList, to existing: KomgaReadList) {
+    if existing.name != dto.name { existing.name = dto.name }
+    if existing.summary != dto.summary { existing.summary = dto.summary }
+    if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
+    if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
+    if existing.lastModifiedDate != dto.lastModifiedDate {
+      existing.lastModifiedDate = dto.lastModifiedDate
+    }
+    if existing.bookIds != dto.bookIds { existing.bookIds = dto.bookIds }
+  }
+
+  private func readingStatus(progressCompleted: Bool?, progressPage: Int?) -> Int {
+    if progressCompleted == true {
+      return 2
+    }
+    if (progressPage ?? 0) > 0 {
+      return 1
+    }
+    return 0
+  }
+
+  private func updateSeriesReadingCounts(
+    seriesId: String,
+    instanceId: String,
+    oldStatus: Int,
+    newStatus: Int
+  ) {
+    let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
+    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { $0.id == compositeSeriesId }
+    )
+    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+
+    var unread = series.booksUnreadCount
+    var inProgress = series.booksInProgressCount
+    var read = series.booksReadCount
+
+    switch oldStatus {
+    case 0:
+      unread -= 1
+    case 1:
+      inProgress -= 1
+    case 2:
+      read -= 1
+    default:
+      break
+    }
+
+    switch newStatus {
+    case 0:
+      unread += 1
+    case 1:
+      inProgress += 1
+    case 2:
+      read += 1
+    default:
+      break
+    }
+
+    if unread < 0 || inProgress < 0 || read < 0 || (unread + inProgress + read) > series.booksCount {
+      syncSeriesReadingStatus(seriesId: seriesId, instanceId: instanceId)
+      return
+    }
+
+    series.booksUnreadCount = max(0, unread)
+    series.booksInProgressCount = max(0, inProgress)
+    series.booksReadCount = max(0, read)
+  }
+
+  private func applySeriesDownloadDelta(
+    series: KomgaSeries,
+    oldStatusRaw: String,
+    newStatusRaw: String,
+    oldDownloadedSize: Int64,
+    newDownloadedSize: Int64,
+    oldDownloadAt: Date?,
+    newDownloadAt: Date?
+  ) {
+    let wasDownloaded = oldStatusRaw == "downloaded"
+    let isDownloaded = newStatusRaw == "downloaded"
+    let wasPending = oldStatusRaw == "pending"
+    let isPending = newStatusRaw == "pending"
+
+    var downloadedCount = series.downloadedBooks
+    var pendingCount = series.pendingBooks
+    var downloadedSize = series.downloadedSize
+
+    if wasDownloaded && !isDownloaded {
+      downloadedCount -= 1
+      downloadedSize -= oldDownloadedSize
+    } else if !wasDownloaded && isDownloaded {
+      downloadedCount += 1
+      downloadedSize += newDownloadedSize
+    } else if wasDownloaded && isDownloaded && oldDownloadedSize != newDownloadedSize {
+      downloadedSize += (newDownloadedSize - oldDownloadedSize)
+    }
+
+    if wasPending && !isPending {
+      pendingCount -= 1
+    } else if !wasPending && isPending {
+      pendingCount += 1
+    }
+
+    var needsRefresh = false
+    if downloadedCount < 0 || pendingCount < 0
+      || downloadedCount > series.booksCount
+      || pendingCount > series.booksCount
+    {
+      needsRefresh = true
+    }
+
+    if let oldDownloadAt, oldDownloadAt == series.downloadAt {
+      if newDownloadAt == nil || (newDownloadAt ?? oldDownloadAt) < oldDownloadAt {
+        needsRefresh = true
+      }
+    }
+
+    if needsRefresh {
+      syncSeriesDownloadStatus(series: series)
+      return
+    }
+
+    series.downloadedBooks = max(0, downloadedCount)
+    series.pendingBooks = max(0, pendingCount)
+    series.downloadedSize = max(0, downloadedSize)
+
+    if let newDownloadAt {
+      if series.downloadAt == nil || newDownloadAt > series.downloadAt! {
+        series.downloadAt = newDownloadAt
+      }
+    }
+
+    if downloadedCount == series.booksCount {
+      series.downloadStatusRaw = "downloaded"
+    } else if pendingCount > 0 {
+      series.downloadStatusRaw = "pending"
+    } else {
+      series.downloadStatusRaw = "notDownloaded"
+    }
+  }
+
+  private func applyReadListDownloadDelta(
+    readList: KomgaReadList,
+    oldStatusRaw: String,
+    newStatusRaw: String,
+    oldDownloadedSize: Int64,
+    newDownloadedSize: Int64,
+    oldDownloadAt: Date?,
+    newDownloadAt: Date?
+  ) {
+    let wasDownloaded = oldStatusRaw == "downloaded"
+    let isDownloaded = newStatusRaw == "downloaded"
+    let wasPending = oldStatusRaw == "pending"
+    let isPending = newStatusRaw == "pending"
+
+    var downloadedCount = readList.downloadedBooks
+    var pendingCount = readList.pendingBooks
+    var downloadedSize = readList.downloadedSize
+
+    if wasDownloaded && !isDownloaded {
+      downloadedCount -= 1
+      downloadedSize -= oldDownloadedSize
+    } else if !wasDownloaded && isDownloaded {
+      downloadedCount += 1
+      downloadedSize += newDownloadedSize
+    } else if wasDownloaded && isDownloaded && oldDownloadedSize != newDownloadedSize {
+      downloadedSize += (newDownloadedSize - oldDownloadedSize)
+    }
+
+    if wasPending && !isPending {
+      pendingCount -= 1
+    } else if !wasPending && isPending {
+      pendingCount += 1
+    }
+
+    var needsRefresh = false
+    if downloadedCount < 0 || pendingCount < 0
+      || downloadedCount > readList.bookIds.count
+      || pendingCount > readList.bookIds.count
+    {
+      needsRefresh = true
+    }
+
+    if let oldDownloadAt, oldDownloadAt == readList.downloadAt {
+      if !isDownloaded || newDownloadAt == nil || (newDownloadAt ?? oldDownloadAt) < oldDownloadAt {
+        needsRefresh = true
+      }
+    }
+
+    if needsRefresh {
+      syncReadListDownloadStatus(readList: readList)
+      return
+    }
+
+    readList.downloadedBooks = max(0, downloadedCount)
+    readList.pendingBooks = max(0, pendingCount)
+    readList.downloadedSize = max(0, downloadedSize)
+
+    if isDownloaded, let newDownloadAt {
+      if readList.downloadAt == nil || newDownloadAt > readList.downloadAt! {
+        readList.downloadAt = newDownloadAt
+      }
+    } else if downloadedCount == 0 {
+      readList.downloadAt = nil
+    }
+
+    let totalCount = readList.bookIds.count
+    if downloadedCount == totalCount && totalCount > 0 {
+      readList.downloadStatusRaw = "downloaded"
+    } else if pendingCount > 0 {
+      readList.downloadStatusRaw = "pending"
+    } else if downloadedCount > 0 {
+      readList.downloadStatusRaw = "partiallyDownloaded"
+    } else {
+      readList.downloadStatusRaw = "notDownloaded"
     }
   }
 
@@ -659,6 +1003,9 @@ actor DatabaseOperator {
     )
 
     guard let book = try? modelContext.fetch(descriptor).first else { return }
+    let oldStatusRaw = book.downloadStatusRaw
+    let oldDownloadedSize = book.downloadedSize
+    let oldDownloadAt = book.downloadAt
     book.downloadStatus = status
     if let downloadAt = downloadAt {
       book.downloadAt = downloadAt
@@ -683,17 +1030,45 @@ actor DatabaseOperator {
       let seriesDescriptor = FetchDescriptor<KomgaSeries>(
         predicate: #Predicate { $0.id == compositeSeriesId }
       )
+      let newStatusRaw = book.downloadStatusRaw
+      let newDownloadedSize = book.downloadedSize
+      let newDownloadAt = book.downloadAt
+
       if let series = try? modelContext.fetch(seriesDescriptor).first {
-        syncSeriesDownloadStatus(series: series)
+        if series.offlinePolicy == .manual {
+          applySeriesDownloadDelta(
+            series: series,
+            oldStatusRaw: oldStatusRaw,
+            newStatusRaw: newStatusRaw,
+            oldDownloadedSize: oldDownloadedSize,
+            newDownloadedSize: newDownloadedSize,
+            oldDownloadAt: oldDownloadAt,
+            newDownloadAt: newDownloadAt
+          )
+        } else {
+          syncSeriesDownloadStatus(series: series)
+        }
       }
 
-      // Also sync readlists that contain this book
-      let readListDescriptor = FetchDescriptor<KomgaReadList>(
-        predicate: #Predicate { $0.instanceId == instanceId }
-      )
-      if let readLists = try? modelContext.fetch(readListDescriptor) {
-        for readList in readLists where readList.bookIds.contains(bookId) {
-          syncReadListDownloadStatus(readList: readList)
+      // Also sync readlists that contain this book (use cached ids to avoid full scan)
+      let readListIds = book.readListIds
+      for readListId in readListIds {
+        let compositeReadListId = CompositeID.generate(instanceId: instanceId, id: readListId)
+        let readListDescriptor = FetchDescriptor<KomgaReadList>(
+          predicate: #Predicate { $0.id == compositeReadListId }
+        )
+        if let readList = try? modelContext.fetch(readListDescriptor).first,
+          readList.bookIds.contains(book.bookId)
+        {
+          applyReadListDownloadDelta(
+            readList: readList,
+            oldStatusRaw: oldStatusRaw,
+            newStatusRaw: newStatusRaw,
+            oldDownloadedSize: oldDownloadedSize,
+            newDownloadedSize: newDownloadedSize,
+            oldDownloadAt: oldDownloadAt,
+            newDownloadAt: newDownloadAt
+          )
         }
       }
     }
@@ -707,11 +1082,20 @@ actor DatabaseOperator {
     )
 
     if let book = try? modelContext.fetch(descriptor).first {
+      let oldStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
       book.progressPage = page
       book.progressCompleted = completed
       book.progressReadDate = Date()
       book.progressLastModified = Date()
-      syncSeriesReadingStatus(seriesId: book.seriesId, instanceId: instanceId)
+      let newStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
+      if oldStatus != newStatus {
+        updateSeriesReadingCounts(
+          seriesId: book.seriesId,
+          instanceId: instanceId,
+          oldStatus: oldStatus,
+          newStatus: newStatus
+        )
+      }
     }
   }
 

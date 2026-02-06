@@ -12,6 +12,7 @@ import SwiftUI
 struct BookSelectionItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
+  let prefetchedBook: KomgaBook?
   @Binding var selectedBookIds: Set<String>
   let refreshBooks: () -> Void
   var showSeriesTitle: Bool = true
@@ -21,23 +22,29 @@ struct BookSelectionItemView: View {
   init(
     bookId: String,
     layout: BrowseLayoutMode,
+    komgaBook: KomgaBook? = nil,
     selectedBookIds: Binding<Set<String>>,
     refreshBooks: @escaping () -> Void,
     showSeriesTitle: Bool = true
   ) {
     self.bookId = bookId
     self.layout = layout
+    self.prefetchedBook = komgaBook
     self._selectedBookIds = selectedBookIds
     self.refreshBooks = refreshBooks
     self.showSeriesTitle = showSeriesTitle
 
-    let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+    if komgaBook == nil {
+      let instanceId = AppConfig.current.instanceId
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+      _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+    } else {
+      _komgaBooks = Query(filter: #Predicate<KomgaBook> { _ in false })
+    }
   }
 
   private var komgaBook: KomgaBook? {
-    komgaBooks.first
+    prefetchedBook ?? komgaBooks.first
   }
 
   private var isSelected: Bool {
