@@ -140,6 +140,7 @@ struct OfflineView: View {
             } label: {
               Image(systemName: "ellipsis")
             }
+            .appMenuStyle()
           }
         }
       }

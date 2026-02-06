@@ -41,6 +41,7 @@ struct ReadListDownloadActionsSection: View {
             Image(systemName: "chevron.down")
           }
         }
+        .appMenuStyle()
         .font(.caption)
         .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
 

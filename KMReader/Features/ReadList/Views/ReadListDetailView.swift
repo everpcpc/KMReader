@@ -188,6 +188,7 @@ extension ReadListDetailView {
       } label: {
         Image(systemName: "ellipsis")
       }
+      .appMenuStyle()
     }.toolbarButtonStyle()
   }
 }

@@ -310,6 +310,7 @@ struct DashboardView: View {
             } label: {
               Image(systemName: "ellipsis")
             }
+            .appMenuStyle()
           }
         }
       }

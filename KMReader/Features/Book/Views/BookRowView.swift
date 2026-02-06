@@ -156,7 +156,9 @@ struct BookRowView: View {
                   .foregroundColor(.secondary)
                   .frame(width: 40, height: 40)
                   .contentShape(Rectangle())
-              }.adaptiveButtonStyle(.plain)
+              }
+              .appMenuStyle()
+              .adaptiveButtonStyle(.plain)
             )
         }
       }

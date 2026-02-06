@@ -219,6 +219,7 @@ struct DivinaControlsOverlayView: View {
         Image(systemName: "ellipsis")
           .padding(4)
       }
+      .appMenuStyle()
       .buttonBorderShape(.circle)
       .controlSize(.large)
       .contentShape(Circle())

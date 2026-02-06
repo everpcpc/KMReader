@@ -66,6 +66,7 @@ struct SettingsLogsView: View {
             } label: {
               LogFilterChip(icon: "clock", text: selectedTimeRange.displayName)
             }
+            .appMenuStyle()
 
             Menu {
               Picker("Level", selection: $selectedLevel) {
@@ -77,6 +78,7 @@ struct SettingsLogsView: View {
             } label: {
               LogFilterChip(icon: "flag", text: selectedLevel.rawValue, color: selectedLevel.color)
             }
+            .appMenuStyle()
 
             Menu {
               Picker("Limit", selection: $selectedLimit) {
@@ -88,6 +90,7 @@ struct SettingsLogsView: View {
             } label: {
               LogFilterChip(icon: "number", text: selectedLimit.displayName)
             }
+            .appMenuStyle()
           }
           .adaptiveButtonStyle(.bordered)
 
