@@ -90,18 +90,23 @@ actor OfflineManager {
 
   /// Base directory for all offline books.
   private static func baseDirectory() -> URL {
-    let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-    return documentsDir.appendingPathComponent(directoryName, isDirectory: true)
+    let appSupport = FileManager.default.urls(
+      for: .applicationSupportDirectory, in: .userDomainMask
+    ).first!
+    ensureDirectoryExists(at: appSupport)
+    let base = appSupport.appendingPathComponent(directoryName, isDirectory: true)
+    migrateLegacyDirectoryIfNeeded(to: base)
+    ensureDirectoryExists(at: base)
+    excludeFromBackupIfNeeded(at: base)
+    return base
   }
 
   /// Namespaced directory for a specific instance's offline books.
   private static func offlineDirectory(for instanceId: String) -> URL {
     let sanitized = instanceId.isEmpty ? "default" : instanceId
     let url = baseDirectory().appendingPathComponent(sanitized, isDirectory: true)
-    var isDir: ObjCBool = false
-    if !FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) || !isDir.boolValue {
-      try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-    }
+    ensureDirectoryExists(at: url)
+    excludeFromBackupIfNeeded(at: url)
     return url
   }
 
@@ -114,17 +119,15 @@ actor OfflineManager {
   private func bookDirectory(instanceId: String, bookId: String) -> URL {
     let url = Self.offlineDirectory(for: instanceId)
       .appendingPathComponent(bookId, isDirectory: true)
-    if !FileManager.default.fileExists(atPath: url.path) {
-      try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-    }
+    Self.ensureDirectoryExists(at: url)
+    Self.excludeFromBackupIfNeeded(at: url)
     return url
   }
 
   private func webPubRootURL(bookDir: URL) -> URL {
     let url = bookDir.appendingPathComponent("webpub", isDirectory: true)
-    if !FileManager.default.fileExists(atPath: url.path) {
-      try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-    }
+    Self.ensureDirectoryExists(at: url)
+    Self.excludeFromBackupIfNeeded(at: url)
     return url
   }
 
@@ -1141,12 +1144,12 @@ actor OfflineManager {
             }
 
             let directory = destination.deletingLastPathComponent()
-            if !FileManager.default.fileExists(atPath: directory.path) {
-              try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            }
+            Self.ensureDirectoryExists(at: directory)
+            Self.excludeFromBackupIfNeeded(at: directory)
 
             let result = try await BookService.shared.downloadResource(at: resourceURL)
             try result.data.write(to: destination, options: [.atomic])
+            Self.excludeFromBackupIfNeeded(at: destination)
           }
           active += 1
         }
@@ -1268,6 +1271,7 @@ actor OfflineManager {
               let (data, _) = try await BookService.shared.getBookPage(
                 bookId: bookId, page: page.number)
               try data.write(to: dest)
+              Self.excludeFromBackupIfNeeded(at: dest)
             }
           }
           active += 1
@@ -1312,6 +1316,7 @@ actor OfflineManager {
     let cachedURL = pageImageCache.imageFileURL(bookId: bookId, page: page)
     do {
       try FileManager.default.copyItem(at: cachedURL, to: destination)
+      Self.excludeFromBackupIfNeeded(at: destination)
       return true
     } catch {
       logger.error("❌ Failed to copy cached page for book \(bookId) page \(page.number): \(error)")
@@ -1355,6 +1360,108 @@ actor OfflineManager {
       )
       await DatabaseOperator.shared.commit()
     }
+  }
+
+  // MARK: - File System Helpers
+
+  private static func ensureDirectoryExists(at url: URL) {
+    var isDirectory: ObjCBool = false
+    if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+      isDirectory.boolValue
+    {
+      return
+    }
+    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+  }
+
+  private static func excludeFromBackupIfNeeded(at url: URL) {
+    var values = URLResourceValues()
+    values.isExcludedFromBackup = true
+    var target = url
+    try? target.setResourceValues(values)
+  }
+
+  private static func migrateLegacyDirectoryIfNeeded(to destination: URL) {
+    let legacy = legacyBaseDirectory()
+    var legacyIsDirectory: ObjCBool = false
+    guard FileManager.default.fileExists(atPath: legacy.path, isDirectory: &legacyIsDirectory),
+      legacyIsDirectory.boolValue
+    else {
+      return
+    }
+
+    var destinationIsDirectory: ObjCBool = false
+    let destinationExists = FileManager.default.fileExists(
+      atPath: destination.path, isDirectory: &destinationIsDirectory)
+
+    if !destinationExists {
+      if (try? FileManager.default.moveItem(at: legacy, to: destination)) != nil {
+        return
+      }
+    } else if destinationIsDirectory.boolValue, isDirectoryEmpty(at: destination) {
+      do {
+        try FileManager.default.removeItem(at: destination)
+        try FileManager.default.moveItem(at: legacy, to: destination)
+        return
+      } catch {
+        // Fall back to merge.
+      }
+    }
+
+    mergeDirectoryContents(from: legacy, to: destination)
+    if isDirectoryEmpty(at: legacy) {
+      try? FileManager.default.removeItem(at: legacy)
+    }
+  }
+
+  private static func legacyBaseDirectory() -> URL {
+    let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    return documentsDir.appendingPathComponent(directoryName, isDirectory: true)
+  }
+
+  private static func mergeDirectoryContents(from source: URL, to destination: URL) {
+    guard
+      let items = try? FileManager.default.contentsOfDirectory(
+        at: source,
+        includingPropertiesForKeys: [.isDirectoryKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return
+    }
+
+    for item in items {
+      let destinationURL = destination.appendingPathComponent(item.lastPathComponent)
+      var sourceIsDirectory: ObjCBool = false
+      FileManager.default.fileExists(atPath: item.path, isDirectory: &sourceIsDirectory)
+
+      var destinationIsDirectory: ObjCBool = false
+      let destinationExists = FileManager.default.fileExists(
+        atPath: destinationURL.path, isDirectory: &destinationIsDirectory)
+
+      if !destinationExists {
+        try? FileManager.default.moveItem(at: item, to: destinationURL)
+        excludeFromBackupIfNeeded(at: destinationURL)
+        continue
+      }
+
+      if sourceIsDirectory.boolValue && destinationIsDirectory.boolValue {
+        mergeDirectoryContents(from: item, to: destinationURL)
+        if isDirectoryEmpty(at: item) {
+          try? FileManager.default.removeItem(at: item)
+        }
+        continue
+      }
+
+      try? FileManager.default.removeItem(at: item)
+    }
+  }
+
+  private static func isDirectoryEmpty(at url: URL) -> Bool {
+    guard let contents = try? FileManager.default.contentsOfDirectory(atPath: url.path) else {
+      return false
+    }
+    return contents.isEmpty
   }
 }
 
