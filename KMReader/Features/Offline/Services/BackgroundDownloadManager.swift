@@ -205,7 +205,7 @@ import OSLog
           try FileManager.default.createDirectory(
             at: destinationDir, withIntermediateDirectories: true)
         }
-        excludeFromBackupIfNeeded(at: destinationDir)
+        Self.excludeFromBackupIfNeeded(at: destinationDir)
 
         // Remove existing file if present
         if FileManager.default.fileExists(atPath: destinationURL.path) {
@@ -214,14 +214,14 @@ import OSLog
 
         // Move downloaded file
         try FileManager.default.moveItem(at: location, to: destinationURL)
-        excludeFromBackupIfNeeded(at: destinationURL)
+        Self.excludeFromBackupIfNeeded(at: destinationURL)
         return nil
       } catch {
         return error
       }
     }
 
-    private func excludeFromBackupIfNeeded(at url: URL) {
+    nonisolated private static func excludeFromBackupIfNeeded(at url: URL) {
       var values = URLResourceValues()
       values.isExcludedFromBackup = true
       var target = url
