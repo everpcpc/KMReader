@@ -16,6 +16,7 @@ struct SeriesBooksQueryView: View {
   let loadMore: (Bool) async -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @Query private var komgaBooks: [KomgaBook]
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -23,6 +24,29 @@ struct SeriesBooksQueryView: View {
 
   private var spacing: CGFloat {
     LayoutConfig.spacing(for: gridDensity)
+  }
+
+  private var booksById: [String: KomgaBook] {
+    komgaBooks.reduce(into: [:]) { result, book in
+      result[book.bookId] = book
+    }
+  }
+
+  init(
+    seriesId: String,
+    bookViewModel: BookViewModel,
+    browseLayout: BrowseLayoutMode,
+    refreshBooks: @escaping () -> Void,
+    loadMore: @escaping (Bool) async -> Void
+  ) {
+    self.seriesId = seriesId
+    self.bookViewModel = bookViewModel
+    self.browseLayout = browseLayout
+    self.refreshBooks = refreshBooks
+    self.loadMore = loadMore
+
+    let compositeIds = bookViewModel.pagination.items.map { CompositeID.generate(id: $0.id) }
+    _komgaBooks = Query(filter: #Predicate<KomgaBook> { compositeIds.contains($0.id) })
   }
 
   var body: some View {
@@ -39,6 +63,7 @@ struct SeriesBooksQueryView: View {
               BookQueryItemView(
                 bookId: book.id,
                 layout: .grid,
+                komgaBook: booksById[book.id],
                 showSeriesTitle: false,
                 showSeriesNavigation: false
               )
@@ -57,6 +82,7 @@ struct SeriesBooksQueryView: View {
               BookQueryItemView(
                 bookId: book.id,
                 layout: .list,
+                komgaBook: booksById[book.id],
                 showSeriesTitle: false,
                 showSeriesNavigation: false
               )

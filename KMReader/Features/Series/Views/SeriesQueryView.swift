@@ -15,6 +15,7 @@ struct SeriesQueryView: View {
   let loadMore: (Bool) async -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @Query private var komgaSeries: [KomgaSeries]
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -22,6 +23,27 @@ struct SeriesQueryView: View {
 
   private var spacing: CGFloat {
     LayoutConfig.spacing(for: gridDensity)
+  }
+
+  private var seriesById: [String: KomgaSeries] {
+    komgaSeries.reduce(into: [:]) { result, series in
+      result[series.seriesId] = series
+    }
+  }
+
+  init(
+    browseOpts: SeriesBrowseOptions,
+    browseLayout: BrowseLayoutMode,
+    viewModel: SeriesViewModel,
+    loadMore: @escaping (Bool) async -> Void
+  ) {
+    self.browseOpts = browseOpts
+    self.browseLayout = browseLayout
+    self.viewModel = viewModel
+    self.loadMore = loadMore
+
+    let compositeIds = viewModel.pagination.items.map { CompositeID.generate(id: $0.id) }
+    _komgaSeries = Query(filter: #Predicate<KomgaSeries> { compositeIds.contains($0.id) })
   }
 
   var body: some View {
@@ -43,7 +65,8 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .grid
+              layout: .grid,
+              komgaSeries: seriesById[series.id]
             )
             .padding(.bottom)
             .onAppear {
@@ -61,7 +84,8 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .list
+              layout: .list,
+              komgaSeries: seriesById[series.id]
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: series) {

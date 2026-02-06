@@ -20,6 +20,7 @@ struct ReadListBooksQueryView: View {
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @Environment(\.modelContext) private var modelContext
+  @Query private var komgaBooks: [KomgaBook]
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -27,6 +28,35 @@ struct ReadListBooksQueryView: View {
 
   private var spacing: CGFloat {
     LayoutConfig.spacing(for: gridDensity)
+  }
+
+  private var booksById: [String: KomgaBook] {
+    komgaBooks.reduce(into: [:]) { result, book in
+      result[book.bookId] = book
+    }
+  }
+
+  init(
+    readListId: String,
+    bookViewModel: BookViewModel,
+    browseOpts: ReadListBookBrowseOptions,
+    browseLayout: BrowseLayoutMode,
+    isSelectionMode: Bool,
+    selectedBookIds: Binding<Set<String>>,
+    isAdmin: Bool,
+    refreshBooks: @escaping () -> Void
+  ) {
+    self.readListId = readListId
+    self.bookViewModel = bookViewModel
+    self.browseOpts = browseOpts
+    self.browseLayout = browseLayout
+    self.isSelectionMode = isSelectionMode
+    self._selectedBookIds = selectedBookIds
+    self.isAdmin = isAdmin
+    self.refreshBooks = refreshBooks
+
+    let compositeIds = bookViewModel.pagination.items.map { CompositeID.generate(id: $0.id) }
+    _komgaBooks = Query(filter: #Predicate<KomgaBook> { compositeIds.contains($0.id) })
   }
 
   var body: some View {
@@ -45,6 +75,7 @@ struct ReadListBooksQueryView: View {
                   BookSelectionItemView(
                     bookId: book.id,
                     layout: .grid,
+                    komgaBook: booksById[book.id],
                     selectedBookIds: $selectedBookIds,
                     refreshBooks: refreshBooks,
                     showSeriesTitle: true
@@ -53,6 +84,7 @@ struct ReadListBooksQueryView: View {
                   BookQueryItemView(
                     bookId: book.id,
                     layout: .grid,
+                    komgaBook: booksById[book.id],
                     showSeriesTitle: true
                   )
                 }
@@ -74,6 +106,7 @@ struct ReadListBooksQueryView: View {
                   BookSelectionItemView(
                     bookId: book.id,
                     layout: .list,
+                    komgaBook: booksById[book.id],
                     selectedBookIds: $selectedBookIds,
                     refreshBooks: refreshBooks,
                     showSeriesTitle: true
@@ -82,6 +115,7 @@ struct ReadListBooksQueryView: View {
                   BookQueryItemView(
                     bookId: book.id,
                     layout: .list,
+                    komgaBook: booksById[book.id],
                     showSeriesTitle: true
                   )
                 }

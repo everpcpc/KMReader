@@ -15,6 +15,7 @@ struct BooksQueryView: View {
   let loadMore: (Bool) async -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @Query private var komgaBooks: [KomgaBook]
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -22,6 +23,27 @@ struct BooksQueryView: View {
 
   private var spacing: CGFloat {
     LayoutConfig.spacing(for: gridDensity)
+  }
+
+  private var booksById: [String: KomgaBook] {
+    komgaBooks.reduce(into: [:]) { result, book in
+      result[book.bookId] = book
+    }
+  }
+
+  init(
+    browseOpts: BookBrowseOptions,
+    browseLayout: BrowseLayoutMode,
+    viewModel: BookViewModel,
+    loadMore: @escaping (Bool) async -> Void
+  ) {
+    self.browseOpts = browseOpts
+    self.browseLayout = browseLayout
+    self.viewModel = viewModel
+    self.loadMore = loadMore
+
+    let compositeIds = viewModel.pagination.items.map { CompositeID.generate(id: $0.id) }
+    _komgaBooks = Query(filter: #Predicate<KomgaBook> { compositeIds.contains($0.id) })
   }
 
   var body: some View {
@@ -44,6 +66,7 @@ struct BooksQueryView: View {
             BookQueryItemView(
               bookId: book.id,
               layout: .grid,
+              komgaBook: booksById[book.id],
             )
             .padding(.bottom)
             .onAppear {
@@ -62,6 +85,7 @@ struct BooksQueryView: View {
             BookQueryItemView(
               bookId: book.id,
               layout: .list,
+              komgaBook: booksById[book.id],
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: book) {
