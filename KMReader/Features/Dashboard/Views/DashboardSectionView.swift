@@ -39,8 +39,6 @@ struct DashboardSectionView: View {
   @State private var hoverShowDelayTask: Task<Void, Never>?
   @State private var hoverHideDelayTask: Task<Void, Never>?
   @State private var hasLoadedInitial = false
-  @State private var bookCache: [String: KomgaBook] = [:]
-  @State private var seriesCache: [String: KomgaSeries] = [:]
 
   private let logger = AppLogger(.dashboard)
 
@@ -192,21 +190,18 @@ struct DashboardSectionView: View {
       BookQueryItemView(
         bookId: itemId,
         layout: .grid,
-        komgaBook: bookCache[itemId],
         showSeriesTitle: true
       )
     } else {
       SeriesQueryItemView(
         seriesId: itemId,
-        layout: .grid,
-        komgaSeries: seriesCache[itemId]
+        layout: .grid
       )
     }
   }
 
   private func refresh() async {
     pagination.reset()
-    resetItemCache()
     await loadMore()
   }
 
@@ -286,7 +281,6 @@ struct DashboardSectionView: View {
     let cachedIds = sectionCacheStore.ids(for: section)
     guard !cachedIds.isEmpty else { return }
     pagination.items = cachedIds.map(IdentifiedString.init)
-    cacheItems(ids: cachedIds)
   }
 
   private func applyPage(ids: [String], moreAvailable: Bool) {
@@ -295,40 +289,5 @@ struct DashboardSectionView: View {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
-    cacheItems(ids: ids)
-  }
-
-  private func resetItemCache() {
-    bookCache.removeAll()
-    seriesCache.removeAll()
-  }
-
-  private func cacheItems(ids: [String]) {
-    guard !ids.isEmpty else { return }
-    let instanceId = AppConfig.current.instanceId
-
-    if section.isBookSection {
-      let missing = ids.filter { bookCache[$0] == nil }
-      guard !missing.isEmpty else { return }
-      let books = KomgaBookStore.fetchBooksByIds(
-        context: modelContext,
-        ids: missing,
-        instanceId: instanceId
-      )
-      for book in books {
-        bookCache[book.bookId] = book
-      }
-    } else {
-      let missing = ids.filter { seriesCache[$0] == nil }
-      guard !missing.isEmpty else { return }
-      let seriesList = KomgaSeriesStore.fetchSeriesByIds(
-        context: modelContext,
-        ids: missing,
-        instanceId: instanceId
-      )
-      for series in seriesList {
-        seriesCache[series.seriesId] = series
-      }
-    }
   }
 }

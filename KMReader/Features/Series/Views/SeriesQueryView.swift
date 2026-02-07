@@ -5,7 +5,6 @@
 //  Created by Komga iOS Client
 //
 
-import SwiftData
 import SwiftUI
 
 struct SeriesQueryView: View {
@@ -15,7 +14,6 @@ struct SeriesQueryView: View {
   let loadMore: (Bool) async -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @Query private var komgaSeries: [KomgaSeries]
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -23,12 +21,6 @@ struct SeriesQueryView: View {
 
   private var spacing: CGFloat {
     LayoutConfig.spacing(for: gridDensity)
-  }
-
-  private var seriesById: [String: KomgaSeries] {
-    komgaSeries.reduce(into: [:]) { result, series in
-      result[series.seriesId] = series
-    }
   }
 
   init(
@@ -41,9 +33,6 @@ struct SeriesQueryView: View {
     self.browseLayout = browseLayout
     self.viewModel = viewModel
     self.loadMore = loadMore
-
-    let compositeIds = viewModel.pagination.items.map { CompositeID.generate(id: $0.id) }
-    _komgaSeries = Query(filter: #Predicate<KomgaSeries> { compositeIds.contains($0.id) })
   }
 
   var body: some View {
@@ -65,8 +54,7 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .grid,
-              komgaSeries: seriesById[series.id]
+              layout: .grid
             )
             .padding(.bottom)
             .onAppear {
@@ -84,8 +72,7 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .list,
-              komgaSeries: seriesById[series.id]
+              layout: .list
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: series) {

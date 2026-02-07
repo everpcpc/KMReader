@@ -19,8 +19,6 @@ struct DashboardSectionDetailView: View {
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   @State private var isLoading = false
   @State private var hasLoadedInitial = false
-  @State private var bookCache: [String: KomgaBook] = [:]
-  @State private var seriesCache: [String: KomgaSeries] = [:]
 
   @Environment(\.modelContext) private var modelContext
 
@@ -95,7 +93,6 @@ struct DashboardSectionDetailView: View {
           BookQueryItemView(
             bookId: book.id,
             layout: .grid,
-            komgaBook: bookCache[book.id],
             showSeriesTitle: true
           )
           .padding(.bottom)
@@ -112,7 +109,6 @@ struct DashboardSectionDetailView: View {
           BookQueryItemView(
             bookId: book.id,
             layout: .list,
-            komgaBook: bookCache[book.id],
             showSeriesTitle: true
           )
           .onAppear {
@@ -136,8 +132,7 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            layout: .grid,
-            komgaSeries: seriesCache[series.id]
+            layout: .grid
           )
           .padding(.bottom)
           .onAppear {
@@ -152,8 +147,7 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            layout: .list,
-            komgaSeries: seriesCache[series.id]
+            layout: .list
           )
           .onAppear {
             if pagination.shouldLoadMore(after: series) {
@@ -175,7 +169,6 @@ struct DashboardSectionDetailView: View {
     isLoading = true
     if refresh {
       pagination.reset()
-      resetItemCache()
     }
 
     let libraryIds = dashboard.libraryIds
@@ -235,40 +228,5 @@ struct DashboardSectionDetailView: View {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
-    cacheItems(ids: ids)
-  }
-
-  private func resetItemCache() {
-    bookCache.removeAll()
-    seriesCache.removeAll()
-  }
-
-  private func cacheItems(ids: [String]) {
-    guard !ids.isEmpty else { return }
-    let instanceId = AppConfig.current.instanceId
-
-    if section.isBookSection {
-      let missing = ids.filter { bookCache[$0] == nil }
-      guard !missing.isEmpty else { return }
-      let books = KomgaBookStore.fetchBooksByIds(
-        context: modelContext,
-        ids: missing,
-        instanceId: instanceId
-      )
-      for book in books {
-        bookCache[book.bookId] = book
-      }
-    } else {
-      let missing = ids.filter { seriesCache[$0] == nil }
-      guard !missing.isEmpty else { return }
-      let seriesList = KomgaSeriesStore.fetchSeriesByIds(
-        context: modelContext,
-        ids: missing,
-        instanceId: instanceId
-      )
-      for series in seriesList {
-        seriesCache[series.seriesId] = series
-      }
-    }
   }
 }

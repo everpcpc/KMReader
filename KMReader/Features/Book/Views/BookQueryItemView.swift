@@ -12,7 +12,6 @@ import SwiftUI
 struct BookQueryItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
-  let prefetchedBook: KomgaBook?
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
 
@@ -23,26 +22,20 @@ struct BookQueryItemView: View {
   init(
     bookId: String,
     layout: BrowseLayoutMode,
-    komgaBook: KomgaBook? = nil,
     showSeriesTitle: Bool = true,
     showSeriesNavigation: Bool = true
   ) {
     self.bookId = bookId
     self.layout = layout
-    self.prefetchedBook = komgaBook
     self.showSeriesTitle = showSeriesTitle
     self.showSeriesNavigation = showSeriesNavigation
 
-    if komgaBook == nil {
-      let compositeId = CompositeID.generate(id: bookId)
-      _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
-    } else {
-      _komgaBooks = Query(filter: #Predicate<KomgaBook> { _ in false })
-    }
+    let compositeId = CompositeID.generate(id: bookId)
+    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
   }
 
   private var komgaBook: KomgaBook? {
-    prefetchedBook ?? komgaBooks.first
+    komgaBooks.first
   }
 
   var body: some View {

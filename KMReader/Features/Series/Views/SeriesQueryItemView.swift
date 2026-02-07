@@ -12,30 +12,23 @@ import SwiftUI
 struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
-  let prefetchedSeries: KomgaSeries?
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @Query private var komgaSeriesList: [KomgaSeries]
 
   init(
     seriesId: String,
-    layout: BrowseLayoutMode,
-    komgaSeries: KomgaSeries? = nil
+    layout: BrowseLayoutMode
   ) {
     self.seriesId = seriesId
     self.layout = layout
-    self.prefetchedSeries = komgaSeries
 
-    if komgaSeries == nil {
-      let compositeId = CompositeID.generate(id: seriesId)
-      _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
-    } else {
-      _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { _ in false })
-    }
+    let compositeId = CompositeID.generate(id: seriesId)
+    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
   }
 
   private var komgaSeries: KomgaSeries? {
-    prefetchedSeries ?? komgaSeriesList.first
+    komgaSeriesList.first
   }
 
   var body: some View {
