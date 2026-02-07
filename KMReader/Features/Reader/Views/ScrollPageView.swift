@@ -9,6 +9,7 @@ struct ScrollPageView: View {
   let mode: PageViewMode
   let readingDirection: ReadingDirection
   let splitWidePageMode: SplitWidePageMode
+  let showingControls: Bool
   @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
   let readList: ReadList?
@@ -26,11 +27,15 @@ struct ScrollPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
+  #if os(tvOS)
+    @FocusState private var isContentAnchorFocused: Bool
+  #endif
 
   init(
     mode: PageViewMode,
     readingDirection: ReadingDirection,
     splitWidePageMode: SplitWidePageMode,
+    showingControls: Bool,
     viewModel: ReaderViewModel,
     nextBook: Book?,
     readList: ReadList?,
@@ -45,6 +50,7 @@ struct ScrollPageView: View {
     self.mode = mode
     self.readingDirection = readingDirection
     self.splitWidePageMode = splitWidePageMode
+    self.showingControls = showingControls
     self.viewModel = viewModel
     self.nextBook = nextBook
     self.readList = readList
@@ -67,11 +73,17 @@ struct ScrollPageView: View {
         .frame(width: geometry.size.width, height: geometry.size.height)
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $scrollPosition)
+        .overlay(alignment: .topLeading) {
+          contentAnchor
+        }
         #if os(tvOS)
           .focusable(false)
         #endif
         .onAppear {
           synchronizeInitialScrollIfNeeded(proxy: proxy)
+          #if os(tvOS)
+            updateContentAnchorFocus()
+          #endif
         }
         .onChange(of: viewModel.targetPageIndex) { _, newTarget in
           if let newTarget = newTarget {
@@ -98,6 +110,9 @@ struct ScrollPageView: View {
             scrollPosition = target
             proxy.scrollTo(target, anchor: .center)
           }
+          #if os(tvOS)
+            updateContentAnchorFocus()
+          #endif
         }
         .onChange(of: scrollPosition) { _, newPosition in
           if let newPosition, newPosition < viewModel.viewItems.count {
@@ -111,6 +126,22 @@ struct ScrollPageView: View {
               viewModel.targetViewItemIndex = nil
             }
           }
+        }
+        .onChange(of: showingControls) { _, _ in
+          #if os(tvOS)
+            if showingControls {
+              isContentAnchorFocused = false
+            } else {
+              DispatchQueue.main.async {
+                updateContentAnchorFocus()
+              }
+            }
+          #endif
+        }
+        .onChange(of: viewModel.currentViewItemIndex) { _, _ in
+          #if os(tvOS)
+            updateContentAnchorFocus()
+          #endif
         }
       }
     }
@@ -197,6 +228,44 @@ struct ScrollPageView: View {
       .readerPageScrollTransition()
     }
   }
+
+  @ViewBuilder
+  private var contentAnchor: some View {
+    #if os(tvOS)
+      Button {
+      } label: {
+        Color.clear
+          .frame(width: 1, height: 1)
+      }
+      .buttonStyle(.plain)
+      .focusable(!showingControls && !isCurrentItemEnd)
+      .focused($isContentAnchorFocused)
+      .opacity(0.001)
+    #else
+      EmptyView()
+    #endif
+  }
+
+  #if os(tvOS)
+    private var isCurrentItemEnd: Bool {
+      guard viewModel.currentViewItemIndex >= 0 else { return true }
+      guard viewModel.currentViewItemIndex < viewModel.viewItems.count else { return true }
+      return viewModel.viewItems[viewModel.currentViewItemIndex].isEnd
+    }
+
+    private func updateContentAnchorFocus() {
+      guard !showingControls else {
+        isContentAnchorFocused = false
+        return
+      }
+      guard !isCurrentItemEnd else {
+        isContentAnchorFocused = false
+        return
+      }
+
+      isContentAnchorFocused = true
+    }
+  #endif
 
   // MARK: - Scroll Synchronization
 

@@ -63,10 +63,6 @@ struct DivinaReaderView: View {
 
   #if os(tvOS)
     @State private var isEndPageButtonFocused = false
-    private enum ReaderFocusAnchor: Hashable {
-      case contentGuard
-    }
-    @FocusState private var readerFocusAnchor: ReaderFocusAnchor?
   #endif
 
   init(
@@ -182,15 +178,6 @@ struct DivinaReaderView: View {
 
       ZStack {
         readerBackground.color.readerIgnoresSafeArea()
-        #if os(tvOS)
-          // Invisible focus anchor that receives focus when controls are hidden.
-          Color.clear
-            .frame(width: 1, height: 1)
-            .allowsHitTesting(false)
-            .focusable(true)
-            .focused($readerFocusAnchor, equals: .contentGuard)
-            .opacity(0.001)
-        #endif
 
         readerContent(
           useDualPage: useDualPage,
@@ -323,9 +310,6 @@ struct DivinaReaderView: View {
     .onAppear {
       viewModel.updateDualPageSettings(noCover: !isolateCoverPage)
       updateHandoff()
-      #if os(tvOS)
-        updateContentFocusAnchor()
-      #endif
     }
     .onChange(of: isolateCoverPage) { _, newValue in
       viewModel.updateDualPageSettings(noCover: !newValue)
@@ -403,9 +387,6 @@ struct DivinaReaderView: View {
           // cancel any existing auto-hide timer
           controlsTimer?.invalidate()
         }
-        #if os(tvOS)
-          updateContentFocusAnchor()
-        #endif
       }
     #endif
     #if os(macOS)
@@ -448,6 +429,7 @@ struct DivinaReaderView: View {
                 mode: .vertical,
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                showingControls: showingControls,
                 viewModel: viewModel,
                 nextBook: nextBook,
                 readList: readList,
@@ -486,6 +468,7 @@ struct DivinaReaderView: View {
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
                   splitWidePageMode: splitWidePageMode,
+                  showingControls: showingControls,
                   viewModel: viewModel,
                   nextBook: nextBook,
                   readList: readList,
@@ -507,6 +490,7 @@ struct DivinaReaderView: View {
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                showingControls: showingControls,
                 viewModel: viewModel,
                 nextBook: nextBook,
                 readList: readList,
@@ -887,12 +871,6 @@ struct DivinaReaderView: View {
       }
     }
   }
-
-  #if os(tvOS)
-    private func updateContentFocusAnchor() {
-      readerFocusAnchor = showingControls ? nil : .contentGuard
-    }
-  #endif
 
   #if os(tvOS)
     private func toggleControls(autoHide: Bool = true) {
