@@ -16,6 +16,7 @@ struct SettingsBrowseCardPreview: View {
   let progress: Double?
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
@@ -59,7 +60,10 @@ struct SettingsBrowseCardPreview: View {
   }
 
   private var spacing: CGFloat {
-    shouldShowProgressBar ? 4 : 12
+    if cardTextOverlayMode {
+      return 0
+    }
+    return shouldShowProgressBar ? 4 : 12
   }
 
   private var imageFill: LinearGradient {
@@ -74,15 +78,19 @@ struct SettingsBrowseCardPreview: View {
     thumbnailShowShadow ? .platform : .none
   }
 
+  private var effectivePreserveAspectRatio: Bool {
+    thumbnailPreserveAspectRatio && !cardTextOverlayMode
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: spacing) {
       coverView
 
-      if shouldShowProgressBar, let progress = progress {
+      if shouldShowProgressBar, let progress = progress, !cardTextOverlayMode {
         ReadingProgressBar(progress: progress, type: .card)
       }
 
-      if !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading, spacing: 4) {
           if let subtitle = subtitle, showBookCardSeriesTitle {
             Text(subtitle)
@@ -109,13 +117,14 @@ struct SettingsBrowseCardPreview: View {
     .animation(animation, value: thumbnailShowShadow)
     .animation(animation, value: thumbnailShowUnreadIndicator)
     .animation(animation, value: thumbnailShowProgressBar)
+    .animation(animation, value: cardTextOverlayMode)
   }
 
   private var coverView: some View {
     ZStack {
       Color.clear
 
-      if thumbnailPreserveAspectRatio {
+      if effectivePreserveAspectRatio {
         imageCard
           .aspectRatio(imageRatio, contentMode: .fit)
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -131,6 +140,13 @@ struct SettingsBrowseCardPreview: View {
       .fill(imageFill)
       .overlay { imageBorderOverlay }
       .shadowStyle(effectiveShadowStyle, cornerRadius: imageCornerRadius)
+      .overlay {
+        if cardTextOverlayMode {
+          CardTextOverlay(cornerRadius: imageCornerRadius) {
+            overlayTextContent
+          }
+        }
+      }
       .overlay(alignment: .topTrailing) {
         if shouldShowUnreadBadge, let unreadCount = unreadCount {
           UnreadCountBadge(count: unreadCount)
@@ -140,6 +156,21 @@ struct SettingsBrowseCardPreview: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
       }
+  }
+
+  @ViewBuilder
+  private var overlayTextContent: some View {
+    CardOverlayTextStack(
+      title: title,
+      subtitle: showBookCardSeriesTitle ? subtitle : nil
+    ) {
+      Text(detail)
+        .lineLimit(1)
+    } progress: {
+      if shouldShowProgressBar, let progress = progress {
+        ReadingProgressBar(progress: progress, type: .card)
+      }
+    }
   }
 
   @ViewBuilder

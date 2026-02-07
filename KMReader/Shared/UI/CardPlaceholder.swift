@@ -13,6 +13,7 @@ struct CardPlaceholder: View {
   let kind: CardPlaceholderKind
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
 
   private let ratio: CGFloat = 1.414
   private let cornerRadius: CGFloat = 8
@@ -38,11 +39,9 @@ struct CardPlaceholder: View {
 
   private var gridPlaceholder: some View {
     VStack(alignment: .leading, spacing: 12) {
-      RoundedRectangle(cornerRadius: cornerRadius)
-        .fill(Color.gray.opacity(0.2))
-        .aspectRatio(1 / ratio, contentMode: .fit)
+      gridThumbnail
 
-      if !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading, spacing: lineSpacing) {
           ForEach(Array(gridLines.enumerated()), id: \.offset) { item in
             placeholderLine(
@@ -55,6 +54,28 @@ struct CardPlaceholder: View {
         }
       }
     }
+  }
+
+  private var gridThumbnail: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: cornerRadius)
+        .fill(Color.gray.opacity(0.2))
+
+      if cardTextOverlayMode {
+        CardTextOverlay(cornerRadius: cornerRadius) {
+          ForEach(Array(gridLines.enumerated()), id: \.offset) { item in
+            placeholderLine(
+              textStyle: item.element.textStyle,
+              text: item.element.text,
+              widthScale: item.element.width,
+              opacity: item.element.opacity
+            )
+          }
+        }
+      }
+    }
+    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    .aspectRatio(1 / ratio, contentMode: .fit)
   }
 
   private var listPlaceholder: some View {

@@ -36556,6 +36556,98 @@
         }
       }
     },
+    "settings.appearance.cardTextOverlay.caption" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel und Details mit einem weichen Verlaufsüberzug über dem Cover anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display titles and details with a soft gradient overlay on covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les titres et les détails avec un léger dégradé superposé aux couvertures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーに柔らかなグラデーションを重ねてタイトルと詳細を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 위에 부드러운 그라데이션 오버레이로 제목과 세부 정보를 표시합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在封面上使用柔和的渐变遮罩显示标题和详情"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在封面上使用柔和的漸變遮罩顯示標題與詳情"
+          }
+        }
+      }
+    },
+    "settings.appearance.cardTextOverlay.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Textüberlagerung auf Karten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card Text Overlay"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Superposition de texte sur les cartes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードのテキストオーバーレイ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드 텍스트 오버레이"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片文字覆盖"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片文字覆蓋"
+          }
+        }
+      }
+    },
     "settings.appearance.coverShowProgressBar.caption" : {
       "localizations" : {
         "de" : {

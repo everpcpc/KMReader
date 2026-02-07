@@ -16,6 +16,7 @@ struct BookCardView: View {
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
   @State private var showReadListPicker = false
@@ -49,6 +50,9 @@ struct BookCardView: View {
   }
 
   var padding: CGFloat {
+    if cardTextOverlayMode {
+      return 0
+    }
     if isInProgress && thumbnailShowProgressBar {
       return 4
     }
@@ -62,11 +66,20 @@ struct BookCardView: View {
         type: .book,
         shadowStyle: .platform,
         alignment: .bottom,
+        preserveAspectRatioOverride: cardTextOverlayMode ? false : nil,
         onAction: { onReadBook?(false) }
       ) {
-        if komgaBook.progressCompleted == nil && thumbnailShowUnreadIndicator {
-          UnreadIndicator()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        ZStack {
+          if cardTextOverlayMode {
+            CardTextOverlay(cornerRadius: 8) {
+              overlayTextContent
+            }
+          }
+
+          if komgaBook.progressCompleted == nil && thumbnailShowUnreadIndicator {
+            UnreadIndicator()
+              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+          }
         }
       } menu: {
         BookContextMenu(
@@ -86,11 +99,11 @@ struct BookCardView: View {
         )
       }
 
-      if isInProgress && thumbnailShowProgressBar {
+      if isInProgress && thumbnailShowProgressBar && !cardTextOverlayMode {
         ReadingProgressBar(progress: progress, type: .card)
       }
 
-      if !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
           if komgaBook.oneshot {
             Text("Oneshot")
@@ -160,6 +173,61 @@ struct BookCardView: View {
       BookEditSheet(book: komgaBook.toBook())
     }
 
+  }
+
+  @ViewBuilder
+  private var overlayTextContent: some View {
+    let style = CardOverlayTextStyle.standard
+    let showDownloadIcon = komgaBook.downloadStatus != .notDownloaded
+    let showProgressBar = isInProgress && thumbnailShowProgressBar
+
+    CardOverlayTextStack(
+      title: bookTitleLine,
+      subtitle: (shouldShowSeriesTitle && !komgaBook.oneshot) ? komgaBook.seriesTitle : nil,
+      titleLineLimit: bookTitleLineLimit,
+      style: style
+    ) {
+      HStack(spacing: 4) {
+        if komgaBook.isUnavailable {
+          Text("Unavailable")
+            .foregroundColor(.red)
+        } else if komgaBook.media.status != .ready {
+          Text(komgaBook.media.status.label)
+            .foregroundColor(komgaBook.media.status.color)
+        } else {
+          if progress > 0 && progress < 1 {
+            Text("\(progress * 100, specifier: "%.0f")%")
+            Text("•")
+          }
+          if progress == 1 {
+            Image(systemName: "checkmark.circle.fill")
+              .foregroundColor(style.secondaryColor)
+              .font(.caption2)
+          }
+          Text("\(komgaBook.mediaPagesCount) pages")
+            .lineLimit(1)
+        }
+        if showDownloadIcon && !showProgressBar {
+          Spacer()
+          Image(systemName: komgaBook.downloadStatus.displayIcon)
+            .foregroundColor(komgaBook.downloadStatus.displayColor)
+            .font(.caption2)
+        }
+      }
+    } progress: {
+      if showProgressBar {
+        HStack(spacing: 6) {
+          ReadingProgressBar(progress: progress, type: .card)
+            .padding(.top, 2)
+            .layoutPriority(1)
+          if showDownloadIcon {
+            Image(systemName: komgaBook.downloadStatus.displayIcon)
+              .foregroundColor(komgaBook.downloadStatus.displayColor)
+              .font(.caption2)
+          }
+        }
+      }
+    }
   }
 
   private func addToReadList(readListId: String) {

@@ -11,18 +11,29 @@ struct CollectionCardView: View {
   @Bindable var komgaCollection: KomgaCollection
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
+  private var contentSpacing: CGFloat {
+    cardTextOverlayMode ? 0 : 12
+  }
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
         id: komgaCollection.collectionId,
         type: .collection,
         shadowStyle: .platform,
         alignment: .bottom,
-        navigationLink: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+        navigationLink: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId),
+        preserveAspectRatioOverride: cardTextOverlayMode ? false : nil
       ) {
+        if cardTextOverlayMode {
+          CardTextOverlay(cornerRadius: 8) {
+            overlayTextContent
+          }
+        }
       } menu: {
         CollectionContextMenu(
           collectionId: komgaCollection.collectionId,
@@ -36,7 +47,7 @@ struct CollectionCardView: View {
         )
       }
 
-      if !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
           Text(komgaCollection.name)
             .lineLimit(1)
@@ -60,6 +71,16 @@ struct CollectionCardView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       CollectionEditSheet(collection: komgaCollection.toCollection())
+    }
+  }
+
+  @ViewBuilder
+  private var overlayTextContent: some View {
+    CardOverlayTextStack(title: komgaCollection.name) {
+      HStack(spacing: 4) {
+        Text("\(komgaCollection.seriesIds.count) series")
+        Spacer()
+      }
     }
   }
 

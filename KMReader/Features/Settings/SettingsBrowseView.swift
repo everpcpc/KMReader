@@ -11,6 +11,7 @@ import SwiftUI
 struct SettingsBrowseView: View {
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
@@ -24,6 +25,7 @@ struct SettingsBrowseView: View {
       set: { gridDensity = $0.rawValue }
     )
   }
+
 
   var body: some View {
     Form {
@@ -79,12 +81,23 @@ struct SettingsBrowseView: View {
           .frame(maxWidth: .infinity)
         }
 
-        Toggle(isOn: $coverOnlyCards) {
+        Toggle(isOn: $cardTextOverlayMode) {
           VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "settings.appearance.coverOnlyCards.title"))
-            Text(String(localized: "settings.appearance.coverOnlyCards.caption"))
+            Text(String(localized: "settings.appearance.cardTextOverlay.title"))
+            Text(String(localized: "settings.appearance.cardTextOverlay.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
+          }
+        }
+
+        if !cardTextOverlayMode {
+          Toggle(isOn: $coverOnlyCards) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "settings.appearance.coverOnlyCards.title"))
+              Text(String(localized: "settings.appearance.coverOnlyCards.caption"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
         }
 
@@ -97,15 +110,17 @@ struct SettingsBrowseView: View {
           }
         }
 
-        Toggle(isOn: $thumbnailPreserveAspectRatio) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(
-              String(localized: "settings.appearance.preserveCoverAspectRatio.title"))
-            Text(
-              String(localized: "settings.appearance.preserveCoverAspectRatio.caption")
-            )
-            .font(.caption)
-            .foregroundColor(.secondary)
+        if !cardTextOverlayMode {
+          Toggle(isOn: $thumbnailPreserveAspectRatio) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(
+                String(localized: "settings.appearance.preserveCoverAspectRatio.title"))
+              Text(
+                String(localized: "settings.appearance.preserveCoverAspectRatio.caption")
+              )
+              .font(.caption)
+              .foregroundColor(.secondary)
+            }
           }
         }
 
@@ -139,5 +154,6 @@ struct SettingsBrowseView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(String(localized: "settings.browse.title"))
+    .animation(.easeInOut(duration: 0.2), value: cardTextOverlayMode)
   }
 }
