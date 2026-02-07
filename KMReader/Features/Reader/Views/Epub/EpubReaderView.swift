@@ -25,8 +25,7 @@
     @State private var viewModel: EpubReaderViewModel
     @State private var activePreferences: EpubReaderPreferences
     @State private var bookPreferences: EpubReaderPreferences?
-    @State private var showingControls = true
-    @State private var controlsTimer: Timer?
+    @State private var showingControls = false
     @State private var currentSeries: Series?
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
@@ -123,7 +122,6 @@
           viewModel.updateDownloadProgress(notification: notification)
         }
         .onDisappear {
-          controlsTimer?.invalidate()
           withAnimation {
             readerPresentation.hideStatusBar = false
           }
@@ -131,11 +129,6 @@
         .onChange(of: shouldShowControls) { _, newValue in
           withAnimation {
             readerPresentation.hideStatusBar = !newValue
-          }
-        }
-        .onChange(of: viewModel.isLoading) { _, newValue in
-          if !newValue {
-            forceInitialAutoHide(timeout: 1.5)
           }
         }
     }
@@ -501,17 +494,6 @@
       }
       if !showingControls {
         showingQuickActions = false
-      }
-    }
-
-    private func forceInitialAutoHide(timeout: TimeInterval) {
-      controlsTimer?.invalidate()
-      controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-        Task { @MainActor in
-          withAnimation(animation) {
-            showingControls = false
-          }
-        }
       }
     }
 

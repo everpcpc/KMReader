@@ -40,7 +40,7 @@ struct DivinaReaderView: View {
 
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
-  @State private var showingControls = true
+  @State private var showingControls = false
   @State private var controlsTimer: Timer?
   @State private var currentSeries: Series?
   @State private var currentBook: Book?
@@ -335,7 +335,7 @@ struct DivinaReaderView: View {
       if oldCount == 0 && newCount > 0 {
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 1.5)
-        forceInitialAutoHide(timeout: 1.5)
+        applyStatusBarVisibility(controlsHidden: !shouldShowControls)
       }
     }
     .onDisappear {
@@ -909,17 +909,6 @@ struct DivinaReaderView: View {
       }
     }
   #endif
-
-  private func forceInitialAutoHide(timeout: TimeInterval) {
-    controlsTimer?.invalidate()
-    controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-      Task { @MainActor in
-        withAnimation {
-          showingControls = false
-        }
-      }
-    }
-  }
 
   private func resetControlsTimer(timeout: TimeInterval) {
     // Don't start timer if auto-hide is disabled
