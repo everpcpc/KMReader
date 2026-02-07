@@ -24,14 +24,34 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var apiTimeout: Double {
+  static nonisolated var requestTimeout: Double {
     get {
-      if UserDefaults.standard.object(forKey: "apiTimeout") != nil {
-        return UserDefaults.standard.double(forKey: "apiTimeout")
+      if UserDefaults.standard.object(forKey: "requestTimeout") != nil {
+        return UserDefaults.standard.double(forKey: "requestTimeout")
+      }
+      return 20.0
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "requestTimeout") }
+  }
+
+  static nonisolated var downloadTimeout: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "downloadTimeout") != nil {
+        return UserDefaults.standard.double(forKey: "downloadTimeout")
+      }
+      return 60.0
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "downloadTimeout") }
+  }
+
+  static nonisolated var authTimeout: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "authTimeout") != nil {
+        return UserDefaults.standard.double(forKey: "authTimeout")
       }
       return 10.0
     }
-    set { UserDefaults.standard.set(newValue, forKey: "apiTimeout") }
+    set { UserDefaults.standard.set(newValue, forKey: "authTimeout") }
   }
 
   static nonisolated var apiRetryCount: Int {

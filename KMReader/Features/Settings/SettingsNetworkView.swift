@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct SettingsNetworkView: View {
-  @AppStorage("apiTimeout") private var apiTimeout: Double = 10
+  @AppStorage("requestTimeout") private var requestTimeout: Double = 20
+  @AppStorage("downloadTimeout") private var downloadTimeout: Double = 60
+  @AppStorage("authTimeout") private var authTimeout: Double = 10
   @AppStorage("apiRetryCount") private var apiRetryCount: Int = 0
   @AppStorage("enableBrowseHandoff") private var enableBrowseHandoff: Bool = true
   @AppStorage("enableReaderHandoff") private var enableReaderHandoff: Bool = false
@@ -16,32 +18,23 @@ struct SettingsNetworkView: View {
   var body: some View {
     Form {
       Section(header: Text(String(localized: "settings.network.general"))) {
-        VStack(alignment: .leading, spacing: 8) {
-          HStack {
-            Label(String(localized: "settings.network.api_timeout.label"), systemImage: "clock")
-            Spacer()
-            #if os(tvOS)
-              Text("\(Int(apiTimeout))s")
-                .foregroundStyle(.secondary)
-            #elseif os(macOS)
-              TextField("", value: $apiTimeout, format: .number)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 50)
-              Text("s")
-                .foregroundStyle(.secondary)
-            #else
-              TextField("Timeout Seconds", value: $apiTimeout, format: .number)
-                .keyboardType(.numbersAndPunctuation)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 50)
-              Text("s")
-                .foregroundStyle(.secondary)
-            #endif
-          }
-          Text(String(localized: "settings.network.api_timeout.description"))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
+        timeoutRow(
+          labelKey: "settings.network.request_timeout.label",
+          descriptionKey: "settings.network.request_timeout.description",
+          value: $requestTimeout
+        )
+
+        timeoutRow(
+          labelKey: "settings.network.download_timeout.label",
+          descriptionKey: "settings.network.download_timeout.description",
+          value: $downloadTimeout
+        )
+
+        timeoutRow(
+          labelKey: "settings.network.auth_timeout.label",
+          descriptionKey: "settings.network.auth_timeout.description",
+          value: $authTimeout
+        )
 
         VStack(alignment: .leading, spacing: 8) {
           #if os(tvOS)
@@ -93,5 +86,39 @@ struct SettingsNetworkView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.network.title)
+  }
+
+  @ViewBuilder
+  private func timeoutRow(
+    labelKey: String,
+    descriptionKey: String,
+    value: Binding<Double>
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack {
+        Label(String(localized: .init(labelKey)), systemImage: "clock")
+        Spacer()
+        #if os(tvOS)
+          Text("\(Int(value.wrappedValue))s")
+            .foregroundStyle(.secondary)
+        #elseif os(macOS)
+          TextField("", value: value, format: .number)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 50)
+          Text("s")
+            .foregroundStyle(.secondary)
+        #else
+          TextField("Timeout Seconds", value: value, format: .number)
+            .keyboardType(.numbersAndPunctuation)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 50)
+          Text("s")
+            .foregroundStyle(.secondary)
+        #endif
+      }
+      Text(String(localized: .init(descriptionKey)))
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
   }
 }

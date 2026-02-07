@@ -61,7 +61,7 @@ struct ContentView: View {
           }
         }
         .task {
-          let serverReachable = await authViewModel.loadCurrentUser(timeout: 5)
+          let serverReachable = await authViewModel.loadCurrentUser()
           isOffline = !serverReachable
           await SSEService.shared.connect()
         }

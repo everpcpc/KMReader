@@ -134,6 +134,7 @@ struct DivinaReaderView: View {
   }
 
   private func closeReader() {
+    viewModel.flushProgress()
     if let onClose {
       onClose()
     } else {
@@ -1026,6 +1027,7 @@ struct DivinaReaderView: View {
   }
 
   private func openNextBook(nextBookId: String) {
+    viewModel.flushProgress()
     // Switch to next book by updating currentBookId
     // This will trigger the .task(id: currentBookId) to reload
     preserveReaderOptions = true
@@ -1046,6 +1048,7 @@ struct DivinaReaderView: View {
   }
 
   private func openPreviousBook(previousBookId: String) {
+    viewModel.flushProgress()
     // Switch to previous book by updating currentBookId
     // This will trigger the .task(id: currentBookId) to reload
     preserveReaderOptions = true

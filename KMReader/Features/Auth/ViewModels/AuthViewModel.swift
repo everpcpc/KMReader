@@ -31,7 +31,7 @@ class AuthViewModel {
 
     // Validate authentication using temporary request
     let result = try await authService.login(
-      username: username, password: password, serverURL: serverURL, timeout: AppConfig.apiTimeout)
+      username: username, password: password, serverURL: serverURL, timeout: AppConfig.authTimeout)
 
     // Apply login configuration
     try await applyLoginConfiguration(
@@ -56,7 +56,7 @@ class AuthViewModel {
 
     // Validate authentication using API Key
     let result = try await authService.loginWithAPIKey(
-      apiKey: apiKey, serverURL: serverURL, timeout: AppConfig.apiTimeout)
+      apiKey: apiKey, serverURL: serverURL, timeout: AppConfig.authTimeout)
 
     // Apply login configuration
     try await applyLoginConfiguration(
@@ -101,7 +101,8 @@ class AuthViewModel {
     isLoading = true
     defer { isLoading = false }
     do {
-      user = try await authService.getCurrentUser(timeout: timeout)
+      let effectiveTimeout = timeout ?? AppConfig.authTimeout
+      user = try await authService.getCurrentUser(timeout: effectiveTimeout)
 
       if let user = user {
         var current = AppConfig.current
@@ -147,7 +148,7 @@ class AuthViewModel {
         serverURL: instance.serverURL,
         authToken: instance.authToken,
         authMethod: instance.resolvedAuthMethod,
-        timeout: AppConfig.apiTimeout
+        timeout: AppConfig.authTimeout
       )
 
       // Apply switch configuration

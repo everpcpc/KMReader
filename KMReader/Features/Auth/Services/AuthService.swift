@@ -97,7 +97,11 @@ class AuthService {
 
   func logout() async throws {
     do {
-      let _: EmptyResponse = try await apiClient.request(path: "/api/logout", method: "POST")
+      let _: EmptyResponse = try await apiClient.request(
+        path: "/api/logout",
+        method: "POST",
+        category: .general
+      )
     } catch {
       // Continue even if logout API fails
     }
@@ -139,7 +143,11 @@ class AuthService {
 
   func getCurrentUser(timeout: TimeInterval? = nil) async throws -> User {
     return try await apiClient.request(
-      path: "/api/v2/users/me", bypassOfflineCheck: true, timeout: timeout)
+      path: "/api/v2/users/me",
+      bypassOfflineCheck: true,
+      timeout: timeout,
+      category: .auth
+    )
   }
 
   func getAuthenticationActivity(page: Int = 0, size: Int = 20) async throws -> Page<
@@ -151,7 +159,8 @@ class AuthService {
     ]
     return try await apiClient.request(
       path: "/api/v2/users/me/authentication-activity",
-      queryItems: queryItems
+      queryItems: queryItems,
+      category: .general
     )
   }
 
@@ -159,12 +168,16 @@ class AuthService {
     let queryItems = [URLQueryItem(name: "apikey_id", value: apiKey.id)]
     return try await apiClient.request(
       path: "/api/v2/users/\(apiKey.userId)/authentication-activity/latest",
-      queryItems: queryItems
+      queryItems: queryItems,
+      category: .general
     )
   }
 
   func getApiKeys() async throws -> [ApiKey] {
-    return try await apiClient.request(path: "/api/v2/users/me/api-keys")
+    return try await apiClient.request(
+      path: "/api/v2/users/me/api-keys",
+      category: .general
+    )
   }
 
   func createApiKey(comment: String) async throws -> ApiKey {
@@ -173,14 +186,16 @@ class AuthService {
     return try await apiClient.request(
       path: "/api/v2/users/me/api-keys",
       method: "POST",
-      body: body
+      body: body,
+      category: .general
     )
   }
 
   func deleteApiKey(id: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v2/users/me/api-keys/\(id)",
-      method: "DELETE"
+      method: "DELETE",
+      category: .general
     )
   }
 
@@ -189,7 +204,8 @@ class AuthService {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v2/users/\(userId)/password",
       method: "PATCH",
-      body: body
+      body: body,
+      category: .general
     )
   }
 }

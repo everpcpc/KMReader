@@ -36234,6 +36234,98 @@
         }
       }
     },
+    "settings.appearance.cardTextOverlay.caption" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel und Details mit einem weichen Verlaufsüberzug über dem Cover anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display titles and details with a soft gradient overlay on covers"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les titres et les détails avec un léger dégradé superposé aux couvertures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーに柔らかなグラデーションを重ねてタイトルと詳細を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "커버 위에 부드러운 그라데이션 오버레이로 제목과 세부 정보를 표시합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在封面上使用柔和的渐变遮罩显示标题和详情"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在封面上使用柔和的漸變遮罩顯示標題與詳情"
+          }
+        }
+      }
+    },
+    "settings.appearance.cardTextOverlay.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Textüberlagerung auf Karten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card Text Overlay"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Superposition de texte sur les cartes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードのテキストオーバーレイ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드 텍스트 오버레이"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片文字覆盖"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片文字覆蓋"
+          }
+        }
+      }
+    },
     "settings.appearance.color" : {
       "localizations" : {
         "de" : {
@@ -36552,98 +36644,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "僅顯示封面"
-          }
-        }
-      }
-    },
-    "settings.appearance.cardTextOverlay.caption" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Titel und Details mit einem weichen Verlaufsüberzug über dem Cover anzeigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display titles and details with a soft gradient overlay on covers"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher les titres et les détails avec un léger dégradé superposé aux couvertures"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カバーに柔らかなグラデーションを重ねてタイトルと詳細を表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "커버 위에 부드러운 그라데이션 오버레이로 제목과 세부 정보를 표시합니다"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在封面上使用柔和的渐变遮罩显示标题和详情"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在封面上使用柔和的漸變遮罩顯示標題與詳情"
-          }
-        }
-      }
-    },
-    "settings.appearance.cardTextOverlay.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Textüberlagerung auf Karten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Card Text Overlay"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Superposition de texte sur les cartes"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カードのテキストオーバーレイ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "카드 텍스트 오버레이"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "卡片文字覆盖"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "卡片文字覆蓋"
           }
         }
       }
@@ -38258,94 +38258,186 @@
         }
       }
     },
-    "settings.network.api_timeout.description" : {
+    "settings.network.auth_timeout.description" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeitdauer, bevor eine API-Anfrage abgebrochen wird"
+            "value" : "Zeitdauer, bevor eine Authentifizierungsanfrage abgebrochen wird (Sekunden). Standard: 10s."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Timeout for API requests in seconds. Default is 10s."
+            "value" : "Timeout for authentication requests in seconds. Default is 10s."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Délai d'attente pour les requêtes API en secondes. La valeur par défaut est de 10s."
+            "value" : "Délai d'attente des requêtes d'authentification en secondes. La valeur par défaut est de 10s."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API リクエストのタイムアウト（秒）。デフォルトは 10 秒です。"
+            "value" : "認証リクエストのタイムアウト（秒）。デフォルトは 10 秒です。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API 요청 시간 제한(초). 기본값은 10초입니다."
+            "value" : "인증 요청 시간 제한(초). 기본값은 10초입니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API 请求超时时间（秒）。默认为 10 秒。"
+            "value" : "认证请求超时时间（秒）。默认 10 秒。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API 請求超時時間（秒）。默認為 10 秒。"
+            "value" : "認證請求超時時間（秒）。默認 10 秒。"
           }
         }
       }
     },
-    "settings.network.api_timeout.label" : {
+    "settings.network.auth_timeout.label" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API-Zeitüberschreitung"
+            "value" : "Authentifizierungs-Timeout"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API Timeout"
+            "value" : "Auth Timeout"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Délai d'expiration API"
+            "value" : "Délai d'expiration d'authentification"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API タイムアウト"
+            "value" : "認証のタイムアウト"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API 시간 제한"
+            "value" : "인증 시간 제한"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API 超时"
+            "value" : "认证超时"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API 超時"
+            "value" : "認證超時"
+          }
+        }
+      }
+    },
+    "settings.network.download_timeout.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitdauer, bevor ein Download abgebrochen wird (Sekunden). Standard: 60s."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout for download requests in seconds. Default is 60s."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai d'attente des téléchargements en secondes. La valeur par défaut est de 60s."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロードのタイムアウト（秒）。デフォルトは 60 秒です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다운로드 시간 제한(초). 기본값은 60초입니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载请求超时时间（秒）。默认 60 秒。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載請求超時時間（秒）。默認 60 秒。"
+          }
+        }
+      }
+    },
+    "settings.network.download_timeout.label" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download-Timeout"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Timeout"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai d'expiration des téléchargements"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロードのタイムアウト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다운로드 시간 제한"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载超时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載超時"
           }
         }
       }
@@ -38622,6 +38714,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閱讀器接力"
+          }
+        }
+      }
+    },
+    "settings.network.request_timeout.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitdauer, bevor eine Anfrage abgebrochen wird (Sekunden). Standard: 20s."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout for requests in seconds. Default is 20s."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai d'attente des requêtes en secondes. La valeur par défaut est de 20s."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエストのタイムアウト（秒）。デフォルトは 20 秒です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청 시간 제한(초). 기본값은 20초입니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求超时时间（秒）。默认 20 秒。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請求超時時間（秒）。默認 20 秒。"
+          }
+        }
+      }
+    },
+    "settings.network.request_timeout.label" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfrage-Timeout"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Timeout"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai d'expiration des requêtes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエストのタイムアウト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청 시간 제한"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求超时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請求超時"
           }
         }
       }

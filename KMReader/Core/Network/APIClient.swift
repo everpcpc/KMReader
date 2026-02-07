@@ -26,6 +26,28 @@ class APIClient {
 
   private let userAgent: String
 
+  enum RequestCategory {
+    case general
+    case download
+    case auth
+  }
+
+  private actor OfflineFailureTracker {
+    private var consecutiveFailures = 0
+
+    func recordSuccess() {
+      consecutiveFailures = 0
+    }
+
+    func shouldSwitchOffline(isAuth: Bool) -> Bool {
+      consecutiveFailures += 1
+      let threshold = isAuth ? 1 : 3
+      return consecutiveFailures >= threshold
+    }
+  }
+
+  private let offlineFailureTracker = OfflineFailureTracker()
+
   private lazy var sharedSession: URLSession = {
     let configuration = URLSessionConfiguration.default
     configuration.urlCache = URLCache(
@@ -100,9 +122,8 @@ class APIClient {
       timeout: timeout
     )
 
-    // Skip offline switch for login requests - caller handles offline mode manually
     let (data, httpResponse) = try await executeRequest(
-      request, session: currentSession(), isTemporary: false, skipOfflineSwitch: true)
+      request, session: currentSession(), isTemporary: false, requestCategory: .auth)
     return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
   }
 
@@ -140,7 +161,7 @@ class APIClient {
       }())
 
     let (data, httpResponse) = try await executeRequest(
-      request, session: tempSession, isTemporary: true)
+      request, session: tempSession, isTemporary: true, requestCategory: .auth)
 
     return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
   }
@@ -232,7 +253,8 @@ class APIClient {
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
-    timeout: TimeInterval? = nil
+    timeout: TimeInterval? = nil,
+    category: RequestCategory = .general
   ) throws -> URLRequest {
     guard var urlComponents = URLComponents(string: AppConfig.current.serverURL + path) else {
       throw APIError.invalidURL
@@ -249,9 +271,7 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
-    if let timeout = timeout {
-      request.timeoutInterval = timeout
-    }
+    request.timeoutInterval = resolveTimeout(timeout, category: category)
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
@@ -279,6 +299,24 @@ class APIClient {
     return request
   }
 
+  private func resolveTimeout(
+    _ timeout: TimeInterval?,
+    category: RequestCategory
+  ) -> TimeInterval {
+    timeout ?? defaultTimeout(for: category)
+  }
+
+  private func defaultTimeout(for category: RequestCategory) -> TimeInterval {
+    switch category {
+    case .general:
+      return AppConfig.requestTimeout
+    case .download:
+      return AppConfig.downloadTimeout
+    case .auth:
+      return AppConfig.authTimeout
+    }
+  }
+
   private func buildLoginRequest(
     serverURL: String? = nil,
     path: String,
@@ -289,7 +327,8 @@ class APIClient {
     authToken: String? = nil,
     authMethod: AuthenticationMethod? = nil,
     useSessionToken: Bool = true,
-    timeout: TimeInterval? = nil
+    timeout: TimeInterval? = nil,
+    category: RequestCategory = .auth
   ) throws -> URLRequest {
     let baseURL = (serverURL ?? AppConfig.current.serverURL).trimmingCharacters(
       in: .whitespacesAndNewlines)
@@ -315,9 +354,7 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
-    if let timeout = timeout {
-      request.timeoutInterval = timeout
-    }
+    request.timeoutInterval = resolveTimeout(timeout, category: category)
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
@@ -347,11 +384,13 @@ class APIClient {
     url: URL,
     method: String,
     body: Data? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    category: RequestCategory = .general
   ) -> URLRequest {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
+    request.timeoutInterval = resolveTimeout(nil, category: category)
     configureDefaultHeaders(&request, body: body, headers: headers)
     return request
   }
@@ -401,8 +440,8 @@ class APIClient {
     _ request: URLRequest,
     session: URLSession? = nil,
     isTemporary: Bool = false,
+    requestCategory: RequestCategory = .general,
     retryCount: Int = 0,
-    skipOfflineSwitch: Bool = false,
     onProgress: (@MainActor @Sendable (_ received: Int64, _ expected: Int64?) -> Void)? = nil
   ) async throws -> (data: Data, response: HTTPURLResponse) {
     let method = request.httpMethod ?? "GET"
@@ -629,7 +668,12 @@ class APIClient {
                   )
                 }
                 return try await self.executeRequest(
-                  loginRequest, session: sessionToUse, isTemporary: false, retryCount: 1)
+                  loginRequest,
+                  session: sessionToUse,
+                  isTemporary: false,
+                  requestCategory: .auth,
+                  retryCount: 1
+                )
               }
 
               logger.info("✅ Re-login successful, retrying original request...")
@@ -637,8 +681,13 @@ class APIClient {
                 onProgress(0, expectedBytes)
               }
               return try await executeRequest(
-                request, session: sessionToUse, isTemporary: false, retryCount: 1,
-                skipOfflineSwitch: skipOfflineSwitch, onProgress: onProgress)
+                request,
+                session: sessionToUse,
+                isTemporary: false,
+                requestCategory: requestCategory,
+                retryCount: 1,
+                onProgress: onProgress
+              )
             } catch {
               logger.error("❌ Re-login failed: \(error.localizedDescription)")
             }
@@ -676,8 +725,13 @@ class APIClient {
             )
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             return try await executeRequest(
-              request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1,
-              skipOfflineSwitch: skipOfflineSwitch, onProgress: onProgress)
+              request,
+              session: session,
+              isTemporary: isTemporary,
+              requestCategory: requestCategory,
+              retryCount: retryCount + 1,
+              onProgress: onProgress
+            )
           }
 
           logger.error("❌ Server Error \(httpResponse.statusCode): \(errorMessage)")
@@ -692,20 +746,23 @@ class APIClient {
         }
       }
 
+      await offlineFailureTracker.recordSuccess()
       return (data, httpResponse)
     } catch let error as APIError {
       throw error
     } catch let appError as AppErrorType {
       logger.error("❌ Network error for \(urlString): \(appError.description)")
-      if !skipOfflineSwitch && !isTemporary {
-        handleNetworkError(appError)
+      let shouldHandleOffline = !isTemporary
+      if shouldHandleOffline {
+        await handleNetworkError(appError, requestCategory: requestCategory)
       }
       throw APIError.networkError(appError, url: urlString)
     } catch let nsError as NSError where nsError.domain == NSURLErrorDomain {
       let appError = AppErrorType.from(nsError)
       logger.error("❌ Network error for \(urlString): \(appError.description)")
-      if !skipOfflineSwitch && !isTemporary {
-        handleNetworkError(nsError)
+      let shouldHandleOffline = !isTemporary
+      if shouldHandleOffline {
+        await handleNetworkError(nsError, requestCategory: requestCategory)
       }
       throw APIError.networkError(appError, url: urlString)
     } catch {
@@ -715,20 +772,29 @@ class APIClient {
         )
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         return try await executeRequest(
-          request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1,
-          skipOfflineSwitch: skipOfflineSwitch, onProgress: onProgress)
+          request,
+          session: session,
+          isTemporary: isTemporary,
+          requestCategory: requestCategory,
+          retryCount: retryCount + 1,
+          onProgress: onProgress
+        )
       }
 
       logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")
-      if !skipOfflineSwitch && !isTemporary {
-        handleNetworkError(error)
+      let shouldHandleOffline = !isTemporary
+      if shouldHandleOffline {
+        await handleNetworkError(error, requestCategory: requestCategory)
       }
       throw APIError.networkError(error, url: urlString)
     }
   }
 
-  private func handleNetworkError(_ error: Error) {
-    // Only switch to offline mode if not already offline and not a temporary/login request
+  private func handleNetworkError(
+    _ error: Error,
+    requestCategory: RequestCategory
+  ) async {
+    // Only switch to offline mode if not already offline
     guard !AppConfig.isOffline else { return }
 
     // Identify if the error is a network connectivity issue
@@ -757,11 +823,17 @@ class APIClient {
     }
 
     if isConnectivityIssue {
+      let shouldSwitch = await offlineFailureTracker.shouldSwitchOffline(
+        isAuth: requestCategory == .auth
+      )
+      guard shouldSwitch else { return }
       logger.info("🔌 Network issue detected, automatically switching to offline mode")
-      Task { @MainActor in
+      await MainActor.run {
         guard !AppConfig.isOffline else { return }
         AppConfig.isOffline = true
-        await SSEService.shared.disconnect()
+      }
+      await SSEService.shared.disconnect()
+      await MainActor.run {
         ErrorManager.shared.notify(
           message: String(localized: "notification.automaticOfflineMode")
         )
@@ -786,7 +858,8 @@ class APIClient {
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
     bypassOfflineCheck: Bool = false,
-    timeout: TimeInterval? = nil
+    timeout: TimeInterval? = nil,
+    category: RequestCategory = .general
   ) async throws -> T {
     if !bypassOfflineCheck {
       try throwIfOffline()
@@ -798,9 +871,10 @@ class APIClient {
       body: body,
       queryItems: queryItems,
       headers: headers,
-      timeout: timeout
+      timeout: timeout,
+      category: category
     )
-    let (data, httpResponse) = try await executeRequest(urlRequest)
+    let (data, httpResponse) = try await executeRequest(urlRequest, requestCategory: category)
 
     return try decodeResponse(data: data, httpResponse: httpResponse, request: urlRequest)
   }
@@ -810,7 +884,8 @@ class APIClient {
     method: String = "GET",
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    category: RequestCategory = .general
   ) async throws -> T? {
     try throwIfOffline()
 
@@ -819,9 +894,10 @@ class APIClient {
       method: method,
       body: body,
       queryItems: queryItems,
-      headers: headers
+      headers: headers,
+      category: category
     )
-    let (data, httpResponse) = try await executeRequest(urlRequest)
+    let (data, httpResponse) = try await executeRequest(urlRequest, requestCategory: category)
 
     if httpResponse.statusCode == 204 || data.isEmpty {
       return nil
@@ -846,8 +922,8 @@ class APIClient {
     try throwIfOffline()
 
     let urlRequest = try buildRequest(
-      path: path, method: method, headers: headers)
-    let (data, httpResponse) = try await executeRequest(urlRequest)
+      path: path, method: method, headers: headers, category: .download)
+    let (data, httpResponse) = try await executeRequest(urlRequest, requestCategory: .download)
 
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)
   }
@@ -861,10 +937,11 @@ class APIClient {
     try throwIfOffline()
 
     let urlRequest = try buildRequest(
-      path: path, method: method, headers: headers)
+      path: path, method: method, headers: headers, category: .download)
     let urlString = urlRequest.url?.absoluteString ?? ""
     let (data, httpResponse) = try await executeRequest(
       urlRequest,
+      requestCategory: .download,
       onProgress: { received, expected in
         Task { @MainActor in
           NotificationCenter.default.post(
@@ -891,8 +968,8 @@ class APIClient {
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
     try throwIfOffline()
 
-    let urlRequest = buildRequest(url: url, method: method, headers: headers)
-    let (data, httpResponse) = try await executeRequest(urlRequest)
+    let urlRequest = buildRequest(url: url, method: method, headers: headers, category: .download)
+    let (data, httpResponse) = try await executeRequest(urlRequest, requestCategory: .download)
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)
   }
 
