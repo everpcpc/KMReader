@@ -87,10 +87,19 @@ struct BookContextMenu: View {
             } label: {
               Label("Refresh Metadata", systemImage: "arrow.clockwise")
             }
-            Divider()
+
+            if onDeleteRequested != nil {
+              Divider()
+              Button(role: .destructive) {
+                onDeleteRequested?()
+              } label: {
+                Label("Delete Book", systemImage: "trash")
+              }
+            }
           } label: {
             Label("Manage", systemImage: "gearshape")
           }
+
           Divider()
         }
       }
