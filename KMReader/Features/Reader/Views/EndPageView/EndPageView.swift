@@ -16,6 +16,7 @@ struct EndPageView: View {
   let readingDirection: ReadingDirection
   let onPreviousPage: () -> Void
   let onFocusChange: ((Bool) -> Void)?
+  var isActive: Bool = true
   var onExternalPanUpdate: ((@escaping (CGFloat) -> Void) -> Void)?
   var onExternalPanEnd: ((@escaping (CGFloat) -> Void) -> Void)?
   var showImage: Bool = true
@@ -39,7 +40,94 @@ struct EndPageView: View {
       case next
     }
     @FocusState private var focusedButton: ButtonFocus?
-    @State private var shouldSetFocus = false
+
+    private var isEndPageActive: Bool {
+      viewModel.currentPageIndex >= viewModel.pages.count
+    }
+
+    private func isBackwardDirection(_ direction: MoveCommandDirection) -> Bool {
+      switch readingDirection {
+      case .ltr:
+        return direction == .left
+      case .rtl:
+        return direction == .right
+      case .vertical, .webtoon:
+        return direction == .up
+      }
+    }
+
+    private func isForwardDirection(_ direction: MoveCommandDirection) -> Bool {
+      switch readingDirection {
+      case .ltr:
+        return direction == .right
+      case .rtl:
+        return direction == .left
+      case .vertical, .webtoon:
+        return direction == .down
+      }
+    }
+
+    private func focusButton(_ button: ButtonFocus) {
+      focusedButton = button
+      onFocusChange?(true)
+    }
+
+    private func activateFocusOnEntry() {
+      DispatchQueue.main.async {
+        guard isActive else { return }
+        guard isEndPageActive else { return }
+        focusButton(.close)
+      }
+    }
+
+    private func recoverFocusIfNeeded() {
+      DispatchQueue.main.async {
+        guard isActive else { return }
+        guard isEndPageActive else { return }
+        guard focusedButton == nil else { return }
+        focusButton(.close)
+      }
+    }
+
+    private func handleUnfocusedMove(_ direction: MoveCommandDirection) {
+      guard isActive else { return }
+      guard isEndPageActive else { return }
+      guard focusedButton == nil else { return }
+
+      if isBackwardDirection(direction) {
+        focusButton(.hidden)
+      } else {
+        focusButton(.close)
+      }
+    }
+
+    private func handleHiddenMove(_ direction: MoveCommandDirection) {
+      guard focusedButton == .hidden else { return }
+
+      if isBackwardDirection(direction) {
+        onPreviousPage()
+      } else if isForwardDirection(direction) {
+        focusButton(.close)
+      }
+    }
+
+    private func handleCloseMove(_ direction: MoveCommandDirection) {
+      guard focusedButton == .close else { return }
+
+      if isBackwardDirection(direction) {
+        focusButton(.hidden)
+      } else if isForwardDirection(direction), nextBook != nil {
+        focusButton(.next)
+      }
+    }
+
+    private func handleNextMove(_ direction: MoveCommandDirection) {
+      guard focusedButton == .next else { return }
+
+      if isBackwardDirection(direction) {
+        focusButton(.close)
+      }
+    }
   #endif
 
   #if os(iOS)
@@ -140,26 +228,51 @@ struct EndPageView: View {
       }
     #endif
     #if os(tvOS)
-      .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")
       .onAppear {
-        if viewModel.currentPageIndex >= viewModel.pages.count {
-          shouldSetFocus = true
+        guard isEndPageActive else { return }
+        guard isActive else { return }
+        activateFocusOnEntry()
+      }
+      .onChange(of: isActive) { _, newValue in
+        guard isEndPageActive else { return }
+
+        if newValue {
+          activateFocusOnEntry()
+        } else if focusedButton != nil {
+          focusedButton = nil
+          onFocusChange?(false)
         }
       }
       .onChange(of: viewModel.currentPageIndex) { _, newIndex in
         if newIndex >= viewModel.pages.count {
-          shouldSetFocus = true
+          if isActive {
+            activateFocusOnEntry()
+          }
+        } else {
+          focusedButton = nil
+          onFocusChange?(false)
         }
       }
-      .onChange(of: shouldSetFocus) { _, shouldSet in
-        guard shouldSet else { return }
-        focusedButton = .close
-        onFocusChange?(true)
-        shouldSetFocus = false
+      .onChange(of: nextBook?.id) { _, _ in
+        guard isActive else { return }
+        guard isEndPageActive else { return }
+
+        if focusedButton == .next && nextBook == nil {
+          focusButton(.close)
+        } else if focusedButton == nil {
+          recoverFocusIfNeeded()
+        }
       }
       .onChange(of: focusedButton) { _, newValue in
-        let hasFocus = newValue != nil && newValue != .hidden
-        onFocusChange?(hasFocus)
+        onFocusChange?(isActive && newValue != nil)
+
+        guard isActive else { return }
+        guard isEndPageActive else { return }
+        guard newValue == nil else { return }
+        recoverFocusIfNeeded()
+      }
+      .onMoveCommand { direction in
+        handleUnfocusedMove(direction)
       }
       .defaultFocus($focusedButton, .close)
       .focusSection()
@@ -178,7 +291,6 @@ struct EndPageView: View {
       .allowsHitTesting(false)
 
       HStack(spacing: 16) {
-        // Hidden button for navigation (leading side)
         #if os(tvOS)
           Button {
           } label: {
@@ -187,6 +299,9 @@ struct EndPageView: View {
           }
           .adaptiveButtonStyle(.plain)
           .focused($focusedButton, equals: .hidden)
+          .onMoveCommand { direction in
+            handleHiddenMove(direction)
+          }
         #endif
 
         // Dismiss button
@@ -205,6 +320,9 @@ struct EndPageView: View {
         .tint(.primary)
         #if os(tvOS)
           .focused($focusedButton, equals: .close)
+          .onMoveCommand { direction in
+            handleCloseMove(direction)
+          }
         #endif
 
         // Next book button
@@ -224,6 +342,9 @@ struct EndPageView: View {
           .tint(.primary)
           #if os(tvOS)
             .focused($focusedButton, equals: .next)
+            .onMoveCommand { direction in
+              handleNextMove(direction)
+            }
           #endif
         }
       }
