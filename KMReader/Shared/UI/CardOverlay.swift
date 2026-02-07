@@ -10,6 +10,9 @@ import SwiftUI
 struct UnreadCountBadge: View {
   let count: Int
   let size: CGFloat
+  private var edgeInset: CGFloat {
+    size / 4
+  }
 
   #if os(tvOS)
     static let defaultSize: CGFloat = 24
@@ -37,12 +40,16 @@ struct UnreadCountBadge: View {
       #if !os(tvOS)
         .overlay(Capsule().stroke(PlatformHelper.systemBackgroundColor, lineWidth: 2))
       #endif
-      .offset(x: padding * 2, y: -(padding + size / 2))
+      .padding(.top, edgeInset)
+      .padding(.trailing, edgeInset)
   }
 }
 
 struct UnreadIndicator: View {
   let size: CGFloat
+  private var edgeInset: CGFloat {
+    size / 4
+  }
 
   #if os(tvOS)
     static let defaultSize: CGFloat = 24
@@ -63,7 +70,8 @@ struct UnreadIndicator: View {
       #if !os(tvOS)
         .overlay(Capsule().stroke(PlatformHelper.systemBackgroundColor, lineWidth: 2))
       #endif
-      .offset(x: size / 2, y: -size / 2)
+      .padding(.top, edgeInset)
+      .padding(.trailing, edgeInset)
   }
 }
 

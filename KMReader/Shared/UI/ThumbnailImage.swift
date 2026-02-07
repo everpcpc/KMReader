@@ -17,6 +17,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   let alignment: Alignment
   let isTransitionSource: Bool
   let navigationLink: NavDestination?
+  let preserveAspectRatioOverride: Bool?
   let onAction: (() -> Void)?
   let overlay: (() -> Overlay)?
   let menu: (() -> Menu)?
@@ -37,6 +38,10 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     return thumbnailShowShadow ? shadowStyle : .none
   }
 
+  private var effectivePreserveAspectRatio: Bool {
+    preserveAspectRatioOverride ?? thumbnailPreserveAspectRatio
+  }
+
   private var shouldShowPlaceholder: Bool {
     !isLoading && image == nil
   }
@@ -54,8 +59,6 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     @ViewBuilder content: () -> Content
   ) -> some View {
     content()
-      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-      .overlay { borderOverlay }
       .matchedTransitionSourceIfAvailable(id: id, in: isTransitionSource ? zoomNamespace : nil)
       #if os(iOS)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
@@ -65,11 +68,6 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       .contextMenu {
         if let menu = menu {
           menu()
-        }
-      }
-      .overlay {
-        if !isAbnormalSize, let overlay = overlay {
-          overlay()
         }
       }
       .transition(.opacity)
@@ -84,6 +82,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     alignment: Alignment = .center,
     isTransitionSource: Bool = true,
     navigationLink: NavDestination? = nil,
+    preserveAspectRatioOverride: Bool? = nil,
     onAction: (() -> Void)? = nil,
     @ViewBuilder overlay: @escaping () -> Overlay,
     @ViewBuilder menu: @escaping () -> Menu,
@@ -96,6 +95,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     self.alignment = alignment
     self.isTransitionSource = isTransitionSource
     self.navigationLink = navigationLink
+    self.preserveAspectRatioOverride = preserveAspectRatioOverride
     self.onAction = onAction
     self.overlay = overlay
     self.menu = menu
@@ -105,9 +105,16 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     "\(id)#\(type.rawValue)"
   }
 
+  private var imageAspectRatio: CGFloat {
+    guard let loadedImageSize = loadedImageSize, loadedImageSize.height > 0 else {
+      return 1 / ratio
+    }
+    return loadedImageSize.width / loadedImageSize.height
+  }
+
   private var isAbnormalSize: Bool {
     guard let loadedImageSize = loadedImageSize else { return false }
-    guard thumbnailPreserveAspectRatio else { return false }
+    guard effectivePreserveAspectRatio else { return false }
     let realRatio = loadedImageSize.height / loadedImageSize.width
     return realRatio < 0.35 || realRatio > 4.242
   }
@@ -134,13 +141,11 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
 
       if image != nil {
         thumbnailBase {
-          imageContent
+          imageCard
         }
-        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
       } else if shouldShowPlaceholder {
         thumbnailBase {
-          RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(.secondary)
+          placeholderCard
         }
       }
     }
@@ -183,7 +188,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   @ViewBuilder
   var imageContent: some View {
     if let platformImage = image {
-      if thumbnailPreserveAspectRatio {
+      if effectivePreserveAspectRatio {
         Image(platformImage: platformImage)
           .resizable()
           .aspectRatio(contentMode: .fit)
@@ -198,6 +203,33 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       }
     }
   }
+
+  @ViewBuilder
+  private var imageCard: some View {
+    let base = imageContent
+      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+      .overlay { borderOverlay }
+      .overlay {
+        if !isAbnormalSize, let overlay = overlay {
+          overlay()
+        }
+      }
+
+    if effectivePreserveAspectRatio {
+      base
+        .aspectRatio(imageAspectRatio, contentMode: .fit)
+        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+    } else {
+      base
+        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+    }
+  }
+
+  private var placeholderCard: some View {
+    RoundedRectangle(cornerRadius: cornerRadius)
+      .fill(.secondary)
+      .overlay { borderOverlay }
+  }
 }
 
 extension ThumbnailImage where Overlay == EmptyView, Menu == EmptyView {
@@ -210,6 +242,7 @@ extension ThumbnailImage where Overlay == EmptyView, Menu == EmptyView {
     alignment: Alignment = .center,
     isTransitionSource: Bool = true,
     navigationLink: NavDestination? = nil,
+    preserveAspectRatioOverride: Bool? = nil,
     onAction: (() -> Void)? = nil,
   ) {
     self.init(
@@ -218,6 +251,7 @@ extension ThumbnailImage where Overlay == EmptyView, Menu == EmptyView {
       alignment: alignment,
       isTransitionSource: isTransitionSource,
       navigationLink: navigationLink,
+      preserveAspectRatioOverride: preserveAspectRatioOverride,
       onAction: onAction
     ) {
     } menu: {
@@ -235,6 +269,7 @@ extension ThumbnailImage where Menu == EmptyView {
     alignment: Alignment = .center,
     isTransitionSource: Bool = true,
     navigationLink: NavDestination? = nil,
+    preserveAspectRatioOverride: Bool? = nil,
     onAction: (() -> Void)? = nil,
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {
@@ -244,6 +279,7 @@ extension ThumbnailImage where Menu == EmptyView {
       alignment: alignment,
       isTransitionSource: isTransitionSource,
       navigationLink: navigationLink,
+      preserveAspectRatioOverride: preserveAspectRatioOverride,
       onAction: onAction
     ) {
       overlay()

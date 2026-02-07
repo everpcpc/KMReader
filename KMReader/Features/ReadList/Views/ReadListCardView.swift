@@ -11,18 +11,29 @@ struct ReadListCardView: View {
   @Bindable var komgaReadList: KomgaReadList
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
+  private var contentSpacing: CGFloat {
+    cardTextOverlayMode ? 0 : 12
+  }
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
         id: komgaReadList.readListId,
         type: .readlist,
         shadowStyle: .platform,
         alignment: .bottom,
-        navigationLink: NavDestination.readListDetail(readListId: komgaReadList.readListId)
+        navigationLink: NavDestination.readListDetail(readListId: komgaReadList.readListId),
+        preserveAspectRatioOverride: cardTextOverlayMode ? false : nil
       ) {
+        if cardTextOverlayMode {
+          CardTextOverlay(cornerRadius: 8) {
+            overlayTextContent
+          }
+        }
       } menu: {
         ReadListContextMenu(
           readListId: komgaReadList.readListId,
@@ -37,7 +48,7 @@ struct ReadListCardView: View {
         )
       }
 
-      if !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
           Text(komgaReadList.name)
             .lineLimit(1)
@@ -61,6 +72,16 @@ struct ReadListCardView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       ReadListEditSheet(readList: komgaReadList.toReadList())
+    }
+  }
+
+  @ViewBuilder
+  private var overlayTextContent: some View {
+    CardOverlayTextStack(title: komgaReadList.name) {
+      HStack(spacing: 4) {
+        Text("\(komgaReadList.bookIds.count) books")
+        Spacer()
+      }
     }
   }
 

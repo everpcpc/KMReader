@@ -12,6 +12,7 @@ struct SeriesCardView: View {
   @Bindable var komgaSeries: KomgaSeries
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
 
   @State private var showCollectionPicker = false
@@ -31,16 +32,26 @@ struct SeriesCardView: View {
     return Double(komgaSeries.booksReadCount) / Double(komgaSeries.booksCount)
   }
 
+  private var contentSpacing: CGFloat {
+    cardTextOverlayMode ? 0 : 12
+  }
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
         id: komgaSeries.seriesId,
         type: .series,
         shadowStyle: .platform,
         alignment: .bottom,
-        navigationLink: navDestination
+        navigationLink: navDestination,
+        preserveAspectRatioOverride: cardTextOverlayMode ? false : nil
       ) {
         ZStack {
+          if cardTextOverlayMode {
+            CardTextOverlay(cornerRadius: 8) {
+              overlayTextContent
+            }
+          }
           if thumbnailShowUnreadIndicator && komgaSeries.booksUnreadCount > 0 {
             VStack(alignment: .trailing) {
               UnreadCountBadge(count: komgaSeries.booksUnreadCount)
@@ -70,7 +81,7 @@ struct SeriesCardView: View {
         )
       }
 
-      if !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
           Text(komgaSeries.metaTitle)
             .lineLimit(1)
@@ -127,6 +138,41 @@ struct SeriesCardView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       SeriesEditSheet(series: komgaSeries.toSeries())
+    }
+  }
+
+  @ViewBuilder
+  private var overlayTextContent: some View {
+    let style = CardOverlayTextStyle.standard
+
+    CardOverlayTextStack(title: komgaSeries.metaTitle, style: style) {
+      HStack(spacing: 4) {
+        if komgaSeries.isUnavailable {
+          Text("Unavailable")
+            .foregroundColor(.red)
+        } else if komgaSeries.oneshot {
+          Text("Oneshot")
+            .foregroundColor(.blue)
+        } else {
+          if progress > 0 && progress < 1 {
+            Text("\(progress * 100, specifier: "%.0f")%")
+            Text("•")
+          }
+          if progress == 1 {
+            Image(systemName: "checkmark.circle.fill")
+              .foregroundColor(style.secondaryColor)
+              .font(.caption2)
+          }
+          Text("\(komgaSeries.booksCount) books")
+            .lineLimit(1)
+        }
+        if komgaSeries.downloadStatus != .notDownloaded {
+          Spacer()
+          Image(systemName: komgaSeries.downloadStatus.icon)
+            .foregroundColor(komgaSeries.downloadStatus.color)
+            .font(.caption2)
+        }
+      }
     }
   }
 
