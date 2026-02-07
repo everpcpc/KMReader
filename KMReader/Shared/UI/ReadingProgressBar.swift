@@ -17,6 +17,7 @@ struct ReadingProgressBar: View {
   let height: CGFloat
   let color: Color
   let background: Color
+  let glass: Bool
 
   init(progress: Double, type: ReadingProgressBarType) {
     self.progress = progress
@@ -24,10 +25,12 @@ struct ReadingProgressBar: View {
     switch type {
     case .reader:
       self.color = .white
-      self.background = .secondary.opacity(0.75)
+      self.background = .secondary.opacity(0.4)
+      self.glass = true
     case .card:
       self.color = .accentColor
-      self.background = .secondary.opacity(0.25)
+      self.background = .accentColor.opacity(0.4)
+      self.glass = false
     }
   }
 
@@ -45,6 +48,7 @@ struct ReadingProgressBar: View {
             height: height
           )
       }
+      .glassEffectRegularIfAvailable(enabled: glass, in: Capsule())
     }
     .frame(height: height)
     .padding(height)

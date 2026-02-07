@@ -206,7 +206,8 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
 
   @ViewBuilder
   private var imageCard: some View {
-    let base = imageContent
+    let base =
+      imageContent
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
       .overlay { borderOverlay }
       .overlay {

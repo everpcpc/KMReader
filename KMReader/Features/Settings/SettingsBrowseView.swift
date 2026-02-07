@@ -26,7 +26,6 @@ struct SettingsBrowseView: View {
     )
   }
 
-
   var body: some View {
     Form {
       Section(header: Text(String(localized: "settings.appearance.browse"))) {

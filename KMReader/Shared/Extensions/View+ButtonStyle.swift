@@ -63,10 +63,10 @@ extension View {
   }
 
   @ViewBuilder
-  func glassEffectIfAvailable(enabled: Bool = true) -> some View {
+  func glassEffectClearIfAvailable(enabled: Bool = true) -> some View {
     if enabled {
       if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-        self.glassEffect()
+        self.glassEffect(.clear)
       } else {
         self
       }
@@ -76,10 +76,36 @@ extension View {
   }
 
   @ViewBuilder
-  func glassEffectIfAvailable<S: Shape>(enabled: Bool = true, in shape: S) -> some View {
+  func glassEffectClearIfAvailable<S: Shape>(enabled: Bool = true, in shape: S) -> some View {
     if enabled {
       if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-        self.glassEffect(in: shape)
+        self.glassEffect(.clear, in: shape)
+      } else {
+        self
+      }
+    } else {
+      self
+    }
+  }
+
+  @ViewBuilder
+  func glassEffectRegularIfAvailable(enabled: Bool = true) -> some View {
+    if enabled {
+      if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
+        self.glassEffect(.regular)
+      } else {
+        self
+      }
+    } else {
+      self
+    }
+  }
+
+  @ViewBuilder
+  func glassEffectRegularIfAvailable<S: Shape>(enabled: Bool = true, in shape: S) -> some View {
+    if enabled {
+      if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
+        self.glassEffect(.regular, in: shape)
       } else {
         self
       }

@@ -10,19 +10,20 @@ import SwiftUI
 struct UnreadCountBadge: View {
   let count: Int
   let size: CGFloat
-  private var edgeInset: CGFloat {
+
+  private var padding: CGFloat {
     size / 4
   }
 
   #if os(tvOS)
     static let defaultSize: CGFloat = 24
-    private let background: Color = .orange
-    private let padding: CGFloat = 6
+    private let accentColor: Color = .orange
   #else
     static let defaultSize: CGFloat = 12
-    private let background: Color = .accentColor
-    private let padding: CGFloat = 3
+    private let accentColor: Color = .accentColor
   #endif
+
+  private let accentOpacity: Double = 0.9
 
   init(count: Int, size: CGFloat = defaultSize) {
     self.count = count
@@ -31,33 +32,33 @@ struct UnreadCountBadge: View {
 
   var body: some View {
     Text("\(count)")
-      .font(.system(size: size, weight: .semibold))
+      .font(.system(size: size, weight: .semibold, design: .rounded))
       .foregroundColor(.white)
       .padding(.horizontal, padding * 2)
       .padding(.vertical, padding)
-      .background(background)
-      .clipShape(Capsule())
-      #if !os(tvOS)
-        .overlay(Capsule().stroke(PlatformHelper.systemBackgroundColor, lineWidth: 2))
-      #endif
-      .padding(.top, edgeInset)
-      .padding(.trailing, edgeInset)
+      .background(accentColor.opacity(accentOpacity), in: Capsule())
+      .glassEffectClearIfAvailable(in: Capsule())
+      .padding(.top, padding)
+      .padding(.trailing, padding)
   }
 }
 
 struct UnreadIndicator: View {
   let size: CGFloat
-  private var edgeInset: CGFloat {
+
+  private var padding: CGFloat {
     size / 4
   }
 
   #if os(tvOS)
     static let defaultSize: CGFloat = 24
-    private let background: Color = .orange
+    private let accentColor: Color = .orange
   #else
     static let defaultSize: CGFloat = 12
-    private let background: Color = .accentColor
+    private let accentColor: Color = .accentColor
   #endif
+
+  private let accentOpacity: Double = 0.9
 
   init(size: CGFloat = defaultSize) {
     self.size = size
@@ -65,20 +66,17 @@ struct UnreadIndicator: View {
 
   var body: some View {
     Circle()
-      .fill(background)
+      .fill(accentColor.opacity(accentOpacity))
+      .glassEffectClearIfAvailable(in: Circle())
       .frame(width: size, height: size)
-      #if !os(tvOS)
-        .overlay(Capsule().stroke(PlatformHelper.systemBackgroundColor, lineWidth: 2))
-      #endif
-      .padding(.top, edgeInset)
-      .padding(.trailing, edgeInset)
+      .padding(.top, padding)
+      .padding(.trailing, padding)
   }
 }
 
 #Preview {
-  HStack(spacing: 15) {
-
-    VStack {
+  VStack {
+    HStack {
       ZStack(alignment: .topTrailing) {
         Rectangle()
           .fill(Color.gray.opacity(0.3))
@@ -89,9 +87,21 @@ struct UnreadIndicator: View {
               .foregroundColor(.gray)
           )
 
-        UnreadCountBadge(count: 29)
-        // UnreadIndicator()
-      }
+        UnreadCountBadge(count: 291)
+      }.frame(height: 160)
+
+      ZStack(alignment: .topTrailing) {
+        Rectangle()
+          .fill(Color.gray.opacity(0.3))
+          .aspectRatio(0.7, contentMode: .fit)
+          .cornerRadius(8)
+          .overlay(
+            Image(systemName: "photo")
+              .foregroundColor(.gray)
+          )
+
+        UnreadIndicator()
+      }.frame(height: 160)
     }
   }
   .padding()
