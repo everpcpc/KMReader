@@ -212,6 +212,9 @@ struct DivinaReaderView: View {
           if isEndPageButtonFocused {
             return
           }
+          if viewModel.currentPageIndex >= viewModel.pages.count {
+            return
+          }
 
           // Execute page navigation
           switch readingDirection {

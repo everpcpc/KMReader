@@ -182,6 +182,7 @@ struct ScrollPageView: View {
             readingDirection: readingDirection,
             onPreviousPage: goToPreviousPage,
             onFocusChange: onEndPageFocusChange,
+            isActive: offset == viewModel.currentViewItemIndex,
             showImage: true
           )
         case .dual(let first, let second):
