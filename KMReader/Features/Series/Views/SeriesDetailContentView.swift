@@ -12,6 +12,9 @@ struct SeriesDetailContentView: View {
   let series: Series
 
   @State private var thumbnailRefreshKey = UUID()
+  @State private var isAuthorsExpanded = false
+
+  private let collapsedAuthorsLimit = 10
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -160,15 +163,35 @@ struct SeriesDetailContentView: View {
               )
             }
 
-            if let authors = series.booksMetadata.authors, !authors.isEmpty {
-              HFlow {
-                ForEach(authors.sortedByRole(), id: \.self) { author in
-                  TappableInfoChip(
-                    label: author.name,
-                    systemImage: author.role.icon,
-                    color: .purple,
-                    destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
-                  )
+            if !sortedAuthors.isEmpty {
+              VStack(alignment: .leading, spacing: 6) {
+                HFlow {
+                  ForEach(displayedAuthors, id: \.self) { author in
+                    TappableInfoChip(
+                      label: author.name,
+                      systemImage: author.role.icon,
+                      color: .purple,
+                      destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
+                    )
+                  }
+                }
+
+                if shouldShowAuthorsToggle {
+                  Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                      isAuthorsExpanded.toggle()
+                    }
+                  } label: {
+                    Label(
+                      isAuthorsExpanded
+                        ? String(localized: "Show Less")
+                        : String(localized: "Show More"),
+                      systemImage: isAuthorsExpanded ? "chevron.up" : "chevron.down"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                  }
+                  .buttonStyle(.plain)
                 }
               }
             }
@@ -290,5 +313,21 @@ struct SeriesDetailContentView: View {
       return true
     }
     return false
+  }
+
+  private var sortedAuthors: [Author] {
+    (series.booksMetadata.authors ?? []).sortedByRole()
+  }
+
+  private var shouldShowAuthorsToggle: Bool {
+    sortedAuthors.count > collapsedAuthorsLimit
+  }
+
+  private var displayedAuthors: [Author] {
+    if isAuthorsExpanded || !shouldShowAuthorsToggle {
+      return sortedAuthors
+    }
+
+    return Array(sortedAuthors.prefix(collapsedAuthorsLimit))
   }
 }
