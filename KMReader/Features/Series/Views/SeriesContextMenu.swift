@@ -117,9 +117,19 @@ struct SeriesContextMenu: View {
             } label: {
               Label("Refresh Metadata", systemImage: "arrow.clockwise")
             }
+
+            if onDeleteRequested != nil {
+              Divider()
+              Button(role: .destructive) {
+                onDeleteRequested?()
+              } label: {
+                Label("Delete Series", systemImage: "trash")
+              }
+            }
           } label: {
             Label("Manage", systemImage: "gearshape")
           }
+
           Divider()
         }
       }
