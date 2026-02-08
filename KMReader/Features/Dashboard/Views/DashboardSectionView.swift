@@ -213,10 +213,7 @@ struct DashboardSectionView: View {
     let isFirstPage = pagination.currentPage == 0
 
     if !AppConfig.isOffline {
-      await seedFromCacheIfNeeded(
-        isFirstPage: isFirstPage,
-        libraryIds: libraryIds
-      )
+      await seedFromCacheIfNeeded(isFirstPage: isFirstPage)
     }
 
     if AppConfig.isOffline {
@@ -269,12 +266,10 @@ struct DashboardSectionView: View {
       }
     }
 
-    withAnimation {
-      isLoading = false
-    }
+    isLoading = false
   }
 
-  private func seedFromCacheIfNeeded(isFirstPage: Bool, libraryIds: [String]) async {
+  private func seedFromCacheIfNeeded(isFirstPage: Bool) async {
     guard isFirstPage, !didSeedFromCache, pagination.isEmpty else { return }
     didSeedFromCache = true
 
@@ -285,9 +280,19 @@ struct DashboardSectionView: View {
 
   private func applyPage(ids: [String], moreAvailable: Bool) {
     let wrappedIds = ids.map(IdentifiedString.init)
-    withAnimation {
-      _ = pagination.applyPage(wrappedIds)
+
+    if pagination.currentPage == 0 {
+      if pagination.items != wrappedIds {
+        withAnimation {
+          pagination.items = wrappedIds
+        }
+      }
+    } else if !wrappedIds.isEmpty {
+      withAnimation {
+        pagination.items.append(contentsOf: wrappedIds)
+      }
     }
+
     pagination.advance(moreAvailable: moreAvailable)
   }
 }
