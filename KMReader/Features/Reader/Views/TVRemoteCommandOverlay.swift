@@ -15,20 +15,26 @@
       let view = RemoteCaptureView()
       view.backgroundColor = .clear
       view.coordinator = context.coordinator
+      context.coordinator.installGestureRecognizersIfNeeded(on: view)
       context.coordinator.applyState(to: view)
       return view
     }
 
     func updateUIView(_ uiView: RemoteCaptureView, context: Context) {
       context.coordinator.parent = self
+      context.coordinator.installGestureRecognizersIfNeeded(on: uiView)
       context.coordinator.applyState(to: uiView)
     }
 
-    final class Coordinator {
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
       var parent: TVRemoteCommandOverlay
 
       private let logger = AppLogger(.reader)
       private var lastEnabledState: Bool?
+      private var lastGestureDirection: MoveCommandDirection?
+      private var lastGestureTimestamp: TimeInterval = 0
+      private let gestureDedupInterval: TimeInterval = 0.08
+      private let panTranslationThreshold: CGFloat = 32
 
       init(parent: TVRemoteCommandOverlay) {
         self.parent = parent
@@ -42,6 +48,41 @@
           logger.debug("📺 UIKit remote capture \(parent.isEnabled ? "enabled" : "disabled")")
           lastEnabledState = parent.isEnabled
         }
+      }
+
+      func installGestureRecognizersIfNeeded(on view: RemoteCaptureView) {
+        guard !view.hasInstalledGestureRecognizers else { return }
+
+        let swipeLeft = makeSwipeGesture(direction: .left)
+        let swipeRight = makeSwipeGesture(direction: .right)
+        let swipeUp = makeSwipeGesture(direction: .up)
+        let swipeDown = makeSwipeGesture(direction: .down)
+
+        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
+        panGesture.delegate = self
+        panGesture.cancelsTouchesInView = false
+        panGesture.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirect.rawValue)]
+
+        panGesture.require(toFail: swipeLeft)
+        panGesture.require(toFail: swipeRight)
+        panGesture.require(toFail: swipeUp)
+        panGesture.require(toFail: swipeDown)
+
+        view.addGestureRecognizer(swipeLeft)
+        view.addGestureRecognizer(swipeRight)
+        view.addGestureRecognizer(swipeUp)
+        view.addGestureRecognizer(swipeDown)
+        view.addGestureRecognizer(panGesture)
+        view.hasInstalledGestureRecognizers = true
+      }
+
+      private func makeSwipeGesture(direction: UISwipeGestureRecognizer.Direction) -> UISwipeGestureRecognizer {
+        let gesture = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeGesture(_:)))
+        gesture.direction = direction
+        gesture.delegate = self
+        gesture.cancelsTouchesInView = false
+        gesture.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirect.rawValue)]
+        return gesture
       }
 
       @discardableResult
@@ -63,11 +104,91 @@
           return false
         }
       }
+
+      @objc
+      private func handleSwipeGesture(_ gesture: UISwipeGestureRecognizer) {
+        guard gesture.state == .ended else { return }
+        guard let direction = moveDirection(for: gesture.direction) else { return }
+        _ = dispatchMoveCommand(direction, source: "swipe")
+      }
+
+      @objc
+      private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
+        guard gesture.state == .ended else { return }
+
+        let translation = gesture.translation(in: gesture.view)
+        let absoluteX = abs(translation.x)
+        let absoluteY = abs(translation.y)
+
+        guard max(absoluteX, absoluteY) >= panTranslationThreshold else { return }
+
+        let direction: MoveCommandDirection
+        if absoluteX >= absoluteY {
+          direction = translation.x > 0 ? .right : .left
+        } else {
+          direction = translation.y > 0 ? .down : .up
+        }
+
+        _ = dispatchMoveCommand(direction, source: "pan")
+      }
+
+      private func moveDirection(for direction: UISwipeGestureRecognizer.Direction) -> MoveCommandDirection? {
+        switch direction {
+        case .left:
+          return .left
+        case .right:
+          return .right
+        case .up:
+          return .up
+        case .down:
+          return .down
+        default:
+          return nil
+        }
+      }
+
+      private func dispatchMoveCommand(_ direction: MoveCommandDirection, source: String) -> Bool {
+        guard parent.isEnabled else { return false }
+
+        if shouldIgnoreDuplicateGesture(direction) {
+          logger.debug("📺 UIKit \(source) gesture ignored: duplicate \(String(describing: direction))")
+          return false
+        }
+
+        logger.debug("📺 UIKit \(source) gesture -> move \(String(describing: direction))")
+        return parent.onMoveCommand(direction)
+      }
+
+      private func shouldIgnoreDuplicateGesture(_ direction: MoveCommandDirection) -> Bool {
+        let now = Date().timeIntervalSinceReferenceDate
+        let isDuplicate =
+          lastGestureDirection == direction
+          && now - lastGestureTimestamp < gestureDedupInterval
+
+        if !isDuplicate {
+          lastGestureDirection = direction
+          lastGestureTimestamp = now
+        }
+
+        return isDuplicate
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        false
+      }
+
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        parent.isEnabled
+      }
     }
 
     final class RemoteCaptureView: UIView {
       weak var coordinator: Coordinator?
       var isCaptureEnabled = false
+      var hasInstalledGestureRecognizers = false
       private var activeHandledPressTypes: Set<UIPress.PressType> = []
       private var responderRetryWorkItem: DispatchWorkItem?
 
