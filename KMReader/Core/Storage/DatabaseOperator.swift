@@ -2065,6 +2065,9 @@ actor DatabaseOperator {
       if existing.completed != completed { existing.completed = completed }
       existing.createdAt = Date()  // Always update timestamp
       if existing.progressionData != progressionData { existing.progressionData = progressionData }
+      logger.debug(
+        "📝 Updated pending progress id=\(existing.id): book=\(bookId), page=\(page), completed=\(completed), hasProgressionData=\(progressionData != nil)"
+      )
     } else {
       let pending = PendingProgress(
         instanceId: instanceId,
@@ -2074,6 +2077,9 @@ actor DatabaseOperator {
         progressionData: progressionData
       )
       modelContext.insert(pending)
+      logger.debug(
+        "🆕 Queued pending progress id=\(pending.id): book=\(bookId), page=\(page), completed=\(completed), hasProgressionData=\(progressionData != nil)"
+      )
     }
   }
 
@@ -2088,6 +2094,9 @@ actor DatabaseOperator {
     }
 
     let results = (try? modelContext.fetch(descriptor)) ?? []
+    logger.debug(
+      "📚 Fetched pending progress items for instance \(instanceId): count=\(results.count), limit=\(limit?.description ?? "nil")"
+    )
     return results.map {
       PendingProgressSummary(
         id: $0.id,
@@ -2108,6 +2117,9 @@ actor DatabaseOperator {
 
     if let pending = try? modelContext.fetch(descriptor).first {
       modelContext.delete(pending)
+      logger.debug("🗑️ Deleted pending progress id=\(id)")
+    } else {
+      logger.warning("⚠️ Pending progress id=\(id) not found when deleting")
     }
   }
 }

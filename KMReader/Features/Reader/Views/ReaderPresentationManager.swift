@@ -12,6 +12,7 @@ import Observation
 @Observable
 final class ReaderPresentationManager {
   private(set) var readerState: BookReaderState?
+  private let logger = AppLogger(.reader)
 
   var hideStatusBar: Bool = false
   var readingDirection: ReadingDirection = .ltr
@@ -93,6 +94,19 @@ final class ReaderPresentationManager {
       let bookIds = visitedBookIds
       let seriesIds = visitedSeriesIds
       Task(priority: .utility) {
+        logger.debug(
+          "⏳ Waiting for reader progress flush before syncing visited items: books=\(bookIds.count), series=\(seriesIds.count)"
+        )
+        try? await Task.sleep(for: .milliseconds(200))
+        let idle = await ReaderProgressTracker.shared.waitUntilIdle(
+          bookIds: bookIds,
+          timeout: .seconds(2)
+        )
+        if !idle {
+          logger.warning(
+            "⚠️ Progress flush wait timed out, syncing visited items anyway: books=\(bookIds.count)"
+          )
+        }
         await SyncService.shared.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
       }
     }

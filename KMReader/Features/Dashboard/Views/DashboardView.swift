@@ -13,6 +13,7 @@ struct DashboardView: View {
   @State private var refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: .manual)
   @State private var isRefreshing = false
   @State private var pendingRefreshTask: Task<Void, Never>?
+  @State private var readerCloseRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
   @State private var shouldRefreshAfterReading = false
   @State private var isCheckingConnection = false
@@ -231,6 +232,8 @@ struct DashboardView: View {
       // Cancel any pending refresh when view disappears
       pendingRefreshTask?.cancel()
       pendingRefreshTask = nil
+      readerCloseRefreshTask?.cancel()
+      readerCloseRefreshTask = nil
     }
     .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
@@ -248,13 +251,43 @@ struct DashboardView: View {
         // Reader opened - cancel any pending dashboard refresh
         pendingRefreshTask?.cancel()
         pendingRefreshTask = nil
-      } else if shouldRefreshAfterReading {
-        // Check if there's a pending refresh
-        shouldRefreshAfterReading = false
-        refreshDashboard(reason: "Deferred after reader closed")
+        readerCloseRefreshTask?.cancel()
+        readerCloseRefreshTask = nil
       } else {
-        // Refresh sections when reader is closed otherwise
-        refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
+        let needsFullRefresh = shouldRefreshAfterReading
+        shouldRefreshAfterReading = false
+        let visitedBookIds = readerPresentation.visitedBookIds
+
+        readerCloseRefreshTask?.cancel()
+        readerCloseRefreshTask = Task {
+          logger.debug(
+            "Dashboard waiting for reader progress flush before refresh: books=\(visitedBookIds.count), fullRefresh=\(needsFullRefresh)"
+          )
+
+          if !visitedBookIds.isEmpty {
+            try? await Task.sleep(for: .milliseconds(200))
+            let idle = await ReaderProgressTracker.shared.waitUntilIdle(
+              bookIds: visitedBookIds,
+              timeout: .seconds(2)
+            )
+            if !idle {
+              logger.warning(
+                "Dashboard refresh wait timed out, continuing with close refresh"
+              )
+            }
+          }
+
+          guard !Task.isCancelled else { return }
+
+          await MainActor.run {
+            if needsFullRefresh {
+              refreshDashboard(reason: "Deferred after reader closed")
+            } else {
+              refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
+            }
+            readerCloseRefreshTask = nil
+          }
+        }
       }
     }
     #if !os(tvOS)

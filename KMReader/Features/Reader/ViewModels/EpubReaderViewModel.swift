@@ -442,17 +442,37 @@
       let chapterIndex = currentChapterIndex
       let pageIndex = currentPageIndex
       updateLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
-      guard currentLocation != nil else { return }
+      guard currentLocation != nil else {
+        logger.debug("⏭️ Skip progression update because current location is unavailable")
+        return
+      }
 
-      guard !incognito, !bookId.isEmpty else {
+      guard !incognito else {
+        logger.debug("⏭️ Skip progression update because incognito mode is enabled")
+        return
+      }
+      guard !bookId.isEmpty else {
+        logger.warning("⚠️ Skip progression update because book ID is empty")
         return
       }
 
       let now = Date()
-      guard now.timeIntervalSince(lastUpdateTime) >= updateThrottleInterval else {
+      let elapsed = now.timeIntervalSince(lastUpdateTime)
+      guard elapsed >= updateThrottleInterval else {
+        logger.debug(
+          String(
+            format: "⏱️ Skip progression update due to throttle (elapsed=%.2fs, required=%.2fs)",
+            elapsed,
+            updateThrottleInterval
+          )
+        )
         return
       }
       lastUpdateTime = now
+
+      logger.debug(
+        "📤 Trigger progression update from page change: chapterIndex=\(chapterIndex), pageIndex=\(pageIndex)"
+      )
 
       Task {
         await updateProgression(chapterIndex: chapterIndex, pageIndex: pageIndex)
@@ -475,16 +495,40 @@
     }
 
     func syncEndProgression() {
-      guard !incognito, !bookId.isEmpty else { return }
-      guard !AppConfig.isOffline else { return }
-      guard let lastPosition = lastPagePosition() else { return }
+      guard !incognito else {
+        logger.debug("⏭️ Skip end progression sync because incognito mode is enabled")
+        return
+      }
+      guard !bookId.isEmpty else {
+        logger.warning("⚠️ Skip end progression sync because book ID is empty")
+        return
+      }
+      guard !AppConfig.isOffline else {
+        logger.debug("⏭️ Skip end progression sync because app is offline")
+        return
+      }
+      guard let lastPosition = lastPagePosition() else {
+        logger.debug("⏭️ Skip end progression sync because last page position is unavailable")
+        return
+      }
 
+      logger.debug(
+        "🏁 Trigger end progression sync: chapterIndex=\(lastPosition.chapterIndex), pageIndex=\(lastPosition.pageIndex)"
+      )
       updateLocation(chapterIndex: lastPosition.chapterIndex, pageIndex: lastPosition.pageIndex)
 
       Task {
         let href = readingOrder[lastPosition.chapterIndex].href
         let overrideProgression = await maxProgressionOverride(for: href)
-        guard let overrideProgression else { return }
+        guard let overrideProgression else {
+          logger.debug(
+            "⏭️ Skip end progression sync because max progression override is unavailable for href=\(href)"
+          )
+          return
+        }
+        logger.debug(
+          "📤 Sending end progression override for href=\(href), progression=\(overrideProgression)"
+        )
         await updateProgression(
           chapterIndex: lastPosition.chapterIndex,
           pageIndex: lastPosition.pageIndex,
@@ -791,51 +835,21 @@
       }
 
       logger.debug(
-        "Updating progression: href=\(locator.href), progression=\(locator.locations?.progression ?? 0), totalProgression=\(locator.locations?.totalProgression ?? 0)"
+        "📝 Prepared EPUB progression payload: href=\(locator.href), progression=\(locator.locations?.progression ?? 0), totalProgression=\(locator.locations?.totalProgression ?? 0), globalPage=\(pageOffsetBeforeChapter(chapterIndex) + pageIndex + 1), offline=\(AppConfig.isOffline)"
       )
       let pageOffset = pageOffsetBeforeChapter(chapterIndex)
       let globalPageNumber = pageOffset + pageIndex + 1
 
-      Task.detached(priority: .utility) {
-        do {
-          if AppConfig.isOffline {
-            await DatabaseOperator.shared.queuePendingProgress(
-              instanceId: AppConfig.current.instanceId,
-              bookId: activeBookId,
-              page: globalPageNumber,
-              completed: false,
-              progressionData: progressionData
-            )
-            await DatabaseOperator.shared.commit()
-          } else {
-            try await BookService.shared.updateWebPubProgression(
-              bookId: activeBookId,
-              progression: progression
-            )
-          }
-        } catch let apiError as APIError {
-          // Check for specific EPUB extension error
-          if case .badRequest(let message, _, _, _) = apiError,
-            message.lowercased().contains("epub extension not found")
-          {
-            logger.error("Failed to update progression: EPUB extension not found")
-            await MainActor.run {
-              ErrorManager.shared.alert(
-                error: AppErrorType.operationFailed(
-                  message: String(
-                    localized: "error.epubExtensionNotFound",
-                    defaultValue: "Failed to sync reading progress. This book may need to be re-analyzed on the server."
-                  )
-                )
-              )
-            }
-          } else {
-            logger.error("Failed to update progression: \(apiError.localizedDescription)")
-          }
-        } catch {
-          logger.error("Failed to update progression: \(error.localizedDescription)")
-        }
-      }
+      logger.debug(
+        "📮 Submit EPUB progression to dispatch service: book=\(activeBookId), href=\(locator.href), globalPage=\(globalPageNumber)"
+      )
+
+      await ReaderProgressDispatchService.shared.submitEpubProgression(
+        bookId: activeBookId,
+        globalPageNumber: globalPageNumber,
+        progression: progression,
+        progressionData: progressionData
+      )
     }
 
     private func refreshChapterPageCounts(keepingCurrent: Bool) {

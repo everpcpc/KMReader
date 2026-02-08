@@ -34,6 +34,8 @@
     @State private var showingQuickActions = false
     @State private var showingEndPage = false
 
+    private let logger = AppLogger(.reader)
+
     init(
       book: Book,
       incognito: Bool = false,
@@ -51,6 +53,9 @@
     }
 
     private func closeReader() {
+      logger.debug(
+        "🚪 Closing EPUB reader for book \(handoffBookId), chapter=\(viewModel.currentChapterIndex), page=\(viewModel.currentPageIndex)"
+      )
       if let onClose {
         onClose()
       } else {
@@ -122,6 +127,9 @@
           viewModel.updateDownloadProgress(notification: notification)
         }
         .onDisappear {
+          logger.debug(
+            "👋 EPUB reader disappeared for book \(handoffBookId), chapter=\(viewModel.currentChapterIndex), page=\(viewModel.currentPageIndex), hasLocation=\(viewModel.currentLocation != nil)"
+          )
           withAnimation {
             readerPresentation.hideStatusBar = false
           }

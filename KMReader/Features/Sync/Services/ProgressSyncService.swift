@@ -18,6 +18,8 @@ actor ProgressSyncService {
   private init() {}
 
   func syncPendingProgress(instanceId: String) async {
+    logger.debug("🚀 Starting pending progress sync for instance \(instanceId)")
+
     guard !isSyncing else {
       logger.info("⏭️ Progress sync already in progress, skipping")
       return
@@ -29,7 +31,10 @@ actor ProgressSyncService {
     }
 
     isSyncing = true
-    defer { isSyncing = false }
+    defer {
+      isSyncing = false
+      logger.debug("🏁 Finished pending progress sync for instance \(instanceId)")
+    }
 
     let pending = await DatabaseOperator.shared.fetchPendingProgress(instanceId: instanceId)
 
@@ -45,18 +50,23 @@ actor ProgressSyncService {
     var completedBookIds = Set<String>()
 
     for item in pending {
+      logger.debug(
+        "🧾 Sync pending item id=\(item.id), book=\(item.bookId), page=\(item.page), completed=\(item.completed), hasProgressionData=\(item.progressionData != nil), createdAt=\(item.createdAt.ISO8601Format())"
+      )
       do {
         try await syncProgressItem(item)
         await DatabaseOperator.shared.deletePendingProgress(id: item.id)
         await DatabaseOperator.shared.commit()
         successCount += 1
+        logger.debug("🧹 Removed synced pending item id=\(item.id)")
 
         if item.completed {
           completedBookIds.insert(item.bookId)
         }
       } catch {
         logger.error(
-          "❌ Failed to sync progress for book \(item.bookId): \(error.localizedDescription)")
+          "❌ Failed to sync progress for book \(item.bookId) (pending id=\(item.id)): \(error.localizedDescription)"
+        )
         failureCount += 1
       }
     }
@@ -64,12 +74,14 @@ actor ProgressSyncService {
     // Batch sync books and series after individual progress items are processed
     var completedSeriesIds = Set<String>()
     for bookId in completedBookIds {
+      logger.debug("🔄 Refreshing completed book after progress sync: book=\(bookId)")
       if let book = try? await SyncService.shared.syncBook(bookId: bookId) {
         completedSeriesIds.insert(book.seriesId)
       }
     }
 
     for seriesId in completedSeriesIds {
+      logger.debug("🔄 Refreshing series after completed book sync: series=\(seriesId)")
       _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
     }
 
@@ -85,6 +97,9 @@ actor ProgressSyncService {
   private func syncProgressItem(_ item: PendingProgressSummary) async throws {
     // Check if this is EPUB progression or page-based progress
     if let progressionData = item.progressionData {
+      logger.debug(
+        "📤 Sync EPUB pending progression for book \(item.bookId), payloadBytes=\(progressionData.count)"
+      )
       // EPUB progression - decode on MainActor
       let progression = try await MainActor.run {
         let decoder = JSONDecoder()
@@ -99,6 +114,9 @@ actor ProgressSyncService {
       logger.debug("✅ Synced EPUB progression for book \(item.bookId)")
 
     } else {
+      logger.debug(
+        "📤 Sync page pending progress for book \(item.bookId), page=\(item.page), completed=\(item.completed)"
+      )
       // Page-based progress
       try await BookService.shared.updatePageReadProgress(
         bookId: item.bookId,

@@ -38,6 +38,8 @@ struct DivinaReaderView: View {
   @State private var isolateCoverPage: Bool
   @State private var splitWidePageMode: SplitWidePageMode
 
+  private let logger = AppLogger(.reader)
+
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
   @State private var showingControls = false
@@ -130,7 +132,9 @@ struct DivinaReaderView: View {
   }
 
   private func closeReader() {
-    viewModel.flushProgress()
+    logger.debug(
+      "🚪 Closing DIVINA reader for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pages.count)"
+    )
     if let onClose {
       onClose()
     } else {
@@ -342,6 +346,11 @@ struct DivinaReaderView: View {
       }
     }
     .onDisappear {
+      logger.debug(
+        "👋 DIVINA reader disappeared for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pages.count)"
+      )
+      logger.debug("🧯 DIVINA reader disappeared, forcing progress flush")
+      viewModel.flushProgress()
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
@@ -997,6 +1006,9 @@ struct DivinaReaderView: View {
   }
 
   private func openNextBook(nextBookId: String) {
+    logger.debug(
+      "➡️ Opening next book from \(currentBookId) to \(nextBookId), flush current progress first"
+    )
     viewModel.flushProgress()
     // Switch to next book by updating currentBookId
     // This will trigger the .task(id: currentBookId) to reload
@@ -1018,6 +1030,9 @@ struct DivinaReaderView: View {
   }
 
   private func openPreviousBook(previousBookId: String) {
+    logger.debug(
+      "⬅️ Opening previous book from \(currentBookId) to \(previousBookId), flush current progress first"
+    )
     viewModel.flushProgress()
     // Switch to previous book by updating currentBookId
     // This will trigger the .task(id: currentBookId) to reload

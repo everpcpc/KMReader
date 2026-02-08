@@ -16,6 +16,7 @@ struct BookFileDownloadResult {
 class BookService {
   static let shared = BookService()
   private let apiClient = APIClient.shared
+  private let logger = AppLogger(.api)
 
   private init() {}
 
@@ -86,6 +87,9 @@ class BookService {
   }
 
   func updateWebPubProgression(bookId: String, progression: R2Progression) async throws {
+    logger.debug(
+      "📤 Sending EPUB progression for book \(bookId): href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0), totalProgression=\(progression.locator.locations?.totalProgression ?? 0)"
+    )
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
     let data = try encoder.encode(progression)
@@ -94,6 +98,7 @@ class BookService {
       method: "PUT",
       body: data
     )
+    logger.debug("✅ EPUB progression sent for book \(bookId)")
   }
 
   func downloadBookFile(bookId: String) async throws -> BookFileDownloadResult {
@@ -227,6 +232,9 @@ class BookService {
   }
 
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async throws {
+    logger.debug(
+      "📤 Sending page progress for book \(bookId): page=\(page), completed=\(completed)"
+    )
     let body = ["page": page, "completed": completed] as [String: Any]
     let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
 
@@ -235,6 +243,7 @@ class BookService {
       method: "PATCH",
       body: jsonData
     )
+    logger.debug("✅ Page progress sent for book \(bookId): page=\(page)")
   }
 
   func deleteReadProgress(bookId: String) async throws {

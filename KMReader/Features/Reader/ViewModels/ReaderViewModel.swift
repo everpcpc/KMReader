@@ -42,17 +42,8 @@ class ReaderViewModel {
   /// Current book ID for API calls and cache access
   var bookId: String = ""
 
-  private struct PendingProgress: Equatable, Sendable {
-    let bookId: String
-    let page: Int
-    let completed: Bool
-  }
-
   /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
-  private var progressUpdateTask: Task<Void, Never>?
-  private var progressSendTask: Task<Void, Never>?
-  private var pendingProgress: PendingProgress?
   private let progressDebounceIntervalSeconds: Int = 3
   private var lastPreloadRequestTime: Date?
   private var preloadTask: Task<Void, Never>?
@@ -386,97 +377,53 @@ class ReaderViewModel {
   /// Skip update if incognito mode is enabled
   func updateProgress() async {
     // Skip progress updates in incognito mode
-    guard !incognitoMode else { return }
-    guard !bookId.isEmpty else { return }
-    guard let currentPage = currentPage else { return }
+    guard !incognitoMode else {
+      logger.debug("⏭️ Skip progress capture because incognito mode is enabled")
+      return
+    }
+    guard !bookId.isEmpty else {
+      logger.warning("⚠️ Skip progress capture because book ID is empty")
+      return
+    }
+    guard let currentPage = currentPage else {
+      logger.debug("⏭️ Skip progress capture because current page is unavailable")
+      return
+    }
 
-    let progress = PendingProgress(
-      bookId: bookId,
-      page: currentPage.number,
-      completed: currentPageIndex >= pages.count - 1
+    let completed = currentPageIndex >= pages.count - 1
+    logger.debug(
+      "📝 Captured pending page progress for book \(bookId): page=\(currentPage.number), completed=\(completed)"
     )
 
-    pendingProgress = progress
-    scheduleProgressUpdate()
+    await ReaderProgressDispatchService.shared.submitPageProgress(
+      bookId: bookId,
+      page: currentPage.number,
+      completed: completed,
+      debounceSeconds: progressDebounceIntervalSeconds
+    )
   }
 
   func flushProgress() {
-    guard !incognitoMode else { return }
-    progressUpdateTask?.cancel()
-    progressUpdateTask = nil
-    Task { await sendPendingProgress() }
-  }
-
-  private func scheduleProgressUpdate() {
-    progressUpdateTask?.cancel()
-    progressUpdateTask = Task { [weak self] in
-      do {
-        let delay = self?.progressDebounceIntervalSeconds ?? 3
-        try await Task.sleep(for: .seconds(delay))
-      } catch {
-        return
-      }
-      await self?.sendPendingProgress()
+    guard !incognitoMode else {
+      logger.debug("⏭️ Skip flush progress because incognito mode is enabled")
+      return
     }
-  }
 
-  private func sendPendingProgress() async {
-    progressUpdateTask = nil
-    guard progressSendTask == nil else { return }
-    guard let progress = pendingProgress else { return }
-    pendingProgress = nil
+    let snapshotPage = currentPage?.number
+    let snapshotCompleted =
+      currentPage != nil
+      ? (currentPageIndex >= pages.count - 1)
+      : nil
 
-    progressSendTask = Task.detached(priority: .utility) { [weak self] in
-      await self?.performProgressUpdate(progress)
-      await MainActor.run { [weak self] in
-        guard let self else { return }
-        self.progressSendTask = nil
-        if self.pendingProgress != nil, self.progressUpdateTask == nil {
-          Task { await self.sendPendingProgress() }
-        }
-      }
-    }
-  }
+    logger.debug(
+      "🚿 Flush progress requested for book \(bookId): hasCurrentPage=\(snapshotPage != nil)"
+    )
 
-  private nonisolated func performProgressUpdate(_ progress: PendingProgress) async {
-    let activeBookId = progress.bookId
-    let currentPageNumber = progress.page
-    let completed = progress.completed
-
-    do {
-      if AppConfig.isOffline {
-        // Queue for later sync
-        await DatabaseOperator.shared.queuePendingProgress(
-          instanceId: AppConfig.current.instanceId,
-          bookId: activeBookId,
-          page: currentPageNumber,
-          completed: completed,
-          progressionData: nil
-        )
-        // Also update local progress
-        await DatabaseOperator.shared.updateReadingProgress(
-          bookId: activeBookId,
-          page: currentPageNumber,
-          completed: completed
-        )
-        await DatabaseOperator.shared.commit()
-      } else {
-        try await BookService.shared.updatePageReadProgress(
-          bookId: activeBookId,
-          page: currentPageNumber,
-          completed: completed
-        )
-        // Also update local progress but don't commit
-        await DatabaseOperator.shared.updateReadingProgress(
-          bookId: activeBookId,
-          page: currentPageNumber,
-          completed: completed
-        )
-      }
-    } catch {
-      // Progress updates are non-critical, fail silently
-      AppLogger(.reader).error(
-        "Failed to update page progress for book \(activeBookId) page \(currentPageNumber): \(error.localizedDescription)"
+    Task {
+      await ReaderProgressDispatchService.shared.flushPageProgress(
+        bookId: bookId,
+        snapshotPage: snapshotPage,
+        snapshotCompleted: snapshotCompleted
       )
     }
   }
