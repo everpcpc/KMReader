@@ -63,6 +63,10 @@ struct DivinaReaderView: View {
   @State private var showingReaderSettingsSheet = false
   @State private var showingDetailSheet = false
 
+  #if os(tvOS)
+    @State private var isEndPageButtonFocused = false
+  #endif
+
   init(
     book: Book,
     incognito: Bool = false,
@@ -111,87 +115,6 @@ struct DivinaReaderView: View {
     return viewModel.currentPageIndex >= viewModel.pages.count
   }
 
-  #if os(tvOS)
-    private var isTVRemoteCaptureEnabled: Bool {
-      !showingControls
-        && !showingPageJumpSheet
-        && !showingTOCSheet
-        && !showingReaderSettingsSheet
-        && !showingDetailSheet
-        && !viewModel.pages.isEmpty
-        && !isShowingEndPage
-        && !(readingDirection == .webtoon && isAtBottom)
-    }
-
-    private func handleTVOSMoveCommand(_ direction: MoveCommandDirection, source: String) {
-      guard isTVRemoteCaptureEnabled else {
-        logger.debug(
-          "📺 Ignore tvOS move from \(source): controls=\(showingControls), endPage=\(isShowingEndPage), pages=\(viewModel.pages.count)"
-        )
-        return
-      }
-
-      logger.debug(
-        "📺 Handle tvOS move \(String(describing: direction)) from \(source), direction=\(readingDirection.rawValue), pageIndex=\(viewModel.currentPageIndex)"
-      )
-
-      switch readingDirection {
-      case .ltr, .rtl:
-        switch direction {
-        case .left:
-          if readingDirection == .rtl {
-            goToNextPage()
-          } else {
-            goToPreviousPage()
-          }
-        case .right:
-          if readingDirection == .rtl {
-            goToPreviousPage()
-          } else {
-            goToNextPage()
-          }
-        default:
-          break
-        }
-      case .vertical, .webtoon:
-        switch direction {
-        case .up:
-          goToPreviousPage()
-        case .down:
-          goToNextPage()
-        default:
-          break
-        }
-      }
-    }
-
-    private func handleTVOSPlayPauseCommand(source: String) {
-      logger.debug("📺 Handle tvOS play/pause from \(source), showingControls=\(showingControls)")
-      toggleControls(autoHide: false)
-    }
-
-    private func handleTVOSMenuCommand(source: String) {
-      logger.debug("📺 Handle tvOS menu from \(source), showingControls=\(showingControls)")
-      if showingControls {
-        toggleControls(autoHide: false)
-      } else {
-        closeReader()
-      }
-    }
-
-    private func handleTVOSSelectCommand(source: String) {
-      guard isTVRemoteCaptureEnabled else {
-        logger.debug(
-          "📺 Ignore tvOS select from \(source): controls=\(showingControls), endPage=\(isShowingEndPage), pages=\(viewModel.pages.count)"
-        )
-        return
-      }
-
-      logger.debug("📺 Handle tvOS select from \(source), toggling controls")
-      toggleControls(autoHide: false)
-    }
-  #endif
-
   private func shouldUseDualPage(screenSize: CGSize) -> Bool {
     guard screenSize.width > screenSize.height else { return false }  // Only in landscape
     guard pageLayout != .single else { return false }
@@ -238,6 +161,19 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
+  #if os(tvOS)
+    private var endPageFocusChangeHandler: ((Bool) -> Void) {
+      { isFocused in
+        // isFocused is true when any button in EndPageView has focus
+        isEndPageButtonFocused = isFocused
+      }
+    }
+  #else
+    private var endPageFocusChangeHandler: ((Bool) -> Void)? {
+      nil
+    }
+  #endif
+
   var body: some View {
     GeometryReader { geometry in
       let screenSize = geometry.size
@@ -252,10 +188,6 @@ struct DivinaReaderView: View {
           screenKey: screenKey
         )
 
-        #if os(tvOS)
-          tvRemoteCommandOverlay
-        #endif
-
         helperOverlay(screenKey: screenKey)
 
         controlsOverlay(useDualPage: useDualPage)
@@ -266,10 +198,80 @@ struct DivinaReaderView: View {
       }
       #if os(tvOS)
         .onPlayPauseCommand {
-          handleTVOSPlayPauseCommand(source: "onPlayPauseCommand")
+          logger.debug("📺 onPlayPauseCommand: toggling controls, showingControls=\(showingControls)")
+          // Manual toggle on tvOS should not auto-hide
+          toggleControls(autoHide: false)
         }
         .onExitCommand {
-          handleTVOSMenuCommand(source: "onExitCommand")
+          logger.debug("📺 onExitCommand: showingControls=\(showingControls)")
+          // Back button hides controls first; second press dismisses reader
+          if showingControls {
+            toggleControls(autoHide: false)
+          } else {
+            closeReader()
+          }
+        }
+        .onMoveCommand { direction in
+          logger.debug(
+            "📺 onMoveCommand direction=\(String(describing: direction)), showingControls=\(showingControls), endPageFocused=\(isEndPageButtonFocused), currentPageIndex=\(viewModel.currentPageIndex), totalPages=\(viewModel.pages.count)"
+          )
+
+          if showingControls {
+            logger.debug("📺 onMoveCommand ignored: controls are visible")
+            return
+          }
+          if isEndPageButtonFocused {
+            logger.debug("📺 onMoveCommand ignored: end-page focus owns navigation")
+            return
+          }
+          if viewModel.currentPageIndex >= viewModel.pages.count {
+            logger.debug("📺 onMoveCommand ignored: currently at end page")
+            return
+          }
+
+          // Execute page navigation
+          switch readingDirection {
+          case .ltr, .rtl:
+            // Horizontal navigation
+            switch direction {
+            case .left:
+              // RTL: left means next, LTR: left means previous
+              if readingDirection == .rtl {
+                goToNextPage()
+              } else {
+                goToPreviousPage()
+              }
+            case .right:
+              // RTL: right means previous, LTR: right means next
+              if readingDirection == .rtl {
+                goToPreviousPage()
+              } else {
+                goToNextPage()
+              }
+            default:
+              break
+            }
+          case .vertical:
+            // Vertical navigation
+            switch direction {
+            case .up:
+              goToPreviousPage()
+            case .down:
+              goToNextPage()
+            default:
+              break
+            }
+          case .webtoon:
+            // Webtoon navigation (vertical)
+            switch direction {
+            case .up:
+              goToPreviousPage()
+            case .down:
+              goToNextPage()
+            default:
+              break
+            }
+          }
         }
       #endif
       #if os(macOS)
@@ -448,6 +450,7 @@ struct DivinaReaderView: View {
                 mode: .vertical,
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                showingControls: showingControls,
                 viewModel: viewModel,
                 nextBook: nextBook,
                 readList: readList,
@@ -455,7 +458,13 @@ struct DivinaReaderView: View {
                 onNextBook: { openNextBook(nextBookId: $0) },
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
-                toggleControls: { toggleControls() }
+                toggleControls: { toggleControls() },
+                onEndPageFocusChange: endPageFocusChangeHandler,
+                onScrollActivityChange: { isScrolling in
+                  if isScrolling {
+                    resetControlsTimer(timeout: 1.5)
+                  }
+                }
               )
             #endif
           } else {
@@ -473,13 +482,14 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
-                  onEndPageFocusChange: nil
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 )
               } else {
                 ScrollPageView(
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
                   splitWidePageMode: splitWidePageMode,
+                  showingControls: showingControls,
                   viewModel: viewModel,
                   nextBook: nextBook,
                   readList: readList,
@@ -487,7 +497,13 @@ struct DivinaReaderView: View {
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
-                  toggleControls: { toggleControls() }
+                  toggleControls: { toggleControls() },
+                  onEndPageFocusChange: endPageFocusChangeHandler,
+                  onScrollActivityChange: { isScrolling in
+                    if isScrolling {
+                      resetControlsTimer(timeout: 1.5)
+                    }
+                  }
                 )
               }
             #else
@@ -495,6 +511,7 @@ struct DivinaReaderView: View {
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                showingControls: showingControls,
                 viewModel: viewModel,
                 nextBook: nextBook,
                 readList: readList,
@@ -502,7 +519,13 @@ struct DivinaReaderView: View {
                 onNextBook: { openNextBook(nextBookId: $0) },
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
-                toggleControls: { toggleControls() }
+                toggleControls: { toggleControls() },
+                onEndPageFocusChange: endPageFocusChangeHandler,
+                onScrollActivityChange: { isScrolling in
+                  if isScrolling {
+                    resetControlsTimer(timeout: 1.5)
+                  }
+                }
               )
             #endif
           }
@@ -546,23 +569,6 @@ struct DivinaReaderView: View {
       EmptyView()
     #endif
   }
-
-  #if os(tvOS)
-    private var tvRemoteCommandOverlay: some View {
-      TVRemoteCommandOverlay(
-        isEnabled: isTVRemoteCaptureEnabled,
-        onMoveCommand: { direction in
-          handleTVOSMoveCommand(direction, source: "remoteOverlay")
-        },
-        onSelectCommand: {
-          handleTVOSSelectCommand(source: "remoteOverlay")
-        }
-      )
-      .readerIgnoresSafeArea()
-      .allowsHitTesting(false)
-      .accessibilityHidden(true)
-    }
-  #endif
 
   private func controlsOverlay(useDualPage: Bool) -> some View {
     DivinaControlsOverlayView(
