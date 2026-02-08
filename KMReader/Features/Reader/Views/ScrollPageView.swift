@@ -18,7 +18,6 @@ struct ScrollPageView: View {
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
-  let onEndPageFocusChange: ((Bool) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
 
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -33,6 +32,14 @@ struct ScrollPageView: View {
     @FocusState private var isContentAnchorFocused: Bool
   #endif
 
+  private var shouldDisableScrollInteraction: Bool {
+    #if os(tvOS)
+      true
+    #else
+      viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil
+    #endif
+  }
+
   init(
     mode: PageViewMode,
     readingDirection: ReadingDirection,
@@ -46,7 +53,6 @@ struct ScrollPageView: View {
     goToNextPage: @escaping () -> Void,
     goToPreviousPage: @escaping () -> Void,
     toggleControls: @escaping () -> Void,
-    onEndPageFocusChange: ((Bool) -> Void)?,
     onScrollActivityChange: ((Bool) -> Void)? = nil
   ) {
     self.mode = mode
@@ -61,7 +67,6 @@ struct ScrollPageView: View {
     self.goToNextPage = goToNextPage
     self.goToPreviousPage = goToPreviousPage
     self.toggleControls = toggleControls
-    self.onEndPageFocusChange = onEndPageFocusChange
     self.onScrollActivityChange = onScrollActivityChange
   }
 
@@ -70,7 +75,7 @@ struct ScrollPageView: View {
       ScrollViewReader { proxy in
         scrollViewContent(
           geometry: geometry,
-          isScrollDisabled: viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil
+          isScrollDisabled: shouldDisableScrollInteraction
         )
         .frame(width: geometry.size.width, height: geometry.size.height)
         .scrollTargetBehavior(.paging)
@@ -145,17 +150,20 @@ struct ScrollPageView: View {
         }
         .onChange(of: viewModel.currentViewItemIndex) { _, _ in
           #if os(tvOS)
-            logger.debug(
-              "📺 currentViewItemIndex changed: \(viewModel.currentViewItemIndex), isCurrentItemEnd=\(isCurrentItemEnd)"
-            )
+            logger.debug("📺 currentViewItemIndex changed: \(viewModel.currentViewItemIndex)")
             updateContentAnchorFocus()
           #endif
         }
         #if os(tvOS)
           .onChange(of: isContentAnchorFocused) { _, newValue in
             logger.debug(
-              "📺 contentAnchor focus changed: \(newValue), showingControls=\(showingControls), isCurrentItemEnd=\(isCurrentItemEnd)"
+              "📺 contentAnchor focus changed: \(newValue), showingControls=\(showingControls)"
             )
+            if !newValue && !showingControls {
+              DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                updateContentAnchorFocus()
+              }
+            }
           }
         #endif
       }
@@ -195,8 +203,10 @@ struct ScrollPageView: View {
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             readingDirection: readingDirection,
-            onPreviousPage: goToPreviousPage,
-            onFocusChange: onEndPageFocusChange,
+            onPreviousPage: {
+              goToPreviousPage()
+            },
+            onFocusChange: nil,
             isActive: offset == viewModel.currentViewItemIndex,
             showImage: true
           )
@@ -256,7 +266,7 @@ struct ScrollPageView: View {
           .frame(width: 1, height: 1)
       }
       .buttonStyle(.plain)
-      .focusable(!showingControls && !isCurrentItemEnd)
+      .focusable(!showingControls)
       .focused($isContentAnchorFocused)
       .opacity(0.001)
     #else
@@ -265,20 +275,9 @@ struct ScrollPageView: View {
   }
 
   #if os(tvOS)
-    private var isCurrentItemEnd: Bool {
-      guard viewModel.currentViewItemIndex >= 0 else { return true }
-      guard viewModel.currentViewItemIndex < viewModel.viewItems.count else { return true }
-      return viewModel.viewItems[viewModel.currentViewItemIndex].isEnd
-    }
-
     private func updateContentAnchorFocus() {
       guard !showingControls else {
         logger.debug("📺 updateContentAnchorFocus -> blur (controls visible)")
-        isContentAnchorFocused = false
-        return
-      }
-      guard !isCurrentItemEnd else {
-        logger.debug("📺 updateContentAnchorFocus -> blur (end page item)")
         isContentAnchorFocused = false
         return
       }
@@ -300,7 +299,16 @@ struct ScrollPageView: View {
     DispatchQueue.main.async {
       scrollPosition = target
       proxy.scrollTo(target, anchor: .center)
+      viewModel.updateCurrentPosition(viewItemIndex: target)
       hasSyncedInitialScroll = true
+    }
+  }
+
+  private func syncCurrentPositionIfNeeded(target: Int) {
+    guard target >= 0 else { return }
+    guard target < viewModel.viewItems.count else { return }
+    if viewModel.currentViewItemIndex != target {
+      viewModel.updateCurrentPosition(viewItemIndex: target)
     }
   }
 
@@ -320,6 +328,8 @@ struct ScrollPageView: View {
         proxy.scrollTo(targetScrollPosition, anchor: .center)
       }
     }
+
+    syncCurrentPositionIfNeeded(target: targetScrollPosition)
 
     // Explicitly update progress
     Task {
@@ -345,10 +355,13 @@ struct ScrollPageView: View {
       }
     }
 
+    syncCurrentPositionIfNeeded(target: targetScrollPosition)
+
     // Explicitly update progress
     Task {
       await viewModel.updateProgress()
       await viewModel.preloadPages()
     }
   }
+
 }

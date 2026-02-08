@@ -33,103 +33,6 @@ struct EndPageView: View {
     private let swipeThreshold: CGFloat = 120
   #endif
 
-  #if os(tvOS)
-    private enum ButtonFocus: Hashable {
-      case hidden
-      case close
-      case next
-    }
-    @FocusState private var focusedButton: ButtonFocus?
-
-    private var isEndPageActive: Bool {
-      viewModel.currentPageIndex >= viewModel.pages.count
-    }
-
-    private func isBackwardDirection(_ direction: MoveCommandDirection) -> Bool {
-      switch readingDirection {
-      case .ltr:
-        return direction == .left
-      case .rtl:
-        return direction == .right
-      case .vertical, .webtoon:
-        return direction == .up
-      }
-    }
-
-    private func isForwardDirection(_ direction: MoveCommandDirection) -> Bool {
-      switch readingDirection {
-      case .ltr:
-        return direction == .right
-      case .rtl:
-        return direction == .left
-      case .vertical, .webtoon:
-        return direction == .down
-      }
-    }
-
-    private func focusButton(_ button: ButtonFocus) {
-      focusedButton = button
-      onFocusChange?(true)
-    }
-
-    private func activateFocusOnEntry() {
-      DispatchQueue.main.async {
-        guard isActive else { return }
-        guard isEndPageActive else { return }
-        focusButton(.close)
-      }
-    }
-
-    private func recoverFocusIfNeeded() {
-      DispatchQueue.main.async {
-        guard isActive else { return }
-        guard isEndPageActive else { return }
-        guard focusedButton == nil else { return }
-        focusButton(.close)
-      }
-    }
-
-    private func handleUnfocusedMove(_ direction: MoveCommandDirection) {
-      guard isActive else { return }
-      guard isEndPageActive else { return }
-      guard focusedButton == nil else { return }
-
-      if isBackwardDirection(direction) {
-        focusButton(.hidden)
-      } else {
-        focusButton(.close)
-      }
-    }
-
-    private func handleHiddenMove(_ direction: MoveCommandDirection) {
-      guard focusedButton == .hidden else { return }
-
-      if isBackwardDirection(direction) {
-        onPreviousPage()
-      } else if isForwardDirection(direction) {
-        focusButton(.close)
-      }
-    }
-
-    private func handleCloseMove(_ direction: MoveCommandDirection) {
-      guard focusedButton == .close else { return }
-
-      if isBackwardDirection(direction) {
-        focusButton(.hidden)
-      } else if isForwardDirection(direction), nextBook != nil {
-        focusButton(.next)
-      }
-    }
-
-    private func handleNextMove(_ direction: MoveCommandDirection) {
-      guard focusedButton == .next else { return }
-
-      if isBackwardDirection(direction) {
-        focusButton(.close)
-      }
-    }
-  #endif
-
   #if os(iOS)
     var dragProgress: CGFloat {
       guard nextBook != nil else { return 0 }
@@ -182,6 +85,30 @@ struct EndPageView: View {
     }
   }
 
+  #if os(tvOS)
+    private var tvBackwardSymbolName: String {
+      switch readingDirection {
+      case .ltr:
+        return "arrow.left.circle.fill"
+      case .rtl:
+        return "arrow.right.circle.fill"
+      case .vertical, .webtoon:
+        return "arrow.up.circle.fill"
+      }
+    }
+
+    private var tvForwardSymbolName: String {
+      switch readingDirection {
+      case .ltr:
+        return "arrow.right.circle.fill"
+      case .rtl:
+        return "arrow.left.circle.fill"
+      case .vertical, .webtoon:
+        return "arrow.down.circle.fill"
+      }
+    }
+  #endif
+
   var body: some View {
     ZStack {
       #if os(iOS)
@@ -227,56 +154,6 @@ struct EndPageView: View {
         onExternalPanEnd?(handlePanEnd)
       }
     #endif
-    #if os(tvOS)
-      .onAppear {
-        guard isEndPageActive else { return }
-        guard isActive else { return }
-        activateFocusOnEntry()
-      }
-      .onChange(of: isActive) { _, newValue in
-        guard isEndPageActive else { return }
-
-        if newValue {
-          activateFocusOnEntry()
-        } else if focusedButton != nil {
-          focusedButton = nil
-          onFocusChange?(false)
-        }
-      }
-      .onChange(of: viewModel.currentPageIndex) { _, newIndex in
-        if newIndex >= viewModel.pages.count {
-          if isActive {
-            activateFocusOnEntry()
-          }
-        } else {
-          focusedButton = nil
-          onFocusChange?(false)
-        }
-      }
-      .onChange(of: nextBook?.id) { _, _ in
-        guard isActive else { return }
-        guard isEndPageActive else { return }
-
-        if focusedButton == .next && nextBook == nil {
-          focusButton(.close)
-        } else if focusedButton == nil {
-          recoverFocusIfNeeded()
-        }
-      }
-      .onChange(of: focusedButton) { _, newValue in
-        onFocusChange?(isActive && newValue != nil)
-
-        guard isActive else { return }
-        guard isEndPageActive else { return }
-        guard newValue == nil else { return }
-        recoverFocusIfNeeded()
-      }
-      .onMoveCommand { direction in
-        handleUnfocusedMove(direction)
-      }
-      .defaultFocus($focusedButton, .close)
-      .focusSection()
-    #endif
   }
 
   private var content: some View {
@@ -290,49 +167,39 @@ struct EndPageView: View {
       .environment(\.layoutDirection, .leftToRight)
       .allowsHitTesting(false)
 
-      HStack(spacing: 16) {
-        #if os(tvOS)
-          Button {
-          } label: {
-            Color.clear
-              .frame(width: 1, height: 1)
+      #if os(tvOS)
+        VStack(spacing: 12) {
+          HStack(spacing: 14) {
+            Image(systemName: tvBackwardSymbolName)
+            Image(systemName: "arrow.uturn.backward.circle.fill")
           }
-          .adaptiveButtonStyle(.plain)
-          .focused($focusedButton, equals: .hidden)
-          .onMoveCommand { direction in
-            handleHiddenMove(direction)
-          }
-        #endif
+          .font(.title2.weight(.semibold))
+          .padding(.horizontal, 18)
+          .padding(.vertical, 10)
+          .background(.thinMaterial, in: Capsule())
 
-        // Dismiss button
-        Button {
-          onDismiss()
-        } label: {
-          HStack(spacing: 8) {
-            Image(systemName: "xmark")
-            Text("Close")
+          if nextBook != nil {
+            HStack(spacing: 14) {
+              Image(systemName: tvForwardSymbolName)
+              Image(systemName: "book.closed.fill")
+              Image(systemName: "plus.circle.fill")
+            }
+            .font(.title2.weight(.semibold))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .background(.thinMaterial, in: Capsule())
           }
-          .padding(.horizontal, 4)
-          .contentShape(.capsule)
         }
-        .adaptiveButtonStyle(.bordered)
-        .buttonBorderShape(.capsule)
-        .tint(.primary)
-        #if os(tvOS)
-          .focused($focusedButton, equals: .close)
-          .onMoveCommand { direction in
-            handleCloseMove(direction)
-          }
-        #endif
-
-        // Next book button
-        if let nextBook = nextBook {
+        .foregroundStyle(textColor.opacity(0.9))
+      #else
+        HStack(spacing: 16) {
+          // Dismiss button
           Button {
-            onNextBook(nextBook.id)
+            onDismiss()
           } label: {
             HStack(spacing: 8) {
-              Text(String(localized: "reader.nextBook"))
-              Image(systemName: readingDirection == .rtl ? "arrow.left" : "arrow.right")
+              Image(systemName: "xmark")
+              Text("Close")
             }
             .padding(.horizontal, 4)
             .contentShape(.capsule)
@@ -340,14 +207,25 @@ struct EndPageView: View {
           .adaptiveButtonStyle(.bordered)
           .buttonBorderShape(.capsule)
           .tint(.primary)
-          #if os(tvOS)
-            .focused($focusedButton, equals: .next)
-            .onMoveCommand { direction in
-              handleNextMove(direction)
+
+          // Next book button
+          if let nextBook = nextBook {
+            Button {
+              onNextBook(nextBook.id)
+            } label: {
+              HStack(spacing: 8) {
+                Text(String(localized: "reader.nextBook"))
+                Image(systemName: readingDirection == .rtl ? "arrow.left" : "arrow.right")
+              }
+              .padding(.horizontal, 4)
+              .contentShape(.capsule)
             }
-          #endif
+            .adaptiveButtonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .tint(.primary)
+          }
         }
-      }
+      #endif
     }
     .environment(\.layoutDirection, readingDirection == .rtl ? .rightToLeft : .leftToRight)
     .padding(40)

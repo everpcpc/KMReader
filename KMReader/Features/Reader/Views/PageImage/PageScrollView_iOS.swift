@@ -90,6 +90,11 @@
       scrollView.showsVerticalScrollIndicator = false
       scrollView.contentInsetAdjustmentBehavior = .never
 
+      #if os(tvOS)
+        scrollView.isScrollEnabled = false
+        scrollView.panGestureRecognizer.isEnabled = false
+      #endif
+
       scrollView.backgroundColor = UIColor(readerBackground.color)
 
       let contentStack = UIStackView()

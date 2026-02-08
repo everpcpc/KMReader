@@ -4,8 +4,8 @@
 
   struct TVRemoteCommandOverlay: UIViewRepresentable {
     let isEnabled: Bool
-    let onMoveCommand: (MoveCommandDirection) -> Void
-    let onSelectCommand: () -> Void
+    let onMoveCommand: (MoveCommandDirection) -> Bool
+    let onSelectCommand: () -> Bool
 
     func makeCoordinator() -> Coordinator {
       Coordinator(parent: self)
@@ -50,20 +50,15 @@
 
         switch pressType {
         case .leftArrow:
-          parent.onMoveCommand(.left)
-          return true
+          return parent.onMoveCommand(.left)
         case .rightArrow:
-          parent.onMoveCommand(.right)
-          return true
+          return parent.onMoveCommand(.right)
         case .upArrow:
-          parent.onMoveCommand(.up)
-          return true
+          return parent.onMoveCommand(.up)
         case .downArrow:
-          parent.onMoveCommand(.down)
-          return true
+          return parent.onMoveCommand(.down)
         case .select:
-          parent.onSelectCommand()
-          return true
+          return parent.onSelectCommand()
         default:
           return false
         }
@@ -74,6 +69,7 @@
       weak var coordinator: Coordinator?
       var isCaptureEnabled = false
       private var activeHandledPressTypes: Set<UIPress.PressType> = []
+      private var responderRetryWorkItem: DispatchWorkItem?
 
       override var canBecomeFirstResponder: Bool {
         true
@@ -84,20 +80,47 @@
         ensureResponderState()
       }
 
+      override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        ensureResponderState()
+      }
+
+      override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        super.didUpdateFocus(in: context, with: coordinator)
+        DispatchQueue.main.async { [weak self] in
+          self?.ensureResponderState()
+        }
+      }
+
+      private func cancelResponderRetry() {
+        responderRetryWorkItem?.cancel()
+        responderRetryWorkItem = nil
+      }
+
+      private func attemptBecomeFirstResponder(attemptsLeft: Int = 8) {
+        guard window != nil, isCaptureEnabled else { return }
+
+        if !isFirstResponder {
+          becomeFirstResponder()
+        }
+
+        guard !isFirstResponder, attemptsLeft > 0 else { return }
+
+        cancelResponderRetry()
+        let workItem = DispatchWorkItem { [weak self] in
+          self?.attemptBecomeFirstResponder(attemptsLeft: attemptsLeft - 1)
+        }
+        responderRetryWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04, execute: workItem)
+      }
+
       func ensureResponderState() {
         guard window != nil else { return }
 
         if isCaptureEnabled {
-          if !isFirstResponder {
-            becomeFirstResponder()
-            DispatchQueue.main.async { [weak self] in
-              guard let self else { return }
-              if self.isCaptureEnabled, !self.isFirstResponder {
-                self.becomeFirstResponder()
-              }
-            }
-          }
+          attemptBecomeFirstResponder()
         } else {
+          cancelResponderRetry()
           activeHandledPressTypes.removeAll()
           if isFirstResponder {
             resignFirstResponder()
@@ -150,6 +173,7 @@
         }
         super.pressesCancelled(presses, with: event)
       }
+
     }
   }
 #endif
