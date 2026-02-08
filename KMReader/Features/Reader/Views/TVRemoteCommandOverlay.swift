@@ -39,7 +39,7 @@
         view.ensureResponderState()
 
         if lastEnabledState != parent.isEnabled {
-          logger.debug("📺 TV remote capture \(parent.isEnabled ? "enabled" : "disabled")")
+          logger.debug("📺 UIKit remote capture \(parent.isEnabled ? "enabled" : "disabled")")
           lastEnabledState = parent.isEnabled
         }
       }
@@ -73,6 +73,7 @@
     final class RemoteCaptureView: UIView {
       weak var coordinator: Coordinator?
       var isCaptureEnabled = false
+      private var activeHandledPressTypes: Set<UIPress.PressType> = []
 
       override var canBecomeFirstResponder: Bool {
         true
@@ -89,28 +90,65 @@
         if isCaptureEnabled {
           if !isFirstResponder {
             becomeFirstResponder()
+            DispatchQueue.main.async { [weak self] in
+              guard let self else { return }
+              if self.isCaptureEnabled, !self.isFirstResponder {
+                self.becomeFirstResponder()
+              }
+            }
           }
-        } else if isFirstResponder {
-          resignFirstResponder()
+        } else {
+          activeHandledPressTypes.removeAll()
+          if isFirstResponder {
+            resignFirstResponder()
+          }
         }
       }
 
-      override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-        guard let coordinator else {
-          super.pressesEnded(presses, with: event)
-          return
-        }
+      private func handlePressesBegan(_ presses: Set<UIPress>) -> Bool {
+        guard let coordinator else { return false }
 
         var handledAny = false
         for press in presses {
           if coordinator.handlePress(press.type) {
+            activeHandledPressTypes.insert(press.type)
             handledAny = true
           }
         }
+        return handledAny
+      }
 
-        if !handledAny {
+      private func handlePressesEnded(_ presses: Set<UIPress>) -> Bool {
+        guard let coordinator else { return false }
+
+        var handledAny = false
+        for press in presses {
+          if activeHandledPressTypes.remove(press.type) != nil {
+            handledAny = true
+          } else if coordinator.handlePress(press.type) {
+            handledAny = true
+          }
+        }
+        return handledAny
+      }
+
+      override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if !handlePressesBegan(presses) {
+          super.pressesBegan(presses, with: event)
+        }
+      }
+
+      override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if !handlePressesEnded(presses) {
           super.pressesEnded(presses, with: event)
         }
+      }
+
+      override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        for press in presses {
+          activeHandledPressTypes.remove(press.type)
+        }
+        super.pressesCancelled(presses, with: event)
       }
     }
   }

@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -113,6 +114,82 @@ class DeviceManager:
 
     def list_physical_devices(self, platform: str) -> List[Device]:
         """List available physical devices for the given platform."""
+        platform_aliases = {
+            "ios": {"ios"},
+            "tvos": {"tvos"},
+        }
+
+        target_platforms = platform_aliases.get(platform.lower())
+        if not target_platforms:
+            return []
+
+        # Prefer CoreDevice JSON output, which is stable for scripting and works
+        # regardless of the user-assigned device name.
+        json_output_path: Optional[str] = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                json_output_path = tmp.name
+
+            subprocess.run(
+                [
+                    "xcrun",
+                    "devicectl",
+                    "list",
+                    "devices",
+                    "--json-output",
+                    json_output_path,
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            with open(json_output_path, "r") as f:
+                payload = json.load(f)
+
+            devices: List[Device] = []
+            for item in payload.get("result", {}).get("devices", []):
+                hardware = item.get("hardwareProperties", {})
+                if hardware.get("reality") != "physical":
+                    continue
+
+                hardware_platform = str(hardware.get("platform", "")).lower()
+                if hardware_platform not in target_platforms:
+                    continue
+
+                udid = hardware.get("udid")
+                if not udid:
+                    continue
+
+                device_props = item.get("deviceProperties", {})
+                connection_props = item.get("connectionProperties", {})
+
+                name = device_props.get("name") or hardware.get("marketingName") or "Unknown Device"
+                state = connection_props.get("tunnelState") or connection_props.get("pairingState") or ""
+
+                devices.append(
+                    Device(
+                        name=name,
+                        udid=udid,
+                        state=state,
+                        platform=platform,
+                        is_available=True,
+                    )
+                )
+
+            return devices
+        except (subprocess.CalledProcessError, json.JSONDecodeError, IOError) as e:
+            print(
+                f"{Color.YELLOW}Warning: Could not list physical devices via devicectl: {e}{Color.NC}"
+            )
+        finally:
+            if json_output_path and os.path.exists(json_output_path):
+                try:
+                    os.remove(json_output_path)
+                except OSError:
+                    pass
+
+        # Fallback for older toolchains where devicectl is unavailable.
         try:
             result = subprocess.run(
                 ["xcrun", "xctrace", "list", "devices"],
@@ -133,14 +210,14 @@ class DeviceManager:
 
             for line in result.stdout.split("\n"):
                 line = line.strip()
+                if "Simulator" in line:
+                    continue
                 if platform_name in line and "(" in line and ")" in line:
-                    # Parse line format: "Device Name (Version) (UDID)"
                     parts = line.rsplit("(", 1)
                     if len(parts) == 2:
                         name_part = parts[0].strip()
                         udid = parts[1].rstrip(")").strip()
 
-                        # Extract device name (remove version info)
                         if "(" in name_part:
                             name = name_part.rsplit("(", 1)[0].strip()
                         else:
