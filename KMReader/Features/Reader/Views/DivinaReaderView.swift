@@ -590,7 +590,7 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
-                    onScrollActivityChange: { isScrolling in
+                  onScrollActivityChange: { isScrolling in
                     if isScrolling {
                       resetControlsTimer(timeout: 1.5)
                     }
@@ -682,7 +682,6 @@ struct DivinaReaderView: View {
       .id(tvRemoteCaptureGeneration)
     }
   #endif
-
 
   private func controlsOverlay(useDualPage: Bool) -> some View {
     DivinaControlsOverlayView(
