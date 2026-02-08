@@ -9,7 +9,6 @@ struct ScrollPageView: View {
   let mode: PageViewMode
   let readingDirection: ReadingDirection
   let splitWidePageMode: SplitWidePageMode
-  let showingControls: Bool
   @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
   let readList: ReadList?
@@ -18,24 +17,16 @@ struct ScrollPageView: View {
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
-  let onEndPageFocusChange: ((Bool) -> Void)?
-  let onScrollActivityChange: ((Bool) -> Void)?
-
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
-  #if os(tvOS)
-    @FocusState private var isContentAnchorFocused: Bool
-  #endif
 
   init(
     mode: PageViewMode,
     readingDirection: ReadingDirection,
     splitWidePageMode: SplitWidePageMode,
-    showingControls: Bool,
     viewModel: ReaderViewModel,
     nextBook: Book?,
     readList: ReadList?,
@@ -43,14 +34,11 @@ struct ScrollPageView: View {
     onNextBook: @escaping (String) -> Void,
     goToNextPage: @escaping () -> Void,
     goToPreviousPage: @escaping () -> Void,
-    toggleControls: @escaping () -> Void,
-    onEndPageFocusChange: ((Bool) -> Void)?,
-    onScrollActivityChange: ((Bool) -> Void)? = nil
+    toggleControls: @escaping () -> Void
   ) {
     self.mode = mode
     self.readingDirection = readingDirection
     self.splitWidePageMode = splitWidePageMode
-    self.showingControls = showingControls
     self.viewModel = viewModel
     self.nextBook = nextBook
     self.readList = readList
@@ -59,8 +47,6 @@ struct ScrollPageView: View {
     self.goToNextPage = goToNextPage
     self.goToPreviousPage = goToPreviousPage
     self.toggleControls = toggleControls
-    self.onEndPageFocusChange = onEndPageFocusChange
-    self.onScrollActivityChange = onScrollActivityChange
   }
 
   var body: some View {
@@ -73,22 +59,12 @@ struct ScrollPageView: View {
         .frame(width: geometry.size.width, height: geometry.size.height)
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $scrollPosition)
-        .overlay(alignment: .topLeading) {
-          contentAnchor
-        }
-        #if os(tvOS)
-          .focusable(false)
-        #endif
         .onAppear {
           synchronizeInitialScrollIfNeeded(proxy: proxy)
-          #if os(tvOS)
-            updateContentAnchorFocus()
-          #endif
         }
         .onChange(of: viewModel.targetPageIndex) { _, newTarget in
           if let newTarget = newTarget {
             handleTargetPageChange(newTarget, proxy: proxy)
-            // Reset targetPageIndex to allow consecutive taps to the same target if we swiped away
             Task { @MainActor in
               viewModel.targetPageIndex = nil
             }
@@ -97,7 +73,6 @@ struct ScrollPageView: View {
         .onChange(of: viewModel.targetViewItemIndex) { _, newTarget in
           if let newTarget = newTarget {
             handleTargetViewItemChange(newTarget, proxy: proxy)
-            // Reset targetViewItemIndex to allow consecutive taps
             Task { @MainActor in
               viewModel.targetViewItemIndex = nil
             }
@@ -110,15 +85,11 @@ struct ScrollPageView: View {
             scrollPosition = target
             proxy.scrollTo(target, anchor: .center)
           }
-          #if os(tvOS)
-            updateContentAnchorFocus()
-          #endif
         }
         .onChange(of: scrollPosition) { _, newPosition in
           if let newPosition, newPosition < viewModel.viewItems.count {
             viewModel.updateCurrentPosition(viewItemIndex: newPosition)
 
-            // Clear targetPageIndex if the user manually scrolled
             if viewModel.targetPageIndex != nil {
               viewModel.targetPageIndex = nil
             }
@@ -126,22 +97,6 @@ struct ScrollPageView: View {
               viewModel.targetViewItemIndex = nil
             }
           }
-        }
-        .onChange(of: showingControls) { _, _ in
-          #if os(tvOS)
-            if showingControls {
-              isContentAnchorFocused = false
-            } else {
-              DispatchQueue.main.async {
-                updateContentAnchorFocus()
-              }
-            }
-          #endif
-        }
-        .onChange(of: viewModel.currentViewItemIndex) { _, _ in
-          #if os(tvOS)
-            updateContentAnchorFocus()
-          #endif
         }
       }
     }
@@ -181,7 +136,7 @@ struct ScrollPageView: View {
             onNextBook: onNextBook,
             readingDirection: readingDirection,
             onPreviousPage: goToPreviousPage,
-            onFocusChange: onEndPageFocusChange,
+            onFocusChange: nil,
             isActive: offset == viewModel.currentViewItemIndex,
             showImage: true
           )
@@ -230,46 +185,6 @@ struct ScrollPageView: View {
     }
   }
 
-  @ViewBuilder
-  private var contentAnchor: some View {
-    #if os(tvOS)
-      Button {
-      } label: {
-        Color.clear
-          .frame(width: 1, height: 1)
-      }
-      .buttonStyle(.plain)
-      .focusable(!showingControls && !isCurrentItemEnd)
-      .focused($isContentAnchorFocused)
-      .opacity(0.001)
-    #else
-      EmptyView()
-    #endif
-  }
-
-  #if os(tvOS)
-    private var isCurrentItemEnd: Bool {
-      guard viewModel.currentViewItemIndex >= 0 else { return true }
-      guard viewModel.currentViewItemIndex < viewModel.viewItems.count else { return true }
-      return viewModel.viewItems[viewModel.currentViewItemIndex].isEnd
-    }
-
-    private func updateContentAnchorFocus() {
-      guard !showingControls else {
-        isContentAnchorFocused = false
-        return
-      }
-      guard !isCurrentItemEnd else {
-        isContentAnchorFocused = false
-        return
-      }
-
-      isContentAnchorFocused = true
-    }
-  #endif
-
-  // MARK: - Scroll Synchronization
-
   private func synchronizeInitialScrollIfNeeded(proxy: ScrollViewProxy) {
     guard !hasSyncedInitialScroll else { return }
     guard viewModel.currentPageIndex >= 0 else { return }
@@ -301,7 +216,6 @@ struct ScrollPageView: View {
       }
     }
 
-    // Explicitly update progress
     Task {
       await viewModel.updateProgress()
       await viewModel.preloadPages()
@@ -314,18 +228,15 @@ struct ScrollPageView: View {
     guard !viewModel.pages.isEmpty else { return }
     guard newTarget < viewModel.viewItems.count else { return }
 
-    let targetScrollPosition = newTarget
-
-    if scrollPosition != targetScrollPosition {
+    if scrollPosition != newTarget {
       let animation: Animation? =
         tapPageTransitionDuration > 0 ? .easeInOut(duration: tapPageTransitionDuration) : nil
       withAnimation(animation) {
-        scrollPosition = targetScrollPosition
-        proxy.scrollTo(targetScrollPosition, anchor: .center)
+        scrollPosition = newTarget
+        proxy.scrollTo(newTarget, anchor: .center)
       }
     }
 
-    // Explicitly update progress
     Task {
       await viewModel.updateProgress()
       await viewModel.preloadPages()

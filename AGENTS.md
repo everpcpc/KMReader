@@ -61,12 +61,6 @@ make build-ios          # Build for iOS simulator
 make build-macos        # Build for macOS
 make build-tvos         # Build for tvOS simulator
 
-# CI-friendly builds (no code signing, simulator targets)
-# Used by the CI workflow, do not use for local builds.
-make build-ios-ci       # iOS simulator (auto-selects first available)
-make build-macos-ci     # macOS without signing
-make build-tvos-ci      # tvOS simulator (auto-selects first available)
-
 # Other build commands
 make build              # Build all platforms
 make release            # Archive and export all platforms
@@ -151,7 +145,7 @@ make localize           # Update localizations
 
 Validate changes by:
 
-1. Building all relevant targets (`make build-ios`, `make build-macos`, `make build-tvos` or CI variants)
+1. Building all relevant targets (`make build-ios`, `make build-macos`, `make build-tvos`)
 2. Manual testing: login/logout, server switching, dashboard refresh, SSE auto-refresh, reader opening/closing, cache clearing
 3. Watch Xcode Console filtered by subsystem `Komga` with categories `API`, `SSE`, or `ReaderViewModel`
 
