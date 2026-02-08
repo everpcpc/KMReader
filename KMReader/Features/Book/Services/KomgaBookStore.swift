@@ -39,6 +39,9 @@ enum KomgaBookStore {
       descriptor.sortBy = [
         SortDescriptor(\KomgaBook.progressReadDate, order: isAsc ? .forward : .reverse)
       ]
+    } else if sort.contains("downloadAt") {
+      let isAsc = !sort.contains("desc")
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.downloadAt, order: isAsc ? .forward : .reverse)]
     } else {
       descriptor.sortBy = [SortDescriptor(\KomgaBook.number, order: .forward)]
     }
@@ -210,6 +213,9 @@ enum KomgaBookStore {
         descriptor.sortBy = [
           SortDescriptor(\KomgaBook.progressReadDate, order: isAsc ? .forward : .reverse)
         ]
+      } else if sort.contains("downloadAt") {
+        let isAsc = !sort.contains("desc")
+        descriptor.sortBy = [SortDescriptor(\KomgaBook.downloadAt, order: isAsc ? .forward : .reverse)]
       } else {
         descriptor.sortBy = [SortDescriptor(\KomgaBook.name, order: .forward)]
       }
@@ -234,7 +240,8 @@ enum KomgaBookStore {
     searchText: String,
     browseOpts: BookBrowseOptions,
     offset: Int,
-    limit: Int
+    limit: Int,
+    offlineOnly: Bool = false
   ) -> [String] {
     let instanceId = AppConfig.current.instanceId
     let ids = libraryIds ?? []
@@ -246,22 +253,26 @@ enum KomgaBookStore {
           book.instanceId == instanceId && ids.contains(book.libraryId)
             && (book.name.localizedStandardContains(searchText)
               || book.metaTitle.localizedStandardContains(searchText))
+            && (!offlineOnly || book.downloadStatusRaw == "downloaded" || book.downloadStatusRaw == "pending")
         }
       } else {
         descriptor.predicate = #Predicate<KomgaBook> { book in
           book.instanceId == instanceId
             && (book.name.localizedStandardContains(searchText)
               || book.metaTitle.localizedStandardContains(searchText))
+            && (!offlineOnly || book.downloadStatusRaw == "downloaded" || book.downloadStatusRaw == "pending")
         }
       }
     } else {
       if !ids.isEmpty {
         descriptor.predicate = #Predicate<KomgaBook> { book in
           book.instanceId == instanceId && ids.contains(book.libraryId)
+            && (!offlineOnly || book.downloadStatusRaw == "downloaded" || book.downloadStatusRaw == "pending")
         }
       } else {
         descriptor.predicate = #Predicate<KomgaBook> { book in
           book.instanceId == instanceId
+            && (!offlineOnly || book.downloadStatusRaw == "downloaded" || book.downloadStatusRaw == "pending")
         }
       }
     }
@@ -275,6 +286,9 @@ enum KomgaBookStore {
       descriptor.sortBy = [
         SortDescriptor(\KomgaBook.metaReleaseDate, order: isAsc ? .forward : .reverse)
       ]
+    } else if sort.contains("downloadAt") {
+      let isAsc = !sort.contains("desc")
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.downloadAt, order: isAsc ? .forward : .reverse)]
     } else {
       descriptor.sortBy = [SortDescriptor(\KomgaBook.name, order: .forward)]
     }

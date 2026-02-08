@@ -61,7 +61,7 @@ class SeriesViewModel {
           page: pagination.currentPage,
           size: pagination.pageSize,
           searchTerm: searchText.isEmpty ? nil : searchText,
-          browseOpts: browseOpts
+          browseOpts: normalizedRemoteBrowseOptions(browseOpts)
         )
 
         guard loadID == pagination.loadID else { return }
@@ -74,6 +74,18 @@ class SeriesViewModel {
         }
       }
     }
+  }
+
+  private func normalizedRemoteBrowseOptions(_ browseOpts: SeriesBrowseOptions)
+    -> SeriesBrowseOptions
+  {
+    guard browseOpts.sortField == .downloadDate else {
+      return browseOpts
+    }
+
+    var fallback = browseOpts
+    fallback.sortField = .dateAdded
+    return fallback
   }
 
   func loadCollectionSeries(

@@ -57,6 +57,8 @@ enum KomgaSeriesStore {
       descriptor.sortBy = [
         SortDescriptor(\KomgaSeries.lastModified, order: isAsc ? .forward : .reverse)
       ]
+    } else if sort.contains("downloadAt") {
+      descriptor.sortBy = [SortDescriptor(\KomgaSeries.downloadAt, order: isAsc ? .forward : .reverse)]
     } else if sort.contains("booksCount") {
       descriptor.sortBy = [
         SortDescriptor(\KomgaSeries.booksCount, order: isAsc ? .forward : .reverse)
@@ -143,6 +145,8 @@ enum KomgaSeriesStore {
       descriptor.sortBy = [
         SortDescriptor(\KomgaSeries.lastModified, order: isAsc ? .forward : .reverse)
       ]
+    } else if sort.contains("downloadAt") {
+      descriptor.sortBy = [SortDescriptor(\KomgaSeries.downloadAt, order: isAsc ? .forward : .reverse)]
     } else {
       descriptor.sortBy = [SortDescriptor(\KomgaSeries.metaTitleSort, order: .forward)]
     }

@@ -13,11 +13,39 @@ struct SeriesBrowseOptionsSheet: View {
   @State private var tempOpts: SeriesBrowseOptions
   @State private var showSaveFilterSheet = false
   let libraryIds: [String]?
+  let includeOfflineSorts: Bool
 
-  init(browseOpts: Binding<SeriesBrowseOptions>, libraryIds: [String]? = nil) {
+  private var availableSortFields: [SeriesSortField] {
+    includeOfflineSorts ? SeriesSortField.offlineCases : SeriesSortField.onlineCases
+  }
+
+  private var defaultOptions: SeriesBrowseOptions {
+    var options = SeriesBrowseOptions()
+    if includeOfflineSorts {
+      options.sortField = .downloadDate
+      options.sortDirection = .descending
+    }
+    if !availableSortFields.contains(options.sortField), let fallbackField = availableSortFields.first {
+      options.sortField = fallbackField
+    }
+    return options
+  }
+
+  init(
+    browseOpts: Binding<SeriesBrowseOptions>,
+    libraryIds: [String]? = nil,
+    includeOfflineSorts: Bool = false
+  ) {
+    var initialOpts = browseOpts.wrappedValue
+    let availableSortFields = includeOfflineSorts ? SeriesSortField.offlineCases : SeriesSortField.onlineCases
+    if !availableSortFields.contains(initialOpts.sortField), let fallbackField = availableSortFields.first {
+      initialOpts.sortField = fallbackField
+    }
+
     self._browseOpts = browseOpts
-    self._tempOpts = State(initialValue: browseOpts.wrappedValue)
+    self._tempOpts = State(initialValue: initialOpts)
     self.libraryIds = libraryIds
+    self.includeOfflineSorts = includeOfflineSorts
   }
 
   var body: some View {
@@ -28,7 +56,8 @@ struct SeriesBrowseOptionsSheet: View {
       Form {
         SortOptionView(
           sortField: $tempOpts.sortField,
-          sortDirection: $tempOpts.sortDirection
+          sortDirection: $tempOpts.sortDirection,
+          sortFields: availableSortFields
         )
 
         Section(String(localized: "Read Status")) {
@@ -148,7 +177,7 @@ struct SeriesBrowseOptionsSheet: View {
 
   private func resetOptions() {
     withAnimation {
-      tempOpts = SeriesBrowseOptions()
+      tempOpts = defaultOptions
     }
   }
 

@@ -12,17 +12,20 @@ struct SeriesFilterView: View {
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
   let libraryIds: [String]?
+  let includeOfflineSorts: Bool
 
   init(
     browseOpts: Binding<SeriesBrowseOptions>,
     showFilterSheet: Binding<Bool>,
     showSavedFilters: Binding<Bool>,
-    libraryIds: [String]? = nil
+    libraryIds: [String]? = nil,
+    includeOfflineSorts: Bool = false
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
     self.libraryIds = libraryIds
+    self.includeOfflineSorts = includeOfflineSorts
   }
 
   var sortString: String {
@@ -142,7 +145,11 @@ struct SeriesFilterView: View {
     }
     .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
-      SeriesBrowseOptionsSheet(browseOpts: $browseOpts, libraryIds: libraryIds)
+      SeriesBrowseOptionsSheet(
+        browseOpts: $browseOpts,
+        libraryIds: libraryIds,
+        includeOfflineSorts: includeOfflineSorts
+      )
     }
   }
 }

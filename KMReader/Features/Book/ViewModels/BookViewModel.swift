@@ -58,7 +58,7 @@ class BookViewModel {
           seriesId: seriesId,
           page: pagination.currentPage,
           size: pagination.pageSize,
-          browseOpts: browseOpts
+          browseOpts: normalizedRemoteBrowseOptions(browseOpts)
         )
 
         guard loadID == pagination.loadID else { return }
@@ -142,7 +142,9 @@ class BookViewModel {
     browseOpts: BookBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
-    refresh: Bool = false
+    refresh: Bool = false,
+    useLocalOnly: Bool = false,
+    offlineOnly: Bool = false
   ) async {
     if refresh {
       pagination.reset()
@@ -161,14 +163,15 @@ class BookViewModel {
       }
     }
 
-    if AppConfig.isOffline {
+    if AppConfig.isOffline || useLocalOnly {
       let ids = KomgaBookStore.fetchBookIds(
         context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
         offset: pagination.currentPage * pagination.pageSize,
-        limit: pagination.pageSize
+        limit: pagination.pageSize,
+        offlineOnly: offlineOnly
       )
       guard loadID == pagination.loadID else { return }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
@@ -179,7 +182,7 @@ class BookViewModel {
           page: pagination.currentPage,
           size: pagination.pageSize,
           searchTerm: searchText.isEmpty ? nil : searchText,
-          browseOpts: browseOpts
+          browseOpts: normalizedRemoteBrowseOptions(browseOpts)
         )
 
         guard loadID == pagination.loadID else { return }
@@ -190,6 +193,18 @@ class BookViewModel {
         ErrorManager.shared.alert(error: error)
       }
     }
+  }
+
+  private func normalizedRemoteBrowseOptions(_ browseOpts: BookBrowseOptions)
+    -> BookBrowseOptions
+  {
+    guard browseOpts.sortField == .downloadDate else {
+      return browseOpts
+    }
+
+    var fallback = browseOpts
+    fallback.sortField = .dateAdded
+    return fallback
   }
 
   func loadReadListBooks(

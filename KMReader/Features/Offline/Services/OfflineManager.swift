@@ -1336,7 +1336,8 @@ actor OfflineManager {
     await DatabaseOperator.shared.updateBookDownloadStatus(
       bookId: bookId,
       instanceId: instanceId,
-      status: .downloaded
+      status: .downloaded,
+      downloadAt: .now
     )
     await DatabaseOperator.shared.commit()
     await refreshQueueStatus(instanceId: instanceId)

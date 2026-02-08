@@ -15,6 +15,7 @@ enum BookSortField: String, CaseIterable {
   case dateUpdated = "lastModifiedDate"
   case releaseDate = "metadata.releaseDate"
   case dateRead = "readProgress.readDate"
+  case downloadDate = "downloadAt"
   case fileSize = "fileSize"
   case fileName = "name"
   case pageCount = "media.pagesCount"
@@ -27,13 +28,22 @@ enum BookSortField: String, CaseIterable {
     case .dateUpdated: return String(localized: "bookSort.dateUpdated")
     case .releaseDate: return String(localized: "bookSort.releaseDate")
     case .dateRead: return String(localized: "bookSort.dateRead")
+    case .downloadDate: return String(localized: "bookSort.downloadDate")
     case .fileSize: return String(localized: "bookSort.fileSize")
     case .fileName: return String(localized: "bookSort.fileName")
     case .pageCount: return String(localized: "bookSort.pageCount")
     }
   }
 
+  static var onlineCases: [BookSortField] {
+    allCases.filter { $0 != .downloadDate }
+  }
+
+  static var offlineCases: [BookSortField] {
+    Array(allCases)
+  }
+
   var supportsDirection: Bool {
-    return true
+    true
   }
 }

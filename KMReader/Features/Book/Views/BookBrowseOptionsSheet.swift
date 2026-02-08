@@ -15,18 +15,43 @@ struct BookBrowseOptionsSheet: View {
   let filterType: SavedFilterType
   let seriesId: String?
   let libraryIds: [String]?
+  let includeOfflineSorts: Bool
+
+  private var availableSortFields: [BookSortField] {
+    includeOfflineSorts ? BookSortField.offlineCases : BookSortField.onlineCases
+  }
+
+  private var defaultOptions: BookBrowseOptions {
+    var options = BookBrowseOptions()
+    if includeOfflineSorts {
+      options.sortField = .downloadDate
+      options.sortDirection = .descending
+    }
+    if !availableSortFields.contains(options.sortField), let fallbackField = availableSortFields.first {
+      options.sortField = fallbackField
+    }
+    return options
+  }
 
   init(
     browseOpts: Binding<BookBrowseOptions>,
     filterType: SavedFilterType = .books,
     seriesId: String? = nil,
-    libraryIds: [String]? = nil
+    libraryIds: [String]? = nil,
+    includeOfflineSorts: Bool = false
   ) {
+    var initialOpts = browseOpts.wrappedValue
+    let availableSortFields = includeOfflineSorts ? BookSortField.offlineCases : BookSortField.onlineCases
+    if !availableSortFields.contains(initialOpts.sortField), let fallbackField = availableSortFields.first {
+      initialOpts.sortField = fallbackField
+    }
+
     self._browseOpts = browseOpts
-    self._tempOpts = State(initialValue: browseOpts.wrappedValue)
+    self._tempOpts = State(initialValue: initialOpts)
     self.filterType = filterType
     self.seriesId = seriesId
     self.libraryIds = libraryIds
+    self.includeOfflineSorts = includeOfflineSorts
   }
 
   var body: some View {
@@ -37,7 +62,8 @@ struct BookBrowseOptionsSheet: View {
       Form {
         SortOptionView(
           sortField: $tempOpts.sortField,
-          sortDirection: $tempOpts.sortDirection
+          sortDirection: $tempOpts.sortDirection,
+          sortFields: availableSortFields
         )
 
         Section(String(localized: "Read Status")) {
@@ -119,7 +145,7 @@ struct BookBrowseOptionsSheet: View {
 
   private func resetOptions() {
     withAnimation {
-      tempOpts = BookBrowseOptions()
+      tempOpts = defaultOptions
     }
   }
 

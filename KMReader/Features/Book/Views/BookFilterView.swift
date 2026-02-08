@@ -14,6 +14,7 @@ struct BookFilterView: View {
   let filterType: SavedFilterType
   let seriesId: String?
   let libraryIds: [String]?
+  let includeOfflineSorts: Bool
 
   init(
     browseOpts: Binding<BookBrowseOptions>,
@@ -21,7 +22,8 @@ struct BookFilterView: View {
     showSavedFilters: Binding<Bool>,
     filterType: SavedFilterType = .books,
     seriesId: String? = nil,
-    libraryIds: [String]? = nil
+    libraryIds: [String]? = nil,
+    includeOfflineSorts: Bool = false
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
@@ -29,6 +31,7 @@ struct BookFilterView: View {
     self.filterType = filterType
     self.seriesId = seriesId
     self.libraryIds = libraryIds
+    self.includeOfflineSorts = includeOfflineSorts
   }
 
   var sortString: String {
@@ -112,7 +115,12 @@ struct BookFilterView: View {
     .scrollClipDisabled()
     .sheet(isPresented: $showFilterSheet) {
       BookBrowseOptionsSheet(
-        browseOpts: $browseOpts, filterType: filterType, seriesId: seriesId, libraryIds: libraryIds)
+        browseOpts: $browseOpts,
+        filterType: filterType,
+        seriesId: seriesId,
+        libraryIds: libraryIds,
+        includeOfflineSorts: includeOfflineSorts
+      )
     }
   }
 }

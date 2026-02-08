@@ -1,5 +1,5 @@
 //
-//  OfflineSeriesBrowseView.swift
+//  OfflineBooksBrowseView.swift
 //  KMReader
 //
 //  Created by Komga iOS Client
@@ -8,26 +8,26 @@
 import SwiftData
 import SwiftUI
 
-struct OfflineSeriesBrowseView: View {
+struct OfflineBooksBrowseView: View {
   let libraryIds: [String]
   let searchText: String
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
 
-  @AppStorage("offlineSeriesBrowseOptions") private var storedBrowseOpts: SeriesBrowseOptions =
-    Self.defaultBrowseOptions
-  @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
-  @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
-
   @Environment(\.modelContext) private var modelContext
 
-  @State private var browseOpts: SeriesBrowseOptions = Self.defaultBrowseOptions
-  @State private var viewModel = SeriesViewModel()
+  @AppStorage("offlineBookBrowseOptions") private var storedBrowseOpts: BookBrowseOptions =
+    Self.defaultBrowseOptions
+  @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
+
+  @State private var browseOpts: BookBrowseOptions = Self.defaultBrowseOptions
+  @State private var viewModel = BookViewModel()
   @State private var hasInitialized = false
 
-  private static var defaultBrowseOptions: SeriesBrowseOptions {
-    var options = SeriesBrowseOptions()
+  private static var defaultBrowseOptions: BookBrowseOptions {
+    var options = BookBrowseOptions()
     options.sortField = .downloadDate
     options.sortDirection = .descending
     return options
@@ -35,21 +35,21 @@ struct OfflineSeriesBrowseView: View {
 
   var body: some View {
     VStack {
-      SeriesFilterView(
+      BookFilterView(
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
+        filterType: .books,
         libraryIds: libraryIds,
         includeOfflineSorts: true
       )
       .padding(.horizontal)
 
-      SeriesQueryView(
-        browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
-          ? SeriesBrowseOptions() : browseOpts,
+      BooksQueryView(
+        browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
         browseLayout: browseLayout,
         viewModel: viewModel,
-        loadMore: loadSeries
+        loadMore: loadBooks
       )
     }
     .task {
@@ -57,18 +57,18 @@ struct OfflineSeriesBrowseView: View {
         browseOpts = storedBrowseOpts
         hasInitialized = true
       }
-      await loadSeries(refresh: true)
+      await loadBooks(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in
       Task {
-        await loadSeries(refresh: true)
+        await loadBooks(refresh: true)
       }
     }
     .onChange(of: browseOpts) { oldValue, newValue in
       if oldValue != newValue {
         storedBrowseOpts = newValue
         Task {
-          await loadSeries(refresh: true)
+          await loadBooks(refresh: true)
         }
       }
     }
@@ -79,15 +79,16 @@ struct OfflineSeriesBrowseView: View {
     }
     .onChange(of: searchText) { _, _ in
       Task {
-        await loadSeries(refresh: true)
+        await loadBooks(refresh: true)
       }
     }
   }
 
-  private func loadSeries(refresh: Bool) async {
+  private func loadBooks(refresh: Bool) async {
     let effectiveBrowseOpts =
-      (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
-    await viewModel.loadSeries(
+      (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts
+
+    await viewModel.loadBrowseBooks(
       context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,

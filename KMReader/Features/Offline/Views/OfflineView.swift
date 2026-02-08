@@ -15,6 +15,8 @@ struct OfflineView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("seriesBrowseLayout") private var seriesBrowseLayout: BrowseLayoutMode = .grid
+  @AppStorage("bookBrowseLayout") private var bookBrowseLayout: BrowseLayoutMode = .grid
+  @AppStorage("offlineBrowseContent") private var offlineBrowseContent: BrowseContentType = .series
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   @Query private var instances: [KomgaInstance]
@@ -67,6 +69,37 @@ struct OfflineView: View {
     resolvedLibraryIds.joined(separator: ",")
   }
 
+  private var resolvedOfflineContent: BrowseContentType {
+    switch offlineBrowseContent {
+    case .series, .books:
+      return offlineBrowseContent
+    case .collections, .readlists:
+      return .series
+    }
+  }
+
+  private var offlineContentBinding: Binding<BrowseContentType> {
+    Binding(
+      get: { resolvedOfflineContent },
+      set: { newValue in
+        offlineBrowseContent = newValue == .books ? .books : .series
+      }
+    )
+  }
+
+  private var layoutModeBinding: Binding<BrowseLayoutMode> {
+    switch resolvedOfflineContent {
+    case .books:
+      return $bookBrowseLayout
+    case .series, .collections, .readlists:
+      return $seriesBrowseLayout
+    }
+  }
+
+  private var savedFilterType: SavedFilterType {
+    resolvedOfflineContent == .books ? .books : .series
+  }
+
   var body: some View {
     ScrollView {
       VStack(spacing: 0) {
@@ -95,13 +128,20 @@ struct OfflineView: View {
         .padding(.top, librarySelection == nil ? 12 : 0)
         .padding(.bottom, 12)
 
-        OfflineSeriesBrowseView(
-          libraryIds: resolvedLibraryIds,
-          searchText: activeSearchText,
-          refreshTrigger: refreshTrigger,
-          showFilterSheet: $showFilterSheet,
-          showSavedFilters: $showSavedFilters
-        )
+        HStack {
+          Spacer()
+          Picker("", selection: offlineContentBinding) {
+            Text(String(localized: "browse.content.series")).tag(BrowseContentType.series)
+            Text(String(localized: "browse.content.books")).tag(BrowseContentType.books)
+          }
+          .pickerStyle(.segmented)
+          .labelsHidden()
+          Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+
+        browseContentView
       }
     }
     .inlineNavigationBarTitle(title)
@@ -134,7 +174,7 @@ struct OfflineView: View {
 
             Menu {
               LayoutModePicker(
-                selection: $seriesBrowseLayout,
+                selection: layoutModeBinding,
                 showGridDensity: true
               )
             } label: {
@@ -148,7 +188,7 @@ struct OfflineView: View {
         LibraryPickerSheet()
       }
       .sheet(isPresented: $showSavedFilters) {
-        SavedFiltersView(filterType: .series)
+        SavedFiltersView(filterType: savedFilterType)
       }
     #endif
     .alert(
@@ -181,6 +221,28 @@ struct OfflineView: View {
     .task(id: resolvedLibraryIdsKey) {
       guard !authViewModel.isSwitching else { return }
       refreshBrowse()
+    }
+  }
+
+  @ViewBuilder
+  private var browseContentView: some View {
+    switch resolvedOfflineContent {
+    case .series, .collections, .readlists:
+      OfflineSeriesBrowseView(
+        libraryIds: resolvedLibraryIds,
+        searchText: activeSearchText,
+        refreshTrigger: refreshTrigger,
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters
+      )
+    case .books:
+      OfflineBooksBrowseView(
+        libraryIds: resolvedLibraryIds,
+        searchText: activeSearchText,
+        refreshTrigger: refreshTrigger,
+        showFilterSheet: $showFilterSheet,
+        showSavedFilters: $showSavedFilters
+      )
     }
   }
 

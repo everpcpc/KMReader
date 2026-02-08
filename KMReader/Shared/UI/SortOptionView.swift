@@ -10,11 +10,22 @@ import SwiftUI
 struct SortOptionView<SortField: SortFieldProtocol>: View {
   @Binding var sortField: SortField
   @Binding var sortDirection: SortDirection
+  let sortFields: [SortField]
+
+  init(
+    sortField: Binding<SortField>,
+    sortDirection: Binding<SortDirection>,
+    sortFields: [SortField]? = nil
+  ) {
+    self._sortField = sortField
+    self._sortDirection = sortDirection
+    self.sortFields = sortFields ?? Array(SortField.allCases)
+  }
 
   var body: some View {
     Section("Sort") {
       Picker("Sort By", selection: $sortField) {
-        ForEach(SortField.allCases, id: \.self) { field in
+        ForEach(sortFields, id: \.self) { field in
           Text(field.displayName).tag(field)
         }
       }
