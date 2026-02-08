@@ -14,6 +14,14 @@ struct ServerActionTile: View {
   var badge: String? = nil
   var badgeColor: Color? = nil
 
+  private var minimumHeight: CGFloat {
+    #if os(tvOS)
+      return 120
+    #else
+      return 0
+    #endif
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .top, spacing: 8) {
@@ -56,7 +64,7 @@ struct ServerActionTile: View {
           .lineLimit(2)
       }
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(maxWidth: .infinity, minHeight: minimumHeight, alignment: .leading)
     .padding(12)
     .background(.thinMaterial)
     .clipShape(RoundedRectangle(cornerRadius: 14))
