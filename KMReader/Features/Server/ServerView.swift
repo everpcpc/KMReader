@@ -87,7 +87,7 @@ struct ServerView: View {
       Text(String(localized: "Management"))
         .font(.headline)
 
-      LazyVGrid(columns: actionColumns, spacing: 12) {
+      LazyVGrid(columns: actionColumns, spacing: actionGridSpacing) {
         NavigationLink(value: NavDestination.settingsLibraries) {
           ServerActionTile(
             title: ServerSection.libraries.title,
@@ -134,7 +134,7 @@ struct ServerView: View {
 
       accountDetailsCard
 
-      LazyVGrid(columns: actionColumns, spacing: 12) {
+      LazyVGrid(columns: actionColumns, spacing: actionGridSpacing) {
         NavigationLink(value: NavDestination.settingsApiKey) {
           ServerActionTile(
             title: ServerSection.apiKeys.title,
@@ -220,8 +220,25 @@ struct ServerView: View {
     }
   }
 
+  private var actionGridSpacing: CGFloat {
+    #if os(tvOS)
+      return 24
+    #else
+      return 12
+    #endif
+  }
+
   private var actionColumns: [GridItem] {
-    [GridItem(.adaptive(minimum: 160), spacing: 12)]
+    #if os(tvOS)
+      return [
+        GridItem(
+          .adaptive(minimum: 360, maximum: 480),
+          spacing: actionGridSpacing
+        )
+      ]
+    #else
+      return [GridItem(.adaptive(minimum: 160), spacing: actionGridSpacing)]
+    #endif
   }
 
   private var serverDisplayName: String {
