@@ -6,7 +6,7 @@
 import SwiftData
 import SwiftUI
 
-#if os(iOS) || os(tvOS)
+#if os(iOS)
   import UIKit
 
   // Window-based notification manager for displaying notifications above sheets
@@ -230,6 +230,47 @@ import SwiftUI
   extension View {
     func setupNotificationWindow() -> some View {
       modifier(NotificationWindowSetup())
+    }
+  }
+
+#elseif os(tvOS)
+  // Keep alerts in the main view hierarchy so tvOS focus reliably lands on alert actions.
+  struct NotificationOverlay: View {
+    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+    @State private var errorManager = ErrorManager.shared
+
+    var body: some View {
+      VStack(alignment: .center) {
+        Spacer()
+        ForEach($errorManager.notifications, id: \.self) { $notification in
+          Text(notification)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .foregroundStyle(.white)
+            .background(themeColor.color)
+            .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+      }
+      .animation(.snappy, value: errorManager.notifications)
+      .padding(.horizontal, 8)
+      .padding(.bottom, 64)
+      .alert(String(localized: "error.title"), isPresented: $errorManager.hasAlert) {
+        Button(String(localized: "OK")) {
+          ErrorManager.shared.vanishError()
+        }
+      } message: {
+        if let error = errorManager.currentError {
+          Text(verbatim: error.description)
+        } else {
+          Text(String(localized: "error.unknown"))
+        }
+      }
+      .tint(themeColor.color)
+      .onExitCommand {
+        guard errorManager.hasAlert else { return }
+        ErrorManager.shared.vanishError()
+      }
     }
   }
 
