@@ -292,13 +292,23 @@ struct DashboardView: View {
     }
     #if !os(tvOS)
       .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button {
-            showLibraryPicker = true
-          } label: {
-            Image(systemName: ContentIcon.library)
+        #if os(macOS)
+          ToolbarItem(placement: .navigation) {
+            Button {
+              showLibraryPicker = true
+            } label: {
+              Image(systemName: ContentIcon.library)
+            }
           }
-        }
+        #else
+          ToolbarItem(placement: .cancellationAction) {
+            Button {
+              showLibraryPicker = true
+            } label: {
+              Image(systemName: ContentIcon.library)
+            }
+          }
+        #endif
 
         ToolbarItem(placement: .confirmationAction) {
           if isOffline {

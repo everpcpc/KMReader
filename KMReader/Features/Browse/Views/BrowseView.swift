@@ -151,13 +151,23 @@ struct BrowseView: View {
     #if !os(tvOS)
       .toolbar {
         if librarySelection == nil {
-          ToolbarItem(placement: .cancellationAction) {
-            Button {
-              showLibraryPicker = true
-            } label: {
-              Image(systemName: ContentIcon.library)
+          #if os(macOS)
+            ToolbarItem(placement: .navigation) {
+              Button {
+                showLibraryPicker = true
+              } label: {
+                Image(systemName: ContentIcon.library)
+              }
             }
-          }
+          #else
+            ToolbarItem(placement: .cancellationAction) {
+              Button {
+                showLibraryPicker = true
+              } label: {
+                Image(systemName: ContentIcon.library)
+              }
+            }
+          #endif
         }
 
         ToolbarItem(placement: .confirmationAction) {
