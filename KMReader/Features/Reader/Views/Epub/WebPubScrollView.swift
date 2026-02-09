@@ -48,6 +48,7 @@
       let chapterIndex = viewModel.currentChapterIndex
       let pageIndex = viewModel.currentPageIndex
       let currentLocation = viewModel.pageLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
+      let initialProgression = viewModel.initialProgression(for: chapterIndex)
 
       let theme = preferences.resolvedTheme(for: colorScheme)
       let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
@@ -67,6 +68,8 @@
         publicationLanguage: viewModel.publicationLanguage,
         publicationReadingProgression: viewModel.publicationReadingProgression,
         chapterIndex: chapterIndex,
+        initialSubPageIndex: pageIndex,
+        targetProgressionOnReady: initialProgression,
         totalChapters: viewModel.chapterCount,
         bookTitle: bookTitle,
         chapterTitle: currentLocation?.title,
@@ -268,6 +271,7 @@
     private var isContentLoaded = false
     private var pendingPageIndex: Int?
     private var pendingJumpToLastPage: Bool = false
+    private var targetProgressionOnReady: Double?
     private var readyToken: Int = 0
 
     private var bookTitle: String?
@@ -322,6 +326,8 @@
       publicationLanguage: String?,
       publicationReadingProgression: WebPubReadingProgression?,
       chapterIndex: Int,
+      initialSubPageIndex: Int,
+      targetProgressionOnReady: Double?,
       totalChapters: Int,
       bookTitle: String?,
       chapterTitle: String?,
@@ -340,6 +346,8 @@
       self.publicationLanguage = publicationLanguage
       self.publicationReadingProgression = publicationReadingProgression
       self.chapterIndex = chapterIndex
+      self.currentSubPageIndex = max(0, initialSubPageIndex)
+      self.targetProgressionOnReady = targetProgressionOnReady
       self.totalChapters = totalChapters
       self.bookTitle = bookTitle
       self.chapterTitle = chapterTitle
@@ -1006,10 +1014,22 @@
           onPageCountReady?(chapterIndex, normalizedTotal)
 
           // If we need to jump to last page after loading, do it now
-          if pendingJumpToLastPage {
+          let shouldJumpToLastPage = pendingJumpToLastPage
+          if shouldJumpToLastPage {
             actualPage = max(0, normalizedTotal - 1)
             scrollToPage(actualPage, animated: false)
             pendingJumpToLastPage = false
+          }
+
+          if !shouldJumpToLastPage,
+            let progression = targetProgressionOnReady
+          {
+            let targetIndex = max(0, min(normalizedTotal - 1, Int(floor(Double(normalizedTotal) * progression))))
+            if targetIndex != actualPage {
+              actualPage = targetIndex
+              scrollToPage(targetIndex, animated: false)
+            }
+            targetProgressionOnReady = nil
           }
 
           if currentSubPageIndex != actualPage {
