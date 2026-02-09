@@ -1,38 +1,34 @@
-Reading Experience Enhancements
+New Features
 
-- Improved page turning with more responsive swipe gestures for smoother navigation
-- Added visual depth to pages with subtle shadows for a more natural reading feel
-- Enhanced double-tap zoom with smoother animations and better responsiveness
-- Wide pages now automatically split for easier reading on smaller screens
-- Added zoom overlay for Webtoon mode with double-tap and pinch gestures to view pages in detail
+- Added dedicated Offline and Server tabs so key actions are easier to find.
+- Offline browsing now lets you switch between Series and Books views.
+- Added sorting by download time, with recent downloads shown first.
+- Added a new card style with text overlays for clearer browsing.
+- Added browser handoff options and quick web links for smoother cross-device flow.
 
-EPUB Reader Improvements
+Reading Experience Improvements
 
-- Customize reading preferences for each book individually
-- Added advanced layout options for more control over text display
-- Made font weight customization optional for greater flexibility
-- Fixed page navigation in scroll mode to start at the correct position
-- Improved tap handling for more consistent control behavior
-- Better background color rendering for a more polished appearance
+- Reopening a chapter now returns you to the correct reading position more reliably.
+- Reader controls stay hidden on entry to reduce visual distraction.
+- Page turns and taps feel more stable and consistent.
+- Improved handling for wide pages and EPUB page backgrounds.
+- Reading progress updates are more dependable, including when closing the reader.
 
-Table of Contents
+Offline and Downloads
 
-- Enhanced navigation with improved highlighting of your current position
-- Added page numbers and bookmark indicators for easier reference
-- Redesigned layout for both comic and EPUB content
+- Offline downloads are now excluded from cloud backup to help reduce backup size.
+- Download counts and status update more accurately across the app.
+- Offline filters and sorting are remembered more consistently.
 
-macOS Features
+Interface and Navigation
 
-- Added keyboard shortcut (L key) to quickly toggle Live Text for selecting and copying text from images
+- Dashboard refresh is smoother, especially when content has not changed.
+- Long metadata sections on series pages are collapsed by default for easier browsing.
+- Improved spacing and menu consistency across key screens.
+- Added clearer delete actions in management menus for users with permission.
 
-User Interface
+Platform-Specific Updates
 
-- Improved loading placeholders with better visual feedback
-- Enhanced user role display with badge indicators
-- Refined icon sizes throughout the app
-- Smoother control animations in the reader
-
-Bug Fixes
-
-- Fixed various issues with EPUB tap handling and navigation
-- Improved zoom behavior consistency across different reading modes
+- Apple TV remote navigation, focus behavior, and error dismissal are now more reliable.
+- Improved support for iPhone Control Center Apple TV Remote swipe page turns.
+- On macOS, library switching controls are placed more conveniently in navigation.
