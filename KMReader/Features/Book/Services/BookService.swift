@@ -17,6 +17,7 @@ class BookService {
   static let shared = BookService()
   private let apiClient = APIClient.shared
   private let logger = AppLogger(.api)
+  private let progressRequestTimeout: TimeInterval = 3
 
   private init() {}
 
@@ -86,7 +87,11 @@ class BookService {
     return try await apiClient.request(path: "/api/v1/books/\(bookId)/positions")
   }
 
-  func updateWebPubProgression(bookId: String, progression: R2Progression) async throws {
+  func updateWebPubProgression(
+    bookId: String,
+    progression: R2Progression,
+    timeout: TimeInterval? = nil
+  ) async throws {
     logger.debug(
       "📤 Sending EPUB progression for book \(bookId): href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0), totalProgression=\(progression.locator.locations?.totalProgression ?? 0)"
     )
@@ -96,7 +101,9 @@ class BookService {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/progression",
       method: "PUT",
-      body: data
+      body: data,
+      timeout: timeout ?? progressRequestTimeout,
+      maxRetryCount: 0
     )
     logger.debug("✅ EPUB progression sent for book \(bookId)")
   }
@@ -231,7 +238,12 @@ class BookService {
     return (data: result.data, contentType: result.contentType)
   }
 
-  func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async throws {
+  func updatePageReadProgress(
+    bookId: String,
+    page: Int,
+    completed: Bool = false,
+    timeout: TimeInterval? = nil
+  ) async throws {
     logger.debug(
       "📤 Sending page progress for book \(bookId): page=\(page), completed=\(completed)"
     )
@@ -241,7 +253,9 @@ class BookService {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/read-progress",
       method: "PATCH",
-      body: jsonData
+      body: jsonData,
+      timeout: timeout ?? progressRequestTimeout,
+      maxRetryCount: 0
     )
     logger.debug("✅ Page progress sent for book \(bookId): page=\(page)")
   }

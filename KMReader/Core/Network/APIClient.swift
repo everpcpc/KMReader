@@ -442,6 +442,7 @@ class APIClient {
     isTemporary: Bool = false,
     requestCategory: RequestCategory = .general,
     retryCount: Int = 0,
+    maxRetryCount: Int? = nil,
     onProgress: (@MainActor @Sendable (_ received: Int64, _ expected: Int64?) -> Void)? = nil
   ) async throws -> (data: Data, response: HTTPURLResponse) {
     let method = request.httpMethod ?? "GET"
@@ -451,6 +452,7 @@ class APIClient {
 
     let startTime = Date()
     let sessionToUse = session ?? currentSession()
+    let effectiveMaxRetryCount = maxRetryCount ?? AppConfig.apiRetryCount
 
     struct FetchResult {
       let data: Data
@@ -672,7 +674,8 @@ class APIClient {
                   session: sessionToUse,
                   isTemporary: false,
                   requestCategory: .auth,
-                  retryCount: 1
+                  retryCount: 1,
+                  maxRetryCount: maxRetryCount
                 )
               }
 
@@ -686,6 +689,7 @@ class APIClient {
                 isTemporary: false,
                 requestCategory: requestCategory,
                 retryCount: 1,
+                maxRetryCount: maxRetryCount,
                 onProgress: onProgress
               )
             } catch {
@@ -719,9 +723,9 @@ class APIClient {
           throw APIError.tooManyRequests(
             message: errorMessage, url: urlString, response: responseBody, request: requestBody)
         case 500...599:
-          if retryCount < AppConfig.apiRetryCount {
+          if retryCount < effectiveMaxRetryCount {
             logger.warning(
-              "⚠️ Server error, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(httpResponse.statusCode)"
+              "⚠️ Server error, retrying (\(retryCount + 1)/\(effectiveMaxRetryCount)): \(httpResponse.statusCode)"
             )
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             return try await executeRequest(
@@ -730,6 +734,7 @@ class APIClient {
               isTemporary: isTemporary,
               requestCategory: requestCategory,
               retryCount: retryCount + 1,
+              maxRetryCount: maxRetryCount,
               onProgress: onProgress
             )
           }
@@ -766,9 +771,9 @@ class APIClient {
       }
       throw APIError.networkError(appError, url: urlString)
     } catch {
-      if retryCount < AppConfig.apiRetryCount && !(error is CancellationError) {
+      if retryCount < effectiveMaxRetryCount && !(error is CancellationError) {
         logger.warning(
-          "⚠️ Request failed, retrying (\(retryCount + 1)/\(AppConfig.apiRetryCount)): \(error.localizedDescription)"
+          "⚠️ Request failed, retrying (\(retryCount + 1)/\(effectiveMaxRetryCount)): \(error.localizedDescription)"
         )
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         return try await executeRequest(
@@ -777,6 +782,7 @@ class APIClient {
           isTemporary: isTemporary,
           requestCategory: requestCategory,
           retryCount: retryCount + 1,
+          maxRetryCount: maxRetryCount,
           onProgress: onProgress
         )
       }
@@ -859,6 +865,7 @@ class APIClient {
     headers: [String: String]? = nil,
     bypassOfflineCheck: Bool = false,
     timeout: TimeInterval? = nil,
+    maxRetryCount: Int? = nil,
     category: RequestCategory = .general
   ) async throws -> T {
     if !bypassOfflineCheck {
@@ -874,7 +881,11 @@ class APIClient {
       timeout: timeout,
       category: category
     )
-    let (data, httpResponse) = try await executeRequest(urlRequest, requestCategory: category)
+    let (data, httpResponse) = try await executeRequest(
+      urlRequest,
+      requestCategory: category,
+      maxRetryCount: maxRetryCount
+    )
 
     return try decodeResponse(data: data, httpResponse: httpResponse, request: urlRequest)
   }
