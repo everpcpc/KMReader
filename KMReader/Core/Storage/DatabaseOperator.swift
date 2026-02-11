@@ -1083,10 +1083,14 @@ actor DatabaseOperator {
 
     if let book = try? modelContext.fetch(descriptor).first {
       let oldStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
+      let now = Date()
       book.progressPage = page
       book.progressCompleted = completed
-      book.progressReadDate = Date()
-      book.progressLastModified = Date()
+      book.progressReadDate = now
+      if book.progressCreated == nil {
+        book.progressCreated = now
+      }
+      book.progressLastModified = now
       let newStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
       if oldStatus != newStatus {
         updateSeriesReadingCounts(

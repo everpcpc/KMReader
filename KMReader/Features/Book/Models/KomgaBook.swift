@@ -259,9 +259,9 @@ final class KomgaBook {
     guard let page = progressPage,
       let completed = progressCompleted,
       let readDate = progressReadDate,
-      let created = progressCreated,
       let lastModified = progressLastModified
     else { return nil }
+    let created = progressCreated ?? readDate
     return ReadProgress(
       page: page,
       completed: completed,
