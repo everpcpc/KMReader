@@ -22,6 +22,8 @@ actor ReaderProgressDispatchService {
   }
 
   private let logger = AppLogger(.reader)
+  private let progressRequestTimeout: TimeInterval = 3
+  private let timeoutRetryLimit = 2
 
   private var pendingPageUpdates: [String: PageUpdate] = [:]
   private var pageDebounceTasks: [String: Task<Void, Never>] = [:]
@@ -150,7 +152,7 @@ actor ReaderProgressDispatchService {
     )
 
     await ReaderProgressTracker.shared.begin(bookId: bookId)
-    await Self.performPageProgressUpdate(update)
+    await performPageProgressUpdateWithTimeoutHandling(update)
     await ReaderProgressTracker.shared.end(bookId: bookId)
 
     pageSendTasks.removeValue(forKey: bookId)
@@ -172,7 +174,7 @@ actor ReaderProgressDispatchService {
     )
 
     await ReaderProgressTracker.shared.begin(bookId: bookId)
-    await Self.performEpubProgressionUpdate(update)
+    await performEpubProgressionUpdateWithTimeoutHandling(update)
     await ReaderProgressTracker.shared.end(bookId: bookId)
 
     epubSendTasks.removeValue(forKey: bookId)
@@ -183,54 +185,135 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  private nonisolated static func performPageProgressUpdate(_ update: PageUpdate) async {
+  private func performPageProgressUpdateWithTimeoutHandling(_ update: PageUpdate) async {
+    var timeoutRetryAttempt = 0
+
+    while true {
+      do {
+        try await Self.performPageProgressUpdate(
+          update,
+          timeout: progressRequestTimeout
+        )
+        return
+      } catch {
+        guard Self.isTimeoutError(error) else {
+          logger.error(
+            "Failed to update page progress for book \(update.bookId) page \(update.page): \(error.localizedDescription)"
+          )
+          return
+        }
+
+        if pendingPageUpdates[update.bookId] != nil {
+          logger.warning(
+            "⏭️ Timed out page progress for book \(update.bookId) page \(update.page), newer progress exists so skipping current update"
+          )
+          pageDebounceTasks[update.bookId]?.cancel()
+          pageDebounceTasks.removeValue(forKey: update.bookId)
+          return
+        }
+
+        guard timeoutRetryAttempt < timeoutRetryLimit else {
+          logger.error(
+            "❌ Timed out page progress for book \(update.bookId) page \(update.page) after \(timeoutRetryLimit) retries"
+          )
+          return
+        }
+
+        timeoutRetryAttempt += 1
+        logger.warning(
+          "⏱️ Timed out page progress for book \(update.bookId) page \(update.page), retrying (\(timeoutRetryAttempt)/\(timeoutRetryLimit))"
+        )
+      }
+    }
+  }
+
+  private func performEpubProgressionUpdateWithTimeoutHandling(_ update: EpubUpdate) async {
+    var timeoutRetryAttempt = 0
+
+    while true {
+      do {
+        try await Self.performEpubProgressionUpdate(
+          update,
+          timeout: progressRequestTimeout
+        )
+        return
+      } catch {
+        guard Self.isTimeoutError(error) else {
+          logger.error("Failed to update progression: \(error.localizedDescription)")
+          return
+        }
+
+        if pendingEpubUpdates[update.bookId] != nil {
+          logger.warning(
+            "⏭️ Timed out EPUB progression for book \(update.bookId), newer progress exists so skipping current update"
+          )
+          return
+        }
+
+        guard timeoutRetryAttempt < timeoutRetryLimit else {
+          logger.error(
+            "❌ Timed out EPUB progression for book \(update.bookId) after \(timeoutRetryLimit) retries"
+          )
+          return
+        }
+
+        timeoutRetryAttempt += 1
+        logger.warning(
+          "⏱️ Timed out EPUB progression for book \(update.bookId), retrying (\(timeoutRetryAttempt)/\(timeoutRetryLimit))"
+        )
+      }
+    }
+  }
+
+  private nonisolated static func performPageProgressUpdate(
+    _ update: PageUpdate,
+    timeout: TimeInterval
+  ) async throws {
     let logger = AppLogger(.reader)
 
     logger.debug(
       "📨 Performing page progress update for book \(update.bookId): page=\(update.page), completed=\(update.completed), offline=\(AppConfig.isOffline)"
     )
 
-    do {
-      if AppConfig.isOffline {
-        await DatabaseOperator.shared.queuePendingProgress(
-          instanceId: AppConfig.current.instanceId,
-          bookId: update.bookId,
-          page: update.page,
-          completed: update.completed,
-          progressionData: nil
-        )
-        await DatabaseOperator.shared.updateReadingProgress(
-          bookId: update.bookId,
-          page: update.page,
-          completed: update.completed
-        )
-        await DatabaseOperator.shared.commit()
-        logger.debug(
-          "💾 Queued page progress for offline sync: book=\(update.bookId), page=\(update.page), completed=\(update.completed)"
-        )
-      } else {
-        try await BookService.shared.updatePageReadProgress(
-          bookId: update.bookId,
-          page: update.page,
-          completed: update.completed
-        )
-        await DatabaseOperator.shared.updateReadingProgress(
-          bookId: update.bookId,
-          page: update.page,
-          completed: update.completed
-        )
-        logger.debug(
-          "✅ Page progress update completed for book \(update.bookId): page=\(update.page), completed=\(update.completed)"
-        )
-      }
-    } catch {
-      logger.error(
-        "Failed to update page progress for book \(update.bookId) page \(update.page): \(error.localizedDescription)"
+    if AppConfig.isOffline {
+      await DatabaseOperator.shared.queuePendingProgress(
+        instanceId: AppConfig.current.instanceId,
+        bookId: update.bookId,
+        page: update.page,
+        completed: update.completed,
+        progressionData: nil
+      )
+      await DatabaseOperator.shared.updateReadingProgress(
+        bookId: update.bookId,
+        page: update.page,
+        completed: update.completed
+      )
+      await DatabaseOperator.shared.commit()
+      logger.debug(
+        "💾 Queued page progress for offline sync: book=\(update.bookId), page=\(update.page), completed=\(update.completed)"
+      )
+    } else {
+      try await BookService.shared.updatePageReadProgress(
+        bookId: update.bookId,
+        page: update.page,
+        completed: update.completed,
+        timeout: timeout
+      )
+      await DatabaseOperator.shared.updateReadingProgress(
+        bookId: update.bookId,
+        page: update.page,
+        completed: update.completed
+      )
+      logger.debug(
+        "✅ Page progress update completed for book \(update.bookId): page=\(update.page), completed=\(update.completed)"
       )
     }
   }
 
-  private nonisolated static func performEpubProgressionUpdate(_ update: EpubUpdate) async {
+  private nonisolated static func performEpubProgressionUpdate(
+    _ update: EpubUpdate,
+    timeout: TimeInterval
+  ) async throws {
     let logger = AppLogger(.reader)
 
     do {
@@ -255,7 +338,8 @@ actor ReaderProgressDispatchService {
         )
         try await BookService.shared.updateWebPubProgression(
           bookId: update.bookId,
-          progression: update.progression
+          progression: update.progression,
+          timeout: timeout
         )
         logger.debug(
           "✅ EPUB progression request completed for book=\(update.bookId), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
@@ -276,11 +360,31 @@ actor ReaderProgressDispatchService {
             )
           )
         }
-      } else {
-        logger.error("Failed to update progression: \(apiError.localizedDescription)")
       }
+      throw apiError
     } catch {
-      logger.error("Failed to update progression: \(error.localizedDescription)")
+      throw error
     }
+  }
+
+  private nonisolated static func isTimeoutError(_ error: Error) -> Bool {
+    if let apiError = error as? APIError {
+      switch apiError {
+      case .networkError(let wrappedError, _):
+        return isTimeoutError(wrappedError)
+      default:
+        return false
+      }
+    }
+
+    if let appError = error as? AppErrorType {
+      if case .networkTimeout = appError {
+        return true
+      }
+      return false
+    }
+
+    let nsError = error as NSError
+    return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorTimedOut
   }
 }
