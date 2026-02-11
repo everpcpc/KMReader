@@ -129,7 +129,7 @@ enum SeriesContinueReadingResolver {
     let instanceId = AppConfig.current.instanceId
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId },
-      sortBy: [SortDescriptor(\KomgaBook.number, order: .forward)]
+      sortBy: [SortDescriptor(\KomgaBook.metaNumberSort, order: .forward)]
     )
 
     return (try? context.fetch(descriptor)) ?? []

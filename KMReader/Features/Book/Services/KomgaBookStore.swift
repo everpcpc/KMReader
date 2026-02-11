@@ -43,7 +43,7 @@ enum KomgaBookStore {
       let isAsc = !sort.contains("desc")
       descriptor.sortBy = [SortDescriptor(\KomgaBook.downloadAt, order: isAsc ? .forward : .reverse)]
     } else {
-      descriptor.sortBy = [SortDescriptor(\KomgaBook.number, order: .forward)]
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.metaNumberSort, order: .forward)]
     }
 
     do {
