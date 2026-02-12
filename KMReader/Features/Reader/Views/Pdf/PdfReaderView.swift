@@ -11,10 +11,13 @@
 
     @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
-    @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-    @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
+    @AppStorage("isOffline") private var isOffline: Bool = false
+    @AppStorage("defaultReadingDirection")
+    private var defaultReadingDirection: ReadingDirection = .ltr
+    @AppStorage("forceDefaultReadingDirection")
+    private var forceDefaultReadingDirection: Bool = false
     @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
-    @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
+    @AppStorage("isolateCoverPage") private var isolateCoverPage: Bool = true
 
     @State private var viewModel: PdfReaderViewModel
     @State private var readingDirection: ReadingDirection
@@ -39,7 +42,7 @@
       self.incognito = incognito
       self.onClose = onClose
       _viewModel = State(initialValue: PdfReaderViewModel(incognito: incognito))
-      _readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
+      _readingDirection = State(initialValue: .ltr)
       _currentBook = State(initialValue: book)
     }
 
@@ -52,13 +55,17 @@
         controlsOverlay
       }
       .sheet(isPresented: $showingPageJumpSheet) {
-        PdfPageJumpSheetView(
-          totalPages: viewModel.pageCount,
-          currentPage: viewModel.currentPageNumber,
-          onJump: { page in
-            requestPageNavigation(to: page)
-          }
-        )
+        if let documentURL = viewModel.documentURL {
+          PdfPageJumpSheetView(
+            documentURL: documentURL,
+            totalPages: viewModel.pageCount,
+            currentPage: viewModel.currentPageNumber,
+            readingDirection: readingDirection,
+            onJump: { page in
+              requestPageNavigation(to: page)
+            }
+          )
+        }
       }
       .sheet(isPresented: $showingSearchSheet) {
         PdfSearchSheetView(
@@ -84,7 +91,7 @@
         )
       }
       .sheet(isPresented: $showingPreferencesSheet) {
-        ReaderSettingsSheet(readingDirection: $readingDirection, isPdfProfile: true)
+        PdfReaderSettingsSheet()
       }
       .iPadIgnoresSafeArea()
       .task(id: book.id) {
@@ -94,13 +101,22 @@
         if readerPresentation.readingDirection != readingDirection {
           readerPresentation.readingDirection = readingDirection
         }
-        normalizeTransitionStyleIfNeeded()
         readerPresentation.hideStatusBar = false
         updateHandoff()
       }
       .onChange(of: readingDirection) { _, newDirection in
         if readerPresentation.readingDirection != newDirection {
           readerPresentation.readingDirection = newDirection
+        }
+      }
+      .onChange(of: defaultReadingDirection) { _, _ in
+        Task {
+          await refreshPreferredReadingDirection()
+        }
+      }
+      .onChange(of: forceDefaultReadingDirection) { _, _ in
+        Task {
+          await refreshPreferredReadingDirection()
         }
       }
       .onReceive(NotificationCenter.default.publisher(for: .fileDownloadProgress)) { notification in
@@ -173,10 +189,8 @@
         PdfDocumentView(
           documentURL: documentURL,
           pageLayout: pageLayout,
-          pageTransitionStyle: pageTransitionStyle,
+          isolateCoverPage: isolateCoverPage,
           readingDirection: readingDirection,
-          doubleTapZoomScale: CGFloat(doubleTapZoomScale),
-          doubleTapZoomMode: doubleTapZoomMode,
           initialPageNumber: viewModel.initialPageNumber,
           targetPageNumber: targetPageNumber,
           navigationToken: navigationToken,
@@ -203,6 +217,7 @@
       PdfControlsOverlayView(
         readingDirection: $readingDirection,
         pageLayout: $pageLayout,
+        isolateCoverPage: $isolateCoverPage,
         showingPageJumpSheet: $showingPageJumpSheet,
         showingSearchSheet: $showingSearchSheet,
         showingTOCSheet: $showingTOCSheet,
@@ -255,7 +270,7 @@
         resolvedBook = cachedBook
       }
 
-      if !AppConfig.isOffline {
+      if !isOffline {
         if let syncedBook = try? await SyncService.shared.syncBook(bookId: book.id) {
           resolvedBook = syncedBook
         }
@@ -265,6 +280,11 @@
       readingDirection = await resolvePreferredReadingDirection(book: resolvedBook)
       await viewModel.load(book: resolvedBook)
       updateHandoff()
+    }
+
+    private func refreshPreferredReadingDirection() async {
+      let activeBook = currentBook ?? book
+      readingDirection = await resolvePreferredReadingDirection(book: activeBook)
     }
 
     private func runSearch(query: String) {
@@ -279,49 +299,17 @@
       }
     }
 
-    private func handleSingleTap(normalizedPoint: CGPoint) {
-      guard viewModel.pageCount > 0 else { return }
-
-      let action = TapZoneHelper.action(
-        normalizedX: normalizedPoint.x,
-        normalizedY: normalizedPoint.y,
-        tapZoneMode: AppConfig.tapZoneMode,
-        readingDirection: tapReadingDirection(),
-        zoneThreshold: AppConfig.tapZoneSize.value
-      )
-
-      switch action {
-      case .previous:
-        requestPageNavigation(to: viewModel.currentPageNumber - 1)
-      case .next:
-        requestPageNavigation(to: viewModel.currentPageNumber + 1)
-      case .toggleControls:
-        toggleControls()
-      }
-    }
-
-    private func tapReadingDirection() -> ReadingDirection {
-      readingDirection
-    }
-
-    private func normalizeTransitionStyleIfNeeded() {
-      guard PageTransitionStyle.availableCases.contains(pageTransitionStyle) else {
-        pageTransitionStyle = .scroll
-        return
-      }
-    }
-
-    private func normalizePdfReadingDirection(_ direction: ReadingDirection) -> ReadingDirection {
-      direction
+    private func handleSingleTap(normalizedPoint _: CGPoint) {
+      toggleControls()
     }
 
     private func resolvePreferredReadingDirection(book: Book) async -> ReadingDirection {
-      if AppConfig.forceDefaultReadingDirection {
-        return normalizePdfReadingDirection(AppConfig.defaultReadingDirection)
+      if forceDefaultReadingDirection {
+        return defaultReadingDirection
       }
 
       var series = await DatabaseOperator.shared.fetchSeries(id: book.seriesId)
-      if series == nil && !AppConfig.isOffline {
+      if series == nil && !isOffline {
         series = try? await SyncService.shared.syncSeriesDetail(seriesId: book.seriesId)
       }
 
@@ -329,10 +317,10 @@
         .trimmingCharacters(in: .whitespacesAndNewlines),
         !rawReadingDirection.isEmpty
       {
-        return normalizePdfReadingDirection(ReadingDirection.fromString(rawReadingDirection))
+        return ReadingDirection.fromString(rawReadingDirection)
       }
 
-      return normalizePdfReadingDirection(AppConfig.defaultReadingDirection)
+      return defaultReadingDirection
     }
 
     private func requestPageNavigation(to page: Int) {

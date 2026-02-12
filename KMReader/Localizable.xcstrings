@@ -40227,6 +40227,9 @@
         }
       }
     },
+    "Show the first page alone before entering dual-page spread" : {
+
+    },
     "Sign in to Komga" : {
       "localizations" : {
         "de" : {
@@ -44688,6 +44691,9 @@
           }
         }
       }
+    },
+    "Used for single and dual-page presentation in paged or continuous mode" : {
+
     },
     "Used when a book or series doesn't specify a reading direction" : {
       "localizations" : {

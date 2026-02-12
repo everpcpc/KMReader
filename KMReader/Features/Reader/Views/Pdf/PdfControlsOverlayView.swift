@@ -4,6 +4,7 @@
   struct PdfControlsOverlayView: View {
     @Binding var readingDirection: ReadingDirection
     @Binding var pageLayout: PageLayout
+    @Binding var isolateCoverPage: Bool
 
     @Binding var showingPageJumpSheet: Bool
     @Binding var showingSearchSheet: Bool
@@ -43,6 +44,12 @@
         return String(localized: "reader.page.end")
       }
       return String(max(1, currentPage))
+    }
+
+    private var enableDualPageOptions: Bool {
+      readingDirection != .webtoon
+        && readingDirection != .vertical
+        && pageLayout.supportsDualPageOptions
     }
 
     var body: some View {
@@ -89,28 +96,31 @@
         Spacer()
 
         if !titleText.isEmpty {
-          HStack(spacing: 4) {
-            if incognito {
-              Image(systemName: "eye.slash.fill")
-                .font(.callout)
-            }
-
-            if let subtitleText {
-              VStack(alignment: incognito ? .leading : .center, spacing: 4) {
-                Text(titleText)
-                  .lineLimit(1)
-                Text(subtitleText)
-                  .foregroundStyle(.secondary)
-                  .font(.caption)
-                  .lineLimit(1)
+          Button {
+          } label: {
+            HStack(spacing: 4) {
+              if incognito {
+                Image(systemName: "eye.slash.fill")
+                  .font(.callout)
               }
-            } else {
-              Text(titleText)
-                .lineLimit(2)
+
+              if let subtitleText {
+                VStack(alignment: incognito ? .leading : .center, spacing: 4) {
+                  Text(titleText)
+                    .lineLimit(1)
+                  Text(subtitleText)
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+                    .lineLimit(1)
+                }
+              } else {
+                Text(titleText)
+                  .lineLimit(2)
+              }
             }
+            .padding(.vertical, 2)
+            .padding(.horizontal, 4)
           }
-          .padding(.vertical, 2)
-          .padding(.horizontal, 4)
           .optimizedControlSize()
           .contentShape(Capsule())
           .adaptiveButtonStyle(buttonStyle)
@@ -197,16 +207,18 @@
         }
         .pickerStyle(.menu)
 
-        if readingDirection != .webtoon {
-          Picker(selection: $pageLayout) {
-            ForEach(PageLayout.allCases, id: \.self) { layout in
-              Label(layout.displayName, systemImage: layout.icon)
-                .tag(layout)
-            }
-          } label: {
-            Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
+        Picker(selection: $pageLayout) {
+          ForEach(PageLayout.allCases, id: \.self) { layout in
+            Label(layout.displayName, systemImage: layout.icon)
+              .tag(layout)
           }
-          .pickerStyle(.menu)
+        } label: {
+          Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
+        }
+        .pickerStyle(.menu)
+
+        if enableDualPageOptions {
+          pageIsolation()
         }
       } header: {
         Text(String(localized: "Current Reading Options"))
@@ -243,6 +255,18 @@
         .disabled(!canSearch)
       } header: {
         Text(String(localized: "Page Navigation"))
+      }
+    }
+
+    @ViewBuilder
+    private func pageIsolation() -> some View {
+      Button {
+        isolateCoverPage.toggle()
+      } label: {
+        Label(
+          String(localized: "Isolate Cover Page"),
+          systemImage: isolateCoverPage ? "checkmark.rectangle.portrait" : "rectangle.portrait"
+        )
       }
     }
 
