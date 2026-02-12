@@ -17,14 +17,8 @@ struct BookReaderView: View {
 
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
-  private var shouldUseDivinaReader: Bool {
-    guard let profile = book.media.mediaProfile else { return true }
-    switch profile {
-    case .epub:
-      return book.media.epubDivinaCompatible ?? false
-    case .divina, .pdf, .unknown:
-      return true
-    }
+  private var mediaProfile: MediaProfile {
+    book.media.mediaProfile ?? .unknown
   }
 
   private var closeReader: () -> Void {
@@ -45,14 +39,23 @@ struct BookReaderView: View {
         } else {
           switch book.media.status {
           case .ready:
-            if shouldUseDivinaReader {
+            switch mediaProfile {
+            case .divina, .unknown:
               DivinaReaderView(
                 book: book,
                 incognito: incognito,
                 readList: readList,
                 onClose: closeReader
               )
-            } else {
+            case .epub:
+              if book.media.epubDivinaCompatible ?? false {
+                DivinaReaderView(
+                  book: book,
+                  incognito: incognito,
+                  readList: readList,
+                  onClose: closeReader
+                )
+              } else {
               #if os(iOS)
                 EpubReaderView(
                   book: book,
@@ -67,6 +70,25 @@ struct BookReaderView: View {
                   message: String(
                     localized:
                       "EPUB reading is only supported on iOS."
+                  ),
+                  onClose: closeReader
+                )
+              #endif
+              }
+            case .pdf:
+              #if os(iOS) || os(macOS)
+                PdfReaderView(
+                  book: book,
+                  incognito: incognito,
+                  onClose: closeReader
+                )
+              #else
+                ReaderUnavailableView(
+                  icon: "doc.richtext",
+                  title: "PDF Reader Not Available",
+                  message: String(
+                    localized:
+                      "PDF reading is only supported on iOS and macOS."
                   ),
                   onClose: closeReader
                 )

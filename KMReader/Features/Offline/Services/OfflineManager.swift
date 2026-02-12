@@ -21,12 +21,18 @@ import UniformTypeIdentifiers
 #endif
 
 /// Simple Sendable struct for download info.
+enum DownloadContentKind: Sendable {
+  case pages
+  case epubWebPub
+  case epubDivina
+  case pdf
+}
+
 struct DownloadInfo: Sendable {
   let bookId: String
   let seriesTitle: String
   let bookInfo: String
-  let isEpub: Bool
-  let epubDivinaCompatible: Bool
+  let kind: DownloadContentKind
 }
 
 /// Actor for managing offline book downloads with proper thread isolation.
@@ -85,6 +91,8 @@ actor OfflineManager {
   #endif
 
   private static let directoryName = "OfflineBooks"
+  private static let epubFileName = "book.epub"
+  private static let pdfFileName = "book.pdf"
 
   // MARK: - Paths
 
@@ -588,7 +596,13 @@ actor OfflineManager {
     let bookDir = bookDirectory(instanceId: instanceId, bookId: info.bookId)
 
     #if os(iOS)
-      if info.isEpub && !info.epubDivinaCompatible {
+      let shouldUseForegroundDownload: Bool = switch info.kind {
+      case .epubWebPub, .pdf:
+        true
+      case .pages, .epubDivina:
+        false
+      }
+      if shouldUseForegroundDownload {
         await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
       } else {
         // Use background downloads on iOS
@@ -633,10 +647,12 @@ actor OfflineManager {
           await DatabaseOperator.shared.commit()
         }
 
-        let isEpub = info.isEpub && !info.epubDivinaCompatible
-        if isEpub {
+        switch info.kind {
+        case .epubWebPub, .pdf:
           await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
           return
+        case .pages, .epubDivina:
+          break
         }
 
         // Store download info for completion handling
@@ -644,7 +660,6 @@ actor OfflineManager {
           instanceId: instanceId,
           seriesTitle: info.seriesTitle,
           bookInfo: info.bookInfo,
-          isEpub: false,
           totalPages: pages.count
         )
 
@@ -747,10 +762,12 @@ actor OfflineManager {
       do {
         logger.info("⬇️ Starting download for book: \(info.bookInfo) (\(info.bookId))")
 
-        let isEpub = info.isEpub && !info.epubDivinaCompatible
-        if isEpub {
+        switch info.kind {
+        case .epubWebPub:
           try await downloadEpub(bookId: info.bookId, to: bookDir)
-        } else {
+        case .pdf:
+          try await downloadPdfFile(bookId: info.bookId, to: bookDir)
+        case .pages, .epubDivina:
           try await downloadPages(bookId: info.bookId, to: bookDir)
         }
 
@@ -820,7 +837,16 @@ actor OfflineManager {
   func getOfflineEpubURL(instanceId: String, bookId: String) async -> URL? {
     guard await isBookDownloaded(bookId: bookId) else { return nil }
     let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
-      "book.epub")
+      Self.epubFileName
+    )
+    return FileManager.default.fileExists(atPath: file.path) ? file : nil
+  }
+
+  func getOfflinePDFURL(instanceId: String, bookId: String) async -> URL? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
+      Self.pdfFileName
+    )
     return FileManager.default.fileExists(atPath: file.path) ? file : nil
   }
 
@@ -921,7 +947,7 @@ actor OfflineManager {
     private var pendingBackgroundPages: [String: Set<Int>] = [:]  // bookId -> pending page numbers
     private var backgroundDownloadInfo:
       [String: (
-        instanceId: String, seriesTitle: String, bookInfo: String, isEpub: Bool, totalPages: Int
+        instanceId: String, seriesTitle: String, bookInfo: String, totalPages: Int
       )] = [:]
     private func handleBackgroundDownloadComplete(
       bookId: String, pageNumber: Int?, fileURL: URL
@@ -934,11 +960,7 @@ actor OfflineManager {
       }
 
       guard let info = backgroundDownloadInfo[bookId] else { return }
-
-      if info.isEpub {
-        // EPUB download complete
-        logger.info("✅ Background EPUB download complete for book: \(bookId)")
-      } else if let pageNumber = pageNumber {
+      if let pageNumber = pageNumber {
         // Page download complete
         pendingBackgroundPages[bookId]?.remove(pageNumber)
 
@@ -1099,6 +1121,16 @@ actor OfflineManager {
     await DatabaseOperator.shared.commit()
 
     try await downloadWebPubResources(manifest: webPubManifest, bookId: bookId, bookDir: bookDir)
+  }
+
+  private func downloadPdfFile(bookId: String, to bookDir: URL) async throws {
+    let fileURL = bookDir.appendingPathComponent(Self.pdfFileName)
+    let result = try await BookService.shared.downloadBookFile(bookId: bookId)
+    try result.data.write(to: fileURL, options: [.atomic])
+    Self.excludeFromBackupIfNeeded(at: fileURL)
+    await MainActor.run {
+      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
+    }
   }
 
   private func downloadWebPubResources(
@@ -1470,12 +1502,20 @@ actor OfflineManager {
 
 extension Book {
   var downloadInfo: DownloadInfo {
-    DownloadInfo(
+    let kind: DownloadContentKind
+    if media.mediaProfile == .pdf {
+      kind = .pdf
+    } else if media.mediaProfile == .epub {
+      kind = (media.epubDivinaCompatible ?? false) ? .epubDivina : .epubWebPub
+    } else {
+      kind = .pages
+    }
+
+    return DownloadInfo(
       bookId: id,
       seriesTitle: oneshot ? String(localized: "Oneshot") : seriesTitle,
       bookInfo: oneshot ? "\(metadata.title)" : "#\(metadata.number) - \(metadata.title)",
-      isEpub: media.mediaProfile == .epub,
-      epubDivinaCompatible: media.epubDivinaCompatible ?? false
+      kind: kind
     )
   }
 }

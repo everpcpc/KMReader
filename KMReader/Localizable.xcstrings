@@ -401,6 +401,16 @@
       },
       "shouldTranslate" : false
     },
+    "%lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
     "%lld / %lld books" : {
       "localizations" : {
         "de" : {
@@ -850,6 +860,9 @@
         }
       }
     },
+    "%lld results" : {
+
+    },
     "%lld series" : {
       "localizations" : {
         "de" : {
@@ -1225,6 +1238,9 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "1" : {
+
     },
     "A comment helps you identify this API key later." : {
       "localizations" : {
@@ -23122,6 +23138,9 @@
         }
       }
     },
+    "No matches found" : {
+
+    },
     "No Pages Available" : {
       "localizations" : {
         "de" : {
@@ -23167,6 +23186,9 @@
           }
         }
       }
+    },
+    "No pages available." : {
+
     },
     "No publishers available" : {
       "localizations" : {
@@ -26802,6 +26824,9 @@
         }
       }
     },
+    "Offline PDF file is missing. Please try downloading again." : {
+
+    },
     "Offline Policy" : {
       "localizations" : {
         "de" : {
@@ -28368,6 +28393,9 @@
         }
       }
     },
+    "PDF file unavailable" : {
+
+    },
     "Pending" : {
       "localizations" : {
         "de" : {
@@ -28827,6 +28855,9 @@
           }
         }
       }
+    },
+    "Preparing PDF..." : {
+
     },
     "Preparing reader view" : {
       "localizations" : {
@@ -33841,6 +33872,12 @@
           }
         }
       }
+    },
+    "Search in PDF" : {
+
+    },
+    "Searching..." : {
+
     },
     "Select" : {
       "localizations" : {

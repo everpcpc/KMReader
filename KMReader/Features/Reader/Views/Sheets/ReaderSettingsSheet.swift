@@ -10,6 +10,7 @@ import SwiftUI
 struct ReaderSettingsSheet: View {
   // Session-specific bindings (not persisted until reader closes)
   @Binding var readingDirection: ReadingDirection
+  let isPdfProfile: Bool
 
   // Persisted settings (via @AppStorage)
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
@@ -31,6 +32,11 @@ struct ReaderSettingsSheet: View {
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
+  init(readingDirection: Binding<ReadingDirection>, isPdfProfile: Bool = false) {
+    self._readingDirection = readingDirection
+    self.isPdfProfile = isPdfProfile
+  }
+
   var body: some View {
     SheetView(
       title: String(localized: "Reader Settings"), size: .large, applyFormStyle: true
@@ -46,12 +52,14 @@ struct ReaderSettingsSheet: View {
           }
           .pickerStyle(.menu)
 
-          Toggle(isOn: $showPageNumber) {
-            Text("Always Show Page Number")
+          if !isPdfProfile {
+            Toggle(isOn: $showPageNumber) {
+              Text("Always Show Page Number")
+            }
           }
 
           #if os(iOS) || os(macOS)
-            if readingDirection == .webtoon {
+            if !isPdfProfile, readingDirection == .webtoon {
               VStack(alignment: .leading, spacing: 8) {
                 HStack {
                   Text("Webtoon Page Width")
@@ -75,12 +83,14 @@ struct ReaderSettingsSheet: View {
           #endif
 
           #if os(iOS)
-            Toggle(isOn: $autoHideControls) {
-              Text("Auto Hide Controls")
-            }
+            if !isPdfProfile {
+              Toggle(isOn: $autoHideControls) {
+                Text("Auto Hide Controls")
+              }
 
-            Toggle(isOn: $readerControlsGradientBackground) {
-              Text("Controls Gradient Background")
+              Toggle(isOn: $readerControlsGradientBackground) {
+                Text("Controls Gradient Background")
+              }
             }
           #endif
 
@@ -111,25 +121,27 @@ struct ReaderSettingsSheet: View {
         #endif
 
         #if !os(tvOS)
-          Section(header: Text("Live Text")) {
-            Toggle(isOn: $enableLiveText) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Enable Live Text")
-                Text("Automatically enable Live Text for all images.")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-            #if os(iOS)
-              Toggle(isOn: $shakeToOpenLiveText) {
+          if !isPdfProfile {
+            Section(header: Text("Live Text")) {
+              Toggle(isOn: $enableLiveText) {
                 VStack(alignment: .leading, spacing: 4) {
-                  Text("Shake to Open Live Text")
-                  Text("Shake your device to toggle Live Text")
+                  Text("Enable Live Text")
+                  Text("Automatically enable Live Text for all images.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
               }
-            #endif
+              #if os(iOS)
+                Toggle(isOn: $shakeToOpenLiveText) {
+                  VStack(alignment: .leading, spacing: 4) {
+                    Text("Shake to Open Live Text")
+                    Text("Shake your device to toggle Live Text")
+                      .font(.caption)
+                      .foregroundColor(.secondary)
+                  }
+                }
+              #endif
+            }
           }
         #endif
 
@@ -152,7 +164,7 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          if readingDirection != .webtoon {
+          if !isPdfProfile, readingDirection != .webtoon {
             VStack(alignment: .leading, spacing: 8) {
               Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
                 ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
@@ -167,8 +179,10 @@ struct ReaderSettingsSheet: View {
           }
 
           #if os(macOS)
-            Toggle(isOn: $showKeyboardHelpOverlay) {
-              Text("Show Keyboard Help Overlay")
+            if !isPdfProfile {
+              Toggle(isOn: $showKeyboardHelpOverlay) {
+                Text("Show Keyboard Help Overlay")
+              }
             }
           #endif
 
@@ -181,8 +195,10 @@ struct ReaderSettingsSheet: View {
             .pickerStyle(.menu)
 
             if !tapZoneMode.isDisabled {
-              Toggle(isOn: $showTapZoneHints) {
-                Text("Show Tap Zone Hints")
+              if !isPdfProfile {
+                Toggle(isOn: $showTapZoneHints) {
+                  Text("Show Tap Zone Hints")
+                }
               }
 
               VStack(alignment: .leading, spacing: 8) {
@@ -212,7 +228,7 @@ struct ReaderSettingsSheet: View {
                 .frame(height: 60)
               }
 
-              if readingDirection == .webtoon {
+              if !isPdfProfile, readingDirection == .webtoon {
                 VStack(alignment: .leading, spacing: 8) {
                   HStack {
                     Text("Webtoon Tap Scroll Height")
@@ -226,7 +242,7 @@ struct ReaderSettingsSheet: View {
                     step: 5
                   )
                 }
-              } else {
+              } else if !isPdfProfile {
                 VStack(alignment: .leading, spacing: 8) {
                   HStack {
                     Text("Tap Page Scroll Duration")

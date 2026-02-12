@@ -68,15 +68,12 @@ build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS
 
 build-ios: ## Build for iOS
 	@python3 $(MISC_DIR)/xcode.py build ios
-	@$(MAKE) localize
 
 build-macos: ## Build for macOS
 	@python3 $(MISC_DIR)/xcode.py build macos
-	@$(MAKE) localize
 
 build-tvos: ## Build for tvOS
 	@python3 $(MISC_DIR)/xcode.py build tvos
-	@$(MAKE) localize
 
 build-ios-ci: ## Build for iOS (CI, uses simulator, no code signing)
 	@python3 $(MISC_DIR)/xcode.py build ios --ci
