@@ -14,6 +14,11 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsDivinaReader) {
           SettingsSectionRow(section: .divinaReader)
         }
+        #if os(iOS) || os(macOS)
+          NavigationLink(value: NavDestination.settingsPdfReader) {
+            SettingsSectionRow(section: .pdfReader)
+          }
+        #endif
         #if os(iOS)
           NavigationLink(value: NavDestination.settingsEpubReader) {
             SettingsSectionRow(section: .epubReader)
