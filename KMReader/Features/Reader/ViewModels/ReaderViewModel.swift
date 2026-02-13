@@ -380,11 +380,7 @@ class ReaderViewModel {
     #if os(tvOS)
       return false
     #else
-      guard pageIndex >= 0 && pageIndex < pages.count else { return false }
-      if let known = animatedPageStates[pageIndex] {
-        return known
-      }
-      return pages[pageIndex].isAnimatedImageCandidate
+      return animatedPageStates[pageIndex] == true
     #endif
   }
 

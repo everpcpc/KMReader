@@ -456,19 +456,7 @@
       private let logger = AppLogger(.reader)
     #endif
 
-    private var aspectConstraint: NSLayoutConstraint?
     private var heightConstraint: NSLayoutConstraint?
-    private var imageLeadingConstraint: NSLayoutConstraint?
-    private var imageTrailingConstraint: NSLayoutConstraint?
-    private var imageCenterXConstraint: NSLayoutConstraint?
-
-    // Additional constraints for ensuring imageView doesn't exceed bounds
-    private var imageLeadingBoundConstraint: NSLayoutConstraint?
-    private var imageTrailingBoundConstraint: NSLayoutConstraint?
-    private var imageFillLeadingConstraint: NSLayoutConstraint?
-    private var imageFillTrailingConstraint: NSLayoutConstraint?
-    private var imageFillTopConstraint: NSLayoutConstraint?
-    private var imageFillBottomConstraint: NSLayoutConstraint?
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -509,7 +497,7 @@
 
     private func setup() {
       imageView.contentMode = .scaleAspectFit
-      imageView.translatesAutoresizingMaskIntoConstraints = false
+      imageView.translatesAutoresizingMaskIntoConstraints = true
       imageView.isUserInteractionEnabled = true
       imageView.clipsToBounds = false
 
@@ -542,33 +530,7 @@
       errorLabel.translatesAutoresizingMaskIntoConstraints = false
       addSubview(errorLabel)
 
-      // Create equality constraints for dual-page mode (force alignment to edge/spine)
-      imageLeadingConstraint = imageView.leadingAnchor.constraint(equalTo: leadingAnchor)
-      imageTrailingConstraint = imageView.trailingAnchor.constraint(equalTo: trailingAnchor)
-      imageCenterXConstraint = imageView.centerXAnchor.constraint(equalTo: centerXAnchor)
-
-      // Create inequality bounds for single-page mode (stay within bounds but centered)
-      imageLeadingBoundConstraint = imageView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor)
-      imageTrailingBoundConstraint = imageView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
-      imageFillLeadingConstraint = imageView.leadingAnchor.constraint(equalTo: leadingAnchor)
-      imageFillTrailingConstraint = imageView.trailingAnchor.constraint(equalTo: trailingAnchor)
-      imageFillTopConstraint = imageView.topAnchor.constraint(equalTo: topAnchor)
-      imageFillBottomConstraint = imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
-
       NSLayoutConstraint.activate([
-        // Center vertically and stay within bounds
-        imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-        imageView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
-        imageView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
-
-        // Always enforce bounds constraints
-        imageLeadingBoundConstraint!,
-        imageTrailingBoundConstraint!,
-
-        // Horizontal alignment will be set by updateImageAlignment
-        // For single page: centerX will be activated
-        // For dual page: leading or trailing equality will be activated
-
         loadingIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
         loadingIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
         pageNumberLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
@@ -592,6 +554,7 @@
       self.currentData = data
       self.viewModel = viewModel
       self.readingDirection = readingDirection
+      self.displayMode = displayMode
 
       // Handle split mode - crop the image if needed
       let displayImage: PlatformImage?
@@ -605,7 +568,6 @@
       imageView.layer.shadowOpacity = displayImage == nil ? 0 : 0.25
 
       updateHeightConstraint(targetHeight)
-      updateImageAlignment()
 
       if displayImage != nil, showPageNumber {
         pageNumberLabel.text = "\(data.pageNumber + 1)"
@@ -689,58 +651,6 @@
       } else {
         heightConstraint?.isActive = false
         heightConstraint = nil
-      }
-    }
-
-    private func updateImageAlignment() {
-      if displayMode == .fillWidth {
-        aspectConstraint?.isActive = false
-
-        imageLeadingConstraint?.isActive = false
-        imageTrailingConstraint?.isActive = false
-        imageCenterXConstraint?.isActive = false
-
-        imageFillLeadingConstraint?.isActive = true
-        imageFillTrailingConstraint?.isActive = true
-        imageFillTopConstraint?.isActive = true
-        imageFillBottomConstraint?.isActive = true
-        return
-      }
-
-      imageFillLeadingConstraint?.isActive = false
-      imageFillTrailingConstraint?.isActive = false
-      imageFillTopConstraint?.isActive = false
-      imageFillBottomConstraint?.isActive = false
-
-      guard let data = currentData, let image = imageView.image else {
-        aspectConstraint?.isActive = false
-        imageLeadingConstraint?.isActive = false
-        imageTrailingConstraint?.isActive = false
-        imageCenterXConstraint?.isActive = false
-        return
-      }
-
-      aspectConstraint?.isActive = false
-      let ratio = image.size.width / image.size.height
-      if ratio.isFinite && ratio > 0 {
-        aspectConstraint = imageView.widthAnchor.constraint(equalTo: imageView.heightAnchor, multiplier: ratio)
-        aspectConstraint?.priority = .required
-        aspectConstraint?.isActive = true
-      }
-
-      imageLeadingConstraint?.isActive = false
-      imageTrailingConstraint?.isActive = false
-      imageCenterXConstraint?.isActive = false
-
-      if data.alignment == .leading {
-        // Dual page - left page: align to leading edge (spine in center)
-        imageLeadingConstraint?.isActive = true
-      } else if data.alignment == .trailing {
-        // Dual page - right page: align to trailing edge (spine in center)
-        imageTrailingConstraint?.isActive = true
-      } else {
-        // Single page: center horizontally
-        imageCenterXConstraint?.isActive = true
       }
     }
 
@@ -856,6 +766,8 @@
           xOffset = (viewSize.width - actualImageWidth) / 2
         }
       }
+
+      imageView.frame = CGRect(x: xOffset, y: yOffset, width: actualImageWidth, height: actualImageHeight)
 
       let topY = yOffset
       let labelWidth = pageNumberLabel.intrinsicContentSize.width + 16
