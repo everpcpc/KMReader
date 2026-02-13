@@ -1,1 +1,1 @@
-Read AGENTS.md and follow the instructions.
+AGENTS.md
