@@ -56,24 +56,24 @@ struct BookReaderView: View {
                   onClose: closeReader
                 )
               } else {
-              #if os(iOS)
-                EpubReaderView(
-                  book: book,
-                  incognito: incognito,
-                  readList: readList,
-                  onClose: closeReader
-                )
-              #else
-                ReaderUnavailableView(
-                  icon: "exclamationmark.triangle",
-                  title: "EPUB Reader Not Available",
-                  message: String(
-                    localized:
-                      "EPUB reading is only supported on iOS."
-                  ),
-                  onClose: closeReader
-                )
-              #endif
+                #if os(iOS)
+                  EpubReaderView(
+                    book: book,
+                    incognito: incognito,
+                    readList: readList,
+                    onClose: closeReader
+                  )
+                #else
+                  ReaderUnavailableView(
+                    icon: "exclamationmark.triangle",
+                    title: "EPUB Reader Not Available",
+                    message: String(
+                      localized:
+                        "EPUB reading is only supported on iOS."
+                    ),
+                    onClose: closeReader
+                  )
+                #endif
               }
             case .pdf:
               #if os(iOS) || os(macOS)

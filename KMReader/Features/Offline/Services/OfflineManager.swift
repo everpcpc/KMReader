@@ -596,12 +596,13 @@ actor OfflineManager {
     let bookDir = bookDirectory(instanceId: instanceId, bookId: info.bookId)
 
     #if os(iOS)
-      let shouldUseForegroundDownload: Bool = switch info.kind {
-      case .epubWebPub, .pdf:
-        true
-      case .pages, .epubDivina:
-        false
-      }
+      let shouldUseForegroundDownload: Bool =
+        switch info.kind {
+        case .epubWebPub, .pdf:
+          true
+        case .pages, .epubDivina:
+          false
+        }
       if shouldUseForegroundDownload {
         await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
       } else {

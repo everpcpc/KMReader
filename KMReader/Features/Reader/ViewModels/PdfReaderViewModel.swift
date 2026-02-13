@@ -325,9 +325,11 @@
     }
 
     private func buildSnippet(from text: String, matchRange: Range<String.Index>) -> String {
-      let lowerBound = text.index(matchRange.lowerBound, offsetBy: -40, limitedBy: text.startIndex)
+      let lowerBound =
+        text.index(matchRange.lowerBound, offsetBy: -40, limitedBy: text.startIndex)
         ?? text.startIndex
-      let upperBound = text.index(matchRange.upperBound, offsetBy: 80, limitedBy: text.endIndex)
+      let upperBound =
+        text.index(matchRange.upperBound, offsetBy: 80, limitedBy: text.endIndex)
         ?? text.endIndex
 
       var snippet = String(text[lowerBound..<upperBound])
