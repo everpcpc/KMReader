@@ -17,6 +17,7 @@ import SwiftUI
         List(selection: $selectedSection) {
           Section(String(localized: "Reader")) {
             SettingsSectionRow(section: .divinaReader)
+            SettingsSectionRow(section: .pdfReader)
           }
 
           Section(String(localized: "Display")) {
@@ -52,6 +53,8 @@ import SwiftUI
               SettingsCacheView()
             case .divinaReader:
               DivinaPreferencesView()
+            case .pdfReader:
+              PdfPreferencesView()
             case .sse:
               SettingsSSEView()
             case .network:

@@ -58,12 +58,18 @@
       pdfView.minScaleFactor = minScale
       pdfView.maxScaleFactor = max(minScale * 8.0, minScale)
 
-      if let page = document.page(at: max(0, min(initialPageNumber - 1, document.pageCount - 1))) {
-        pdfView.go(to: page)
-      }
+      let clampedInitialPage = max(1, min(initialPageNumber, max(1, document.pageCount)))
+      goToPage(clampedInitialPage, in: pdfView)
+      coordinator.lastKnownPageNumber = clampedInitialPage
 
       coordinator.lastNavigationToken = navigationToken
       coordinator.notifyCurrentPage(from: pdfView)
+
+      scheduleInitialPageCorrection(
+        targetPage: clampedInitialPage,
+        in: pdfView,
+        coordinator: coordinator
+      )
     }
 
     private func applyPresentationConfiguration(to pdfView: PDFView, coordinator: Coordinator) {
@@ -79,6 +85,7 @@
       }
 
       let currentPage = pdfView.currentPage
+      let currentPageNumberBeforeConfiguration = currentPageNumber(in: pdfView)
       let displayMode: PDFDisplayMode
 
       switch (isContinuous, resolvedLayout) {
@@ -107,7 +114,12 @@
       coordinator.lastResolvedIsolateCoverPage = isolateCoverPage
 
       if let currentPage {
-        pdfView.go(to: currentPage)
+        if currentPageNumber(in: pdfView) != currentPageNumberBeforeConfiguration {
+          pdfView.go(to: currentPage)
+        }
+      } else if pdfView.document != nil {
+        let fallbackPage = coordinator.lastKnownPageNumber > 0 ? coordinator.lastKnownPageNumber : initialPageNumber
+        goToPage(fallbackPage, in: pdfView)
       }
     }
 
@@ -141,6 +153,32 @@
       return 1.0
     }
 
+    private func scheduleInitialPageCorrection(
+      targetPage: Int,
+      in pdfView: PDFView,
+      coordinator: Coordinator
+    ) {
+      // In continuous mode, PDFKit may reset current page multiple times
+      // during initial layout; retry briefly until the target page sticks.
+      let retryDelays: [TimeInterval] = [0.0, 0.05, 0.2, 0.5]
+      for delay in retryDelays {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak pdfView, weak coordinator] in
+          guard let pdfView, let coordinator else { return }
+          guard coordinator.loadedDocumentURL == documentURL else { return }
+          if currentPageNumber(in: pdfView) != targetPage {
+            goToPage(targetPage, in: pdfView)
+          }
+          coordinator.notifyCurrentPage(from: pdfView)
+        }
+      }
+    }
+
+    private func currentPageNumber(in pdfView: PDFView) -> Int? {
+      guard let document = pdfView.document else { return nil }
+      guard let page = pdfView.currentPage else { return nil }
+      return document.index(for: page) + 1
+    }
+
     final class Coordinator: NSObject, NSGestureRecognizerDelegate {
       var onPageChange: (Int, Int) -> Void
       var onSingleTap: (CGPoint) -> Void
@@ -149,8 +187,16 @@
       var lastResolvedPageLayout: PageLayout?
       var lastResolvedReadingDirection: ReadingDirection?
       var lastResolvedIsolateCoverPage: Bool?
+      var lastKnownPageNumber: Int = 1
       private weak var observedPDFView: PDFView?
       private weak var singleClickRecognizer: NSClickGestureRecognizer?
+      private weak var doubleClickRecognizer: NSClickGestureRecognizer?
+      private weak var longPressRecognizer: NSPressGestureRecognizer?
+      private var singleClickWorkItem: DispatchWorkItem?
+      private var lastLongPressEndTime: Date = .distantPast
+      private var lastDoubleClickTime: Date = .distantPast
+      private var isLongPressing = false
+      private var hadSelectionAtClickStart = false
 
       init(
         onPageChange: @escaping (Int, Int) -> Void,
@@ -175,7 +221,7 @@
         }
 
         observedPDFView = pdfView
-        attachSingleClickRecognizer(to: pdfView)
+        attachRecognizers(to: pdfView)
         NotificationCenter.default.addObserver(
           self,
           selector: #selector(handlePageChanged),
@@ -185,10 +231,36 @@
       }
 
       func refreshGestureRecognizers(on pdfView: PDFView) {
-        attachSingleClickRecognizer(to: pdfView)
+        attachRecognizers(to: pdfView)
       }
 
-      private func attachSingleClickRecognizer(to pdfView: PDFView) {
+      private func attachRecognizers(to pdfView: PDFView) {
+        if let existingDoubleClickRecognizer = doubleClickRecognizer {
+          if existingDoubleClickRecognizer.view !== pdfView {
+            existingDoubleClickRecognizer.view?.removeGestureRecognizer(existingDoubleClickRecognizer)
+            pdfView.addGestureRecognizer(existingDoubleClickRecognizer)
+          }
+        } else {
+          let recognizer = NSClickGestureRecognizer(target: self, action: #selector(handleDoubleClick(_:)))
+          recognizer.numberOfClicksRequired = 2
+          recognizer.delegate = self
+          pdfView.addGestureRecognizer(recognizer)
+          doubleClickRecognizer = recognizer
+        }
+
+        if let existingLongPressRecognizer = longPressRecognizer {
+          if existingLongPressRecognizer.view !== pdfView {
+            existingLongPressRecognizer.view?.removeGestureRecognizer(existingLongPressRecognizer)
+            pdfView.addGestureRecognizer(existingLongPressRecognizer)
+          }
+        } else {
+          let recognizer = NSPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+          recognizer.minimumPressDuration = 0.5
+          recognizer.delegate = self
+          pdfView.addGestureRecognizer(recognizer)
+          longPressRecognizer = recognizer
+        }
+
         if let singleClickRecognizer {
           if singleClickRecognizer.view !== pdfView {
             singleClickRecognizer.view?.removeGestureRecognizer(singleClickRecognizer)
@@ -211,8 +283,37 @@
       }
 
       @objc
+      private func handleDoubleClick(_ recognizer: NSClickGestureRecognizer) {
+        guard recognizer.state == .ended else { return }
+        singleClickWorkItem?.cancel()
+        lastDoubleClickTime = Date()
+      }
+
+      @objc
+      private func handleLongPress(_ gesture: NSPressGestureRecognizer) {
+        if gesture.state == .began {
+          isLongPressing = true
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.isLongPressing = false
+          }
+        }
+      }
+
+      @objc
       private func handleSingleClick(_ recognizer: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        guard !isLongPressing else { return }
+        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
+        if Date().timeIntervalSince(lastDoubleClickTime) < 0.35 { return }
+
         guard let pdfView = recognizer.view as? PDFView else { return }
+        if hadSelectionAtClickStart || pdfView.currentSelection != nil {
+          hadSelectionAtClickStart = false
+          return
+        }
+
         let size = pdfView.bounds.size
         guard size.width > 0, size.height > 0 else { return }
 
@@ -221,7 +322,12 @@
           x: max(0, min(1, location.x / size.width)),
           y: max(0, min(1, 1.0 - (location.y / size.height)))
         )
-        onSingleTap(normalizedPoint)
+
+        let item = DispatchWorkItem { [weak self] in
+          self?.onSingleTap(normalizedPoint)
+        }
+        singleClickWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
       }
 
       func notifyCurrentPage(from pdfView: PDFView) {
@@ -242,6 +348,7 @@
         }
 
         let pageNumber = document.index(for: currentPage) + 1
+        lastKnownPageNumber = max(1, pageNumber)
         onPageChange(max(1, pageNumber), totalPages)
       }
 
@@ -250,6 +357,13 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
       ) -> Bool {
         true
+      }
+
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
+        if gestureRecognizer === singleClickRecognizer || gestureRecognizer === doubleClickRecognizer {
+          hadSelectionAtClickStart = (observedPDFView?.currentSelection != nil)
+        }
+        return true
       }
     }
   }

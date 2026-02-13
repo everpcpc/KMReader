@@ -29,6 +29,7 @@
                 Spacer()
               }
               .padding(.vertical, 20)
+              .listRowBackground(Color.clear)
             }
           } else if trimmedQuery.isEmpty {
             Section {
@@ -44,6 +45,7 @@
                 Spacer()
               }
               .padding(.vertical, 20)
+              .listRowBackground(Color.clear)
             }
           } else if results.isEmpty {
             Section {
@@ -59,6 +61,7 @@
                 Spacer()
               }
               .padding(.vertical, 20)
+              .listRowBackground(Color.clear)
             }
           } else {
             Section {
@@ -80,6 +83,7 @@
                   .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
+                .listRowBackground(Color.clear)
               }
             } header: {
               Text("\(results.count) results")
@@ -87,6 +91,8 @@
           }
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
       } controls: {
         Button {
           onSearch(trimmedQuery)

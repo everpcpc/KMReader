@@ -10,8 +10,9 @@
     @Binding var showingSearchSheet: Bool
     @Binding var showingTOCSheet: Bool
     @Binding var showingReaderSettingsSheet: Bool
+    @Binding var showingDetailSheet: Bool
 
-    @AppStorage("readerControlsGradientBackground")
+    @AppStorage("pdfReaderControlsGradientBackground")
     private var readerControlsGradientBackground: Bool = false
 
     let currentBook: Book?
@@ -97,6 +98,8 @@
 
         if !titleText.isEmpty {
           Button {
+            guard currentBook != nil else { return }
+            showingDetailSheet = true
           } label: {
             HStack(spacing: 4) {
               if incognito {

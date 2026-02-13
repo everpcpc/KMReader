@@ -147,8 +147,16 @@
 
     func updateCurrentPage(pageNumber: Int, totalPages: Int) {
       let normalizedTotal = max(0, totalPages)
+      let normalizedPage = max(1, pageNumber)
+
+      // PDFKit may emit duplicate page-changed callbacks during mode switches.
+      // Ignore no-op updates to avoid feedback loops in SwiftUI view updates.
+      if pageCount == normalizedTotal, currentPageNumber == normalizedPage {
+        return
+      }
+
       pageCount = normalizedTotal
-      currentPageNumber = max(1, pageNumber)
+      currentPageNumber = normalizedPage
 
       guard !bookId.isEmpty else { return }
       guard normalizedTotal > 0 else { return }

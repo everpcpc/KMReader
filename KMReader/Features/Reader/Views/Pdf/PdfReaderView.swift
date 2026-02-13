@@ -10,23 +10,25 @@
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @AppStorage("currentAccount") private var current: Current = .init()
-    @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+    @AppStorage("pdfReaderBackground") private var readerBackground: ReaderBackground = .system
     @AppStorage("isOffline") private var isOffline: Bool = false
-    @AppStorage("defaultReadingDirection")
+    @AppStorage("pdfDefaultReadingDirection")
     private var defaultReadingDirection: ReadingDirection = .ltr
-    @AppStorage("forceDefaultReadingDirection")
+    @AppStorage("pdfForceDefaultReadingDirection")
     private var forceDefaultReadingDirection: Bool = false
-    @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
-    @AppStorage("isolateCoverPage") private var isolateCoverPage: Bool = true
+    @AppStorage("pdfPageLayout") private var pageLayout: PageLayout = .auto
+    @AppStorage("pdfIsolateCoverPage") private var isolateCoverPage: Bool = true
 
     @State private var viewModel: PdfReaderViewModel
     @State private var readingDirection: ReadingDirection
     @State private var currentBook: Book?
+    @State private var currentSeries: Series?
     @State private var showingControls = false
     @State private var showingPageJumpSheet = false
     @State private var showingSearchSheet = false
     @State private var showingTOCSheet = false
     @State private var showingPreferencesSheet = false
+    @State private var showingDetailSheet = false
     @State private var searchQuery = ""
     @State private var targetPageNumber: Int?
     @State private var navigationToken = UUID()
@@ -93,6 +95,11 @@
       .sheet(isPresented: $showingPreferencesSheet) {
         PdfReaderSettingsSheet()
       }
+      .readerDetailSheet(
+        isPresented: $showingDetailSheet,
+        book: currentBook,
+        series: currentSeries
+      )
       .iPadIgnoresSafeArea()
       .task(id: book.id) {
         await loadBook()
@@ -104,9 +111,19 @@
         readerPresentation.hideStatusBar = false
         updateHandoff()
       }
-      .onChange(of: readingDirection) { _, newDirection in
+      .onChange(of: readingDirection) { oldDirection, newDirection in
         if readerPresentation.readingDirection != newDirection {
           readerPresentation.readingDirection = newDirection
+        }
+
+        guard isContinuousMode(for: oldDirection) != isContinuousMode(for: newDirection) else {
+          return
+        }
+        guard viewModel.pageCount > 0 else { return }
+
+        let preservedPage = max(1, min(viewModel.currentPageNumber, viewModel.pageCount))
+        DispatchQueue.main.async {
+          forcePageNavigation(to: preservedPage)
         }
       }
       .onChange(of: defaultReadingDirection) { _, _ in
@@ -127,6 +144,16 @@
       }
       .onChange(of: viewModel.currentPageNumber) { _, _ in
         updateHandoff()
+      }
+      .onChange(of: viewModel.documentURL) { _, newURL in
+        guard newURL != nil else { return }
+        guard isContinuousMode else { return }
+        guard viewModel.pageCount > 0 else { return }
+
+        let targetPage = documentInitialPage
+        DispatchQueue.main.async {
+          forcePageNavigation(to: targetPage)
+        }
       }
       .onChange(of: shouldShowControls) { _, newValue in
         withAnimation {
@@ -151,6 +178,25 @@
 
     private var animation: Animation {
       .default
+    }
+
+    private func isContinuousMode(for direction: ReadingDirection) -> Bool {
+      direction == .webtoon
+    }
+
+    private var isContinuousMode: Bool {
+      isContinuousMode(for: readingDirection)
+    }
+
+    private var documentViewIdentity: String {
+      "\(isContinuousMode ? "continuous" : "paged")-\(book.id)"
+    }
+
+    private var documentInitialPage: Int {
+      if viewModel.pageCount > 0 {
+        return max(1, min(viewModel.currentPageNumber, viewModel.pageCount))
+      }
+      return max(1, viewModel.initialPageNumber)
     }
 
     @ViewBuilder
@@ -191,7 +237,7 @@
           pageLayout: pageLayout,
           isolateCoverPage: isolateCoverPage,
           readingDirection: readingDirection,
-          initialPageNumber: viewModel.initialPageNumber,
+          initialPageNumber: documentInitialPage,
           targetPageNumber: targetPageNumber,
           navigationToken: navigationToken,
           onPageChange: { pageNumber, totalPages in
@@ -201,7 +247,9 @@
             handleSingleTap(normalizedPoint: normalizedPoint)
           }
         )
-        .id(documentURL.path)
+        // Rebuild PDFView when switching between paged and continuous modes.
+        // In-place toggling can cause PDFKit internal reconfiguration cycles.
+        .id("\(documentURL.path)-\(documentViewIdentity)")
         .readerIgnoresSafeArea()
       } else {
         ReaderUnavailableView(
@@ -222,6 +270,7 @@
         showingSearchSheet: $showingSearchSheet,
         showingTOCSheet: $showingTOCSheet,
         showingReaderSettingsSheet: $showingPreferencesSheet,
+        showingDetailSheet: $showingDetailSheet,
         currentBook: currentBook,
         fallbackTitle: readerTitle,
         incognito: incognito,
@@ -277,14 +326,18 @@
       }
 
       currentBook = resolvedBook
-      readingDirection = await resolvePreferredReadingDirection(book: resolvedBook)
+      let resolvedSeries = await fetchSeries(for: resolvedBook)
+      currentSeries = resolvedSeries
+      readingDirection = resolvePreferredReadingDirection(series: resolvedSeries)
       await viewModel.load(book: resolvedBook)
       updateHandoff()
     }
 
     private func refreshPreferredReadingDirection() async {
       let activeBook = currentBook ?? book
-      readingDirection = await resolvePreferredReadingDirection(book: activeBook)
+      let resolvedSeries = await fetchSeries(for: activeBook)
+      currentSeries = resolvedSeries
+      readingDirection = resolvePreferredReadingDirection(series: resolvedSeries)
     }
 
     private func runSearch(query: String) {
@@ -303,14 +356,17 @@
       toggleControls()
     }
 
-    private func resolvePreferredReadingDirection(book: Book) async -> ReadingDirection {
-      if forceDefaultReadingDirection {
-        return defaultReadingDirection
-      }
-
+    private func fetchSeries(for book: Book) async -> Series? {
       var series = await DatabaseOperator.shared.fetchSeries(id: book.seriesId)
       if series == nil && !isOffline {
         series = try? await SyncService.shared.syncSeriesDetail(seriesId: book.seriesId)
+      }
+      return series
+    }
+
+    private func resolvePreferredReadingDirection(series: Series?) -> ReadingDirection {
+      if forceDefaultReadingDirection {
+        return defaultReadingDirection
       }
 
       if let rawReadingDirection = series?.metadata.readingDirection?
@@ -330,6 +386,13 @@
       targetPageNumber = clamped
       navigationToken = UUID()
       showingControls = false
+    }
+
+    private func forcePageNavigation(to page: Int) {
+      guard viewModel.pageCount > 0 else { return }
+      let clamped = max(1, min(page, viewModel.pageCount))
+      targetPageNumber = clamped
+      navigationToken = UUID()
     }
 
     private func closeReader() {
