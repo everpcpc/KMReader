@@ -147,11 +147,9 @@ struct ReadListDownloadActionsSection: View {
         readListId: readList.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineDownloadQueued")
+      )
     }
   }
 
@@ -164,11 +162,9 @@ struct ReadListDownloadActionsSection: View {
         limit: limit
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineDownloadQueued")
+      )
     }
   }
 
@@ -179,11 +175,9 @@ struct ReadListDownloadActionsSection: View {
         instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineRemoved")
+      )
     }
   }
 
@@ -204,11 +198,9 @@ struct ReadListDownloadActionsSection: View {
         readListId: readList.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineRemoved")
+      )
     }
   }
 }

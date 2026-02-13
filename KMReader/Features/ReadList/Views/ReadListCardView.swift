@@ -89,13 +89,9 @@ struct ReadListCardView: View {
     Task {
       do {
         try await ReadListService.shared.deleteReadList(readListId: komgaReadList.readListId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

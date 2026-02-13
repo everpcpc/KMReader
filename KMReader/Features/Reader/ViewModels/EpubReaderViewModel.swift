@@ -559,9 +559,7 @@
       )
     }
 
-    func prepareChapter(_ chapterIndex: Int) async {
-      _ = chapterIndex
-    }
+
 
     func chapterURL(at index: Int) -> URL? {
       chapterURLCache[index]

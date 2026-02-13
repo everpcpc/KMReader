@@ -192,15 +192,11 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.analyzeSeries(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.analysisStarted"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.analysisStarted"))
         await refreshSeriesData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -209,15 +205,11 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.refreshMetadata(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.metadataRefreshed"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.metadataRefreshed"))
         await refreshSeriesData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -226,14 +218,10 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.markAsRead(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
         await refreshSeriesData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -242,14 +230,10 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.markAsUnread(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
         await refreshSeriesData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -258,14 +242,10 @@ extension SeriesDetailView {
     Task {
       do {
         try await SeriesService.shared.deleteSeries(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-          dismiss()
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
+        dismiss()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -292,15 +272,11 @@ extension SeriesDetailView {
         )
         // Sync the collection to update its seriesIds in local SwiftData
         _ = try? await SyncService.shared.syncCollection(id: collectionId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.addedToCollection"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.addedToCollection"))
         await refreshSeriesData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

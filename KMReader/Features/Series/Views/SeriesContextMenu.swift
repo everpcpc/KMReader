@@ -195,13 +195,9 @@ struct SeriesContextMenu: View {
     Task {
       do {
         try await ThumbnailCache.refreshThumbnail(id: seriesId, type: .series)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.coverRefreshed"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.coverRefreshed"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -223,14 +219,10 @@ struct SeriesContextMenu: View {
     Task {
       do {
         try await SeriesService.shared.analyzeSeries(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.analysisStarted"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.analysisStarted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -239,14 +231,10 @@ struct SeriesContextMenu: View {
     Task {
       do {
         try await SeriesService.shared.refreshMetadata(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.metadataRefreshed"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.metadataRefreshed"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -255,13 +243,9 @@ struct SeriesContextMenu: View {
     Task {
       do {
         try await SeriesService.shared.markAsRead(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -270,13 +254,9 @@ struct SeriesContextMenu: View {
     Task {
       do {
         try await SeriesService.shared.markAsUnread(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -288,14 +268,10 @@ struct SeriesContextMenu: View {
           collectionId: collectionId,
           seriesIds: [seriesId]
         )
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.addedToCollection"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.addedToCollection"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -400,11 +376,9 @@ struct SeriesContextMenu: View {
         seriesId: seriesId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineDownloadQueued")
+      )
     }
   }
 
@@ -417,11 +391,9 @@ struct SeriesContextMenu: View {
         limit: limit
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineDownloadQueued")
+      )
     }
   }
 
@@ -431,11 +403,9 @@ struct SeriesContextMenu: View {
         seriesId: seriesId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineRemoved")
+      )
     }
   }
 
@@ -445,11 +415,9 @@ struct SeriesContextMenu: View {
         seriesId: seriesId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineRemoved")
+      )
     }
   }
 

@@ -74,23 +74,15 @@ struct ReadListEditSheet: View {
             summary: summaryToUpdate,
             ordered: orderedToUpdate
           )
-          await MainActor.run {
-            ErrorManager.shared.notify(message: String(localized: "notification.readList.updated"))
-            dismiss()
-          }
+          ErrorManager.shared.notify(message: String(localized: "notification.readList.updated"))
+          dismiss()
         } else {
-          await MainActor.run {
-            dismiss()
-          }
+          dismiss()
         }
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      await MainActor.run {
-        isSaving = false
-      }
+      isSaving = false
     }
   }
 }

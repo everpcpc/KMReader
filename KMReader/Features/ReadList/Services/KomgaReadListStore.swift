@@ -144,7 +144,7 @@ enum KomgaReadListStore {
   }
 
   static func fetchReadList(context: ModelContext, id: String) -> ReadList? {
-    let compositeId = "\(AppConfig.current.instanceId)_\(id)"
+    let compositeId = CompositeID.generate(id: id)
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     return try? context.fetch(descriptor).first?.toReadList()
   }

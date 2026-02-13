@@ -123,10 +123,8 @@ struct SplashView: View {
       messageRotationTask = Task {
         while !Task.isCancelled {
           try? await Task.sleep(nanoseconds: 2_000_000_000)
-          await MainActor.run {
-            withAnimation(.easeInOut(duration: 0.5)) {
-              loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.count
-            }
+          withAnimation(.easeInOut(duration: 0.5)) {
+            loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.count
           }
         }
       }

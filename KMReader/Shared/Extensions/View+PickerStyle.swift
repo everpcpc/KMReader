@@ -1,5 +1,5 @@
 //
-//  View+ListStyle.swift
+//  View+PickerStyle.swift
 //  Komga
 //
 //  Created by Komga iOS Client

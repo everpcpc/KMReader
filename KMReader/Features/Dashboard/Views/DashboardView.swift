@@ -121,15 +121,13 @@ struct DashboardView: View {
       guard !Task.isCancelled else { return }
 
       // Perform the refresh
-      await MainActor.run {
-        if isReaderActive {
-          shouldRefreshAfterReading = true
-        } else {
-          logger.debug("Executing scheduled refresh: \(reason)")
-          performRefresh(reason: "Auto after debounce: \(reason)", source: .auto)
-        }
-        pendingRefreshTask = nil
+      if isReaderActive {
+        shouldRefreshAfterReading = true
+      } else {
+        logger.debug("Executing scheduled refresh: \(reason)")
+        performRefresh(reason: "Auto after debounce: \(reason)", source: .auto)
       }
+      pendingRefreshTask = nil
     }
   }
 
@@ -279,14 +277,12 @@ struct DashboardView: View {
 
           guard !Task.isCancelled else { return }
 
-          await MainActor.run {
-            if needsFullRefresh {
-              refreshDashboard(reason: "Deferred after reader closed")
-            } else {
-              refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
-            }
-            readerCloseRefreshTask = nil
+          if needsFullRefresh {
+            refreshDashboard(reason: "Deferred after reader closed")
+          } else {
+            refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
           }
+          readerCloseRefreshTask = nil
         }
       }
     }

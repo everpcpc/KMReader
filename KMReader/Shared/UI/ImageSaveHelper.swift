@@ -13,13 +13,11 @@ enum ImageSaveHelper {
   static func saveToPhotos(image: PlatformImage) {
     Task {
       let result = await performSave(image: image)
-      await MainActor.run {
-        switch result {
-        case .success:
-          ErrorManager.shared.notify(message: String(localized: "notification.reader.imageSaved"))
-        case .failure(let error):
-          ErrorManager.shared.alert(error: error)
-        }
+      switch result {
+      case .success:
+        ErrorManager.shared.notify(message: String(localized: "notification.reader.imageSaved"))
+      case .failure(let error):
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

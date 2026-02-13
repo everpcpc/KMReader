@@ -249,11 +249,9 @@ struct SeriesDownloadActionsSection: View {
         seriesId: series.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineDownloadQueued")
+      )
     }
   }
 
@@ -266,11 +264,9 @@ struct SeriesDownloadActionsSection: View {
         limit: limit
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineDownloadQueued")
+      )
     }
   }
 
@@ -281,11 +277,9 @@ struct SeriesDownloadActionsSection: View {
         instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineRemoved")
+      )
     }
   }
 
@@ -306,11 +300,9 @@ struct SeriesDownloadActionsSection: View {
         seriesId: series.id, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.offlineRemoved")
+      )
     }
   }
 }

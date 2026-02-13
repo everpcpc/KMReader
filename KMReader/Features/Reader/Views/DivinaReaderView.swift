@@ -174,19 +174,17 @@ struct DivinaReaderView: View {
 
     Task {
       let fileURL = await viewModel.prepareAnimatedPagePlaybackURL(pageIndex: pageIndex)
-      await MainActor.run {
-        withAnimation(.easeInOut(duration: 0.18)) {
-          animatedPlaybackLoading = false
-        }
-        guard let fileURL else {
-          logger.debug("⚠️ Animated playback unavailable for pageIndex=\(pageIndex)")
-          return
-        }
-        controlsTimer?.invalidate()
-        showingControls = false
-        withAnimation(.easeInOut(duration: 0.22)) {
-          animatedPlaybackURL = fileURL
-        }
+      withAnimation(.easeInOut(duration: 0.18)) {
+        animatedPlaybackLoading = false
+      }
+      guard let fileURL else {
+        logger.debug("⚠️ Animated playback unavailable for pageIndex=\(pageIndex)")
+        return
+      }
+      controlsTimer?.invalidate()
+      showingControls = false
+      withAnimation(.easeInOut(duration: 0.22)) {
+        animatedPlaybackURL = fileURL
       }
     }
   }

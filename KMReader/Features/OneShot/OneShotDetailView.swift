@@ -182,9 +182,7 @@ struct OneshotDetailView: View {
     guard let book = book else { return }
     Task {
       await CacheManager.clearCache(forBookId: book.id)
-      await MainActor.run {
-        ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
-      }
+      ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
     }
   }
 
@@ -196,15 +194,11 @@ struct OneshotDetailView: View {
           seriesIds: [seriesId]
         )
         _ = try? await SyncService.shared.syncCollection(id: collectionId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.addedToCollection"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.addedToCollection"))
         await refreshOneshotData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -215,14 +209,10 @@ struct OneshotDetailView: View {
       do {
         try await BookService.shared.markAsRead(bookId: book.id)
         _ = try? await SyncService.shared.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         await refreshOneshotData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -232,14 +222,10 @@ struct OneshotDetailView: View {
     Task {
       do {
         try await BookService.shared.markAsUnread(bookId: book.id)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await refreshOneshotData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -248,14 +234,10 @@ struct OneshotDetailView: View {
     Task {
       do {
         try await SeriesService.shared.deleteSeries(seriesId: seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-          dismiss()
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
+        dismiss()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -269,15 +251,11 @@ struct OneshotDetailView: View {
         )
         // Sync the readlist to update its bookIds in local SwiftData
         _ = try? await SyncService.shared.syncReadList(id: readListId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.booksAddedToReadList"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.booksAddedToReadList"))
         await refreshOneshotData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -287,15 +265,11 @@ struct OneshotDetailView: View {
     Task {
       do {
         try await BookService.shared.analyzeBook(bookId: book.id)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.analysisStarted"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.analysisStarted"))
         await refreshOneshotData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -305,15 +279,11 @@ struct OneshotDetailView: View {
     Task {
       do {
         try await BookService.shared.refreshMetadata(bookId: book.id)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.metadataRefreshed"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.metadataRefreshed"))
         await refreshOneshotData()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

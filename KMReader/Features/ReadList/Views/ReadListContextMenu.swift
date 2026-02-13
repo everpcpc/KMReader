@@ -72,13 +72,9 @@ struct ReadListContextMenu: View {
     Task {
       do {
         try await ThumbnailCache.refreshThumbnail(id: readListId, type: .readlist)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.readList.coverRefreshed"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.readList.coverRefreshed"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -136,11 +132,9 @@ struct ReadListContextMenu: View {
         readListId: readListId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineDownloadQueued")
+      )
     }
   }
 
@@ -153,11 +147,9 @@ struct ReadListContextMenu: View {
         limit: limit
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineDownloadQueued")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineDownloadQueued")
+      )
     }
   }
 
@@ -168,11 +160,9 @@ struct ReadListContextMenu: View {
         instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineRemoved")
+      )
     }
   }
 
@@ -182,11 +172,9 @@ struct ReadListContextMenu: View {
         readListId: readListId, instanceId: current.instanceId
       )
       await DatabaseOperator.shared.commit()
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.readList.offlineRemoved")
-        )
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.readList.offlineRemoved")
+      )
     }
   }
 

@@ -183,14 +183,10 @@ struct SeriesCardView: View {
           collectionId: collectionId,
           seriesIds: [komgaSeries.seriesId]
         )
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.addedToCollection"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.addedToCollection"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -199,13 +195,9 @@ struct SeriesCardView: View {
     Task {
       do {
         try await SeriesService.shared.deleteSeries(seriesId: komgaSeries.seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

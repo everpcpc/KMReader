@@ -145,10 +145,8 @@
       viewModel.beginLoading()
 
       currentBook = book
-      await MainActor.run {
-        bookPreferences = nil
-        activePreferences = globalPreferences
-      }
+      bookPreferences = nil
+      activePreferences = globalPreferences
       do {
         currentBook = try await SyncService.shared.syncBook(bookId: book.id)
       } catch {
@@ -167,10 +165,8 @@
       let savedPreferences = await DatabaseOperator.shared.fetchBookEpubPreferences(
         bookId: activeBook.id
       )
-      await MainActor.run {
-        bookPreferences = savedPreferences
-        activePreferences = savedPreferences ?? globalPreferences
-      }
+      bookPreferences = savedPreferences
+      activePreferences = savedPreferences ?? globalPreferences
 
       // Refresh WebPub manifest if online
       if !AppConfig.isOffline {

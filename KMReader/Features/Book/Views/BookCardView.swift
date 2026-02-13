@@ -237,14 +237,10 @@ struct BookCardView: View {
           readListId: readListId,
           bookIds: [komgaBook.bookId]
         )
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.booksAddedToReadList"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.booksAddedToReadList"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -254,13 +250,9 @@ struct BookCardView: View {
       do {
         try await BookService.shared.deleteBook(bookId: komgaBook.bookId)
         await CacheManager.clearCache(forBookId: komgaBook.bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

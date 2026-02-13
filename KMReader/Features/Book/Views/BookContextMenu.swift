@@ -109,11 +109,9 @@ struct BookContextMenu: View {
           let previousStatus = downloadStatus
           await OfflineManager.shared.toggleDownload(
             instanceId: current.instanceId, info: book.downloadInfo)
-          await MainActor.run {
-            ErrorManager.shared.notify(
-              message: downloadNotificationMessage(for: previousStatus)
-            )
-          }
+          ErrorManager.shared.notify(
+            message: downloadNotificationMessage(for: previousStatus)
+          )
         }
       } label: {
         Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
@@ -133,9 +131,7 @@ struct BookContextMenu: View {
         Button(role: .destructive) {
           Task {
             await CacheManager.clearCache(forBookId: book.id)
-            await MainActor.run {
-              ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
-            }
+            ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
           }
         } label: {
           Label("Clear Cache", systemImage: "xmark.circle")
@@ -148,13 +144,9 @@ struct BookContextMenu: View {
     Task {
       do {
         try await ThumbnailCache.refreshThumbnail(id: book.id, type: .book)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.coverRefreshed"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.coverRefreshed"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -164,13 +156,9 @@ struct BookContextMenu: View {
       do {
         try await BookService.shared.markAsRead(bookId: bookId)
         _ = try await SyncService.shared.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -180,13 +168,9 @@ struct BookContextMenu: View {
       do {
         try await BookService.shared.markAsUnread(bookId: bookId)
         _ = try await SyncService.shared.syncBook(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -195,14 +179,10 @@ struct BookContextMenu: View {
     Task {
       do {
         try await BookService.shared.analyzeBook(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.analysisStarted"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.analysisStarted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -211,14 +191,10 @@ struct BookContextMenu: View {
     Task {
       do {
         try await BookService.shared.refreshMetadata(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.metadataRefreshed"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.metadataRefreshed"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -230,14 +206,10 @@ struct BookContextMenu: View {
           readListId: readListId,
           bookIds: [bookId]
         )
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.booksAddedToReadList"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.booksAddedToReadList"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

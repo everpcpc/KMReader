@@ -128,15 +128,11 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.analyzeBook(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.analysisStarted"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.analysisStarted"))
         await loadBook()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -145,15 +141,11 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.refreshMetadata(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.metadataRefreshed"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.metadataRefreshed"))
         await loadBook()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -163,14 +155,10 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.deleteBook(bookId: bookId)
         await CacheManager.clearCache(forBookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
-          dismiss()
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
+        dismiss()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -183,14 +171,10 @@ struct BookDetailView: View {
           _ = try? await SyncService.shared.syncBookAndSeries(
             bookId: bookId, seriesId: book.seriesId)
         }
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         await loadBook()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -199,14 +183,10 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.shared.markAsUnread(bookId: bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await loadBook()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -214,9 +194,7 @@ struct BookDetailView: View {
   private func clearCache() {
     Task {
       await CacheManager.clearCache(forBookId: bookId)
-      await MainActor.run {
-        ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
-      }
+      ErrorManager.shared.notify(message: String(localized: "notification.book.cacheCleared"))
     }
   }
 
@@ -247,15 +225,11 @@ struct BookDetailView: View {
         )
         // Sync the readlist to update its bookIds in local SwiftData
         _ = try? await SyncService.shared.syncReadList(id: readListId)
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.booksAddedToReadList"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.booksAddedToReadList"))
         await loadBook()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

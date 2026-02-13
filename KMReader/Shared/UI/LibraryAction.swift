@@ -80,18 +80,12 @@ enum LibraryAction: CaseIterable {
     Task {
       do {
         try await performAction(for: libraryId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: notificationMessage)
-        }
+        ErrorManager.shared.notify(message: notificationMessage)
       } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
       if let completion {
-        await MainActor.run {
-          completion()
-        }
+        completion()
       }
     }
   }

@@ -161,10 +161,8 @@ struct CollectionSeriesListView: View {
       // Sync the collection to update its seriesIds in local SwiftData
       _ = try? await SyncService.shared.syncCollection(id: collectionId)
 
-      await MainActor.run {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.removedFromCollection"))
-      }
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.series.removedFromCollection"))
 
       // Clear selection and exit selection mode with animation
       withAnimation {
@@ -175,9 +173,7 @@ struct CollectionSeriesListView: View {
       // Refresh the series list
       await refreshSeries()
     } catch {
-      await MainActor.run {
-        ErrorManager.shared.alert(error: error)
-      }
+      ErrorManager.shared.alert(error: error)
     }
   }
 }

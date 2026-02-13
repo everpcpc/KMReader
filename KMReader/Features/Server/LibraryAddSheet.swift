@@ -341,21 +341,15 @@ struct LibraryAddSheet: View {
       do {
         _ = try await LibraryService.shared.createLibrary(libraryCreation)
         await LibraryManager.shared.refreshLibraries()
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(
-              localized: "notification.library.created", defaultValue: "Library created")
-          )
-          dismiss()
-        }
+        ErrorManager.shared.notify(
+          message: String(
+            localized: "notification.library.created", defaultValue: "Library created")
+        )
+        dismiss()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      await MainActor.run {
-        isCreating = false
-      }
+      isCreating = false
     }
   }
 }

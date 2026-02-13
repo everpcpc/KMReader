@@ -347,21 +347,15 @@ struct LibraryEditSheet: View {
       do {
         try await LibraryService.shared.updateLibrary(id: library.id, update: libraryUpdate)
         await LibraryManager.shared.refreshLibraries()
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(
-              localized: "notification.library.updated", defaultValue: "Library updated")
-          )
-          dismiss()
-        }
+        ErrorManager.shared.notify(
+          message: String(
+            localized: "notification.library.updated", defaultValue: "Library updated")
+        )
+        dismiss()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      await MainActor.run {
-        isSaving = false
-      }
+      isSaving = false
     }
   }
 }

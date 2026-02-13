@@ -48,7 +48,7 @@ struct ReadingProgressBar: View {
             height: height
           )
       }
-      .glassEffectRegularIfAvailable(enabled: glass, in: Capsule())
+      .glassEffectIfAvailable(.regular, enabled: glass, in: Capsule())
     }
     .frame(height: height)
     .padding(height)

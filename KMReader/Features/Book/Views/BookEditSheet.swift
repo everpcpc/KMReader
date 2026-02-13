@@ -315,23 +315,15 @@ struct BookEditSheet: View {
 
         if !metadata.isEmpty {
           try await BookService.shared.updateBookMetadata(bookId: book.id, metadata: metadata)
-          await MainActor.run {
-            ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
-            dismiss()
-          }
+          ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
+          dismiss()
         } else {
-          await MainActor.run {
-            dismiss()
-          }
+          dismiss()
         }
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      await MainActor.run {
-        isSaving = false
-      }
+      isSaving = false
     }
   }
 }

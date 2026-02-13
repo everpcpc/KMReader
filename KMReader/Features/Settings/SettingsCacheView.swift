@@ -288,11 +288,9 @@ struct SettingsCacheView: View {
       Button("Clear", role: .destructive) {
         Task {
           await ImageCache.clearCurrentInstanceDiskCache()
-          await MainActor.run {
-            ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.pageClearedCurrent")
-            )
-          }
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.cache.pageClearedCurrent")
+          )
           await loadCacheSize()
         }
       }
@@ -306,11 +304,9 @@ struct SettingsCacheView: View {
       Button("Clear", role: .destructive) {
         Task {
           await ImageCache.clearAllDiskCache()
-          await MainActor.run {
-            ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.pageClearedAll")
-            )
-          }
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.cache.pageClearedAll")
+          )
           await loadCacheSize()
         }
       }
@@ -324,11 +320,9 @@ struct SettingsCacheView: View {
       Button("Clear", role: .destructive) {
         Task {
           await BookFileCache.clearCurrentInstanceDiskCache()
-          await MainActor.run {
-            ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.bookFileClearedCurrent")
-            )
-          }
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.cache.bookFileClearedCurrent")
+          )
           await loadCacheSize()
         }
       }
@@ -342,11 +336,9 @@ struct SettingsCacheView: View {
       Button("Clear", role: .destructive) {
         Task {
           await BookFileCache.clearAllDiskCache()
-          await MainActor.run {
-            ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.bookFileClearedAll")
-            )
-          }
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.cache.bookFileClearedAll")
+          )
           await loadCacheSize()
         }
       }
@@ -363,11 +355,9 @@ struct SettingsCacheView: View {
       Button("Clear", role: .destructive) {
         Task {
           await ThumbnailCache.clearCurrentInstanceDiskCache()
-          await MainActor.run {
-            ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.coverClearedCurrent")
-            )
-          }
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.cache.coverClearedCurrent")
+          )
           await loadCacheSize()
         }
       }
@@ -384,11 +374,9 @@ struct SettingsCacheView: View {
       Button("Clear", role: .destructive) {
         Task {
           await ThumbnailCache.clearAllDiskCache()
-          await MainActor.run {
-            ErrorManager.shared.notify(
-              message: String(localized: "notification.cache.coverClearedAll")
-            )
-          }
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.cache.coverClearedAll")
+          )
           await loadCacheSize()
         }
       }

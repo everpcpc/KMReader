@@ -50,31 +50,20 @@ struct ReadListRowView: View {
 
           Spacer()
 
-          Image(systemName: "ellipsis")
-            .hidden()
-            .overlay(
-              Menu {
-                ReadListContextMenu(
-                  readListId: komgaReadList.readListId,
-                  menuTitle: komgaReadList.name,
-                  downloadStatus: komgaReadList.downloadStatus,
-                  onDeleteRequested: {
-                    showDeleteConfirmation = true
-                  },
-                  onEditRequested: {
-                    showEditSheet = true
-                  }
-                )
-                .id(komgaReadList.readListId)
-              } label: {
-                Image(systemName: "ellipsis")
-                  .foregroundColor(.secondary)
-                  .frame(width: 40, height: 40)
-                  .contentShape(Rectangle())
-              }
-              .appMenuStyle()
-              .adaptiveButtonStyle(.plain)
-            )
+          EllipsisMenuButton {
+              ReadListContextMenu(
+                readListId: komgaReadList.readListId,
+                menuTitle: komgaReadList.name,
+                downloadStatus: komgaReadList.downloadStatus,
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                }
+              )
+              .id(komgaReadList.readListId)
+          }
         }
       }
     }
@@ -95,13 +84,9 @@ struct ReadListRowView: View {
     Task {
       do {
         try await ReadListService.shared.deleteReadList(readListId: komgaReadList.readListId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

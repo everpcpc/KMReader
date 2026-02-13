@@ -102,39 +102,28 @@ struct SeriesRowView: View {
             Image(systemName: downloadStatus.icon)
               .foregroundColor(downloadStatus.color)
           }
-          Image(systemName: "ellipsis")
-            .hidden()
-            .overlay(
-              Menu {
-                SeriesContextMenu(
-                  seriesId: komgaSeries.seriesId,
-                  menuTitle: komgaSeries.metaTitle,
-                  downloadStatus: komgaSeries.downloadStatus,
-                  offlinePolicy: komgaSeries.offlinePolicy,
-                  offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
-                  booksUnreadCount: komgaSeries.booksUnreadCount,
-                  booksReadCount: komgaSeries.booksReadCount,
-                  booksInProgressCount: komgaSeries.booksInProgressCount,
-                  onShowCollectionPicker: {
-                    showCollectionPicker = true
-                  },
-                  onDeleteRequested: {
-                    showDeleteConfirmation = true
-                  },
-                  onEditRequested: {
-                    showEditSheet = true
-                  }
-                )
-                .id(komgaSeries.seriesId)
-              } label: {
-                Image(systemName: "ellipsis")
-                  .foregroundColor(.secondary)
-                  .frame(width: 40, height: 40)
-                  .contentShape(Rectangle())
-              }
-              .appMenuStyle()
-              .adaptiveButtonStyle(.plain)
-            )
+          EllipsisMenuButton {
+              SeriesContextMenu(
+                seriesId: komgaSeries.seriesId,
+                menuTitle: komgaSeries.metaTitle,
+                downloadStatus: komgaSeries.downloadStatus,
+                offlinePolicy: komgaSeries.offlinePolicy,
+                offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
+                booksUnreadCount: komgaSeries.booksUnreadCount,
+                booksReadCount: komgaSeries.booksReadCount,
+                booksInProgressCount: komgaSeries.booksInProgressCount,
+                onShowCollectionPicker: {
+                  showCollectionPicker = true
+                },
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                }
+              )
+              .id(komgaSeries.seriesId)
+          }
         }
       }
     }
@@ -166,14 +155,10 @@ struct SeriesRowView: View {
           collectionId: collectionId,
           seriesIds: [series.id]
         )
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.series.addedToCollection"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.series.addedToCollection"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -182,13 +167,9 @@ struct SeriesRowView: View {
     Task {
       do {
         try await SeriesService.shared.deleteSeries(seriesId: series.id)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

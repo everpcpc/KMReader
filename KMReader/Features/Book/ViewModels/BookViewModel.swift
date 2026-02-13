@@ -114,9 +114,7 @@ class BookViewModel {
       if currentBook?.id == bookId {
         currentBook = updatedBook
       }
-      await MainActor.run {
-        ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
-      }
+      ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -129,9 +127,7 @@ class BookViewModel {
       if currentBook?.id == bookId {
         currentBook = updatedBook
       }
-      await MainActor.run {
-        ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
-      }
+      ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
     } catch {
       ErrorManager.shared.alert(error: error)
     }

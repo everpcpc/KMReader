@@ -172,18 +172,14 @@ struct OfflineTasksView: View {
           switch action {
           case .retryAll:
             await OfflineManager.shared.retryFailedDownloads(instanceId: instanceId)
-            await MainActor.run {
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.offline.retryAllFailed")
-              )
-            }
+            ErrorManager.shared.notify(
+              message: String(localized: "notification.offline.retryAllFailed")
+            )
           case .cancelAll:
             await OfflineManager.shared.cancelFailedDownloads(instanceId: instanceId)
-            await MainActor.run {
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.offline.cancelAllFailed")
-              )
-            }
+            ErrorManager.shared.notify(
+              message: String(localized: "notification.offline.cancelAllFailed")
+            )
           }
         }
       } label: {

@@ -55,13 +55,9 @@ struct CollectionContextMenu: View {
     Task {
       do {
         try await ThumbnailCache.refreshThumbnail(id: collectionId, type: .collection)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.collection.coverRefreshed"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.collection.coverRefreshed"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

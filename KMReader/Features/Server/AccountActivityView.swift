@@ -162,11 +162,9 @@ struct AccountActivityView: View {
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      await MainActor.run {
-        _ = pagination.applyPage(page.content)
-        pagination.advance(moreAvailable: !page.last)
-        lastTriggeredIndex = -1
-      }
+      _ = pagination.applyPage(page.content)
+      pagination.advance(moreAvailable: !page.last)
+      lastTriggeredIndex = -1
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -184,11 +182,9 @@ struct AccountActivityView: View {
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      await MainActor.run {
-        _ = pagination.applyPage(page.content)
-        pagination.advance(moreAvailable: !page.last)
-        lastTriggeredIndex = -1
-      }
+      _ = pagination.applyPage(page.content)
+      pagination.advance(moreAvailable: !page.last)
+      lastTriggeredIndex = -1
     } catch {
       ErrorManager.shared.alert(error: error)
     }

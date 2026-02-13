@@ -17,5 +17,3 @@ extension Double {
     return formatter.string(fromByteCount: Int64(self))
   }
 }
-
-// ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .binary)

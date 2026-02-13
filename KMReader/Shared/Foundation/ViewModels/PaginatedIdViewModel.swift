@@ -1,27 +1,23 @@
 //
-//  CollectionViewModel.swift
+//  PaginatedIdViewModel.swift
 //  Komga
 //
 //  Created by Komga iOS Client
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 @MainActor
 @Observable
-class CollectionViewModel {
+class PaginatedIdViewModel {
   var isLoading = false
-
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
 
-  func loadCollections(
-    context: ModelContext,
-    libraryIds: [String]?,
-    sort: String?,
-    searchText: String,
-    refresh: Bool = false
+  func load(
+    refresh: Bool = false,
+    offlineFetch: (_ offset: Int, _ limit: Int) -> [String],
+    onlineFetch: (_ page: Int, _ size: Int) async throws -> (ids: [String], isLastPage: Bool)
   ) async {
     if refresh {
       pagination.reset()
@@ -41,29 +37,17 @@ class CollectionViewModel {
     }
 
     if AppConfig.isOffline {
-      let ids = KomgaCollectionStore.fetchCollectionIds(
-        context: context,
-        libraryIds: libraryIds,
-        searchText: searchText,
-        sort: sort,
-        offset: pagination.currentPage * pagination.pageSize,
-        limit: pagination.pageSize
+      let ids = offlineFetch(
+        pagination.currentPage * pagination.pageSize,
+        pagination.pageSize
       )
       guard loadID == pagination.loadID else { return }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        let page = try await SyncService.shared.syncCollections(
-          libraryIds: libraryIds,
-          page: pagination.currentPage,
-          size: pagination.pageSize,
-          sort: sort,
-          search: searchText.isEmpty ? nil : searchText
-        )
-
+        let result = try await onlineFetch(pagination.currentPage, pagination.pageSize)
         guard loadID == pagination.loadID else { return }
-        let ids = page.content.map { $0.id }
-        applyPage(ids: ids, moreAvailable: !page.last)
+        applyPage(ids: result.ids, moreAvailable: !result.isLastPage)
       } catch {
         guard loadID == pagination.loadID else { return }
         if refresh {

@@ -89,13 +89,9 @@ struct CollectionCardView: View {
       do {
         try await CollectionService.shared.deleteCollection(
           collectionId: komgaCollection.collectionId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

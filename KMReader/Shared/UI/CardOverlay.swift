@@ -37,7 +37,7 @@ struct UnreadCountBadge: View {
       .padding(.horizontal, padding * 2)
       .padding(.vertical, padding)
       .background(accentColor.opacity(accentOpacity), in: Capsule())
-      .glassEffectClearIfAvailable(in: Capsule())
+      .glassEffectIfAvailable(.clear, in: Capsule())
       .padding(.top, padding)
       .padding(.trailing, padding)
   }
@@ -67,7 +67,7 @@ struct UnreadIndicator: View {
   var body: some View {
     Circle()
       .fill(accentColor.opacity(accentOpacity))
-      .glassEffectClearIfAvailable(in: Circle())
+      .glassEffectIfAvailable(.clear, in: Circle())
       .frame(width: size, height: size)
       .padding(.top, padding)
       .padding(.trailing, padding)

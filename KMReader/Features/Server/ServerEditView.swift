@@ -339,35 +339,31 @@ struct ServerEditView: View {
           authMethod: authMethod
         )
 
-        await MainActor.run {
-          validationMessage = String(localized: "Connection validated successfully")
-          isValidated = true
-          isValidating = false
+        validationMessage = String(localized: "Connection validated successfully")
+        isValidated = true
+        isValidating = false
 
-          // Update username if using API Key so it's correct when saving
-          if authMethod == .apiKey {
-            self.username = user.email
-          }
+        // Update username if using API Key so it's correct when saving
+        if authMethod == .apiKey {
+          self.username = user.email
         }
       } catch {
-        await MainActor.run {
-          if let apiError = error as? APIError {
-            switch apiError {
-            case .unauthorized:
-              validationMessage = String(localized: "Invalid credentials")
-            case .networkError:
-              validationMessage = String(localized: "Network error - check server URL")
-            default:
-              validationMessage = String(
-                localized: "Validation failed: \(apiError.localizedDescription)")
-            }
-          } else {
+        if let apiError = error as? APIError {
+          switch apiError {
+          case .unauthorized:
+            validationMessage = String(localized: "Invalid credentials")
+          case .networkError:
+            validationMessage = String(localized: "Network error - check server URL")
+          default:
             validationMessage = String(
-              localized: "Validation failed: \(error.localizedDescription)")
+              localized: "Validation failed: \(apiError.localizedDescription)")
           }
-          isValidated = false
-          isValidating = false
+        } else {
+          validationMessage = String(
+            localized: "Validation failed: \(error.localizedDescription)")
         }
+        isValidated = false
+        isValidating = false
       }
     }
   }

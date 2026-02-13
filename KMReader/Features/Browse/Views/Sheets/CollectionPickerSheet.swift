@@ -182,17 +182,13 @@ struct CreateCollectionSheet: View {
         )
         // Sync the collection to update its seriesIds in local SwiftData
         _ = try? await SyncService.shared.syncCollection(id: collection.id)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.collection.created"))
-          isCreating = false
-          onCreate(collection.id)
-          dismiss()
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.collection.created"))
+        isCreating = false
+        onCreate(collection.id)
+        dismiss()
       } catch {
-        await MainActor.run {
-          isCreating = false
-          ErrorManager.shared.alert(error: error)
-        }
+        isCreating = false
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

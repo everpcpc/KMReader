@@ -92,13 +92,9 @@ struct ServerLibrariesView: View {
     Task {
       do {
         let library = try await LibraryService.shared.getLibrary(id: libraryId)
-        await MainActor.run {
-          libraryToEdit = library
-        }
+        libraryToEdit = library
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -108,19 +104,13 @@ struct ServerLibrariesView: View {
       do {
         try await LibraryService.shared.deleteLibrary(id: library.libraryId)
         await LibraryManager.shared.refreshLibraries()
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.library.deleted"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.library.deleted"))
       } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      _ = await MainActor.run {
-        libraryPendingDelete = nil
-        deleteConfirmationText = ""
-      }
+      libraryPendingDelete = nil
+      deleteConfirmationText = ""
     }
   }
 }

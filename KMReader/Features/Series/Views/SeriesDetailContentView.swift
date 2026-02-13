@@ -43,16 +43,12 @@ struct SeriesDetailContentView: View {
                   type: .series,
                   force: true
                 )
-                await MainActor.run {
-                  thumbnailRefreshKey = UUID()
-                  ErrorManager.shared.notify(
-                    message: String(localized: "notification.cover.refreshed"))
-                }
+                thumbnailRefreshKey = UUID()
+                ErrorManager.shared.notify(
+                  message: String(localized: "notification.cover.refreshed"))
               } catch {
-                await MainActor.run {
-                  ErrorManager.shared.notify(
-                    message: String(localized: "notification.cover.refreshFailed"))
-                }
+                ErrorManager.shared.notify(
+                  message: String(localized: "notification.cover.refreshFailed"))
               }
             }
           } label: {

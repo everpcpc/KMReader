@@ -176,21 +176,18 @@ struct LibraryListContent: View {
   private func triggerMetricsUpdate(force: Bool) async {
     guard loadMetrics, current.isAdmin && !isOffline, !current.instanceId.isEmpty else { return }
 
-    let shouldLoad = await MainActor.run {
-      force || alwaysRefreshMetrics || needsMetricsReload()
-    }
+    let shouldLoad = force || alwaysRefreshMetrics || needsMetricsReload()
 
     guard shouldLoad else { return }
 
-    let alreadyLoading = await MainActor.run { isLoadingMetrics }
-    if alreadyLoading {
+    if isLoadingMetrics {
       return
     }
 
-    await MainActor.run { isLoadingMetrics = true }
+    isLoadingMetrics = true
 
-    let libraryIds = await MainActor.run { libraries.map(\.libraryId) }
-    let hasAllEntry = await MainActor.run { allLibrariesEntry != nil }
+    let libraryIds = libraries.map(\.libraryId)
+    let hasAllEntry = allLibrariesEntry != nil
 
     let metricsByLibrary = await metricsLoader.refreshMetrics(
       instanceId: current.instanceId,
@@ -198,17 +195,15 @@ struct LibraryListContent: View {
       ensureAllLibrariesEntry: hasAllEntry
     )
 
-    await MainActor.run {
-      for library in libraries {
-        guard let metrics = metricsByLibrary[library.libraryId] else { continue }
-        library.fileSize = metrics.fileSize
-        library.booksCount = metrics.booksCount
-        library.seriesCount = metrics.seriesCount
-        library.sidecarsCount = metrics.sidecarsCount
-      }
+    for library in libraries {
+      guard let metrics = metricsByLibrary[library.libraryId] else { continue }
+      library.fileSize = metrics.fileSize
+      library.booksCount = metrics.booksCount
+      library.seriesCount = metrics.seriesCount
+      library.sidecarsCount = metrics.sidecarsCount
     }
 
-    await MainActor.run { isLoadingMetrics = false }
+    isLoadingMetrics = false
   }
 
   private func needsMetricsReload() -> Bool {
@@ -409,14 +404,10 @@ struct LibraryListContent: View {
       do {
         try await action()
         if let notificationMessage {
-          await MainActor.run {
-            ErrorManager.shared.notify(message: notificationMessage)
-          }
+          ErrorManager.shared.notify(message: notificationMessage)
         }
       } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

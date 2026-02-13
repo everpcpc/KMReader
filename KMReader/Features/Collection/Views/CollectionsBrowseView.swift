@@ -19,7 +19,7 @@ struct CollectionsBrowseView: View {
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @State private var viewModel = CollectionViewModel()
+  @State private var viewModel = PaginatedIdViewModel()
   @State private var hasInitialized = false
 
   private var columns: [GridItem] {
@@ -113,12 +113,28 @@ struct CollectionsBrowseView: View {
   }
 
   private func loadCollections(refresh: Bool) async {
-    await viewModel.loadCollections(
-      context: modelContext,
-      libraryIds: libraryIds,
-      sort: sortOpts.sortString,
-      searchText: searchText,
-      refresh: refresh
+    await viewModel.load(
+      refresh: refresh,
+      offlineFetch: { offset, limit in
+        KomgaCollectionStore.fetchCollectionIds(
+          context: modelContext,
+          libraryIds: libraryIds,
+          searchText: searchText,
+          sort: sortOpts.sortString,
+          offset: offset,
+          limit: limit
+        )
+      },
+      onlineFetch: { page, size in
+        let result = try await SyncService.shared.syncCollections(
+          libraryIds: libraryIds,
+          page: page,
+          size: size,
+          sort: sortOpts.sortString,
+          search: searchText.isEmpty ? nil : searchText
+        )
+        return (ids: result.content.map { $0.id }, isLastPage: result.last)
+      }
     )
   }
 }

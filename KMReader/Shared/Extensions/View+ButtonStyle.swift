@@ -14,6 +14,11 @@ enum AdaptiveButtonStyleType {
   case plain
 }
 
+enum GlassEffectType {
+  case clear
+  case regular
+}
+
 extension View {
   @ViewBuilder
   func adaptiveButtonStyle(_ style: AdaptiveButtonStyleType) -> some View {
@@ -63,10 +68,13 @@ extension View {
   }
 
   @ViewBuilder
-  func glassEffectClearIfAvailable(enabled: Bool = true) -> some View {
+  func glassEffectIfAvailable(_ type: GlassEffectType, enabled: Bool = true) -> some View {
     if enabled {
       if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-        self.glassEffect(.clear)
+        switch type {
+        case .clear: self.glassEffect(.clear)
+        case .regular: self.glassEffect(.regular)
+        }
       } else {
         self
       }
@@ -76,36 +84,15 @@ extension View {
   }
 
   @ViewBuilder
-  func glassEffectClearIfAvailable<S: Shape>(enabled: Bool = true, in shape: S) -> some View {
+  func glassEffectIfAvailable<S: Shape>(_ type: GlassEffectType, enabled: Bool = true, in shape: S)
+    -> some View
+  {
     if enabled {
       if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-        self.glassEffect(.clear, in: shape)
-      } else {
-        self
-      }
-    } else {
-      self
-    }
-  }
-
-  @ViewBuilder
-  func glassEffectRegularIfAvailable(enabled: Bool = true) -> some View {
-    if enabled {
-      if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-        self.glassEffect(.regular)
-      } else {
-        self
-      }
-    } else {
-      self
-    }
-  }
-
-  @ViewBuilder
-  func glassEffectRegularIfAvailable<S: Shape>(enabled: Bool = true, in shape: S) -> some View {
-    if enabled {
-      if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-        self.glassEffect(.regular, in: shape)
+        switch type {
+        case .clear: self.glassEffect(.clear, in: shape)
+        case .regular: self.glassEffect(.regular, in: shape)
+        }
       } else {
         self
       }

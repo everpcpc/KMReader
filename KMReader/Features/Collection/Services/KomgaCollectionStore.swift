@@ -140,7 +140,7 @@ enum KomgaCollectionStore {
   }
 
   static func fetchCollection(context: ModelContext, id: String) -> SeriesCollection? {
-    let compositeId = "\(AppConfig.current.instanceId)_\(id)"
+    let compositeId = CompositeID.generate(id: id)
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == compositeId })
     return try? context.fetch(descriptor).first?.toCollection()

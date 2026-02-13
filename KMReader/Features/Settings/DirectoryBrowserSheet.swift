@@ -120,22 +120,18 @@ struct DirectoryBrowserSheet: View {
     Task {
       do {
         let result = try await FilesystemService.shared.getDirectoryListing(path: path)
-        await MainActor.run {
-          directoryListing = result
-          // Update currentPath based on the directory we're viewing
-          if path.isEmpty, result.directories.first != nil {
-            // We're at root, keep path empty or use parent to determine
-            currentPath = result.parent ?? path
-          } else {
-            currentPath = path
-          }
-          isLoading = false
+        directoryListing = result
+        // Update currentPath based on the directory we're viewing
+        if path.isEmpty, result.directories.first != nil {
+          // We're at root, keep path empty or use parent to determine
+          currentPath = result.parent ?? path
+        } else {
+          currentPath = path
         }
+        isLoading = false
       } catch {
-        await MainActor.run {
-          self.error = error
-          isLoading = false
-        }
+        self.error = error
+        isLoading = false
       }
     }
   }

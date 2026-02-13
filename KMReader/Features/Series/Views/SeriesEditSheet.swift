@@ -347,23 +347,15 @@ struct SeriesEditSheet: View {
         if !metadata.isEmpty {
           try await SeriesService.shared.updateSeriesMetadata(
             seriesId: series.id, metadata: metadata)
-          await MainActor.run {
-            ErrorManager.shared.notify(message: String(localized: "notification.series.updated"))
-            dismiss()
-          }
+          ErrorManager.shared.notify(message: String(localized: "notification.series.updated"))
+          dismiss()
         } else {
-          await MainActor.run {
-            dismiss()
-          }
+          dismiss()
         }
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      await MainActor.run {
-        isSaving = false
-      }
+      isSaving = false
     }
   }
 }

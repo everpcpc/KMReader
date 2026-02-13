@@ -47,30 +47,19 @@ struct CollectionRowView: View {
 
           Spacer()
 
-          Image(systemName: "ellipsis")
-            .hidden()
-            .overlay(
-              Menu {
-                CollectionContextMenu(
-                  collectionId: komgaCollection.collectionId,
-                  menuTitle: komgaCollection.name,
-                  onDeleteRequested: {
-                    showDeleteConfirmation = true
-                  },
-                  onEditRequested: {
-                    showEditSheet = true
-                  }
-                )
-                .id(komgaCollection.collectionId)
-              } label: {
-                Image(systemName: "ellipsis")
-                  .foregroundColor(.secondary)
-                  .frame(width: 40, height: 40)
-                  .contentShape(Rectangle())
-              }
-              .appMenuStyle()
-              .adaptiveButtonStyle(.plain)
-            )
+          EllipsisMenuButton {
+              CollectionContextMenu(
+                collectionId: komgaCollection.collectionId,
+                menuTitle: komgaCollection.name,
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                }
+              )
+              .id(komgaCollection.collectionId)
+          }
         }
       }
     }
@@ -92,13 +81,9 @@ struct CollectionRowView: View {
       do {
         try await CollectionService.shared.deleteCollection(
           collectionId: komgaCollection.collectionId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

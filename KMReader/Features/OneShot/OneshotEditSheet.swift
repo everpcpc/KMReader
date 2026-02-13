@@ -441,18 +441,12 @@ struct OneshotEditSheet: View {
         // Update series metadata
         try await saveSeriesMetadata()
 
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
-          dismiss()
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
+        dismiss()
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      await MainActor.run {
-        isSaving = false
-      }
+      isSaving = false
     }
   }
 

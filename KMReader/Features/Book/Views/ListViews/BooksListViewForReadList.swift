@@ -177,9 +177,7 @@ struct BooksListViewForReadList: View {
       // Sync the readlist to update its bookIds in local SwiftData
       _ = try? await SyncService.shared.syncReadList(id: readListId)
 
-      await MainActor.run {
-        ErrorManager.shared.notify(message: String(localized: "notification.readList.booksRemoved"))
-      }
+      ErrorManager.shared.notify(message: String(localized: "notification.readList.booksRemoved"))
 
       // Clear selection and exit selection mode with animation
       withAnimation {
@@ -190,9 +188,7 @@ struct BooksListViewForReadList: View {
       // Refresh the books list
       await refreshBooks()
     } catch {
-      await MainActor.run {
-        ErrorManager.shared.alert(error: error)
-      }
+      ErrorManager.shared.alert(error: error)
     }
   }
 }

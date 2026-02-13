@@ -207,39 +207,31 @@ struct ServerTasksView: View {
   }
 
   private func loadMetrics() async {
-    await MainActor.run {
-      if !hasLoadedMetrics {
-        isLoading = true
-      }
-      metricErrors.removeAll()
+    if !hasLoadedMetrics {
+      isLoading = true
     }
+    metricErrors.removeAll()
 
     // Load tasks metrics
     do {
       let metric = try await ManagementService.shared.getMetric(MetricName.tasksExecution.rawValue)
       let (countByType, totalTimeByType, errors) = await processTasksMetrics(metric)
 
-      await MainActor.run {
-        tasks = metric
-        tasksCountByType = countByType
-        tasksTotalTimeByType = totalTimeByType
-        if let tasksExecutedError = errors[.tasksExecuted] {
-          metricErrors[.tasksExecuted] = tasksExecutedError
-        }
-        if let tasksTotalTimeError = errors[.tasksTotalTime] {
-          metricErrors[.tasksTotalTime] = tasksTotalTimeError
-        }
+      tasks = metric
+      tasksCountByType = countByType
+      tasksTotalTimeByType = totalTimeByType
+      if let tasksExecutedError = errors[.tasksExecuted] {
+        metricErrors[.tasksExecuted] = tasksExecutedError
+      }
+      if let tasksTotalTimeError = errors[.tasksTotalTime] {
+        metricErrors[.tasksTotalTime] = tasksTotalTimeError
       }
     } catch {
-      await MainActor.run {
-        tasks = nil
-      }
+      tasks = nil
     }
 
-    await MainActor.run {
-      hasLoadedMetrics = true
-      isLoading = false
-    }
+    hasLoadedMetrics = true
+    isLoading = false
   }
 
   private func cancelAllTasks() {
@@ -248,18 +240,12 @@ struct ServerTasksView: View {
     Task {
       do {
         try await ManagementService.shared.cancelAllTasks()
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.tasks.cancelled"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.tasks.cancelled"))
         await loadMetrics()
       } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
-      _ = await MainActor.run {
-        isCancelling = false
-      }
+      isCancelling = false
     }
   }
 

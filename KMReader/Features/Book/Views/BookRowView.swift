@@ -131,35 +131,24 @@ struct BookRowView: View {
             Image(systemName: komgaBook.downloadStatus.displayIcon)
               .foregroundColor(komgaBook.downloadStatus.displayColor)
           }
-          Image(systemName: "ellipsis")
-            .hidden()
-            .overlay(
-              Menu {
-                BookContextMenu(
-                  book: komgaBook.toBook(),
-                  downloadStatus: komgaBook.downloadStatus,
-                  onReadBook: onReadBook,
-                  onShowReadListPicker: {
-                    showReadListPicker = true
-                  },
-                  onDeleteRequested: {
-                    showDeleteConfirmation = true
-                  },
-                  onEditRequested: {
-                    showEditSheet = true
-                  },
-                  showSeriesNavigation: showSeriesNavigation
-                )
-                .id(komgaBook.bookId)
-              } label: {
-                Image(systemName: "ellipsis")
-                  .foregroundColor(.secondary)
-                  .frame(width: 40, height: 40)
-                  .contentShape(Rectangle())
-              }
-              .appMenuStyle()
-              .adaptiveButtonStyle(.plain)
-            )
+          EllipsisMenuButton {
+              BookContextMenu(
+                book: komgaBook.toBook(),
+                downloadStatus: komgaBook.downloadStatus,
+                onReadBook: onReadBook,
+                onShowReadListPicker: {
+                  showReadListPicker = true
+                },
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                },
+                showSeriesNavigation: showSeriesNavigation
+              )
+              .id(komgaBook.bookId)
+          }
         }
       }
     }
@@ -192,14 +181,10 @@ struct BookRowView: View {
           readListId: readListId,
           bookIds: [komgaBook.bookId]
         )
-        await MainActor.run {
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.book.booksAddedToReadList"))
-        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.book.booksAddedToReadList"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }
@@ -209,13 +194,9 @@ struct BookRowView: View {
       do {
         try await BookService.shared.deleteBook(bookId: komgaBook.bookId)
         await CacheManager.clearCache(forBookId: komgaBook.bookId)
-        await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
-        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
       } catch {
-        await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
+        ErrorManager.shared.alert(error: error)
       }
     }
   }

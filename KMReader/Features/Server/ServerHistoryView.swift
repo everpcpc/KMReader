@@ -207,17 +207,13 @@ struct ServerHistoryView: View {
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      await MainActor.run {
-        let items = page.content ?? []
-        _ = pagination.applyPage(items)
-        pagination.advance(moreAvailable: !(page.last ?? true))
-        lastTriggeredItemId = nil
-      }
+      let items = page.content ?? []
+      _ = pagination.applyPage(items)
+      pagination.advance(moreAvailable: !(page.last ?? true))
+      lastTriggeredItemId = nil
       await updateLocalReferences(for: pagination.items)
     } catch {
-      await MainActor.run {
-        lastTriggeredItemId = nil
-      }
+      lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
 
@@ -234,17 +230,13 @@ struct ServerHistoryView: View {
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      await MainActor.run {
-        let items = page.content ?? []
-        _ = pagination.applyPage(items)
-        pagination.advance(moreAvailable: !(page.last ?? true))
-        lastTriggeredItemId = nil
-      }
+      let items = page.content ?? []
+      _ = pagination.applyPage(items)
+      pagination.advance(moreAvailable: !(page.last ?? true))
+      lastTriggeredItemId = nil
       await updateLocalReferences(for: pagination.items)
     } catch {
-      await MainActor.run {
-        lastTriggeredItemId = nil
-      }
+      lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
 
@@ -370,13 +362,11 @@ struct ServerHistoryView: View {
       }
       try await DatabaseOperator.shared.commitImmediately()
 
-      await MainActor.run {
-        for bookId in bookIds {
-          bookNameById.removeValue(forKey: bookId)
-        }
-        for seriesId in seriesIds {
-          seriesNameById.removeValue(forKey: seriesId)
-        }
+      for bookId in bookIds {
+        bookNameById.removeValue(forKey: bookId)
+      }
+      for seriesId in seriesIds {
+        seriesNameById.removeValue(forKey: seriesId)
       }
 
       await updateLocalReferences(for: pagination.items)
@@ -387,15 +377,13 @@ struct ServerHistoryView: View {
     let removedBooks = bookIds.count
     let removedSeries = seriesIds.count
     let removedTotal = removedBooks + removedSeries
-    await MainActor.run {
-      let message: String
-      if removedTotal > 0 {
-        message = String(localized: "notification.history.clearedLocalEntries")
-      } else {
-        message = String(localized: "notification.history.noLocalEntries")
-      }
-      ErrorManager.shared.notify(message: message)
+    let message: String
+    if removedTotal > 0 {
+      message = String(localized: "notification.history.clearedLocalEntries")
+    } else {
+      message = String(localized: "notification.history.noLocalEntries")
     }
+    ErrorManager.shared.notify(message: message)
 
     isClearingLocal = false
   }
