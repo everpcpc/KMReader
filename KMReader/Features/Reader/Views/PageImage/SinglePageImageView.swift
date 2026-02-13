@@ -17,6 +17,7 @@ struct SinglePageImageView: View {
   let onNextPage: () -> Void
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
+  let onPlayAnimatedPage: ((Int) -> Void)?
 
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -57,5 +58,12 @@ struct SinglePageImageView: View {
       ]
     )
     .frame(width: screenSize.width, height: screenSize.height)
+    .overlay {
+      if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
+        AnimatedImagePlayButton {
+          onPlayAnimatedPage?(pageIndex)
+        }
+      }
+    }
   }
 }

@@ -21,6 +21,7 @@
     let goToNextPage: () -> Void
     let goToPreviousPage: () -> Void
     let toggleControls: () -> Void
+    let onPlayAnimatedPage: ((Int) -> Void)?
     let onEndPageFocusChange: ((Bool) -> Void)?
 
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
@@ -177,7 +178,8 @@
             splitWidePageMode: parent.splitWidePageMode,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
-            onToggleControls: parent.toggleControls
+            onToggleControls: parent.toggleControls,
+            onPlayAnimatedPage: parent.onPlayAnimatedPage
           )
           hostingController = UIHostingController(rootView: AnyView(pageView))
         case .page(let index):
@@ -188,7 +190,8 @@
             splitWidePageMode: parent.splitWidePageMode,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
-            onToggleControls: parent.toggleControls
+            onToggleControls: parent.toggleControls,
+            onPlayAnimatedPage: parent.onPlayAnimatedPage
           )
           hostingController = UIHostingController(rootView: AnyView(pageView))
         case .split(let index, let isFirstHalf):
@@ -205,7 +208,8 @@
             isLeftHalf: isLeftHalf,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
-            onToggleControls: parent.toggleControls
+            onToggleControls: parent.toggleControls,
+            onPlayAnimatedPage: parent.onPlayAnimatedPage
           )
           hostingController = UIHostingController(rootView: AnyView(splitPageView))
         }
@@ -349,6 +353,7 @@
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
     let onToggleControls: () -> Void
+    let onPlayAnimatedPage: ((Int) -> Void)?
 
     @Environment(\.readerBackgroundPreference) private var readerBackground
 
@@ -368,7 +373,8 @@
               readingDirection: readingDirection,
               onNextPage: onNextPage,
               onPreviousPage: onPreviousPage,
-              onToggleControls: onToggleControls
+              onToggleControls: onToggleControls,
+              onPlayAnimatedPage: onPlayAnimatedPage
             )
           } else {
             // Regular single page
@@ -379,7 +385,8 @@
               readingDirection: readingDirection,
               onNextPage: onNextPage,
               onPreviousPage: onPreviousPage,
-              onToggleControls: onToggleControls
+              onToggleControls: onToggleControls,
+              onPlayAnimatedPage: onPlayAnimatedPage
             )
           }
         }

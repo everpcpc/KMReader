@@ -18,6 +18,7 @@ struct ScrollPageView: View {
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
+  let onPlayAnimatedPage: ((Int) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
 
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -53,6 +54,7 @@ struct ScrollPageView: View {
     goToNextPage: @escaping () -> Void,
     goToPreviousPage: @escaping () -> Void,
     toggleControls: @escaping () -> Void,
+    onPlayAnimatedPage: ((Int) -> Void)? = nil,
     onScrollActivityChange: ((Bool) -> Void)? = nil
   ) {
     self.mode = mode
@@ -67,6 +69,7 @@ struct ScrollPageView: View {
     self.goToNextPage = goToNextPage
     self.goToPreviousPage = goToPreviousPage
     self.toggleControls = toggleControls
+    self.onPlayAnimatedPage = onPlayAnimatedPage
     self.onScrollActivityChange = onScrollActivityChange
   }
 
@@ -219,7 +222,8 @@ struct ScrollPageView: View {
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls
+            onToggleControls: toggleControls,
+            onPlayAnimatedPage: onPlayAnimatedPage
           )
         case .page(let index):
           SinglePageImageView(
@@ -229,7 +233,8 @@ struct ScrollPageView: View {
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls
+            onToggleControls: toggleControls,
+            onPlayAnimatedPage: onPlayAnimatedPage
           )
         case .split(let index, let isFirstHalf):
           let isLeftHalf = viewModel.isLeftSplitHalf(
@@ -245,7 +250,8 @@ struct ScrollPageView: View {
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls
+            onToggleControls: toggleControls,
+            onPlayAnimatedPage: onPlayAnimatedPage
           )
         }
       }

@@ -18,6 +18,7 @@ struct DualPageImageView: View {
   let onNextPage: () -> Void
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
+  let onPlayAnimatedPage: ((Int) -> Void)?
 
   var resetID: String {
     "\(firstPageIndex)-\(secondPageIndex)"
@@ -73,5 +74,23 @@ struct DualPageImageView: View {
       ],
     )
     .frame(width: screenSize.width, height: screenSize.height)
+    .overlay {
+      HStack(spacing: 0) {
+        pagePlayButton(for: firstPageIndex)
+        pagePlayButton(for: secondPageIndex)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func pagePlayButton(for pageIndex: Int) -> some View {
+    ZStack {
+      if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
+        AnimatedImagePlayButton {
+          onPlayAnimatedPage?(pageIndex)
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }

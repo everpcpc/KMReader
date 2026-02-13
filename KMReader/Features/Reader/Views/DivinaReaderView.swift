@@ -62,6 +62,8 @@ struct DivinaReaderView: View {
   @State private var showingTOCSheet = false
   @State private var showingReaderSettingsSheet = false
   @State private var showingDetailSheet = false
+  @State private var animatedPlaybackURL: URL?
+  @State private var animatedPlaybackLoading = false
 
   #if os(tvOS)
     @State private var lastTVRemoteMoveSignature: String = ""
@@ -162,6 +164,37 @@ struct DivinaReaderView: View {
 
   private func screenKey(screenSize: CGSize) -> String {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
+  }
+
+  private func requestAnimatedPlayback(for pageIndex: Int) {
+    guard !animatedPlaybackLoading else { return }
+    withAnimation(.easeInOut(duration: 0.18)) {
+      animatedPlaybackLoading = true
+    }
+
+    Task {
+      let fileURL = await viewModel.prepareAnimatedPagePlaybackURL(pageIndex: pageIndex)
+      await MainActor.run {
+        withAnimation(.easeInOut(duration: 0.18)) {
+          animatedPlaybackLoading = false
+        }
+        guard let fileURL else {
+          logger.debug("⚠️ Animated playback unavailable for pageIndex=\(pageIndex)")
+          return
+        }
+        controlsTimer?.invalidate()
+        showingControls = false
+        withAnimation(.easeInOut(duration: 0.22)) {
+          animatedPlaybackURL = fileURL
+        }
+      }
+    }
+  }
+
+  private func dismissAnimatedPlayback() {
+    withAnimation(.easeInOut(duration: 0.2)) {
+      animatedPlaybackURL = nil
+    }
   }
 
   #if os(tvOS)
@@ -341,6 +374,23 @@ struct DivinaReaderView: View {
 
         controlsOverlay(useDualPage: useDualPage)
 
+        if animatedPlaybackLoading {
+          ProgressView()
+            .padding(16)
+            .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 10))
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            .zIndex(20)
+        }
+
+        if let animatedPlaybackURL {
+          AnimatedImagePlaybackOverlay(
+            fileURL: animatedPlaybackURL,
+            onClose: dismissAnimatedPlayback
+          )
+          .transition(.opacity)
+          .zIndex(30)
+        }
+
         #if os(macOS)
           keyboardHelpOverlay
         #endif
@@ -448,6 +498,8 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
+      animatedPlaybackLoading = false
+      animatedPlaybackURL = nil
       viewModel.clearPreloadedImages()
     }
     .onChange(of: showingControls) { _, newValue in
@@ -552,6 +604,9 @@ struct DivinaReaderView: View {
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
+                onPlayAnimatedPage: { pageIndex in
+                  requestAnimatedPlayback(for: pageIndex)
+                },
                 onScrollActivityChange: { isScrolling in
                   if isScrolling {
                     resetControlsTimer(timeout: 1.5)
@@ -574,6 +629,9 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
+                  onPlayAnimatedPage: { pageIndex in
+                    requestAnimatedPlayback(for: pageIndex)
+                  },
                   onEndPageFocusChange: endPageFocusChangeHandler
                 )
               } else {
@@ -590,6 +648,9 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
+                  onPlayAnimatedPage: { pageIndex in
+                    requestAnimatedPlayback(for: pageIndex)
+                  },
                   onScrollActivityChange: { isScrolling in
                     if isScrolling {
                       resetControlsTimer(timeout: 1.5)
@@ -611,6 +672,9 @@ struct DivinaReaderView: View {
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
+                onPlayAnimatedPage: { pageIndex in
+                  requestAnimatedPlayback(for: pageIndex)
+                },
                 onScrollActivityChange: { isScrolling in
                   if isScrolling {
                     resetControlsTimer(timeout: 1.5)
