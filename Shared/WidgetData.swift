@@ -20,10 +20,20 @@ struct WidgetBookEntry: Codable, Sendable {
   let createdDate: Date
 }
 
+struct WidgetSeriesEntry: Codable, Sendable {
+  let id: String
+  let title: String
+  let booksCount: Int
+  let unreadCount: Int?
+  let lastModified: Date
+  let thumbnailFileName: String?
+}
+
 enum WidgetDataStore: Sendable {
   static nonisolated let suiteName = "group.com.everpcpc.Komga"
   static nonisolated let keepReadingKey = "widget.keepReading"
   static nonisolated let recentlyAddedKey = "widget.recentlyAdded"
+  static nonisolated let recentlyUpdatedSeriesKey = "widget.recentlyUpdatedSeries"
   private static nonisolated let thumbnailDirectoryName = "WidgetThumbnails"
 
   static nonisolated var sharedDefaults: UserDefaults? {
@@ -52,7 +62,26 @@ enum WidgetDataStore: Sendable {
     return entries
   }
 
+  static nonisolated func saveSeriesEntries(_ entries: [WidgetSeriesEntry], forKey key: String) {
+    guard let defaults = sharedDefaults else { return }
+    guard let data = try? JSONEncoder().encode(entries) else { return }
+    defaults.set(data, forKey: key)
+  }
+
+  static nonisolated func loadSeriesEntries(forKey key: String) -> [WidgetSeriesEntry] {
+    guard let defaults = sharedDefaults,
+      let data = defaults.data(forKey: key),
+      let entries = try? JSONDecoder().decode([WidgetSeriesEntry].self, from: data)
+    else { return [] }
+    return entries
+  }
+
   static nonisolated func thumbnailURL(for entry: WidgetBookEntry) -> URL? {
+    guard let fileName = entry.thumbnailFileName else { return nil }
+    return thumbnailDirectory?.appendingPathComponent(fileName)
+  }
+
+  static nonisolated func thumbnailURL(for entry: WidgetSeriesEntry) -> URL? {
     guard let fileName = entry.thumbnailFileName else { return nil }
     return thumbnailDirectory?.appendingPathComponent(fileName)
   }
@@ -60,6 +89,7 @@ enum WidgetDataStore: Sendable {
   static nonisolated func clearAll() {
     sharedDefaults?.removeObject(forKey: keepReadingKey)
     sharedDefaults?.removeObject(forKey: recentlyAddedKey)
+    sharedDefaults?.removeObject(forKey: recentlyUpdatedSeriesKey)
     if let dir = thumbnailDirectory {
       try? FileManager.default.removeItem(at: dir)
     }
@@ -67,5 +97,9 @@ enum WidgetDataStore: Sendable {
 
   static nonisolated func bookDeepLinkURL(bookId: String) -> URL {
     URL(string: "kmreader://book/\(bookId)")!
+  }
+
+  static nonisolated func seriesDeepLinkURL(seriesId: String) -> URL {
+    URL(string: "kmreader://series/\(seriesId)")!
   }
 }

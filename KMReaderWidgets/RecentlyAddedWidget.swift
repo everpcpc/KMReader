@@ -68,6 +68,11 @@ struct RecentlyAddedWidgetEntryView: View {
     return HStack(spacing: 8) {
       ForEach(books, id: \.id) { book in
         WidgetBookCardView(entry: book, showProgress: false)
+          .frame(maxWidth: .infinity)
+      }
+      ForEach(0..<(3 - books.count), id: \.self) { _ in
+        Color.clear
+          .frame(maxWidth: .infinity)
       }
     }
   }
@@ -77,21 +82,21 @@ struct RecentlyAddedWidgetEntryView: View {
     let topRow = Array(books.prefix(3))
     let bottomRow = Array(books.dropFirst(3))
     return VStack(alignment: .leading, spacing: 8) {
-      Text(String(localized: "widget.recently_added.title"))
-        .font(.headline)
-
       HStack(spacing: 8) {
         ForEach(topRow, id: \.id) { book in
           WidgetBookCardView(entry: book, showProgress: false)
+            .frame(maxWidth: .infinity)
         }
       }
       if !bottomRow.isEmpty {
         HStack(spacing: 8) {
           ForEach(bottomRow, id: \.id) { book in
             WidgetBookCardView(entry: book, showProgress: false)
+              .frame(maxWidth: .infinity)
           }
           ForEach(0..<(3 - bottomRow.count), id: \.self) { _ in
             Color.clear
+              .frame(maxWidth: .infinity)
           }
         }
       }
