@@ -1,34 +1,16 @@
+KMReader - What’s New (from v3.3 to current)
+
 New Features
+- Added a native PDF reading experience, including offline reading support.
+- Added Home Screen widgets for Keep Reading, Recently Added, and Recently Updated Series.
+- Added quick actions from the app icon for Continue Reading, Search, and Downloads.
+- Added animated page playback support in the reader.
 
-- Added dedicated Offline and Server tabs so key actions are easier to find.
-- Offline browsing now lets you switch between Series and Books views.
-- Added sorting by download time, with recent downloads shown first.
-- Added a new card style with text overlays for clearer browsing.
-- Added browser handoff options and quick web links for smoother cross-device flow.
+Improved
+- Reading progress is now more reliable across offline and sync scenarios, including when closing the reader.
+- Downloaded content is now easier to find from system search, with clearer controls for what gets indexed by content type and library.
 
-Reading Experience Improvements
-
-- Reopening a chapter now returns you to the correct reading position more reliably.
-- Reader controls stay hidden on entry to reduce visual distraction.
-- Page turns and taps feel more stable and consistent.
-- Improved handling for wide pages and EPUB page backgrounds.
-- Reading progress updates are more dependable, including when closing the reader.
-
-Offline and Downloads
-
-- Offline downloads are now excluded from cloud backup to help reduce backup size.
-- Download counts and status update more accurately across the app.
-- Offline filters and sorting are remembered more consistently.
-
-Interface and Navigation
-
-- Dashboard refresh is smoother, especially when content has not changed.
-- Long metadata sections on series pages are collapsed by default for easier browsing.
-- Improved spacing and menu consistency across key screens.
-- Added clearer delete actions in management menus for users with permission.
-
-Platform-Specific Updates
-
-- Apple TV remote navigation, focus behavior, and error dismissal are now more reliable.
-- Improved support for iPhone Control Center Apple TV Remote swipe page turns.
-- On macOS, library switching controls are placed more conveniently in navigation.
+Fixed
+- Fixed offline next-volume ordering for decimal-numbered volumes (such as 5, 5.5, 5.6).
+- Fixed animated pages that could fail to load in some release builds.
+- Fixed small-page scaling issues for better on-screen fit.

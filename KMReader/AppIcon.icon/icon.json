@@ -6,6 +6,8 @@
     {
       "layers" : [
         {
+          "blend-mode" : "normal",
+          "glass" : false,
           "hidden" : false,
           "image-name" : "icon.png",
           "name" : "KM Logo",
