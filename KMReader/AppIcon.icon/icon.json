@@ -10,7 +10,7 @@
           "image-name" : "icon.png",
           "name" : "KM Logo",
           "position" : {
-            "scale" : 1,
+            "scale" : 0.5,
             "translation-in-points" : [
               0,
               0
