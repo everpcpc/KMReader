@@ -2,7 +2,6 @@
 
 import json
 import os
-import shutil
 import subprocess
 
 from PIL import Image
@@ -190,10 +189,6 @@ def create_white_back(width, height, dest_path):
 def create_icon_composer_assets():
     assets_dir = os.path.join(ICON_COMPOSER_DIR, "Assets")
     ensure_dir(assets_dir)
-
-    icon_svg_target = os.path.join(assets_dir, "icon.svg")
-    shutil.copyfile(ICON_SVG, icon_svg_target)
-    print(f"Saved: {icon_svg_target}")
 
     icon_png_target = os.path.join(assets_dir, "icon.png")
     icon_png = generate_icon_render_supersampled(2048, ICON_SVG)
