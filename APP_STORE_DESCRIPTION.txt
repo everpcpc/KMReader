@@ -1,23 +1,36 @@
-KMReader - Full-Featured Native Komga Client for iOS, macOS & tvOS
+KMReader - Full-Featured Native Komga Client for iPhone, iPad, Mac, and Apple TV
 
-KMReader is a full-featured native SwiftUI client for Komga that brings your complete digital library to iPhone, iPad, Mac, and Apple TV. Read comics and books with powerful readers, download for offline access, browse with advanced filters, and manage your server — all without leaving the app.
+KMReader is a full-featured native SwiftUI client for Komga. Read, download, browse, and manage your library with platform-optimized controls across iOS, macOS, and tvOS.
 
-KEY FEATURES
+IMPORTANT FEATURES
 
-• Multi-Platform Support: Native experience across iOS, macOS, and tvOS with platform-specific optimizations.
+• Powerful Readers
+DIVINA reader on iOS, macOS, and tvOS with multiple reading directions, spreads, zoom, and tap-zone navigation.
+EPUB reader on iOS with custom font import (.ttf/.otf), theme presets, and per-book EPUB preferences.
+PDF reader on iOS and macOS with page jump, table of contents, and search.
+Incognito mode lets you read without syncing progress.
 
-• Advanced Readers: DIVINA reader with LTR/RTL/vertical/Webtoon modes, spreads, zoom, and page curl transitions. Native EPUB engine with custom fonts (.ttf/.otf), theme presets, and multi-column layouts. Per-book preferences save your reading settings.
+• Offline Library
+Download books for offline reading.
+iOS supports background downloads with Live Activities.
+Per-series download policies: Manual, Unread only, Unread + cleanup read, or All books.
+Progress and download queues resume when you reconnect.
 
-• Offline Downloads: Background downloads with Live Activities on iOS. Series policies (manual, unread-only, all books) with automatic sync when reconnected. Three-tier caching keeps pages, books, and thumbnails available offline.
+• Smart Browse
+Configurable dashboards (Keep Reading, On Deck, Recently Added, Recently Updated, and more).
+Real-time refresh with server-sent events (SSE).
+Advanced metadata filters with all/any logic for authors, tags, genres, publishers, and languages.
+Saved filters and grid/list layout options.
 
-• Multi-Server Vault: Save unlimited Komga servers with password or API key authentication. Quick switching with isolated data per instance.
+• Multi-Server and Account
+Use multiple Komga servers with instant switching.
+Authenticate with username/password or API key.
+Manage API keys and view authentication activity.
 
-• Smart Dashboards: Dynamic sections (Keep Reading, On Deck, Recently Added) with real-time SSE updates. Advanced metadata filters with all/any logic for authors, genres, tags, and publishers.
+• Admin Tools
+Edit metadata for series, books, collections, and read lists.
+Manage libraries with scanner settings and directory browser.
+Monitor task queues and cancel tasks.
+Inspect and export logs directly in the app.
 
-• Admin Tools: Edit metadata, manage libraries, scan collections, monitor tasks, and view logs without leaving the app. Directory browser for library path selection.
-
-• Privacy & Security: Incognito mode for private reading. Credentials stored securely on-device. Optional blur protection for reading content.
-
-• Platform Features: Live Activities and background downloads on iOS. Separate reader windows and keyboard shortcuts on macOS. Remote control navigation on tvOS.
-
-Whether you're reading on the couch or managing your server on the go, KMReader provides a complete full-featured native experience for your Komga library.
+KMReader targets Komga 1.19.0+ and works with API v1/v2.

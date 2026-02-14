@@ -8,7 +8,7 @@
         </title>
         <meta
             name="description"
-            content="KMReader is a full-featured native SwiftUI client for Komga. Powerful readers, offline downloads, advanced filters, multi-server vault, and admin tools for iPhone, iPad, Mac, and Apple TV."
+            content="KMReader is a full-featured native SwiftUI client for Komga with DIVINA, EPUB (iOS), PDF (iOS/macOS), offline downloads, real-time dashboards, multi-server management, and admin tools."
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,13 +25,12 @@
         <div class="container">
             <header class="hero">
                 <img src="assets/icon.svg" alt="KMReader logo" class="logo" />
-                <p class="eyebrow">Full-Featured Native Client</p>
+                <p class="eyebrow">Full-Featured Native SwiftUI Client</p>
                 <h1>KMReader</h1>
                 <p class="tagline">
-                    A full-featured native SwiftUI client for iPhone, iPad, Mac,
-                    and Apple TV. Powerful readers, offline sync, advanced
-                    filters, multi-server vault, and admin tools in one complete
-                    app.
+                    A full-featured native SwiftUI client to read, download,
+                    browse, and manage your Komga library on iPhone, iPad,
+                    Mac, and Apple TV.
                 </p>
                 <div class="cta">
                     <a
@@ -57,132 +56,116 @@
                 <div class="meta">
                     <div class="meta-card">
                         <span>Platforms</span>
-                        <strong> iOS 17.0+ · macOS 14.0+ · tvOS 17.0+ </strong>
+                        <strong>iOS 17.0+ · macOS 14.0+ · tvOS 17.0+</strong>
                     </div>
                     <div class="meta-card">
-                        <span>Offline Support</span>
-                        <strong
-                            >Background downloads with Live Activities</strong
-                        >
-                    </div>
-                    <div class="meta-card">
-                        <span>Readers</span>
+                        <span>Reader Support</span>
                         <strong>
-                            DIVINA (all platforms) · EPUB (iOS/macOS)
+                            DIVINA (all) · EPUB (iOS) · PDF (iOS/macOS)
                         </strong>
+                    </div>
+                    <div class="meta-card">
+                        <span>Offline</span>
+                        <strong>Download queue + iOS background tasks</strong>
                     </div>
                 </div>
             </header>
 
             <section id="features">
-                <h2 class="section-title">
-                    Full-featured client for your library
-                </h2>
+                <h2 class="section-title">Important features</h2>
                 <p class="section-subtitle">
-                    Read comics and books with powerful readers, download for
-                    offline access, browse with advanced filters, and manage
-                    your server — all without leaving the app.
+                    Focused on reliable reading, strong offline support,
+                    real-time updates, and practical server administration.
                 </p>
                 <div class="feature-grid">
                     <article class="card">
                         <span class="pill">Readers</span>
-                        <h3>Powerful Reading Experience</h3>
+                        <h3>DIVINA, EPUB, and PDF</h3>
                         <p>
-                            DIVINA reader with LTR/RTL/vertical/Webtoon modes,
-                            spreads, zoom, and page curl transitions. Native
-                            EPUB engine with custom fonts, theme presets, and
-                            multi-column layouts. Per-book preferences save your
-                            settings. Live Text support on iOS.
+                            DIVINA on iOS/macOS/tvOS with multiple reading
+                            directions, spreads, zoom, and tap-zone controls.
+                            EPUB on iOS with custom fonts and per-book
+                            preferences. PDF on iOS/macOS with TOC, page jump,
+                            and search.
                         </p>
                     </article>
                     <article class="card">
                         <span class="pill">Offline</span>
-                        <h3>Download & Sync</h3>
+                        <h3>Download and continue anywhere</h3>
                         <p>
-                            Background downloads with Live Activities on iOS.
-                            Series policies (manual, unread-only, all books)
-                            with automatic cleanup. Three-tier caching for
-                            pages, books, and thumbnails. Progress syncs when
-                            reconnected.
+                            Full offline reading with per-series download
+                            policies (Manual, Unread only, Unread + cleanup,
+                            All). iOS supports background downloads and Live
+                            Activities.
+                        </p>
+                    </article>
+                    <article class="card">
+                        <span class="pill">Dashboards</span>
+                        <h3>Live library updates</h3>
+                        <p>
+                            Keep Reading, On Deck, Recently Added, Recently
+                            Updated, and more. SSE-based real-time refresh with
+                            debounced updates and library-scoped filtering.
                         </p>
                     </article>
                     <article class="card">
                         <span class="pill">Browse</span>
-                        <h3>Smart Discovery</h3>
+                        <h3>Advanced filtering</h3>
                         <p>
-                            Dynamic dashboards with Keep Reading, On Deck, and
-                            Recently Added sections. Real-time SSE updates.
-                            Advanced metadata filters with all/any logic for
-                            authors, genres, tags, and publishers. Grid and list
-                            layouts with adjustable density.
+                            Metadata filters with all/any logic for authors,
+                            tags, genres, publishers, and languages. Saved
+                            filters and grid/list layouts make large libraries
+                            manageable.
                         </p>
                     </article>
                     <article class="card">
                         <span class="pill">Multi-Server</span>
-                        <h3>Server Vault</h3>
+                        <h3>Switch servers quickly</h3>
                         <p>
-                            Save unlimited Komga servers with password or API
-                            key authentication. Quick switching with isolated
-                            data per instance. Manage API keys and view
-                            authentication activity.
+                            Connect to multiple Komga instances using
+                            username/password or API key. API key management
+                            and authentication activity are available in-app.
                         </p>
                     </article>
                     <article class="card">
                         <span class="pill">Admin</span>
-                        <h3>Server Management</h3>
+                        <h3>Manage server operations</h3>
                         <p>
-                            Edit metadata for series, books, collections, and
-                            read lists. Create and scan libraries with directory
-                            browser. Monitor and cancel tasks with live metrics.
-                            View and export app logs.
-                        </p>
-                    </article>
-                    <article class="card">
-                        <span class="pill">Privacy</span>
-                        <h3>Secure & Private</h3>
-                        <p>
-                            Incognito mode for private reading without saving
-                            progress. Credentials stored securely on-device.
-                            Optional blur protection for reading content.
-                            Per-instance data isolation.
+                            Edit metadata, manage libraries with scanner
+                            options, monitor task queues, cancel tasks, and
+                            inspect/export logs without leaving the app.
                         </p>
                     </article>
                 </div>
             </section>
 
             <section id="platforms">
-                <h2 class="section-title">Built for every Apple platform</h2>
+                <h2 class="section-title">Built for Apple platforms</h2>
                 <p class="section-subtitle">
-                    Native SwiftUI interface optimized for each platform with
-                    platform-specific features and controls.
+                    Shared core behavior with platform-specific integrations.
                 </p>
                 <div class="feature-grid">
                     <article class="card">
                         <h3>iOS & iPadOS</h3>
                         <p>
-                            Live Activities show download progress in Dynamic
-                            Island. Background downloads continue when app is
-                            closed. Page curl transitions and shake gestures for
-                            Live Text. Auto-hiding controls for immersive
-                            reading.
+                            Background downloads, Live Activities, widgets, and
+                            reader-focused controls. Supports DIVINA, EPUB, and
+                            PDF.
                         </p>
                     </article>
                     <article class="card">
                         <h3>macOS</h3>
                         <p>
-                            Separate reader windows for multiple books.
-                            Comprehensive keyboard shortcuts with visual help
-                            overlay. Native menu bar integration. Window
-                            management for side-by-side reading.
+                            Separate reader window flow, keyboard help overlay,
+                            and desktop navigation patterns. Supports DIVINA
+                            and PDF.
                         </p>
                     </article>
                     <article class="card">
                         <h3>tvOS</h3>
                         <p>
-                            Apple TV remote navigation with focus engine
-                            integration. TV-optimized interface for comfortable
-                            couch reading. DIVINA reader with all reading modes
-                            and zoom support.
+                            TV-optimized DIVINA reader with remote-first
+                            navigation and focused browsing for couch reading.
                         </p>
                     </article>
                 </div>
@@ -194,52 +177,46 @@
                     <article class="faq-item">
                         <h4>Is KMReader an official Komga app?</h4>
                         <p>
-                            No. KMReader is an open-source community client that
-                            uses the public Komga APIs. It is developed
-                            independently from the Komga project.
+                            No. KMReader is an independent open-source client
+                            built on Komga public APIs.
                         </p>
                     </article>
                     <article class="faq-item">
-                        <h4>Can I connect to multiple Komga servers?</h4>
+                        <h4>Which formats are supported?</h4>
                         <p>
-                            Yes. Save unlimited servers with custom names using
-                            password or API key authentication. Switch instantly
-                            between servers with isolated data per instance.
+                            DIVINA is available on iOS, macOS, and tvOS. EPUB
+                            is available on iOS. PDF is available on iOS and
+                            macOS.
                         </p>
                     </article>
                     <article class="faq-item">
-                        <h4>What formats can I read?</h4>
+                        <h4>Can I connect multiple servers?</h4>
                         <p>
-                            DIVINA comics work on all platforms (iOS, macOS,
-                            tvOS) with every reading direction. EPUB books are
-                            available on iOS and macOS with a native engine.
-                            tvOS currently supports DIVINA only.
+                            Yes. You can save and switch between multiple Komga
+                            instances, and use either username/password or API
+                            key authentication.
                         </p>
                     </article>
                     <article class="faq-item">
-                        <h4>How does offline reading work?</h4>
+                        <h4>How does offline mode work?</h4>
                         <p>
-                            Download books with background downloads (iOS) or
-                            foreground downloads (macOS/tvOS). Set series
-                            policies to automatically download unread books.
-                            Three-tier caching stores pages, books, and
-                            thumbnails with adjustable limits.
+                            Downloaded books are readable without network.
+                            Series-level policies automate queue behavior, and
+                            progress sync resumes when the app reconnects.
                         </p>
                     </article>
                     <article class="faq-item">
-                        <h4>Can I manage my Komga server?</h4>
+                        <h4>Can admins manage the server in-app?</h4>
                         <p>
-                            Yes. Admin users can edit metadata, create and scan
-                            libraries, manage collections and read lists,
-                            monitor tasks, and view logs directly in the app.
+                            Yes. Admin tools include metadata editing, library
+                            scanner settings, task management, and logs.
                         </p>
                     </article>
                     <article class="faq-item">
                         <h4>What Komga version is required?</h4>
                         <p>
-                            KMReader requires Komga 1.19.0 or later. It works
-                            with Komga API v1 and v2 and supports SSE for
-                            real-time updates.
+                            KMReader targets Komga 1.19.0+ and supports API v1
+                            and v2.
                         </p>
                     </article>
                 </div>
@@ -247,7 +224,7 @@
 
             <footer class="footer">
                 <p>
-                    Made with ❤️ for the Komga community ·
+                    Built for the Komga community ·
                     <a
                         href="https://github.com/everpcpc/KMReader"
                         target="_blank"
