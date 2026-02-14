@@ -24,6 +24,9 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Restart CoreSimulator Service
+        run: sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService || true
+
       - name: Build iOS
         run: make build-ios-ci
 
@@ -42,6 +45,9 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Restart CoreSimulator Service
+        run: sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService || true
+
       - name: Build macOS
         run: make build-macos-ci
 
@@ -59,6 +65,9 @@ jobs:
 
       - name: Show Xcode version
         run: xcodebuild -version
+
+      - name: Restart CoreSimulator Service
+        run: sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService || true
 
       - name: Build tvOS
         run: make build-tvos-ci
