@@ -5,7 +5,6 @@ import os
 import subprocess
 
 from PIL import Image
-from PIL import ImageDraw
 
 # Configuration
 ICON_SVG = "icon.svg"
@@ -21,7 +20,6 @@ SCALE_FACTOR_TV = 1  # tvOS (Zoomed/Cropped)
 
 # Maximum texture size
 MAX_RENDER_DIM = 8000
-MAC_ICON_CORNER_RADIUS_RATIO = 0.22
 
 
 def ensure_dir(path):
@@ -143,17 +141,6 @@ def create_composition(
 
 def create_macos_composition(size, dest_path, svg_file, scale_factor=SCALE_FACTOR_APP):
     canvas = Image.new("RGBA", (size, size), (255, 255, 255, 0))
-
-    # Draw a rounded white plate on transparent background for macOS fallback icons.
-    rounded_mask = Image.new("L", (size, size), 0)
-    mask_draw = ImageDraw.Draw(rounded_mask)
-    corner_radius = max(1, int(size * MAC_ICON_CORNER_RADIUS_RATIO))
-    mask_draw.rounded_rectangle(
-        (0, 0, size - 1, size - 1), radius=corner_radius, fill=255
-    )
-
-    white_plate = Image.new("RGBA", (size, size), (255, 255, 255, 255))
-    canvas.paste(white_plate, (0, 0), rounded_mask)
 
     target_size = int(size * scale_factor)
     if target_size % 2 != 0:
@@ -350,7 +337,7 @@ def main():
     )
 
     # 2.1.1 macOS fallback icons
-    # Transparent canvas + rounded white plate + centered logo
+    # Transparent canvas + centered logo
     sizes = [16, 32, 128, 256, 512]
     for size in sizes:
         create_macos_composition(
