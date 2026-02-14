@@ -108,6 +108,7 @@ final class ReaderPresentationManager {
           )
         }
         await SyncService.shared.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
+        WidgetDataService.refreshWidgetData()
       }
     }
 

@@ -286,6 +286,11 @@ actor OfflineManager {
         logger.error("❌ Failed to delete book \(bookId): \(error)")
       }
     }
+
+    #if os(iOS) || os(macOS)
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+      SpotlightIndexService.removeBook(bookId: compositeId)
+    #endif
   }
 
   /// Delete a book manually, setting series policy to manual first to prevent automatic re-download.
@@ -350,6 +355,10 @@ actor OfflineManager {
       bookIds: books.map { $0.id }, instanceId: instanceId)
     await DatabaseOperator.shared.commit()
     await refreshQueueStatus(instanceId: instanceId)
+
+    #if os(iOS) || os(macOS)
+      SpotlightIndexService.removeAllItems()
+    #endif
   }
 
   /// Delete all read (completed) downloaded books for the current instance.
@@ -1377,6 +1386,13 @@ actor OfflineManager {
     await clearCachesAfterDownload(bookId: bookId)
     removeActiveTask(bookId)
     scheduleDownloadedSizeUpdate(instanceId: instanceId, bookId: bookId, bookDir: bookDir)
+
+    #if os(iOS) || os(macOS)
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+      if let book = await DatabaseOperator.shared.fetchBook(id: compositeId) {
+        SpotlightIndexService.indexBook(book)
+      }
+    #endif
   }
 
   private func scheduleDownloadedSizeUpdate(

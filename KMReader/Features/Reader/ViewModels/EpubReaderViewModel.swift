@@ -559,8 +559,6 @@
       )
     }
 
-
-
     func chapterURL(at index: Int) -> URL? {
       chapterURLCache[index]
     }

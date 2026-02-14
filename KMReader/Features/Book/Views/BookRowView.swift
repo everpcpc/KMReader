@@ -132,22 +132,22 @@ struct BookRowView: View {
               .foregroundColor(komgaBook.downloadStatus.displayColor)
           }
           EllipsisMenuButton {
-              BookContextMenu(
-                book: komgaBook.toBook(),
-                downloadStatus: komgaBook.downloadStatus,
-                onReadBook: onReadBook,
-                onShowReadListPicker: {
-                  showReadListPicker = true
-                },
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                },
-                showSeriesNavigation: showSeriesNavigation
-              )
-              .id(komgaBook.bookId)
+            BookContextMenu(
+              book: komgaBook.toBook(),
+              downloadStatus: komgaBook.downloadStatus,
+              onReadBook: onReadBook,
+              onShowReadListPicker: {
+                showReadListPicker = true
+              },
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              onEditRequested: {
+                showEditSheet = true
+              },
+              showSeriesNavigation: showSeriesNavigation
+            )
+            .id(komgaBook.bookId)
           }
         }
       }

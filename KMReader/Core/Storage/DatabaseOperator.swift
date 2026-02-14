@@ -2005,6 +2005,62 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchKeepReadingBooksForWidget(
+    instanceId: String, libraryIds: [String], limit: Int
+  ) -> [Book] {
+    let ids = libraryIds
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if !ids.isEmpty {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId && ids.contains(book.libraryId)
+          && book.progressReadDate != nil && book.progressCompleted == false
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+          && book.progressReadDate != nil && book.progressCompleted == false
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaBook.progressReadDate, order: .reverse)]
+    descriptor.fetchLimit = limit
+
+    do {
+      let results = try modelContext.fetch(descriptor)
+      return results.map { $0.toBook() }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchRecentlyAddedBooksForWidget(
+    instanceId: String, libraryIds: [String], limit: Int
+  ) -> [Book] {
+    let ids = libraryIds
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if !ids.isEmpty {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId && ids.contains(book.libraryId)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaBook.created, order: .reverse)]
+    descriptor.fetchLimit = limit
+
+    do {
+      let results = try modelContext.fetch(descriptor)
+      return results.map { $0.toBook() }
+    } catch {
+      return []
+    }
+  }
+
   func fetchFailedBooksCount(instanceId: String) -> Int {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }

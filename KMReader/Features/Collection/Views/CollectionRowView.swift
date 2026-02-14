@@ -48,17 +48,17 @@ struct CollectionRowView: View {
           Spacer()
 
           EllipsisMenuButton {
-              CollectionContextMenu(
-                collectionId: komgaCollection.collectionId,
-                menuTitle: komgaCollection.name,
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
-              )
-              .id(komgaCollection.collectionId)
+            CollectionContextMenu(
+              collectionId: komgaCollection.collectionId,
+              menuTitle: komgaCollection.name,
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              onEditRequested: {
+                showEditSheet = true
+              }
+            )
+            .id(komgaCollection.collectionId)
           }
         }
       }

@@ -8,8 +8,24 @@
 import SwiftData
 import SwiftUI
 
+#if !os(tvOS)
+  import CoreSpotlight
+#endif
+
 #if os(iOS)
-  /// App delegate to handle background URLSession events
+  /// Scene delegate to handle Quick Actions on warm launch
+  class ShortcutSceneDelegate: NSObject, UIWindowSceneDelegate {
+    func windowScene(
+      _ windowScene: UIWindowScene,
+      performActionFor shortcutItem: UIApplicationShortcutItem,
+      completionHandler: @escaping (Bool) -> Void
+    ) {
+      QuickActionService.handleShortcut(shortcutItem)
+      completionHandler(true)
+    }
+  }
+
+  /// App delegate to handle background URLSession events and Quick Actions
   class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
       _ application: UIApplication,
@@ -18,6 +34,20 @@ import SwiftUI
     ) {
       BackgroundDownloadManager.shared.backgroundCompletionHandler = completionHandler
       BackgroundDownloadManager.shared.reconnectSession()
+    }
+
+    func application(
+      _ application: UIApplication,
+      configurationForConnecting connectingSceneSession: UISceneSession,
+      options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+      if let shortcutItem = options.shortcutItem {
+        QuickActionService.handleShortcut(shortcutItem)
+      }
+      let config = UISceneConfiguration(
+        name: nil, sessionRole: connectingSceneSession.role)
+      config.delegateClass = ShortcutSceneDelegate.self
+      return config
     }
   }
 #endif
@@ -37,6 +67,7 @@ struct MainApp: App {
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
   @State private var dashboardSectionCacheStore = DashboardSectionCacheStore.shared
+  @State private var deepLinkRouter = DeepLinkRouter.shared
 
   init() {
     do {
@@ -72,6 +103,16 @@ struct MainApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
+        .onOpenURL { url in
+          deepLinkRouter.handle(url: url)
+        }
+        #if !os(tvOS)
+          .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
+              deepLinkRouter.pendingDeepLink = .book(bookId: identifier)
+            }
+          }
+        #endif
         #if os(macOS)
           .background(
             MacReaderWindowConfigurator(openWindow: {
@@ -89,6 +130,7 @@ struct MainApp: App {
         .environment(authViewModel)
         .environment(readerPresentation)
         .environment(dashboardSectionCacheStore)
+        .environment(deepLinkRouter)
         .modelContainer(modelContainer)
         .preferredColorScheme(appColorScheme.colorScheme)
     }

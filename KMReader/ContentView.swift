@@ -64,6 +64,11 @@ struct ContentView: View {
           let serverReachable = await authViewModel.loadCurrentUser()
           isOffline = !serverReachable
           await SSEService.shared.connect()
+          WidgetDataService.refreshWidgetData()
+          #if !os(tvOS)
+            SpotlightIndexService.indexAllDownloadedBooks(
+              instanceId: AppConfig.current.instanceId)
+          #endif
         }
         .onChange(of: isOffline) { oldValue, newValue in
           if oldValue && !newValue {
@@ -113,6 +118,7 @@ struct ContentView: View {
             Task.detached(priority: .utility) {
               try? await DatabaseOperator.shared.commitImmediately()
             }
+            WidgetDataService.refreshWidgetData()
           }
         }
       } else {
