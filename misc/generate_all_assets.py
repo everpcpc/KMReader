@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import json
 import os
+import shutil
 import subprocess
 
 from PIL import Image
@@ -11,6 +13,7 @@ ICON_SVG = "icon.svg"
 BRAND_ASSETS_DIR = "KMReader/Assets.xcassets/AppIcon.brandassets"
 APP_ICON_DIR = "KMReader/Assets.xcassets/AppIcon.appiconset"
 LOGO_DIR = "KMReader/Assets.xcassets/logo.imageset"
+ICON_COMPOSER_DIR = "KMReader/AppIcon.icon"
 
 # Scale Factors
 SCALE_FACTOR_APP = 1  # iOS/Mac
@@ -184,6 +187,43 @@ def create_white_back(width, height, dest_path):
     print(f"Saved Back: {dest_path}")
 
 
+def create_icon_composer_assets():
+    assets_dir = os.path.join(ICON_COMPOSER_DIR, "Assets")
+    ensure_dir(assets_dir)
+
+    icon_svg_target = os.path.join(assets_dir, "icon.svg")
+    shutil.copyfile(ICON_SVG, icon_svg_target)
+    print(f"Saved: {icon_svg_target}")
+
+    icon_json_target = os.path.join(ICON_COMPOSER_DIR, "icon.json")
+    icon_json_content = {
+        "fill": {"solid": "srgb:1.00000,1.00000,1.00000,1.00000"},
+        "groups": [
+            {
+                "layers": [
+                    {
+                        "glass": True,
+                        "hidden": False,
+                        "image-name": "icon.svg",
+                        "name": "KM Logo",
+                        "position": {
+                            "scale": 0.5,
+                            "translation-in-points": [0, 0],
+                        },
+                    }
+                ],
+                "shadow": {"kind": "neutral", "opacity": 0.5},
+                "translucency": {"enabled": True, "value": 0.5},
+            }
+        ],
+        "supported-platforms": {"circles": ["watchOS"], "squares": "shared"},
+    }
+    with open(icon_json_target, "w", encoding="utf-8") as fp:
+        json.dump(icon_json_content, fp, indent=2)
+        fp.write("\n")
+    print(f"Saved: {icon_json_target}")
+
+
 def main():
     if not os.path.exists(ICON_SVG):
         print(f"Error: {ICON_SVG} not found.")
@@ -347,6 +387,11 @@ def main():
         transparent=True,
         scale_factor=1.0,
     )
+
+    # ==========================
+    # 4. Icon Composer (Layered Icon)
+    # ==========================
+    create_icon_composer_assets()
 
     print("All Top Shelf, App Icon (Light/Dark/Tinted), and Logo assets regenerated.")
 
