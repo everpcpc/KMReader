@@ -321,60 +321,55 @@ def main():
     )
 
     # ==========================
-    # 2. AppIcon.appiconset (iOS/Mac) -> Scale: SCALE_FACTOR_APP
+    # 2. AppIcon.appiconset (iOS/Mac)
     # ==========================
-
-    # 2.1 Standard Light Icon (iOS)
-    # Opaque white BG + centered logo
-    create_composition(
-        1024,
-        1024,
-        os.path.join(APP_ICON_DIR, "icon.png"),
-        ICON_SVG,
-        transparent=False,
-        bg_color=(255, 255, 255),
-        scale_factor=SCALE_FACTOR_APP,
-    )
-
-    # 2.1.1 macOS fallback icons
-    # Transparent canvas + centered logo
-    sizes = [16, 32, 128, 256, 512]
-    for size in sizes:
-        create_macos_composition(
-            size,
-            os.path.join(APP_ICON_DIR, f"icon-mac-{size}x{size}-1x.png"),
-            ICON_SVG,
-            scale_factor=SCALE_FACTOR_APP,
-        )
-        create_macos_composition(
-            size * 2,
-            os.path.join(APP_ICON_DIR, f"icon-mac-{size}x{size}-2x.png"),
-            ICON_SVG,
-            scale_factor=SCALE_FACTOR_APP,
-        )
-
-    # 2.2 Tinted Icon (iOS 18 Tinted Mode)
-    # Transparent BG
-    create_composition(
-        1024,
-        1024,
-        os.path.join(APP_ICON_DIR, "icon-tinted.png"),
-        ICON_SVG,
-        transparent=True,
-        scale_factor=SCALE_FACTOR_APP,
-    )
-
-    # 2.3 Dark Icon (iOS Dark Mode)
-    # Dark BG + Content
-    create_composition(
-        1024,
-        1024,
-        os.path.join(APP_ICON_DIR, "icon-dark.png"),
-        ICON_SVG,
-        bg_color=(28, 28, 30),
-        transparent=False,
-        scale_factor=SCALE_FACTOR_APP,
-    )
+    # Disabled on purpose:
+    # AppIcon.appiconset has been removed from the repository. Keep this block
+    # commented out until we decide to restore catalog-based icon generation.
+    #
+    # create_composition(
+    #     1024,
+    #     1024,
+    #     os.path.join(APP_ICON_DIR, "icon.png"),
+    #     ICON_SVG,
+    #     transparent=False,
+    #     bg_color=(255, 255, 255),
+    #     scale_factor=SCALE_FACTOR_APP,
+    # )
+    #
+    # sizes = [16, 32, 128, 256, 512]
+    # for size in sizes:
+    #     create_macos_composition(
+    #         size,
+    #         os.path.join(APP_ICON_DIR, f"icon-mac-{size}x{size}-1x.png"),
+    #         ICON_SVG,
+    #         scale_factor=SCALE_FACTOR_APP,
+    #     )
+    #     create_macos_composition(
+    #         size * 2,
+    #         os.path.join(APP_ICON_DIR, f"icon-mac-{size}x{size}-2x.png"),
+    #         ICON_SVG,
+    #         scale_factor=SCALE_FACTOR_APP,
+    #     )
+    #
+    # create_composition(
+    #     1024,
+    #     1024,
+    #     os.path.join(APP_ICON_DIR, "icon-tinted.png"),
+    #     ICON_SVG,
+    #     transparent=True,
+    #     scale_factor=SCALE_FACTOR_APP,
+    # )
+    #
+    # create_composition(
+    #     1024,
+    #     1024,
+    #     os.path.join(APP_ICON_DIR, "icon-dark.png"),
+    #     ICON_SVG,
+    #     bg_color=(28, 28, 30),
+    #     transparent=False,
+    #     scale_factor=SCALE_FACTOR_APP,
+    # )
 
     # ==========================
     # 3. logo.imageset (General usage)
