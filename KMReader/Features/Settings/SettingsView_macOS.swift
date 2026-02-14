@@ -28,6 +28,7 @@ import SwiftUI
 
           Section(String(localized: "Behavior")) {
             SettingsSectionRow(section: .sse)
+            SettingsSectionRow(section: .spotlight)
             SettingsSectionRow(section: .network)
             SettingsSectionRow(section: .cache)
             SettingsSectionRow(section: .logs)
@@ -57,6 +58,8 @@ import SwiftUI
               PdfPreferencesView()
             case .sse:
               SettingsSSEView()
+            case .spotlight:
+              SettingsSpotlightView()
             case .network:
               SettingsNetworkView()
             case .logs:

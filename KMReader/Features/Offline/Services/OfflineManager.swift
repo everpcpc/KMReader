@@ -288,8 +288,7 @@ actor OfflineManager {
     }
 
     #if os(iOS) || os(macOS)
-      let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-      SpotlightIndexService.removeBook(bookId: compositeId)
+      SpotlightIndexService.removeBook(bookId: bookId, instanceId: instanceId)
     #endif
   }
 
@@ -1390,7 +1389,7 @@ actor OfflineManager {
     #if os(iOS) || os(macOS)
       let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
       if let book = await DatabaseOperator.shared.fetchBook(id: compositeId) {
-        SpotlightIndexService.indexBook(book)
+        SpotlightIndexService.indexBook(book, instanceId: instanceId)
       }
     #endif
   }

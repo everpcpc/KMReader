@@ -7252,6 +7252,9 @@
         }
       }
     },
+    "Choose which entities should appear in Spotlight results." : {
+
+    },
     "Clear" : {
       "localizations" : {
         "de" : {
@@ -7757,6 +7760,9 @@
           }
         }
       }
+    },
+    "Clear Selection" : {
+
     },
     "Close" : {
       "localizations" : {
@@ -8631,6 +8637,9 @@
           }
         }
       }
+    },
+    "Content Types" : {
+
     },
     "Contents · %.1f%%" : {
       "localizations" : {
@@ -12864,6 +12873,9 @@
         }
       }
     },
+    "Enable Spotlight Indexing" : {
+
+    },
     "Ended" : {
       "localizations" : {
         "de" : {
@@ -16773,6 +16785,21 @@
           }
         }
       }
+    },
+    "Index all libraries" : {
+
+    },
+    "Index Books" : {
+
+    },
+    "Index Scope" : {
+
+    },
+    "Index Series" : {
+
+    },
+    "Indexed Libraries" : {
+
     },
     "initialization.phase.books" : {
       "localizations" : {
@@ -27722,6 +27749,9 @@
         }
       }
     },
+    "Only selected libraries will be indexed. Changes affect future indexing and instance-switch reindexing." : {
+
+    },
     "Operating System" : {
       "localizations" : {
         "de" : {
@@ -34531,6 +34561,9 @@
           }
         }
       }
+    },
+    "Select All Libraries" : {
+
     },
     "Select Collection" : {
       "localizations" : {
@@ -41524,6 +41557,9 @@
         }
       }
     },
+    "Spotlight" : {
+
+    },
     "Start Reading" : {
       "localizations" : {
         "de" : {
@@ -46354,6 +46390,9 @@
         }
       }
     },
+    "When disabled, no books will be indexed in Spotlight." : {
+
+    },
     "When disabled, the dashboard will not automatically refresh when SSE events are received. You can still manually refresh." : {
       "localizations" : {
         "de" : {
@@ -46399,6 +46438,9 @@
           }
         }
       }
+    },
+    "When enabled, Spotlight indexes downloaded books from all libraries in the current server." : {
+
     },
     "Word Spacing: %@" : {
       "localizations" : {

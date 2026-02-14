@@ -65,10 +65,6 @@ struct ContentView: View {
           isOffline = !serverReachable
           await SSEService.shared.connect()
           WidgetDataService.refreshWidgetData()
-          #if !os(tvOS)
-            SpotlightIndexService.indexAllDownloadedBooks(
-              instanceId: AppConfig.current.instanceId)
-          #endif
         }
         .onChange(of: isOffline) { oldValue, newValue in
           if oldValue && !newValue {

@@ -283,6 +283,7 @@ class AuthViewModel {
 
     WidgetDataService.refreshWidgetData()
     #if !os(tvOS)
+      SpotlightIndexService.removeAllItems()
       SpotlightIndexService.indexAllDownloadedBooks(instanceId: finalInstanceId)
     #endif
   }

@@ -724,6 +724,89 @@ enum AppConfig {
     }
   }
 
+  // MARK: - Spotlight
+  static nonisolated var enableSpotlightIndexing: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableSpotlightIndexing") != nil {
+        return UserDefaults.standard.bool(forKey: "enableSpotlightIndexing")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enableSpotlightIndexing")
+    }
+  }
+
+  static nonisolated var enableSpotlightBookIndexing: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableSpotlightBookIndexing") != nil {
+        return UserDefaults.standard.bool(forKey: "enableSpotlightBookIndexing")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enableSpotlightBookIndexing")
+    }
+  }
+
+  static nonisolated var enableSpotlightSeriesIndexing: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableSpotlightSeriesIndexing") != nil {
+        return UserDefaults.standard.bool(forKey: "enableSpotlightSeriesIndexing")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enableSpotlightSeriesIndexing")
+    }
+  }
+
+  private static nonisolated var spotlightLibrarySelectionByInstance: [String: [String]] {
+    get {
+      guard
+        let stored = UserDefaults.standard.string(forKey: "spotlightLibrarySelectionByInstance"),
+        let data = stored.data(using: .utf8),
+        let dict = try? JSONSerialization.jsonObject(with: data) as? [String: [String]]
+      else {
+        return [:]
+      }
+      return dict
+    }
+    set {
+      if newValue.isEmpty {
+        UserDefaults.standard.removeObject(forKey: "spotlightLibrarySelectionByInstance")
+        return
+      }
+
+      guard
+        let data = try? JSONSerialization.data(withJSONObject: newValue, options: [.sortedKeys]),
+        let encoded = String(data: data, encoding: .utf8)
+      else {
+        return
+      }
+      UserDefaults.standard.set(encoded, forKey: "spotlightLibrarySelectionByInstance")
+    }
+  }
+
+  static nonisolated func spotlightIndexedLibraryIds(instanceId: String) -> [String]? {
+    guard !instanceId.isEmpty else { return nil }
+    return spotlightLibrarySelectionByInstance[instanceId]
+  }
+
+  static nonisolated func setSpotlightIndexedLibraryIds(_ libraryIds: [String], instanceId: String) {
+    guard !instanceId.isEmpty else { return }
+    var selection = spotlightLibrarySelectionByInstance
+    selection[instanceId] = libraryIds
+    spotlightLibrarySelectionByInstance = selection
+  }
+
+  static nonisolated func clearSpotlightLibrarySelection(instanceId: String) {
+    guard !instanceId.isEmpty else { return }
+    var selection = spotlightLibrarySelectionByInstance
+    selection.removeValue(forKey: instanceId)
+    spotlightLibrarySelectionByInstance = selection
+  }
+
   // MARK: - Clear all auth data
   static func clearAuthData() {
     var new = current
