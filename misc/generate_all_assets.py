@@ -191,7 +191,7 @@ def create_icon_composer_assets():
     ensure_dir(assets_dir)
 
     icon_png_target = os.path.join(assets_dir, "icon.png")
-    icon_png = generate_icon_render_supersampled(2048, ICON_SVG)
+    icon_png = generate_icon_render_supersampled(1024, ICON_SVG)
     if icon_png is not None:
         icon_png.save(icon_png_target)
         icon_png.close()
@@ -208,7 +208,7 @@ def create_icon_composer_assets():
                         "image-name": "icon.png",
                         "name": "KM Logo",
                         "position": {
-                            "scale": 0.5,
+                            "scale": 1,
                             "translation-in-points": [0, 0],
                         },
                     }

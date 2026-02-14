@@ -43,7 +43,7 @@ jobs:
         run: xcodebuild -version
 
       - name: Build macOS
-        run: env -u DYLD_ROOT_PATH -u DYLD_FRAMEWORK_PATH -u DYLD_LIBRARY_PATH make build-macos-ci
+        run: make build-macos-ci
 
   tvos:
     name: tvOS

@@ -426,10 +426,6 @@ class BuildRunner:
                     "CODE_SIGNING_ALLOWED=NO",
                 ]
             )
-            if platform.lower() == "macos":
-                # Work around CI ibtoold instability with Icon Composer assets.
-                # CI macOS builds use the legacy appiconset while local builds keep AppIcon.icon.
-                cmd.append("ASSETCATALOG_COMPILER_APPICON_NAME=AppIconOld")
 
         try:
             subprocess.run(cmd, check=True)
