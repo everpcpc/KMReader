@@ -192,7 +192,13 @@ jobs:
           APP_STORE_CONNECT_API_KEY_PATH: ${{ steps.prepare.outputs.APP_STORE_CONNECT_API_KEY_PATH }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-        run: make release-${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            env -u DYLD_ROOT_PATH -u DYLD_FRAMEWORK_PATH -u DYLD_LIBRARY_PATH make release-${{ matrix.platform }}
+          else
+            make release-${{ matrix.platform }}
+          fi
 
       - name: Create artifact
         if: needs.detect.outputs.marketing_changed == 'true'
