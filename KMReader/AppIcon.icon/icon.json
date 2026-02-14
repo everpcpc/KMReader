@@ -6,7 +6,6 @@
     {
       "layers": [
         {
-          "glass": true,
           "hidden": false,
           "image-name": "icon.png",
           "name": "KM Logo",
@@ -18,15 +17,7 @@
             ]
           }
         }
-      ],
-      "shadow": {
-        "kind": "neutral",
-        "opacity": 0.5
-      },
-      "translucency": {
-        "enabled": true,
-        "value": 0.5
-      }
+      ]
     }
   ],
   "supported-platforms": {

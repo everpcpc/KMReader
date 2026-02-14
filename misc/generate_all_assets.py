@@ -11,7 +11,7 @@ from PIL import Image
 ICON_SVG = "icon.svg"
 
 BRAND_ASSETS_DIR = "KMReader/Assets.xcassets/AppIcon.brandassets"
-APP_ICON_DIR = "KMReader/Assets.xcassets/AppIcon.appiconset"
+APP_ICON_DIR = "KMReader/Assets.xcassets/AppIconOld.appiconset"
 LOGO_DIR = "KMReader/Assets.xcassets/logo.imageset"
 ICON_COMPOSER_DIR = "KMReader/AppIcon.icon"
 
@@ -209,7 +209,6 @@ def create_icon_composer_assets():
             {
                 "layers": [
                     {
-                        "glass": True,
                         "hidden": False,
                         "image-name": "icon.png",
                         "name": "KM Logo",
@@ -218,9 +217,7 @@ def create_icon_composer_assets():
                             "translation-in-points": [0, 0],
                         },
                     }
-                ],
-                "shadow": {"kind": "neutral", "opacity": 0.5},
-                "translucency": {"enabled": True, "value": 0.5},
+                ]
             }
         ],
         "supported-platforms": {"circles": ["watchOS"], "squares": "shared"},
