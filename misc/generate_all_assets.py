@@ -195,6 +195,13 @@ def create_icon_composer_assets():
     shutil.copyfile(ICON_SVG, icon_svg_target)
     print(f"Saved: {icon_svg_target}")
 
+    icon_png_target = os.path.join(assets_dir, "icon.png")
+    icon_png = generate_icon_render_supersampled(2048, ICON_SVG)
+    if icon_png is not None:
+        icon_png.save(icon_png_target)
+        icon_png.close()
+        print(f"Saved: {icon_png_target}")
+
     icon_json_target = os.path.join(ICON_COMPOSER_DIR, "icon.json")
     icon_json_content = {
         "fill": {"solid": "srgb:1.00000,1.00000,1.00000,1.00000"},
@@ -204,7 +211,7 @@ def create_icon_composer_assets():
                     {
                         "glass": True,
                         "hidden": False,
-                        "image-name": "icon.svg",
+                        "image-name": "icon.png",
                         "name": "KM Logo",
                         "position": {
                             "scale": 0.5,
