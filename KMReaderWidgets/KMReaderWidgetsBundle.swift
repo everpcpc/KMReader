@@ -16,5 +16,6 @@ struct KMReaderWidgetsBundle: WidgetBundle {
     #endif
     KeepReadingWidget()
     RecentlyAddedWidget()
+    RecentlyUpdatedSeriesWidget()
   }
 }

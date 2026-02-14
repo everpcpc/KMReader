@@ -2061,6 +2061,33 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchRecentlyUpdatedSeriesForWidget(
+    instanceId: String, libraryIds: [String], limit: Int
+  ) -> [Series] {
+    let ids = libraryIds
+    var descriptor = FetchDescriptor<KomgaSeries>()
+
+    if !ids.isEmpty {
+      descriptor.predicate = #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId && ids.contains(series.libraryId)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = [SortDescriptor(\KomgaSeries.lastModified, order: .reverse)]
+    descriptor.fetchLimit = limit
+
+    do {
+      let results = try modelContext.fetch(descriptor)
+      return results.map { $0.toSeries() }
+    } catch {
+      return []
+    }
+  }
+
   func fetchFailedBooksCount(instanceId: String) -> Int {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }

@@ -66,6 +66,11 @@ struct KeepReadingWidgetEntryView: View {
     return HStack(spacing: 8) {
       ForEach(books, id: \.id) { book in
         WidgetBookCardView(entry: book, showProgress: true)
+          .frame(maxWidth: .infinity)
+      }
+      ForEach(0..<(3 - books.count), id: \.self) { _ in
+        Color.clear
+          .frame(maxWidth: .infinity)
       }
     }
   }
@@ -75,21 +80,21 @@ struct KeepReadingWidgetEntryView: View {
     let topRow = Array(books.prefix(2))
     let bottomRow = Array(books.dropFirst(2))
     return VStack(alignment: .leading, spacing: 8) {
-      Text(String(localized: "widget.keep_reading.title"))
-        .font(.headline)
-
       HStack(spacing: 8) {
         ForEach(topRow, id: \.id) { book in
           WidgetBookCardView(entry: book, showProgress: true)
+            .frame(maxWidth: .infinity)
         }
       }
       if !bottomRow.isEmpty {
         HStack(spacing: 8) {
           ForEach(bottomRow, id: \.id) { book in
             WidgetBookCardView(entry: book, showProgress: true)
+              .frame(maxWidth: .infinity)
           }
           if bottomRow.count < 2 {
-            Spacer()
+            Color.clear
+              .frame(maxWidth: .infinity)
           }
         }
       }
