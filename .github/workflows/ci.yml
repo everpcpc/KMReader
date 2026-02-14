@@ -24,6 +24,9 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Clean build state
+        run: make clean && rm -rf ~/Library/Developer/Xcode/DerivedData/KMReader-*
+
       - name: Restart CoreSimulator Service
         run: sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService || true
 
@@ -45,6 +48,9 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Clean build state
+        run: make clean && rm -rf ~/Library/Developer/Xcode/DerivedData/KMReader-*
+
       - name: Restart CoreSimulator Service
         run: sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService || true
 
@@ -65,6 +71,9 @@ jobs:
 
       - name: Show Xcode version
         run: xcodebuild -version
+
+      - name: Clean build state
+        run: make clean && rm -rf ~/Library/Developer/Xcode/DerivedData/KMReader-*
 
       - name: Restart CoreSimulator Service
         run: sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService || true
