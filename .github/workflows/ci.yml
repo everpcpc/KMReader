@@ -11,15 +11,10 @@ on:
 jobs:
   ios:
     name: iOS
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "latest-stable"
 
       - name: Show Xcode version
         run: xcodebuild -version
@@ -29,15 +24,10 @@ jobs:
 
   macos:
     name: macOS
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "latest-stable"
 
       - name: Show Xcode version
         run: xcodebuild -version
@@ -47,15 +37,10 @@ jobs:
 
   tvos:
     name: tvOS
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "latest-stable"
 
       - name: Show Xcode version
         run: xcodebuild -version

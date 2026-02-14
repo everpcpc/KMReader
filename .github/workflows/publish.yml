@@ -125,7 +125,7 @@ jobs:
           fi
 
   upload:
-    runs-on: macos-latest
+    runs-on: macos-26
     needs: [detect, release]
     if: always() && needs.detect.outputs.build_changed == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     strategy:
@@ -135,11 +135,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "latest-stable"
 
       - name: Prepare App Store Connect API key
         id: prepare
