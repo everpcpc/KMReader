@@ -136,11 +136,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "latest-stable"
-
       - name: Prepare App Store Connect API key
         id: prepare
         env:
