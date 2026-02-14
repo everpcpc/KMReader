@@ -120,8 +120,9 @@ actor ReaderProgressDispatchService {
       return
     }
 
+    let isFlush = trigger == "flush"
     pageSendTasks[bookId] = Task(priority: .utility) { [weak self] in
-      await self?.executePageSend(bookId: bookId, trigger: trigger)
+      await self?.executePageSend(bookId: bookId, trigger: trigger, isFlush: isFlush)
     }
   }
 
@@ -141,7 +142,7 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  private func executePageSend(bookId: String, trigger: String) async {
+  private func executePageSend(bookId: String, trigger: String, isFlush: Bool) async {
     guard let update = pendingPageUpdates.removeValue(forKey: bookId) else {
       pageSendTasks.removeValue(forKey: bookId)
       return
@@ -152,7 +153,7 @@ actor ReaderProgressDispatchService {
     )
 
     await ReaderProgressTracker.shared.begin(bookId: bookId)
-    await performPageProgressUpdateWithTimeoutHandling(update)
+    await performPageProgressUpdateWithTimeoutHandling(update, isFlush: isFlush)
     await ReaderProgressTracker.shared.end(bookId: bookId)
 
     pageSendTasks.removeValue(forKey: bookId)
@@ -185,7 +186,7 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  private func performPageProgressUpdateWithTimeoutHandling(_ update: PageUpdate) async {
+  private func performPageProgressUpdateWithTimeoutHandling(_ update: PageUpdate, isFlush: Bool) async {
     var timeoutRetryAttempt = 0
 
     while true {
@@ -216,6 +217,13 @@ actor ReaderProgressDispatchService {
           logger.error(
             "❌ Timed out page progress for book \(update.bookId) page \(update.page) after \(timeoutRetryLimit) retries"
           )
+          if isFlush {
+            await MainActor.run {
+              ErrorManager.shared.notify(
+                message: String(localized: "notification.progressSyncFailed")
+              )
+            }
+          }
           return
         }
 
@@ -293,12 +301,14 @@ actor ReaderProgressDispatchService {
         "💾 Queued page progress for offline sync: book=\(update.bookId), page=\(update.page), completed=\(update.completed)"
       )
     } else {
-      try await BookService.shared.updatePageReadProgress(
-        bookId: update.bookId,
-        page: update.page,
-        completed: update.completed,
-        timeout: timeout
-      )
+      try await withHardTimeout(seconds: timeout) {
+        try await BookService.shared.updatePageReadProgress(
+          bookId: update.bookId,
+          page: update.page,
+          completed: update.completed,
+          timeout: timeout
+        )
+      }
       await DatabaseOperator.shared.updateReadingProgress(
         bookId: update.bookId,
         page: update.page,
@@ -336,11 +346,13 @@ actor ReaderProgressDispatchService {
         logger.debug(
           "📤 Sending EPUB progression request for book=\(update.bookId), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
         )
-        try await BookService.shared.updateWebPubProgression(
-          bookId: update.bookId,
-          progression: update.progression,
-          timeout: timeout
-        )
+        try await withHardTimeout(seconds: timeout) {
+          try await BookService.shared.updateWebPubProgression(
+            bookId: update.bookId,
+            progression: update.progression,
+            timeout: timeout
+          )
+        }
         logger.debug(
           "✅ EPUB progression request completed for book=\(update.bookId), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
         )
@@ -364,6 +376,28 @@ actor ReaderProgressDispatchService {
       throw apiError
     } catch {
       throw error
+    }
+  }
+
+  /// Enforce a hard deadline by racing the operation against a sleep timer.
+  /// URLRequest.timeoutInterval only controls idle timeout (time between data packets),
+  /// not total request duration. This ensures requests are cancelled after the deadline.
+  private nonisolated static func withHardTimeout(
+    seconds: TimeInterval,
+    operation: @Sendable @escaping () async throws -> Void
+  ) async throws {
+    try await withThrowingTaskGroup(of: Void.self) { group in
+      group.addTask {
+        try await operation()
+      }
+      group.addTask {
+        try await Task.sleep(for: .seconds(seconds))
+        throw URLError(.timedOut)
+      }
+      // Wait for the first task to complete; if timeout fires first, it throws
+      try await group.next()
+      // Cancel whichever task is still running
+      group.cancelAll()
     }
   }
 
