@@ -7,5 +7,43 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.everpcpc.Komga</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kmreader</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.everpcpc.Komga.continueReading</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>quick_action.continue_reading</string>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeBookmark</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.everpcpc.Komga.search</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>quick_action.search</string>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeSearch</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.everpcpc.Komga.downloads</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>quick_action.downloads</string>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeCloud</string>
+		</dict>
+	</array>
 </dict>
 </plist>

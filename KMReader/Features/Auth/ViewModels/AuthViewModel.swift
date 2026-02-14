@@ -280,6 +280,11 @@ class AuthViewModel {
     // Reconnect SSE with new instance if enabled
     await SSEService.shared.disconnect()
     await SSEService.shared.connect()
+
+    WidgetDataService.refreshWidgetData()
+    #if !os(tvOS)
+      SpotlightIndexService.indexAllDownloadedBooks(instanceId: finalInstanceId)
+    #endif
   }
 
   func updatePassword(password: String) async throws {

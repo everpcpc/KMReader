@@ -51,18 +51,18 @@ struct ReadListRowView: View {
           Spacer()
 
           EllipsisMenuButton {
-              ReadListContextMenu(
-                readListId: komgaReadList.readListId,
-                menuTitle: komgaReadList.name,
-                downloadStatus: komgaReadList.downloadStatus,
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
-              )
-              .id(komgaReadList.readListId)
+            ReadListContextMenu(
+              readListId: komgaReadList.readListId,
+              menuTitle: komgaReadList.name,
+              downloadStatus: komgaReadList.downloadStatus,
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              onEditRequested: {
+                showEditSheet = true
+              }
+            )
+            .id(komgaReadList.readListId)
           }
         }
       }

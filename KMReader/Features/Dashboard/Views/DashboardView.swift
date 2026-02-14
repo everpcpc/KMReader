@@ -225,6 +225,7 @@ struct DashboardView: View {
       guard !authViewModel.isSwitching else { return }
       // Bypass auto-refresh setting for configuration changes
       refreshDashboard(reason: "Library filter changed")
+      WidgetDataService.refreshWidgetData()
     }
     .onDisappear {
       // Cancel any pending refresh when view disappears

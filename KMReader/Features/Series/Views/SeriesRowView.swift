@@ -103,26 +103,26 @@ struct SeriesRowView: View {
               .foregroundColor(downloadStatus.color)
           }
           EllipsisMenuButton {
-              SeriesContextMenu(
-                seriesId: komgaSeries.seriesId,
-                menuTitle: komgaSeries.metaTitle,
-                downloadStatus: komgaSeries.downloadStatus,
-                offlinePolicy: komgaSeries.offlinePolicy,
-                offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
-                booksUnreadCount: komgaSeries.booksUnreadCount,
-                booksReadCount: komgaSeries.booksReadCount,
-                booksInProgressCount: komgaSeries.booksInProgressCount,
-                onShowCollectionPicker: {
-                  showCollectionPicker = true
-                },
-                onDeleteRequested: {
-                  showDeleteConfirmation = true
-                },
-                onEditRequested: {
-                  showEditSheet = true
-                }
-              )
-              .id(komgaSeries.seriesId)
+            SeriesContextMenu(
+              seriesId: komgaSeries.seriesId,
+              menuTitle: komgaSeries.metaTitle,
+              downloadStatus: komgaSeries.downloadStatus,
+              offlinePolicy: komgaSeries.offlinePolicy,
+              offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
+              booksUnreadCount: komgaSeries.booksUnreadCount,
+              booksReadCount: komgaSeries.booksReadCount,
+              booksInProgressCount: komgaSeries.booksInProgressCount,
+              onShowCollectionPicker: {
+                showCollectionPicker = true
+              },
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              onEditRequested: {
+                showEditSheet = true
+              }
+            )
+            .id(komgaSeries.seriesId)
           }
         }
       }
