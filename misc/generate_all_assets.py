@@ -10,7 +10,7 @@ from PIL import Image
 ICON_SVG = "icon.svg"
 
 BRAND_ASSETS_DIR = "KMReader/Assets.xcassets/AppIcon.brandassets"
-APP_ICON_DIR = "KMReader/Assets.xcassets/AppIconOld.appiconset"
+APP_ICON_DIR = "KMReader/Assets.xcassets/AppIcon.appiconset"
 LOGO_DIR = "KMReader/Assets.xcassets/logo.imageset"
 ICON_COMPOSER_DIR = "KMReader/AppIcon.icon"
 
