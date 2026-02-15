@@ -109,7 +109,9 @@ struct MainApp: App {
         #if !os(tvOS)
           .onContinueUserActivity(CSSearchableItemActionType) { activity in
             if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
-              deepLinkRouter.pendingDeepLink = .book(bookId: identifier)
+              if let deepLink = SpotlightIndexService.deepLink(for: identifier) {
+                deepLinkRouter.pendingDeepLink = deepLink
+              }
             }
           }
         #endif
