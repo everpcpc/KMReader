@@ -136,8 +136,8 @@ enum NavDestination: Hashable {
     case .settingsSSE:
       SettingsSSEView()
     #if !os(tvOS)
-    case .settingsSpotlight:
-      SettingsSpotlightView()
+      case .settingsSpotlight:
+        SettingsSpotlightView()
     #endif
     case .settingsNetwork:
       SettingsNetworkView()

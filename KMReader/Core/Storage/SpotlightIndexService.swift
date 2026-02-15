@@ -12,12 +12,36 @@ import Foundation
     private static nonisolated let bookPrefix = "book:"
     private static nonisolated let seriesPrefix = "series:"
 
+    static nonisolated func deepLink(for searchableItemIdentifier: String) -> DeepLink? {
+      guard let identifier = normalizedIdentifier(from: searchableItemIdentifier) else {
+        return nil
+      }
+
+      if identifier.hasPrefix(bookPrefix) {
+        let payload = String(identifier.dropFirst(bookPrefix.count))
+        guard !payload.isEmpty else { return nil }
+        return .book(bookId: extractItemId(from: payload))
+      }
+
+      if identifier.hasPrefix(seriesPrefix) {
+        let payload = String(identifier.dropFirst(seriesPrefix.count))
+        guard !payload.isEmpty else { return nil }
+        return .series(seriesId: extractItemId(from: payload))
+      }
+
+      return .book(bookId: identifier)
+    }
+
     static nonisolated func indexBook(_ book: Book, instanceId: String) {
       guard AppConfig.enableSpotlightIndexing else { return }
       guard shouldIndex(libraryId: book.libraryId, instanceId: instanceId) else {
         removeBook(bookId: book.id, instanceId: instanceId)
         if AppConfig.enableSpotlightSeriesIndexing {
-          indexSeries(seriesId: book.seriesId, seriesTitle: book.seriesTitle, instanceId: instanceId)
+          indexSeries(
+            seriesId: book.seriesId,
+            seriesTitle: book.seriesTitle,
+            instanceId: instanceId
+          )
         }
         return
       }
@@ -46,7 +70,11 @@ import Foundation
       }
 
       if AppConfig.enableSpotlightSeriesIndexing {
-        indexSeries(seriesId: book.seriesId, seriesTitle: book.seriesTitle, instanceId: instanceId)
+        indexSeries(
+          seriesId: book.seriesId,
+          seriesTitle: book.seriesTitle,
+          instanceId: instanceId
+        )
       } else {
         removeSeries(seriesId: book.seriesId, instanceId: instanceId)
       }
@@ -129,7 +157,10 @@ import Foundation
       let item = CSSearchableItem(
         uniqueIdentifier: seriesIdentifier(seriesId: seriesId, instanceId: instanceId),
         domainIdentifier: domainIdentifier,
-        attributeSet: makeSeriesAttributeSet(seriesTitle: seriesTitle)
+        attributeSet: makeSeriesAttributeSet(
+          seriesId: seriesId,
+          seriesTitle: seriesTitle
+        )
       )
       Task.detached(priority: .utility) {
         do {
@@ -180,13 +211,22 @@ import Foundation
       return attributeSet
     }
 
-    private static nonisolated func makeSeriesAttributeSet(seriesTitle: String)
+    private static nonisolated func makeSeriesAttributeSet(
+      seriesId: String,
+      seriesTitle: String
+    )
       -> CSSearchableItemAttributeSet
     {
       let attributeSet = CSSearchableItemAttributeSet(contentType: .content)
       attributeSet.title = seriesTitle
       attributeSet.contentDescription = "Series"
       attributeSet.keywords = [seriesTitle, "series", "comic", "manga"]
+
+      let seriesThumbnailURL = ThumbnailCache.getThumbnailFileURL(id: seriesId, type: .series)
+      if FileManager.default.fileExists(atPath: seriesThumbnailURL.path) {
+        attributeSet.thumbnailURL = seriesThumbnailURL
+      }
+
       return attributeSet
     }
 
@@ -206,9 +246,28 @@ import Foundation
         CSSearchableItem(
           uniqueIdentifier: seriesIdentifier(seriesId: seriesId, instanceId: instanceId),
           domainIdentifier: domain,
-          attributeSet: makeSeriesAttributeSet(seriesTitle: seriesTitle)
+          attributeSet: makeSeriesAttributeSet(
+            seriesId: seriesId,
+            seriesTitle: seriesTitle
+          )
         )
       }
+    }
+
+    private static nonisolated func normalizedIdentifier(from identifier: String) -> String? {
+      let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !trimmed.isEmpty else { return nil }
+      return trimmed
+    }
+
+    private static nonisolated func extractItemId(from payload: String) -> String {
+      guard let separator = payload.firstIndex(of: "_") else {
+        return payload
+      }
+
+      let itemStart = payload.index(after: separator)
+      let itemId = String(payload[itemStart...])
+      return itemId.isEmpty ? payload : itemId
     }
 
     private static nonisolated func bookIdentifier(bookId: String, instanceId: String) -> String {
