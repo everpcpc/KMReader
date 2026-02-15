@@ -71,8 +71,7 @@
 
     private func applyPresentationConfiguration(to pdfView: PDFView, coordinator: Coordinator) {
       let resolvedLayout = resolvedPageLayout(for: pdfView.bounds.size)
-      let direction = readingDirection
-      let isContinuous = direction == .webtoon
+      let direction: ReadingDirection = readingDirection == .webtoon ? .vertical : readingDirection
 
       if coordinator.lastResolvedPageLayout == resolvedLayout,
         coordinator.lastResolvedReadingDirection == direction,
@@ -85,24 +84,18 @@
       let currentPageNumberBeforeConfiguration = currentPageNumber(in: pdfView)
       let displayMode: PDFDisplayMode
 
-      switch (isContinuous, resolvedLayout) {
-      case (true, .dual):
+      switch resolvedLayout {
+      case .dual:
         displayMode = .twoUpContinuous
-      case (true, .single):
+      case .single, .auto:
         displayMode = .singlePageContinuous
-      case (false, .dual):
-        displayMode = .twoUp
-      case (false, .single):
-        displayMode = .singlePage
-      default:
-        displayMode = .singlePage
       }
 
       pdfView.displayMode = displayMode
-      pdfView.displayDirection = (direction == .vertical || direction == .webtoon) ? .vertical : .horizontal
+      pdfView.displayDirection = direction == .vertical ? .vertical : .horizontal
       pdfView.displaysRTL = direction == .rtl
-      pdfView.displaysAsBook = resolvedLayout == .dual && !isContinuous && isolateCoverPage
-      pdfView.usePageViewController(!isContinuous, withViewOptions: nil)
+      pdfView.displaysAsBook = resolvedLayout == .dual && isolateCoverPage
+      pdfView.usePageViewController(false, withViewOptions: nil)
 
       coordinator.lastResolvedPageLayout = resolvedLayout
       coordinator.lastResolvedReadingDirection = direction

@@ -14,6 +14,11 @@ enum ReadingDirection: String, CaseIterable, Hashable, Codable {
   case vertical = "VERTICAL"
   case webtoon = "WEBTOON"
 
+  /// Reading directions available in PDF reader.
+  static var pdfAvailableCases: [ReadingDirection] {
+    [.ltr, .rtl, .vertical]
+  }
+
   /// Get available reading directions for current platform
   static var availableCases: [ReadingDirection] {
     #if os(iOS) || os(macOS)
