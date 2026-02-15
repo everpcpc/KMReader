@@ -265,9 +265,9 @@ struct DashboardView: View {
 
           if !visitedBookIds.isEmpty {
             try? await Task.sleep(for: .milliseconds(200))
-            let idle = await ReaderProgressTracker.shared.waitUntilIdle(
+            let idle = await ReaderProgressDispatchService.shared.waitUntilSettled(
               bookIds: visitedBookIds,
-              timeout: .seconds(2)
+              timeout: .seconds(6)
             )
             if !idle {
               logger.warning(

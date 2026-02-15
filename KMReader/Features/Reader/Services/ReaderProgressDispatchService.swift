@@ -80,7 +80,7 @@ actor ReaderProgressDispatchService {
       "🚿 Flush page progress requested for book \(bookId): hasPending=\(pendingPageUpdates[bookId] != nil), isSending=\(pageSendTasks[bookId] != nil)"
     )
 
-    sendPendingPageProgress(for: bookId, trigger: "flush")
+    sendPendingPageProgress(for: bookId, trigger: "flush", priority: .userInitiated)
   }
 
   func submitEpubProgression(
@@ -104,12 +104,31 @@ actor ReaderProgressDispatchService {
     sendPendingEpubProgression(for: bookId, trigger: "enqueue")
   }
 
+  func waitUntilSettled(bookIds: Set<String>, timeout: Duration = .seconds(6)) async -> Bool {
+    guard !bookIds.isEmpty else { return true }
+
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: timeout)
+
+    while hasPendingDispatchWork(for: bookIds) {
+      guard !Task.isCancelled else { return false }
+      guard clock.now < deadline else { return false }
+      try? await Task.sleep(for: .milliseconds(50))
+    }
+
+    return true
+  }
+
   private func triggerDebouncedPageSend(bookId: String) {
     pageDebounceTasks.removeValue(forKey: bookId)
     sendPendingPageProgress(for: bookId, trigger: "debounce")
   }
 
-  private func sendPendingPageProgress(for bookId: String, trigger: String) {
+  private func sendPendingPageProgress(
+    for bookId: String,
+    trigger: String,
+    priority: TaskPriority = .utility
+  ) {
     guard pageSendTasks[bookId] == nil else {
       logger.debug("⏳ Page progress send already in flight for book \(bookId), trigger=\(trigger)")
       return
@@ -121,7 +140,7 @@ actor ReaderProgressDispatchService {
     }
 
     let isFlush = trigger == "flush"
-    pageSendTasks[bookId] = Task(priority: .utility) { [weak self] in
+    pageSendTasks[bookId] = Task(priority: priority) { [weak self] in
       await self?.executePageSend(bookId: bookId, trigger: trigger, isFlush: isFlush)
     }
   }
@@ -142,6 +161,17 @@ actor ReaderProgressDispatchService {
     }
   }
 
+  private func hasPendingDispatchWork(for bookIds: Set<String>) -> Bool {
+    for bookId in bookIds {
+      if pendingPageUpdates[bookId] != nil { return true }
+      if pageDebounceTasks[bookId] != nil { return true }
+      if pageSendTasks[bookId] != nil { return true }
+      if pendingEpubUpdates[bookId] != nil { return true }
+      if epubSendTasks[bookId] != nil { return true }
+    }
+    return false
+  }
+
   private func executePageSend(bookId: String, trigger: String, isFlush: Bool) async {
     guard let update = pendingPageUpdates.removeValue(forKey: bookId) else {
       pageSendTasks.removeValue(forKey: bookId)
@@ -152,9 +182,7 @@ actor ReaderProgressDispatchService {
       "📤 Dispatching page progress for book \(bookId): page=\(update.page), completed=\(update.completed), trigger=\(trigger)"
     )
 
-    await ReaderProgressTracker.shared.begin(bookId: bookId)
     await performPageProgressUpdateWithTimeoutHandling(update, isFlush: isFlush)
-    await ReaderProgressTracker.shared.end(bookId: bookId)
 
     pageSendTasks.removeValue(forKey: bookId)
 
@@ -174,9 +202,7 @@ actor ReaderProgressDispatchService {
       "📤 Dispatching EPUB progression for book \(bookId): href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber), trigger=\(trigger)"
     )
 
-    await ReaderProgressTracker.shared.begin(bookId: bookId)
     await performEpubProgressionUpdateWithTimeoutHandling(update)
-    await ReaderProgressTracker.shared.end(bookId: bookId)
 
     epubSendTasks.removeValue(forKey: bookId)
 

@@ -98,9 +98,9 @@ final class ReaderPresentationManager {
           "⏳ Waiting for reader progress flush before syncing visited items: books=\(bookIds.count), series=\(seriesIds.count)"
         )
         try? await Task.sleep(for: .milliseconds(200))
-        let idle = await ReaderProgressTracker.shared.waitUntilIdle(
+        let idle = await ReaderProgressDispatchService.shared.waitUntilSettled(
           bookIds: bookIds,
-          timeout: .seconds(2)
+          timeout: .seconds(6)
         )
         if !idle {
           logger.warning(
