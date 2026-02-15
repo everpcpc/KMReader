@@ -44,6 +44,7 @@ class ReaderViewModel {
   private let logger = AppLogger(.reader)
   /// Current book ID for API calls and cache access
   var bookId: String = ""
+  private var bookMediaProfile: MediaProfile = .unknown
 
   /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
@@ -80,6 +81,7 @@ class ReaderViewModel {
 
   func loadPages(book: Book, initialPageNumber: Int? = nil) async {
     self.bookId = book.id
+    self.bookMediaProfile = book.media.mediaProfile ?? .unknown
     isLoading = true
 
     // Cancel all ongoing download tasks when loading a new book
@@ -91,6 +93,8 @@ class ReaderViewModel {
     animatedPageStates.removeAll()
 
     do {
+      await prepareOfflinePDFForDivina(book: book)
+
       let fetchedPages: [BookPage]
       if let localPages = await DatabaseOperator.shared.fetchPages(id: book.id) {
         fetchedPages = localPages
@@ -133,6 +137,8 @@ class ReaderViewModel {
         } else {
           tableOfContents = []
         }
+      } else if book.media.mediaProfile == .pdf {
+        tableOfContents = await DatabaseOperator.shared.fetchTOC(id: book.id) ?? []
       } else {
         tableOfContents = []
       }
@@ -153,22 +159,6 @@ class ReaderViewModel {
       return nil
     }
 
-    // 1. Check OfflineManager (Persistent Offline Content)
-    let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-    if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
-      instanceId: AppConfig.current.instanceId, bookId: bookId, pageNumber: page.number,
-      fileExtension: ext
-    ) {
-      logger.debug(
-        "✅ Using offline downloaded image for page \(page.number) for book \(self.bookId)")
-      return offlineURL
-    }
-
-    // 2. Check ImageCache (Transient Cache)
-    if let cachedFileURL = await getCachedImageFileURL(page: page) {
-      logger.debug("✅ Using cached image for page \(page.number) for book \(self.bookId)")
-      return cachedFileURL
-    }
     if let existingTask = downloadingTasks[page.number] {
       logger.debug(
         "⏳ Waiting for existing download task for page \(page.number) for book \(self.bookId)"
@@ -182,8 +172,28 @@ class ReaderViewModel {
       return nil
     }
 
-    let downloadTask = Task<URL?, Never> {
-      logger.info("📥 Downloading page \(page.number) for book \(self.bookId)")
+    let loadTask = Task<URL?, Never> {
+      let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
+      if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
+        instanceId: AppConfig.current.instanceId, bookId: self.bookId, pageNumber: page.number,
+        fileExtension: ext
+      ) {
+        self.logger.debug(
+          "✅ Using offline downloaded image for page \(page.number) for book \(self.bookId)")
+        return offlineURL
+      }
+
+      if let cachedFileURL = await self.getCachedImageFileURL(page: page) {
+        self.logger.debug("✅ Using cached image for page \(page.number) for book \(self.bookId)")
+        return cachedFileURL
+      }
+
+      if self.bookMediaProfile == .pdf, page.downloadURL == nil {
+        self.logger.error("❌ Missing offline PDF page \(page.number) for book \(self.bookId)")
+        return nil
+      }
+
+      self.logger.info("📥 Downloading page \(page.number) for book \(self.bookId)")
 
       do {
         guard let remoteURL = self.resolvedDownloadURL(for: page) else {
@@ -225,8 +235,8 @@ class ReaderViewModel {
       }
     }
 
-    downloadingTasks[page.number] = downloadTask
-    let result = await downloadTask.value
+    downloadingTasks[page.number] = loadTask
+    let result = await loadTask.value
     downloadingTasks.removeValue(forKey: page.number)
     return result
   }
@@ -244,6 +254,72 @@ class ReaderViewModel {
       return pageImageCache.imageFileURL(bookId: bookId, page: page)
     }
     return nil
+  }
+
+  private func prepareOfflinePDFForDivina(book: Book) async {
+    guard bookMediaProfile == .pdf else {
+      return
+    }
+
+    logger.debug("🧪 Preparing offline PDF metadata for Divina, book \(book.id)")
+
+    guard
+      let offlinePDFURL = await OfflineManager.shared.getOfflinePDFURL(
+        instanceId: AppConfig.current.instanceId,
+        bookId: book.id
+      )
+    else {
+      logger.debug("⏭️ Skip offline PDF preparation because offline PDF file is missing for book \(book.id)")
+      return
+    }
+
+    let hasLocalPages = !(await DatabaseOperator.shared.fetchPages(id: book.id)?.isEmpty ?? true)
+    let hasLocalTOC = await DatabaseOperator.shared.fetchTOC(id: book.id) != nil
+    let forceRebuildMetadata = !hasLocalPages || !hasLocalTOC
+    if forceRebuildMetadata {
+      logger.debug(
+        "🛠️ Force PDF metadata rebuild for book \(book.id), hasPages=\(hasLocalPages), hasTOC=\(hasLocalTOC)"
+      )
+    }
+
+    guard
+      let result = await PdfOfflinePreparationService.shared.prepare(
+        instanceId: AppConfig.current.instanceId,
+        bookId: book.id,
+        documentURL: offlinePDFURL,
+        forceRebuildMetadata: forceRebuildMetadata
+      )
+    else {
+      logger.debug("⏭️ Skip offline PDF preparation because assets are already valid for book \(book.id)")
+      return
+    }
+
+    await applyPreparedPDFMetadata(bookId: book.id, result: result)
+  }
+
+  private func applyPreparedPDFMetadata(
+    bookId: String,
+    result: PdfOfflinePreparationService.PreparationResult
+  ) async {
+    logger.debug(
+      "💾 Applying prepared PDF metadata to database for book \(bookId), pages=\(result.pages.count), toc=\(result.tableOfContents.count)"
+    )
+
+    await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: result.pages)
+    await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: result.tableOfContents)
+    await DatabaseOperator.shared.commit()
+    if result.renderedImageCount > 0 {
+      await OfflineManager.shared.refreshDownloadedBookSize(
+        instanceId: AppConfig.current.instanceId,
+        bookId: bookId
+      )
+    } else {
+      logger.debug("⏭️ Skip downloaded size refresh for book \(bookId) because no new PDF page was rendered")
+    }
+
+    logger.debug(
+      "✅ Applied prepared PDF metadata for book \(bookId), rendered=\(result.renderedImageCount), reused=\(result.reusedImageCount), skipped=\(result.skippedImageCount)"
+    )
   }
 
   /// Preload pages around the current page for smoother scrolling

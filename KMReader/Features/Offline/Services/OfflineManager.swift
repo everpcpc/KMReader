@@ -93,6 +93,8 @@ actor OfflineManager {
   private static let directoryName = "OfflineBooks"
   private static let epubFileName = "book.epub"
   private static let pdfFileName = "book.pdf"
+  private static let pdfPreparationStampFileName = ".pdf-prepared.stamp"
+  nonisolated static let pdfPreparationCompletionFlag = "prepared-v1"
 
   // MARK: - Paths
 
@@ -841,6 +843,71 @@ actor OfflineManager {
       return file
     }
     return nil
+  }
+
+  func storeOfflinePageImage(
+    instanceId: String,
+    bookId: String,
+    pageNumber: Int,
+    fileExtension: String,
+    data: Data
+  ) async -> URL? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    let file = dir.appendingPathComponent("page-\(pageNumber).\(fileExtension)")
+
+    if FileManager.default.fileExists(atPath: file.path) {
+      return file
+    }
+
+    do {
+      try data.write(to: file)
+      Self.excludeFromBackupIfNeeded(at: file)
+      return file
+    } catch {
+      logger.error(
+        "❌ Failed to store offline page image for book \(bookId) page \(pageNumber): \(error)")
+      return nil
+    }
+  }
+
+  func refreshDownloadedBookSize(instanceId: String, bookId: String) async {
+    guard await isBookDownloaded(bookId: bookId) else { return }
+    let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    guard let size = try? Self.calculateDirectorySize(bookDir) else { return }
+
+    await DatabaseOperator.shared.updateBookDownloadStatus(
+      bookId: bookId,
+      instanceId: instanceId,
+      status: .downloaded,
+      downloadedSize: size
+    )
+    await DatabaseOperator.shared.commit()
+  }
+
+  func readOfflinePDFPreparationStamp(instanceId: String, bookId: String) async -> String? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
+      Self.pdfPreparationStampFileName
+    )
+    guard FileManager.default.fileExists(atPath: file.path) else { return nil }
+    guard let data = try? Data(contentsOf: file) else { return nil }
+    return String(data: data, encoding: .utf8)?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  func writeOfflinePDFPreparationStamp(instanceId: String, bookId: String, stamp: String) async {
+    guard await isBookDownloaded(bookId: bookId) else { return }
+    let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
+      Self.pdfPreparationStampFileName
+    )
+    guard let data = stamp.data(using: .utf8) else { return }
+    do {
+      try data.write(to: file)
+      Self.excludeFromBackupIfNeeded(at: file)
+    } catch {
+      logger.error("❌ Failed to write PDF preparation stamp for book \(bookId): \(error)")
+    }
   }
 
   func getOfflineEpubURL(instanceId: String, bookId: String) async -> URL? {
