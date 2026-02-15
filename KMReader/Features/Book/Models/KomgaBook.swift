@@ -71,6 +71,7 @@ final class KomgaBook {
   var pagesRaw: Data?
   var tocRaw: Data?
   var webPubManifestRaw: Data?
+  var epubProgressionRaw: Data?
 
   // Track offline download status (managed locally)
   var downloadStatusRaw: String = "notDownloaded"
@@ -216,6 +217,7 @@ final class KomgaBook {
     self.readListIdsRaw = try? JSONEncoder().encode([] as [String])
     self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
     self.epubPreferencesRaw = nil
+    self.epubProgressionRaw = nil
   }
 
   var media: Media {

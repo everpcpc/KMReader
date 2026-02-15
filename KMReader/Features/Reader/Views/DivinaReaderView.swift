@@ -915,27 +915,27 @@ struct DivinaReaderView: View {
     // Load book info to get read progress page and series reading direction
     var initialPageNumber: Int? = nil
 
-    // 1. Use current book if it matches, otherwise try DB/network
-    if let book = currentBook, book.id == bookId {
-      seriesId = book.seriesId
-      readerPresentation.trackVisitedBook(bookId: book.id, seriesId: book.seriesId)
-      initialPageNumber = incognito ? nil : book.readProgress?.page
-    } else if let book = await DatabaseOperator.shared.fetchBook(id: bookId) {
-      currentBook = book
-      seriesId = book.seriesId
-      readerPresentation.trackVisitedBook(bookId: book.id, seriesId: book.seriesId)
-      initialPageNumber = incognito ? nil : book.readProgress?.page
-    } else if !AppConfig.isOffline {
-      // 2. Fetch from network if not in DB and online
-      do {
-        let book = try await SyncService.shared.syncBook(bookId: bookId)
-        currentBook = book
-        seriesId = book.seriesId
-        readerPresentation.trackVisitedBook(bookId: book.id, seriesId: book.seriesId)
-        initialPageNumber = incognito ? nil : book.readProgress?.page
-      } catch {
-        // Fail silently
+    // Resolve from in-memory/DB first, then always refresh from network when online.
+    var resolvedBook: Book?
+    if let currentBook, currentBook.id == bookId {
+      resolvedBook = currentBook
+    } else if let cachedBook = await DatabaseOperator.shared.fetchBook(id: bookId) {
+      resolvedBook = cachedBook
+    } else if book.id == bookId {
+      resolvedBook = book
+    }
+
+    if !AppConfig.isOffline {
+      if let syncedBook = try? await SyncService.shared.syncBook(bookId: bookId) {
+        resolvedBook = syncedBook
       }
+    }
+
+    if let resolvedBook {
+      currentBook = resolvedBook
+      seriesId = resolvedBook.seriesId
+      readerPresentation.trackVisitedBook(bookId: resolvedBook.id, seriesId: resolvedBook.seriesId)
+      initialPageNumber = incognito ? nil : resolvedBook.readProgress?.page
     }
 
     if let activeBook = currentBook {
