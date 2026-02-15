@@ -74,7 +74,6 @@
           } label: {
             ChapterLabel(link: link, currentLink: currentLink)
           }
-          .contentShape(Rectangle())
         }
         .id(link.href)
       } else {

@@ -68,6 +68,11 @@ make artifacts          # Prepare IPA/DMG for GitHub Release
 make clean              # Remove archives, exports, and artifacts
 ```
 
+Build execution rule:
+- Do not run multiple `make build-*` commands in parallel. `xcodebuild` shares the same DerivedData build database and parallel runs may fail with database lock errors.
+- Prefer `make build` for full validation.
+- If platform-specific builds are required, run `make build-ios`, `make build-macos`, and `make build-tvos` sequentially.
+
 ### Run Commands
 
 Run commands support device selection with preferences stored in `devices.json`.
@@ -145,7 +150,7 @@ make localize           # Update localizations
 
 Validate changes by:
 
-1. Building all relevant targets (`make build-ios`, `make build-macos`, `make build-tvos`)
+1. Build targets sequentially (prefer `make build`; if needed, run `make build-ios`, `make build-macos`, and `make build-tvos` in order)
 2. Manual testing: login/logout, server switching, dashboard refresh, SSE auto-refresh, reader opening/closing, cache clearing
 3. Watch Xcode Console filtered by subsystem `Komga` with categories `API`, `SSE`, or `ReaderViewModel`
 

@@ -126,7 +126,6 @@ private struct TOCEntryRow: View {
           } label: {
             TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
           }
-          .contentShape(Rectangle())
         }
         .id(entry.pageIndex)
         .onAppear {
@@ -181,6 +180,5 @@ private struct TOCEntryLabel: View {
         .foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .contentShape(Rectangle())
   }
 }
