@@ -29,7 +29,7 @@ enum AppConfig {
       if UserDefaults.standard.object(forKey: "requestTimeout") != nil {
         return UserDefaults.standard.double(forKey: "requestTimeout")
       }
-      return 20.0
+      return 15.0
     }
     set { UserDefaults.standard.set(newValue, forKey: "requestTimeout") }
   }
@@ -49,7 +49,7 @@ enum AppConfig {
       if UserDefaults.standard.object(forKey: "authTimeout") != nil {
         return UserDefaults.standard.double(forKey: "authTimeout")
       }
-      return 10.0
+      return 5.0
     }
     set { UserDefaults.standard.set(newValue, forKey: "authTimeout") }
   }

@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct SettingsNetworkView: View {
-  @AppStorage("requestTimeout") private var requestTimeout: Double = 20
+  @AppStorage("requestTimeout") private var requestTimeout: Double = 15
   @AppStorage("downloadTimeout") private var downloadTimeout: Double = 60
-  @AppStorage("authTimeout") private var authTimeout: Double = 10
+  @AppStorage("authTimeout") private var authTimeout: Double = 5
   @AppStorage("apiRetryCount") private var apiRetryCount: Int = 0
   @AppStorage("enableBrowseHandoff") private var enableBrowseHandoff: Bool = true
   @AppStorage("enableReaderHandoff") private var enableReaderHandoff: Bool = false
