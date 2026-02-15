@@ -192,7 +192,7 @@
         Section(String(localized: "Font")) {
           Picker(String(localized: "Typeface"), selection: $draft.fontFamily) {
             ForEach(FontProvider.allChoices, id: \.id) { choice in
-              Text(choice.rawValue).tag(choice)
+              Text(choice.displayName).tag(choice)
             }
           }
           .id(fontListRefreshId)
@@ -376,13 +376,14 @@
             fontListRefreshId = UUID()
 
             let customFontNames = customFonts.map { $0.name }
-            if !customFontNames.contains(draft.fontFamily.rawValue)
-              && draft.fontFamily != .publisher
-              && !FontProvider.allChoices.contains(where: {
-                $0.rawValue == draft.fontFamily.rawValue
+            if let selectedFontName = draft.fontFamily.fontName {
+              let isKnownCustomFont = customFontNames.contains(selectedFontName)
+              let isKnownChoice = FontProvider.allChoices.contains(where: {
+                $0.fontName == selectedFontName
               })
-            {
-              draft.fontFamily = .publisher
+              if !isKnownCustomFont && !isKnownChoice {
+                draft.fontFamily = .publisher
+              }
             }
           }
       }

@@ -422,22 +422,42 @@ nonisolated enum FontFamilyChoice: Hashable, Identifiable {
   case publisher
   case system(String)
 
-  static let publisherValue = String(localized: "Publisher Default")
+  static let publisherStorageValue = "__kmreader_publisher_default__"
+  static let publisherDisplayValue = String(localized: "Publisher Default")
+  static let legacyPublisherValues: Set<String> = [
+    "Publisher Default",
+    "Verleger-Standard",
+    "Par défaut de l'éditeur",
+    "出版社デフォルト",
+    "출판사 기본값",
+    "出版商默认",
+    "出版商預設",
+    publisherDisplayValue,
+  ]
 
   var id: String { rawValue }
 
   var rawValue: String {
     switch self {
-    case .publisher: return FontFamilyChoice.publisherValue
+    case .publisher: return FontFamilyChoice.publisherStorageValue
     case .system(let name): return name
     }
   }
 
   init(rawValue: String) {
-    if rawValue == FontFamilyChoice.publisherValue {
+    if rawValue == FontFamilyChoice.publisherStorageValue
+      || FontFamilyChoice.legacyPublisherValues.contains(rawValue)
+    {
       self = .publisher
     } else {
       self = .system(rawValue)
+    }
+  }
+
+  var displayName: String {
+    switch self {
+    case .publisher: return FontFamilyChoice.publisherDisplayValue
+    case .system(let name): return name
     }
   }
 
