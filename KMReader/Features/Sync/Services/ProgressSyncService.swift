@@ -111,6 +111,10 @@ actor ProgressSyncService {
         bookId: item.bookId,
         progression: progression
       )
+      await DatabaseOperator.shared.updateBookEpubProgression(
+        bookId: item.bookId,
+        progression: progression
+      )
       logger.debug("✅ Synced EPUB progression for book \(item.bookId)")
 
     } else {

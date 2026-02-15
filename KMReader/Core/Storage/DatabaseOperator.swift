@@ -240,6 +240,38 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchBookEpubProgression(bookId: String) async -> R2Progression? {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    guard let data = try? modelContext.fetch(descriptor).first?.epubProgressionRaw else {
+      return nil
+    }
+    return await MainActor.run {
+      let decoder = JSONDecoder()
+      decoder.dateDecodingStrategy = .iso8601
+      return try? decoder.decode(R2Progression.self, from: data)
+    }
+  }
+
+  func updateBookEpubProgression(bookId: String, progression: R2Progression?) async {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      if let progression {
+        let data = await MainActor.run {
+          let encoder = JSONEncoder()
+          encoder.dateEncodingStrategy = .iso8601
+          return try? encoder.encode(progression)
+        }
+        book.epubProgressionRaw = data
+      } else {
+        book.epubProgressionRaw = nil
+      }
+    }
+  }
+
   func fetchTOC(id: String) -> [ReaderTOCEntry]? {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: id)

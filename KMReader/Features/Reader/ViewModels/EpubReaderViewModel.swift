@@ -221,7 +221,10 @@
 
         var savedProgression: R2Progression?
         if !incognito {
-          savedProgression = try? await BookService.shared.getWebPubProgression(bookId: bookId)
+          if !AppConfig.isOffline {
+            await syncRemoteProgressionToLocal(bookId: bookId)
+          }
+          savedProgression = await DatabaseOperator.shared.fetchBookEpubProgression(bookId: bookId)
         }
 
         if let savedProgression {
@@ -1021,6 +1024,28 @@
             print("⚠️ Failed to copy font '\(fontName)': \(error)")
           }
         }
+      }
+    }
+
+    private func syncRemoteProgressionToLocal(bookId: String) async {
+      do {
+        let progression = try await BookService.shared.getWebPubProgression(bookId: bookId)
+        await DatabaseOperator.shared.updateBookEpubProgression(
+          bookId: bookId,
+          progression: progression
+        )
+        await DatabaseOperator.shared.commit()
+        if let progression {
+          logger.debug(
+            "Synced remote EPUB progression to local storage: href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0)"
+          )
+        } else {
+          logger.debug("Synced remote EPUB progression to local storage: empty progression")
+        }
+      } catch {
+        logger.warning(
+          "Failed to fetch remote EPUB progression for book \(bookId): \(error.localizedDescription)"
+        )
       }
     }
 
