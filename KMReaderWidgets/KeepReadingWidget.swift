@@ -76,9 +76,9 @@ struct KeepReadingWidgetEntryView: View {
   }
 
   private var largeView: some View {
-    let books = Array(entry.books.prefix(4))
-    let topRow = Array(books.prefix(2))
-    let bottomRow = Array(books.dropFirst(2))
+    let books = Array(entry.books.prefix(6))
+    let topRow = Array(books.prefix(3))
+    let bottomRow = Array(books.dropFirst(3))
     return VStack(alignment: .leading, spacing: 8) {
       HStack(spacing: 8) {
         ForEach(topRow, id: \.id) { book in
@@ -92,7 +92,7 @@ struct KeepReadingWidgetEntryView: View {
             WidgetBookCardView(entry: book, showProgress: true)
               .frame(maxWidth: .infinity)
           }
-          if bottomRow.count < 2 {
+          ForEach(0..<(3 - bottomRow.count), id: \.self) { _ in
             Color.clear
               .frame(maxWidth: .infinity)
           }
