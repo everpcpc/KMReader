@@ -54,9 +54,6 @@
 
       pdfView.document = document
       coordinator.loadedDocumentURL = documentURL
-      let minScale = minimumScale(for: pdfView)
-      pdfView.minScaleFactor = minScale
-      pdfView.maxScaleFactor = max(minScale * 8.0, minScale)
 
       let clampedInitialPage = max(1, min(initialPageNumber, max(1, document.pageCount)))
       goToPage(clampedInitialPage, in: pdfView)
@@ -106,9 +103,6 @@
       pdfView.displaysRTL = direction == .rtl
       pdfView.displaysAsBook = resolvedLayout == .dual && !isContinuous && isolateCoverPage
       pdfView.usePageViewController(!isContinuous, withViewOptions: nil)
-      let minScale = minimumScale(for: pdfView)
-      pdfView.minScaleFactor = minScale
-      pdfView.maxScaleFactor = max(minScale * 8.0, minScale)
 
       coordinator.lastResolvedPageLayout = resolvedLayout
       coordinator.lastResolvedReadingDirection = direction
@@ -144,17 +138,6 @@
       let index = max(0, min(pageNumber - 1, document.pageCount - 1))
       guard let page = document.page(at: index) else { return }
       pdfView.go(to: page)
-    }
-
-    private func minimumScale(for pdfView: PDFView) -> CGFloat {
-      let fitScale = pdfView.scaleFactorForSizeToFit
-      if fitScale > 0 {
-        return fitScale
-      }
-      if pdfView.minScaleFactor > 0 {
-        return pdfView.minScaleFactor
-      }
-      return 1.0
     }
 
     private func scheduleInitialPageCorrection(
