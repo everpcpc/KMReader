@@ -22938,6 +22938,52 @@
         }
       }
     },
+    "Native PDF Reader is disabled. PDF books use DIVINA Reader settings." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der native PDF-Reader ist deaktiviert. PDF-Bücher verwenden die Einstellungen des DIVINA-Readers."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Native PDF Reader is disabled. PDF books use DIVINA Reader settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le lecteur PDF natif est désactivé. Les livres PDF utilisent les paramètres du lecteur DIVINA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ネイティブPDFリーダーは無効です。PDF書籍にはDIVINAリーダーの設定が使用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "네이티브 PDF 리더가 비활성화되어 있습니다. PDF 도서는 DIVINA 리더 설정을 사용합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生 PDF 阅读器已关闭。PDF 书籍将使用 DIVINA 阅读器设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生 PDF 閱讀器已關閉。PDF 書籍將使用 DIVINA 閱讀器設定。"
+          }
+        }
+      }
+    },
     "Network" : {
       "localizations" : {
         "de" : {
@@ -45890,6 +45936,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL 連結"
+          }
+        }
+      }
+    },
+    "Use Native PDF Reader" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nativen PDF-Reader verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Native PDF Reader"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser le lecteur PDF natif"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ネイティブPDFリーダーを使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "네이티브 PDF 리더 사용"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用原生 PDF 阅读器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用原生 PDF 閱讀器"
           }
         }
       }

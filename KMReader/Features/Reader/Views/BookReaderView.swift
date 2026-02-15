@@ -16,6 +16,7 @@ struct BookReaderView: View {
   @Environment(\.dismiss) private var dismiss
 
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+  @AppStorage("useNativePdfReader") private var useNativePdfReader: Bool = true
 
   private var mediaProfile: MediaProfile {
     book.media.mediaProfile ?? .unknown
@@ -76,23 +77,32 @@ struct BookReaderView: View {
                 #endif
               }
             case .pdf:
-              #if os(iOS) || os(macOS)
-                PdfReaderView(
+              if useNativePdfReader {
+                #if os(iOS) || os(macOS)
+                  PdfReaderView(
+                    book: book,
+                    incognito: incognito,
+                    onClose: closeReader
+                  )
+                #else
+                  ReaderUnavailableView(
+                    icon: "doc.richtext",
+                    title: "PDF Reader Not Available",
+                    message: String(
+                      localized:
+                        "PDF reading is only supported on iOS and macOS."
+                    ),
+                    onClose: closeReader
+                  )
+                #endif
+              } else {
+                DivinaReaderView(
                   book: book,
                   incognito: incognito,
+                  readList: readList,
                   onClose: closeReader
                 )
-              #else
-                ReaderUnavailableView(
-                  icon: "doc.richtext",
-                  title: "PDF Reader Not Available",
-                  message: String(
-                    localized:
-                      "PDF reading is only supported on iOS and macOS."
-                  ),
-                  onClose: closeReader
-                )
-              #endif
+              }
             }
           default:
             ReaderUnavailableView(
