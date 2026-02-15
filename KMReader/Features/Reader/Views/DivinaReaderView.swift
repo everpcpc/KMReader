@@ -939,8 +939,10 @@ struct DivinaReaderView: View {
     }
 
     if let activeBook = currentBook {
-      // Refresh Divina manifest if online
-      if !AppConfig.isOffline {
+      let isBookDownloaded = await OfflineManager.shared.isBookDownloaded(bookId: activeBook.id)
+
+      // Refresh Divina manifest only when online and the book is not downloaded offline.
+      if !AppConfig.isOffline, !isBookDownloaded {
         do {
           let manifest = try await BookService.shared.getBookManifest(id: activeBook.id)
           let toc = await ReaderManifestService(bookId: activeBook.id).parseTOC(manifest: manifest)
