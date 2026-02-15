@@ -37,6 +37,11 @@
             .inlineNavigationBarTitle(SettingsSection.pdfReader.title)
         }
       }
+      .onAppear {
+        if defaultReadingDirection == .webtoon {
+          defaultReadingDirection = .vertical
+        }
+      }
     }
 
     private var preferencesForm: some View {
@@ -57,7 +62,7 @@
         Section(header: Text("Default Reading Options")) {
           VStack(alignment: .leading, spacing: 8) {
             Picker("Preferred Direction", selection: $defaultReadingDirection) {
-              ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+              ForEach(ReadingDirection.pdfAvailableCases, id: \.self) { direction in
                 Label(direction.displayName, systemImage: direction.icon)
                   .tag(direction)
               }
@@ -87,7 +92,7 @@
             }
             .pickerStyle(.menu)
 
-            Text("Used for single and dual-page presentation in paged or continuous mode")
+            Text("Used for single and dual-page presentation in continuous mode")
               .font(.caption)
               .foregroundColor(.secondary)
           }

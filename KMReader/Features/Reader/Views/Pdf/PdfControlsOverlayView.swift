@@ -47,12 +47,6 @@
       return String(max(1, currentPage))
     }
 
-    private var enableDualPageOptions: Bool {
-      readingDirection != .webtoon
-        && readingDirection != .vertical
-        && pageLayout.supportsDualPageOptions
-    }
-
     var body: some View {
       VStack(spacing: 0) {
         if controlsVisible {
@@ -201,7 +195,7 @@
     private func menuContent() -> some View {
       Section {
         Picker(selection: $readingDirection) {
-          ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+          ForEach(ReadingDirection.pdfAvailableCases, id: \.self) { direction in
             Label(direction.displayName, systemImage: direction.icon)
               .tag(direction)
           }
@@ -220,7 +214,7 @@
         }
         .pickerStyle(.menu)
 
-        if enableDualPageOptions {
+        if pageLayout.supportsDualPageOptions {
           pageIsolation()
         }
       } header: {

@@ -45894,7 +45894,54 @@
         }
       }
     },
+    "Used for single and dual-page presentation in continuous mode" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird für die Einzel- und Doppelseitenanzeige im kontinuierlichen Modus verwendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used for single and dual-page presentation in continuous mode"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisé pour l'affichage en page simple et en double page en mode défilement continu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続スクロールモードでの単ページおよび見開き表示に使用されます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 스크롤 모드에서 단일 및 양면 페이지 표시 방식에 사용됩니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于连续滚动模式下的单页和双页显示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用於連續捲動模式下的單頁與雙頁顯示"
+          }
+        }
+      }
+    },
     "Used for single and dual-page presentation in paged or continuous mode" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {

@@ -111,22 +111,15 @@
         readerPresentation.hideStatusBar = false
         updateHandoff()
       }
-      .onChange(of: readingDirection) { oldDirection, newDirection in
+      .onChange(of: readingDirection) { _, newDirection in
         if readerPresentation.readingDirection != newDirection {
           readerPresentation.readingDirection = newDirection
         }
-
-        guard isContinuousMode(for: oldDirection) != isContinuousMode(for: newDirection) else {
-          return
-        }
-        guard viewModel.pageCount > 0 else { return }
-
-        let preservedPage = max(1, min(viewModel.currentPageNumber, viewModel.pageCount))
-        DispatchQueue.main.async {
-          forcePageNavigation(to: preservedPage)
-        }
       }
-      .onChange(of: defaultReadingDirection) { _, _ in
+      .onChange(of: defaultReadingDirection) { _, newDirection in
+        if newDirection == .webtoon {
+          defaultReadingDirection = .vertical
+        }
         Task {
           await refreshPreferredReadingDirection()
         }
@@ -147,7 +140,6 @@
       }
       .onChange(of: viewModel.documentURL) { _, newURL in
         guard newURL != nil else { return }
-        guard isContinuousMode else { return }
         guard viewModel.pageCount > 0 else { return }
 
         let targetPage = documentInitialPage
@@ -180,16 +172,8 @@
       .default
     }
 
-    private func isContinuousMode(for direction: ReadingDirection) -> Bool {
-      direction == .webtoon
-    }
-
-    private var isContinuousMode: Bool {
-      isContinuousMode(for: readingDirection)
-    }
-
     private var documentViewIdentity: String {
-      "\(isContinuousMode ? "continuous" : "paged")-\(book.id)"
+      "continuous-\(book.id)"
     }
 
     private var documentInitialPage: Int {
@@ -247,8 +231,7 @@
             handleSingleTap(normalizedPoint: normalizedPoint)
           }
         )
-        // Rebuild PDFView when switching between paged and continuous modes.
-        // In-place toggling can cause PDFKit internal reconfiguration cycles.
+        // Rebuild PDFView when the source file changes.
         .id("\(documentURL.path)-\(documentViewIdentity)")
         .readerIgnoresSafeArea()
       } else {
@@ -366,17 +349,21 @@
 
     private func resolvePreferredReadingDirection(series: Series?) -> ReadingDirection {
       if forceDefaultReadingDirection {
-        return defaultReadingDirection
+        return pdfReadingDirection(from: defaultReadingDirection)
       }
 
       if let rawReadingDirection = series?.metadata.readingDirection?
         .trimmingCharacters(in: .whitespacesAndNewlines),
         !rawReadingDirection.isEmpty
       {
-        return ReadingDirection.fromString(rawReadingDirection)
+        return pdfReadingDirection(from: ReadingDirection.fromString(rawReadingDirection))
       }
 
-      return defaultReadingDirection
+      return pdfReadingDirection(from: defaultReadingDirection)
+    }
+
+    private func pdfReadingDirection(from direction: ReadingDirection) -> ReadingDirection {
+      direction == .webtoon ? .vertical : direction
     }
 
     private func requestPageNavigation(to page: Int) {
