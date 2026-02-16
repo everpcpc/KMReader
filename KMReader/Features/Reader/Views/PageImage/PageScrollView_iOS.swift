@@ -537,7 +537,15 @@
       addSubview(pageNumberLabel)
 
       upscaleBadgeLabel.font = .systemFont(ofSize: 11, weight: .bold)
-      upscaleBadgeLabel.text = "AI🔍"
+      if let symbol = UIImage(
+        systemName: "plus.magnifyingglass",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
+      )?.withTintColor(.white, renderingMode: .alwaysOriginal) {
+        let attachment = NSTextAttachment()
+        attachment.image = symbol
+        attachment.bounds = CGRect(x: 0, y: -1, width: symbol.size.width, height: symbol.size.height)
+        upscaleBadgeLabel.attributedText = NSAttributedString(attachment: attachment)
+      }
       upscaleBadgeLabel.textColor = .white
       upscaleBadgeLabel.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.85)
       upscaleBadgeLabel.layer.cornerRadius = 6
