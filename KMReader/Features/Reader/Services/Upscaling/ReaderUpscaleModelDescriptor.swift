@@ -45,23 +45,5 @@
         shape: nil
       )
     )
-
-    static let defaultRealESRGAN = ReaderUpscaleModelDescriptor(
-      name: "Real-ESRGAN (2x, photo)",
-      type: ReaderUpscaleModelType.multiarray.rawValue,
-      file: "RealESRGAN_x2plus.mlpackage",
-      config: ReaderUpscaleModelConfig(
-        inputName: "input",
-        outputName: "output",
-        blockSize: 256,
-        shrinkSize: 0,
-        scale: 2,
-        shape: nil
-      )
-    )
-  }
-
-  nonisolated struct ReaderUpscaleModelList: Decodable {
-    let models: [ReaderUpscaleModelDescriptor]
   }
 #endif
