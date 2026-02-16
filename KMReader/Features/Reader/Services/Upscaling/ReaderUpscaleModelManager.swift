@@ -5,7 +5,7 @@
   actor ReaderUpscaleModelManager {
     static let shared = ReaderUpscaleModelManager()
 
-    private static let remoteModelListURL = URL(string: "https://upscale.aidoku.app/models.json")!
+    private static let remoteModelListURL = URL(string: "https://kmreader.everpcpc.com/upscale/models.json")!
     private static let bootstrapCooldown: TimeInterval = 300
 
     private var modelCache: [String: any ReaderImageProcessingModel] = [:]
@@ -17,10 +17,26 @@
     private var waitQueue: [CheckedContinuation<Void, Never>] = []
 
     private var isBootstrapping = false
+    private var bootstrapWaiters: [CheckedContinuation<Void, Never>] = []
     private var lastBootstrapAttemptAt: Date?
+    private var lastBootstrapErrorMessage: String?
 
     func activeDescriptor() -> ReaderUpscaleModelDescriptor? {
       resolveDefaultDescriptor()
+    }
+
+    func modelAvailability() -> (isReady: Bool, isDownloading: Bool, errorMessage: String?) {
+      let isReady = resolveDefaultDescriptor() != nil
+      return (isReady, isBootstrapping, isReady ? nil : lastBootstrapErrorMessage)
+    }
+
+    func ensureModelReady() async -> Bool {
+      if resolveDefaultDescriptor() != nil {
+        return true
+      }
+
+      await runBootstrap(force: true)
+      return resolveDefaultDescriptor() != nil
     }
 
     func process(_ image: CGImage) async -> CGImage? {
@@ -114,11 +130,21 @@
     }
 
     private func scheduleBootstrapIfNeeded() {
+      Task {
+        await runBootstrap(force: false)
+      }
+    }
+
+    private func runBootstrap(force: Bool) async {
       if isBootstrapping {
+        await withCheckedContinuation { continuation in
+          bootstrapWaiters.append(continuation)
+        }
         return
       }
 
-      if let lastBootstrapAttemptAt,
+      if !force,
+        let lastBootstrapAttemptAt,
         Date().timeIntervalSince(lastBootstrapAttemptAt) < Self.bootstrapCooldown
       {
         return
@@ -126,15 +152,18 @@
 
       isBootstrapping = true
       lastBootstrapAttemptAt = Date()
+      lastBootstrapErrorMessage = nil
+      await bootstrapDefaultModelIfNeeded()
+      isBootstrapping = false
 
-      Task {
-        await bootstrapDefaultModelIfNeeded()
+      let waiters = bootstrapWaiters
+      bootstrapWaiters.removeAll()
+      for waiter in waiters {
+        waiter.resume()
       }
     }
 
     private func bootstrapDefaultModelIfNeeded() async {
-      defer { isBootstrapping = false }
-
       do {
         let modelsDir = try modelsDirectory()
         let (modelList, rawData) = try await fetchRemoteModelList()
@@ -143,19 +172,25 @@
         try markExcludedFromBackup(modelListURL)
 
         guard let descriptor = selectBootstrapDescriptor(from: modelList.models) else {
-          logger.debug("⏭️ [Upscale] No downloadable default model from remote list")
+          let message = "no downloadable default model from remote list"
+          lastBootstrapErrorMessage = message
+          logger.debug("⏭️ [Upscale] \(message)")
           return
         }
 
         if resolveModelURL(descriptor: descriptor) != nil {
           logger.debug("[Upscale] Default model already available: \(descriptor.fileName)")
+          lastBootstrapErrorMessage = nil
           return
         }
 
         try await downloadModelIfNeeded(descriptor: descriptor, modelsDir: modelsDir)
         preferredDescriptor = nil
+        lastBootstrapErrorMessage = nil
       } catch {
-        logger.error("[Upscale] Bootstrap download failed: \(error.localizedDescription)")
+        let message = error.localizedDescription
+        lastBootstrapErrorMessage = message
+        logger.error("[Upscale] Bootstrap download failed: \(message)")
       }
     }
 
@@ -188,8 +223,11 @@
       modelsDir: URL
     ) async throws {
       guard descriptor.fileName.lowercased().hasSuffix(".mlmodel") else {
-        logger.debug("⏭️ [Upscale] Auto download skips unsupported package type: \(descriptor.file)")
-        return
+        throw NSError(
+          domain: "ReaderUpscaleModelManager",
+          code: -1,
+          userInfo: [NSLocalizedDescriptionKey: "unsupported auto-download model type: \(descriptor.file)"]
+        )
       }
 
       let destinationURL = modelsDir.appendingPathComponent(descriptor.fileName)

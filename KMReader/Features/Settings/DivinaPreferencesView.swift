@@ -33,6 +33,11 @@ struct DivinaPreferencesView: View {
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
+  #if os(iOS)
+    @State private var imageUpscaleStatusText: String = "Model status: Checking..."
+    @State private var isPreparingUpscaleModel: Bool = false
+  #endif
+
   var body: some View {
     Form {
       Section(header: Text("Appearance")) {
@@ -138,10 +143,16 @@ struct DivinaPreferencesView: View {
           Toggle(isOn: $enableImageUpscaling) {
             VStack(alignment: .leading, spacing: 4) {
               Text("Image Upscaling")
-              Text("Improve clarity for low-resolution pages.")
+              Text(enableImageUpscaling ? imageUpscaleStatusText : "Improve clarity for low-resolution pages.")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(imageUpscaleStatusColor)
             }
+          }
+          .onAppear {
+            refreshImageUpscaleStatus(triggerDownload: enableImageUpscaling)
+          }
+          .onChange(of: enableImageUpscaling) { _, newValue in
+            refreshImageUpscaleStatus(triggerDownload: newValue)
           }
         }
       #endif
@@ -372,4 +383,51 @@ struct DivinaPreferencesView: View {
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.divinaReader.title)
   }
+
+  #if os(iOS)
+    private var imageUpscaleStatusColor: Color {
+      if !enableImageUpscaling {
+        return .secondary
+      }
+      if isPreparingUpscaleModel {
+        return .orange
+      }
+      if imageUpscaleStatusText == "Model status: Ready" {
+        return .green
+      }
+      if imageUpscaleStatusText == "Model status: Downloading..." {
+        return .orange
+      }
+      if imageUpscaleStatusText == "Model status: Download failed" {
+        return .red
+      }
+      return .secondary
+    }
+
+    private func refreshImageUpscaleStatus(triggerDownload: Bool) {
+      Task {
+        if triggerDownload {
+          await MainActor.run {
+            isPreparingUpscaleModel = true
+            imageUpscaleStatusText = "Model status: Downloading..."
+          }
+          _ = await ReaderUpscaleModelManager.shared.ensureModelReady()
+        }
+
+        let availability = await ReaderUpscaleModelManager.shared.modelAvailability()
+        await MainActor.run {
+          isPreparingUpscaleModel = availability.isDownloading
+          if availability.isReady {
+            imageUpscaleStatusText = "Model status: Ready"
+          } else if availability.isDownloading {
+            imageUpscaleStatusText = "Model status: Downloading..."
+          } else if availability.errorMessage != nil {
+            imageUpscaleStatusText = "Model status: Download failed"
+          } else {
+            imageUpscaleStatusText = "Model status: Not ready"
+          }
+        }
+      }
+    }
+  #endif
 }
