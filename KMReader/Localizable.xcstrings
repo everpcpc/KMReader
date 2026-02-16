@@ -16775,7 +16775,50 @@
       }
     },
     "Image Upscaling" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild-Hochskalierung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Upscaling"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suréchantillonnage d’image"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像アップスケーリング"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이미지 업스케일링"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图像超分辨率"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影像超解析度"
+          }
+        }
+      }
     },
     "Import .ttf or .otf font files from Files app" : {
       "localizations" : {
@@ -16916,7 +16959,50 @@
       }
     },
     "Improve clarity for low-resolution pages using built-in waifu2x (2x)." : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbessert die Klarheit von Bildern mit niedriger Auflösung mit integriertem waifu2x (2x)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Improve clarity for low-resolution pages using built-in waifu2x (2x)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Améliore la netteté des images basse résolution grâce à waifu2x intégré (2x)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内蔵の waifu2x（2x）で低解像度ページの鮮明さを向上します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내장 waifu2x(2x)를 사용해 저해상도 페이지의 선명도를 높입니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用内置 waifu2x（2x）提升低分辨率页面清晰度。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用內建 waifu2x（2x）提升低解析度頁面的清晰度。"
+          }
+        }
+      }
     },
     "In single page mode, split landscape pages into two separate pages" : {
       "localizations" : {
