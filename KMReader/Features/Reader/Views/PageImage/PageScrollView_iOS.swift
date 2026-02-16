@@ -464,7 +464,6 @@
     private var heightConstraint: NSLayoutConstraint?
     private var upscaleWorkItem: DispatchWorkItem?
     private var upscaleRequestID: String?
-    private static let upscaleContext = CIContext(options: [CIContextOption.useSoftwareRenderer: false])
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -476,7 +475,6 @@
       #if !os(tvOS)
         analysisTask?.cancel()
       #endif
-      upscaleWorkItem?.cancel()
     }
 
     func prepareForDismantle() {
@@ -708,7 +706,8 @@
       sharpenFilter.setValue(0.35, forKey: kCIInputSharpnessKey)
       guard let outputImage = sharpenFilter.outputImage else { return nil }
 
-      guard let outputCGImage = Self.upscaleContext.createCGImage(outputImage, from: outputImage.extent.integral) else {
+      let context = CIContext(options: [CIContextOption.useSoftwareRenderer: false])
+      guard let outputCGImage = context.createCGImage(outputImage, from: outputImage.extent.integral) else {
         return nil
       }
 
