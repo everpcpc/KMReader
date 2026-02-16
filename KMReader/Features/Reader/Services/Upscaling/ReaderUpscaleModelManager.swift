@@ -138,7 +138,9 @@
       do {
         let modelsDir = try modelsDirectory()
         let (modelList, rawData) = try await fetchRemoteModelList()
-        try rawData.write(to: modelsDir.appendingPathComponent("models.json"), options: .atomic)
+        let modelListURL = modelsDir.appendingPathComponent("models.json")
+        try rawData.write(to: modelListURL, options: .atomic)
+        try markExcludedFromBackup(modelListURL)
 
         guard let descriptor = selectBootstrapDescriptor(from: modelList.models) else {
           logger.debug("⏭️ [Upscale] No downloadable default model from remote list")
