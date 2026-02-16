@@ -537,21 +537,22 @@
       pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
       addSubview(pageNumberLabel)
 
-      upscaleBadgeLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+      let badgeTextFont = UIFont.systemFont(ofSize: 12, weight: .semibold)
+      upscaleBadgeLabel.font = badgeTextFont
       if let symbol = UIImage(
         systemName: "plus.magnifyingglass",
-        withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: 9, weight: .semibold)
       )?.withTintColor(.white, renderingMode: .alwaysOriginal) {
         let attachment = NSTextAttachment()
         attachment.image = symbol
-        attachment.bounds = CGRect(x: 0, y: -1, width: symbol.size.width, height: symbol.size.height)
+        attachment.bounds = CGRect(x: 0, y: -0.5, width: symbol.size.width, height: symbol.size.height)
 
         let badgeText = NSMutableAttributedString(attachment: attachment)
         badgeText.append(
           NSAttributedString(
             string: " AI",
             attributes: [
-              .font: UIFont.systemFont(ofSize: 11, weight: .bold),
+              .font: badgeTextFont,
               .foregroundColor: UIColor.white,
             ]
           )
@@ -1037,9 +1038,9 @@
 
       let topY = yOffset
       let pageLabelWidth = max(30, pageNumberLabel.intrinsicContentSize.width + 16)
-      let badgeWidth = max(26, upscaleBadgeLabel.intrinsicContentSize.width + 14)
+      let badgeWidth = max(30, upscaleBadgeLabel.intrinsicContentSize.width + 16)
       let pageLabelHeight: CGFloat = 24
-      let badgeHeight: CGFloat = 22
+      let badgeHeight: CGFloat = 24
 
       let alignment = currentData?.alignment ?? .center
       let isLeft: Bool
