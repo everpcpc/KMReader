@@ -446,6 +446,7 @@
   private class NativePageItemiOS: UIView {
     private let imageView = UIImageView()
     private let pageNumberLabel = UILabel()
+    private let upscaleBadgeLabel = UILabel()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let errorLabel = UILabel()
     private var currentData: NativePageData?
@@ -463,6 +464,7 @@
     private var heightConstraint: NSLayoutConstraint?
     private var upscaleTask: Task<Void, Never>?
     private var upscaleRequestID: String?
+    private var upscaleIndicatorRequestID: String?
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -484,6 +486,7 @@
       upscaleTask?.cancel()
       upscaleTask = nil
       upscaleRequestID = nil
+      hideUpscaleIndicator()
       imageView.image = nil
     }
 
@@ -531,6 +534,16 @@
       pageNumberLabel.textAlignment = .center
       pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
       addSubview(pageNumberLabel)
+
+      upscaleBadgeLabel.font = .systemFont(ofSize: 11, weight: .bold)
+      upscaleBadgeLabel.text = "AI"
+      upscaleBadgeLabel.textColor = .white
+      upscaleBadgeLabel.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.85)
+      upscaleBadgeLabel.layer.cornerRadius = 6
+      upscaleBadgeLabel.layer.masksToBounds = true
+      upscaleBadgeLabel.textAlignment = .center
+      upscaleBadgeLabel.isHidden = true
+      addSubview(upscaleBadgeLabel)
 
       errorLabel.isHidden = true
       errorLabel.textColor = .systemRed
@@ -588,6 +601,7 @@
         upscaleTask?.cancel()
         upscaleTask = nil
         upscaleRequestID = nil
+        hideUpscaleIndicator()
       }
 
       updateHeightConstraint(targetHeight)
@@ -645,8 +659,12 @@
         return
       }
       upscaleRequestID = requestID
+      upscaleTask?.cancel()
+      upscaleTask = nil
+      hideUpscaleIndicator()
 
       guard let sourceCGImage = image.cgImage else {
+        hideUpscaleIndicator(for: requestID)
         logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): missing CGImage")
         return
       }
@@ -654,6 +672,7 @@
       let sourceWidth = CGFloat(sourceCGImage.width)
       let sourceHeight = CGFloat(sourceCGImage.height)
       guard sourceWidth > 0, sourceHeight > 0 else {
+        hideUpscaleIndicator(for: requestID)
         logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): invalid source size \(Int(sourceWidth))x\(Int(sourceHeight))")
         return
       }
@@ -662,6 +681,7 @@
       let pixelHeight = max(targetHeight * scale, 1)
       let requiredScale = max(pixelWidth / sourceWidth, pixelHeight / sourceHeight)
       guard requiredScale > 1.05 else {
+        hideUpscaleIndicator(for: requestID)
         logger.debug(
           String(
             format: "⏭️ [Upscale] Skip page %d: requiredScale=%.2f <= 1.05 (source=%dx%d target=%dx%d@%.1fx)",
@@ -679,17 +699,19 @@
 
       let maxHeight = AppConfig.imageUpscaleMaxHeight
       guard sourceCGImage.height < maxHeight else {
+        hideUpscaleIndicator(for: requestID)
         logger.debug(
           "⏭️ [Upscale] Skip page \(data.pageNumber + 1): source height \(sourceCGImage.height) exceeds max \(maxHeight)"
         )
         return
       }
 
-      upscaleTask?.cancel()
+      showUpscaleIndicator(for: requestID)
       upscaleTask = Task(priority: .userInitiated) { [weak self] in
         guard let self else { return }
 
         guard let descriptor = await ReaderUpscaleModelManager.shared.activeDescriptor() else {
+          self.hideUpscaleIndicator(for: requestID)
           self.logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): no active model descriptor")
           return
         }
@@ -710,15 +732,18 @@
 
         let startedAt = Date()
         guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
+          self.hideUpscaleIndicator(for: requestID)
           self.logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): model processing returned nil (\(descriptor.file))")
           return
         }
 
         guard !Task.isCancelled else {
+          self.hideUpscaleIndicator(for: requestID)
           self.logger.debug("🛑 [Upscale] Cancelled page \(data.pageNumber + 1)")
           return
         }
         guard self.upscaleRequestID == requestID else {
+          self.hideUpscaleIndicator(for: requestID)
           self.logger.debug("⏭️ [Upscale] Drop stale result for page \(data.pageNumber + 1)")
           return
         }
@@ -735,8 +760,26 @@
           )
         )
         self.imageView.image = upscaled
+        self.hideUpscaleIndicator(for: requestID)
         self.setNeedsLayout()
       }
+    }
+
+    private func showUpscaleIndicator(for requestID: String) {
+      upscaleIndicatorRequestID = requestID
+      upscaleBadgeLabel.isHidden = false
+      setNeedsLayout()
+    }
+
+    private func hideUpscaleIndicator(for requestID: String) {
+      guard upscaleIndicatorRequestID == requestID else { return }
+      hideUpscaleIndicator()
+    }
+
+    private func hideUpscaleIndicator() {
+      upscaleIndicatorRequestID = nil
+      upscaleBadgeLabel.isHidden = true
+      setNeedsLayout()
     }
 
     private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {
@@ -900,39 +943,56 @@
       imageView.frame = CGRect(x: xOffset, y: yOffset, width: actualImageWidth, height: actualImageHeight)
 
       let topY = yOffset
-      let labelWidth = pageNumberLabel.intrinsicContentSize.width + 16
+      let pageLabelWidth = max(30, pageNumberLabel.intrinsicContentSize.width + 16)
+      let badgeWidth = max(26, upscaleBadgeLabel.intrinsicContentSize.width + 14)
+      let pageLabelHeight: CGFloat = 24
+      let badgeHeight: CGFloat = 22
 
-      if let alignment = currentData?.alignment {
-        let isLeft: Bool
-        if alignment == .center {
-          isLeft = isRTL
-        } else {
-          // outer edge
-          if alignment == .trailing {
-            isLeft = !isRTL
-          } else {
-            isLeft = isRTL
-          }
-        }
+      let alignment = currentData?.alignment ?? .center
+      let isLeft: Bool
+      if alignment == .center {
+        isLeft = isRTL
+      } else if alignment == .trailing {
+        isLeft = !isRTL
+      } else {
+        isLeft = isRTL
+      }
 
-        if isLeft {
-          pageNumberLabel.frame = CGRect(x: xOffset + 12, y: topY + 12, width: max(30, labelWidth), height: 24)
-        } else {
-          pageNumberLabel.frame = CGRect(
-            x: xOffset + actualImageWidth - max(30, labelWidth) - 12, y: topY + 12, width: max(30, labelWidth),
-            height: 24)
-        }
+      let topInset: CGFloat = 12
+      if isLeft {
+        pageNumberLabel.frame = CGRect(x: xOffset + 12, y: topY + topInset, width: pageLabelWidth, height: pageLabelHeight)
+        upscaleBadgeLabel.frame = CGRect(
+          x: xOffset + actualImageWidth - badgeWidth - 12,
+          y: topY + topInset,
+          width: badgeWidth,
+          height: badgeHeight
+        )
+      } else {
+        pageNumberLabel.frame = CGRect(
+          x: xOffset + actualImageWidth - pageLabelWidth - 12,
+          y: topY + topInset,
+          width: pageLabelWidth,
+          height: pageLabelHeight
+        )
+        upscaleBadgeLabel.frame = CGRect(x: xOffset + 12, y: topY + topInset, width: badgeWidth, height: badgeHeight)
       }
     }
 
     func getCombinedRectRelativeToImage() -> CGRect {
-      let labelFrameInItem = pageNumberLabel.frame
-      let labelFrameInImage = convert(labelFrameInItem, to: imageView)
       let imageRectInSelf = CGRect(origin: .zero, size: imageView.bounds.size)
+      var combinedRect = imageRectInSelf
+
       if !pageNumberLabel.isHidden {
-        return imageRectInSelf.union(labelFrameInImage)
+        let labelFrameInImage = convert(pageNumberLabel.frame, to: imageView)
+        combinedRect = combinedRect.union(labelFrameInImage)
       }
-      return imageRectInSelf
+
+      if !upscaleBadgeLabel.isHidden {
+        let badgeFrameInImage = convert(upscaleBadgeLabel.frame, to: imageView)
+        combinedRect = combinedRect.union(badgeFrameInImage)
+      }
+
+      return combinedRect
     }
   }
 
