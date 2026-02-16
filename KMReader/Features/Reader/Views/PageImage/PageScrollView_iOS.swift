@@ -466,6 +466,7 @@
     private var upscaleRequestID: String?
     private var upscaleIndicatorRequestID: String?
     private let upscaleBadgeAnimationKey = "upscaleBadgePulse"
+    private let upscaleBadgeBaseColor = UIColor.systemOrange.withAlphaComponent(0.88)
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -536,7 +537,7 @@
       pageNumberLabel.translatesAutoresizingMaskIntoConstraints = false
       addSubview(pageNumberLabel)
 
-      upscaleBadgeLabel.font = .systemFont(ofSize: 11, weight: .bold)
+      upscaleBadgeLabel.font = .systemFont(ofSize: 11, weight: .semibold)
       if let symbol = UIImage(
         systemName: "plus.magnifyingglass",
         withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
@@ -544,10 +545,23 @@
         let attachment = NSTextAttachment()
         attachment.image = symbol
         attachment.bounds = CGRect(x: 0, y: -1, width: symbol.size.width, height: symbol.size.height)
-        upscaleBadgeLabel.attributedText = NSAttributedString(attachment: attachment)
+
+        let badgeText = NSMutableAttributedString(attachment: attachment)
+        badgeText.append(
+          NSAttributedString(
+            string: " AI",
+            attributes: [
+              .font: UIFont.systemFont(ofSize: 11, weight: .bold),
+              .foregroundColor: UIColor.white,
+            ]
+          )
+        )
+        upscaleBadgeLabel.attributedText = badgeText
+      } else {
+        upscaleBadgeLabel.text = "AI"
+        upscaleBadgeLabel.textColor = .white
       }
-      upscaleBadgeLabel.textColor = .white
-      upscaleBadgeLabel.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.85)
+      upscaleBadgeLabel.backgroundColor = upscaleBadgeBaseColor
       upscaleBadgeLabel.layer.cornerRadius = 6
       upscaleBadgeLabel.layer.masksToBounds = true
       upscaleBadgeLabel.textAlignment = .center
@@ -796,25 +810,30 @@
     private func startUpscaleBadgeAnimationIfNeeded() {
       guard upscaleBadgeLabel.layer.animation(forKey: upscaleBadgeAnimationKey) == nil else { return }
 
-      let scale = CABasicAnimation(keyPath: "transform.scale")
-      scale.fromValue = 1.0
-      scale.toValue = 1.08
-      scale.duration = 0.55
-      scale.autoreverses = true
-      scale.repeatCount = .infinity
+      let scale = CAKeyframeAnimation(keyPath: "transform.scale")
+      scale.values = [1.0, 1.18, 1.0]
+      scale.keyTimes = [0, 0.5, 1]
+      scale.duration = 0.8
 
-      let opacity = CABasicAnimation(keyPath: "opacity")
-      opacity.fromValue = 0.85
-      opacity.toValue = 1.0
-      opacity.duration = 0.55
-      opacity.autoreverses = true
-      opacity.repeatCount = .infinity
+      let opacity = CAKeyframeAnimation(keyPath: "opacity")
+      opacity.values = [0.75, 1.0, 0.75]
+      opacity.keyTimes = [0, 0.5, 1]
+      opacity.duration = 0.8
+
+      let background = CAKeyframeAnimation(keyPath: "backgroundColor")
+      background.values = [
+        UIColor.systemOrange.withAlphaComponent(0.75).cgColor,
+        UIColor.systemOrange.withAlphaComponent(1.0).cgColor,
+        UIColor.systemOrange.withAlphaComponent(0.75).cgColor,
+      ]
+      background.keyTimes = [0, 0.5, 1]
+      background.duration = 0.8
 
       let group = CAAnimationGroup()
-      group.animations = [scale, opacity]
-      group.duration = 0.55
-      group.autoreverses = true
+      group.animations = [scale, opacity, background]
+      group.duration = 0.8
       group.repeatCount = .infinity
+      group.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
       group.isRemovedOnCompletion = false
 
       upscaleBadgeLabel.layer.add(group, forKey: upscaleBadgeAnimationKey)
@@ -823,6 +842,7 @@
     private func stopUpscaleBadgeAnimation() {
       upscaleBadgeLabel.layer.removeAnimation(forKey: upscaleBadgeAnimationKey)
       upscaleBadgeLabel.layer.opacity = 1
+      upscaleBadgeLabel.backgroundColor = upscaleBadgeBaseColor
       upscaleBadgeLabel.transform = .identity
     }
 
