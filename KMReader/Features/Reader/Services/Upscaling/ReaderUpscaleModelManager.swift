@@ -5,6 +5,9 @@
   actor ReaderUpscaleModelManager {
     static let shared = ReaderUpscaleModelManager()
 
+    private static let remoteModelListURL = URL(string: "https://upscale.aidoku.app/models.json")!
+    private static let bootstrapCooldown: TimeInterval = 300
+
     private var modelCache: [String: any ReaderImageProcessingModel] = [:]
     private var preferredDescriptor: ReaderUpscaleModelDescriptor?
     private var hasLoggedMissingDescriptor = false
@@ -12,6 +15,9 @@
     private let maxConcurrentTasks = 2
     private var runningTasks = 0
     private var waitQueue: [CheckedContinuation<Void, Never>] = []
+
+    private var isBootstrapping = false
+    private var lastBootstrapAttemptAt: Date?
 
     func activeDescriptor() -> ReaderUpscaleModelDescriptor? {
       resolveDefaultDescriptor()
@@ -99,7 +105,124 @@
       }
 
       preferredDescriptor = resolved
+
+      if resolved == nil {
+        scheduleBootstrapIfNeeded()
+      }
+
       return resolved
+    }
+
+    private func scheduleBootstrapIfNeeded() {
+      if isBootstrapping {
+        return
+      }
+
+      if let lastBootstrapAttemptAt,
+        Date().timeIntervalSince(lastBootstrapAttemptAt) < Self.bootstrapCooldown
+      {
+        return
+      }
+
+      isBootstrapping = true
+      lastBootstrapAttemptAt = Date()
+
+      Task {
+        await bootstrapDefaultModelIfNeeded()
+      }
+    }
+
+    private func bootstrapDefaultModelIfNeeded() async {
+      defer { isBootstrapping = false }
+
+      do {
+        let modelsDir = try modelsDirectory()
+        let (modelList, rawData) = try await fetchRemoteModelList()
+        try rawData.write(to: modelsDir.appendingPathComponent("models.json"), options: .atomic)
+
+        guard let descriptor = selectBootstrapDescriptor(from: modelList.models) else {
+          logger.debug("⏭️ [Upscale] No downloadable default model from remote list")
+          return
+        }
+
+        if resolveModelURL(descriptor: descriptor) != nil {
+          logger.debug("[Upscale] Default model already available: \(descriptor.fileName)")
+          return
+        }
+
+        try await downloadModelIfNeeded(descriptor: descriptor, modelsDir: modelsDir)
+        preferredDescriptor = nil
+      } catch {
+        logger.error("[Upscale] Bootstrap download failed: \(error.localizedDescription)")
+      }
+    }
+
+    private func fetchRemoteModelList() async throws -> (ReaderUpscaleModelList, Data) {
+      let (data, response) = try await URLSession.shared.data(from: Self.remoteModelListURL)
+      if let http = response as? HTTPURLResponse,
+        !(200..<300).contains(http.statusCode)
+      {
+        throw NSError(
+          domain: "ReaderUpscaleModelManager",
+          code: http.statusCode,
+          userInfo: [NSLocalizedDescriptionKey: "unexpected status code \(http.statusCode)"]
+        )
+      }
+
+      let list = try JSONDecoder().decode(ReaderUpscaleModelList.self, from: data)
+      return (list, data)
+    }
+
+    private func selectBootstrapDescriptor(from models: [ReaderUpscaleModelDescriptor]) -> ReaderUpscaleModelDescriptor? {
+      if let preferred = models.first(where: { $0.fileName == ReaderUpscaleModelDescriptor.defaultWaifu2x.fileName }) {
+        return preferred
+      }
+
+      return models.first(where: { $0.fileName.lowercased().hasSuffix(".mlmodel") })
+    }
+
+    private func downloadModelIfNeeded(
+      descriptor: ReaderUpscaleModelDescriptor,
+      modelsDir: URL
+    ) async throws {
+      guard descriptor.fileName.lowercased().hasSuffix(".mlmodel") else {
+        logger.debug("⏭️ [Upscale] Auto download skips unsupported package type: \(descriptor.file)")
+        return
+      }
+
+      let destinationURL = modelsDir.appendingPathComponent(descriptor.fileName)
+      if FileManager.default.fileExists(atPath: destinationURL.path) {
+        return
+      }
+
+      guard let remoteURL = URL(string: descriptor.file, relativeTo: Self.remoteModelListURL) else {
+        throw NSError(
+          domain: "ReaderUpscaleModelManager",
+          code: -1,
+          userInfo: [NSLocalizedDescriptionKey: "invalid remote model path: \(descriptor.file)"]
+        )
+      }
+
+      logger.info("[Upscale] Downloading default model: \(descriptor.file)")
+      let (data, response) = try await URLSession.shared.data(from: remoteURL)
+      if let http = response as? HTTPURLResponse,
+        !(200..<300).contains(http.statusCode)
+      {
+        throw NSError(
+          domain: "ReaderUpscaleModelManager",
+          code: http.statusCode,
+          userInfo: [NSLocalizedDescriptionKey: "model download status \(http.statusCode)"]
+        )
+      }
+
+      let temporaryURL = modelsDir.appendingPathComponent("\(descriptor.fileName).download")
+      try data.write(to: temporaryURL, options: .atomic)
+      if FileManager.default.fileExists(atPath: destinationURL.path) {
+        try FileManager.default.removeItem(at: destinationURL)
+      }
+      try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
+      try markExcludedFromBackup(destinationURL)
+      logger.info("[Upscale] Downloaded default model to Application Support: \(destinationURL.lastPathComponent)")
     }
 
     private func loadModel(descriptor: ReaderUpscaleModelDescriptor) async throws -> (any ReaderImageProcessingModel)? {
@@ -150,14 +273,35 @@
       return list.models
     }
 
-    private func resolveModelsListURL() -> URL? {
-      let fm = FileManager.default
-      let appSupportDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-      let documentsDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first
+    private func modelsDirectory() throws -> URL {
+      guard let appSupportDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+        throw NSError(
+          domain: "ReaderUpscaleModelManager",
+          code: -1,
+          userInfo: [NSLocalizedDescriptionKey: "unable to resolve Application Support directory"]
+        )
+      }
 
-      return [appSupportDir, documentsDir]
-        .compactMap { $0?.appendingPathComponent("Models").appendingPathComponent("models.json") }
-        .first(where: { fm.fileExists(atPath: $0.path) })
+      let modelsDir = appSupportDir.appendingPathComponent("Models", isDirectory: true)
+      if !FileManager.default.fileExists(atPath: modelsDir.path) {
+        try FileManager.default.createDirectory(at: modelsDir, withIntermediateDirectories: true)
+      }
+      try markExcludedFromBackup(modelsDir)
+      return modelsDir
+    }
+
+    private func markExcludedFromBackup(_ url: URL) throws {
+      var mutableURL = url
+      var values = URLResourceValues()
+      values.isExcludedFromBackup = true
+      try mutableURL.setResourceValues(values)
+    }
+
+    private func resolveModelsListURL() -> URL? {
+      guard let modelsDir = try? modelsDirectory() else { return nil }
+
+      let listURL = modelsDir.appendingPathComponent("models.json")
+      return FileManager.default.fileExists(atPath: listURL.path) ? listURL : nil
     }
 
     private func resolveModelURL(descriptor: ReaderUpscaleModelDescriptor) -> URL? {
@@ -183,22 +327,15 @@
         }
       }
 
+      guard let modelsDir = try? modelsDirectory() else { return nil }
+
       let relativePath = normalizedPath.hasPrefix("./") ? String(normalizedPath.dropFirst(2)) : normalizedPath
       let candidatePaths = [relativePath, (relativePath as NSString).lastPathComponent]
 
-      let appSupportDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-      let documentsDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first
-      let roots = [appSupportDir, documentsDir]
-
       for candidatePath in candidatePaths where !candidatePath.isEmpty {
-        for root in roots {
-          guard let root else { continue }
-          let modelURL = root
-            .appendingPathComponent("Models")
-            .appendingPathComponent(candidatePath)
-          if fm.fileExists(atPath: modelURL.path) {
-            return modelURL
-          }
+        let modelURL = modelsDir.appendingPathComponent(candidatePath)
+        if fm.fileExists(atPath: modelURL.path) {
+          return modelURL
         }
       }
 
