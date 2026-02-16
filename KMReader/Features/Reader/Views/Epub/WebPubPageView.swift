@@ -812,6 +812,12 @@
             parent.onEndReached()
             return false
           }
+
+          // Ambiguous initial pan direction (often ~0 at begin):
+          // avoid starting boundary curls that may request non-existent neighbors.
+          if abs(translation.x) < 1 {
+            return !isAtFirstPage && !isAtLastPage
+          }
         }
 
         return true
