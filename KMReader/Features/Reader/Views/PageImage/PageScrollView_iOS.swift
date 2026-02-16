@@ -465,6 +465,7 @@
     private var upscaleTask: Task<Void, Never>?
     private var upscaleRequestID: String?
     private var upscaleIndicatorRequestID: String?
+    private let upscaleBadgeAnimationKey = "upscaleBadgePulse"
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -536,7 +537,7 @@
       addSubview(pageNumberLabel)
 
       upscaleBadgeLabel.font = .systemFont(ofSize: 11, weight: .bold)
-      upscaleBadgeLabel.text = "AI"
+      upscaleBadgeLabel.text = "AI🔍"
       upscaleBadgeLabel.textColor = .white
       upscaleBadgeLabel.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.85)
       upscaleBadgeLabel.layer.cornerRadius = 6
@@ -768,6 +769,7 @@
     private func showUpscaleIndicator(for requestID: String) {
       upscaleIndicatorRequestID = requestID
       upscaleBadgeLabel.isHidden = false
+      startUpscaleBadgeAnimationIfNeeded()
       setNeedsLayout()
     }
 
@@ -778,8 +780,42 @@
 
     private func hideUpscaleIndicator() {
       upscaleIndicatorRequestID = nil
+      stopUpscaleBadgeAnimation()
       upscaleBadgeLabel.isHidden = true
       setNeedsLayout()
+    }
+
+    private func startUpscaleBadgeAnimationIfNeeded() {
+      guard upscaleBadgeLabel.layer.animation(forKey: upscaleBadgeAnimationKey) == nil else { return }
+
+      let scale = CABasicAnimation(keyPath: "transform.scale")
+      scale.fromValue = 1.0
+      scale.toValue = 1.08
+      scale.duration = 0.55
+      scale.autoreverses = true
+      scale.repeatCount = .infinity
+
+      let opacity = CABasicAnimation(keyPath: "opacity")
+      opacity.fromValue = 0.85
+      opacity.toValue = 1.0
+      opacity.duration = 0.55
+      opacity.autoreverses = true
+      opacity.repeatCount = .infinity
+
+      let group = CAAnimationGroup()
+      group.animations = [scale, opacity]
+      group.duration = 0.55
+      group.autoreverses = true
+      group.repeatCount = .infinity
+      group.isRemovedOnCompletion = false
+
+      upscaleBadgeLabel.layer.add(group, forKey: upscaleBadgeAnimationKey)
+    }
+
+    private func stopUpscaleBadgeAnimation() {
+      upscaleBadgeLabel.layer.removeAnimation(forKey: upscaleBadgeAnimationKey)
+      upscaleBadgeLabel.layer.opacity = 1
+      upscaleBadgeLabel.transform = .identity
     }
 
     private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {
