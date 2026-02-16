@@ -470,6 +470,9 @@ struct DivinaReaderView: View {
       viewModel.updateSplitWidePageMode(newValue)
     }
     .task(id: currentBookId) {
+      readerPresentation.setReaderFlushHandler {
+        viewModel.flushProgress()
+      }
       if !preserveReaderOptions {
         resetReaderPreferencesForCurrentBook()
       }
@@ -491,8 +494,6 @@ struct DivinaReaderView: View {
       logger.debug(
         "👋 DIVINA reader disappeared for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pages.count)"
       )
-      logger.debug("🧯 DIVINA reader disappeared, forcing progress flush")
-      viewModel.flushProgress()
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
