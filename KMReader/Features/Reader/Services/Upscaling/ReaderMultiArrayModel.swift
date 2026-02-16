@@ -4,11 +4,11 @@
   @preconcurrency import CoreML
   import Foundation
 
-  nonisolated final class ReaderMultiArrayModel: ReaderImageProcessingModel, @unchecked Sendable {
+  nonisolated final class ReaderMultiArrayModel: ReaderImageProcessingModel {
     private let mlmodel: MLModel
     private let inputName: String
     private let outputName: String
-    private let shape: [NSNumber]
+    private let shape: [Int]
     private let blockSize: Int
     private let shrinkSize: Int
     private let scale: Int
@@ -23,21 +23,48 @@
       self.scale = cfg?.scale ?? 2
 
       if let customShape = cfg?.shape, !customShape.isEmpty {
-        self.shape = customShape.map { NSNumber(value: $0) }
+        self.shape = customShape
       } else {
-        self.shape = [1, 3, NSNumber(value: self.blockSize), NSNumber(value: self.blockSize)]
+        self.shape = [1, 3, self.blockSize, self.blockSize]
       }
     }
 
     nonisolated func process(_ image: CGImage) async -> CGImage? {
-      await withCheckedContinuation { continuation in
-        DispatchQueue.global(qos: .userInitiated).async { [self] in
-          continuation.resume(returning: processSync(image))
+      let mlmodel = self.mlmodel
+      let inputName = self.inputName
+      let outputName = self.outputName
+      let shape = self.shape
+      let blockSize = self.blockSize
+      let shrinkSize = self.shrinkSize
+      let scale = self.scale
+
+      return await withCheckedContinuation { continuation in
+        DispatchQueue.global(qos: .userInitiated).async {
+          continuation.resume(
+            returning: Self.processSync(
+              image,
+              mlmodel: mlmodel,
+              inputName: inputName,
+              outputName: outputName,
+              shape: shape,
+              blockSize: blockSize,
+              shrinkSize: shrinkSize,
+              scale: scale
+            ))
         }
       }
     }
 
-    private func processSync(_ image: CGImage) -> CGImage? {
+    private static func processSync(
+      _ image: CGImage,
+      mlmodel: MLModel,
+      inputName: String,
+      outputName: String,
+      shape: [Int],
+      blockSize: Int,
+      shrinkSize: Int,
+      scale: Int
+    ) -> CGImage? {
       let width = image.width
       let height = image.height
       guard width > 0, height > 0 else { return nil }
@@ -55,12 +82,13 @@
       let expandedWidth = width + 2 * shrinkSize
       let expandedHeight = height + 2 * shrinkSize
 
-      guard let input = try? MLMultiArray(shape: shape, dataType: .float32) else {
+      let inputShape = shape.map { NSNumber(value: $0) }
+      guard let input = try? MLMultiArray(shape: inputShape, dataType: .float32) else {
         return nil
       }
 
       let expanded = image.expand(shrinkSize: shrinkSize)
-      let rects = calculateRects(width: width, height: height, blockSize: modelBlockSize)
+      let rects = Self.calculateRects(width: width, height: height, blockSize: modelBlockSize)
       var imgData = [UInt8](repeating: 0, count: outWidth * outHeight * channels)
 
       for rect in rects {
@@ -100,7 +128,7 @@
           let src = dataPointer.advanced(by: channelOffset)
           let count = outBlockSize * outBlockSize
           var tempBlock = [UInt8](repeating: 0, count: count)
-          normalize(src, &tempBlock, count: count)
+          Self.normalize(src, &tempBlock, count: count)
 
           for srcY in 0..<outBlockSize {
             for srcX in 0..<outBlockSize {
@@ -144,7 +172,7 @@
       )
     }
 
-    private func normalize(
+    private static func normalize(
       _ src: UnsafePointer<Float32>,
       _ dst: UnsafeMutablePointer<UInt8>,
       count: Int
@@ -159,7 +187,7 @@
       vDSP_vfixu8(&tempClip, 1, dst, 1, vDSP_Length(count))
     }
 
-    private func calculateRects(width: Int, height: Int, blockSize: Int) -> [CGRect] {
+    private static func calculateRects(width: Int, height: Int, blockSize: Int) -> [CGRect] {
       var rects: [CGRect] = []
       let numW = width / blockSize
       let numH = height / blockSize
