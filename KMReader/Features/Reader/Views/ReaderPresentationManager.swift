@@ -27,6 +27,9 @@ final class ReaderPresentationManager {
   /// Track all series IDs visited during this reader session
   private(set) var visitedSeriesIds: Set<String> = []
 
+  /// Closure that flushes the current reader's progress (set by the active reader view)
+  private(set) var readerFlushHandler: (@MainActor () -> Void)?
+
   #if os(macOS)
     private var openWindowHandler: (() -> Void)?
     private var isWindowDrivenClose = false
@@ -75,10 +78,18 @@ final class ReaderPresentationManager {
     #endif
   }
 
+  func setReaderFlushHandler(_ handler: (@MainActor () -> Void)?) {
+    readerFlushHandler = handler
+  }
+
   func closeReader(syncVisited: Bool = true) {
     guard readerState != nil else {
       return
     }
+
+    // Flush progress before clearing reader state to avoid race with waitUntilSettled
+    readerFlushHandler?()
+    readerFlushHandler = nil
 
     hideStatusBar = false
     clearHandoff()
@@ -97,7 +108,6 @@ final class ReaderPresentationManager {
         logger.debug(
           "⏳ Waiting for reader progress flush before syncing visited items: books=\(bookIds.count), series=\(seriesIds.count)"
         )
-        try? await Task.sleep(for: .milliseconds(200))
         let idle = await ReaderProgressDispatchService.shared.waitUntilSettled(
           bookIds: bookIds,
           timeout: .seconds(6)

@@ -102,6 +102,9 @@
       )
       .iPadIgnoresSafeArea()
       .task(id: book.id) {
+        readerPresentation.setReaderFlushHandler {
+          viewModel.flushProgress()
+        }
         await loadBook()
       }
       .onAppear {
@@ -156,7 +159,6 @@
         logger.debug(
           "👋 PDF reader disappeared for book \(book.id), page=\(viewModel.currentPageNumber)/\(viewModel.pageCount)"
         )
-        viewModel.flushProgress()
         showingControls = false
         readerPresentation.hideStatusBar = false
       }

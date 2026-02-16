@@ -264,7 +264,6 @@ struct DashboardView: View {
           )
 
           if !visitedBookIds.isEmpty {
-            try? await Task.sleep(for: .milliseconds(200))
             let idle = await ReaderProgressDispatchService.shared.waitUntilSettled(
               bookIds: visitedBookIds,
               timeout: .seconds(6)

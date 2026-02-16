@@ -32,6 +32,9 @@ actor ReaderProgressDispatchService {
   private var pendingEpubUpdates: [String: EpubUpdate] = [:]
   private var epubSendTasks: [String: Task<Void, Never>] = [:]
 
+  /// Continuations waiting for specific book IDs to settle
+  private var settleWaiters: [(bookIds: Set<String>, continuation: CheckedContinuation<Void, Never>)] = []
+
   private init() {}
 
   func submitPageProgress(bookId: String, page: Int, completed: Bool, debounceSeconds: Int) {
@@ -107,16 +110,56 @@ actor ReaderProgressDispatchService {
   func waitUntilSettled(bookIds: Set<String>, timeout: Duration = .seconds(6)) async -> Bool {
     guard !bookIds.isEmpty else { return true }
 
-    let clock = ContinuousClock()
-    let deadline = clock.now.advanced(by: timeout)
-
-    while hasPendingDispatchWork(for: bookIds) {
-      guard !Task.isCancelled else { return false }
-      guard clock.now < deadline else { return false }
-      try? await Task.sleep(for: .milliseconds(50))
+    if !hasPendingDispatchWork(for: bookIds) {
+      return true
     }
 
-    return true
+    return await withTaskGroup(of: Bool.self) { group in
+      group.addTask {
+        await self.waitForSettle(bookIds: bookIds)
+        return true
+      }
+      group.addTask {
+        try? await Task.sleep(for: timeout)
+        return false
+      }
+      let result = await group.next() ?? false
+      group.cancelAll()
+      if !result {
+        self.removeSettleWaiters(for: bookIds)
+      }
+      return result
+    }
+  }
+
+  private func waitForSettle(bookIds: Set<String>) async {
+    if !hasPendingDispatchWork(for: bookIds) {
+      return
+    }
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+      settleWaiters.append((bookIds: bookIds, continuation: continuation))
+    }
+  }
+
+  private func removeSettleWaiters(for bookIds: Set<String>) {
+    settleWaiters.removeAll { waiter in
+      if waiter.bookIds == bookIds {
+        waiter.continuation.resume()
+        return true
+      }
+      return false
+    }
+  }
+
+  /// Check and resume any waiters whose book IDs are now fully settled
+  private func notifySettledWaiters() {
+    settleWaiters.removeAll { waiter in
+      if !hasPendingDispatchWork(for: waiter.bookIds) {
+        waiter.continuation.resume()
+        return true
+      }
+      return false
+    }
   }
 
   private func triggerDebouncedPageSend(bookId: String) {
@@ -175,6 +218,7 @@ actor ReaderProgressDispatchService {
   private func executePageSend(bookId: String, trigger: String, isFlush: Bool) async {
     guard let update = pendingPageUpdates.removeValue(forKey: bookId) else {
       pageSendTasks.removeValue(forKey: bookId)
+      notifySettledWaiters()
       return
     }
 
@@ -189,12 +233,15 @@ actor ReaderProgressDispatchService {
     if pendingPageUpdates[bookId] != nil, pageDebounceTasks[bookId] == nil {
       logger.debug("🔁 Dispatching next queued page progress for book \(bookId)")
       sendPendingPageProgress(for: bookId, trigger: "drain")
+    } else {
+      notifySettledWaiters()
     }
   }
 
   private func executeEpubSend(bookId: String, trigger: String) async {
     guard let update = pendingEpubUpdates.removeValue(forKey: bookId) else {
       epubSendTasks.removeValue(forKey: bookId)
+      notifySettledWaiters()
       return
     }
 
@@ -209,6 +256,8 @@ actor ReaderProgressDispatchService {
     if pendingEpubUpdates[bookId] != nil {
       logger.debug("🔁 Dispatching next queued EPUB progression for book \(bookId)")
       sendPendingEpubProgression(for: bookId, trigger: "drain")
+    } else {
+      notifySettledWaiters()
     }
   }
 
