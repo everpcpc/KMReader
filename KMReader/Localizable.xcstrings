@@ -16774,6 +16774,9 @@
         }
       }
     },
+    "Image Upscaling" : {
+
+    },
     "Import .ttf or .otf font files from Files app" : {
       "localizations" : {
         "de" : {
@@ -16911,6 +16914,9 @@
           }
         }
       }
+    },
+    "Improve clarity for low-resolution pages." : {
+
     },
     "In single page mode, split landscape pages into two separate pages" : {
       "localizations" : {

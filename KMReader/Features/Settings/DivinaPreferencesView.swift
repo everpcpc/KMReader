@@ -28,6 +28,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
+  @AppStorage("enableImageUpscaling") private var enableImageUpscaling: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
@@ -129,6 +130,15 @@ struct DivinaPreferencesView: View {
                 step: 0.5
               )
               Text("Zoom level when double-tapping on a page")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+
+          Toggle(isOn: $enableImageUpscaling) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Image Upscaling")
+              Text("Improve clarity for low-resolution pages.")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }

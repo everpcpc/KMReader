@@ -111,8 +111,8 @@ struct ReaderSettingsSheet: View {
 
             Toggle(isOn: $enableImageUpscaling) {
               VStack(alignment: .leading, spacing: 4) {
-                Text("Experimental Image Upscaling")
-                Text("Improve clarity for low-resolution pages with GPU upscaling.")
+                Text("Image Upscaling")
+                Text("Improve clarity for low-resolution pages.")
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
