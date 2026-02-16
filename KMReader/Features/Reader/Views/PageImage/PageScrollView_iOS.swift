@@ -685,34 +685,39 @@
         return
       }
 
-      logger.debug(
-        String(
-          format: "🚀 [Upscale] Start page %d (source=%dx%d target=%dx%d@%.1fx requiredScale=%.2f)",
-          data.pageNumber + 1,
-          Int(sourceWidth),
-          Int(sourceHeight),
-          Int(targetWidth),
-          Int(targetHeight),
-          scale,
-          requiredScale
-        )
-      )
-
       upscaleTask?.cancel()
       upscaleTask = Task(priority: .userInitiated) { [weak self] in
+        guard let self else { return }
+
+        guard let descriptor = await ReaderUpscaleModelManager.shared.activeDescriptor() else {
+          self.logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): no active model descriptor")
+          return
+        }
+
+        self.logger.debug(
+          String(
+            format: "🚀 [Upscale] Start page %d (source=%dx%d target=%dx%d@%.1fx requiredScale=%.2f model=%@)",
+            data.pageNumber + 1,
+            Int(sourceWidth),
+            Int(sourceHeight),
+            Int(targetWidth),
+            Int(targetHeight),
+            scale,
+            requiredScale,
+            descriptor.file
+          )
+        )
+
         let startedAt = Date()
         guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
-          guard let self else { return }
-          self.logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): model processing returned nil")
+          self.logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): model processing returned nil (\(descriptor.file))")
           return
         }
 
         guard !Task.isCancelled else {
-          guard let self else { return }
           self.logger.debug("🛑 [Upscale] Cancelled page \(data.pageNumber + 1)")
           return
         }
-        guard let self else { return }
         guard self.upscaleRequestID == requestID else {
           self.logger.debug("⏭️ [Upscale] Drop stale result for page \(data.pageNumber + 1)")
           return

@@ -13,6 +13,10 @@
     private var runningTasks = 0
     private var waitQueue: [CheckedContinuation<Void, Never>] = []
 
+    func activeDescriptor() -> ReaderUpscaleModelDescriptor? {
+      resolveDefaultDescriptor()
+    }
+
     func process(_ image: CGImage) async -> CGImage? {
       guard !Task.isCancelled else { return nil }
       guard let descriptor = resolveDefaultDescriptor() else {
@@ -41,7 +45,11 @@
       defer { releaseSlot() }
 
       guard !Task.isCancelled else { return nil }
-      return await model.process(image)
+      let output = await model.process(image)
+      if output == nil {
+        logger.debug("⏭️ [Upscale] Model returned nil output: \(descriptor.file)")
+      }
+      return output
     }
 
     private func acquireSlot() async {
