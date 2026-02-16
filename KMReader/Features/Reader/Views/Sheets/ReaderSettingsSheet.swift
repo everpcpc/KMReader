@@ -28,6 +28,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("enableImageUpscaling") private var enableImageUpscaling: Bool = false
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
@@ -106,6 +107,15 @@ struct ReaderSettingsSheet: View {
                 in: 1.0...8.0,
                 step: 0.5
               )
+            }
+
+            Toggle(isOn: $enableImageUpscaling) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Experimental Image Upscaling")
+                Text("Improve clarity for low-resolution pages with GPU upscaling.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         #endif

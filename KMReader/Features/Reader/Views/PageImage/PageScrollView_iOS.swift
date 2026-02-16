@@ -1,4 +1,5 @@
 #if os(iOS) || os(tvOS)
+  import CoreImage
   import SwiftUI
   import UIKit
 
@@ -188,6 +189,9 @@
           }
         }
 
+        let pageCount = max(1, pages.count)
+        let targetWidth = parent.screenSize.width / CGFloat(pageCount)
+
         for (index, data) in pages.enumerated() {
           let image = parent.viewModel.preloadedImages[data.pageNumber]
           let targetHeight = targetHeight(for: data, image: image)
@@ -198,6 +202,7 @@
             showPageNumber: parent.showPageNumber,
             readingDirection: parent.readingDirection,
             displayMode: parent.displayMode,
+            targetWidth: targetWidth,
             targetHeight: targetHeight
           )
         }
@@ -457,6 +462,9 @@
     #endif
 
     private var heightConstraint: NSLayoutConstraint?
+    private var upscaleWorkItem: DispatchWorkItem?
+    private var upscaleRequestID: String?
+    private static let upscaleContext = CIContext(options: [CIContextOption.useSoftwareRenderer: false])
 
     override init(frame: CGRect) {
       super.init(frame: frame)
@@ -468,6 +476,7 @@
       #if !os(tvOS)
         analysisTask?.cancel()
       #endif
+      upscaleWorkItem?.cancel()
     }
 
     func prepareForDismantle() {
@@ -475,6 +484,9 @@
         clearAnalysis()
         analyzedImage = nil
       #endif
+      upscaleWorkItem?.cancel()
+      upscaleWorkItem = nil
+      upscaleRequestID = nil
       imageView.image = nil
     }
 
@@ -549,6 +561,7 @@
       showPageNumber: Bool,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
+      targetWidth: CGFloat,
       targetHeight: CGFloat
     ) {
       self.currentData = data
@@ -566,6 +579,19 @@
 
       imageView.image = displayImage
       imageView.layer.shadowOpacity = displayImage == nil ? 0 : 0.25
+
+      if AppConfig.enableImageUpscaling, let displayImage {
+        startUpscalingIfNeeded(
+          image: displayImage,
+          data: data,
+          targetWidth: targetWidth,
+          targetHeight: targetHeight
+        )
+      } else {
+        upscaleWorkItem?.cancel()
+        upscaleWorkItem = nil
+        upscaleRequestID = nil
+      }
 
       updateHeightConstraint(targetHeight)
 
@@ -607,6 +633,86 @@
       #endif
 
       setNeedsLayout()
+    }
+
+    private func startUpscalingIfNeeded(
+      image: UIImage,
+      data: NativePageData,
+      targetWidth: CGFloat,
+      targetHeight: CGFloat
+    ) {
+      let scale = window?.screen.scale ?? UIScreen.main.scale
+      let requestID = "\(data.bookId)|\(data.pageNumber)|\(String(describing: data.splitMode))|\(Int(targetWidth))x\(Int(targetHeight))|\(Int(image.size.width))x\(Int(image.size.height))"
+
+      if upscaleRequestID == requestID {
+        return
+      }
+      upscaleRequestID = requestID
+
+      upscaleWorkItem?.cancel()
+      let workItem = DispatchWorkItem { [weak self] in
+        guard
+          let upscaled = Self.upscaleForDisplayIfNeeded(
+            image,
+            targetSize: CGSize(width: targetWidth, height: targetHeight),
+            screenScale: scale
+          )
+        else {
+          return
+        }
+
+        DispatchQueue.main.async {
+          guard let self else { return }
+          guard self.upscaleRequestID == requestID else { return }
+          self.imageView.image = upscaled
+          self.setNeedsLayout()
+        }
+      }
+      upscaleWorkItem = workItem
+      DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
+    }
+
+    nonisolated private static func upscaleForDisplayIfNeeded(
+      _ image: UIImage,
+      targetSize: CGSize,
+      screenScale: CGFloat,
+      maxScale: CGFloat = 2.0
+    ) -> UIImage? {
+      guard let sourceCGImage = image.cgImage else { return nil }
+
+      let sourceWidth = CGFloat(sourceCGImage.width)
+      let sourceHeight = CGFloat(sourceCGImage.height)
+      guard sourceWidth > 0, sourceHeight > 0 else { return nil }
+
+      let pixelWidth = max(targetSize.width * screenScale, 1)
+      let pixelHeight = max(targetSize.height * screenScale, 1)
+      let requiredScale = max(pixelWidth / sourceWidth, pixelHeight / sourceHeight)
+      let upscaleFactor = min(max(requiredScale, 1), maxScale)
+      guard upscaleFactor > 1.05 else { return nil }
+
+      let inputImage = CIImage(cgImage: sourceCGImage)
+
+      guard
+        let scaleFilter = CIFilter(name: "CILanczosScaleTransform"),
+        let sharpenFilter = CIFilter(name: "CISharpenLuminance")
+      else {
+        return nil
+      }
+
+      scaleFilter.setValue(inputImage, forKey: kCIInputImageKey)
+      scaleFilter.setValue(upscaleFactor, forKey: kCIInputScaleKey)
+      scaleFilter.setValue(1.0, forKey: kCIInputAspectRatioKey)
+      guard let scaledImage = scaleFilter.outputImage else { return nil }
+
+      sharpenFilter.setValue(scaledImage, forKey: kCIInputImageKey)
+      sharpenFilter.setValue(0.35, forKey: kCIInputSharpnessKey)
+      guard let outputImage = sharpenFilter.outputImage else { return nil }
+
+      guard let outputCGImage = Self.upscaleContext.createCGImage(outputImage, from: outputImage.extent.integral) else {
+        return nil
+      }
+
+      return UIImage(cgImage: outputCGImage, scale: image.scale, orientation: image.imageOrientation)
     }
 
     private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {

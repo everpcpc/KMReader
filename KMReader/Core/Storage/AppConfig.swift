@@ -669,6 +669,18 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var enableImageUpscaling: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableImageUpscaling") != nil {
+        return UserDefaults.standard.bool(forKey: "enableImageUpscaling")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enableImageUpscaling")
+    }
+  }
+
   static nonisolated var shakeToOpenLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "shakeToOpenLiveText") != nil {
