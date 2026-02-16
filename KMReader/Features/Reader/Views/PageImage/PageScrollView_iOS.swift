@@ -790,9 +790,29 @@
 
     private func showUpscaleIndicator(for requestID: String) {
       upscaleIndicatorRequestID = requestID
+
+      if !upscaleBadgeLabel.isHidden {
+        startUpscaleBadgeAnimationIfNeeded()
+        return
+      }
+
+      upscaleBadgeLabel.layer.removeAllAnimations()
       upscaleBadgeLabel.isHidden = false
-      startUpscaleBadgeAnimationIfNeeded()
+      upscaleBadgeLabel.alpha = 0
+      upscaleBadgeLabel.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
+      upscaleBadgeLabel.backgroundColor = upscaleBadgeBaseColor
       setNeedsLayout()
+
+      UIView.animate(
+        withDuration: 0.24,
+        delay: 0,
+        options: [.beginFromCurrentState, .curveEaseOut]
+      ) {
+        self.upscaleBadgeLabel.alpha = 1
+        self.upscaleBadgeLabel.transform = .identity
+      } completion: { _ in
+        self.startUpscaleBadgeAnimationIfNeeded()
+      }
     }
 
     private func hideUpscaleIndicator(for requestID: String) {
@@ -803,35 +823,47 @@
     private func hideUpscaleIndicator() {
       upscaleIndicatorRequestID = nil
       stopUpscaleBadgeAnimation()
-      upscaleBadgeLabel.isHidden = true
-      setNeedsLayout()
+
+      guard !upscaleBadgeLabel.isHidden else { return }
+
+      UIView.animate(
+        withDuration: 0.2,
+        delay: 0,
+        options: [.beginFromCurrentState, .curveEaseIn]
+      ) {
+        self.upscaleBadgeLabel.alpha = 0
+        self.upscaleBadgeLabel.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
+      } completion: { _ in
+        guard self.upscaleIndicatorRequestID == nil else { return }
+        self.upscaleBadgeLabel.isHidden = true
+        self.upscaleBadgeLabel.alpha = 1
+        self.upscaleBadgeLabel.transform = .identity
+        self.upscaleBadgeLabel.backgroundColor = self.upscaleBadgeBaseColor
+      }
     }
 
     private func startUpscaleBadgeAnimationIfNeeded() {
       guard upscaleBadgeLabel.layer.animation(forKey: upscaleBadgeAnimationKey) == nil else { return }
 
-      let scale = CAKeyframeAnimation(keyPath: "transform.scale")
-      scale.values = [1.0, 1.18, 1.0]
-      scale.keyTimes = [0, 0.5, 1]
-      scale.duration = 0.8
+      let opacity = CABasicAnimation(keyPath: "opacity")
+      opacity.fromValue = 0.65
+      opacity.toValue = 1.0
+      opacity.duration = 1.15
+      opacity.autoreverses = true
+      opacity.repeatCount = .infinity
+      opacity.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
 
-      let opacity = CAKeyframeAnimation(keyPath: "opacity")
-      opacity.values = [0.75, 1.0, 0.75]
-      opacity.keyTimes = [0, 0.5, 1]
-      opacity.duration = 0.8
-
-      let background = CAKeyframeAnimation(keyPath: "backgroundColor")
-      background.values = [
-        UIColor.systemOrange.withAlphaComponent(0.75).cgColor,
-        UIColor.systemOrange.withAlphaComponent(1.0).cgColor,
-        UIColor.systemOrange.withAlphaComponent(0.75).cgColor,
-      ]
-      background.keyTimes = [0, 0.5, 1]
-      background.duration = 0.8
+      let scale = CABasicAnimation(keyPath: "transform.scale")
+      scale.fromValue = 1.0
+      scale.toValue = 1.04
+      scale.duration = 1.15
+      scale.autoreverses = true
+      scale.repeatCount = .infinity
+      scale.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
 
       let group = CAAnimationGroup()
-      group.animations = [scale, opacity, background]
-      group.duration = 0.8
+      group.animations = [opacity, scale]
+      group.duration = 1.15
       group.repeatCount = .infinity
       group.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
       group.isRemovedOnCompletion = false
@@ -842,7 +874,6 @@
     private func stopUpscaleBadgeAnimation() {
       upscaleBadgeLabel.layer.removeAnimation(forKey: upscaleBadgeAnimationKey)
       upscaleBadgeLabel.layer.opacity = 1
-      upscaleBadgeLabel.backgroundColor = upscaleBadgeBaseColor
       upscaleBadgeLabel.transform = .identity
     }
 
