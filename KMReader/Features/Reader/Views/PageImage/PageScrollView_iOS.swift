@@ -845,27 +845,22 @@
     private func startUpscaleBadgeAnimationIfNeeded() {
       guard upscaleBadgeLabel.layer.animation(forKey: upscaleBadgeAnimationKey) == nil else { return }
 
-      let opacity = CABasicAnimation(keyPath: "opacity")
-      opacity.fromValue = 0.65
-      opacity.toValue = 1.0
-      opacity.duration = 1.15
-      opacity.autoreverses = true
-      opacity.repeatCount = .infinity
-      opacity.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+      let opacity = CAKeyframeAnimation(keyPath: "opacity")
+      opacity.values = [0.76, 0.84, 0.92, 1.0, 0.92, 0.84, 0.76]
+      opacity.keyTimes = [0, 0.16, 0.33, 0.5, 0.67, 0.84, 1]
+      opacity.duration = 1.6
+      opacity.calculationMode = .cubic
 
-      let scale = CABasicAnimation(keyPath: "transform.scale")
-      scale.fromValue = 1.0
-      scale.toValue = 1.04
-      scale.duration = 1.15
-      scale.autoreverses = true
-      scale.repeatCount = .infinity
-      scale.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+      let scale = CAKeyframeAnimation(keyPath: "transform.scale")
+      scale.values = [1.0, 1.01, 1.02, 1.03, 1.02, 1.01, 1.0]
+      scale.keyTimes = [0, 0.16, 0.33, 0.5, 0.67, 0.84, 1]
+      scale.duration = 1.6
+      scale.calculationMode = .cubic
 
       let group = CAAnimationGroup()
       group.animations = [opacity, scale]
-      group.duration = 1.15
+      group.duration = 1.6
       group.repeatCount = .infinity
-      group.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
       group.isRemovedOnCompletion = false
 
       upscaleBadgeLabel.layer.add(group, forKey: upscaleBadgeAnimationKey)
