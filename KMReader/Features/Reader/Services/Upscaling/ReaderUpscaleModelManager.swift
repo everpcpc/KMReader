@@ -7,16 +7,36 @@
 
     private var modelCache: [String: any ReaderImageProcessingModel] = [:]
     private var preferredDescriptor: ReaderUpscaleModelDescriptor?
+    private var hasLoggedMissingDescriptor = false
+    private let logger = AppLogger(.reader)
     private let maxConcurrentTasks = 2
     private var runningTasks = 0
     private var waitQueue: [CheckedContinuation<Void, Never>] = []
 
     func process(_ image: CGImage) async -> CGImage? {
       guard !Task.isCancelled else { return nil }
-      guard let descriptor = resolveDefaultDescriptor() else { return nil }
-      guard let model = try? await loadModel(descriptor: descriptor) else { return nil }
-      guard !Task.isCancelled else { return nil }
+      guard let descriptor = resolveDefaultDescriptor() else {
+        if !hasLoggedMissingDescriptor {
+          logger.debug("⏭️ [Upscale] No available model descriptor from models.json/defaults")
+          hasLoggedMissingDescriptor = true
+        }
+        return nil
+      }
+      hasLoggedMissingDescriptor = false
 
+      let model: (any ReaderImageProcessingModel)
+      do {
+        guard let loadedModel = try await loadModel(descriptor: descriptor) else {
+          logger.debug("⏭️ [Upscale] Skip processing because model file is unavailable: \(descriptor.file)")
+          return nil
+        }
+        model = loadedModel
+      } catch {
+        logger.error("[Upscale] Failed to load model \(descriptor.file): \(error.localizedDescription)")
+        return nil
+      }
+
+      guard !Task.isCancelled else { return nil }
       await acquireSlot()
       defer { releaseSlot() }
 
@@ -64,6 +84,12 @@
         resolved = nil
       }
 
+      if preferredDescriptor?.file != resolved?.file {
+        if let resolved {
+          logger.debug("[Upscale] Using model descriptor: \(resolved.file) (type=\(resolved.modelType.rawValue))")
+        }
+      }
+
       preferredDescriptor = resolved
       return resolved
     }
@@ -78,6 +104,7 @@
         return cached
       }
 
+      logger.debug("[Upscale] Loading model from \(modelURL.lastPathComponent)")
       let compiledURL = try await MLModel.compileModel(at: modelURL)
       let model = try MLModel(contentsOf: compiledURL)
 
