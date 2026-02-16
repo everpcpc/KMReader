@@ -676,7 +676,8 @@
       targetHeight: CGFloat
     ) {
       let scale = window?.screen.scale ?? UIScreen.main.scale
-      let requestID = "\(data.bookId)|\(data.pageNumber)|\(String(describing: data.splitMode))|\(Int(targetWidth))x\(Int(targetHeight))|\(Int(image.size.width))x\(Int(image.size.height))"
+      let requestID =
+        "\(data.bookId)|\(data.pageNumber)|\(String(describing: data.splitMode))|\(Int(targetWidth))x\(Int(targetHeight))|\(Int(image.size.width))x\(Int(image.size.height))"
 
       if upscaleRequestID == requestID {
         return
@@ -696,7 +697,8 @@
       let sourceHeight = CGFloat(sourceCGImage.height)
       guard sourceWidth > 0, sourceHeight > 0 else {
         hideUpscaleIndicator(for: requestID)
-        logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): invalid source size \(Int(sourceWidth))x\(Int(sourceHeight))")
+        logger.debug(
+          "⏭️ [Upscale] Skip page \(data.pageNumber + 1): invalid source size \(Int(sourceWidth))x\(Int(sourceHeight))")
         return
       }
 
@@ -756,7 +758,8 @@
         let startedAt = Date()
         guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
           self.hideUpscaleIndicator(for: requestID)
-          self.logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): model processing returned nil (\(descriptor.file))")
+          self.logger.debug(
+            "⏭️ [Upscale] Skip page \(data.pageNumber + 1): model processing returned nil (\(descriptor.file))")
           return
         }
 
@@ -1050,7 +1053,8 @@
 
       let topInset: CGFloat = 12
       if isLeft {
-        pageNumberLabel.frame = CGRect(x: xOffset + 12, y: topY + topInset, width: pageLabelWidth, height: pageLabelHeight)
+        pageNumberLabel.frame = CGRect(
+          x: xOffset + 12, y: topY + topInset, width: pageLabelWidth, height: pageLabelHeight)
         upscaleBadgeLabel.frame = CGRect(
           x: xOffset + actualImageWidth - badgeWidth - 12,
           y: topY + topInset,

@@ -33,7 +33,6 @@ struct DivinaPreferencesView: View {
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
-
   var body: some View {
     Form {
       Section(header: Text("Appearance")) {

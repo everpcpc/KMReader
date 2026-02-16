@@ -16915,7 +16915,7 @@
         }
       }
     },
-    "Improve clarity for low-resolution pages." : {
+    "Improve clarity for low-resolution pages using built-in waifu2x (2x)." : {
 
     },
     "In single page mode, split landscape pages into two separate pages" : {

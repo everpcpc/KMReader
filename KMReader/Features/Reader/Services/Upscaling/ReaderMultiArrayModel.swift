@@ -4,7 +4,7 @@
   @preconcurrency import CoreML
   import Foundation
 
-  nonisolated final class ReaderMultiArrayModel: ReaderImageProcessingModel {
+  nonisolated final class ReaderMultiArrayModel: ReaderImageProcessingModel, @unchecked Sendable {
     private let mlmodel: MLModel
     private let inputName: String
     private let outputName: String
@@ -206,16 +206,18 @@
     }
   }
 
-  private extension MLModel {
-    nonisolated func prediction(inputName: String, outputName: String, input: MLMultiArray) throws -> MLMultiArray? {
+  extension MLModel {
+    fileprivate nonisolated func prediction(inputName: String, outputName: String, input: MLMultiArray) throws
+      -> MLMultiArray?
+    {
       let inputProvider = ReaderMLInput(name: inputName, input: input)
       let outFeatures = try prediction(from: inputProvider)
       return outFeatures.featureValue(for: outputName)?.multiArrayValue
     }
   }
 
-  private extension CGImage {
-    nonisolated func expand(shrinkSize: Int) -> [Float] {
+  extension CGImage {
+    fileprivate nonisolated func expand(shrinkSize: Int) -> [Float] {
       let clipEta8: Float = 0.00196078411
       let exWidth = width + 2 * shrinkSize
       let exHeight = height + 2 * shrinkSize
@@ -308,16 +310,25 @@
       let blR = rArr[(mainH - 1) * mainW] - clipEta8
       let blG = gArr[(mainH - 1) * mainW] - clipEta8
       let blB = bArr[(mainH - 1) * mainW] - clipEta8
-      fillRegion(channel: 0, xRange: 0..<shrinkSize, yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: blR)
-      fillRegion(channel: 1, xRange: 0..<shrinkSize, yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: blG)
-      fillRegion(channel: 2, xRange: 0..<shrinkSize, yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: blB)
+      fillRegion(
+        channel: 0, xRange: 0..<shrinkSize, yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: blR)
+      fillRegion(
+        channel: 1, xRange: 0..<shrinkSize, yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: blG)
+      fillRegion(
+        channel: 2, xRange: 0..<shrinkSize, yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: blB)
 
       let brR = rArr[mainW * mainH - 1] - clipEta8
       let brG = gArr[mainW * mainH - 1] - clipEta8
       let brB = bArr[mainW * mainH - 1] - clipEta8
-      fillRegion(channel: 0, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: brR)
-      fillRegion(channel: 1, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: brG)
-      fillRegion(channel: 2, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: brB)
+      fillRegion(
+        channel: 0, xRange: width + shrinkSize..<(width + 2 * shrinkSize),
+        yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: brR)
+      fillRegion(
+        channel: 1, xRange: width + shrinkSize..<(width + 2 * shrinkSize),
+        yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: brG)
+      fillRegion(
+        channel: 2, xRange: width + shrinkSize..<(width + 2 * shrinkSize),
+        yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: brB)
 
       for x in 0..<width {
         let topR = rArr[x] - clipEta8
@@ -332,9 +343,12 @@
         fillRegion(channel: 1, xRange: xx..<(xx + 1), yRange: 0..<shrinkSize, value: topG)
         fillRegion(channel: 2, xRange: xx..<(xx + 1), yRange: 0..<shrinkSize, value: topB)
 
-        fillRegion(channel: 0, xRange: xx..<(xx + 1), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: botR)
-        fillRegion(channel: 1, xRange: xx..<(xx + 1), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: botG)
-        fillRegion(channel: 2, xRange: xx..<(xx + 1), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: botB)
+        fillRegion(
+          channel: 0, xRange: xx..<(xx + 1), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: botR)
+        fillRegion(
+          channel: 1, xRange: xx..<(xx + 1), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: botG)
+        fillRegion(
+          channel: 2, xRange: xx..<(xx + 1), yRange: height + shrinkSize..<(height + 2 * shrinkSize), value: botB)
       }
 
       for y in 0..<height {
@@ -350,9 +364,12 @@
         fillRegion(channel: 1, xRange: 0..<shrinkSize, yRange: yy..<(yy + 1), value: leftG)
         fillRegion(channel: 2, xRange: 0..<shrinkSize, yRange: yy..<(yy + 1), value: leftB)
 
-        fillRegion(channel: 0, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: yy..<(yy + 1), value: rightR)
-        fillRegion(channel: 1, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: yy..<(yy + 1), value: rightG)
-        fillRegion(channel: 2, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: yy..<(yy + 1), value: rightB)
+        fillRegion(
+          channel: 0, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: yy..<(yy + 1), value: rightR)
+        fillRegion(
+          channel: 1, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: yy..<(yy + 1), value: rightG)
+        fillRegion(
+          channel: 2, xRange: width + shrinkSize..<(width + 2 * shrinkSize), yRange: yy..<(yy + 1), value: rightB)
       }
 
       return arr
