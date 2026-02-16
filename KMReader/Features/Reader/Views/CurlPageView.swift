@@ -326,6 +326,10 @@
           if let forward {
             return forward ? nextExists : previousExists
           }
+
+          // Ambiguous initial pan direction: allow only when both sides exist.
+          // This avoids boundary curls (e.g. first page -> previous) that can crash.
+          return nextExists && previousExists
         }
 
         return true
