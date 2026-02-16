@@ -188,7 +188,7 @@ class ReaderViewModel {
         return cachedFileURL
       }
 
-      if AppConfig.isOffline, page.downloadURL == nil {
+      if AppConfig.isOffline {
         self.logger.error("❌ Missing offline page \(page.number) for book \(self.bookId)")
         return nil
       }
