@@ -452,12 +452,12 @@
     private weak var viewModel: ReaderViewModel?
     private var readingDirection: ReadingDirection = .ltr
     private var displayMode: PageDisplayMode = .fit
+    private let logger = AppLogger(.reader)
 
     #if !os(tvOS)
       private let interaction = ImageAnalysisInteraction()
       private var analysisTask: Task<Void, Never>?
       private var analyzedImage: UIImage?
-      private let logger = AppLogger(.reader)
     #endif
 
     private var heightConstraint: NSLayoutConstraint?
@@ -646,46 +646,92 @@
       }
       upscaleRequestID = requestID
 
-      upscaleTask?.cancel()
-      upscaleTask = Task(priority: .userInitiated) { [weak self] in
-        guard
-          let upscaled = await Self.upscaleForDisplayIfNeeded(
-            image,
-            targetSize: CGSize(width: targetWidth, height: targetHeight),
-            screenScale: scale
-          )
-        else {
-          return
-        }
-
-        guard !Task.isCancelled else { return }
-        guard let self else { return }
-        guard self.upscaleRequestID == requestID else { return }
-        self.imageView.image = upscaled
-        self.setNeedsLayout()
+      guard let sourceCGImage = image.cgImage else {
+        logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): missing CGImage")
+        return
       }
-    }
-
-    nonisolated private static func upscaleForDisplayIfNeeded(
-      _ image: UIImage,
-      targetSize: CGSize,
-      screenScale: CGFloat
-    ) async -> UIImage? {
-      guard let sourceCGImage = image.cgImage else { return nil }
 
       let sourceWidth = CGFloat(sourceCGImage.width)
       let sourceHeight = CGFloat(sourceCGImage.height)
-      guard sourceWidth > 0, sourceHeight > 0 else { return nil }
+      guard sourceWidth > 0, sourceHeight > 0 else {
+        logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): invalid source size \(Int(sourceWidth))x\(Int(sourceHeight))")
+        return
+      }
 
-      let pixelWidth = max(targetSize.width * screenScale, 1)
-      let pixelHeight = max(targetSize.height * screenScale, 1)
+      let pixelWidth = max(targetWidth * scale, 1)
+      let pixelHeight = max(targetHeight * scale, 1)
       let requiredScale = max(pixelWidth / sourceWidth, pixelHeight / sourceHeight)
-      guard requiredScale > 1.05 else { return nil }
+      guard requiredScale > 1.05 else {
+        logger.debug(
+          String(
+            format: "⏭️ [Upscale] Skip page %d: requiredScale=%.2f <= 1.05 (source=%dx%d target=%dx%d@%.1fx)",
+            data.pageNumber + 1,
+            requiredScale,
+            Int(sourceWidth),
+            Int(sourceHeight),
+            Int(targetWidth),
+            Int(targetHeight),
+            scale
+          )
+        )
+        return
+      }
 
-      guard sourceCGImage.height < AppConfig.imageUpscaleMaxHeight else { return nil }
-      guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else { return nil }
+      let maxHeight = AppConfig.imageUpscaleMaxHeight
+      guard sourceCGImage.height < maxHeight else {
+        logger.debug(
+          "⏭️ [Upscale] Skip page \(data.pageNumber + 1): source height \(sourceCGImage.height) exceeds max \(maxHeight)"
+        )
+        return
+      }
 
-      return UIImage(cgImage: output, scale: image.scale, orientation: image.imageOrientation)
+      logger.debug(
+        String(
+          format: "🚀 [Upscale] Start page %d (source=%dx%d target=%dx%d@%.1fx requiredScale=%.2f)",
+          data.pageNumber + 1,
+          Int(sourceWidth),
+          Int(sourceHeight),
+          Int(targetWidth),
+          Int(targetHeight),
+          scale,
+          requiredScale
+        )
+      )
+
+      upscaleTask?.cancel()
+      upscaleTask = Task(priority: .userInitiated) { [weak self] in
+        let startedAt = Date()
+        guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
+          guard let self else { return }
+          self.logger.debug("⏭️ [Upscale] Skip page \(data.pageNumber + 1): model processing returned nil")
+          return
+        }
+
+        guard !Task.isCancelled else {
+          guard let self else { return }
+          self.logger.debug("🛑 [Upscale] Cancelled page \(data.pageNumber + 1)")
+          return
+        }
+        guard let self else { return }
+        guard self.upscaleRequestID == requestID else {
+          self.logger.debug("⏭️ [Upscale] Drop stale result for page \(data.pageNumber + 1)")
+          return
+        }
+
+        let upscaled = UIImage(cgImage: output, scale: image.scale, orientation: image.imageOrientation)
+        let duration = Date().timeIntervalSince(startedAt)
+        self.logger.debug(
+          String(
+            format: "✅ [Upscale] Applied page %d in %.2fs (output=%dx%d)",
+            data.pageNumber + 1,
+            duration,
+            output.width,
+            output.height
+          )
+        )
+        self.imageView.image = upscaled
+        self.setNeedsLayout()
+      }
     }
 
     private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {
