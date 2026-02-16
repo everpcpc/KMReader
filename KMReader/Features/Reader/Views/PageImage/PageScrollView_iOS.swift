@@ -1,7 +1,9 @@
 #if os(iOS) || os(tvOS)
   import CoreImage
+  import CoreML
   import SwiftUI
   import UIKit
+  import Vision
 
   #if !os(tvOS)
     import VisionKit
@@ -462,7 +464,7 @@
     #endif
 
     private var heightConstraint: NSLayoutConstraint?
-    private var upscaleWorkItem: DispatchWorkItem?
+    private var upscaleTask: Task<Void, Never>?
     private var upscaleRequestID: String?
 
     override init(frame: CGRect) {
@@ -482,8 +484,8 @@
         clearAnalysis()
         analyzedImage = nil
       #endif
-      upscaleWorkItem?.cancel()
-      upscaleWorkItem = nil
+      upscaleTask?.cancel()
+      upscaleTask = nil
       upscaleRequestID = nil
       imageView.image = nil
     }
@@ -586,8 +588,8 @@
           targetHeight: targetHeight
         )
       } else {
-        upscaleWorkItem?.cancel()
-        upscaleWorkItem = nil
+        upscaleTask?.cancel()
+        upscaleTask = nil
         upscaleRequestID = nil
       }
 
@@ -647,10 +649,10 @@
       }
       upscaleRequestID = requestID
 
-      upscaleWorkItem?.cancel()
-      let workItem = DispatchWorkItem { [weak self] in
+      upscaleTask?.cancel()
+      upscaleTask = Task(priority: .userInitiated) { [weak self] in
         guard
-          let upscaled = Self.upscaleForDisplayIfNeeded(
+          let upscaled = await Self.upscaleForDisplayIfNeeded(
             image,
             targetSize: CGSize(width: targetWidth, height: targetHeight),
             screenScale: scale
@@ -659,23 +661,19 @@
           return
         }
 
-        DispatchQueue.main.async {
-          guard let self else { return }
-          guard self.upscaleRequestID == requestID else { return }
-          self.imageView.image = upscaled
-          self.setNeedsLayout()
-        }
+        guard !Task.isCancelled else { return }
+        guard let self else { return }
+        guard self.upscaleRequestID == requestID else { return }
+        self.imageView.image = upscaled
+        self.setNeedsLayout()
       }
-      upscaleWorkItem = workItem
-      DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
     }
 
     nonisolated private static func upscaleForDisplayIfNeeded(
       _ image: UIImage,
       targetSize: CGSize,
-      screenScale: CGFloat,
-      maxScale: CGFloat = 2.0
-    ) -> UIImage? {
+      screenScale: CGFloat
+    ) async -> UIImage? {
       guard let sourceCGImage = image.cgImage else { return nil }
 
       let sourceWidth = CGFloat(sourceCGImage.width)
@@ -685,33 +683,12 @@
       let pixelWidth = max(targetSize.width * screenScale, 1)
       let pixelHeight = max(targetSize.height * screenScale, 1)
       let requiredScale = max(pixelWidth / sourceWidth, pixelHeight / sourceHeight)
-      let upscaleFactor = min(max(requiredScale, 1), maxScale)
-      guard upscaleFactor > 1.05 else { return nil }
+      guard requiredScale > 1.05 else { return nil }
 
-      let inputImage = CIImage(cgImage: sourceCGImage)
+      guard sourceCGImage.height < AppConfig.imageUpscaleMaxHeight else { return nil }
+      guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else { return nil }
 
-      guard
-        let scaleFilter = CIFilter(name: "CILanczosScaleTransform"),
-        let sharpenFilter = CIFilter(name: "CISharpenLuminance")
-      else {
-        return nil
-      }
-
-      scaleFilter.setValue(inputImage, forKey: kCIInputImageKey)
-      scaleFilter.setValue(upscaleFactor, forKey: kCIInputScaleKey)
-      scaleFilter.setValue(1.0, forKey: kCIInputAspectRatioKey)
-      guard let scaledImage = scaleFilter.outputImage else { return nil }
-
-      sharpenFilter.setValue(scaledImage, forKey: kCIInputImageKey)
-      sharpenFilter.setValue(0.35, forKey: kCIInputSharpnessKey)
-      guard let outputImage = sharpenFilter.outputImage else { return nil }
-
-      let context = CIContext(options: [CIContextOption.useSoftwareRenderer: false])
-      guard let outputCGImage = context.createCGImage(outputImage, from: outputImage.extent.integral) else {
-        return nil
-      }
-
-      return UIImage(cgImage: outputCGImage, scale: image.scale, orientation: image.imageOrientation)
+      return UIImage(cgImage: output, scale: image.scale, orientation: image.imageOrientation)
     }
 
     private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {
@@ -908,6 +885,92 @@
         return imageRectInSelf.union(labelFrameInImage)
       }
       return imageRectInSelf
+    }
+  }
+
+  @MainActor
+  private final class ReaderImageModel {
+    private let vnModel: VNCoreMLModel
+
+    init?(model: MLModel) {
+      guard let vnModel = try? VNCoreMLModel(for: model) else {
+        return nil
+      }
+      self.vnModel = vnModel
+    }
+
+    func process(_ image: CGImage) -> CGImage? {
+      let request = VNCoreMLRequest(model: vnModel)
+      request.imageCropAndScaleOption = .scaleFill
+      let handler = VNImageRequestHandler(cgImage: image, options: [:])
+      try? handler.perform([request])
+      guard let result = request.results?.first as? VNPixelBufferObservation else { return nil }
+      return CIImage(cvImageBuffer: result.pixelBuffer).cgImage
+    }
+  }
+
+  private actor ReaderUpscaleModelManager {
+    static let shared = ReaderUpscaleModelManager()
+    private var modelCache: [String: ReaderImageModel] = [:]
+    private let maxConcurrentTasks = 2
+    private var runningTasks = 0
+    private var waitQueue: [CheckedContinuation<Void, Never>] = []
+
+    func process(_ image: CGImage) async -> CGImage? {
+      guard let model = try? await loadEnabledModel() else { return nil }
+      await acquireSlot()
+      defer { releaseSlot() }
+      return await MainActor.run {
+        model.process(image)
+      }
+    }
+
+    private func acquireSlot() async {
+      if runningTasks < maxConcurrentTasks {
+        runningTasks += 1
+        return
+      }
+
+      await withCheckedContinuation { continuation in
+        waitQueue.append(continuation)
+      }
+      runningTasks += 1
+    }
+
+    private func releaseSlot() {
+      runningTasks = max(0, runningTasks - 1)
+      guard !waitQueue.isEmpty else { return }
+      let continuation = waitQueue.removeFirst()
+      continuation.resume()
+    }
+
+    private func loadEnabledModel() async throws -> ReaderImageModel? {
+      guard let fileName = AppConfig.enabledImageUpscaleModelFile, !fileName.isEmpty else {
+        return nil
+      }
+
+      if let cached = modelCache[fileName] {
+        return cached
+      }
+
+      let fm = FileManager.default
+      let appSupportDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+      let documentsDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first
+      let modelURL = [appSupportDir, documentsDir]
+        .compactMap { $0?.appendingPathComponent("Models").appendingPathComponent(fileName) }
+        .first(where: { fm.fileExists(atPath: $0.path) })
+
+      guard let modelURL else {
+        return nil
+      }
+
+      let compiledURL = try await MLModel.compileModel(at: modelURL)
+      let model = try MLModel(contentsOf: compiledURL)
+      guard let imageModel = await MainActor.run(body: { ReaderImageModel(model: model) }) else {
+        return nil
+      }
+      modelCache[fileName] = imageModel
+      return imageModel
     }
   }
 #endif

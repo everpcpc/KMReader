@@ -681,6 +681,27 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var imageUpscaleMaxHeight: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "imageUpscaleMaxHeight") != nil {
+        return UserDefaults.standard.integer(forKey: "imageUpscaleMaxHeight")
+      }
+      return 2200
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "imageUpscaleMaxHeight")
+    }
+  }
+
+  static nonisolated var enabledImageUpscaleModelFile: String? {
+    get {
+      UserDefaults.standard.string(forKey: "enabledImageUpscaleModelFile")
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enabledImageUpscaleModelFile")
+    }
+  }
+
   static nonisolated var shakeToOpenLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "shakeToOpenLiveText") != nil {
