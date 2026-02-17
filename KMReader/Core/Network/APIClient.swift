@@ -175,11 +175,8 @@ class APIClient {
   ) throws -> T {
     // Handle 204 No Content responses - skip JSON decoding
     if httpResponse.statusCode == 204 || data.isEmpty {
-      let expectedTypeName = String(describing: T.self)
-      let emptyResponseTypeName = String(describing: EmptyResponse.self)
-
-      if expectedTypeName == emptyResponseTypeName {
-        return EmptyResponse() as! T
+      if T.self == EmptyResponse.self, let value = EmptyResponse() as? T {
+        return value
       } else if data.isEmpty {
         let urlString = request.url?.absoluteString ?? ""
         logger.warning("⚠️ Empty response data from \(urlString)")

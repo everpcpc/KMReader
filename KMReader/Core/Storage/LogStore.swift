@@ -25,14 +25,23 @@ actor LogStore {
     dbPath = logsDir.appendingPathComponent("logs.sqlite")
 
     // Open and setup database synchronously in init
-    if sqlite3_open(dbPath.path, &db) != SQLITE_OK {
-      print("Failed to open log database")
+    let openResult = sqlite3_open(dbPath.path, &db)
+    if openResult != SQLITE_OK {
+      let errorMessage = db.flatMap { sqlite3_errmsg($0) }.map { String(cString: $0) } ?? "unknown"
+      print("Failed to open log database: \(errorMessage)")
+      if let db {
+        sqlite3_close(db)
+      }
+      self.db = nil
+      return
     }
 
     // Migration: check if schema matches exactly, if not drop table to recreate it
     var checkStmt: OpaquePointer?
     let checkSql = "PRAGMA table_info(logs)"
     var columns: [String: String] = [:]
+    guard let db else { return }
+
     if sqlite3_prepare_v2(db, checkSql, -1, &checkStmt, nil) == SQLITE_OK {
       while sqlite3_step(checkStmt) == SQLITE_ROW {
         if let name = sqlite3_column_text(checkStmt, 1),
@@ -72,6 +81,7 @@ actor LogStore {
   }
 
   func insert(date: Date, level: Int, category: String, message: String) {
+    guard let db else { return }
     let sql = "INSERT INTO logs (date, level, category, message) VALUES (?, ?, ?, ?)"
     var stmt: OpaquePointer?
 
@@ -100,6 +110,7 @@ actor LogStore {
     since: Date? = nil,
     limit: Int = 500
   ) -> [LogEntry] {
+    guard let db else { return [] }
     var conditions: [String] = []
     var params: [Any] = []
 
@@ -157,6 +168,7 @@ actor LogStore {
   }
 
   func categories() -> [String] {
+    guard let db else { return [] }
     let sql = "SELECT DISTINCT category FROM logs ORDER BY category"
     var stmt: OpaquePointer?
     var categories: [String] = []
@@ -171,6 +183,7 @@ actor LogStore {
   }
 
   func categoryCounts(minPriority: Int? = nil, since: Date? = nil) -> [String: Int] {
+    guard let db else { return [:] }
     var conditions: [String] = []
     var params: [Any] = []
 
@@ -214,6 +227,7 @@ actor LogStore {
   }
 
   func cleanup(keepDays: Int = 7) {
+    guard let db else { return }
     let cutoff = Date().addingTimeInterval(-Double(keepDays * 24 * 60 * 60))
     let sql = "DELETE FROM logs WHERE date < ?"
     var stmt: OpaquePointer?
@@ -226,6 +240,7 @@ actor LogStore {
   }
 
   func clear() {
+    guard let db else { return }
     sqlite3_exec(db, "DELETE FROM logs", nil, nil, nil)
   }
 }

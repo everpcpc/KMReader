@@ -73,7 +73,10 @@ struct OfflineBooksView: View {
       let seriesDescriptor = FetchDescriptor<KomgaSeries>(
         predicate: #Predicate { compositeIds.contains($0.id) })
       let allSeries = (try? modelContext.fetch(seriesDescriptor)) ?? []
-      let seriesMap = Dictionary(uniqueKeysWithValues: allSeries.map { ($0.seriesId, $0) })
+      let seriesMap = Dictionary(
+        allSeries.map { ($0.seriesId, $0) },
+        uniquingKeysWith: { first, _ in first }
+      )
 
       var sGroups: [SeriesGroup] = []
       for (seriesId, sBooks) in seriesGroupsMap {

@@ -117,7 +117,10 @@ actor DatabaseOperator {
       predicate: #Predicate { compositeIds.contains($0.id) }
     )
     let existingBooks = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(uniqueKeysWithValues: existingBooks.map { ($0.id, $0) })
+    let existingById = Dictionary(
+      existingBooks.map { ($0.id, $0) },
+      uniquingKeysWith: { first, _ in first }
+    )
 
     for book in books {
       let compositeId = CompositeID.generate(instanceId: instanceId, id: book.id)
@@ -364,7 +367,10 @@ actor DatabaseOperator {
       predicate: #Predicate { compositeIds.contains($0.id) }
     )
     let existingSeries = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(uniqueKeysWithValues: existingSeries.map { ($0.id, $0) })
+    let existingById = Dictionary(
+      existingSeries.map { ($0.id, $0) },
+      uniquingKeysWith: { first, _ in first }
+    )
 
     for series in seriesList {
       let compositeId = CompositeID.generate(instanceId: instanceId, id: series.id)
@@ -459,7 +465,10 @@ actor DatabaseOperator {
       predicate: #Predicate { compositeIds.contains($0.id) }
     )
     let existingCollections = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(uniqueKeysWithValues: existingCollections.map { ($0.id, $0) })
+    let existingById = Dictionary(
+      existingCollections.map { ($0.id, $0) },
+      uniquingKeysWith: { first, _ in first }
+    )
 
     for collection in collections {
       let compositeId = CompositeID.generate(instanceId: instanceId, id: collection.id)
@@ -522,7 +531,10 @@ actor DatabaseOperator {
       predicate: #Predicate { compositeIds.contains($0.id) }
     )
     let existingReadLists = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(uniqueKeysWithValues: existingReadLists.map { ($0.id, $0) })
+    let existingById = Dictionary(
+      existingReadLists.map { ($0.id, $0) },
+      uniquingKeysWith: { first, _ in first }
+    )
 
     for readList in readLists {
       let compositeId = CompositeID.generate(instanceId: instanceId, id: readList.id)
