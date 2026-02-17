@@ -28,7 +28,13 @@ struct ReaderSettingsSheet: View {
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
-  @AppStorage("enableImageUpscaling") private var enableImageUpscaling: Bool = false
+  @AppStorage("imageUpscalingMode") private var imageUpscalingMode: ReaderImageUpscalingMode =
+    AppConfig.imageUpscalingMode
+  @AppStorage("imageUpscaleAutoTriggerScale") private var imageUpscaleAutoTriggerScale: Double =
+    AppConfig.imageUpscaleAutoTriggerScale
+  @AppStorage("imageUpscaleAlwaysMaxScreenScale")
+  private var imageUpscaleAlwaysMaxScreenScale: Double =
+    AppConfig.imageUpscaleAlwaysMaxScreenScale
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
@@ -108,15 +114,67 @@ struct ReaderSettingsSheet: View {
                 step: 0.5
               )
             }
+          }
+        #endif
 
-            Toggle(isOn: $enableImageUpscaling) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Image Upscaling")
-                Text("Improve clarity for low-resolution pages using built-in waifu2x (2x).")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
+        #if os(iOS)
+          Section(header: Text("Image Upscaling")) {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Waifu2x Mode", selection: $imageUpscalingMode) {
+                ForEach(ReaderImageUpscalingMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+
+              Text("Improve clarity for low-resolution pages using built-in waifu2x (2x).")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+
+            Group {
+              switch imageUpscalingMode {
+              case .disabled:
+                EmptyView()
+              case .auto:
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Auto Trigger Scale Threshold")
+                    Spacer()
+                    Text(String(format: "%.2fx", imageUpscaleAutoTriggerScale))
+                      .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $imageUpscaleAutoTriggerScale,
+                    in: 1.0...1.5,
+                    step: 0.01
+                  )
+                  Text("Auto scale only when screen-to-image required scale is above this value.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+                .transition(.opacity)
+              case .always:
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Always Mode Max Source Size")
+                    Spacer()
+                    Text(String(format: "%.2fx", imageUpscaleAlwaysMaxScreenScale))
+                      .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $imageUpscaleAlwaysMaxScreenScale,
+                    in: 1.0...3.0,
+                    step: 0.05
+                  )
+                  Text("Skip waifu2x when source size exceeds this multiple of the screen size.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+                .transition(.opacity)
               }
             }
+            .animation(.easeInOut(duration: 0.2), value: imageUpscalingMode)
           }
         #endif
 

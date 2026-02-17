@@ -48,6 +48,9 @@ class ReaderViewModel {
 
   /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
+  #if os(iOS) || os(tvOS)
+    private var upscalingTasks: [Int: Task<URL?, Never>] = [:]
+  #endif
   private let progressDebounceIntervalSeconds: Int = 3
   private var lastPreloadRequestTime: Date?
   private var preloadTask: Task<Void, Never>?
@@ -89,6 +92,12 @@ class ReaderViewModel {
       task.cancel()
     }
     downloadingTasks.removeAll()
+    #if os(iOS) || os(tvOS)
+      for (_, task) in upscalingTasks {
+        task.cancel()
+      }
+      upscalingTasks.removeAll()
+    #endif
     preloadedImages.removeAll()
     animatedPageStates.removeAll()
 
@@ -356,14 +365,7 @@ class ReaderViewModel {
           }
           group.addTask {
             if Task.isCancelled { return (index, nil, false) }
-            // Get file URL (downloads if needed)
-            guard let fileURL = await self.getPageImageFileURL(page: page) else {
-              return (index, nil, false)
-            }
-            if Task.isCancelled { return (index, nil, false) }
-            let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
-            // Decode image from file
-            let image = await self.loadImageFromFile(fileURL: fileURL, decodeForDisplay: !isAnimated)
+            let (image, isAnimated) = await self.preloadDecodedPageImage(page: page)
             return (index, image, isAnimated)
           }
         }
@@ -452,6 +454,173 @@ class ReaderViewModel {
     return await ImageDecodeHelper.decodeForDisplay(image)
   }
 
+  private func preloadDecodedPageImage(page: BookPage) async -> (PlatformImage?, Bool) {
+    guard let sourceFileURL = await getPageImageFileURL(page: page) else {
+      return (nil, false)
+    }
+
+    let isAnimated = Self.detectAnimatedState(for: page, fileURL: sourceFileURL)
+    let preferredFileURL = await preferredDisplayImageFileURL(
+      page: page,
+      sourceFileURL: sourceFileURL,
+      isAnimated: isAnimated
+    )
+
+    if let image = await loadImageFromFile(fileURL: preferredFileURL, decodeForDisplay: !isAnimated) {
+      return (image, isAnimated)
+    }
+
+    if preferredFileURL != sourceFileURL {
+      logger.debug(
+        "⏭️ [Upscale] Fallback to original file for page \(page.number + 1) because @2x decode failed")
+      let fallbackImage = await loadImageFromFile(fileURL: sourceFileURL, decodeForDisplay: !isAnimated)
+      return (fallbackImage, isAnimated)
+    }
+
+    return (nil, isAnimated)
+  }
+
+  private func preferredDisplayImageFileURL(
+    page: BookPage,
+    sourceFileURL: URL,
+    isAnimated: Bool
+  ) async -> URL {
+    #if os(iOS) || os(tvOS)
+      guard !isAnimated else { return sourceFileURL }
+
+      let mode = AppConfig.imageUpscalingMode
+      guard mode != .disabled else { return sourceFileURL }
+
+      guard let sourcePixelSize = Self.sourcePixelSize(page: page, fileURL: sourceFileURL) else {
+        return sourceFileURL
+      }
+
+      let autoTriggerScale = CGFloat(AppConfig.imageUpscaleAutoTriggerScale)
+      let alwaysMaxScreenScale = CGFloat(AppConfig.imageUpscaleAlwaysMaxScreenScale)
+      let decision = ReaderUpscaleDecision.evaluate(
+        mode: mode,
+        sourcePixelSize: sourcePixelSize,
+        screenPixelSize: ReaderUpscaleDecision.screenPixelSize(for: UIScreen.main),
+        autoTriggerScale: autoTriggerScale,
+        alwaysMaxScreenScale: alwaysMaxScreenScale
+      )
+      guard decision.shouldUpscale else { return sourceFileURL }
+
+      let upscaledFileURL = Self.upscaledImageFileURL(from: sourceFileURL)
+      if FileManager.default.fileExists(atPath: upscaledFileURL.path) {
+        return upscaledFileURL
+      }
+
+      if let existingTask = upscalingTasks[page.number] {
+        if let cachedURL = await existingTask.value {
+          return cachedURL
+        }
+        return sourceFileURL
+      }
+
+      let pageNumber = page.number
+      let upscaleTask = Task<URL?, Never>.detached(priority: .userInitiated) {
+        [sourceFileURL, upscaledFileURL] in
+        if FileManager.default.fileExists(atPath: upscaledFileURL.path) {
+          return upscaledFileURL
+        }
+
+        guard let sourceCGImage = Self.readCGImage(from: sourceFileURL) else {
+          return nil
+        }
+
+        guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
+          return nil
+        }
+
+        guard Self.persistUpscaledCGImage(output, sourceFileURL: sourceFileURL, targetFileURL: upscaledFileURL) else {
+          return nil
+        }
+
+        return upscaledFileURL
+      }
+
+      upscalingTasks[pageNumber] = upscaleTask
+      let result = await upscaleTask.value
+      upscalingTasks.removeValue(forKey: pageNumber)
+      return result ?? sourceFileURL
+    #else
+      return sourceFileURL
+    #endif
+  }
+
+  nonisolated private static func sourcePixelSize(page: BookPage, fileURL: URL) -> CGSize? {
+    if let width = page.width, let height = page.height, width > 0, height > 0 {
+      return CGSize(width: width, height: height)
+    }
+
+    let options = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard
+      let source = CGImageSourceCreateWithURL(fileURL as CFURL, options),
+      let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+      let pixelWidth = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+      let pixelHeight = properties[kCGImagePropertyPixelHeight] as? CGFloat,
+      pixelWidth > 0,
+      pixelHeight > 0
+    else {
+      return nil
+    }
+
+    return CGSize(width: pixelWidth, height: pixelHeight)
+  }
+
+  nonisolated private static func upscaledImageFileURL(from sourceFileURL: URL) -> URL {
+    let directory = sourceFileURL.deletingLastPathComponent()
+    let baseName = sourceFileURL.deletingPathExtension().lastPathComponent
+    let extensionName = sourceFileURL.pathExtension
+    let resolvedBaseName = baseName.hasSuffix("@2x") ? baseName : "\(baseName)@2x"
+    let upscaledURL = directory.appendingPathComponent(resolvedBaseName)
+    if extensionName.isEmpty {
+      return upscaledURL
+    }
+    return upscaledURL.appendingPathExtension(extensionName)
+  }
+
+  nonisolated private static func readCGImage(from fileURL: URL) -> CGImage? {
+    let options = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard let source = CGImageSourceCreateWithURL(fileURL as CFURL, options) else {
+      return nil
+    }
+    return CGImageSourceCreateImageAtIndex(source, 0, options)
+  }
+
+  nonisolated private static func persistUpscaledCGImage(
+    _ image: CGImage,
+    sourceFileURL: URL,
+    targetFileURL: URL
+  ) -> Bool {
+    let fileManager = FileManager.default
+    let targetDirectory = targetFileURL.deletingLastPathComponent()
+    do {
+      try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
+    } catch {
+      return false
+    }
+
+    let destinationType =
+      UTType(filenameExtension: sourceFileURL.pathExtension.lowercased())?.identifier
+      ?? UTType.jpeg.identifier
+
+    guard
+      let destination = CGImageDestinationCreateWithURL(
+        targetFileURL as CFURL,
+        destinationType as CFString,
+        1,
+        nil
+      )
+    else {
+      return false
+    }
+
+    CGImageDestinationAddImage(destination, image, nil)
+    return CGImageDestinationFinalize(destination)
+  }
+
   func shouldShowAnimatedPlayButton(for pageIndex: Int) -> Bool {
     #if os(tvOS)
       return false
@@ -481,10 +650,9 @@ class ReaderViewModel {
     if let cached = preloadedImages[index] {
       return cached
     }
-    guard let fileURL = await getPageImageFileURL(page: page) else { return nil }
-    let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
+    let (image, isAnimated) = await preloadDecodedPageImage(page: page)
     animatedPageStates[index] = isAnimated
-    guard let image = await loadImageFromFile(fileURL: fileURL, decodeForDisplay: !isAnimated) else {
+    guard let image else {
       return nil
     }
     preloadedImages[index] = image
@@ -495,6 +663,12 @@ class ReaderViewModel {
   func clearPreloadedImages() {
     preloadTask?.cancel()
     preloadTask = nil
+    #if os(iOS) || os(tvOS)
+      for (_, task) in upscalingTasks {
+        task.cancel()
+      }
+      upscalingTasks.removeAll()
+    #endif
     preloadedImages.removeAll()
     animatedPageStates.removeAll()
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")

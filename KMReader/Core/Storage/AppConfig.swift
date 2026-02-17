@@ -669,27 +669,41 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var enableImageUpscaling: Bool {
+  static nonisolated var imageUpscalingMode: ReaderImageUpscalingMode {
     get {
-      if UserDefaults.standard.object(forKey: "enableImageUpscaling") != nil {
-        return UserDefaults.standard.bool(forKey: "enableImageUpscaling")
+      if let stored = UserDefaults.standard.string(forKey: "imageUpscalingMode"),
+        let mode = ReaderImageUpscalingMode(rawValue: stored)
+      {
+        return mode
       }
-      return false
+      return .disabled
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "enableImageUpscaling")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "imageUpscalingMode")
     }
   }
 
-  static nonisolated var imageUpscaleMaxHeight: Int {
+  static nonisolated var imageUpscaleAutoTriggerScale: Double {
     get {
-      if UserDefaults.standard.object(forKey: "imageUpscaleMaxHeight") != nil {
-        return UserDefaults.standard.integer(forKey: "imageUpscaleMaxHeight")
+      if UserDefaults.standard.object(forKey: "imageUpscaleAutoTriggerScale") != nil {
+        return max(UserDefaults.standard.double(forKey: "imageUpscaleAutoTriggerScale"), 1.0)
       }
-      return 2200
+      return 1.05
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "imageUpscaleMaxHeight")
+      UserDefaults.standard.set(max(newValue, 1.0), forKey: "imageUpscaleAutoTriggerScale")
+    }
+  }
+
+  static nonisolated var imageUpscaleAlwaysMaxScreenScale: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "imageUpscaleAlwaysMaxScreenScale") != nil {
+        return max(UserDefaults.standard.double(forKey: "imageUpscaleAlwaysMaxScreenScale"), 1.0)
+      }
+      return 1.5
+    }
+    set {
+      UserDefaults.standard.set(max(newValue, 1.0), forKey: "imageUpscaleAlwaysMaxScreenScale")
     }
   }
   static nonisolated var shakeToOpenLiveText: Bool {
