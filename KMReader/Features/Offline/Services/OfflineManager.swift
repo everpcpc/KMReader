@@ -100,9 +100,10 @@ actor OfflineManager {
 
   /// Base directory for all offline books.
   private static func baseDirectory() -> URL {
-    let appSupport = FileManager.default.urls(
-      for: .applicationSupportDirectory, in: .userDomainMask
-    ).first ?? FileManager.default.temporaryDirectory
+    let appSupport =
+      FileManager.default.urls(
+        for: .applicationSupportDirectory, in: .userDomainMask
+      ).first ?? FileManager.default.temporaryDirectory
     ensureDirectoryExists(at: appSupport)
     let base = appSupport.appendingPathComponent(directoryName, isDirectory: true)
     migrateLegacyDirectoryIfNeeded(to: base)
