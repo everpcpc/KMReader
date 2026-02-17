@@ -90,7 +90,7 @@ struct MainApp: App {
         configurations: [configuration]
       )
     } catch {
-      let errorMessage = error.localizedDescription
+      let errorMessage = String(describing: error)
       AppLogger(.database).error("Failed to create ModelContainer: \(errorMessage)")
       fatalError("Failed to create ModelContainer: \(errorMessage)")
     }
