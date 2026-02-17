@@ -581,6 +581,8 @@ actor OfflineManager {
       await deleteReadBooks()
     }
 
+    await syncMissingOfflineEpubProgressions(instanceId: instanceId)
+
     while true {
       let pending = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
 
@@ -591,6 +593,46 @@ actor OfflineManager {
       await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
       return
     }
+  }
+
+  private func syncMissingOfflineEpubProgressions(instanceId: String) async {
+    let bookIds = await DatabaseOperator.shared.fetchOfflineEpubBookIdsMissingProgression(
+      instanceId: instanceId
+    )
+    guard !bookIds.isEmpty else { return }
+
+    logger.info(
+      "📥 Syncing missing EPUB progression for \(bookIds.count) offline books with non-zero progress"
+    )
+
+    var syncedCount = 0
+    var failedCount = 0
+
+    for bookId in bookIds {
+      do {
+        let progression = try await BookService.shared.getWebPubProgression(bookId: bookId)
+        guard progression != nil else { continue }
+
+        await DatabaseOperator.shared.updateBookEpubProgression(
+          bookId: bookId,
+          progression: progression
+        )
+        syncedCount += 1
+      } catch {
+        failedCount += 1
+        logger.warning(
+          "⚠️ Failed to sync missing EPUB progression for offline book \(bookId): \(error)"
+        )
+      }
+    }
+
+    if syncedCount > 0 {
+      await DatabaseOperator.shared.commit()
+    }
+
+    logger.info(
+      "✅ Finished syncing missing EPUB progression for offline books: synced=\(syncedCount), failed=\(failedCount)"
+    )
   }
 
   private func startDownload(instanceId: String, info: DownloadInfo) async {

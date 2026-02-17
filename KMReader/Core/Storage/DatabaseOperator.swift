@@ -2019,6 +2019,25 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchOfflineEpubBookIdsMissingProgression(instanceId: String) -> [String] {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate {
+        $0.instanceId == instanceId
+          && $0.downloadStatusRaw == "downloaded"
+      }
+    )
+
+    guard let results = try? modelContext.fetch(descriptor) else { return [] }
+    return results.compactMap { book in
+      guard
+        book.mediaProfile == "EPUB",
+        (book.progressPage ?? 0) > 0,
+        book.epubProgressionRaw == nil
+      else { return nil }
+      return book.bookId
+    }
+  }
+
   func fetchReadBooksEligibleForAutoDelete(instanceId: String) -> [(id: String, seriesId: String)] {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate {
