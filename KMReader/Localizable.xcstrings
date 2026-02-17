@@ -2928,48 +2928,48 @@
         }
       }
     },
-    "Always Mode Max Source Size" : {
+    "Always Mode Source Size Threshold" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Maximale Quellgröße im Immer-Modus"
+            "value" : "Schwellenwert der Quellgröße im Immer-Modus"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Always Mode Max Source Size"
+            "value" : "Always Mode Source Size Threshold"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Taille maximale de la source en mode Toujours"
+            "value" : "Seuil de taille source en mode Toujours"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "常時モードの最大ソースサイズ"
+            "value" : "常時モードのソースサイズしきい値"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "항상 모드 최대 원본 크기"
+            "value" : "항상 모드 원본 크기 임계값"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "始终模式最大源图尺寸"
+            "value" : "始终模式源图尺寸阈值"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "始終模式最大來源圖尺寸"
+            "value" : "始終模式來源圖片尺寸閾值"
           }
         }
       }
@@ -4630,48 +4630,48 @@
         }
       }
     },
-    "Auto scale only when screen-to-image required scale is above this value." : {
+    "Auto scale only when required scale to fill the screen is greater than this value." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisch nur hochskalieren, wenn der erforderliche Skalierungsfaktor zwischen Bildschirm und Bild über diesem Wert liegt."
+            "value" : "Automatisch nur hochskalieren, wenn der zum Füllen des Bildschirms erforderliche Skalierungsfaktor größer als dieser Wert ist."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auto scale only when screen-to-image required scale is above this value."
+            "value" : "Auto scale only when required scale to fill the screen is greater than this value."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Effectuer une mise à l'échelle automatique uniquement lorsque le facteur requis écran-image dépasse cette valeur."
+            "value" : "Effectuer une mise à l'échelle automatique uniquement lorsque le facteur requis pour remplir l'écran est supérieur à cette valeur."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画面に合わせるために必要な拡大率がこの値を超える場合のみ自動で拡大します。"
+            "value" : "画面を埋めるために必要な拡大率がこの値より大きい場合のみ自動で拡大します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "화면 대비 이미지에 필요한 배율이 이 값을 초과할 때만 자동으로 확대합니다."
+            "value" : "화면을 가득 채우는 데 필요한 배율이 이 값보다 클 때만 자동으로 확대합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅当屏幕到图像所需缩放倍率高于此值时才自动放大。"
+            "value" : "仅当填满屏幕所需的缩放倍率大于此值时才自动放大。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅當螢幕到圖片所需縮放倍率高於此值時才自動放大。"
+            "value" : "僅當填滿螢幕所需的縮放倍率大於此值時才自動放大。"
           }
         }
       }
@@ -41984,48 +41984,48 @@
         }
       }
     },
-    "Skip waifu2x when source size exceeds this multiple of the screen size." : {
+    "In Always mode, upscale unless source width or height exceeds this multiple of the screen." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "waifu2x überspringen, wenn die Quellgröße dieses Vielfache der Bildschirmgröße überschreitet."
+            "value" : "Im Immer-Modus wird hochskaliert, außer wenn Quellbreite oder -höhe dieses Vielfache der Bildschirmgröße überschreitet."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skip waifu2x when source size exceeds this multiple of the screen size."
+            "value" : "In Always mode, upscale unless source width or height exceeds this multiple of the screen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ignorer waifu2x lorsque la taille source dépasse ce multiple de la taille de l'écran."
+            "value" : "En mode Toujours, la mise à l'échelle est appliquée sauf si la largeur ou la hauteur source dépasse ce multiple de la taille d'écran."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "元画像サイズが画面サイズのこの倍率を超える場合は waifu2x をスキップします。"
+            "value" : "常時モードでは、元画像の幅または高さが画面サイズのこの倍率を超えない限り拡大します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "원본 크기가 화면 크기의 이 배수를 초과하면 waifu2x를 건너뜁니다."
+            "value" : "항상 모드에서는 원본 너비 또는 높이가 화면 크기의 이 배수를 초과하지 않는 한 업스케일합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当源图尺寸超过屏幕尺寸的此倍数时，跳过 waifu2x。"
+            "value" : "在始终模式下，除非源图宽度或高度超过屏幕尺寸的此倍数，否则都会放大。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "當來源圖片尺寸超過螢幕尺寸的此倍數時，略過 waifu2x。"
+            "value" : "在始終模式下，除非來源圖片寬度或高度超過螢幕尺寸的此倍數，否則都會放大。"
           }
         }
       }
