@@ -323,7 +323,7 @@
       func pageViewController(
         chapterIndex: Int,
         subPageIndex: Int,
-        in pageViewController: UIPageViewController?,
+        in _: UIPageViewController?,
         preferLastPageOnReady: Bool = false
       ) -> UIViewController? {
         guard chapterIndex >= 0, chapterIndex < parent.viewModel.chapterCount else { return nil }
@@ -403,42 +403,6 @@
           configureController(cached)
           cached.loadViewIfNeeded()
           return cached
-        }
-
-        let protectedIDs = Set((pageViewController?.viewControllers ?? []).map { ObjectIdentifier($0) })
-        if let reusable = cachedControllers.values.first(where: {
-          !protectedIDs.contains(ObjectIdentifier($0))
-        }) {
-          reusable.configure(
-            chapterURL: chapterURL,
-            rootURL: rootURL,
-            containerInsets: containerInsets,
-            theme: theme,
-            contentCSS: readiumPayload.css,
-            readiumProperties: readiumPayload.properties,
-            publicationLanguage: parent.viewModel.publicationLanguage,
-            publicationReadingProgression: parent.viewModel.publicationReadingProgression,
-            chapterIndex: chapterIndex,
-            subPageIndex: subPageIndex,
-            totalPages: pageCount,
-            bookTitle: parent.bookTitle,
-            chapterTitle: location.title,
-            totalProgression: totalProgression,
-            showingControls: parent.showingControls,
-            labelTopOffset: parent.viewModel.labelTopOffset,
-            labelBottomOffset: parent.viewModel.labelBottomOffset,
-            useSafeArea: parent.viewModel.useSafeArea,
-            preferLastPageOnReady: preferLastPageOnReady,
-            targetProgressionOnReady: initialProgression,
-            onPageCountReady: onPageCountReady
-          )
-          configureController(reusable)
-          reusable.onLinkTap = { [weak self] url in
-            self?.parent.viewModel.navigateToURL(url)
-          }
-          reusable.loadViewIfNeeded()
-          storeController(reusable, for: key)
-          return reusable
         }
 
         let controller = EpubPageViewController(

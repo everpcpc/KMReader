@@ -38,6 +38,7 @@
         navigationOrientation: mode.isVertical ? .vertical : .horizontal,
         options: [.spineLocation: NSNumber(value: spineLocation.rawValue)]
       )
+      context.coordinator.pageViewController = pageVC
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
 
@@ -75,6 +76,8 @@
 
     func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
       context.coordinator.parent = self
+      context.coordinator.pageViewController = pageVC
+      context.coordinator.syncCurrentPageIndexWithVisibleController()
 
       let targetViewItemIndex: Int? = {
         if let explicitTarget = viewModel.targetViewItemIndex {
@@ -105,6 +108,8 @@
         return
       }
 
+      guard !context.coordinator.isTransitioning else { return }
+
       let direction: UIPageViewController.NavigationDirection
       if mode.isRTL {
         direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .reverse : .forward
@@ -112,15 +117,17 @@
         direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .forward : .reverse
       }
 
+      context.coordinator.isTransitioning = true
       pageVC.setViewControllers(
         [targetVC],
         direction: direction,
         animated: true
       ) { completed in
         Task { @MainActor in
+          context.coordinator.isTransitioning = false
+          context.coordinator.syncCurrentPageIndexWithVisibleController()
           if completed {
-            context.coordinator.currentPageIndex = targetViewItemIndex
-            viewModel.updateCurrentPosition(viewItemIndex: targetViewItemIndex)
+            viewModel.updateCurrentPosition(viewItemIndex: context.coordinator.currentPageIndex)
           }
           viewModel.targetViewItemIndex = nil
           viewModel.targetPageIndex = nil
@@ -135,6 +142,8 @@
     {
       var parent: CurlPageView
       var currentPageIndex: Int
+      weak var pageViewController: UIPageViewController?
+      var isTransitioning = false
 
       init(_ parent: CurlPageView) {
         self.parent = parent
@@ -248,10 +257,19 @@
 
       func pageViewController(
         _ pageViewController: UIPageViewController,
+        willTransitionTo pendingViewControllers: [UIViewController]
+      ) {
+        isTransitioning = true
+      }
+
+      func pageViewController(
+        _ pageViewController: UIPageViewController,
         didFinishAnimating finished: Bool,
         previousViewControllers: [UIViewController],
         transitionCompleted completed: Bool
       ) {
+        isTransitioning = false
+        syncCurrentPageIndexWithVisibleController()
         guard completed,
           let currentVC = pageViewController.viewControllers?.first
         else { return }
@@ -272,6 +290,18 @@
         index >= 0 && index < totalPages
       }
 
+      private func visiblePageIndex() -> Int? {
+        guard let index = pageViewController?.viewControllers?.first?.view.tag else { return nil }
+        guard isValidIndex(index) else { return nil }
+        return index
+      }
+
+      func syncCurrentPageIndexWithVisibleController() {
+        if let visibleIndex = visiblePageIndex() {
+          currentPageIndex = visibleIndex
+        }
+      }
+
       private func nextIndex(from index: Int) -> Int {
         parent.mode.isRTL ? index - 1 : index + 1
       }
@@ -281,8 +311,12 @@
       }
 
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard !isTransitioning else { return false }
         guard !parent.viewModel.isZoomed else { return false }
         guard parent.viewModel.liveTextActivePageIndex == nil else { return false }
+
+        syncCurrentPageIndexWithVisibleController()
+        guard isValidIndex(currentPageIndex) else { return false }
 
         let nextExists = isValidIndex(nextIndex(from: currentPageIndex))
         let previousExists = isValidIndex(previousIndex(from: currentPageIndex))
@@ -312,15 +346,44 @@
 
         if let pan = gestureRecognizer as? UIPanGestureRecognizer {
           let velocity = pan.velocity(in: pan.view)
+          let primaryVelocity: CGFloat
+          if parent.mode.isVertical {
+            primaryVelocity = velocity.y
+          } else {
+            primaryVelocity = velocity.x
+          }
+
+          let boundaryVelocityThreshold: CGFloat = 120
+          if (!nextExists || !previousExists) && abs(primaryVelocity) < boundaryVelocityThreshold {
+            return false
+          }
+
           let forward: Bool?
 
-          switch parent.readingDirection {
-          case .ltr:
-            if velocity.x < 0 { forward = true } else if velocity.x > 0 { forward = false } else { forward = nil }
-          case .rtl:
-            if velocity.x > 0 { forward = true } else if velocity.x < 0 { forward = false } else { forward = nil }
-          case .vertical, .webtoon:
-            if velocity.y < 0 { forward = true } else if velocity.y > 0 { forward = false } else { forward = nil }
+          if parent.mode.isVertical {
+            if primaryVelocity < 0 {
+              forward = true
+            } else if primaryVelocity > 0 {
+              forward = false
+            } else {
+              forward = nil
+            }
+          } else if parent.readingDirection == .rtl {
+            if primaryVelocity > 0 {
+              forward = true
+            } else if primaryVelocity < 0 {
+              forward = false
+            } else {
+              forward = nil
+            }
+          } else {
+            if primaryVelocity < 0 {
+              forward = true
+            } else if primaryVelocity > 0 {
+              forward = false
+            } else {
+              forward = nil
+            }
           }
 
           if let forward {
