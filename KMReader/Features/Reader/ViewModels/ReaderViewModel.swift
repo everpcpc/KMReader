@@ -492,57 +492,124 @@ class ReaderViewModel {
       guard mode != .disabled else { return sourceFileURL }
 
       guard let sourcePixelSize = Self.sourcePixelSize(page: page, fileURL: sourceFileURL) else {
+        logger.debug("⏭️ [Upscale] Skip page \(page.number + 1): unable to resolve source size")
         return sourceFileURL
       }
 
       let autoTriggerScale = CGFloat(AppConfig.imageUpscaleAutoTriggerScale)
       let alwaysMaxScreenScale = CGFloat(AppConfig.imageUpscaleAlwaysMaxScreenScale)
+      let screenPixelSize = ReaderUpscaleDecision.screenPixelSize(for: UIScreen.main)
       let decision = ReaderUpscaleDecision.evaluate(
         mode: mode,
         sourcePixelSize: sourcePixelSize,
-        screenPixelSize: ReaderUpscaleDecision.screenPixelSize(for: UIScreen.main),
+        screenPixelSize: screenPixelSize,
         autoTriggerScale: autoTriggerScale,
         alwaysMaxScreenScale: alwaysMaxScreenScale
       )
-      guard decision.shouldUpscale else { return sourceFileURL }
+      guard decision.shouldUpscale else {
+        let skipReasonText = Self.upscaleSkipReasonText(decision.reason)
+        logger.debug(
+          String(
+            format:
+              "⏭️ [Upscale] Skip page %d: reason=%@ mode=%@ requiredScale=%.2f source=%dx%d screen=%dx%d auto=%.2f always=%.2f",
+            page.number + 1,
+            skipReasonText,
+            mode.rawValue,
+            decision.requiredScale,
+            Int(sourcePixelSize.width),
+            Int(sourcePixelSize.height),
+            Int(screenPixelSize.width),
+            Int(screenPixelSize.height),
+            autoTriggerScale,
+            alwaysMaxScreenScale
+          )
+        )
+        return sourceFileURL
+      }
 
-      let upscaledFileURL = Self.upscaledImageFileURL(from: sourceFileURL)
-      if FileManager.default.fileExists(atPath: upscaledFileURL.path) {
-        return upscaledFileURL
+      let upscaledFileURLs = Self.upscaledImageFileURLs(from: sourceFileURL)
+      if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+        logger.debug(
+          "✅ [Upscale] Use cached @2x page \(page.number + 1): \(cachedUpscaledURL.lastPathComponent)")
+        return cachedUpscaledURL
       }
 
       if let existingTask = upscalingTasks[page.number] {
+        logger.debug("⏳ [Upscale] Await running upscale task for page \(page.number + 1)")
         if let cachedURL = await existingTask.value {
+          logger.debug("✅ [Upscale] Reuse task result for page \(page.number + 1): \(cachedURL.lastPathComponent)")
           return cachedURL
         }
+        logger.debug("⏭️ [Upscale] Running task failed for page \(page.number + 1), use source")
         return sourceFileURL
       }
 
       let pageNumber = page.number
+      logger.debug(
+        String(
+          format: "🚀 [Upscale] Queue page %d: mode=%@ requiredScale=%.2f source=%dx%d",
+          pageNumber + 1,
+          mode.rawValue,
+          decision.requiredScale,
+          Int(sourcePixelSize.width),
+          Int(sourcePixelSize.height)
+        )
+      )
       let upscaleTask = Task<URL?, Never>.detached(priority: .userInitiated) {
-        [sourceFileURL, upscaledFileURL] in
-        if FileManager.default.fileExists(atPath: upscaledFileURL.path) {
-          return upscaledFileURL
+        [sourceFileURL, upscaledFileURLs, pageNumber] in
+        let logger = AppLogger(.reader)
+
+        if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+          logger.debug(
+            "✅ [Upscale] Use cached @2x page \(pageNumber + 1): \(cachedUpscaledURL.lastPathComponent)")
+          return cachedUpscaledURL
         }
 
         guard let sourceCGImage = Self.readCGImage(from: sourceFileURL) else {
+          logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): failed to decode source CGImage")
           return nil
         }
 
+        let startedAt = Date()
         guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
+          logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): model processing returned nil")
           return nil
         }
 
-        guard Self.persistUpscaledCGImage(output, sourceFileURL: sourceFileURL, targetFileURL: upscaledFileURL) else {
+        guard
+          let persistedURL = Self.persistUpscaledCGImage(
+            output,
+            sourceFileURL: sourceFileURL,
+            targetFileURLs: upscaledFileURLs,
+            logger: logger
+          )
+        else {
+          logger.error(
+            "❌ [Upscale] Failed to save @2x page \(pageNumber + 1): source=\(sourceFileURL.lastPathComponent)"
+          )
           return nil
         }
 
-        return upscaledFileURL
+        let duration = Date().timeIntervalSince(startedAt)
+        logger.debug(
+          String(
+            format: "💾 [Upscale] Saved page %d @2x in %.2fs -> %@",
+            pageNumber + 1,
+            duration,
+            persistedURL.lastPathComponent
+          )
+        )
+        return persistedURL
       }
 
       upscalingTasks[pageNumber] = upscaleTask
       let result = await upscaleTask.value
       upscalingTasks.removeValue(forKey: pageNumber)
+      if let result {
+        logger.debug("✅ [Upscale] Ready page \(pageNumber + 1): \(result.lastPathComponent)")
+      } else {
+        logger.debug("⏭️ [Upscale] Use source for page \(pageNumber + 1): @2x generation unavailable")
+      }
       return result ?? sourceFileURL
     #else
       return sourceFileURL
@@ -569,16 +636,32 @@ class ReaderViewModel {
     return CGSize(width: pixelWidth, height: pixelHeight)
   }
 
-  nonisolated private static func upscaledImageFileURL(from sourceFileURL: URL) -> URL {
+  nonisolated private static func upscaledImageFileURLs(from sourceFileURL: URL) -> [URL] {
     let directory = sourceFileURL.deletingLastPathComponent()
     let baseName = sourceFileURL.deletingPathExtension().lastPathComponent
-    let extensionName = sourceFileURL.pathExtension
     let resolvedBaseName = baseName.hasSuffix("@2x") ? baseName : "\(baseName)@2x"
-    let upscaledURL = directory.appendingPathComponent(resolvedBaseName)
-    if extensionName.isEmpty {
-      return upscaledURL
+
+    let sourceExtension = sourceFileURL.pathExtension.lowercased()
+    var candidates: [URL] = []
+
+    if !sourceExtension.isEmpty {
+      candidates.append(
+        directory.appendingPathComponent(resolvedBaseName).appendingPathExtension(sourceExtension))
+    } else {
+      candidates.append(directory.appendingPathComponent(resolvedBaseName))
     }
-    return upscaledURL.appendingPathExtension(extensionName)
+
+    if sourceExtension != "jpg" && sourceExtension != "jpeg" {
+      candidates.append(
+        directory.appendingPathComponent(resolvedBaseName).appendingPathExtension("jpg"))
+    }
+    if sourceExtension != "png" {
+      candidates.append(
+        directory.appendingPathComponent(resolvedBaseName).appendingPathExtension("png"))
+    }
+
+    var seenPaths = Set<String>()
+    return candidates.filter { seenPaths.insert($0.path).inserted }
   }
 
   nonisolated private static func readCGImage(from fileURL: URL) -> CGImage? {
@@ -589,36 +672,86 @@ class ReaderViewModel {
     return CGImageSourceCreateImageAtIndex(source, 0, options)
   }
 
+  nonisolated private static let supportedDestinationTypeIdentifiers: Set<String> = {
+    let identifiers = CGImageDestinationCopyTypeIdentifiers() as? [String] ?? []
+    return Set(identifiers.map { $0.lowercased() })
+  }()
+
+  nonisolated private static func destinationUTType(for fileURL: URL) -> UTType? {
+    let ext = fileURL.pathExtension.lowercased()
+    guard !ext.isEmpty else { return nil }
+    guard let type = UTType(filenameExtension: ext) else { return nil }
+    guard supportedDestinationTypeIdentifiers.contains(type.identifier.lowercased()) else { return nil }
+    return type
+  }
+
+  #if os(iOS) || os(tvOS)
+    nonisolated private static func upscaleSkipReasonText(_ reason: ReaderUpscaleDecision.SkipReason?) -> String {
+      switch reason {
+      case .disabled:
+        return "disabled"
+      case .belowAutoTriggerScale:
+        return "below-auto-trigger-threshold"
+      case .exceedsAlwaysMaxScreenScale:
+        return "exceeds-always-max-source-size"
+      case .invalidSourceSize:
+        return "invalid-source-size"
+      case nil:
+        return "unknown"
+      }
+    }
+  #endif
+
   nonisolated private static func persistUpscaledCGImage(
     _ image: CGImage,
     sourceFileURL: URL,
-    targetFileURL: URL
-  ) -> Bool {
+    targetFileURLs: [URL],
+    logger: AppLogger
+  ) -> URL? {
     let fileManager = FileManager.default
-    let targetDirectory = targetFileURL.deletingLastPathComponent()
+    guard let targetDirectory = targetFileURLs.first?.deletingLastPathComponent() else {
+      logger.error("❌ [Upscale] No target path candidates for \(sourceFileURL.lastPathComponent)")
+      return nil
+    }
     do {
       try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
     } catch {
-      return false
+      logger.error("❌ [Upscale] Failed to create target directory: \(targetDirectory.path)")
+      return nil
     }
 
-    let destinationType =
-      UTType(filenameExtension: sourceFileURL.pathExtension.lowercased())?.identifier
-      ?? UTType.jpeg.identifier
+    for targetFileURL in targetFileURLs {
+      guard let destinationType = destinationUTType(for: targetFileURL) else {
+        logger.debug(
+          "⏭️ [Upscale] Unsupported destination type for \(targetFileURL.lastPathComponent), trying fallback")
+        continue
+      }
 
-    guard
-      let destination = CGImageDestinationCreateWithURL(
-        targetFileURL as CFURL,
-        destinationType as CFString,
-        1,
-        nil
+      guard
+        let destination = CGImageDestinationCreateWithURL(
+          targetFileURL as CFURL,
+          destinationType.identifier as CFString,
+          1,
+          nil
+        )
+      else {
+        logger.error(
+          "❌ [Upscale] CGImageDestinationCreateWithURL failed: file=\(targetFileURL.lastPathComponent), type=\(destinationType.identifier)"
+        )
+        continue
+      }
+
+      CGImageDestinationAddImage(destination, image, nil)
+      if CGImageDestinationFinalize(destination) {
+        return targetFileURL
+      }
+
+      logger.error(
+        "❌ [Upscale] CGImageDestinationFinalize failed: file=\(targetFileURL.lastPathComponent), type=\(destinationType.identifier)"
       )
-    else {
-      return false
     }
 
-    CGImageDestinationAddImage(destination, image, nil)
-    return CGImageDestinationFinalize(destination)
+    return nil
   }
 
   func shouldShowAnimatedPlayButton(for pageIndex: Int) -> Bool {
