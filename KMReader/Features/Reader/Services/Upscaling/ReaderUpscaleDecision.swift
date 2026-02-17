@@ -29,7 +29,7 @@
         )
       }
 
-      let requiredScale = max(
+      let requiredScale = min(
         screenPixelSize.width / sourcePixelSize.width,
         screenPixelSize.height / sourcePixelSize.height
       )

@@ -175,7 +175,7 @@ struct DivinaPreferencesView: View {
                   in: 1.0...1.5,
                   step: 0.01
                 )
-                Text("Auto scale only when required scale to fill the screen is greater than this value.")
+                Text("Auto scale only when required scale to fit the page on screen is greater than this value.")
                   .font(.caption)
                   .foregroundColor(.secondary)
               }

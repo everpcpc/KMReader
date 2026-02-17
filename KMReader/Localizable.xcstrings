@@ -4630,48 +4630,48 @@
         }
       }
     },
-    "Auto scale only when required scale to fill the screen is greater than this value." : {
+    "Auto scale only when required scale to fit the page on screen is greater than this value." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisch nur hochskalieren, wenn der zum Füllen des Bildschirms erforderliche Skalierungsfaktor größer als dieser Wert ist."
+            "value" : "Automatisch nur hochskalieren, wenn der zum Einpassen der Seite auf dem Bildschirm erforderliche Skalierungsfaktor größer als dieser Wert ist."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auto scale only when required scale to fill the screen is greater than this value."
+            "value" : "Auto scale only when required scale to fit the page on screen is greater than this value."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Effectuer une mise à l'échelle automatique uniquement lorsque le facteur requis pour remplir l'écran est supérieur à cette valeur."
+            "value" : "Effectuer une mise à l'échelle automatique uniquement lorsque le facteur requis pour adapter la page à l'écran est supérieur à cette valeur."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画面を埋めるために必要な拡大率がこの値より大きい場合のみ自動で拡大します。"
+            "value" : "ページを画面内に収めるために必要な拡大率がこの値より大きい場合のみ自動で拡大します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "화면을 가득 채우는 데 필요한 배율이 이 값보다 클 때만 자동으로 확대합니다."
+            "value" : "페이지를 화면에 맞추는 데 필요한 배율이 이 값보다 클 때만 자동으로 확대합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅当填满屏幕所需的缩放倍率大于此值时才自动放大。"
+            "value" : "仅当页面适配屏幕所需的缩放倍率大于此值时才自动放大。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅當填滿螢幕所需的縮放倍率大於此值時才自動放大。"
+            "value" : "僅當頁面適配螢幕所需的縮放倍率大於此值時才自動放大。"
           }
         }
       }
@@ -17230,6 +17230,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用內建 waifu2x（2x）提升低解析度頁面的清晰度。"
+          }
+        }
+      }
+    },
+    "In Always mode, upscale unless source width or height exceeds this multiple of the screen." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Immer-Modus wird hochskaliert, außer wenn Quellbreite oder -höhe dieses Vielfache der Bildschirmgröße überschreitet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Always mode, upscale unless source width or height exceeds this multiple of the screen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En mode Toujours, la mise à l'échelle est appliquée sauf si la largeur ou la hauteur source dépasse ce multiple de la taille d'écran."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常時モードでは、元画像の幅または高さが画面サイズのこの倍率を超えない限り拡大します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "항상 모드에서는 원본 너비 또는 높이가 화면 크기의 이 배수를 초과하지 않는 한 업스케일합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在始终模式下，除非源图宽度或高度超过屏幕尺寸的此倍数，否则都会放大。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在始終模式下，除非來源圖片寬度或高度超過螢幕尺寸的此倍數，否則都會放大。"
           }
         }
       }
@@ -41980,52 +42026,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻頁點觸區域大小"
-          }
-        }
-      }
-    },
-    "In Always mode, upscale unless source width or height exceeds this multiple of the screen." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Im Immer-Modus wird hochskaliert, außer wenn Quellbreite oder -höhe dieses Vielfache der Bildschirmgröße überschreitet."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In Always mode, upscale unless source width or height exceeds this multiple of the screen."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En mode Toujours, la mise à l'échelle est appliquée sauf si la largeur ou la hauteur source dépasse ce multiple de la taille d'écran."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "常時モードでは、元画像の幅または高さが画面サイズのこの倍率を超えない限り拡大します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "항상 모드에서는 원본 너비 또는 높이가 화면 크기의 이 배수를 초과하지 않는 한 업스케일합니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在始终模式下，除非源图宽度或高度超过屏幕尺寸的此倍数，否则都会放大。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在始終模式下，除非來源圖片寬度或高度超過螢幕尺寸的此倍數，否則都會放大。"
           }
         }
       }
