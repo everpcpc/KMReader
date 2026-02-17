@@ -603,6 +603,7 @@
     private let overlayView = ImageAnalysisOverlayView()
     private var analysisTask: Task<Void, Never>?
     private var analyzedImage: NSImage?
+    private var analysisRequestID: UInt64 = 0
     private var currentData: NativePageData?
     private var readingDirection: ReadingDirection = .ltr
     private var displayMode: PageDisplayMode = .fit
@@ -695,6 +696,7 @@
       overlayView.wantsLayer = true
       overlayView.translatesAutoresizingMaskIntoConstraints = true
       addSubview(overlayView)
+      overlayView.trackingImageView = imageView
 
       progressIndicator.style = .spinning
       progressIndicator.controlSize = .small
@@ -796,7 +798,6 @@
 
       if AppConfig.enableLiveText, let img = displayImage, !visibleRect.isEmpty {
         analyzeImage(img)
-        overlayView.isHidden = false
       } else if !AppConfig.enableLiveText {
         clearAnalysis()
       }
@@ -845,13 +846,18 @@
 
     private func analyzeImage(_ image: NSImage) {
       if image === analyzedImage && (overlayView.analysis != nil || analysisTask != nil) {
-        overlayView.isHidden = false
+        let requestID = analysisRequestID
+        DispatchQueue.main.async { [weak self] in
+          guard let self = self, self.analysisRequestID == requestID else { return }
+          self.overlayView.isHidden = false
+        }
         return
       }
 
       let pageNum = currentData?.pageNumber ?? -1
       let bookId = currentData?.bookId ?? "unknown"
       let startTime = Date()
+      let requestID = nextAnalysisRequestID()
 
       analyzedImage = image
       analysisTask?.cancel()
@@ -860,19 +866,23 @@
         do {
           let analysis = try await LiveTextManager.shared.analyzer.analyze(
             image, orientation: .up, configuration: configuration)
-          if !Task.isCancelled {
-            guard let self = self else { return }
+          if Task.isCancelled { return }
+          DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.analysisRequestID == requestID else { return }
             self.overlayView.analysis = analysis
             self.overlayView.preferredInteractionTypes = .automatic
             self.overlayView.isHidden = false
+            self.analysisTask = nil
             let duration = Date().timeIntervalSince(startTime)
             self.logger.info(
               String(
                 format: "[LiveText] [\(bookId)] ✅ Finished macOS analysis for page %d in %.2fs", pageNum + 1, duration))
           }
         } catch {
-          if !Task.isCancelled {
-            guard let self = self else { return }
+          if Task.isCancelled { return }
+          DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.analysisRequestID == requestID else { return }
+            self.analysisTask = nil
             self.logger.error("[LiveText] [\(bookId)] ❌ macOS Analysis failed for page \(pageNum + 1): \(error)")
           }
         }
@@ -880,11 +890,20 @@
     }
 
     private func clearAnalysis() {
+      let requestID = nextAnalysisRequestID()
       analysisTask?.cancel()
       analysisTask = nil
       analyzedImage = nil
-      overlayView.analysis = nil
-      overlayView.isHidden = true
+      DispatchQueue.main.async { [weak self] in
+        guard let self = self, self.analysisRequestID == requestID else { return }
+        self.overlayView.analysis = nil
+        self.overlayView.isHidden = true
+      }
+    }
+
+    private func nextAnalysisRequestID() -> UInt64 {
+      analysisRequestID &+= 1
+      return analysisRequestID
     }
 
     private func updateOverlaysPosition() {
@@ -972,7 +991,6 @@
         !visibleRect.isEmpty, overlayView.analysis == nil, analysisTask == nil
       {
         analyzeImage(image)
-        overlayView.isHidden = false
       }
     }
   }
