@@ -17,7 +17,7 @@ class ErrorManager {
 
   var hasAlert: Bool = false
   var currentError: AppError?
-  var notifications: [String] = []
+  var notifications: [AppNotification] = []
 
   private let logger = AppLogger(.notification)
 
@@ -58,10 +58,11 @@ class ErrorManager {
   /// Show a notification message (non-blocking)
   func notify(message: String, duration: TimeInterval = 2) {
     logger.info("📢 Notify: \(message)")
-    notifications.append(message)
+    let notification = AppNotification(message: message)
+    notifications.append(notification)
     DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
-      guard let self = self, !self.notifications.isEmpty else { return }
-      self.notifications.removeFirst()
+      guard let self = self else { return }
+      self.notifications.removeAll { $0.id == notification.id }
     }
   }
 
@@ -123,6 +124,16 @@ class ErrorManager {
     }
 
     return true
+  }
+}
+
+struct AppNotification: Identifiable, Equatable {
+  let id: UUID
+  let message: String
+
+  init(id: UUID = UUID(), message: String) {
+    self.id = id
+    self.message = message
   }
 }
 

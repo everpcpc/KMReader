@@ -174,8 +174,8 @@ import SwiftUI
     var body: some View {
       VStack(alignment: .center) {
         Spacer()
-        ForEach($errorManager.notifications, id: \.self) { $notification in
-          Text(notification)
+        ForEach(errorManager.notifications) { notification in
+          Text(notification.message)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
             .foregroundStyle(.white)
@@ -242,8 +242,8 @@ import SwiftUI
     var body: some View {
       VStack(alignment: .center) {
         Spacer()
-        ForEach($errorManager.notifications, id: \.self) { $notification in
-          Text(notification)
+        ForEach(errorManager.notifications) { notification in
+          Text(notification.message)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
             .foregroundStyle(.white)
@@ -282,8 +282,8 @@ import SwiftUI
     var body: some View {
       VStack(alignment: .center) {
         Spacer()
-        ForEach($errorManager.notifications, id: \.self) { $notification in
-          Text(notification)
+        ForEach(errorManager.notifications) { notification in
+          Text(notification.message)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
             .foregroundStyle(.white)
