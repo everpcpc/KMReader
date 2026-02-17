@@ -34,7 +34,9 @@ enum CacheNamespace {
 
   /// Root directory shared by all namespaces for the cache.
   nonisolated static func baseDirectory(for cacheName: String) -> URL {
-    let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+    let cachesDir =
+      FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+      ?? FileManager.default.temporaryDirectory
     let base = cachesDir.appendingPathComponent(cacheName, isDirectory: true)
     ensureDirectoryExists(at: base)
     return base

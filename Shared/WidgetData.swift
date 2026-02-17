@@ -95,11 +95,23 @@ enum WidgetDataStore: Sendable {
     }
   }
 
+  private static nonisolated func deepLinkURL(host: String, id: String) -> URL {
+    var components = URLComponents()
+    components.scheme = "kmreader"
+    components.host = host
+
+    let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
+    let encodedId = id.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+    components.path = "/" + encodedId
+
+    return components.url ?? URL(string: "kmreader://\(host)")!
+  }
+
   static nonisolated func bookDeepLinkURL(bookId: String) -> URL {
-    URL(string: "kmreader://book/\(bookId)")!
+    deepLinkURL(host: "book", id: bookId)
   }
 
   static nonisolated func seriesDeepLinkURL(seriesId: String) -> URL {
-    URL(string: "kmreader://series/\(seriesId)")!
+    deepLinkURL(host: "series", id: seriesId)
   }
 }

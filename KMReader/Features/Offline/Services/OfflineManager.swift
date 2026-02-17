@@ -102,7 +102,7 @@ actor OfflineManager {
   private static func baseDirectory() -> URL {
     let appSupport = FileManager.default.urls(
       for: .applicationSupportDirectory, in: .userDomainMask
-    ).first!
+    ).first ?? FileManager.default.temporaryDirectory
     ensureDirectoryExists(at: appSupport)
     let base = appSupport.appendingPathComponent(directoryName, isDirectory: true)
     migrateLegacyDirectoryIfNeeded(to: base)
@@ -1573,7 +1573,9 @@ actor OfflineManager {
   }
 
   private static func legacyBaseDirectory() -> URL {
-    let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    let documentsDir =
+      FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+      ?? FileManager.default.temporaryDirectory
     return documentsDir.appendingPathComponent(directoryName, isDirectory: true)
   }
 

@@ -70,31 +70,38 @@ struct MainApp: App {
   @State private var deepLinkRouter = DeepLinkRouter.shared
 
   init() {
-    do {
-      let schema = Schema([
-        KomgaInstance.self,
-        KomgaLibrary.self,
-        KomgaSeries.self,
-        KomgaBook.self,
-        KomgaCollection.self,
-        KomgaReadList.self,
-        CustomFont.self,
-        CustomFont.self,
-        PendingProgress.self,
-        SavedFilter.self,
-        EpubThemePreset.self,
-      ])
+    let schema = Schema([
+      KomgaInstance.self,
+      KomgaLibrary.self,
+      KomgaSeries.self,
+      KomgaBook.self,
+      KomgaCollection.self,
+      KomgaReadList.self,
+      CustomFont.self,
+      PendingProgress.self,
+      SavedFilter.self,
+      EpubThemePreset.self,
+    ])
 
+    do {
       let configuration = ModelConfiguration(schema: schema)
       modelContainer = try ModelContainer(
         for: schema,
         configurations: [configuration]
       )
     } catch {
-      fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
+      let errorMessage = error.localizedDescription
+      AppLogger(.database).error("Failed to create ModelContainer: \(errorMessage)")
+      fatalError("Failed to create ModelContainer: \(errorMessage)")
     }
+
     CustomFontStore.shared.configure(with: modelContainer)
     DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
+    #if os(iOS)
+      Task { @MainActor in
+        QuickActionService.handlePendingShortcutIfNeeded()
+      }
+    #endif
     _ = OfflineManager.shared
     PlatformHelper.setup()
     _authViewModel = State(initialValue: AuthViewModel())

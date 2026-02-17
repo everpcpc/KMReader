@@ -19,8 +19,7 @@ actor LogStore {
   private init() {
     let appSupport = FileManager.default.urls(
       for: .applicationSupportDirectory, in: .userDomainMask
-    )
-    .first!
+    ).first ?? FileManager.default.temporaryDirectory
     let logsDir = appSupport.appendingPathComponent("Logs", isDirectory: true)
     try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
     dbPath = logsDir.appendingPathComponent("logs.sqlite")

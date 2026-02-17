@@ -440,9 +440,11 @@
     let onFontSelected: (URL) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-      let picker = UIDocumentPickerViewController(forOpeningContentTypes: [
-        .init(filenameExtension: "ttf")!, .init(filenameExtension: "otf")!,
-      ])
+      let contentTypes: [UTType] = {
+        let types = ["ttf", "otf"].compactMap { UTType(filenameExtension: $0) }
+        return types.isEmpty ? [.font] : types
+      }()
+      let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
       picker.delegate = context.coordinator
       picker.allowsMultipleSelection = false
       return picker
