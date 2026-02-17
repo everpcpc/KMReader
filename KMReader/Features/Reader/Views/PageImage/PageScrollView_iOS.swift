@@ -459,6 +459,7 @@
       private let interaction = ImageAnalysisInteraction()
       private var analysisTask: Task<Void, Never>?
       private var analyzedImage: UIImage?
+      private var analysisRequestID: UInt64 = 0
     #endif
 
     private var heightConstraint: NSLayoutConstraint?
@@ -933,6 +934,7 @@
         let pageNum = currentData?.pageNumber ?? -1
         let bookId = currentData?.bookId ?? "unknown"
         let startTime = Date()
+        let requestID = nextAnalysisRequestID()
 
         analyzedImage = image
         analysisTask?.cancel()
@@ -940,18 +942,22 @@
           let configuration = ImageAnalyzer.Configuration([.text, .machineReadableCode])
           do {
             let analysis = try await LiveTextManager.shared.analyzer.analyze(image, configuration: configuration)
-            if !Task.isCancelled {
-              guard let self = self else { return }
+            if Task.isCancelled { return }
+            await MainActor.run {
+              guard let self = self, self.analysisRequestID == requestID else { return }
               self.interaction.analysis = analysis
               self.interaction.preferredInteractionTypes = .automatic
+              self.analysisTask = nil
               let duration = Date().timeIntervalSince(startTime)
               self.logger.info(
                 String(format: "[LiveText] [\(bookId)] ✅ Finished analysis for page %d in %.2fs", pageNum + 1, duration)
               )
             }
           } catch {
-            if !Task.isCancelled {
-              guard let self = self else { return }
+            if Task.isCancelled { return }
+            await MainActor.run {
+              guard let self = self, self.analysisRequestID == requestID else { return }
+              self.analysisTask = nil
               self.logger.error("[LiveText] [\(bookId)] ❌ Analysis failed for page \(pageNum + 1): \(error)")
             }
           }
@@ -959,10 +965,19 @@
       }
 
       private func clearAnalysis() {
+        let requestID = nextAnalysisRequestID()
         analysisTask?.cancel()
         analysisTask = nil
         analyzedImage = nil
-        interaction.analysis = nil
+        DispatchQueue.main.async { [weak self] in
+          guard let self = self, self.analysisRequestID == requestID else { return }
+          self.interaction.analysis = nil
+        }
+      }
+
+      private func nextAnalysisRequestID() -> UInt64 {
+        analysisRequestID &+= 1
+        return analysisRequestID
       }
     #endif
 
