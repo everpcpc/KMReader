@@ -550,7 +550,7 @@
         let badgeText = NSMutableAttributedString(attachment: attachment)
         badgeText.append(
           NSAttributedString(
-            string: " AI",
+            string: " 2x",
             attributes: [
               .font: badgeTextFont,
               .foregroundColor: UIColor.white,
@@ -559,7 +559,7 @@
         )
         upscaleBadgeLabel.attributedText = badgeText
       } else {
-        upscaleBadgeLabel.text = "AI"
+        upscaleBadgeLabel.text = "2x"
         upscaleBadgeLabel.textColor = .white
       }
       upscaleBadgeLabel.backgroundColor = upscaleBadgeBaseColor
