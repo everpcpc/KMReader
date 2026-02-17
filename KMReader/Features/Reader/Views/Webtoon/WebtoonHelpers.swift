@@ -9,6 +9,8 @@ import CoreGraphics
 import Foundation
 
 struct InitialScrollRetrier {
+  typealias DelayScheduler = @MainActor (TimeInterval, @escaping () -> Void) -> Void
+
   private(set) var attempts: Int = 0
   let maxRetries: Int
 
@@ -19,8 +21,8 @@ struct InitialScrollRetrier {
   @MainActor
   mutating func schedule(
     after delay: TimeInterval,
-    using scheduler: @MainActor (TimeInterval, @MainActor @Sendable @escaping () -> Void) -> Void,
-    action: @MainActor @Sendable @escaping () -> Void
+    using scheduler: DelayScheduler,
+    action: @escaping () -> Void
   ) {
     guard attempts < maxRetries else { return }
     attempts += 1

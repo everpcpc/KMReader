@@ -21,6 +21,7 @@ extension Notification.Name {
 
 class APIClient {
   static let shared = APIClient()
+  private typealias ProgressHandler = @Sendable (_ received: Int64, _ expected: Int64?) -> Void
 
   private let logger = AppLogger(.api)
 
@@ -440,7 +441,7 @@ class APIClient {
     requestCategory: RequestCategory = .general,
     retryCount: Int = 0,
     maxRetryCount: Int? = nil,
-    onProgress: (@MainActor @Sendable (_ received: Int64, _ expected: Int64?) -> Void)? = nil
+    onProgress: ProgressHandler? = nil
   ) async throws -> (data: Data, response: HTTPURLResponse) {
     let method = request.httpMethod ?? "GET"
     let urlString = request.url?.absoluteString ?? ""
@@ -458,10 +459,10 @@ class APIClient {
     }
 
     func fetchWithProgress(
-      _ onProgress: @MainActor @Sendable @escaping (_ received: Int64, _ expected: Int64?) -> Void
+      _ onProgress: @escaping ProgressHandler
     ) async throws -> FetchResult {
       actor ProgressState {
-        let onProgress: @Sendable (_ received: Int64, _ expected: Int64?) -> Void
+        let onProgress: ProgressHandler
         let urlString: String
         var data = Data()
         var response: HTTPURLResponse?
@@ -472,7 +473,7 @@ class APIClient {
         let updateInterval: TimeInterval = 0.1
 
         init(
-          onProgress: @Sendable @escaping (_ received: Int64, _ expected: Int64?) -> Void,
+          onProgress: @escaping ProgressHandler,
           urlString: String
         ) {
           self.onProgress = onProgress
@@ -571,7 +572,7 @@ class APIClient {
       }
 
       logger.debug("Streaming download started: url=\(urlString)")
-      let onProgressHandler: @Sendable (_ received: Int64, _ expected: Int64?) -> Void = {
+      let onProgressHandler: ProgressHandler = {
         received, expected in
         Task { @MainActor in
           onProgress(received, expected)

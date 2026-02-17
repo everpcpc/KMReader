@@ -236,7 +236,7 @@
       @MainActor
       func executeAfterDelay(
         _ delay: TimeInterval,
-        _ block: @MainActor @Sendable @escaping () -> Void
+        _ block: @escaping () -> Void
       ) {
         Task { @MainActor in
           try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
