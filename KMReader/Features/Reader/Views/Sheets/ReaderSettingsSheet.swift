@@ -149,7 +149,7 @@ struct ReaderSettingsSheet: View {
                     in: 1.0...1.5,
                     step: 0.01
                   )
-                  Text("Auto scale only when screen-to-image required scale is above this value.")
+                  Text("Auto scale only when required scale to fill the screen is greater than this value.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
@@ -157,7 +157,7 @@ struct ReaderSettingsSheet: View {
               case .always:
                 VStack(alignment: .leading, spacing: 8) {
                   HStack {
-                    Text("Always Mode Max Source Size")
+                    Text("Always Mode Source Size Threshold")
                     Spacer()
                     Text(String(format: "%.2fx", imageUpscaleAlwaysMaxScreenScale))
                       .foregroundColor(.secondary)
@@ -167,7 +167,7 @@ struct ReaderSettingsSheet: View {
                     in: 1.0...3.0,
                     step: 0.05
                   )
-                  Text("Skip waifu2x when source size exceeds this multiple of the screen size.")
+                  Text("In Always mode, upscale unless source width or height exceeds this multiple of the screen.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
