@@ -13,15 +13,14 @@ import Foundation
 
     static func handleShortcut(_ item: UIApplicationShortcutItem) {
       Task { @MainActor in
-        let db: DatabaseOperator? = DatabaseOperator.shared
-        guard db != nil else {
+        guard let db = DatabaseOperator.shared else {
           pendingShortcutItem = item
           return
         }
 
         switch item.type {
         case "com.everpcpc.Komga.continueReading":
-          let books = await db!.fetchKeepReadingBooksForWidget(
+          let books = await db.fetchKeepReadingBooksForWidget(
             instanceId: AppConfig.current.instanceId,
             libraryIds: AppConfig.dashboard.libraryIds,
             limit: 1)

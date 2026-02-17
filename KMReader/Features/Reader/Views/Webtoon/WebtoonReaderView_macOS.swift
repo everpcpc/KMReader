@@ -386,18 +386,26 @@
         _ collectionView: NSCollectionView, itemForRepresentedObjectAt indexPath: IndexPath
       ) -> NSCollectionViewItem {
         if indexPath.item == pages.count {
-          let cell =
-            collectionView.makeItem(
-              withIdentifier: NSUserInterfaceItemIdentifier("WebtoonFooterCell"),
-              for: indexPath) as! WebtoonFooterCell
+          let item = collectionView.makeItem(
+            withIdentifier: NSUserInterfaceItemIdentifier("WebtoonFooterCell"),
+            for: indexPath
+          )
+          guard let cell = item as? WebtoonFooterCell else {
+            assertionFailure("Failed to make WebtoonFooterCell")
+            return item
+          }
           cell.readerBackground = readerBackground
           return cell
         }
 
-        let cell =
-          collectionView.makeItem(
-            withIdentifier: NSUserInterfaceItemIdentifier("WebtoonPageCell"),
-            for: indexPath) as! WebtoonPageCell
+        let item = collectionView.makeItem(
+          withIdentifier: NSUserInterfaceItemIdentifier("WebtoonPageCell"),
+          for: indexPath
+        )
+        guard let cell = item as? WebtoonPageCell else {
+          assertionFailure("Failed to make WebtoonPageCell")
+          return item
+        }
         cell.readerBackground = readerBackground
         let pageIndex = indexPath.item
         let preloadedImage = viewModel?.preloadedImages[pageIndex]

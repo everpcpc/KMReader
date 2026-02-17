@@ -418,17 +418,26 @@
         -> UICollectionViewCell
       {
         if indexPath.item == pages.count {
-          let cell =
-            collectionView.dequeueReusableCell(
-              withReuseIdentifier: "WebtoonFooterCell", for: indexPath)
-            as! WebtoonFooterCell
+          let item = collectionView.dequeueReusableCell(
+            withReuseIdentifier: "WebtoonFooterCell",
+            for: indexPath
+          )
+          guard let cell = item as? WebtoonFooterCell else {
+            assertionFailure("Failed to dequeue WebtoonFooterCell")
+            return item
+          }
           cell.readerBackground = readerBackground
           return cell
         }
 
-        let cell =
-          collectionView.dequeueReusableCell(withReuseIdentifier: "WebtoonPageCell", for: indexPath)
-          as! WebtoonPageCell
+        let item = collectionView.dequeueReusableCell(
+          withReuseIdentifier: "WebtoonPageCell",
+          for: indexPath
+        )
+        guard let cell = item as? WebtoonPageCell else {
+          assertionFailure("Failed to dequeue WebtoonPageCell")
+          return item
+        }
         cell.readerBackground = readerBackground
 
         let pageIndex = indexPath.item
