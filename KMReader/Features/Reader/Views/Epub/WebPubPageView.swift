@@ -288,6 +288,8 @@
       private var cachedControllers: [String: EpubPageViewController] = [:]
       private var controllerKeys: [ObjectIdentifier: String] = [:]
       private var pendingControllers: Set<ObjectIdentifier> = []  // Track controllers in transition
+      private var reservedControllers: Set<ObjectIdentifier> = []
+      private var reserveCleanupTask: DispatchWorkItem?
 
       init(_ parent: WebPubPageView) {
         self.parent = parent
@@ -406,8 +408,9 @@
         }
 
         let protectedIDs = Set((pageViewController?.viewControllers ?? []).map { ObjectIdentifier($0) })
+        let allProtectedIDs = protectedIDs.union(pendingControllers).union(reservedControllers)
         if let reusable = cachedControllers.values.first(where: {
-          !protectedIDs.contains(ObjectIdentifier($0))
+          !allProtectedIDs.contains(ObjectIdentifier($0))
         }) {
           reusable.configure(
             chapterURL: chapterURL,
@@ -493,7 +496,7 @@
             in: pageViewController
           )
           // If we can't create the controller, return nil to prevent crash
-          return controller
+          return reserveController(controller)
         }
 
         // If we're not on the first page of current chapter, go to previous page
@@ -503,7 +506,7 @@
             subPageIndex: current.currentSubPageIndex - 1,
             in: pageViewController
           )
-          return controller
+          return reserveController(controller)
         }
 
         // We're on the first page of a non-first chapter, go to previous chapter
@@ -518,7 +521,7 @@
           in: pageViewController,
           preferLastPageOnReady: true
         )
-        return controller
+        return reserveController(controller)
       }
 
       func pageViewController(
@@ -535,7 +538,7 @@
             subPageIndex: current.currentSubPageIndex + 1,
             in: pageViewController
           )
-          return controller
+          return reserveController(controller)
         }
 
         let nextChapter = current.chapterIndex + 1
@@ -546,7 +549,7 @@
           subPageIndex: 0,
           in: pageViewController
         )
-        return controller
+        return reserveController(controller)
       }
 
       func pageViewController(
@@ -555,6 +558,7 @@
       ) {
         // Guard against empty array which can cause crashes
         guard !pendingViewControllers.isEmpty else { return }
+        clearReservedControllers()
 
         // Track pending controllers to prevent them from being evicted during transition
         for controller in pendingViewControllers {
@@ -574,6 +578,7 @@
       ) {
         // Clear pending controllers tracking
         pendingControllers.removeAll()
+        clearReservedControllers()
 
         guard completed,
           let currentVC = pageViewController.viewControllers?.first as? EpubPageViewController
@@ -642,6 +647,29 @@
         }
       }
 
+      private func reserveController(_ controller: UIViewController?) -> UIViewController? {
+        guard let controller else { return nil }
+        reservedControllers.insert(ObjectIdentifier(controller))
+        scheduleReservedControllerCleanup()
+        return controller
+      }
+
+      private func scheduleReservedControllerCleanup() {
+        reserveCleanupTask?.cancel()
+        let cleanupTask = DispatchWorkItem { [weak self] in
+          self?.reservedControllers.removeAll()
+          self?.reserveCleanupTask = nil
+        }
+        reserveCleanupTask = cleanupTask
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: cleanupTask)
+      }
+
+      private func clearReservedControllers() {
+        reserveCleanupTask?.cancel()
+        reserveCleanupTask = nil
+        reservedControllers.removeAll()
+      }
+
       private func tapReadingDirection() -> ReadingDirection {
         switch parent.viewModel.publicationReadingProgression {
         case .rtl:
@@ -682,8 +710,8 @@
         // Protect currently visible controllers
         let protectedIDs = Set((pageViewController?.viewControllers ?? []).map { ObjectIdentifier($0) })
 
-        // Also protect pending controllers (those in transition)
-        let allProtectedIDs = protectedIDs.union(pendingControllers)
+        // Also protect pending and reserved controllers
+        let allProtectedIDs = protectedIDs.union(pendingControllers).union(reservedControllers)
 
         for (key, controller) in cachedControllers {
           if cachedControllers.count <= maxCachedControllers {
