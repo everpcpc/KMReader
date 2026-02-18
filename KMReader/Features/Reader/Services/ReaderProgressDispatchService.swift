@@ -8,17 +8,24 @@ import Foundation
 actor ReaderProgressDispatchService {
   static let shared = ReaderProgressDispatchService()
 
-  private struct PageUpdate {
+  private struct PageUpdate: Sendable {
     let bookId: String
     let page: Int
     let completed: Bool
   }
 
-  private struct EpubUpdate {
+  private struct EpubUpdate: Sendable {
     let bookId: String
     let globalPageNumber: Int
     let progression: R2Progression
     let progressionData: Data?
+  }
+
+  private enum PageProgressUpdateResult {
+    case serverUpdated
+    case offlineQueued
+    case skipped
+    case failed
   }
 
   private let logger = AppLogger(.reader)
@@ -26,8 +33,9 @@ actor ReaderProgressDispatchService {
   private let timeoutRetryLimit = 2
 
   private var pendingPageUpdates: [String: PageUpdate] = [:]
-  private var pageDebounceTasks: [String: Task<Void, Never>] = [:]
   private var pageSendTasks: [String: Task<Void, Never>] = [:]
+  private var localPageCacheTokenSeed: UInt64 = 0
+  private var localPageCacheTokens: [String: UInt64] = [:]
 
   private var pendingEpubUpdates: [String: EpubUpdate] = [:]
   private var epubSendTasks: [String: Task<Void, Never>] = [:]
@@ -37,22 +45,14 @@ actor ReaderProgressDispatchService {
 
   private init() {}
 
-  func submitPageProgress(bookId: String, page: Int, completed: Bool, debounceSeconds: Int) {
+  func submitPageProgress(bookId: String, page: Int, completed: Bool) {
     let update = PageUpdate(bookId: bookId, page: page, completed: completed)
     pendingPageUpdates[bookId] = update
     logger.debug(
-      "📝 Queued page progress dispatch for book \(bookId): page=\(page), completed=\(completed), debounce=\(debounceSeconds)s"
+      "📝 Queued page progress dispatch for book \(bookId): page=\(page), completed=\(completed)"
     )
 
-    pageDebounceTasks[bookId]?.cancel()
-    pageDebounceTasks[bookId] = Task(priority: .utility) { [weak self] in
-      do {
-        try await Task.sleep(for: .seconds(debounceSeconds))
-      } catch {
-        return
-      }
-      await self?.triggerDebouncedPageSend(bookId: bookId)
-    }
+    sendPendingPageProgress(for: bookId, trigger: "enqueue")
   }
 
   func flushPageProgress(bookId: String, snapshotPage: Int?, snapshotCompleted: Bool?) {
@@ -75,9 +75,6 @@ actor ReaderProgressDispatchService {
     } else {
       logger.debug("⏭️ Skip force-capture progress during flush because current page snapshot is unavailable")
     }
-
-    pageDebounceTasks[bookId]?.cancel()
-    pageDebounceTasks.removeValue(forKey: bookId)
 
     logger.debug(
       "🚿 Flush page progress requested for book \(bookId): hasPending=\(pendingPageUpdates[bookId] != nil), isSending=\(pageSendTasks[bookId] != nil)"
@@ -162,11 +159,6 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  private func triggerDebouncedPageSend(bookId: String) {
-    pageDebounceTasks.removeValue(forKey: bookId)
-    sendPendingPageProgress(for: bookId, trigger: "debounce")
-  }
-
   private func sendPendingPageProgress(
     for bookId: String,
     trigger: String,
@@ -207,12 +199,37 @@ actor ReaderProgressDispatchService {
   private func hasPendingDispatchWork(for bookIds: Set<String>) -> Bool {
     for bookId in bookIds {
       if pendingPageUpdates[bookId] != nil { return true }
-      if pageDebounceTasks[bookId] != nil { return true }
       if pageSendTasks[bookId] != nil { return true }
       if pendingEpubUpdates[bookId] != nil { return true }
       if epubSendTasks[bookId] != nil { return true }
     }
     return false
+  }
+
+  private func scheduleLocalPageProgressCacheUpdate(_ update: PageUpdate) {
+    localPageCacheTokenSeed += 1
+    let token = localPageCacheTokenSeed
+    localPageCacheTokens[update.bookId] = token
+
+    Task(priority: .utility) { [weak self] in
+      await self?.applyLocalPageProgressCacheUpdate(update, token: token)
+    }
+  }
+
+  private func applyLocalPageProgressCacheUpdate(_ update: PageUpdate, token: UInt64) async {
+    guard localPageCacheTokens[update.bookId] == token else { return }
+
+    await DatabaseOperator.shared.updateReadingProgress(
+      bookId: update.bookId,
+      page: update.page,
+      completed: update.completed
+    )
+
+    guard localPageCacheTokens[update.bookId] == token else { return }
+    localPageCacheTokens.removeValue(forKey: update.bookId)
+    logger.debug(
+      "💾 Cached page progress locally for book \(update.bookId): page=\(update.page), completed=\(update.completed)"
+    )
   }
 
   private func executePageSend(bookId: String, trigger: String, isFlush: Bool) async {
@@ -226,11 +243,14 @@ actor ReaderProgressDispatchService {
       "📤 Dispatching page progress for book \(bookId): page=\(update.page), completed=\(update.completed), trigger=\(trigger)"
     )
 
-    await performPageProgressUpdateWithTimeoutHandling(update, isFlush: isFlush)
+    let result = await performPageProgressUpdateWithTimeoutHandling(update, isFlush: isFlush)
+    if case .serverUpdated = result {
+      scheduleLocalPageProgressCacheUpdate(update)
+    }
 
     pageSendTasks.removeValue(forKey: bookId)
 
-    if pendingPageUpdates[bookId] != nil, pageDebounceTasks[bookId] == nil {
+    if pendingPageUpdates[bookId] != nil {
       logger.debug("🔁 Dispatching next queued page progress for book \(bookId)")
       sendPendingPageProgress(for: bookId, trigger: "drain")
     } else {
@@ -261,31 +281,33 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  private func performPageProgressUpdateWithTimeoutHandling(_ update: PageUpdate, isFlush: Bool) async {
-    var timeoutRetryAttempt = 0
+  private func performPageProgressUpdateWithTimeoutHandling(
+    _ update: PageUpdate,
+    isFlush: Bool
+  ) async -> PageProgressUpdateResult {
+    if AppConfig.isOffline {
+      await Self.performPageProgressOfflineUpdate(update)
+      return .offlineQueued
+    }
 
+    var timeoutRetryAttempt = 0
     while true {
       do {
-        try await Self.performPageProgressUpdate(
-          update,
-          timeout: progressRequestTimeout
-        )
-        return
+        try await Self.performPageProgressServerUpdate(update, timeout: progressRequestTimeout)
+        return .serverUpdated
       } catch {
         guard Self.isTimeoutError(error) else {
           logger.error(
             "Failed to update page progress for book \(update.bookId) page \(update.page): \(error.localizedDescription)"
           )
-          return
+          return .failed
         }
 
         if pendingPageUpdates[update.bookId] != nil {
           logger.warning(
             "⏭️ Timed out page progress for book \(update.bookId) page \(update.page), newer progress exists so skipping current update"
           )
-          pageDebounceTasks[update.bookId]?.cancel()
-          pageDebounceTasks.removeValue(forKey: update.bookId)
-          return
+          return .skipped
         }
 
         guard timeoutRetryAttempt < timeoutRetryLimit else {
@@ -299,7 +321,7 @@ actor ReaderProgressDispatchService {
               )
             }
           }
-          return
+          return .failed
         }
 
         timeoutRetryAttempt += 1
@@ -348,7 +370,32 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  private nonisolated static func performPageProgressUpdate(
+  private nonisolated static func performPageProgressOfflineUpdate(_ update: PageUpdate) async {
+    let logger = AppLogger(.reader)
+
+    logger.debug(
+      "📨 Performing page progress update for book \(update.bookId): page=\(update.page), completed=\(update.completed), offline=\(AppConfig.isOffline)"
+    )
+
+    await DatabaseOperator.shared.queuePendingProgress(
+      instanceId: AppConfig.current.instanceId,
+      bookId: update.bookId,
+      page: update.page,
+      completed: update.completed,
+      progressionData: nil
+    )
+    await DatabaseOperator.shared.updateReadingProgress(
+      bookId: update.bookId,
+      page: update.page,
+      completed: update.completed
+    )
+    await DatabaseOperator.shared.commit()
+    logger.debug(
+      "💾 Queued page progress for offline sync: book=\(update.bookId), page=\(update.page), completed=\(update.completed)"
+    )
+  }
+
+  private nonisolated static func performPageProgressServerUpdate(
     _ update: PageUpdate,
     timeout: TimeInterval
   ) async throws {
@@ -358,41 +405,18 @@ actor ReaderProgressDispatchService {
       "📨 Performing page progress update for book \(update.bookId): page=\(update.page), completed=\(update.completed), offline=\(AppConfig.isOffline)"
     )
 
-    if AppConfig.isOffline {
-      await DatabaseOperator.shared.queuePendingProgress(
-        instanceId: AppConfig.current.instanceId,
+    try await withHardTimeout(seconds: timeout) {
+      try await BookService.shared.updatePageReadProgress(
         bookId: update.bookId,
         page: update.page,
         completed: update.completed,
-        progressionData: nil
-      )
-      await DatabaseOperator.shared.updateReadingProgress(
-        bookId: update.bookId,
-        page: update.page,
-        completed: update.completed
-      )
-      await DatabaseOperator.shared.commit()
-      logger.debug(
-        "💾 Queued page progress for offline sync: book=\(update.bookId), page=\(update.page), completed=\(update.completed)"
-      )
-    } else {
-      try await withHardTimeout(seconds: timeout) {
-        try await BookService.shared.updatePageReadProgress(
-          bookId: update.bookId,
-          page: update.page,
-          completed: update.completed,
-          timeout: timeout
-        )
-      }
-      await DatabaseOperator.shared.updateReadingProgress(
-        bookId: update.bookId,
-        page: update.page,
-        completed: update.completed
-      )
-      logger.debug(
-        "✅ Page progress update completed for book \(update.bookId): page=\(update.page), completed=\(update.completed)"
+        timeout: timeout
       )
     }
+
+    logger.debug(
+      "✅ Page progress update completed for book \(update.bookId): page=\(update.page), completed=\(update.completed)"
+    )
   }
 
   private nonisolated static func performEpubProgressionUpdate(

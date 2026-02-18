@@ -31,7 +31,6 @@
 
     private let incognito: Bool
     private let logger = AppLogger(.reader)
-    private let progressDebounceIntervalSeconds = 2
 
     private var bookId: String = ""
     private var downloadInfo: DownloadInfo?
@@ -173,8 +172,7 @@
         await ReaderProgressDispatchService.shared.submitPageProgress(
           bookId: snapshotBookId,
           page: snapshotPage,
-          completed: completed,
-          debounceSeconds: progressDebounceIntervalSeconds
+          completed: completed
         )
       }
     }

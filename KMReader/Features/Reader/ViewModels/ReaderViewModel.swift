@@ -51,7 +51,6 @@ class ReaderViewModel {
   #if os(iOS) || os(tvOS)
     private var upscalingTasks: [Int: Task<URL?, Never>] = [:]
   #endif
-  private let progressDebounceIntervalSeconds: Int = 3
   private var lastPreloadRequestTime: Date?
   private var preloadTask: Task<Void, Never>?
 
@@ -833,8 +832,7 @@ class ReaderViewModel {
     await ReaderProgressDispatchService.shared.submitPageProgress(
       bookId: bookId,
       page: currentPage.number,
-      completed: completed,
-      debounceSeconds: progressDebounceIntervalSeconds
+      completed: completed
     )
   }
 
