@@ -39919,43 +39919,43 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeitdauer, bevor eine Authentifizierungsanfrage abgebrochen wird (Sekunden). Standard: 10s."
+            "value" : "Zeitdauer, bevor eine Authentifizierungsanfrage abgebrochen wird (Sekunden)."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Timeout for authentication requests in seconds. Default is 10s."
+            "value" : "Timeout for authentication requests in seconds."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Délai d'attente des requêtes d'authentification en secondes. La valeur par défaut est de 10s."
+            "value" : "Délai d'attente des requêtes d'authentification en secondes."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "認証リクエストのタイムアウト（秒）。デフォルトは 10 秒です。"
+            "value" : "認証リクエストのタイムアウト（秒）。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "인증 요청 시간 제한(초). 기본값은 10초입니다."
+            "value" : "인증 요청 시간 제한(초)."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "认证请求超时时间（秒）。默认 10 秒。"
+            "value" : "认证请求超时时间（秒）。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "認證請求超時時間（秒）。默認 10 秒。"
+            "value" : "認證請求超時時間（秒）。"
           }
         }
       }
@@ -40011,43 +40011,43 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeitdauer, bevor ein Download abgebrochen wird (Sekunden). Standard: 60s."
+            "value" : "Zeitdauer, bevor ein Download abgebrochen wird (Sekunden)."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Timeout for download requests in seconds. Default is 60s."
+            "value" : "Timeout for download requests in seconds."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Délai d'attente des téléchargements en secondes. La valeur par défaut est de 60s."
+            "value" : "Délai d'attente des téléchargements en secondes."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダウンロードのタイムアウト（秒）。デフォルトは 60 秒です。"
+            "value" : "ダウンロードのタイムアウト（秒）。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다운로드 시간 제한(초). 기본값은 60초입니다."
+            "value" : "다운로드 시간 제한(초)."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下载请求超时时间（秒）。默认 60 秒。"
+            "value" : "下载请求超时时间（秒）。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下載請求超時時間（秒）。默認 60 秒。"
+            "value" : "下載請求超時時間（秒）。"
           }
         }
       }
@@ -40379,43 +40379,43 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeitdauer, bevor eine Anfrage abgebrochen wird (Sekunden). Standard: 20s."
+            "value" : "Zeitdauer, bevor eine Anfrage abgebrochen wird (Sekunden)."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Timeout for requests in seconds. Default is 20s."
+            "value" : "Timeout for requests in seconds."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Délai d'attente des requêtes en secondes. La valeur par défaut est de 20s."
+            "value" : "Délai d'attente des requêtes en secondes."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リクエストのタイムアウト（秒）。デフォルトは 20 秒です。"
+            "value" : "リクエストのタイムアウト（秒）。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "요청 시간 제한(초). 기본값은 20초입니다."
+            "value" : "요청 시간 제한(초)."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请求超时时间（秒）。默认 20 秒。"
+            "value" : "请求超时时间（秒）。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請求超時時間（秒）。默認 20 秒。"
+            "value" : "請求超時時間（秒）。"
           }
         }
       }

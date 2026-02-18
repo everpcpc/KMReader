@@ -1,16 +1,24 @@
-KMReader - What’s New (from v3.3 to current)
+KMReader - What's New (from v3.4 to current)
 
-New Features
-- Added a native PDF reading experience, including offline reading support.
-- Added Home Screen widgets for Keep Reading, Recently Added, and Recently Updated Series.
-- Added quick actions from the app icon for Continue Reading, Search, and Downloads.
-- Added animated page playback support in the reader.
+NEW
+- Added optional waifu2x super resolution for reader pages with three modes: Off, Auto, and Always.
+- Added smarter offline preparation for downloaded PDF books, so PDF reading starts faster and feels more reliable.
+- Added a setting to choose Native PDF Reader or DIVINA for PDF books.
 
-Improved
-- Reading progress is now more reliable across offline and sync scenarios, including when closing the reader.
-- Downloaded content is now easier to find from system search, with clearer controls for what gets indexed by content type and library.
+IMPROVED
+- Reading progress now saves more reliably, especially when closing the reader or moving between books.
+- Offline EPUB progress recovery is more consistent, making it easier to continue where you left off.
+- PDF reading controls are more consistent across reading directions and layouts.
+- The large Keep Reading widget now shows up to six books.
+- Spotlight search results now open the correct book or series more reliably.
+- waifu2x super resolution settings and descriptions are clearer and easier to understand.
+- Connection fallback behavior is faster when a server is temporarily unavailable.
 
-Fixed
-- Fixed offline next-volume ordering for decimal-numbered volumes (such as 5, 5.5, 5.6).
-- Fixed animated pages that could fail to load in some release builds.
-- Fixed small-page scaling issues for better on-screen fit.
+FIXED
+- Fixed an important iOS 17 crash that could happen when switching main tabs, including Browse.
+- Resolved a broad set of crash issues across startup, reading, page turning, notifications, quick actions, widgets, logs, and Live Text interactions.
+- Fixed multiple page-turn and edge-swipe issues at the beginning or end of books.
+- Fixed cases where PDF pages could fail to appear after offline files were removed.
+- Improved Live Text stability on iOS and macOS.
+- Fixed occasional EPUB typeface selection not being remembered correctly.
+- Improved touch behavior in table of contents for more accurate selection.
