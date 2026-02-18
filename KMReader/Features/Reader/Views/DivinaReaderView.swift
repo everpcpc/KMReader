@@ -64,6 +64,8 @@ struct DivinaReaderView: View {
   @State private var showingDetailSheet = false
   @State private var animatedPlaybackURL: URL?
   @State private var animatedPlaybackLoading = false
+  @State private var boundaryDragOffset: CGFloat = 0
+  private let boundarySwipeThreshold: CGFloat = 120
 
   #if os(tvOS)
     @State private var lastTVRemoteMoveSignature: String = ""
@@ -102,6 +104,74 @@ struct DivinaReaderView: View {
           || (readingDirection == .webtoon && isAtBottom))
     #endif
   }
+
+  #if os(iOS)
+    private enum BoundaryArcTarget {
+      case previous
+      case next
+    }
+
+    private var boundaryArcColor: Color {
+      switch readerBackground {
+      case .black:
+        return .white
+      case .white:
+        return .black
+      case .gray:
+        return .white
+      case .system:
+        return .primary
+      }
+    }
+
+    private var boundaryArcTarget: BoundaryArcTarget? {
+      guard boundaryDragOffset != 0 else { return nil }
+
+      if readingDirection == .webtoon {
+        guard isAtBottom, nextBook != nil else { return nil }
+        return readingDirection.isForwardSwipe(boundaryDragOffset) ? .next : nil
+      }
+
+      let isAtFirstBoundary = viewModel.currentViewItemIndex == 0
+      let isAtEndBoundary =
+        !viewModel.viewItems.isEmpty
+        && viewModel.currentViewItemIndex == viewModel.viewItems.count - 1
+
+      if isAtFirstBoundary, previousBook != nil, readingDirection.isBackwardSwipe(boundaryDragOffset)
+      {
+        return .previous
+      }
+      if isAtEndBoundary, nextBook != nil, readingDirection.isForwardSwipe(boundaryDragOffset) {
+        return .next
+      }
+      return nil
+    }
+
+    private var boundaryArcReadingDirection: ReadingDirection {
+      switch boundaryArcTarget {
+      case .previous:
+        switch readingDirection {
+        case .ltr:
+          return .rtl
+        case .rtl:
+          return .ltr
+        case .vertical:
+          return .vertical
+        case .webtoon:
+          return .webtoon
+        }
+      case .next:
+        return readingDirection
+      case .none:
+        return readingDirection
+      }
+    }
+
+    private var boundaryArcProgress: CGFloat {
+      guard boundaryArcTarget != nil else { return 0 }
+      return min(abs(boundaryDragOffset) / boundarySwipeThreshold, 1.0)
+    }
+  #endif
 
   private var handoffBookId: String {
     currentBook?.id ?? book.id
@@ -196,10 +266,6 @@ struct DivinaReaderView: View {
   }
 
   #if os(tvOS)
-    private var endPageFocusChangeHandler: ((Bool) -> Void)? {
-      nil
-    }
-
     private var shouldEnableUIKitRemoteCapture: Bool {
       !showingPageJumpSheet
         && !showingTOCSheet
@@ -344,10 +410,6 @@ struct DivinaReaderView: View {
       toggleControls(autoHide: false)
       return true
     }
-  #else
-    private var endPageFocusChangeHandler: ((Bool) -> Void)? {
-      nil
-    }
   #endif
 
   var body: some View {
@@ -369,6 +431,18 @@ struct DivinaReaderView: View {
         #endif
 
         helperOverlay(screenKey: screenKey)
+
+        #if os(iOS)
+          if boundaryArcProgress > 0.01 {
+            ArcEffectView(
+              color: boundaryArcColor,
+              progress: boundaryArcProgress,
+              readingDirection: boundaryArcReadingDirection
+            )
+            .environment(\.layoutDirection, .leftToRight)
+            .allowsHitTesting(false)
+          }
+        #endif
 
         controlsOverlay(useDualPage: useDualPage)
 
@@ -587,7 +661,10 @@ struct DivinaReaderView: View {
                 onNextBook: { openNextBook(nextBookId: $0) },
                 toggleControls: { toggleControls() },
                 pageWidthPercentage: webtoonPageWidthPercentage,
-                readerBackground: readerBackground
+                readerBackground: readerBackground,
+                onBoundaryPanUpdate: { translation in
+                  boundaryDragOffset = translation
+                }
               )
             #else
               ScrollPageView(
@@ -596,9 +673,11 @@ struct DivinaReaderView: View {
                 splitWidePageMode: splitWidePageMode,
                 showingControls: showingControls,
                 viewModel: viewModel,
+                previousBook: previousBook,
                 nextBook: nextBook,
                 readList: readList,
                 onDismiss: { closeReader() },
+                onPreviousBook: { openPreviousBook(previousBookId: $0) },
                 onNextBook: { openNextBook(nextBookId: $0) },
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
@@ -610,6 +689,9 @@ struct DivinaReaderView: View {
                   if isScrolling {
                     resetControlsTimer(timeout: 1.5)
                   }
+                },
+                onBoundaryPanUpdate: { translation in
+                  boundaryDragOffset = translation
                 }
               )
             #endif
@@ -621,9 +703,11 @@ struct DivinaReaderView: View {
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
                   splitWidePageMode: splitWidePageMode,
+                  previousBook: previousBook,
                   nextBook: nextBook,
                   readList: readList,
                   onDismiss: { closeReader() },
+                  onPreviousBook: { openPreviousBook(previousBookId: $0) },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
@@ -631,7 +715,9 @@ struct DivinaReaderView: View {
                   onPlayAnimatedPage: { pageIndex in
                     requestAnimatedPlayback(for: pageIndex)
                   },
-                  onEndPageFocusChange: endPageFocusChangeHandler
+                  onBoundaryPanUpdate: { translation in
+                    boundaryDragOffset = translation
+                  }
                 )
               } else {
                 ScrollPageView(
@@ -640,9 +726,11 @@ struct DivinaReaderView: View {
                   splitWidePageMode: splitWidePageMode,
                   showingControls: showingControls,
                   viewModel: viewModel,
+                  previousBook: previousBook,
                   nextBook: nextBook,
                   readList: readList,
                   onDismiss: { closeReader() },
+                  onPreviousBook: { openPreviousBook(previousBookId: $0) },
                   onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
@@ -654,6 +742,9 @@ struct DivinaReaderView: View {
                     if isScrolling {
                       resetControlsTimer(timeout: 1.5)
                     }
+                  },
+                  onBoundaryPanUpdate: { translation in
+                    boundaryDragOffset = translation
                   }
                 )
               }
@@ -664,9 +755,11 @@ struct DivinaReaderView: View {
                 splitWidePageMode: splitWidePageMode,
                 showingControls: showingControls,
                 viewModel: viewModel,
+                previousBook: previousBook,
                 nextBook: nextBook,
                 readList: readList,
                 onDismiss: { closeReader() },
+                onPreviousBook: { openPreviousBook(previousBookId: $0) },
                 onNextBook: { openNextBook(nextBookId: $0) },
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
@@ -678,6 +771,9 @@ struct DivinaReaderView: View {
                   if isScrolling {
                     resetControlsTimer(timeout: 1.5)
                   }
+                },
+                onBoundaryPanUpdate: { translation in
+                  boundaryDragOffset = translation
                 }
               )
             #endif
@@ -686,6 +782,9 @@ struct DivinaReaderView: View {
         .readerIgnoresSafeArea()
         .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
         .onChange(of: viewModel.currentPageIndex) { oldIndex, newIndex in
+          #if os(iOS)
+            boundaryDragOffset = 0
+          #endif
           #if os(tvOS)
             if oldIndex >= viewModel.pages.count && newIndex < viewModel.pages.count {
               tvRemoteCaptureGeneration += 1

@@ -7,6 +7,9 @@
 
 #if os(iOS) || os(macOS)
   import SwiftUI
+  #if os(iOS)
+    import UIKit
+  #endif
 
   struct WebtoonPageView: View {
     let viewModel: ReaderViewModel
@@ -18,13 +21,17 @@
     let toggleControls: () -> Void
     let pageWidthPercentage: Double
     let readerBackground: ReaderBackground
+    let onBoundaryPanUpdate: ((CGFloat) -> Void)?
 
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
     @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
     @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
-    @State private var panUpdateHandler: ((CGFloat) -> Void)?
-    @State private var panEndHandler: ((CGFloat) -> Void)?
+    #if os(iOS)
+      @State private var boundaryDragOffset: CGFloat = 0
+      @State private var hasTriggeredBoundaryHaptic = false
+      private let boundarySwipeThreshold: CGFloat = 120
+    #endif
     @State private var zoomTargetPageIndex: Int?
     @State private var zoomAnchor: CGPoint?
     @State private var zoomRequestID: UUID?
@@ -52,12 +59,15 @@
             },
             onScrollToBottom: { atBottom in
               isAtBottom = atBottom
+              if !atBottom {
+                resetBoundaryPanState()
+              }
             },
             onNextBookPanUpdate: { translation in
-              panUpdateHandler?(translation)
+              handleBoundaryPanUpdate(translation)
             },
             onNextBookPanEnd: { translation in
-              panEndHandler?(translation)
+              handleBoundaryPanEnd(translation)
             },
             onZoomRequest: { pageIndex, anchor in
               openZoomOverlay(pageIndex: pageIndex, anchor: anchor)
@@ -73,14 +83,6 @@
               onDismiss: onDismiss,
               onNextBook: onNextBook,
               readingDirection: .webtoon,
-              onPreviousPage: {},
-              onFocusChange: nil,
-              onExternalPanUpdate: { handler in
-                panUpdateHandler = handler
-              },
-              onExternalPanEnd: { handler in
-                panEndHandler = handler
-              },
               showImage: false
             )
             .padding(.bottom, WebtoonConstants.footerPadding)
@@ -111,6 +113,51 @@
           }
         }
       }
+    }
+
+    private func handleBoundaryPanUpdate(_ translation: CGFloat) {
+      #if os(iOS)
+        guard isAtBottom, nextBook != nil else {
+          resetBoundaryPanState()
+          return
+        }
+        guard ReadingDirection.webtoon.isForwardSwipe(translation) else {
+          onBoundaryPanUpdate?(0)
+          hasTriggeredBoundaryHaptic = false
+          return
+        }
+
+        boundaryDragOffset = translation
+        onBoundaryPanUpdate?(translation)
+
+        if abs(boundaryDragOffset) >= boundarySwipeThreshold && !hasTriggeredBoundaryHaptic {
+          let impact = UIImpactFeedbackGenerator(style: .medium)
+          impact.impactOccurred()
+          hasTriggeredBoundaryHaptic = true
+        }
+      #else
+        _ = translation
+      #endif
+    }
+
+    private func handleBoundaryPanEnd(_ translation: CGFloat) {
+      #if os(iOS)
+        defer { resetBoundaryPanState() }
+        guard isAtBottom, let nextBook else { return }
+        guard ReadingDirection.webtoon.isForwardSwipe(translation) else { return }
+        guard abs(boundaryDragOffset) >= boundarySwipeThreshold else { return }
+        onNextBook(nextBook.id)
+      #else
+        _ = translation
+      #endif
+    }
+
+    private func resetBoundaryPanState() {
+      onBoundaryPanUpdate?(0)
+      #if os(iOS)
+        boundaryDragOffset = 0
+        hasTriggeredBoundaryHaptic = false
+      #endif
     }
 
     private func openZoomOverlay(pageIndex: Int, anchor: CGPoint) {

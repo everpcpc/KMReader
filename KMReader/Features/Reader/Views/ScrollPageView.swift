@@ -4,6 +4,9 @@
 //
 
 import SwiftUI
+#if os(iOS)
+  import UIKit
+#endif
 
 struct ScrollPageView: View {
   let mode: PageViewMode
@@ -11,15 +14,18 @@ struct ScrollPageView: View {
   let splitWidePageMode: SplitWidePageMode
   let showingControls: Bool
   @Bindable var viewModel: ReaderViewModel
+  let previousBook: Book?
   let nextBook: Book?
   let readList: ReadList?
   let onDismiss: () -> Void
+  let onPreviousBook: (String) -> Void
   let onNextBook: (String) -> Void
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
   let onPlayAnimatedPage: ((Int) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
+  let onBoundaryPanUpdate: ((CGFloat) -> Void)?
 
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
@@ -29,6 +35,11 @@ struct ScrollPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
+  #if os(iOS)
+    @State private var boundaryDragOffset: CGFloat = 0
+    @State private var hasTriggeredBoundaryHaptic = false
+    private let boundarySwipeThreshold: CGFloat = 120
+  #endif
   #if os(tvOS)
     @FocusState private var isContentAnchorFocused: Bool
   #endif
@@ -47,30 +58,36 @@ struct ScrollPageView: View {
     splitWidePageMode: SplitWidePageMode,
     showingControls: Bool,
     viewModel: ReaderViewModel,
+    previousBook: Book?,
     nextBook: Book?,
     readList: ReadList?,
     onDismiss: @escaping () -> Void,
+    onPreviousBook: @escaping (String) -> Void,
     onNextBook: @escaping (String) -> Void,
     goToNextPage: @escaping () -> Void,
     goToPreviousPage: @escaping () -> Void,
     toggleControls: @escaping () -> Void,
     onPlayAnimatedPage: ((Int) -> Void)? = nil,
-    onScrollActivityChange: ((Bool) -> Void)? = nil
+    onScrollActivityChange: ((Bool) -> Void)? = nil,
+    onBoundaryPanUpdate: ((CGFloat) -> Void)? = nil
   ) {
     self.mode = mode
     self.readingDirection = readingDirection
     self.splitWidePageMode = splitWidePageMode
     self.showingControls = showingControls
     self.viewModel = viewModel
+    self.previousBook = previousBook
     self.nextBook = nextBook
     self.readList = readList
     self.onDismiss = onDismiss
+    self.onPreviousBook = onPreviousBook
     self.onNextBook = onNextBook
     self.goToNextPage = goToNextPage
     self.goToPreviousPage = goToPreviousPage
     self.toggleControls = toggleControls
     self.onPlayAnimatedPage = onPlayAnimatedPage
     self.onScrollActivityChange = onScrollActivityChange
+    self.onBoundaryPanUpdate = onBoundaryPanUpdate
   }
 
   var body: some View {
@@ -86,6 +103,9 @@ struct ScrollPageView: View {
         .overlay(alignment: .topLeading) {
           contentAnchor
         }
+        #if os(iOS)
+          .simultaneousGesture(boundarySwipeGesture)
+        #endif
         #if os(tvOS)
           .focusable(false)
         #endif
@@ -152,6 +172,9 @@ struct ScrollPageView: View {
           #endif
         }
         .onChange(of: viewModel.currentViewItemIndex) { _, _ in
+          #if os(iOS)
+            resetBoundarySwipeState(animated: false)
+          #endif
           #if os(tvOS)
             logger.debug("📺 currentViewItemIndex changed: \(viewModel.currentViewItemIndex)")
             updateContentAnchorFocus()
@@ -172,6 +195,100 @@ struct ScrollPageView: View {
       }
     }
   }
+
+  #if os(iOS)
+    private enum BoundaryNavigationAction {
+      case openPrevious(String)
+      case openNext(String)
+    }
+
+    private var supportsBoundarySwipe: Bool {
+      readingDirection != .webtoon
+    }
+
+    private var isAtFirstBoundary: Bool {
+      viewModel.currentViewItemIndex == 0
+    }
+
+    private var isAtEndBoundary: Bool {
+      guard !viewModel.viewItems.isEmpty else { return false }
+      return viewModel.currentViewItemIndex == viewModel.viewItems.count - 1
+    }
+
+    private var hasBoundarySwipeContext: Bool {
+      (isAtFirstBoundary && previousBook != nil) || (isAtEndBoundary && nextBook != nil)
+    }
+
+    private var shouldEnableBoundarySwipe: Bool {
+      supportsBoundarySwipe
+        && hasBoundarySwipeContext
+        && !showingControls
+        && !viewModel.isZoomed
+        && viewModel.liveTextActivePageIndex == nil
+    }
+
+    private func boundaryAction(for translation: CGFloat) -> BoundaryNavigationAction? {
+      if isAtFirstBoundary, let previousBook, readingDirection.isBackwardSwipe(translation) {
+        return .openPrevious(previousBook.id)
+      }
+      if isAtEndBoundary, let nextBook, readingDirection.isForwardSwipe(translation) {
+        return .openNext(nextBook.id)
+      }
+      return nil
+    }
+
+    private var boundarySwipeGesture: some Gesture {
+      DragGesture(minimumDistance: 6, coordinateSpace: .local)
+        .onChanged { value in
+          guard shouldEnableBoundarySwipe else {
+            resetBoundarySwipeState(animated: false)
+            return
+          }
+
+          boundaryDragOffset = mode.isVertical ? value.translation.height : value.translation.width
+
+          let currentAction = boundaryAction(for: boundaryDragOffset)
+          onBoundaryPanUpdate?(currentAction != nil ? boundaryDragOffset : 0)
+          if currentAction != nil
+            && abs(boundaryDragOffset) >= boundarySwipeThreshold
+            && !hasTriggeredBoundaryHaptic
+          {
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+            hasTriggeredBoundaryHaptic = true
+          } else if currentAction == nil {
+            hasTriggeredBoundaryHaptic = false
+          }
+        }
+        .onEnded { value in
+          defer { resetBoundarySwipeState(animated: true) }
+          guard shouldEnableBoundarySwipe else { return }
+
+          let finalOffset = mode.isVertical ? value.translation.height : value.translation.width
+          guard let action = boundaryAction(for: finalOffset) else { return }
+          guard abs(finalOffset) >= boundarySwipeThreshold else { return }
+          switch action {
+          case .openPrevious(let previousBookId):
+            onPreviousBook(previousBookId)
+          case .openNext(let nextBookId):
+            onNextBook(nextBookId)
+          }
+        }
+    }
+
+    private func resetBoundarySwipeState(animated: Bool) {
+      onBoundaryPanUpdate?(0)
+      if animated {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+          boundaryDragOffset = 0
+          hasTriggeredBoundaryHaptic = false
+        }
+      } else {
+        boundaryDragOffset = 0
+        hasTriggeredBoundaryHaptic = false
+      }
+    }
+  #endif
 
   @ViewBuilder
   private func scrollViewContent(geometry: GeometryProxy, isScrollDisabled: Bool) -> some View {
@@ -206,11 +323,6 @@ struct ScrollPageView: View {
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             readingDirection: readingDirection,
-            onPreviousPage: {
-              goToPreviousPage()
-            },
-            onFocusChange: nil,
-            isActive: offset == viewModel.currentViewItemIndex,
             showImage: true
           )
         case .dual(let first, let second):

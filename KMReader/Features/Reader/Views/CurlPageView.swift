@@ -14,15 +14,17 @@
     let mode: PageViewMode
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let previousBook: Book?
     let nextBook: Book?
     let readList: ReadList?
     let onDismiss: () -> Void
+    let onPreviousBook: (String) -> Void
     let onNextBook: (String) -> Void
     let goToNextPage: () -> Void
     let goToPreviousPage: () -> Void
     let toggleControls: () -> Void
     let onPlayAnimatedPage: ((Int) -> Void)?
-    let onEndPageFocusChange: ((Bool) -> Void)?
+    let onBoundaryPanUpdate: ((CGFloat) -> Void)?
 
     @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
     @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -49,6 +51,15 @@
           recognizer.isEnabled = false
         }
       }
+
+      let boundaryPanRecognizer = UIPanGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleBoundaryPan(_:))
+      )
+      boundaryPanRecognizer.cancelsTouchesInView = false
+      boundaryPanRecognizer.delegate = context.coordinator
+      pageVC.view.addGestureRecognizer(boundaryPanRecognizer)
+      context.coordinator.boundaryPanRecognizer = boundaryPanRecognizer
       // isDoubleSided requires 2 VCs for animated transitions which complicates the logic
       // For single-page curl effect, keep it false
       pageVC.isDoubleSided = false
@@ -143,7 +154,10 @@
       var parent: CurlPageView
       var currentPageIndex: Int
       weak var pageViewController: UIPageViewController?
+      weak var boundaryPanRecognizer: UIPanGestureRecognizer?
       var isTransitioning = false
+      private let boundarySwipeThreshold: CGFloat = 120
+      private var hasTriggeredBoundaryHaptic = false
 
       init(_ parent: CurlPageView) {
         self.parent = parent
@@ -174,8 +188,6 @@
             onDismiss: parent.onDismiss,
             onNextBook: parent.onNextBook,
             readingDirection: parent.readingDirection,
-            onPreviousPage: parent.goToPreviousPage,
-            onFocusChange: parent.onEndPageFocusChange,
             showImage: true
           )
           hostingController = UIHostingController(rootView: AnyView(endPageView))
@@ -240,6 +252,7 @@
         let index = viewController.view.tag
         // "before" = page on the left side
         let targetIndex = parent.mode.isRTL ? index + 1 : index - 1
+        if !isValidIndex(targetIndex) { return nil }
         return self.pageViewController(for: targetIndex)
       }
 
@@ -250,6 +263,7 @@
         let index = viewController.view.tag
         // "after" = page on the right side
         let targetIndex = parent.mode.isRTL ? index - 1 : index + 1
+        if !isValidIndex(targetIndex) { return nil }
         return self.pageViewController(for: targetIndex)
       }
 
@@ -302,12 +316,59 @@
         }
       }
 
-      private func nextIndex(from index: Int) -> Int {
+      private func beforeIndex(from index: Int) -> Int {
+        parent.mode.isRTL ? index + 1 : index - 1
+      }
+
+      private func afterIndex(from index: Int) -> Int {
         parent.mode.isRTL ? index - 1 : index + 1
       }
 
-      private func previousIndex(from index: Int) -> Int {
-        parent.mode.isRTL ? index + 1 : index - 1
+      private func primaryTranslation(for pan: UIPanGestureRecognizer) -> CGFloat {
+        let translation = pan.translation(in: pan.view)
+        return parent.mode.isVertical ? translation.y : translation.x
+      }
+
+      private func primaryVelocity(for pan: UIPanGestureRecognizer) -> CGFloat {
+        let velocity = pan.velocity(in: pan.view)
+        return parent.mode.isVertical ? velocity.y : velocity.x
+      }
+
+      private func isBackwardSignal(_ signal: CGFloat) -> Bool {
+        parent.readingDirection.isBackwardSwipe(signal)
+      }
+
+      private func isForwardSignal(_ signal: CGFloat) -> Bool {
+        parent.readingDirection.isForwardSwipe(signal)
+      }
+
+      private enum BoundaryNavigationAction {
+        case openPrevious(String)
+        case openNext(String)
+      }
+
+      private var isAtFirstBoundary: Bool {
+        currentPageIndex == 0
+      }
+
+      private var isAtEndBoundary: Bool {
+        guard totalPages > 0 else { return false }
+        return currentPageIndex == totalPages - 1
+      }
+
+      private var hasBoundarySwipeContext: Bool {
+        (isAtFirstBoundary && parent.previousBook != nil) || (isAtEndBoundary && parent.nextBook != nil)
+      }
+
+      private func boundaryAction(for signal: CGFloat) -> BoundaryNavigationAction? {
+        guard signal != 0 else { return nil }
+        if isAtFirstBoundary, let previousBook = parent.previousBook, isBackwardSignal(signal) {
+          return .openPrevious(previousBook.id)
+        }
+        if isAtEndBoundary, let nextBook = parent.nextBook, isForwardSignal(signal) {
+          return .openNext(nextBook.id)
+        }
+        return nil
       }
 
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -318,8 +379,17 @@
         syncCurrentPageIndexWithVisibleController()
         guard isValidIndex(currentPageIndex) else { return false }
 
-        let nextExists = isValidIndex(nextIndex(from: currentPageIndex))
-        let previousExists = isValidIndex(previousIndex(from: currentPageIndex))
+        if let pan = gestureRecognizer as? UIPanGestureRecognizer,
+          gestureRecognizer === boundaryPanRecognizer
+        {
+          guard hasBoundarySwipeContext else { return false }
+          let velocitySignal = primaryVelocity(for: pan)
+          if velocitySignal == 0 { return true }
+          return boundaryAction(for: velocitySignal) != nil
+        }
+
+        let beforeExists = isValidIndex(beforeIndex(from: currentPageIndex))
+        let afterExists = isValidIndex(afterIndex(from: currentPageIndex))
 
         if let tap = gestureRecognizer as? UITapGestureRecognizer,
           let view = tap.view,
@@ -345,57 +415,84 @@
         }
 
         if let pan = gestureRecognizer as? UIPanGestureRecognizer {
-          let velocity = pan.velocity(in: pan.view)
-          let primaryVelocity: CGFloat
-          if parent.mode.isVertical {
-            primaryVelocity = velocity.y
+          let primaryTranslation = primaryTranslation(for: pan)
+          let primaryVelocity = primaryVelocity(for: pan)
+
+          let directionTranslationThreshold: CGFloat = 1
+          let directionVelocityThreshold: CGFloat = 60
+
+          let directionSignal: CGFloat
+          if abs(primaryTranslation) >= directionTranslationThreshold {
+            directionSignal = primaryTranslation
+          } else if abs(primaryVelocity) >= directionVelocityThreshold {
+            directionSignal = primaryVelocity
           } else {
-            primaryVelocity = velocity.x
+            directionSignal = 0
           }
 
-          let boundaryVelocityThreshold: CGFloat = 120
-          if (!nextExists || !previousExists) && abs(primaryVelocity) < boundaryVelocityThreshold {
-            return false
+          if directionSignal > 0 {
+            return beforeExists
           }
 
-          let forward: Bool?
-
-          if parent.mode.isVertical {
-            if primaryVelocity < 0 {
-              forward = true
-            } else if primaryVelocity > 0 {
-              forward = false
-            } else {
-              forward = nil
-            }
-          } else if parent.readingDirection == .rtl {
-            if primaryVelocity > 0 {
-              forward = true
-            } else if primaryVelocity < 0 {
-              forward = false
-            } else {
-              forward = nil
-            }
-          } else {
-            if primaryVelocity < 0 {
-              forward = true
-            } else if primaryVelocity > 0 {
-              forward = false
-            } else {
-              forward = nil
-            }
-          }
-
-          if let forward {
-            return forward ? nextExists : previousExists
+          if directionSignal < 0 {
+            return afterExists
           }
 
           // Ambiguous initial pan direction: allow only when both sides exist.
           // This avoids boundary curls (e.g. first page -> previous) that can crash.
-          return nextExists && previousExists
+          return beforeExists && afterExists
         }
 
         return true
+      }
+
+      @objc func handleBoundaryPan(_ gesture: UIPanGestureRecognizer) {
+        syncCurrentPageIndexWithVisibleController()
+        guard isValidIndex(currentPageIndex) else {
+          parent.onBoundaryPanUpdate?(0)
+          hasTriggeredBoundaryHaptic = false
+          return
+        }
+
+        guard hasBoundarySwipeContext else {
+          parent.onBoundaryPanUpdate?(0)
+          hasTriggeredBoundaryHaptic = false
+          return
+        }
+
+        let translation = primaryTranslation(for: gesture)
+        let currentAction = boundaryAction(for: translation)
+
+        switch gesture.state {
+        case .began:
+          hasTriggeredBoundaryHaptic = false
+          parent.onBoundaryPanUpdate?(0)
+        case .changed:
+          guard currentAction != nil else {
+            parent.onBoundaryPanUpdate?(0)
+            hasTriggeredBoundaryHaptic = false
+            return
+          }
+          parent.onBoundaryPanUpdate?(translation)
+          if abs(translation) >= boundarySwipeThreshold && !hasTriggeredBoundaryHaptic {
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+            hasTriggeredBoundaryHaptic = true
+          }
+        case .ended, .cancelled:
+          parent.onBoundaryPanUpdate?(0)
+          defer { hasTriggeredBoundaryHaptic = false }
+          guard let finalAction = currentAction else { return }
+          guard abs(translation) >= boundarySwipeThreshold else { return }
+          switch finalAction {
+          case .openPrevious(let previousBookId):
+            parent.onPreviousBook(previousBookId)
+          case .openNext(let nextBookId):
+            parent.onNextBook(nextBookId)
+          }
+        default:
+          break
+        }
       }
 
       func gestureRecognizer(

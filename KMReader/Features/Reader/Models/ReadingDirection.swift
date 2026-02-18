@@ -77,4 +77,9 @@ enum ReadingDirection: String, CaseIterable, Hashable, Codable {
   func isForwardSwipe(_ translation: CGFloat) -> Bool {
     self == .rtl ? translation > 0 : translation < 0
   }
+
+  /// Check if the given translation represents a backward swipe (toward previous page)
+  func isBackwardSwipe(_ translation: CGFloat) -> Bool {
+    self == .rtl ? translation < 0 : translation > 0
+  }
 }
