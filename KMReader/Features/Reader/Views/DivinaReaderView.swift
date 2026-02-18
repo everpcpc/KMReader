@@ -137,8 +137,7 @@ struct DivinaReaderView: View {
         !viewModel.viewItems.isEmpty
         && viewModel.currentViewItemIndex == viewModel.viewItems.count - 1
 
-      if isAtFirstBoundary, previousBook != nil, readingDirection.isBackwardSwipe(boundaryDragOffset)
-      {
+      if isAtFirstBoundary, previousBook != nil, readingDirection.isBackwardSwipe(boundaryDragOffset) {
         return .previous
       }
       if isAtEndBoundary, nextBook != nil, readingDirection.isForwardSwipe(boundaryDragOffset) {
