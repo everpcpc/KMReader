@@ -36,11 +36,12 @@ struct SeriesBrowseView: View {
       ).padding(.horizontal)
 
       SeriesQueryView(
+        libraryIds: libraryIds,
+        searchText: searchText,
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
           ? SeriesBrowseOptions() : browseOpts,
         browseLayout: browseLayout,
-        viewModel: viewModel,
-        loadMore: loadSeries
+        viewModel: viewModel
       )
     }
     .task {

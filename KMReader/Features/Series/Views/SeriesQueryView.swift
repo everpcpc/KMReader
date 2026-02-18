@@ -5,15 +5,20 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct SeriesQueryView: View {
+  let libraryIds: [String]
+  let searchText: String
   let browseOpts: SeriesBrowseOptions
   let browseLayout: BrowseLayoutMode
   let viewModel: SeriesViewModel
-  let loadMore: (Bool) async -> Void
+  let useLocalOnly: Bool
+  let offlineOnly: Bool
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -24,15 +29,21 @@ struct SeriesQueryView: View {
   }
 
   init(
+    libraryIds: [String],
+    searchText: String,
     browseOpts: SeriesBrowseOptions,
     browseLayout: BrowseLayoutMode,
     viewModel: SeriesViewModel,
-    loadMore: @escaping (Bool) async -> Void
+    useLocalOnly: Bool = false,
+    offlineOnly: Bool = false
   ) {
+    self.libraryIds = libraryIds
+    self.searchText = searchText
     self.browseOpts = browseOpts
     self.browseLayout = browseLayout
     self.viewModel = viewModel
-    self.loadMore = loadMore
+    self.useLocalOnly = useLocalOnly
+    self.offlineOnly = offlineOnly
   }
 
   var body: some View {
@@ -43,9 +54,7 @@ struct SeriesQueryView: View {
       emptyTitle: LocalizedStringKey("No series found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
       onRetry: {
-        Task {
-          await loadMore(true)
-        }
+        loadSeries(refresh: true)
       }
     ) {
       switch browseLayout {
@@ -59,9 +68,7 @@ struct SeriesQueryView: View {
             .padding(.bottom)
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: series) {
-                Task {
-                  await loadMore(false)
-                }
+                loadSeries(refresh: false)
               }
             }
           }
@@ -76,9 +83,7 @@ struct SeriesQueryView: View {
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: series) {
-                Task {
-                  await loadMore(false)
-                }
+                loadSeries(refresh: false)
               }
             }
             if !viewModel.pagination.isLast(series) {
@@ -88,6 +93,20 @@ struct SeriesQueryView: View {
         }
         .padding(.horizontal)
       }
+    }
+  }
+
+  private func loadSeries(refresh: Bool) {
+    Task {
+      await viewModel.loadSeries(
+        context: modelContext,
+        browseOpts: browseOpts,
+        searchText: searchText,
+        libraryIds: libraryIds,
+        refresh: refresh,
+        useLocalOnly: useLocalOnly,
+        offlineOnly: offlineOnly
+      )
     }
   }
 }

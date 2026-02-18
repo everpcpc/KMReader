@@ -5,16 +5,17 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct SeriesBooksQueryView: View {
   let seriesId: String
   let bookViewModel: BookViewModel
+  let browseOpts: BookBrowseOptions
   let browseLayout: BrowseLayoutMode
-  let refreshBooks: () -> Void
-  let loadMore: (Bool) async -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -27,15 +28,13 @@ struct SeriesBooksQueryView: View {
   init(
     seriesId: String,
     bookViewModel: BookViewModel,
+    browseOpts: BookBrowseOptions,
     browseLayout: BrowseLayoutMode,
-    refreshBooks: @escaping () -> Void,
-    loadMore: @escaping (Bool) async -> Void
   ) {
     self.seriesId = seriesId
     self.bookViewModel = bookViewModel
+    self.browseOpts = browseOpts
     self.browseLayout = browseLayout
-    self.refreshBooks = refreshBooks
-    self.loadMore = loadMore
   }
 
   var body: some View {
@@ -58,7 +57,7 @@ struct SeriesBooksQueryView: View {
               .padding(.bottom)
               .onAppear {
                 if bookViewModel.pagination.shouldLoadMore(after: book) {
-                  Task { await loadMore(false) }
+                  loadBooks(refresh: false)
                 }
               }
             }
@@ -75,7 +74,7 @@ struct SeriesBooksQueryView: View {
               )
               .onAppear {
                 if bookViewModel.pagination.shouldLoadMore(after: book) {
-                  Task { await loadMore(false) }
+                  loadBooks(refresh: false)
                 }
               }
               if !bookViewModel.pagination.isLast(book) {
@@ -86,6 +85,17 @@ struct SeriesBooksQueryView: View {
           .padding(.horizontal)
         }
       }
+    }
+  }
+
+  private func loadBooks(refresh: Bool) {
+    Task {
+      await bookViewModel.loadSeriesBooks(
+        context: modelContext,
+        seriesId: seriesId,
+        browseOpts: browseOpts,
+        refresh: refresh
+      )
     }
   }
 }
