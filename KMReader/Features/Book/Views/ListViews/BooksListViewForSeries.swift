@@ -50,15 +50,8 @@ struct BooksListViewForSeries: View {
       SeriesBooksQueryView(
         seriesId: seriesId,
         bookViewModel: bookViewModel,
-        browseLayout: layoutMode,
-        refreshBooks: {
-          Task {
-            await refreshBooks(refresh: false)
-          }
-        },
-        loadMore: { refresh in
-          await refreshBooks(refresh: refresh)
-        }
+        browseOpts: browseOpts,
+        browseLayout: layoutMode
       )
     }
     .task(id: seriesId) {

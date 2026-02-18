@@ -45,11 +45,14 @@ struct OfflineSeriesBrowseView: View {
       .padding(.horizontal)
 
       SeriesQueryView(
+        libraryIds: libraryIds,
+        searchText: searchText,
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
           ? SeriesBrowseOptions() : browseOpts,
         browseLayout: browseLayout,
         viewModel: viewModel,
-        loadMore: loadSeries
+        useLocalOnly: true,
+        offlineOnly: true
       )
     }
     .task {

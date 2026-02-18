@@ -5,15 +5,20 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct BooksQueryView: View {
+  let libraryIds: [String]
+  let searchText: String
   let browseOpts: BookBrowseOptions
   let browseLayout: BrowseLayoutMode
   let viewModel: BookViewModel
-  let loadMore: (Bool) async -> Void
+  let useLocalOnly: Bool
+  let offlineOnly: Bool
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -24,15 +29,21 @@ struct BooksQueryView: View {
   }
 
   init(
+    libraryIds: [String],
+    searchText: String,
     browseOpts: BookBrowseOptions,
     browseLayout: BrowseLayoutMode,
     viewModel: BookViewModel,
-    loadMore: @escaping (Bool) async -> Void
+    useLocalOnly: Bool = false,
+    offlineOnly: Bool = false
   ) {
+    self.libraryIds = libraryIds
+    self.searchText = searchText
     self.browseOpts = browseOpts
     self.browseLayout = browseLayout
     self.viewModel = viewModel
-    self.loadMore = loadMore
+    self.useLocalOnly = useLocalOnly
+    self.offlineOnly = offlineOnly
   }
 
   var body: some View {
@@ -43,9 +54,7 @@ struct BooksQueryView: View {
       emptyTitle: LocalizedStringKey("No books found"),
       emptyMessage: LocalizedStringKey("Try selecting a different library."),
       onRetry: {
-        Task {
-          await loadMore(true)
-        }
+        loadBooks(refresh: true)
       }
     ) {
       switch browseLayout {
@@ -59,9 +68,7 @@ struct BooksQueryView: View {
             .padding(.bottom)
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: book) {
-                Task {
-                  await loadMore(false)
-                }
+                loadBooks(refresh: false)
               }
             }
           }
@@ -76,9 +83,7 @@ struct BooksQueryView: View {
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: book) {
-                Task {
-                  await loadMore(false)
-                }
+                loadBooks(refresh: false)
               }
             }
             if !viewModel.pagination.isLast(book) {
@@ -88,6 +93,20 @@ struct BooksQueryView: View {
         }
         .padding(.horizontal)
       }
+    }
+  }
+
+  private func loadBooks(refresh: Bool) {
+    Task {
+      await viewModel.loadBrowseBooks(
+        context: modelContext,
+        browseOpts: browseOpts,
+        searchText: searchText,
+        libraryIds: libraryIds,
+        refresh: refresh,
+        useLocalOnly: useLocalOnly,
+        offlineOnly: offlineOnly
+      )
     }
   }
 }

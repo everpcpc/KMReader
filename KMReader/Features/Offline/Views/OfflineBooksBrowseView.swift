@@ -46,10 +46,13 @@ struct OfflineBooksBrowseView: View {
       .padding(.horizontal)
 
       BooksQueryView(
+        libraryIds: libraryIds,
+        searchText: searchText,
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
         browseLayout: browseLayout,
         viewModel: viewModel,
-        loadMore: loadBooks
+        useLocalOnly: true,
+        offlineOnly: true
       )
     }
     .task {

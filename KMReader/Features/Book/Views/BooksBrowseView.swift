@@ -36,10 +36,11 @@ struct BooksBrowseView: View {
       ).padding(.horizontal)
 
       BooksQueryView(
+        libraryIds: libraryIds,
+        searchText: searchText,
         browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
         browseLayout: browseLayout,
-        viewModel: viewModel,
-        loadMore: loadBooks
+        viewModel: viewModel
       )
       .task {
         if !hasInitialized {
