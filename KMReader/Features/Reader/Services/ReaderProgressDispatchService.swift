@@ -608,9 +608,17 @@ actor ReaderProgressDispatchService {
     let logger = AppLogger(.reader)
 
     do {
+      let totalProgression = update.progression.locator.locations?.totalProgression.map(Double.init)
+      let fallbackPage = max(0, update.globalPageNumber - 1)
+
       if AppConfig.isOffline {
+        _ = await DatabaseOperator.shared.updateEpubReadingProgressFromTotalProgression(
+          bookId: update.bookId,
+          totalProgression: totalProgression,
+          fallbackPage: fallbackPage
+        )
         logger.debug(
-          "💾 [Progress/Epub] Queue offline update: book=\(update.bookId), version=\(update.version), globalPage=\(update.globalPageNumber)"
+          "💾 [Progress/Epub] Queue offline update: book=\(update.bookId), version=\(update.version), globalPage=\(update.globalPageNumber), totalProgression=\(totalProgression ?? 0)"
         )
         await DatabaseOperator.shared.queuePendingProgress(
           instanceId: AppConfig.current.instanceId,
@@ -635,6 +643,11 @@ actor ReaderProgressDispatchService {
         }
         logger.debug(
           "✅ [Progress/Epub] Server sync completed: book=\(update.bookId), version=\(update.version), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
+        )
+        _ = await DatabaseOperator.shared.updateEpubReadingProgressFromTotalProgression(
+          bookId: update.bookId,
+          totalProgression: totalProgression,
+          fallbackPage: fallbackPage
         )
       }
 
