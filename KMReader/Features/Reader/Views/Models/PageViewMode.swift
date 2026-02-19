@@ -1,6 +1,5 @@
 //
-//  EpubReaderPreferences.swift
-//  KMReader
+// PageViewMode.swift
 //
 //
 

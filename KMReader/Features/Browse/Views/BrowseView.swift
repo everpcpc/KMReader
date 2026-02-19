@@ -1,6 +1,5 @@
 //
-//  BrowseView.swift
-//  Komga
+// BrowseView.swift
 //
 //
 

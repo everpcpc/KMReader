@@ -1,6 +1,5 @@
 //
-//  UserRole.swift
-//  KMReader
+// UserRole.swift
 //
 //
 

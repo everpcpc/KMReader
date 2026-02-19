@@ -1,6 +1,5 @@
 //
-//  BookReaderState.swift
-//  Komga
+// BookReaderState.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  RoleBadge.swift
-//  KMReader
+// RoleBadge.swift
 //
 //
 

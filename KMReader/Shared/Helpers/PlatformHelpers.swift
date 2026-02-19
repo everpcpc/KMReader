@@ -1,6 +1,5 @@
 //
-//  PlatformHelpers.swift
-//  Komga
+// PlatformHelpers.swift
 //
 //
 

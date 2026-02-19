@@ -1,6 +1,5 @@
 //
-//  BookFilterView.swift
-//  Komga
+// BookFilterView.swift
 //
 //
 

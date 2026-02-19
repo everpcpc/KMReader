@@ -1,6 +1,5 @@
 //
-//  ReadStatusSelectionHelper.swift
-//  Komga
+// ReadStatusSelectionHelper.swift
 //
 //
 

@@ -1,8 +1,6 @@
 //
-//  LiveActivityManager.swift
-//  KMReader
+// LiveActivityManager.swift
 //
-//  Manages Live Activity for download progress display.
 //
 
 import Foundation

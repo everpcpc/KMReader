@@ -1,6 +1,5 @@
 //
-//  OneShotDetailContentView.swift
-//  Komga
+// OneShotDetailContentView.swift
 //
 //
 

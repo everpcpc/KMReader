@@ -1,6 +1,6 @@
 //
-//  ReaderUnavailableView.swift
-//  KMReader
+// ReaderUnavailableView.swift
+//
 //
 
 import SwiftUI

@@ -1,6 +1,5 @@
 //
-//  CardTextOverlay.swift
-//  KMReader
+// CardTextOverlay.swift
 //
 //
 

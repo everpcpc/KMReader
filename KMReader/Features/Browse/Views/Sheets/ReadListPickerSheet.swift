@@ -1,6 +1,5 @@
 //
-//  ReadListPickerSheet.swift
-//  Komga
+// ReadListPickerSheet.swift
 //
 //
 

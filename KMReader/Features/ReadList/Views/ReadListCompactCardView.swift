@@ -1,6 +1,5 @@
 //
-//  ReadListCompactCardView.swift
-//  KMReader
+// ReadListCompactCardView.swift
 //
 //
 

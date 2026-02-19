@@ -1,6 +1,5 @@
 //
-//  SettingsNetworkView.swift
-//  Komga
+// SettingsNetworkView.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  AppColorScheme.swift
-//  KMReader
+// AppColorScheme.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  AdaptiveButtonStyle.swift
-//  Komga
+// View+ButtonStyle.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  Author.swift
-//  Komga
+// Author.swift
 //
 //
 

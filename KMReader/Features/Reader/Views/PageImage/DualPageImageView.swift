@@ -1,6 +1,5 @@
 //
-//  DualPageImageView.swift
-//  Komga
+// DualPageImageView.swift
 //
 //
 

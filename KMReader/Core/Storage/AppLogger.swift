@@ -1,6 +1,5 @@
 //
-//  AppLogger.swift
-//  KMReader
+// AppLogger.swift
 //
 //
 

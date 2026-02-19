@@ -1,6 +1,5 @@
 //
-//  OfflineShortcutRow.swift
-//  KMReader
+// OfflineShortcutRow.swift
 //
 //
 

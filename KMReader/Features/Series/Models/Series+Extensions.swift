@@ -1,6 +1,5 @@
 //
-//  Series+Extensions.swift
-//  Komga
+// Series+Extensions.swift
 //
 //
 

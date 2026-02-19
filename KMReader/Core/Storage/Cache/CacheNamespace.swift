@@ -1,6 +1,5 @@
 //
-//  CacheNamespace.swift
-//  KMReader
+// CacheNamespace.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  View+Navigation.swift
-//  Komga
+// View+Navigation.swift
 //
 //
 

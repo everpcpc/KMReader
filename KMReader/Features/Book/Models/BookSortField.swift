@@ -1,6 +1,5 @@
 //
-//  BookSortField.swift
-//  Komga
+// BookSortField.swift
 //
 //
 

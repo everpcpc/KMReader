@@ -1,6 +1,5 @@
 //
-//  ServerHistoryView.swift
-//  KMReader
+// ServerHistoryView.swift
 //
 //
 

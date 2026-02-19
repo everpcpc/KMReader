@@ -1,6 +1,6 @@
 //
-//  ExternalLinkChip.swift
-//  KMReader
+// ExternalLinkChip.swift
+//
 //
 
 import SwiftUI

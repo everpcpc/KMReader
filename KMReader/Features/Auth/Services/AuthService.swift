@@ -1,6 +1,5 @@
 //
-//  AuthService.swift
-//  Komga
+// AuthService.swift
 //
 //
 

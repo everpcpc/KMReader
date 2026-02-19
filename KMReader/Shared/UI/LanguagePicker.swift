@@ -1,6 +1,5 @@
 //
-//  LanguagePicker.swift
-//  Komga
+// LanguagePicker.swift
 //
 //
 

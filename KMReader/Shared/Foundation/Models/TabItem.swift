@@ -1,6 +1,5 @@
 //
-//  TabItem.swift
-//  Komga
+// TabItem.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  MetadataFilterConfig.swift
-//  KMReader
+// MetadataFilterConfig.swift
 //
 //
 

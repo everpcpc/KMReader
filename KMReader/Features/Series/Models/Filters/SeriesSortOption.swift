@@ -1,6 +1,5 @@
 //
-//  SeriesSortOption.swift
-//  Komga
+// SeriesSortOption.swift
 //
 //
 

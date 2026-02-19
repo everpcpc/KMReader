@@ -1,6 +1,5 @@
 //
-//  CardPlaceholder.swift
-//  KMReader
+// CardPlaceholder.swift
 //
 //
 

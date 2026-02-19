@@ -1,6 +1,5 @@
 //
-//  WebPubScrollView.swift
-//  KMReader
+// WebPubScrollView.swift
 //
 //
 

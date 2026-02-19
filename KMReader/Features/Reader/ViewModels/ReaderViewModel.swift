@@ -1,6 +1,5 @@
 //
-//  ReaderViewModel.swift
-//  Komga
+// ReaderViewModel.swift
 //
 //
 

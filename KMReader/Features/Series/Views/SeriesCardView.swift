@@ -1,6 +1,5 @@
 //
-//  SeriesCardView.swift
-//  Komga
+// SeriesCardView.swift
 //
 //
 

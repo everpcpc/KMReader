@@ -1,6 +1,5 @@
 //
-//  SavedFilter.swift
-//  KMReader
+// SavedFilter.swift
 //
 //
 

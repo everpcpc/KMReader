@@ -1,6 +1,5 @@
 //
-//  Double+FileSize.swift
-//  Komga
+// Double+FileSize.swift
 //
 //
 

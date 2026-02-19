@@ -1,6 +1,5 @@
 //
-//  KomgaCollectionStore.swift
-//  KMReader
+// KomgaCollectionStore.swift
 //
 //
 

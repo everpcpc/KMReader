@@ -1,6 +1,5 @@
 //
-//  SortOptionView.swift
-//  Komga
+// SortOptionView.swift
 //
 //
 

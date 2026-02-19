@@ -1,6 +1,5 @@
 //
-//  MetadataFilter.swift
-//  Komga
+// MetadataFilter.swift
 //
 //
 

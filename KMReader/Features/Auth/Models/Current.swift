@@ -1,6 +1,5 @@
 //
-//  Current.swift
-//  KMReader
+// Current.swift
 //
 //
 

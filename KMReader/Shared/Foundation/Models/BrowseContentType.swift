@@ -1,6 +1,5 @@
 //
-//  BrowseContentType.swift
-//  Komga
+// BrowseContentType.swift
 //
 //
 

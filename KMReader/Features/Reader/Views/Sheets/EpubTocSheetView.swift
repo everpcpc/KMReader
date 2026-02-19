@@ -1,6 +1,5 @@
 //
-//  EpubTocSheetView.swift
-//  KMReader
+// EpubTocSheetView.swift
 //
 //
 

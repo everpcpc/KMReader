@@ -1,6 +1,5 @@
 //
-//  ReadingDirection.swift
-//  Komga
+// ReadingDirection.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  MainSplitView.swift
-//  KMReader
+// MainSplitView.swift
 //
 //
 

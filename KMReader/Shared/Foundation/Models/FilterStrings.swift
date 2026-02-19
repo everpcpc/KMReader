@@ -1,6 +1,5 @@
 //
-//  FilterStrings.swift
-//  Komga
+// FilterStrings.swift
 //
 //
 

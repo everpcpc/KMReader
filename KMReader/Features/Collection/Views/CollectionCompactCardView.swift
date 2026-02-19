@@ -1,6 +1,5 @@
 //
-//  CollectionCompactCardView.swift
-//  KMReader
+// CollectionCompactCardView.swift
 //
 //
 

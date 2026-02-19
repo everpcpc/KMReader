@@ -1,6 +1,5 @@
 //
-//  ErrorManager.swift
-//  Komga
+// ErrorManager.swift
 //
 //
 

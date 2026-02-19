@@ -1,6 +1,6 @@
 //
-//  LibraryRowView.swift
-//  KMReader
+// LibraryRowView.swift
+//
 //
 
 import SwiftData

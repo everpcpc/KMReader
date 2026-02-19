@@ -1,6 +1,5 @@
 //
-//  SaveImageStatus.swift
-//  Komga
+// SaveImageStatus.swift
 //
 //
 

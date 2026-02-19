@@ -1,6 +1,5 @@
 //
-//  PaginationState.swift
-//  KMReader
+// PaginationState.swift
 //
 //
 

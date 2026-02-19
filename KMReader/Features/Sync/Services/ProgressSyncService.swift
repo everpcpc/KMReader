@@ -1,6 +1,5 @@
 //
-//  ProgressSyncService.swift
-//  KMReader
+// ProgressSyncService.swift
 //
 //
 

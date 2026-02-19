@@ -1,6 +1,5 @@
 //
-//  CollectionEditSheet.swift
-//  Komga
+// CollectionEditSheet.swift
 //
 //
 

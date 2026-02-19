@@ -1,6 +1,5 @@
 //
-//  AuthenticationActivity.swift
-//  Komga
+// AuthenticationActivity.swift
 //
 //
 

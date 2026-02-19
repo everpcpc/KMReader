@@ -1,6 +1,5 @@
 //
-//  ExpandableSummaryView.swift
-//  Komga
+// ExpandableSummaryView.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  SeriesDetailContentView.swift
-//  Komga
+// SeriesDetailContentView.swift
 //
 //
 

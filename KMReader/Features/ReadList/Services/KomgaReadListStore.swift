@@ -1,6 +1,5 @@
 //
-//  KomgaReadListStore.swift
-//  KMReader
+// KomgaReadListStore.swift
 //
 //
 

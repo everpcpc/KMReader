@@ -1,6 +1,5 @@
 //
-//  LibraryCreation.swift
-//  KMReader
+// LibraryCreation.swift
 //
 //
 

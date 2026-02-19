@@ -1,6 +1,5 @@
 //
-//  OfflineBooksBrowseView.swift
-//  KMReader
+// OfflineBooksBrowseView.swift
 //
 //
 

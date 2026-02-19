@@ -1,6 +1,5 @@
 //
-//  IdentifiedString.swift
-//  KMReader
+// IdentifiedString.swift
 //
 //
 

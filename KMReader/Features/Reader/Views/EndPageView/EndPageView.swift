@@ -1,6 +1,5 @@
 //
-//  EndPageView.swift
-//  Komga
+// EndPageView.swift
 //
 //
 

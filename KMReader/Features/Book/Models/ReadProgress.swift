@@ -1,6 +1,5 @@
 //
-//  ReadProgress.swift
-//  Komga
+// ReadProgress.swift
 //
 //
 

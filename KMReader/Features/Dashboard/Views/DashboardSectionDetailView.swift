@@ -1,6 +1,5 @@
 //
-//  DashboardSectionDetailView.swift
-//  KMReader
+// DashboardSectionDetailView.swift
 //
 //
 

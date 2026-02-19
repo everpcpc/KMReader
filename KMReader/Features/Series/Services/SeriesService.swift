@@ -1,6 +1,5 @@
 //
-//  SeriesService.swift
-//  Komga
+// SeriesService.swift
 //
 //
 

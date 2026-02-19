@@ -1,6 +1,5 @@
 //
-//  SplitWidePageImageView.swift
-//  KMReader
+// SplitWidePageImageView.swift
 //
 //
 

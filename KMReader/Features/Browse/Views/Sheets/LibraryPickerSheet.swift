@@ -1,6 +1,5 @@
 //
-//  LibraryPickerSheet.swift
-//  Komga
+// LibraryPickerSheet.swift
 //
 //
 

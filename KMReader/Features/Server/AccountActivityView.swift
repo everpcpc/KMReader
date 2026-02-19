@@ -1,6 +1,5 @@
 //
-//  AccountActivityView.swift
-//  Komga
+// AccountActivityView.swift
 //
 //
 

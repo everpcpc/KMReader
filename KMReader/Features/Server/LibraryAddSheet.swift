@@ -1,6 +1,5 @@
 //
-//  LibraryAddSheet.swift
-//  KMReader
+// LibraryAddSheet.swift
 //
 //
 

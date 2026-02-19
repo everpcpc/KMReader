@@ -1,6 +1,5 @@
 //
-//  ReaderXHTMLParser.swift
-//  KMReader
+// ReaderXHTMLParser.swift
 //
 //
 

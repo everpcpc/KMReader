@@ -1,6 +1,5 @@
 //
-//  LibraryListContent.swift
-//  KMReader
+// LibraryListContent.swift
 //
 //
 

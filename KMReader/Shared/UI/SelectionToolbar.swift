@@ -1,6 +1,5 @@
 //
-//  SelectionToolbar.swift
-//  Komga
+// SelectionToolbar.swift
 //
 //
 

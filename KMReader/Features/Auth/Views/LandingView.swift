@@ -1,6 +1,5 @@
 //
-//  LandingView.swift
-//  Komga
+// LandingView.swift
 //
 //
 

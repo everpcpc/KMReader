@@ -1,6 +1,5 @@
 //
-//  View+MenuStyle.swift
-//  KMReader
+// View+MenuStyle.swift
 //
 //
 

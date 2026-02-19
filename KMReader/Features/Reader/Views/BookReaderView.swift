@@ -1,6 +1,5 @@
 //
-//  BookReaderView.swift
-//  KMReader
+// BookReaderView.swift
 //
 //
 

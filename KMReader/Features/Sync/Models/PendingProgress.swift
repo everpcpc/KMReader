@@ -1,6 +1,5 @@
 //
-//  PendingProgress.swift
-//  KMReader
+// PendingProgress.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  CollectionCardView.swift
-//  Komga
+// CollectionCardView.swift
 //
 //
 

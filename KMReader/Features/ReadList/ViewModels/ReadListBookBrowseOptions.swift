@@ -1,6 +1,5 @@
 //
-//  ReadListBookBrowseOptions.swift
-//  Komga
+// ReadListBookBrowseOptions.swift
 //
 //
 

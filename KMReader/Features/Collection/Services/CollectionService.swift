@@ -1,6 +1,5 @@
 //
-//  CollectionService.swift
-//  Komga
+// CollectionService.swift
 //
 //
 

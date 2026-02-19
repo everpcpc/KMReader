@@ -1,6 +1,5 @@
 //
-//  Media.swift
-//  Komga
+// Media.swift
 //
 //
 

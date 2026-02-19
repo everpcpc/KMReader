@@ -1,6 +1,5 @@
 //
-//  TapZoneOverlay.swift
-//  Komga
+// TapZoneOverlay.swift
 //
 //
 

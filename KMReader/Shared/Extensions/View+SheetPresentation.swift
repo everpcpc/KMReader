@@ -1,6 +1,5 @@
 //
-//  View+SheetPresentation.swift
-//  Komga
+// View+SheetPresentation.swift
 //
 //
 

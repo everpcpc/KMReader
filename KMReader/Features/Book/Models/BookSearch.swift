@@ -1,6 +1,5 @@
 //
-//  BookSearch.swift
-//  Komga
+// BookSearch.swift
 //
 //
 

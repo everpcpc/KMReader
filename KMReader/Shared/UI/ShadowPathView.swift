@@ -1,6 +1,6 @@
 //
-//  ShadowPathView.swift
-//  KMReader
+// ShadowPathView.swift
+//
 //
 
 import SwiftUI

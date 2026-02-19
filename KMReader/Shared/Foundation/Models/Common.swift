@@ -1,6 +1,5 @@
 //
-//  Common.swift
-//  Komga
+// Common.swift
 //
 //
 

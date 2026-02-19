@@ -1,6 +1,5 @@
 //
-//  ManagementService.swift
-//  Komga
+// ManagementService.swift
 //
 //
 

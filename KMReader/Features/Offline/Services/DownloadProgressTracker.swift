@@ -1,6 +1,5 @@
 //
-//  DownloadProgressTracker.swift
-//  KMReader
+// DownloadProgressTracker.swift
 //
 //
 

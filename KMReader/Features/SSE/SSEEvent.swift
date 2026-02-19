@@ -1,6 +1,5 @@
 //
-//  SSEEvent.swift
-//  Komga
+// SSEEvent.swift
 //
 //
 

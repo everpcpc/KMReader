@@ -1,8 +1,6 @@
 //
-//  SubscriptionView.swift
-//  KMReader
+// SubscriptionView.swift
 //
-//  Buy me a coffee ☕
 //
 
 import StoreKit

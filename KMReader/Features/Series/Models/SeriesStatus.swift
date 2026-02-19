@@ -1,6 +1,5 @@
 //
-//  SeriesStatus.swift
-//  Komga
+// SeriesStatus.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  ReadListCardView.swift
-//  Komga
+// ReadListCardView.swift
 //
 //
 

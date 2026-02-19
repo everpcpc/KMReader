@@ -1,6 +1,5 @@
 //
-//  ReferentialService.swift
-//  KMReader
+// ReferentialService.swift
 //
 //
 

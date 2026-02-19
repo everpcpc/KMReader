@@ -1,6 +1,5 @@
 //
-//  CollapsibleChipSection.swift
-//  Komga
+// CollapsibleChipSection.swift
 //
 //
 

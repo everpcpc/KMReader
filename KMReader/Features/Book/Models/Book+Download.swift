@@ -1,6 +1,5 @@
 //
-//  Book+Download.swift
-//  KMReader
+// Book+Download.swift
 //
 //
 

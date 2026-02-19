@@ -1,6 +1,6 @@
 //
-//  ZoomNamespaceKey.swift
-//  KMReader
+// ZoomNamespaceKey.swift
+//
 //
 
 import SwiftUI

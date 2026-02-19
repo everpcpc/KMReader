@@ -1,6 +1,6 @@
 //
-//  ScrollPageTransitionStyle.swift
-//  KMReader
+// ScrollPageTransitionStyle.swift
+//
 //
 
 import Foundation

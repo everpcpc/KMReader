@@ -1,6 +1,5 @@
 //
-//  APIError.swift
-//  Komga
+// APIError.swift
 //
 //
 

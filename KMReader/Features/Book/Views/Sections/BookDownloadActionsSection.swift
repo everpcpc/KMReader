@@ -1,6 +1,6 @@
 //
-//  BookDownloadActionsSection.swift
-//  KMReader
+// BookDownloadActionsSection.swift
+//
 //
 
 import SwiftUI

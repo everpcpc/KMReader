@@ -1,6 +1,5 @@
 //
-//  CollectionRowView.swift
-//  Komga
+// CollectionRowView.swift
 //
 //
 

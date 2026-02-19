@@ -1,6 +1,5 @@
 //
-//  ReadingProgressBar.swift
-//  Komga
+// ReadingProgressBar.swift
 //
 //
 

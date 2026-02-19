@@ -1,6 +1,5 @@
 //
-//  ArcEffectShape.swift
-//  Komga
+// ArcEffectShape.swift
 //
 //
 

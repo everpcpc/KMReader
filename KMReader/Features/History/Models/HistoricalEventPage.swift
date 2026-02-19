@@ -1,6 +1,5 @@
 //
-//  HistoricalEventPage.swift
-//  KMReader
+// HistoricalEventPage.swift
 //
 //
 

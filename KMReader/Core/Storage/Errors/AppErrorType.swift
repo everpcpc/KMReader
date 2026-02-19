@@ -1,6 +1,5 @@
 //
-//  AppErrorType.swift
-//  Komga
+// AppErrorType.swift
 //
 //
 

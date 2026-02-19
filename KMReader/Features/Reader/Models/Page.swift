@@ -1,6 +1,5 @@
 //
-//  Page.swift
-//  Komga
+// Page.swift
 //
 //
 

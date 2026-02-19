@@ -1,6 +1,6 @@
 //
-//  SidebarView.swift
-//  KMReader
+// SidebarView.swift
+//
 //
 
 import SwiftData

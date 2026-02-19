@@ -1,6 +1,5 @@
 //
-//  Metrics.swift
-//  Komga
+// Metrics.swift
 //
 //
 

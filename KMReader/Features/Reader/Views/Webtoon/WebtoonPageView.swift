@@ -1,6 +1,5 @@
 //
-//  WebtoonPageView.swift
-//  Komga
+// WebtoonPageView.swift
 //
 //
 

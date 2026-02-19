@@ -1,6 +1,5 @@
 //
-//  SyncService.swift
-//  KMReader
+// SyncService.swift
 //
 //
 

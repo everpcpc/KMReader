@@ -1,6 +1,5 @@
 //
-//  SeriesFilterView.swift
-//  Komga
+// SeriesFilterView.swift
 //
 //
 

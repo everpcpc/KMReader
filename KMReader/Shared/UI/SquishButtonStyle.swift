@@ -1,8 +1,6 @@
 //
-//  SquishButtonStyle.swift
-//  KMReader
+// SquishButtonStyle.swift
 //
-//  Created by KMReader iOS Client
 //
 
 import SwiftUI

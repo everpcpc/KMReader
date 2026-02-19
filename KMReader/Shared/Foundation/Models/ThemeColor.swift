@@ -1,6 +1,5 @@
 //
-//  ThemeColor.swift
-//  Komga
+// ThemeColor.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  CustomFontsSheet.swift
-//  KMReader
+// CustomFontsSheet.swift
 //
 //
 

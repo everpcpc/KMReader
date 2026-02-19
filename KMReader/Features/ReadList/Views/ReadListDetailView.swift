@@ -1,6 +1,5 @@
 //
-//  ReadListDetailView.swift
-//  Komga
+// ReadListDetailView.swift
 //
 //
 

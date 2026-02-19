@@ -1,6 +1,5 @@
 //
-//  SettingsSSEView.swift
-//  Komga
+// SettingsSSEView.swift
 //
 //
 

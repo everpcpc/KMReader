@@ -1,6 +1,5 @@
 //
-//  EllipsisMenuButton.swift
-//  Komga
+// EllipsisMenuButton.swift
 //
 //
 

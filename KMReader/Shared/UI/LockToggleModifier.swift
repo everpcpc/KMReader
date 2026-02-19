@@ -1,6 +1,5 @@
 //
-//  LockToggleModifier.swift
-//  Komga
+// LockToggleModifier.swift
 //
 //
 

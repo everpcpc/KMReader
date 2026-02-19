@@ -1,6 +1,5 @@
 //
-//  AppConfig.swift
-//  Komga
+// AppConfig.swift
 //
 //
 

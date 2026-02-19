@@ -1,6 +1,5 @@
 //
-//  OfflineTasksStatusView.swift
-//  KMReader
+// OfflineTasksStatusView.swift
 //
 //
 

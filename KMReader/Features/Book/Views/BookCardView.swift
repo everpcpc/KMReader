@@ -1,6 +1,5 @@
 //
-//  BookCardView.swift
-//  Komga
+// BookCardView.swift
 //
 //
 

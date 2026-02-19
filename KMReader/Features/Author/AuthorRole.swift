@@ -1,6 +1,5 @@
 //
-//  AuthorRole.swift
-//  Komga
+// AuthorRole.swift
 //
 //
 

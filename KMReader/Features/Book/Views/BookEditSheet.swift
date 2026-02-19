@@ -1,6 +1,5 @@
 //
-//  BookEditSheet.swift
-//  Komga
+// BookEditSheet.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  WebtoonZoomOverlayView.swift
-//  KMReader
+// WebtoonZoomOverlayView.swift
 //
 //
 

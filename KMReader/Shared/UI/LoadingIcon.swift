@@ -1,6 +1,6 @@
 //
-//  LoadingIcon.swift
-//  KMReader
+// LoadingIcon.swift
+//
 //
 
 import SwiftUI

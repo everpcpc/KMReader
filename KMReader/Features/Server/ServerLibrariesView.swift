@@ -1,6 +1,5 @@
 //
-//  ServerLibrariesView.swift
-//  Komga
+// ServerLibrariesView.swift
 //
 //
 

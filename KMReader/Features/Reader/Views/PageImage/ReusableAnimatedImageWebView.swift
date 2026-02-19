@@ -1,6 +1,6 @@
 //
-//  ReusableAnimatedImageWebView.swift
-//  KMReader
+// ReusableAnimatedImageWebView.swift
+//
 //
 
 import SwiftUI

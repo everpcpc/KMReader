@@ -1,6 +1,5 @@
 //
-//  View+FocusableHighlight.swift
-//  Komga
+// View+FocusableHighlight.swift
 //
 //
 

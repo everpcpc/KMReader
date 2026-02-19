@@ -1,6 +1,5 @@
 //
-//  SimpleSortField.swift
-//  Komga
+// SimpleSortField.swift
 //
 //
 

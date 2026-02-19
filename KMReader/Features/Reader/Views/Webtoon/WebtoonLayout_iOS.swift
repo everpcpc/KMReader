@@ -1,6 +1,5 @@
 //
-//  WebtoonLayout_iOS.swift
-//  Komga
+// WebtoonLayout_iOS.swift
 //
 //
 

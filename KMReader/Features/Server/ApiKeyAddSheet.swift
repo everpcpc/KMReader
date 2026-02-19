@@ -1,6 +1,5 @@
 //
-//  ApiKeyAddSheet.swift
-//  Komga
+// ApiKeyAddSheet.swift
 //
 //
 

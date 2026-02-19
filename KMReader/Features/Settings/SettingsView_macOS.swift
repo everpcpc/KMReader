@@ -1,6 +1,5 @@
 //
-//  SettingsView_macOS.swift
-//  Komga
+// SettingsView_macOS.swift
 //
 //
 

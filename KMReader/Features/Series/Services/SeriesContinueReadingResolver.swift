@@ -1,6 +1,5 @@
 //
-//  SeriesContinueReadingResolver.swift
-//  KMReader
+// SeriesContinueReadingResolver.swift
 //
 //
 

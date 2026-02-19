@@ -1,6 +1,5 @@
 //
-//  ShadowModifier.swift
-//  Komga
+// ShadowModifier.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  WebtoonPageCell_macOS.swift
-//  Komga
+// WebtoonPageCell_macOS.swift
 //
 //
 

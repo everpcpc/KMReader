@@ -1,8 +1,6 @@
 //
-//  StoreManager.swift
-//  KMReader
+// StoreManager.swift
 //
-//  Created for subscription management
 //
 
 import StoreKit

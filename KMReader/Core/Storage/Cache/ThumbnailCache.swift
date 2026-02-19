@@ -1,6 +1,5 @@
 //
-//  ThumbnailCache.swift
-//  KMReader
+// ThumbnailCache.swift
 //
 //
 

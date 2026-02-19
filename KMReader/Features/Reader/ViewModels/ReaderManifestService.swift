@@ -1,6 +1,5 @@
 //
-//  ReaderManifestService.swift
-//  KMReader
+// ReaderManifestService.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  EpubReaderPreferences.swift
-//  KMReader
+// EpubReaderPreferences.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  SheetView.swift
-//  KMReader
+// SheetView.swift
 //
 //
 

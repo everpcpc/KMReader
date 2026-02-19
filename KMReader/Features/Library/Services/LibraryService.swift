@@ -1,6 +1,5 @@
 //
-//  LibraryService.swift
-//  Komga
+// LibraryService.swift
 //
 //
 

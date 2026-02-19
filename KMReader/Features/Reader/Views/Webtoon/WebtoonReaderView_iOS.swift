@@ -1,6 +1,5 @@
 //
-//  WebtoonReaderView_iOS.swift
-//  Komga
+// WebtoonReaderView_iOS.swift
 //
 //
 

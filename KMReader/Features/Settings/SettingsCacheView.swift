@@ -1,6 +1,5 @@
 //
-//  SettingsCacheView.swift
-//  Komga
+// SettingsCacheView.swift
 //
 //
 

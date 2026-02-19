@@ -1,6 +1,5 @@
 //
-//  DirectoryListingResult.swift
-//  KMReader
+// DirectoryListingResult.swift
 //
 //
 

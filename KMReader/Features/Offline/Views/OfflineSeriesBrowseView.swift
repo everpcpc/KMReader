@@ -1,6 +1,5 @@
 //
-//  OfflineSeriesBrowseView.swift
-//  KMReader
+// OfflineSeriesBrowseView.swift
 //
 //
 

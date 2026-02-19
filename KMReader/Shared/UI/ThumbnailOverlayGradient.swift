@@ -1,6 +1,5 @@
 //
-//  ThumbnailOverlayGradient.swift
-//  Komga
+// ThumbnailOverlayGradient.swift
 //
 //
 

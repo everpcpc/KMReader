@@ -1,6 +1,5 @@
 //
-//  PageLayout.swift
-//  Komga
+// PageLayout.swift
 //
 //
 

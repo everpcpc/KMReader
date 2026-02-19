@@ -1,6 +1,5 @@
 //
-//  Book.swift
-//  Komga
+// Book.swift
 //
 //
 

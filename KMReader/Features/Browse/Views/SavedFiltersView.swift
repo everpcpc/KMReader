@@ -1,6 +1,5 @@
 //
-//  SavedFiltersView.swift
-//  KMReader
+// SavedFiltersView.swift
 //
 //
 

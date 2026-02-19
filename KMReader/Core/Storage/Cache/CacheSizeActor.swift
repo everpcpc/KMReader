@@ -1,6 +1,5 @@
 //
-//  CacheSizeActor.swift
-//  Komga
+// CacheSizeActor.swift
 //
 //
 

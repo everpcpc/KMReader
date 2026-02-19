@@ -1,6 +1,5 @@
 //
-//  EpubThemePresetsView.swift
-//  KMReader
+// EpubThemePresetsView.swift
 //
 //
 

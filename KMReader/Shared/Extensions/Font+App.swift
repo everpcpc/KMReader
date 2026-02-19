@@ -1,6 +1,5 @@
 //
-//  Font+App.swift
-//  KMReader
+// Font+App.swift
 //
 //
 

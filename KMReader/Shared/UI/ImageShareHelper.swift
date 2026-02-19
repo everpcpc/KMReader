@@ -1,8 +1,6 @@
 //
-//  ImageShareHelper.swift
-//  KMReader
+// ImageShareHelper.swift
 //
-//  Helper for sharing images with proper preview support
 //
 
 import SwiftUI

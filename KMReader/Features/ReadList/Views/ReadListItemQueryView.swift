@@ -1,6 +1,5 @@
 //
-//  ReadListItemQueryView.swift
-//  KMReader
+// ReadListItemQueryView.swift
 //
 //
 

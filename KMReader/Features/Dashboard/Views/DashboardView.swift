@@ -1,6 +1,5 @@
 //
-//  DashboardView.swift
-//  Komga
+// DashboardView.swift
 //
 //
 

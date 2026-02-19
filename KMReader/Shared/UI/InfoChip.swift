@@ -1,6 +1,5 @@
 //
-//  InfoChip.swift
-//  Komga
+// InfoChip.swift
 //
 //
 

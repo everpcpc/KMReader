@@ -1,6 +1,5 @@
 //
-//  ReaderWindowView.swift
-//  Komga
+// ReaderWindowView.swift
 //
 //
 

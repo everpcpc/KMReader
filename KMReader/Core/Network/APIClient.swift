@@ -1,6 +1,5 @@
 //
-//  APIClient.swift
-//  Komga
+// APIClient.swift
 //
 //
 

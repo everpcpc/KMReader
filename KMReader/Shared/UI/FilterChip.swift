@@ -1,6 +1,5 @@
 //
-//  FilterChip.swift
-//  Komga
+// FilterChip.swift
 //
 //
 

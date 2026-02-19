@@ -1,6 +1,5 @@
 //
-//  AuthViewModel.swift
-//  Komga
+// AuthViewModel.swift
 //
 //
 

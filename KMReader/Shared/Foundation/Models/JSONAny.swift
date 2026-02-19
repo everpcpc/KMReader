@@ -1,6 +1,5 @@
 //
-//  JSONAny.swift
-//  Komga
+// JSONAny.swift
 //
 //
 

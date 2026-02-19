@@ -1,6 +1,5 @@
 //
-//  ContentView.swift
-//  Komga
+// ContentView.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  TriStateFilter.swift
-//  Komga
+// TriStateFilter.swift
 //
 //
 

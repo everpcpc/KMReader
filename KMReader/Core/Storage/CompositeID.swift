@@ -1,6 +1,5 @@
 //
-//  CompositeID.swift
-//  KMReader
+// CompositeID.swift
 //
 //
 

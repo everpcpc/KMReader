@@ -1,6 +1,5 @@
 //
-//  ReaderBackground.swift
-//  Komga
+// ReaderBackground.swift
 //
 //
 

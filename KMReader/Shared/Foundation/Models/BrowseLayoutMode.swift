@@ -1,6 +1,5 @@
 //
-//  BrowseLayoutMode.swift
-//  Komga
+// BrowseLayoutMode.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  BookBrowseOptionsSheet.swift
-//  Komga
+// BookBrowseOptionsSheet.swift
 //
 //
 

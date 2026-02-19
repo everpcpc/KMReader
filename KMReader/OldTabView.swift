@@ -1,6 +1,6 @@
 //
-//  OldTabView.swift
-//  KMReader
+// OldTabView.swift
+//
 //
 
 import SwiftUI

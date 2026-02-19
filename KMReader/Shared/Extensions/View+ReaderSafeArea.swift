@@ -1,6 +1,5 @@
 //
-//  View+ReaderSafeArea.swift
-//  KMReader
+// View+ReaderSafeArea.swift
 //
 //
 

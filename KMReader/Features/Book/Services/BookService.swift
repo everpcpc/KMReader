@@ -1,6 +1,5 @@
 //
-//  BookService.swift
-//  Komga
+// BookService.swift
 //
 //
 

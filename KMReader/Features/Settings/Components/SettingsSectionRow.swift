@@ -1,6 +1,5 @@
 //
-//  SettingsSectionRow.swift
-//  Komga
+// SettingsSectionRow.swift
 //
 //
 

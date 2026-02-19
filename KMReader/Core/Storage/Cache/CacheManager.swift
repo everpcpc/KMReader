@@ -1,6 +1,5 @@
 //
-//  CacheManager.swift
-//  KMReader
+// CacheManager.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  ApiKeysView.swift
-//  Komga
+// ApiKeysView.swift
 //
 //
 

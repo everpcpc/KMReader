@@ -1,6 +1,5 @@
 //
-//  FontFileManager.swift
-//  KMReader
+// FontFileManager.swift
 //
 //
 

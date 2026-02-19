@@ -1,6 +1,5 @@
 //
-//  ServerTasksView.swift
-//  Komga
+// ServerTasksView.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  DivinaControlsOverlayView.swift
-//  Komga
+// DivinaControlsOverlayView.swift
 //
 //
 

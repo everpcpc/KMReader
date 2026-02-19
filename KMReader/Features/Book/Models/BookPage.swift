@@ -1,6 +1,5 @@
 //
-//  BookPage.swift
-//  Komga
+// BookPage.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  CollectionQueryItemView.swift
-//  KMReader
+// CollectionQueryItemView.swift
 //
 //
 

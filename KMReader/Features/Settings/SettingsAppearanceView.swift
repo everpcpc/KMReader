@@ -1,6 +1,5 @@
 //
-//  SettingsAppearanceView.swift
-//  Komga
+// SettingsAppearanceView.swift
 //
 //
 

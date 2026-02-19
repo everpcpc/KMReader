@@ -1,6 +1,5 @@
 //
-//  LibraryMetricsLoader.swift
-//  KMReader
+// LibraryMetricsLoader.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  View+PickerStyle.swift
-//  Komga
+// View+PickerStyle.swift
 //
 //
 

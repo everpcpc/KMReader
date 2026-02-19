@@ -1,6 +1,5 @@
 //
-//  SeriesContextMenu.swift
-//  Komga
+// SeriesContextMenu.swift
 //
 //
 

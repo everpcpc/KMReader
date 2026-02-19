@@ -1,6 +1,5 @@
 //
-//  SaveFilterSheet.swift
-//  KMReader
+// SaveFilterSheet.swift
 //
 //
 

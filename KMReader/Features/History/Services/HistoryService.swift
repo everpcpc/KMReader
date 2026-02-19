@@ -1,6 +1,5 @@
 //
-//  HistoryService.swift
-//  KMReader
+// HistoryService.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  Bundle+AppVersion.swift
-//  Komga
+// Bundle+AppVersion.swift
 //
 //
 

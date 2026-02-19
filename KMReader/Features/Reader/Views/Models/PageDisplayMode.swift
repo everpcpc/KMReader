@@ -1,6 +1,5 @@
 //
-//  PageDisplayMode.swift
-//  KMReader
+// PageDisplayMode.swift
 //
 //
 

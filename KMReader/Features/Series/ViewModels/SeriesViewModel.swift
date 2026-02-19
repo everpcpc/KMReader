@@ -1,6 +1,5 @@
 //
-//  SeriesViewModel.swift
-//  Komga
+// SeriesViewModel.swift
 //
 //
 

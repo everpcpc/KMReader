@@ -1,6 +1,5 @@
 //
-//  SettingsBrowseView.swift
-//  Komga
+// SettingsBrowseView.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  NavDestination.swift
-//  Komga
+// NavDestination.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  FilesystemService.swift
-//  KMReader
+// FilesystemService.swift
 //
 //
 

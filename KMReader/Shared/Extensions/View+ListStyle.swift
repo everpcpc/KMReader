@@ -1,6 +1,5 @@
 //
-//  View+ListStyle.swift
-//  Komga
+// View+ListStyle.swift
 //
 //
 

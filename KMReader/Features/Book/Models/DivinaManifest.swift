@@ -1,6 +1,5 @@
 //
-//  DivinaManifest.swift
-//  KMReader
+// DivinaManifest.swift
 //
 //
 

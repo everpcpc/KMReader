@@ -1,6 +1,5 @@
 //
-//  ThumbnailImage.swift
-//  Komga
+// ThumbnailImage.swift
 //
 //
 

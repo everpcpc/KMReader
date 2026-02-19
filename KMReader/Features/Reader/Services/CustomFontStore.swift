@@ -1,6 +1,5 @@
 //
-//  CustomFontStore.swift
-//  KMReader
+// CustomFontStore.swift
 //
 //
 

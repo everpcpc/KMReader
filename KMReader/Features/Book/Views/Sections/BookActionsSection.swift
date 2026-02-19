@@ -1,6 +1,5 @@
 //
-//  BookActionsSection.swift
-//  Komga
+// BookActionsSection.swift
 //
 //
 

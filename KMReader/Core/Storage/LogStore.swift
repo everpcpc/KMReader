@@ -1,6 +1,5 @@
 //
-//  LogStore.swift
-//  KMReader
+// LogStore.swift
 //
 //
 

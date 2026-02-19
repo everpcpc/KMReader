@@ -1,6 +1,5 @@
 //
-//  BookRowView.swift
-//  Komga
+// BookRowView.swift
 //
 //
 

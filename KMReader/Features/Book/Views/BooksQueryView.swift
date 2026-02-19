@@ -1,6 +1,5 @@
 //
-//  BooksQueryView.swift
-//  KMReader
+// BooksQueryView.swift
 //
 //
 

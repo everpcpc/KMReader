@@ -1,6 +1,5 @@
 //
-//  SeriesEditSheet.swift
-//  Komga
+// SeriesEditSheet.swift
 //
 //
 

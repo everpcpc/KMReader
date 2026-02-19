@@ -1,6 +1,5 @@
 //
-//  SeriesCollectionsSection.swift
-//  KMReader
+// SeriesCollectionsSection.swift
 //
 //
 

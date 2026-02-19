@@ -1,6 +1,5 @@
 //
-//  GridDensity.swift
-//  KMReader
+// GridDensity.swift
 //
 //
 

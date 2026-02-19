@@ -1,6 +1,5 @@
 //
-//  Date+Formatting.swift
-//  Komga
+// Date+Formatting.swift
 //
 //
 

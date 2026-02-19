@@ -1,6 +1,5 @@
 //
-//  BookReadListsSection.swift
-//  KMReader
+// BookReadListsSection.swift
 //
 //
 

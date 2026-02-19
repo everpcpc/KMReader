@@ -1,6 +1,5 @@
 //
-//  ReadiumCSSLoader.swift
-//  KMReader
+// ReadiumCSSLoader.swift
 //
 //
 

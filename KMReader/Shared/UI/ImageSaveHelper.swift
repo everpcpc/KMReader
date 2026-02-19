@@ -1,8 +1,6 @@
 //
-//  ImageSaveHelper.swift
-//  KMReader
+// ImageSaveHelper.swift
 //
-//  Helper for saving images to Photos library
 //
 
 import Photos

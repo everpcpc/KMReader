@@ -1,6 +1,5 @@
 //
-//  UpdatePasswordSheet.swift
-//  KMReader
+// UpdatePasswordSheet.swift
 //
 //
 

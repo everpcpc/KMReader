@@ -1,6 +1,5 @@
 //
-//  HorizontalScrollButtons.swift
-//  KMReader
+// HorizontalScrollButtons.swift
 //
 //
 

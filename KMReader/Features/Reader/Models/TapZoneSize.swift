@@ -1,6 +1,5 @@
 //
-//  TapZoneSize.swift
-//  Komga
+// TapZoneSize.swift
 //
 //
 

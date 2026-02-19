@@ -1,6 +1,5 @@
 //
-//  DownloadStatus.swift
-//  KMReader
+// DownloadStatus.swift
 //
 //
 

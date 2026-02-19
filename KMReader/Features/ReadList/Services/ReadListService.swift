@@ -1,6 +1,5 @@
 //
-//  ReadListService.swift
-//  Komga
+// ReadListService.swift
 //
 //
 

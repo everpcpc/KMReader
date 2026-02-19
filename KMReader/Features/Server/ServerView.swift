@@ -1,6 +1,5 @@
 //
-//  ServerView.swift
-//  KMReader
+// ServerView.swift
 //
 //
 

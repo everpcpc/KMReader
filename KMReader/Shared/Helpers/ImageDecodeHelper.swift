@@ -1,6 +1,5 @@
 //
-//  ImageDecodeHelper.swift
-//  Komga
+// ImageDecodeHelper.swift
 //
 //
 

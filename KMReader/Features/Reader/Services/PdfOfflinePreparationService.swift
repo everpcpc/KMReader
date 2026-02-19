@@ -1,6 +1,6 @@
 //
-//  PdfOfflinePreparationService.swift
-//  KMReader
+// PdfOfflinePreparationService.swift
+//
 //
 
 import Foundation

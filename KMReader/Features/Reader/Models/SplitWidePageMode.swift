@@ -1,6 +1,5 @@
 //
-//  SplitWidePageMode.swift
-//  KMReader
+// SplitWidePageMode.swift
 //
 //
 

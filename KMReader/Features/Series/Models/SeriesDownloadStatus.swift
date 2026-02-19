@@ -1,6 +1,5 @@
 //
-//  SeriesDownloadStatus.swift
-//  KMReader
+// SeriesDownloadStatus.swift
 //
 //
 

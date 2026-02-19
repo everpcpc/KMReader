@@ -1,6 +1,5 @@
 //
-//  LayoutModePicker.swift
-//  Komga
+// LayoutModePicker.swift
 //
 //
 

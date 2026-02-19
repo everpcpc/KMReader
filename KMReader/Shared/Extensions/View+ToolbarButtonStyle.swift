@@ -1,6 +1,5 @@
 //
-//  View+ToolbarButtonStyle.swift
-//  Komga
+// View+ToolbarButtonStyle.swift
 //
 //
 

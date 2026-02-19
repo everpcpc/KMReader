@@ -1,6 +1,5 @@
 //
-//  DatabaseOperator.swift
-//  KMReader
+// DatabaseOperator.swift
 //
 //
 

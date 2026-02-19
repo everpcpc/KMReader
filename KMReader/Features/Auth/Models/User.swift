@@ -1,6 +1,5 @@
 //
-//  User.swift
-//  Komga
+// User.swift
 //
 //
 

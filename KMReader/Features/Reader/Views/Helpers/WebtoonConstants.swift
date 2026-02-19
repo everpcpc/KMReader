@@ -1,6 +1,5 @@
 //
-//  WebtoonConstants.swift
-//  Komga
+// WebtoonConstants.swift
 //
 //
 

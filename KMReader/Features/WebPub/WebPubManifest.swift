@@ -1,6 +1,5 @@
 //
-//  WebPubManifest.swift
-//  KMReader
+// WebPubManifest.swift
 //
 //
 

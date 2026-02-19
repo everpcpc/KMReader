@@ -1,6 +1,5 @@
 //
-//  R2Types.swift
-//  KMReader
+// R2Types.swift
 //
 //
 

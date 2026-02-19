@@ -1,6 +1,5 @@
 //
-//  DashboardSection.swift
-//  Komga
+// DashboardSection.swift
 //
 //
 

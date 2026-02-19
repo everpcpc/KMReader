@@ -1,6 +1,6 @@
 //
-//  DeepLinkRouter.swift
-//  KMReader
+// DeepLinkRouter.swift
+//
 //
 
 import Foundation

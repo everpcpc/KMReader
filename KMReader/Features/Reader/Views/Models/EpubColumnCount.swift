@@ -1,6 +1,5 @@
 //
-//  EpubColumnCount.swift
-//  KMReader
+// EpubColumnCount.swift
 //
 //
 

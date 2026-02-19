@@ -1,6 +1,5 @@
 //
-//  ReadListEditSheet.swift
-//  Komga
+// ReadListEditSheet.swift
 //
 //
 

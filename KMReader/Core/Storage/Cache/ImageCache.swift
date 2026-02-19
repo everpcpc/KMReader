@@ -1,6 +1,5 @@
 //
-//  ImageCache.swift
-//  Komga
+// ImageCache.swift
 //
 //
 

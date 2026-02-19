@@ -1,6 +1,5 @@
 //
-//  Library.swift
-//  Komga
+// Library.swift
 //
 //
 

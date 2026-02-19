@@ -1,6 +1,5 @@
 //
-//  BookMetadata.swift
-//  Komga
+// BookMetadata.swift
 //
 //
 

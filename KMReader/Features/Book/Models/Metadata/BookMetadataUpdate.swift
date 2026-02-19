@@ -1,6 +1,5 @@
 //
-//  BookMetadataUpdate.swift
-//  KMReader
+// BookMetadataUpdate.swift
 //
 //
 

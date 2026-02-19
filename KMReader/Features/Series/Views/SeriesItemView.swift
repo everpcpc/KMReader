@@ -1,6 +1,5 @@
 //
-//  SeriesItemView.swift
-//  KMReader
+// SeriesItemView.swift
 //
 //
 

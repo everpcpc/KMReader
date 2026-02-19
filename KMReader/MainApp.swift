@@ -1,6 +1,5 @@
 //
-//  KomgaApp.swift
-//  Komga
+// MainApp.swift
 //
 //
 

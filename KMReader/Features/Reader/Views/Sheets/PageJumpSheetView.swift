@@ -1,6 +1,5 @@
 //
-//  PageJumpSheetView.swift
-//  Komga
+// PageJumpSheetView.swift
 //
 //
 

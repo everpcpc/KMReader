@@ -1,6 +1,5 @@
 //
-//  ServerActionTile.swift
-//  KMReader
+// ServerActionTile.swift
 //
 //
 

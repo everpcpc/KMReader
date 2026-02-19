@@ -1,6 +1,5 @@
 //
-//  BookFileCache.swift
-//  KMReader
+// BookFileCache.swift
 //
 //
 

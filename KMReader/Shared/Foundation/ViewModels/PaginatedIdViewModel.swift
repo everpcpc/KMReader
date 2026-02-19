@@ -1,6 +1,5 @@
 //
-//  PaginatedIdViewModel.swift
-//  Komga
+// PaginatedIdViewModel.swift
 //
 //
 

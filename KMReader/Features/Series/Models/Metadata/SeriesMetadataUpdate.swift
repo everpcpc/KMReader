@@ -1,6 +1,5 @@
 //
-//  SeriesMetadataUpdate.swift
-//  KMReader
+// SeriesMetadataUpdate.swift
 //
 //
 

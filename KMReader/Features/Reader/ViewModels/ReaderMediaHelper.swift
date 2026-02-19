@@ -1,6 +1,5 @@
 //
-//  ReaderMediaHelper.swift
-//  KMReader
+// ReaderMediaHelper.swift
 //
 //
 

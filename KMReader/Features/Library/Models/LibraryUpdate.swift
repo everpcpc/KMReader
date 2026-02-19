@@ -1,6 +1,5 @@
 //
-//  LibraryUpdate.swift
-//  KMReader
+// LibraryUpdate.swift
 //
 //
 

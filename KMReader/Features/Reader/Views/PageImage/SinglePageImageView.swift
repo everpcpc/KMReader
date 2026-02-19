@@ -1,6 +1,5 @@
 //
-//  SinglePageImageView.swift
-//  Komga
+// SinglePageImageView.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  DivinaReaderView.swift
-//  Komga
+// DivinaReaderView.swift
 //
 //
 

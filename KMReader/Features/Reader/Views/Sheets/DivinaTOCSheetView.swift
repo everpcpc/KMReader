@@ -1,6 +1,5 @@
 //
-//  DivinaTOCSheetView.swift
-//  KMReader
+// DivinaTOCSheetView.swift
 //
 //
 

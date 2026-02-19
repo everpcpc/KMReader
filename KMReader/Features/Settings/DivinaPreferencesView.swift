@@ -1,6 +1,5 @@
 //
-//  DivinaPreferencesView.swift
-//  Komga
+// DivinaPreferencesView.swift
 //
 //
 

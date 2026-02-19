@@ -1,6 +1,6 @@
 //
-//  TVTabView.swift
-//  KMReader
+// TVTabView.swift
+//
 //
 
 import SwiftUI

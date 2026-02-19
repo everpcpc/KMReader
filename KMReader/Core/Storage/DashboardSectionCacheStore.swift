@@ -1,6 +1,6 @@
 //
-//  DashboardSectionCacheStore.swift
-//  KMReader
+// DashboardSectionCacheStore.swift
+//
 //
 
 import Foundation

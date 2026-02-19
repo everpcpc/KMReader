@@ -1,6 +1,5 @@
 //
-//  InfoRow.swift
-//  Komga
+// InfoRow.swift
 //
 //
 

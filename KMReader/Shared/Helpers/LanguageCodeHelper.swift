@@ -1,6 +1,5 @@
 //
-//  LanguageCodeHelper.swift
-//  Komga
+// LanguageCodeHelper.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  KeyboardEventHandler.swift
-//  Komga
+// KeyboardEventHandler.swift
 //
 //
 

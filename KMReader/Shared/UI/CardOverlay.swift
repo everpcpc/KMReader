@@ -1,6 +1,5 @@
 //
-//  UnreadCountBadge.swift
-//  Komga
+// CardOverlay.swift
 //
 //
 

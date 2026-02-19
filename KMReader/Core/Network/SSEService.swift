@@ -1,6 +1,5 @@
 //
-//  SSEService.swift
-//  Komga
+// SSEService.swift
 //
 //
 

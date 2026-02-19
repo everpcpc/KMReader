@@ -1,6 +1,5 @@
 //
-//  FileNameHelper.swift
-//  KMReader
+// FileNameHelper.swift
 //
 //
 

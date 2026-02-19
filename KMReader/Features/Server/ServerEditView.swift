@@ -1,6 +1,5 @@
 //
-//  ServerEditView.swift
-//  Komga
+// ServerEditView.swift
 //
 //
 

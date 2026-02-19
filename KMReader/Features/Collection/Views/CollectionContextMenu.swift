@@ -1,6 +1,5 @@
 //
-//  CollectionContextMenu.swift
-//  Komga
+// CollectionContextMenu.swift
 //
 //
 

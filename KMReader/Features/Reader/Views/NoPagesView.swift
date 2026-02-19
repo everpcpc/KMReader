@@ -1,6 +1,5 @@
 //
-//  NoPagesView.swift
-//  Komga
+// NoPagesView.swift
 //
 //
 

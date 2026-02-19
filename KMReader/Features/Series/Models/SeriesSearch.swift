@@ -1,6 +1,5 @@
 //
-//  SeriesSearch.swift
-//  Komga
+// SeriesSearch.swift
 //
 //
 

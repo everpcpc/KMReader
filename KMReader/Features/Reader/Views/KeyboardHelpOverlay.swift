@@ -1,6 +1,5 @@
 //
-//  KeyboardHelpOverlay.swift
-//  Komga
+// KeyboardHelpOverlay.swift
 //
 //
 

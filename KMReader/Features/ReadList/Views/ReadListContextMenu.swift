@@ -1,6 +1,5 @@
 //
-//  ReadListContextMenu.swift
-//  Komga
+// ReadListContextMenu.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  OfflineSection.swift
-//  Komga
+// OfflineSection.swift
 //
 //
 

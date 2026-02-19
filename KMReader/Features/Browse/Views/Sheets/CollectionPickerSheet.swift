@@ -1,6 +1,5 @@
 //
-//  CollectionPickerSheet.swift
-//  Komga
+// CollectionPickerSheet.swift
 //
 //
 

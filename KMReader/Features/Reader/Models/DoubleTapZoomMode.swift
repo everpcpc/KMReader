@@ -1,6 +1,5 @@
 //
-//  CustomFont.swift
-//  KMReader
+// DoubleTapZoomMode.swift
 //
 //
 

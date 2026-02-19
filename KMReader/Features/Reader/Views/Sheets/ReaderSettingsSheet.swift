@@ -1,6 +1,5 @@
 //
-//  ReaderSettingsSheet.swift
-//  Komga
+// ReaderSettingsSheet.swift
 //
 //
 

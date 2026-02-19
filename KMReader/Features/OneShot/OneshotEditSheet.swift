@@ -1,6 +1,5 @@
 //
-//  OneshotEditSheet.swift
-//  Komga
+// OneshotEditSheet.swift
 //
 //
 

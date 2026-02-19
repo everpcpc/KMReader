@@ -1,6 +1,5 @@
 //
-//  LoginView.swift
-//  Komga
+// LoginView.swift
 //
 //
 

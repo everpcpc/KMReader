@@ -1,8 +1,6 @@
 //
-//  AgeRatingBadge.swift
-//  KMReader
+// AgeRatingBadge.swift
 //
-//  Created by Anitgravity
 //
 
 import SwiftUI

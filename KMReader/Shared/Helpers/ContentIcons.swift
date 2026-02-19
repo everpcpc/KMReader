@@ -1,6 +1,6 @@
 //
-//  ContentIcons.swift
-//  KMReader
+// ContentIcons.swift
+//
 //
 
 import Foundation

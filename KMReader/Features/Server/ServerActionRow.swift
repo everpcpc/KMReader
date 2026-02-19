@@ -1,6 +1,5 @@
 //
-//  ServerActionRow.swift
-//  KMReader
+// ServerActionRow.swift
 //
 //
 

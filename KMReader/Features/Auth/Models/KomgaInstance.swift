@@ -1,6 +1,5 @@
 //
-//  KomgaInstance.swift
-//  Komga
+// KomgaInstance.swift
 //
 //
 

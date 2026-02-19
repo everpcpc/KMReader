@@ -1,6 +1,5 @@
 //
-//  ReaderDetailSheets.swift
-//  KMReader
+// ReaderDetailSheets.swift
 //
 //
 

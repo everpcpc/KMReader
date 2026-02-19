@@ -1,6 +1,6 @@
 //
-//  PhoneTabView.swift
-//  KMReader
+// PhoneTabView.swift
+//
 //
 
 import SwiftUI

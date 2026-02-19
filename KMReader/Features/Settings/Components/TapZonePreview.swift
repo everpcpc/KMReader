@@ -1,6 +1,5 @@
 //
-//  TapZonePreview.swift
-//  Komga
+// TapZonePreview.swift
 //
 //
 

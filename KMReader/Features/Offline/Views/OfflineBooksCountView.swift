@@ -1,6 +1,5 @@
 //
-//  OfflineBooksCountView.swift
-//  KMReader
+// OfflineBooksCountView.swift
 //
 //
 

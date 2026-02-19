@@ -1,6 +1,5 @@
 //
-//  CoverAspectRatio.swift
-//  KMReader
+// CoverAspectRatio.swift
 //
 //
 

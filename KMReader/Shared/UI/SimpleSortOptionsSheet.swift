@@ -1,6 +1,5 @@
 //
-//  SimpleSortOptionsSheet.swift
-//  Komga
+// SimpleSortOptionsSheet.swift
 //
 //
 

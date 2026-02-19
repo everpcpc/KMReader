@@ -1,6 +1,5 @@
 //
-//  CollectionSeriesFilterView.swift
-//  Komga
+// CollectionSeriesFilterView.swift
 //
 //
 

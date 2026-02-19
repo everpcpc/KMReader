@@ -1,6 +1,5 @@
 //
-//  View+ControlSize.swift
-//  Komga
+// View+ControlSize.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  BookContextMenu.swift
-//  Komga
+// BookContextMenu.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  AdminRequiredView.swift
-//  Komga
+// AdminRequiredView.swift
 //
 //
 

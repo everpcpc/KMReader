@@ -1,6 +1,5 @@
 //
-//  ApiKey.swift
-//  Komga
+// ApiKey.swift
 //
 //
 

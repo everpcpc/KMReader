@@ -1,6 +1,6 @@
 //
-//  ReaderDismissGestureConfigurator.swift
-//  KMReader
+// ReaderDismissGestureConfigurator.swift
+//
 //
 
 #if os(iOS)

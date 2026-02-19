@@ -1,6 +1,5 @@
 //
-//  DirectoryBrowserSheet.swift
-//  KMReader
+// DirectoryBrowserSheet.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  LayoutConfig.swift
-//  KMReader
+// LayoutConfig.swift
 //
 //
 

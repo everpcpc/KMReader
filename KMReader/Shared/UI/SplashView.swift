@@ -1,6 +1,5 @@
 //
-//  SplashView.swift
-//  Komga
+// SplashView.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  CollectionSeriesBrowseOptionsSheet.swift
-//  Komga
+// CollectionSeriesBrowseOptionsSheet.swift
 //
 //
 

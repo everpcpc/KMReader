@@ -1,6 +1,6 @@
 //
-//  ReaderOverlay.swift
-//  KMReader
+// ReaderOverlay.swift
+//
 //
 
 import SwiftUI

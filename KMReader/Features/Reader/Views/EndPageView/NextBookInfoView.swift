@@ -1,6 +1,5 @@
 //
-//  NextBookInfoView.swift
-//  Komga
+// NextBookInfoView.swift
 //
 //
 

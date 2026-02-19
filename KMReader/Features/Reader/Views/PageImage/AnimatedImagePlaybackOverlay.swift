@@ -1,6 +1,6 @@
 //
-//  AnimatedImagePlaybackOverlay.swift
-//  KMReader
+// AnimatedImagePlaybackOverlay.swift
+//
 //
 
 import SwiftUI

@@ -1,6 +1,5 @@
 //
-//  InstanceInitializer.swift
-//  KMReader
+// InstanceInitializer.swift
 //
 //
 

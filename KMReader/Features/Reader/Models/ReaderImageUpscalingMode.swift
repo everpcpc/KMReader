@@ -1,6 +1,6 @@
 //
-//  ReaderImageUpscalingMode.swift
-//  KMReader
+// ReaderImageUpscalingMode.swift
+//
 //
 
 import Foundation

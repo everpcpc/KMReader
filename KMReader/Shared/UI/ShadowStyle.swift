@@ -1,6 +1,6 @@
 //
-//  ShadowStyle.swift
-//  KMReader
+// ShadowStyle.swift
+//
 //
 
 import SwiftUI

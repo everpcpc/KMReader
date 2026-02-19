@@ -1,6 +1,5 @@
 //
-//  ServerUpdateStatusView.swift
-//  Komga
+// ServerUpdateStatusView.swift
 //
 //
 

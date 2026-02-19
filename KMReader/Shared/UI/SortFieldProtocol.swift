@@ -1,6 +1,5 @@
 //
-//  SortFieldProtocol.swift
-//  Komga
+// SortFieldProtocol.swift
 //
 //
 

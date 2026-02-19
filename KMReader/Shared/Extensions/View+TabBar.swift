@@ -1,6 +1,5 @@
 //
-//  Bundle+AppVersion.swift
-//  Komga
+// View+TabBar.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  AlternateTitle.swift
-//  Komga
+// AlternateTitle.swift
 //
 //
 

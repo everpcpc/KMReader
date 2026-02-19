@@ -1,6 +1,5 @@
 //
-//  SeriesOfflinePolicy.swift
-//  KMReader
+// SeriesOfflinePolicy.swift
 //
 //
 

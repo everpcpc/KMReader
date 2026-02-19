@@ -1,6 +1,5 @@
 //
-//  LibraryManager.swift
-//  Komga
+// LibraryManager.swift
 //
 //
 

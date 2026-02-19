@@ -1,6 +1,5 @@
 //
-//  ServerSection.swift
-//  Komga
+// ServerSection.swift
 //
 //
 

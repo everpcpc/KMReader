@@ -1,6 +1,5 @@
 //
-//  LibrarySelection.swift
-//  KMReader
+// LibrarySelection.swift
 //
 //
 

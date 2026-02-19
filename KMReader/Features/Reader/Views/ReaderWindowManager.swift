@@ -1,6 +1,5 @@
 //
-//  ReaderWindowManager.swift
-//  Komga
+// ReaderWindowManager.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  View+Handoff.swift
-//  KMReader
+// View+Handoff.swift
 //
 //
 

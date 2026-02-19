@@ -1,6 +1,6 @@
 //
-//  QuickActionService.swift
-//  KMReader
+// QuickActionService.swift
+//
 //
 
 import Foundation

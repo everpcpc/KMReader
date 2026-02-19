@@ -1,6 +1,5 @@
 //
-//  CollectionSortView.swift
-//  Komga
+// CollectionSortView.swift
 //
 //
 

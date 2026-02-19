@@ -1,6 +1,5 @@
 //
-//  ReaderPresentationManager.swift
-//  KMReader
+// ReaderPresentationManager.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  SettingsBrowseCardPreview.swift
-//  KMReader
+// SettingsBrowseCardPreview.swift
 //
 //
 

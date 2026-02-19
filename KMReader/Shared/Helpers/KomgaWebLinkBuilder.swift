@@ -1,6 +1,5 @@
 //
-//  KomgaWebLinkBuilder.swift
-//  KMReader
+// KomgaWebLinkBuilder.swift
 //
 //
 

@@ -1,6 +1,5 @@
 //
-//  SettingsLogsView.swift
-//  Komga
+// SettingsLogsView.swift
 //
 //
 

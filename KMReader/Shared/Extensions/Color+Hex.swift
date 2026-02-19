@@ -1,6 +1,5 @@
 //
-//  Color+Hex.swift
-//  KMReader
+// Color+Hex.swift
 //
 //
 

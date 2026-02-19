@@ -1,6 +1,5 @@
 //
-//  OfflineManager.swift
-//  KMReader
+// OfflineManager.swift
 //
 //
 
