@@ -10,23 +10,27 @@ actor ReaderProgressDispatchService {
 
   private struct PageUpdate: Sendable {
     let bookId: String
+    let version: UInt64
     let page: Int
     let completed: Bool
   }
 
   private struct EpubUpdate: Sendable {
     let bookId: String
+    let version: UInt64
     let globalPageNumber: Int
     let progression: R2Progression
     let progressionData: Data?
   }
 
-  private enum PageProgressUpdateResult {
+  private enum ProgressUpdateResult {
     case serverUpdated
     case offlineQueued
     case skipped
     case failed
   }
+
+  typealias ProgressCheckpoint = [String: UInt64]
 
   private let logger = AppLogger(.reader)
   private let progressRequestTimeout: TimeInterval = 3
@@ -40,16 +44,26 @@ actor ReaderProgressDispatchService {
   private var pendingEpubUpdates: [String: EpubUpdate] = [:]
   private var epubSendTasks: [String: Task<Void, Never>] = [:]
 
-  /// Continuations waiting for specific book IDs to settle
-  private var settleWaiters: [(bookIds: Set<String>, continuation: CheckedContinuation<Void, Never>)] = []
+  private struct CheckpointWaiter {
+    let checkpoint: ProgressCheckpoint
+    let continuation: CheckedContinuation<Void, Never>
+  }
+
+  private var checkpointWaiters: [CheckpointWaiter] = []
+
+  private var progressVersionSeedByBook: [String: UInt64] = [:]
+  private var latestSubmittedProgressVersionByBook: [String: UInt64] = [:]
+  private var latestSettledProgressVersionByBook: [String: UInt64] = [:]
+  private var latestServerSyncedProgressVersionByBook: [String: UInt64] = [:]
 
   private init() {}
 
   func submitPageProgress(bookId: String, page: Int, completed: Bool) {
-    let update = PageUpdate(bookId: bookId, page: page, completed: completed)
+    let version = nextProgressVersion(for: bookId)
+    let update = PageUpdate(bookId: bookId, version: version, page: page, completed: completed)
     pendingPageUpdates[bookId] = update
     logger.debug(
-      "📝 Queued page progress dispatch for book \(bookId): page=\(page), completed=\(completed)"
+      "📝 [Progress/Page] Queued update: book=\(bookId), version=\(version), page=\(page), completed=\(completed)"
     )
 
     sendPendingPageProgress(for: bookId, trigger: "enqueue")
@@ -57,7 +71,7 @@ actor ReaderProgressDispatchService {
 
   func flushPageProgress(bookId: String, snapshotPage: Int?, snapshotCompleted: Bool?) {
     guard !bookId.isEmpty else {
-      logger.warning("⚠️ Skip page progress flush because book ID is empty")
+      logger.warning("⚠️ [Progress/Page] Skip flush: missing book ID")
       return
     }
 
@@ -65,19 +79,25 @@ actor ReaderProgressDispatchService {
       let snapshotPage,
       let snapshotCompleted
     {
-      let snapshot = PageUpdate(bookId: bookId, page: snapshotPage, completed: snapshotCompleted)
+      let version = nextProgressVersion(for: bookId)
+      let snapshot = PageUpdate(
+        bookId: bookId,
+        version: version,
+        page: snapshotPage,
+        completed: snapshotCompleted
+      )
       pendingPageUpdates[bookId] = snapshot
       logger.debug(
-        "🧲 Force-captured current page progress before flush for book \(bookId): page=\(snapshotPage), completed=\(snapshotCompleted)"
+        "🧲 [Progress/Page] Captured flush snapshot: book=\(bookId), version=\(version), page=\(snapshotPage), completed=\(snapshotCompleted)"
       )
     } else if pendingPageUpdates[bookId] != nil {
-      logger.debug("♻️ Skip force-capture progress during flush because pending progress already exists")
+      logger.debug("♻️ [Progress/Page] Skip flush snapshot capture: pending update already exists")
     } else {
-      logger.debug("⏭️ Skip force-capture progress during flush because current page snapshot is unavailable")
+      logger.debug("⏭️ [Progress/Page] Skip flush snapshot capture: current page snapshot unavailable")
     }
 
     logger.debug(
-      "🚿 Flush page progress requested for book \(bookId): hasPending=\(pendingPageUpdates[bookId] != nil), isSending=\(pageSendTasks[bookId] != nil)"
+      "🚿 [Progress/Page] Flush requested: book=\(bookId), hasPending=\(pendingPageUpdates[bookId] != nil), isSending=\(pageSendTasks[bookId] != nil)"
     )
 
     sendPendingPageProgress(for: bookId, trigger: "flush", priority: .userInitiated)
@@ -89,8 +109,10 @@ actor ReaderProgressDispatchService {
     progression: R2Progression,
     progressionData: Data?
   ) {
+    let version = nextProgressVersion(for: bookId)
     let update = EpubUpdate(
       bookId: bookId,
+      version: version,
       globalPageNumber: globalPageNumber,
       progression: progression,
       progressionData: progressionData
@@ -98,22 +120,74 @@ actor ReaderProgressDispatchService {
     pendingEpubUpdates[bookId] = update
 
     logger.debug(
-      "📝 Queued EPUB progression dispatch for book \(bookId): href=\(progression.locator.href), globalPage=\(globalPageNumber), offline=\(AppConfig.isOffline)"
+      "📝 [Progress/Epub] Queued update: book=\(bookId), version=\(version), href=\(progression.locator.href), globalPage=\(globalPageNumber), offline=\(AppConfig.isOffline)"
     )
 
     sendPendingEpubProgression(for: bookId, trigger: "enqueue")
   }
 
-  func waitUntilSettled(bookIds: Set<String>, timeout: Duration = .seconds(6)) async -> Bool {
-    guard !bookIds.isEmpty else { return true }
+  func captureProgressCheckpoint(
+    bookIds: Set<String>,
+    waitForRecentFlush: Bool = false,
+    flushGrace: Duration = .milliseconds(180)
+  ) async -> ProgressCheckpoint {
+    guard !bookIds.isEmpty else { return [:] }
 
-    if !hasPendingDispatchWork(for: bookIds) {
+    var checkpoint = buildCheckpoint(bookIds: bookIds)
+    guard waitForRecentFlush else {
+      logger.debug(
+        "📍 [Progress/Checkpoint] Captured: \(checkpointSummary(checkpoint))"
+      )
+      return checkpoint
+    }
+
+    guard checkpoint.isEmpty, !hasPendingDispatchWork(for: bookIds) else {
+      logger.debug(
+        "📍 [Progress/Checkpoint] Captured after flush gate: \(checkpointSummary(checkpoint))"
+      )
+      return checkpoint
+    }
+
+    let pollInterval = Duration.milliseconds(30)
+    var elapsed = Duration.zero
+    while elapsed < flushGrace {
+      try? await Task.sleep(for: pollInterval)
+      elapsed += pollInterval
+      checkpoint = buildCheckpoint(bookIds: bookIds)
+      if !checkpoint.isEmpty || hasPendingDispatchWork(for: bookIds) {
+        logger.debug(
+          "📍 [Progress/Checkpoint] Captured after grace wait: \(checkpointSummary(checkpoint))"
+        )
+        return checkpoint
+      }
+    }
+
+    logger.debug(
+      "📍 [Progress/Checkpoint] Empty after grace wait: books=\(bookIds.count)"
+    )
+    return checkpoint
+  }
+
+  func waitUntilCheckpointReached(
+    _ checkpoint: ProgressCheckpoint,
+    timeout: Duration = .seconds(6)
+  ) async -> Bool {
+    guard !checkpoint.isEmpty else { return true }
+
+    logger.debug(
+      "⏳ [Progress/Checkpoint] Waiting: \(checkpointSummary(checkpoint)), timeout=\(timeout)"
+    )
+
+    if isCheckpointReached(checkpoint) {
+      logger.debug(
+        "✅ [Progress/Checkpoint] Already reached: \(checkpointSummary(checkpoint))"
+      )
       return true
     }
 
     return await withTaskGroup(of: Bool.self) { group in
       group.addTask {
-        await self.waitForSettle(bookIds: bookIds)
+        await self.waitForCheckpoint(checkpoint)
         return true
       }
       group.addTask {
@@ -123,24 +197,41 @@ actor ReaderProgressDispatchService {
       let result = await group.next() ?? false
       group.cancelAll()
       if !result {
-        self.removeSettleWaiters(for: bookIds)
+        self.removeCheckpointWaiters(for: checkpoint)
+        self.logger.warning(
+          "⚠️ [Progress/Checkpoint] Wait timed out: \(self.checkpointSummary(checkpoint))"
+        )
+      } else {
+        self.logger.debug(
+          "✅ [Progress/Checkpoint] Reached: \(self.checkpointSummary(checkpoint))"
+        )
       }
       return result
     }
   }
 
-  private func waitForSettle(bookIds: Set<String>) async {
-    if !hasPendingDispatchWork(for: bookIds) {
+  func waitUntilSettled(bookIds: Set<String>, timeout: Duration = .seconds(6)) async -> Bool {
+    let checkpoint = await captureProgressCheckpoint(
+      bookIds: bookIds,
+      waitForRecentFlush: true
+    )
+    return await waitUntilCheckpointReached(checkpoint, timeout: timeout)
+  }
+
+  private func waitForCheckpoint(_ checkpoint: ProgressCheckpoint) async {
+    if isCheckpointReached(checkpoint) {
       return
     }
     await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-      settleWaiters.append((bookIds: bookIds, continuation: continuation))
+      checkpointWaiters.append(
+        CheckpointWaiter(checkpoint: checkpoint, continuation: continuation)
+      )
     }
   }
 
-  private func removeSettleWaiters(for bookIds: Set<String>) {
-    settleWaiters.removeAll { waiter in
-      if waiter.bookIds == bookIds {
+  private func removeCheckpointWaiters(for checkpoint: ProgressCheckpoint) {
+    checkpointWaiters.removeAll { waiter in
+      if waiter.checkpoint == checkpoint {
         waiter.continuation.resume()
         return true
       }
@@ -148,10 +239,10 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  /// Check and resume any waiters whose book IDs are now fully settled
-  private func notifySettledWaiters() {
-    settleWaiters.removeAll { waiter in
-      if !hasPendingDispatchWork(for: waiter.bookIds) {
+  /// Resume waiters whose required progress versions are now confirmed.
+  private func notifyCheckpointWaiters() {
+    checkpointWaiters.removeAll { waiter in
+      if isCheckpointReached(waiter.checkpoint) {
         waiter.continuation.resume()
         return true
       }
@@ -165,12 +256,16 @@ actor ReaderProgressDispatchService {
     priority: TaskPriority = .utility
   ) {
     guard pageSendTasks[bookId] == nil else {
-      logger.debug("⏳ Page progress send already in flight for book \(bookId), trigger=\(trigger)")
+      logger.debug(
+        "⏳ [Progress/Page] Skip dispatch: in-flight request exists, book=\(bookId), trigger=\(trigger)"
+      )
       return
     }
 
     guard pendingPageUpdates[bookId] != nil else {
-      logger.debug("⏭️ No pending page progress to dispatch for book \(bookId), trigger=\(trigger)")
+      logger.debug(
+        "⏭️ [Progress/Page] Skip dispatch: no pending update, book=\(bookId), trigger=\(trigger)"
+      )
       return
     }
 
@@ -182,12 +277,16 @@ actor ReaderProgressDispatchService {
 
   private func sendPendingEpubProgression(for bookId: String, trigger: String) {
     guard epubSendTasks[bookId] == nil else {
-      logger.debug("⏳ EPUB progression send already in flight for book \(bookId), trigger=\(trigger)")
+      logger.debug(
+        "⏳ [Progress/Epub] Skip dispatch: in-flight request exists, book=\(bookId), trigger=\(trigger)"
+      )
       return
     }
 
     guard pendingEpubUpdates[bookId] != nil else {
-      logger.debug("⏭️ No pending EPUB progression to dispatch for book \(bookId), trigger=\(trigger)")
+      logger.debug(
+        "⏭️ [Progress/Epub] Skip dispatch: no pending update, book=\(bookId), trigger=\(trigger)"
+      )
       return
     }
 
@@ -204,6 +303,70 @@ actor ReaderProgressDispatchService {
       if epubSendTasks[bookId] != nil { return true }
     }
     return false
+  }
+
+  private func nextProgressVersion(for bookId: String) -> UInt64 {
+    let nextVersion = (progressVersionSeedByBook[bookId] ?? 0) + 1
+    progressVersionSeedByBook[bookId] = nextVersion
+    latestSubmittedProgressVersionByBook[bookId] = nextVersion
+    return nextVersion
+  }
+
+  private func buildCheckpoint(bookIds: Set<String>) -> ProgressCheckpoint {
+    var checkpoint: ProgressCheckpoint = [:]
+    for bookId in bookIds {
+      let version = latestSubmittedProgressVersionByBook[bookId] ?? 0
+      if version > 0 {
+        checkpoint[bookId] = version
+      }
+    }
+    return checkpoint
+  }
+
+  private func markProgressSettled(
+    bookId: String,
+    version: UInt64,
+    serverSynced: Bool
+  ) {
+    let previousSettled = latestSettledProgressVersionByBook[bookId] ?? 0
+    if version > previousSettled {
+      latestSettledProgressVersionByBook[bookId] = version
+    }
+
+    guard serverSynced else { return }
+    let previousServerSynced = latestServerSyncedProgressVersionByBook[bookId] ?? 0
+    if version > previousServerSynced {
+      latestServerSyncedProgressVersionByBook[bookId] = version
+    }
+
+    logger.debug(
+      "✅ [Progress/Checkpoint] Settled version: book=\(bookId), version=\(version), serverSynced=\(serverSynced)"
+    )
+  }
+
+  private func isCheckpointReached(_ checkpoint: ProgressCheckpoint) -> Bool {
+    for (bookId, requiredVersion) in checkpoint {
+      let confirmedVersion: UInt64
+      if AppConfig.isOffline {
+        confirmedVersion = latestSettledProgressVersionByBook[bookId] ?? 0
+      } else {
+        confirmedVersion = latestServerSyncedProgressVersionByBook[bookId] ?? 0
+      }
+
+      if confirmedVersion < requiredVersion {
+        return false
+      }
+    }
+    return true
+  }
+
+  private func checkpointSummary(_ checkpoint: ProgressCheckpoint) -> String {
+    guard !checkpoint.isEmpty else { return "entries=0" }
+
+    let sortedEntries = checkpoint.sorted(by: { $0.key < $1.key })
+    let sample = sortedEntries.prefix(3).map { "\($0.key)=v\($0.value)" }.joined(separator: ", ")
+    let suffix = checkpoint.count > 3 ? ", ..." : ""
+    return "entries=\(checkpoint.count), sample=[\(sample)\(suffix)]"
   }
 
   private func scheduleLocalPageProgressCacheUpdate(_ update: PageUpdate) {
@@ -228,63 +391,75 @@ actor ReaderProgressDispatchService {
     guard localPageCacheTokens[update.bookId] == token else { return }
     localPageCacheTokens.removeValue(forKey: update.bookId)
     logger.debug(
-      "💾 Cached page progress locally for book \(update.bookId): page=\(update.page), completed=\(update.completed)"
+      "💾 [Progress/Page] Updated local cache: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
   }
 
   private func executePageSend(bookId: String, trigger: String, isFlush: Bool) async {
     guard let update = pendingPageUpdates.removeValue(forKey: bookId) else {
       pageSendTasks.removeValue(forKey: bookId)
-      notifySettledWaiters()
+      notifyCheckpointWaiters()
       return
     }
 
     logger.debug(
-      "📤 Dispatching page progress for book \(bookId): page=\(update.page), completed=\(update.completed), trigger=\(trigger)"
+      "📤 [Progress/Page] Dispatching update: book=\(bookId), version=\(update.version), page=\(update.page), completed=\(update.completed), trigger=\(trigger)"
     )
 
     let result = await performPageProgressUpdateWithTimeoutHandling(update, isFlush: isFlush)
-    if case .serverUpdated = result {
+    switch result {
+    case .serverUpdated:
+      markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
       scheduleLocalPageProgressCacheUpdate(update)
+    case .offlineQueued:
+      markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: false)
+    case .skipped, .failed:
+      break
     }
 
     pageSendTasks.removeValue(forKey: bookId)
+    notifyCheckpointWaiters()
 
     if pendingPageUpdates[bookId] != nil {
-      logger.debug("🔁 Dispatching next queued page progress for book \(bookId)")
+      logger.debug("🔁 [Progress/Page] Dispatching next queued update: book=\(bookId)")
       sendPendingPageProgress(for: bookId, trigger: "drain")
-    } else {
-      notifySettledWaiters()
     }
   }
 
   private func executeEpubSend(bookId: String, trigger: String) async {
     guard let update = pendingEpubUpdates.removeValue(forKey: bookId) else {
       epubSendTasks.removeValue(forKey: bookId)
-      notifySettledWaiters()
+      notifyCheckpointWaiters()
       return
     }
 
     logger.debug(
-      "📤 Dispatching EPUB progression for book \(bookId): href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber), trigger=\(trigger)"
+      "📤 [Progress/Epub] Dispatching update: book=\(bookId), version=\(update.version), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber), trigger=\(trigger)"
     )
 
-    await performEpubProgressionUpdateWithTimeoutHandling(update)
+    let result = await performEpubProgressionUpdateWithTimeoutHandling(update)
+    switch result {
+    case .serverUpdated:
+      markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
+    case .offlineQueued:
+      markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: false)
+    case .skipped, .failed:
+      break
+    }
 
     epubSendTasks.removeValue(forKey: bookId)
+    notifyCheckpointWaiters()
 
     if pendingEpubUpdates[bookId] != nil {
-      logger.debug("🔁 Dispatching next queued EPUB progression for book \(bookId)")
+      logger.debug("🔁 [Progress/Epub] Dispatching next queued update: book=\(bookId)")
       sendPendingEpubProgression(for: bookId, trigger: "drain")
-    } else {
-      notifySettledWaiters()
     }
   }
 
   private func performPageProgressUpdateWithTimeoutHandling(
     _ update: PageUpdate,
     isFlush: Bool
-  ) async -> PageProgressUpdateResult {
+  ) async -> ProgressUpdateResult {
     if AppConfig.isOffline {
       await Self.performPageProgressOfflineUpdate(update)
       return .offlineQueued
@@ -298,21 +473,21 @@ actor ReaderProgressDispatchService {
       } catch {
         guard Self.isTimeoutError(error) else {
           logger.error(
-            "Failed to update page progress for book \(update.bookId) page \(update.page): \(error.localizedDescription)"
+            "❌ [Progress/Page] Update failed: book=\(update.bookId), version=\(update.version), page=\(update.page), error=\(error.localizedDescription)"
           )
           return .failed
         }
 
         if pendingPageUpdates[update.bookId] != nil {
           logger.warning(
-            "⏭️ Timed out page progress for book \(update.bookId) page \(update.page), newer progress exists so skipping current update"
+            "⏭️ [Progress/Page] Timeout and skipped outdated update: book=\(update.bookId), version=\(update.version), page=\(update.page)"
           )
           return .skipped
         }
 
         guard timeoutRetryAttempt < timeoutRetryLimit else {
           logger.error(
-            "❌ Timed out page progress for book \(update.bookId) page \(update.page) after \(timeoutRetryLimit) retries"
+            "❌ [Progress/Page] Timeout retries exhausted: book=\(update.bookId), version=\(update.version), page=\(update.page), retries=\(timeoutRetryLimit)"
           )
           if isFlush {
             await MainActor.run {
@@ -326,13 +501,15 @@ actor ReaderProgressDispatchService {
 
         timeoutRetryAttempt += 1
         logger.warning(
-          "⏱️ Timed out page progress for book \(update.bookId) page \(update.page), retrying (\(timeoutRetryAttempt)/\(timeoutRetryLimit))"
+          "⏱️ [Progress/Page] Timeout, retrying: book=\(update.bookId), version=\(update.version), page=\(update.page), attempt=\(timeoutRetryAttempt)/\(timeoutRetryLimit)"
         )
       }
     }
   }
 
-  private func performEpubProgressionUpdateWithTimeoutHandling(_ update: EpubUpdate) async {
+  private func performEpubProgressionUpdateWithTimeoutHandling(
+    _ update: EpubUpdate
+  ) async -> ProgressUpdateResult {
     var timeoutRetryAttempt = 0
 
     while true {
@@ -341,30 +518,35 @@ actor ReaderProgressDispatchService {
           update,
           timeout: progressRequestTimeout
         )
-        return
+        if AppConfig.isOffline {
+          return .offlineQueued
+        }
+        return .serverUpdated
       } catch {
         guard Self.isTimeoutError(error) else {
-          logger.error("Failed to update progression: \(error.localizedDescription)")
-          return
+          logger.error(
+            "❌ [Progress/Epub] Update failed: book=\(update.bookId), version=\(update.version), error=\(error.localizedDescription)"
+          )
+          return .failed
         }
 
         if pendingEpubUpdates[update.bookId] != nil {
           logger.warning(
-            "⏭️ Timed out EPUB progression for book \(update.bookId), newer progress exists so skipping current update"
+            "⏭️ [Progress/Epub] Timeout and skipped outdated update: book=\(update.bookId), version=\(update.version)"
           )
-          return
+          return .skipped
         }
 
         guard timeoutRetryAttempt < timeoutRetryLimit else {
           logger.error(
-            "❌ Timed out EPUB progression for book \(update.bookId) after \(timeoutRetryLimit) retries"
+            "❌ [Progress/Epub] Timeout retries exhausted: book=\(update.bookId), version=\(update.version), retries=\(timeoutRetryLimit)"
           )
-          return
+          return .failed
         }
 
         timeoutRetryAttempt += 1
         logger.warning(
-          "⏱️ Timed out EPUB progression for book \(update.bookId), retrying (\(timeoutRetryAttempt)/\(timeoutRetryLimit))"
+          "⏱️ [Progress/Epub] Timeout, retrying: book=\(update.bookId), version=\(update.version), attempt=\(timeoutRetryAttempt)/\(timeoutRetryLimit)"
         )
       }
     }
@@ -374,7 +556,7 @@ actor ReaderProgressDispatchService {
     let logger = AppLogger(.reader)
 
     logger.debug(
-      "📨 Performing page progress update for book \(update.bookId): page=\(update.page), completed=\(update.completed), offline=\(AppConfig.isOffline)"
+      "📨 [Progress/Page] Queue offline update: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
 
     await DatabaseOperator.shared.queuePendingProgress(
@@ -391,7 +573,7 @@ actor ReaderProgressDispatchService {
     )
     await DatabaseOperator.shared.commit()
     logger.debug(
-      "💾 Queued page progress for offline sync: book=\(update.bookId), page=\(update.page), completed=\(update.completed)"
+      "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
   }
 
@@ -402,7 +584,7 @@ actor ReaderProgressDispatchService {
     let logger = AppLogger(.reader)
 
     logger.debug(
-      "📨 Performing page progress update for book \(update.bookId): page=\(update.page), completed=\(update.completed), offline=\(AppConfig.isOffline)"
+      "📨 [Progress/Page] Start server sync: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed), timeout=\(timeout)s"
     )
 
     try await withHardTimeout(seconds: timeout) {
@@ -415,7 +597,7 @@ actor ReaderProgressDispatchService {
     }
 
     logger.debug(
-      "✅ Page progress update completed for book \(update.bookId): page=\(update.page), completed=\(update.completed)"
+      "✅ [Progress/Page] Server sync completed: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
   }
 
@@ -428,7 +610,7 @@ actor ReaderProgressDispatchService {
     do {
       if AppConfig.isOffline {
         logger.debug(
-          "💾 Queue EPUB progression for offline sync: book=\(update.bookId), globalPage=\(update.globalPageNumber)"
+          "💾 [Progress/Epub] Queue offline update: book=\(update.bookId), version=\(update.version), globalPage=\(update.globalPageNumber)"
         )
         await DatabaseOperator.shared.queuePendingProgress(
           instanceId: AppConfig.current.instanceId,
@@ -438,11 +620,11 @@ actor ReaderProgressDispatchService {
           progressionData: update.progressionData
         )
         logger.debug(
-          "✅ Queued EPUB progression for offline sync: book=\(update.bookId), globalPage=\(update.globalPageNumber)"
+          "✅ [Progress/Epub] Queued offline sync item: book=\(update.bookId), version=\(update.version), globalPage=\(update.globalPageNumber)"
         )
       } else {
         logger.debug(
-          "📤 Sending EPUB progression request for book=\(update.bookId), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
+          "📨 [Progress/Epub] Start server sync: book=\(update.bookId), version=\(update.version), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber), timeout=\(timeout)s"
         )
         try await withHardTimeout(seconds: timeout) {
           try await BookService.shared.updateWebPubProgression(
@@ -452,7 +634,7 @@ actor ReaderProgressDispatchService {
           )
         }
         logger.debug(
-          "✅ EPUB progression request completed for book=\(update.bookId), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
+          "✅ [Progress/Epub] Server sync completed: book=\(update.bookId), version=\(update.version), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
         )
       }
 
@@ -465,7 +647,9 @@ actor ReaderProgressDispatchService {
       if case .badRequest(let message, _, _, _) = apiError,
         message.lowercased().contains("epub extension not found")
       {
-        logger.error("Failed to update progression: EPUB extension not found")
+        logger.error(
+          "❌ [Progress/Epub] EPUB extension not found: book=\(update.bookId), version=\(update.version)"
+        )
         await MainActor.run {
           ErrorManager.shared.alert(
             error: AppErrorType.operationFailed(
@@ -490,18 +674,47 @@ actor ReaderProgressDispatchService {
     seconds: TimeInterval,
     operation: @Sendable @escaping () async throws -> Void
   ) async throws {
-    try await withThrowingTaskGroup(of: Void.self) { group in
-      group.addTask {
-        try await operation()
+    let stream = AsyncStream<Result<Void, Error>> { continuation in
+      let operationTask = Task(priority: .utility) {
+        do {
+          try await operation()
+          continuation.yield(.success(()))
+        } catch is CancellationError {
+          // Timeout path already resolved.
+        } catch {
+          continuation.yield(.failure(error))
+        }
+        continuation.finish()
       }
-      group.addTask {
-        try await Task.sleep(for: .seconds(seconds))
-        throw URLError(.timedOut)
+
+      let timeoutTask = Task(priority: .utility) {
+        do {
+          try await Task.sleep(for: .seconds(seconds))
+          operationTask.cancel()
+          continuation.yield(.failure(URLError(.timedOut)))
+        } catch is CancellationError {
+          // Operation completed first.
+        } catch {
+          continuation.yield(.failure(error))
+        }
+        continuation.finish()
       }
-      // Wait for the first task to complete; if timeout fires first, it throws
-      try await group.next()
-      // Cancel whichever task is still running
-      group.cancelAll()
+
+      continuation.onTermination = { _ in
+        operationTask.cancel()
+        timeoutTask.cancel()
+      }
+    }
+
+    guard let result = await stream.first(where: { _ in true }) else {
+      throw URLError(.unknown)
+    }
+
+    switch result {
+    case .success:
+      return
+    case .failure(let error):
+      throw error
     }
   }
 
@@ -525,4 +738,5 @@ actor ReaderProgressDispatchService {
     let nsError = error as NSError
     return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorTimedOut
   }
+
 }

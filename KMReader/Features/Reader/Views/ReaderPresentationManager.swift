@@ -106,15 +106,26 @@ final class ReaderPresentationManager {
       let seriesIds = visitedSeriesIds
       Task(priority: .utility) {
         logger.debug(
-          "⏳ Waiting for reader progress flush before syncing visited items: books=\(bookIds.count), series=\(seriesIds.count)"
+          "⏳ [Progress/Checkpoint] Wait before syncing visited items: books=\(bookIds.count), series=\(seriesIds.count)"
         )
-        let idle = await ReaderProgressDispatchService.shared.waitUntilSettled(
+        let checkpoint = await ReaderProgressDispatchService.shared.captureProgressCheckpoint(
           bookIds: bookIds,
+          waitForRecentFlush: true
+        )
+        logger.debug(
+          "📍 [Progress/Checkpoint] Captured before visited sync: entries=\(checkpoint.count)"
+        )
+        let idle = await ReaderProgressDispatchService.shared.waitUntilCheckpointReached(
+          checkpoint,
           timeout: .seconds(6)
         )
-        if !idle {
+        if idle {
+          logger.debug(
+            "✅ [Progress/Checkpoint] Wait completed before visited sync: entries=\(checkpoint.count)"
+          )
+        } else {
           logger.warning(
-            "⚠️ Progress flush wait timed out, syncing visited items anyway: books=\(bookIds.count)"
+            "⚠️ [Progress/Checkpoint] Wait timed out before visited sync, continuing: books=\(bookIds.count), entries=\(checkpoint.count)"
           )
         }
         await SyncService.shared.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)

@@ -93,7 +93,7 @@ class BookService {
     timeout: TimeInterval? = nil
   ) async throws {
     logger.debug(
-      "📤 Sending EPUB progression for book \(bookId): href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0), totalProgression=\(progression.locator.locations?.totalProgression ?? 0)"
+      "📡 [Progress/Epub] Request start: book=\(bookId), href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0), totalProgression=\(progression.locator.locations?.totalProgression ?? 0), timeout=\(timeout ?? progressRequestTimeout)s"
     )
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
@@ -105,7 +105,7 @@ class BookService {
       timeout: timeout ?? progressRequestTimeout,
       maxRetryCount: 0
     )
-    logger.debug("✅ EPUB progression sent for book \(bookId)")
+    logger.debug("✅ [Progress/Epub] Request completed: book=\(bookId)")
   }
 
   func downloadBookFile(bookId: String) async throws -> BookFileDownloadResult {
@@ -245,7 +245,7 @@ class BookService {
     timeout: TimeInterval? = nil
   ) async throws {
     logger.debug(
-      "📤 Sending page progress for book \(bookId): page=\(page), completed=\(completed)"
+      "📡 [Progress/Page] Request start: book=\(bookId), page=\(page), completed=\(completed), timeout=\(timeout ?? progressRequestTimeout)s"
     )
     let body = ["page": page, "completed": completed] as [String: Any]
     let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
@@ -257,7 +257,7 @@ class BookService {
       timeout: timeout ?? progressRequestTimeout,
       maxRetryCount: 0
     )
-    logger.debug("✅ Page progress sent for book \(bookId): page=\(page)")
+    logger.debug("✅ [Progress/Page] Request completed: book=\(bookId), page=\(page)")
   }
 
   func deleteReadProgress(bookId: String) async throws {

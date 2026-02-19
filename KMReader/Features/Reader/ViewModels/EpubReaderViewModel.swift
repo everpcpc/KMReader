@@ -446,16 +446,16 @@
       let pageIndex = currentPageIndex
       updateLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
       guard currentLocation != nil else {
-        logger.debug("⏭️ Skip progression update because current location is unavailable")
+        logger.debug("⏭️ [Progress/Epub] Skip capture: current location unavailable")
         return
       }
 
       guard !incognito else {
-        logger.debug("⏭️ Skip progression update because incognito mode is enabled")
+        logger.debug("⏭️ [Progress/Epub] Skip capture: incognito mode enabled")
         return
       }
       guard !bookId.isEmpty else {
-        logger.warning("⚠️ Skip progression update because book ID is empty")
+        logger.warning("⚠️ [Progress/Epub] Skip capture: missing book ID")
         return
       }
 
@@ -464,7 +464,7 @@
       guard elapsed >= updateThrottleInterval else {
         logger.debug(
           String(
-            format: "⏱️ Skip progression update due to throttle (elapsed=%.2fs, required=%.2fs)",
+            format: "⏱️ [Progress/Epub] Skip capture due to throttle (elapsed=%.2fs, required=%.2fs)",
             elapsed,
             updateThrottleInterval
           )
@@ -474,7 +474,7 @@
       lastUpdateTime = now
 
       logger.debug(
-        "📤 Trigger progression update from page change: chapterIndex=\(chapterIndex), pageIndex=\(pageIndex)"
+        "📝 [Progress/Epub] Captured from page change: book=\(bookId), chapterIndex=\(chapterIndex), pageIndex=\(pageIndex)"
       )
 
       Task {
@@ -499,24 +499,24 @@
 
     func syncEndProgression() {
       guard !incognito else {
-        logger.debug("⏭️ Skip end progression sync because incognito mode is enabled")
+        logger.debug("⏭️ [Progress/Epub] Skip end sync: incognito mode enabled")
         return
       }
       guard !bookId.isEmpty else {
-        logger.warning("⚠️ Skip end progression sync because book ID is empty")
+        logger.warning("⚠️ [Progress/Epub] Skip end sync: missing book ID")
         return
       }
       guard !AppConfig.isOffline else {
-        logger.debug("⏭️ Skip end progression sync because app is offline")
+        logger.debug("⏭️ [Progress/Epub] Skip end sync: app is offline")
         return
       }
       guard let lastPosition = lastPagePosition() else {
-        logger.debug("⏭️ Skip end progression sync because last page position is unavailable")
+        logger.debug("⏭️ [Progress/Epub] Skip end sync: last page position unavailable")
         return
       }
 
       logger.debug(
-        "🏁 Trigger end progression sync: chapterIndex=\(lastPosition.chapterIndex), pageIndex=\(lastPosition.pageIndex)"
+        "🏁 [Progress/Epub] Trigger end sync: book=\(bookId), chapterIndex=\(lastPosition.chapterIndex), pageIndex=\(lastPosition.pageIndex)"
       )
       updateLocation(chapterIndex: lastPosition.chapterIndex, pageIndex: lastPosition.pageIndex)
 
@@ -525,12 +525,12 @@
         let overrideProgression = await maxProgressionOverride(for: href)
         guard let overrideProgression else {
           logger.debug(
-            "⏭️ Skip end progression sync because max progression override is unavailable for href=\(href)"
+            "⏭️ [Progress/Epub] Skip end sync: max progression override unavailable, href=\(href)"
           )
           return
         }
         logger.debug(
-          "📤 Sending end progression override for href=\(href), progression=\(overrideProgression)"
+          "📤 [Progress/Epub] Submit end progression override: book=\(bookId), href=\(href), progression=\(overrideProgression)"
         )
         await updateProgression(
           chapterIndex: lastPosition.chapterIndex,
@@ -834,13 +834,13 @@
       }
 
       logger.debug(
-        "📝 Prepared EPUB progression payload: href=\(locator.href), progression=\(locator.locations?.progression ?? 0), totalProgression=\(locator.locations?.totalProgression ?? 0), globalPage=\(pageOffsetBeforeChapter(chapterIndex) + pageIndex + 1), offline=\(AppConfig.isOffline)"
+        "📝 [Progress/Epub] Prepared payload: book=\(activeBookId), href=\(locator.href), progression=\(locator.locations?.progression ?? 0), totalProgression=\(locator.locations?.totalProgression ?? 0), globalPage=\(pageOffsetBeforeChapter(chapterIndex) + pageIndex + 1), offline=\(AppConfig.isOffline)"
       )
       let pageOffset = pageOffsetBeforeChapter(chapterIndex)
       let globalPageNumber = pageOffset + pageIndex + 1
 
       logger.debug(
-        "📮 Submit EPUB progression to dispatch service: book=\(activeBookId), href=\(locator.href), globalPage=\(globalPageNumber)"
+        "📮 [Progress/Epub] Submit to dispatch service: book=\(activeBookId), href=\(locator.href), globalPage=\(globalPageNumber)"
       )
 
       await ReaderProgressDispatchService.shared.submitEpubProgression(
