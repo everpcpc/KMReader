@@ -812,21 +812,21 @@ class ReaderViewModel {
   func updateProgress() async {
     // Skip progress updates in incognito mode
     guard !incognitoMode else {
-      logger.debug("⏭️ Skip progress capture because incognito mode is enabled")
+      logger.debug("⏭️ [Progress/Page] Skip capture: incognito mode enabled")
       return
     }
     guard !bookId.isEmpty else {
-      logger.warning("⚠️ Skip progress capture because book ID is empty")
+      logger.warning("⚠️ [Progress/Page] Skip capture: missing book ID")
       return
     }
     guard let currentPage = currentPage else {
-      logger.debug("⏭️ Skip progress capture because current page is unavailable")
+      logger.debug("⏭️ [Progress/Page] Skip capture: current page unavailable")
       return
     }
 
     let completed = currentPageIndex >= pages.count - 1
     logger.debug(
-      "📝 Captured pending page progress for book \(bookId): page=\(currentPage.number), completed=\(completed)"
+      "📝 [Progress/Page] Captured from reader state: book=\(bookId), page=\(currentPage.number), completed=\(completed)"
     )
 
     await ReaderProgressDispatchService.shared.submitPageProgress(
@@ -838,7 +838,7 @@ class ReaderViewModel {
 
   func flushProgress() {
     guard !incognitoMode else {
-      logger.debug("⏭️ Skip flush progress because incognito mode is enabled")
+      logger.debug("⏭️ [Progress/Page] Skip flush: incognito mode enabled")
       return
     }
 
@@ -849,7 +849,7 @@ class ReaderViewModel {
       : nil
 
     logger.debug(
-      "🚿 Flush progress requested for book \(bookId): hasCurrentPage=\(snapshotPage != nil)"
+      "🚿 [Progress/Page] Flush requested from reader: book=\(bookId), hasCurrentPage=\(snapshotPage != nil)"
     )
 
     Task {

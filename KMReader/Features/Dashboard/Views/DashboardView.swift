@@ -260,17 +260,28 @@ struct DashboardView: View {
         readerCloseRefreshTask?.cancel()
         readerCloseRefreshTask = Task {
           logger.debug(
-            "Dashboard waiting for reader progress flush before refresh: books=\(visitedBookIds.count), fullRefresh=\(needsFullRefresh)"
+            "⏳ [Progress/Checkpoint] Dashboard wait before refresh: visitedBooks=\(visitedBookIds.count), fullRefresh=\(needsFullRefresh)"
           )
 
           if !visitedBookIds.isEmpty {
-            let idle = await ReaderProgressDispatchService.shared.waitUntilSettled(
+            let checkpoint = await ReaderProgressDispatchService.shared.captureProgressCheckpoint(
               bookIds: visitedBookIds,
+              waitForRecentFlush: true
+            )
+            logger.debug(
+              "📍 [Progress/Checkpoint] Dashboard captured checkpoint: entries=\(checkpoint.count)"
+            )
+            let idle = await ReaderProgressDispatchService.shared.waitUntilCheckpointReached(
+              checkpoint,
               timeout: .seconds(6)
             )
-            if !idle {
+            if idle {
+              logger.debug(
+                "✅ [Progress/Checkpoint] Dashboard wait completed: entries=\(checkpoint.count)"
+              )
+            } else {
               logger.warning(
-                "Dashboard refresh wait timed out, continuing with close refresh"
+                "⚠️ [Progress/Checkpoint] Dashboard wait timed out, continuing refresh: entries=\(checkpoint.count)"
               )
             }
           }

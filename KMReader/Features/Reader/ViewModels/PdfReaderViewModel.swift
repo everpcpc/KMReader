@@ -160,13 +160,17 @@
       guard !bookId.isEmpty else { return }
       guard normalizedTotal > 0 else { return }
       guard !incognito else {
-        logger.debug("⏭️ Skip PDF progress update because incognito mode is enabled")
+        logger.debug("⏭️ [Progress/Page] Skip PDF capture: incognito mode enabled")
         return
       }
 
       let completed = currentPageNumber >= normalizedTotal
       let snapshotPage = currentPageNumber
       let snapshotBookId = bookId
+
+      logger.debug(
+        "📝 [Progress/Page] Captured from PDF reader: book=\(snapshotBookId), page=\(snapshotPage), completed=\(completed)"
+      )
 
       Task {
         await ReaderProgressDispatchService.shared.submitPageProgress(
@@ -180,7 +184,7 @@
     func flushProgress() {
       guard !bookId.isEmpty else { return }
       guard !incognito else {
-        logger.debug("⏭️ Skip PDF progress flush because incognito mode is enabled")
+        logger.debug("⏭️ [Progress/Page] Skip PDF flush: incognito mode enabled")
         return
       }
 
@@ -190,6 +194,10 @@
         return snapshotPage >= pageCount
       }()
       let snapshotBookId = bookId
+
+      logger.debug(
+        "🚿 [Progress/Page] Flush requested from PDF reader: book=\(snapshotBookId), hasCurrentPage=\(snapshotPage != nil)"
+      )
 
       Task {
         await ReaderProgressDispatchService.shared.flushPageProgress(
