@@ -1147,6 +1147,39 @@ actor DatabaseOperator {
     }
   }
 
+  func updateEpubReadingProgressFromTotalProgression(
+    bookId: String,
+    totalProgression: Double?,
+    fallbackPage: Int
+  ) -> (page: Int, completed: Bool) {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+
+    let normalized = min(max(totalProgression ?? 0, 0), 1)
+    let completed = normalized >= 0.999_999
+    var resolvedPage = max(0, fallbackPage)
+
+    if let book = try? modelContext.fetch(descriptor).first {
+      let totalPages = max(0, book.mediaPagesCount)
+      if totalPages > 0 {
+        if completed {
+          resolvedPage = totalPages - 1
+        } else if normalized > 0 {
+          let converted = Int((normalized * Double(totalPages)).rounded(.up)) - 1
+          resolvedPage = min(max(0, converted), totalPages - 1)
+        } else {
+          resolvedPage = 0
+        }
+      }
+    }
+
+    updateReadingProgress(bookId: bookId, page: resolvedPage, completed: completed)
+    return (resolvedPage, completed)
+  }
+
   func syncSeriesDownloadStatus(series: KomgaSeries) {
     let seriesId = series.seriesId
     let instanceId = series.instanceId
