@@ -313,54 +313,45 @@ actor BookFileCache {
 
   // MARK: - Private Methods
 
-  /// Recursively collect all files in a directory
-  nonisolated private static func collectFiles(at url: URL, fileManager: FileManager) -> [URL] {
-    var files: [URL] = []
-    guard
-      let contents = try? fileManager.contentsOfDirectory(
-        at: url,
-        includingPropertiesForKeys: [.isDirectoryKey],
-        options: [.skipsHiddenFiles]
-      )
-    else {
-      return files
-    }
-
-    for item in contents {
-      if let isDirectory = try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory,
-        isDirectory == true
-      {
-        files.append(contentsOf: collectFiles(at: item, fileManager: fileManager))
-      } else {
-        files.append(item)
-      }
-    }
-    return files
-  }
-
   /// Collect file information (size and modification date) for all files
   nonisolated private static func collectFileInfo(
     at diskCacheURL: URL,
     fileManager: FileManager,
     includeDate: Bool = false
   ) -> (files: [URL], fileInfo: [(url: URL, size: Int64, date: Date?)], totalSize: Int64) {
-    let allFiles = collectFiles(at: diskCacheURL, fileManager: fileManager)
+    let resourceKeys: [URLResourceKey] =
+      includeDate
+      ? [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
+      : [.isDirectoryKey, .fileSizeKey]
+    let resourceKeySet = Set(resourceKeys)
+
+    guard
+      let enumerator = fileManager.enumerator(
+        at: diskCacheURL,
+        includingPropertiesForKeys: resourceKeys,
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return ([], [], 0)
+    }
+
+    var allFiles: [URL] = []
     var totalSize: Int64 = 0
     var fileInfo: [(url: URL, size: Int64, date: Date?)] = []
 
-    let keys: Set<URLResourceKey> =
-      includeDate
-      ? [.fileSizeKey, .contentModificationDateKey]
-      : [.fileSizeKey]
-
-    for fileURL in allFiles {
-      if let resourceValues = try? fileURL.resourceValues(forKeys: keys),
-        let size = resourceValues.fileSize
-      {
-        totalSize += Int64(size)
-        fileInfo.append(
-          (url: fileURL, size: Int64(size), date: resourceValues.contentModificationDate))
+    for case let fileURL as URL in enumerator {
+      guard
+        let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeySet),
+        resourceValues.isDirectory != true,
+        let fileSize = resourceValues.fileSize
+      else {
+        continue
       }
+
+      let size = Int64(fileSize)
+      totalSize += size
+      allFiles.append(fileURL)
+      fileInfo.append((url: fileURL, size: size, date: resourceValues.contentModificationDate))
     }
 
     return (allFiles, fileInfo, totalSize)
