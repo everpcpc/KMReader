@@ -43,6 +43,9 @@ actor ThumbnailCache {
 
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
+  private static let cleanupHighWatermarkPercent: Int64 = 90
+  private static let cleanupTargetPercent: Int64 = 80
+  private static let cleanupThrottleInterval: TimeInterval = 5
 
   private static func getMaxDiskCacheSize() -> Int {
     AppConfig.maxCoverCacheSize
@@ -110,22 +113,50 @@ actor ThumbnailCache {
         path = "/api/v1/\(type.pathSegment)/\(id)/thumbnail"
       }
       let (data, _, _) = try await APIClient.shared.requestData(path: path)
+      let oldFileSize: Int64?
+      if
+        FileManager.default.fileExists(atPath: fileURL.path),
+        let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+        let size = attributes[.size] as? Int64
+      {
+        oldFileSize = size
+      } else {
+        oldFileSize = nil
+      }
 
-      let isNewFile = !FileManager.default.fileExists(atPath: fileURL.path)
+      let maxSize = Int64(Self.getMaxDiskCacheSize()) * 1024 * 1024
+      let highWatermark = maxSize * Self.cleanupHighWatermarkPercent / 100
+      let newFileSize = Int64(data.count)
+      let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
+
+      func triggerCleanupIfNeeded() {
+        Task.detached(priority: .utility) {
+          await Self.cleanupDiskCacheIfNeeded()
+        }
+      }
+
+      if !isValid {
+        triggerCleanupIfNeeded()
+      } else if let size = currentSize {
+        let sizeAfterAdd = size - (oldFileSize ?? 0) + newFileSize
+        if sizeAfterAdd > highWatermark {
+          triggerCleanupIfNeeded()
+        }
+      }
+
+      let fileExisted = FileManager.default.fileExists(atPath: fileURL.path)
       try data.write(to: fileURL, options: [.atomic])
 
       logger.info("✅ Saved thumbnail for \(type.rawValue) \(id)")
 
-      // Update cached size and count if new
-      if isNewFile {
-        let fileSize = Int64(data.count)
-        await Self.cacheSizeActor.updateSize(delta: fileSize)
+      await Self.cacheSizeActor.updateSize(delta: newFileSize - (oldFileSize ?? 0))
+      if !fileExisted {
         await Self.cacheSizeActor.updateCount(delta: 1)
       }
 
-      // Proactively cleanup in background
-      Task.detached(priority: .utility) {
-        await Self.cleanupDiskCacheIfNeeded()
+      let (sizeAfterStore, _, isValidAfter) = await Self.cacheSizeActor.get()
+      if isValidAfter, let size = sizeAfterStore, size > highWatermark {
+        triggerCleanupIfNeeded()
       }
 
       return fileURL
@@ -194,13 +225,50 @@ actor ThumbnailCache {
     }
 
     do {
+      let oldFileSize: Int64?
+      if
+        fileManager.fileExists(atPath: thumbnailURL.path),
+        let attributes = try? fileManager.attributesOfItem(atPath: thumbnailURL.path),
+        let size = attributes[.size] as? Int64
+      {
+        oldFileSize = size
+      } else {
+        oldFileSize = nil
+      }
+
+      let maxSize = Int64(Self.getMaxDiskCacheSize()) * 1024 * 1024
+      let highWatermark = maxSize * Self.cleanupHighWatermarkPercent / 100
+      let newFileSize = Int64(thumbnailData.count)
+      let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
+
+      func triggerCleanupIfNeeded() {
+        Task.detached(priority: .utility) {
+          await Self.cleanupDiskCacheIfNeeded()
+        }
+      }
+
+      if !isValid {
+        triggerCleanupIfNeeded()
+      } else if let size = currentSize {
+        let sizeAfterAdd = size - (oldFileSize ?? 0) + newFileSize
+        if sizeAfterAdd > highWatermark {
+          triggerCleanupIfNeeded()
+        }
+      }
+
+      let fileExisted = fileManager.fileExists(atPath: thumbnailURL.path)
       try thumbnailData.write(to: thumbnailURL, options: [.atomic])
       logger.info("✅ Generated thumbnail from offline page for book \(bookId) page \(pageNumber)")
 
-      // Update cached size and count
-      let fileSize = Int64(thumbnailData.count)
-      await Self.cacheSizeActor.updateSize(delta: fileSize)
-      await Self.cacheSizeActor.updateCount(delta: 1)
+      await Self.cacheSizeActor.updateSize(delta: newFileSize - (oldFileSize ?? 0))
+      if !fileExisted {
+        await Self.cacheSizeActor.updateCount(delta: 1)
+      }
+
+      let (sizeAfterStore, _, isValidAfter) = await Self.cacheSizeActor.get()
+      if isValidAfter, let size = sizeAfterStore, size > highWatermark {
+        triggerCleanupIfNeeded()
+      }
 
       return thumbnailURL
     } catch {
@@ -296,8 +364,25 @@ actor ThumbnailCache {
   /// Cleanup disk cache if needed
   static func cleanupDiskCacheIfNeeded() async {
     let fileManager = FileManager.default
-    let diskCacheURL = await namespacedDiskCacheURL()
     let maxCacheSize = getMaxDiskCacheSize()
+    let maxSize = Int64(maxCacheSize) * 1024 * 1024
+    let highWatermark = maxSize * cleanupHighWatermarkPercent / 100
+    let (cachedSize, _, isValid) = await cacheSizeActor.get()
+
+    if isValid, let cachedSize, cachedSize <= highWatermark {
+      return
+    }
+
+    guard
+      await cacheSizeActor.tryBeginCleanup(
+        minInterval: cleanupThrottleInterval,
+        force: !isValid
+      )
+    else {
+      return
+    }
+
+    let diskCacheURL = await namespacedDiskCacheURL()
 
     await Task.detached(priority: .utility) {
       await performDiskCacheCleanup(
@@ -306,6 +391,8 @@ actor ThumbnailCache {
         maxCacheSize: maxCacheSize
       )
     }.value
+
+    await cacheSizeActor.endCleanup()
   }
 
   /// Refresh thumbnail by re-downloading from server
@@ -359,52 +446,44 @@ actor ThumbnailCache {
     }
   }
 
-  private static func collectFiles(at url: URL, fileManager: FileManager) -> [URL] {
-    var files: [URL] = []
-    guard
-      let contents = try? fileManager.contentsOfDirectory(
-        at: url,
-        includingPropertiesForKeys: [.isDirectoryKey],
-        options: [.skipsHiddenFiles]
-      )
-    else {
-      return files
-    }
-
-    for item in contents {
-      if let isDirectory = try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory,
-        isDirectory == true
-      {
-        files.append(contentsOf: collectFiles(at: item, fileManager: fileManager))
-      } else {
-        files.append(item)
-      }
-    }
-    return files
-  }
-
   private static func collectFileInfo(
     at diskCacheURL: URL,
     fileManager: FileManager,
     includeDate: Bool = false
   ) -> (files: [URL], fileInfo: [(url: URL, size: Int64, date: Date?)], totalSize: Int64) {
-    let allFiles = collectFiles(at: diskCacheURL, fileManager: fileManager)
+    let resourceKeys: [URLResourceKey] =
+      includeDate
+      ? [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
+      : [.isDirectoryKey, .fileSizeKey]
+    let resourceKeySet = Set(resourceKeys)
+
+    guard
+      let enumerator = fileManager.enumerator(
+        at: diskCacheURL,
+        includingPropertiesForKeys: resourceKeys,
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return ([], [], 0)
+    }
+
+    var allFiles: [URL] = []
     var totalSize: Int64 = 0
     var fileInfo: [(url: URL, size: Int64, date: Date?)] = []
 
-    let keys: Set<URLResourceKey> =
-      includeDate
-      ? [.fileSizeKey, .contentModificationDateKey]
-      : [.fileSizeKey]
-
-    for fileURL in allFiles {
-      if let resourceValues = try? fileURL.resourceValues(forKeys: keys),
-        let size = resourceValues.fileSize
-      {
-        totalSize += Int64(size)
-        fileInfo.append(
-          (url: fileURL, size: Int64(size), date: resourceValues.contentModificationDate))
+    for case let fileURL as URL in enumerator {
+      guard
+        let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeySet),
+        resourceValues.isDirectory != true,
+        let fileSize = resourceValues.fileSize
+      else {
+        continue
       }
+
+      let size = Int64(fileSize)
+      totalSize += size
+      allFiles.append(fileURL)
+      fileInfo.append((url: fileURL, size: size, date: resourceValues.contentModificationDate))
     }
 
     return (allFiles, fileInfo, totalSize)
@@ -415,8 +494,10 @@ actor ThumbnailCache {
     fileManager: FileManager,
     maxCacheSize: Int
   ) async {
+    let logger = AppLogger(.cache)
     let maxSize = Int64(maxCacheSize) * 1024 * 1024
-    let targetSize = maxSize * 80 / 100
+    let highWatermark = maxSize * cleanupHighWatermarkPercent / 100
+    let targetSize = maxSize * cleanupTargetPercent / 100
     let (_, fileInfo, totalSize) = collectFileInfo(
       at: diskCacheURL,
       fileManager: fileManager,
@@ -426,7 +507,11 @@ actor ThumbnailCache {
     // Check validity state BEFORE deleting to decide strategy
     let (_, _, isValid) = await cacheSizeActor.get()
 
-    if totalSize > maxSize {
+    if totalSize > highWatermark {
+      logger.debug(
+        "🧹 [CoverCache] Cleanup start: total=\(totalSize)B high=\(highWatermark)B target=\(targetSize)B files=\(fileInfo.count)"
+      )
+
       let oldestFirst = fileInfo.sorted {
         ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast)
       }
@@ -456,6 +541,10 @@ actor ThumbnailCache {
         // We use our scanned values minus what WE deleted.
         await cacheSizeActor.set(size: totalSize - bytesDeleted, count: fileInfo.count - filesDeleted)
       }
+
+      logger.debug(
+        "🧹 [CoverCache] Cleanup end: deletedFiles=\(filesDeleted) freed=\(bytesDeleted)B remaining=\(max(0, totalSize - bytesDeleted))B"
+      )
     } else {
       // scanned size is within limits.
       // IF cache was valid, we do NOTHING (to avoid overwriting concurrent writes).

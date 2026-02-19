@@ -12,6 +12,8 @@ actor CacheSizeActor {
   var cachedSize: Int64?
   var cachedCount: Int?
   var isValid = false
+  private var cleanupInProgress = false
+  private var lastCleanupAt: Date?
 
   func get() -> (size: Int64?, count: Int?, isValid: Bool) {
     return (cachedSize, cachedCount, isValid)
@@ -41,5 +43,23 @@ actor CacheSizeActor {
     } else {
       isValid = false
     }
+  }
+
+  func tryBeginCleanup(minInterval: TimeInterval, force: Bool = false, now: Date = Date()) -> Bool {
+    if cleanupInProgress {
+      return false
+    }
+
+    if !force, let lastCleanupAt, now.timeIntervalSince(lastCleanupAt) < minInterval {
+      return false
+    }
+
+    cleanupInProgress = true
+    return true
+  }
+
+  func endCleanup(now: Date = Date()) {
+    cleanupInProgress = false
+    lastCleanupAt = now
   }
 }
