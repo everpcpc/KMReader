@@ -17,7 +17,7 @@ class BookService {
   static let shared = BookService()
   private let apiClient = APIClient.shared
   private let logger = AppLogger(.api)
-  private let progressRequestTimeout: TimeInterval = 3
+  private let progressRequestTimeout: TimeInterval = 1
 
   private init() {}
 

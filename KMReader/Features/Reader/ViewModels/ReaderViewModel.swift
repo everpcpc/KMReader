@@ -69,15 +69,22 @@ class ReaderViewModel {
     self.init(
       isolateCoverPage: AppConfig.isolateCoverPage,
       pageLayout: AppConfig.pageLayout,
-      splitWidePageMode: AppConfig.splitWidePageMode
+      splitWidePageMode: AppConfig.splitWidePageMode,
+      incognitoMode: false
     )
   }
 
-  init(isolateCoverPage: Bool, pageLayout: PageLayout, splitWidePageMode: SplitWidePageMode = .none) {
+  init(
+    isolateCoverPage: Bool,
+    pageLayout: PageLayout,
+    splitWidePageMode: SplitWidePageMode = .none,
+    incognitoMode: Bool = false
+  ) {
     self.pageImageCache = ImageCache()
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
+    self.incognitoMode = incognitoMode
     regenerateViewState()
   }
 

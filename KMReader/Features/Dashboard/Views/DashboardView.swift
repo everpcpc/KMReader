@@ -273,7 +273,7 @@ struct DashboardView: View {
             )
             let idle = await ReaderProgressDispatchService.shared.waitUntilCheckpointReached(
               checkpoint,
-              timeout: .seconds(6)
+              timeout: .seconds(5)
             )
             if idle {
               logger.debug(

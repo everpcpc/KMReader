@@ -86,6 +86,7 @@ final class ReaderPresentationManager {
     guard readerState != nil else {
       return
     }
+    let isIncognito = readerState?.incognito ?? false
 
     // Flush progress before clearing reader state to avoid race with waitUntilSettled
     readerFlushHandler?()
@@ -101,7 +102,7 @@ final class ReaderPresentationManager {
     #endif
 
     // Sync all visited books and series concurrently
-    if syncVisited && !visitedBookIds.isEmpty {
+    if syncVisited && !isIncognito && !visitedBookIds.isEmpty {
       let bookIds = visitedBookIds
       let seriesIds = visitedSeriesIds
       Task(priority: .utility) {
@@ -131,6 +132,8 @@ final class ReaderPresentationManager {
         await SyncService.shared.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
         WidgetDataService.refreshWidgetData()
       }
+    } else if syncVisited && isIncognito {
+      logger.debug("⏭️ [Progress/Checkpoint] Skip visited sync: incognito mode enabled")
     }
 
     readerState = nil

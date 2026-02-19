@@ -33,7 +33,7 @@ actor ReaderProgressDispatchService {
   typealias ProgressCheckpoint = [String: UInt64]
 
   private let logger = AppLogger(.reader)
-  private let progressRequestTimeout: TimeInterval = 3
+  private let progressRequestTimeout: TimeInterval = 1
   private let timeoutRetryLimit = 2
 
   private var pendingPageUpdates: [String: PageUpdate] = [:]
@@ -253,7 +253,7 @@ actor ReaderProgressDispatchService {
   private func sendPendingPageProgress(
     for bookId: String,
     trigger: String,
-    priority: TaskPriority = .utility
+    priority: TaskPriority = .userInitiated
   ) {
     guard pageSendTasks[bookId] == nil else {
       logger.debug(
@@ -290,7 +290,7 @@ actor ReaderProgressDispatchService {
       return
     }
 
-    epubSendTasks[bookId] = Task(priority: .utility) { [weak self] in
+    epubSendTasks[bookId] = Task(priority: .userInitiated) { [weak self] in
       await self?.executeEpubSend(bookId: bookId, trigger: trigger)
     }
   }
@@ -674,47 +674,21 @@ actor ReaderProgressDispatchService {
     seconds: TimeInterval,
     operation: @Sendable @escaping () async throws -> Void
   ) async throws {
-    let stream = AsyncStream<Result<Void, Error>> { continuation in
-      let operationTask = Task(priority: .utility) {
-        do {
-          try await operation()
-          continuation.yield(.success(()))
-        } catch is CancellationError {
-          // Timeout path already resolved.
-        } catch {
-          continuation.yield(.failure(error))
-        }
-        continuation.finish()
+    try await withThrowingTaskGroup(of: Void.self) { group in
+      group.addTask {
+        try await operation()
       }
 
-      let timeoutTask = Task(priority: .utility) {
-        do {
-          try await Task.sleep(for: .seconds(seconds))
-          operationTask.cancel()
-          continuation.yield(.failure(URLError(.timedOut)))
-        } catch is CancellationError {
-          // Operation completed first.
-        } catch {
-          continuation.yield(.failure(error))
-        }
-        continuation.finish()
+      group.addTask {
+        try await Task.sleep(for: .seconds(seconds))
+        throw URLError(.timedOut)
       }
 
-      continuation.onTermination = { _ in
-        operationTask.cancel()
-        timeoutTask.cancel()
+      guard let firstCompleted = try await group.next() else {
+        throw URLError(.unknown)
       }
-    }
-
-    guard let result = await stream.first(where: { _ in true }) else {
-      throw URLError(.unknown)
-    }
-
-    switch result {
-    case .success:
-      return
-    case .failure(let error):
-      throw error
+      _ = firstCompleted
+      group.cancelAll()
     }
   }
 

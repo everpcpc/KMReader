@@ -41,7 +41,7 @@ struct DivinaReaderView: View {
   private let logger = AppLogger(.reader)
 
   @State private var currentBookId: String
-  @State private var viewModel = ReaderViewModel()
+  @State private var viewModel: ReaderViewModel
   @State private var showingControls = false
   @State private var controlsTimer: Timer?
   @State private var currentSeries: Series?
@@ -90,6 +90,14 @@ struct DivinaReaderView: View {
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
     self._isolateCoverPage = State(initialValue: AppConfig.isolateCoverPage)
     self._splitWidePageMode = State(initialValue: AppConfig.splitWidePageMode)
+    self._viewModel = State(
+      initialValue: ReaderViewModel(
+        isolateCoverPage: AppConfig.isolateCoverPage,
+        pageLayout: AppConfig.pageLayout,
+        splitWidePageMode: AppConfig.splitWidePageMode,
+        incognitoMode: incognito
+      )
+    )
   }
 
   var shouldShowControls: Bool {
@@ -1033,7 +1041,9 @@ struct DivinaReaderView: View {
     if let resolvedBook {
       currentBook = resolvedBook
       seriesId = resolvedBook.seriesId
-      readerPresentation.trackVisitedBook(bookId: resolvedBook.id, seriesId: resolvedBook.seriesId)
+      if !incognito {
+        readerPresentation.trackVisitedBook(bookId: resolvedBook.id, seriesId: resolvedBook.seriesId)
+      }
       initialPageNumber = incognito ? nil : resolvedBook.readProgress?.page
     }
 
@@ -1303,10 +1313,9 @@ struct DivinaReaderView: View {
     viewModel = ReaderViewModel(
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
-      splitWidePageMode: splitWidePageMode
+      splitWidePageMode: splitWidePageMode,
+      incognitoMode: incognito
     )
-    // Preserve incognito mode for next book
-    viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false
     // Reset overlay state
@@ -1327,10 +1336,9 @@ struct DivinaReaderView: View {
     viewModel = ReaderViewModel(
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
-      splitWidePageMode: splitWidePageMode
+      splitWidePageMode: splitWidePageMode,
+      incognitoMode: incognito
     )
-    // Preserve incognito mode for previous book
-    viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false
     // Reset overlay state
