@@ -99,58 +99,60 @@ struct BookCardView: View {
         )
       }
 
-      if thumbnailShowProgressBar && !cardTextOverlayMode {
-        ReadingProgressBar(progress: progress, type: .card)
-          .opacity(isInProgress ? 1 : 0)
-      }
+      if !cardTextOverlayMode {
+        if thumbnailShowProgressBar {
+          ReadingProgressBar(progress: progress, type: .card)
+            .opacity(isInProgress ? 1 : 0)
+        }
 
-      if !cardTextOverlayMode && !coverOnlyCards {
-        VStack(alignment: .leading) {
-          if komgaBook.oneshot {
-            Text("Oneshot")
-              .font(.caption)
-              .foregroundColor(.blue)
-              .lineLimit(1)
-          } else if shouldShowSeriesTitle {
-            Text(komgaBook.seriesTitle)
-              .font(.caption)
-              .foregroundColor(.secondary)
-              .lineLimit(1)
-          }
-
-          Text(bookTitleLine)
-            .lineLimit(bookTitleLineLimit)
-
-          HStack(spacing: 4) {
-            if komgaBook.isUnavailable {
-              Text("Unavailable")
-                .foregroundColor(.red)
-            } else if komgaBook.media.status != .ready {
-              Text(komgaBook.media.status.label)
-                .foregroundColor(komgaBook.media.status.color)
-            } else {
-              if progress > 0 && progress < 1 {
-                Text("\(progress * 100, specifier: "%.0f")%")
-                Text("•")
-              }
-              if progress == 1 {
-                Image(systemName: "checkmark.circle.fill")
-                  .foregroundColor(.secondary)
-                  .font(.caption2)
-              }
-              Text("\(komgaBook.mediaPagesCount) pages")
+        if !coverOnlyCards {
+          VStack(alignment: .leading) {
+            if komgaBook.oneshot {
+              Text("Oneshot")
+                .font(.caption)
+                .foregroundColor(.blue)
+                .lineLimit(1)
+            } else if shouldShowSeriesTitle {
+              Text(komgaBook.seriesTitle)
+                .font(.caption)
+                .foregroundColor(.secondary)
                 .lineLimit(1)
             }
-            if komgaBook.downloadStatus != .notDownloaded {
-              Spacer()
-              Image(systemName: komgaBook.downloadStatus.displayIcon)
-                .foregroundColor(komgaBook.downloadStatus.displayColor)
-                .font(.caption2)
+
+            Text(bookTitleLine)
+              .lineLimit(bookTitleLineLimit)
+
+            HStack(spacing: 4) {
+              if komgaBook.isUnavailable {
+                Text("Unavailable")
+                  .foregroundColor(.red)
+              } else if komgaBook.media.status != .ready {
+                Text(komgaBook.media.status.label)
+                  .foregroundColor(komgaBook.media.status.color)
+              } else {
+                if progress > 0 && progress < 1 {
+                  Text("\(progress * 100, specifier: "%.0f")%")
+                  Text("•")
+                }
+                if progress == 1 {
+                  Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.secondary)
+                    .font(.caption2)
+                }
+                Text("\(komgaBook.mediaPagesCount) pages")
+                  .lineLimit(1)
+              }
+              if komgaBook.downloadStatus != .notDownloaded {
+                Spacer()
+                Image(systemName: komgaBook.downloadStatus.displayIcon)
+                  .foregroundColor(komgaBook.downloadStatus.displayColor)
+                  .font(.caption2)
+              }
             }
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
-        }.font(.footnote)
+            .font(.caption)
+            .foregroundColor(.secondary)
+          }.font(.footnote)
+        }
       }
     }
     .frame(maxHeight: .infinity, alignment: .top)
