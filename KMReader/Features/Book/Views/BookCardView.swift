@@ -49,18 +49,26 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
-  var padding: CGFloat {
+  private var shouldShowProgressBarSlot: Bool {
+    thumbnailShowProgressBar && !cardTextOverlayMode
+  }
+
+  private var shouldShowProgressBar: Bool {
+    isInProgress && shouldShowProgressBarSlot
+  }
+
+  var contentSpacing: CGFloat {
     if cardTextOverlayMode {
       return 0
     }
-    if isInProgress && thumbnailShowProgressBar {
-      return 4
+    if thumbnailShowProgressBar {
+      return 2
     }
     return 12
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: padding) {
+    VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
         id: komgaBook.bookId,
         type: .book,
@@ -99,8 +107,9 @@ struct BookCardView: View {
         )
       }
 
-      if isInProgress && thumbnailShowProgressBar && !cardTextOverlayMode {
-        ReadingProgressBar(progress: progress, type: .card)
+      if shouldShowProgressBarSlot {
+        ReadingProgressBar(progress: shouldShowProgressBar ? progress : 0, type: .card)
+          .opacity(shouldShowProgressBar ? 1 : 0)
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
