@@ -16,9 +16,9 @@ struct TapZonePreview: View {
   private var aspectRatio: CGFloat {
     switch direction {
     case .vertical, .webtoon:
-      return 0.707
+      return CoverAspectRatio.widthToHeight
     case .ltr, .rtl:
-      return 1.414
+      return CoverAspectRatio.heightToWidth
     }
   }
 

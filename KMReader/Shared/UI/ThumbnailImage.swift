@@ -22,8 +22,6 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   let overlay: (() -> Overlay)?
   let menu: (() -> Menu)?
 
-  let ratio: CGFloat = 1.414
-
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @Environment(\.zoomNamespace) private var zoomNamespace
@@ -107,7 +105,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
 
   private var imageAspectRatio: CGFloat {
     guard let loadedImageSize = loadedImageSize, loadedImageSize.height > 0 else {
-      return 1 / ratio
+      return CoverAspectRatio.widthToHeight
     }
     return loadedImageSize.width / loadedImageSize.height
   }
@@ -150,7 +148,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       }
     }
     .animation(.easeInOut(duration: 0.18), value: refreshTrigger)
-    .aspectRatio(1 / ratio, contentMode: .fit)
+    .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
     .frame(width: width)
     .overlay {
       if isAbnormalSize, let overlay = overlay {

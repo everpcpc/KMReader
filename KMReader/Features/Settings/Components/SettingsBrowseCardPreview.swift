@@ -25,10 +25,11 @@ struct SettingsBrowseCardPreview: View {
 
   private let cornerRadius: CGFloat = 8
   private let imageCornerRadius: CGFloat = 6
-  private let coverRatio: CGFloat = 1 / 1.414
   private let animation: Animation = .default
 
-  @State private var imageRatio: CGFloat = CGFloat.random(in: 0.5...2.0)
+  private static let imageRatioExponentRange: ClosedRange<CGFloat> = -1...1
+
+  @State private var imageRatio: CGFloat = Self.randomImageRatio()
 
   init(
     title: String,
@@ -82,6 +83,12 @@ struct SettingsBrowseCardPreview: View {
     thumbnailPreserveAspectRatio && !cardTextOverlayMode
   }
 
+  private static func randomImageRatio() -> CGFloat {
+    let exponent = CGFloat.random(in: imageRatioExponentRange)
+    let scale = CGFloat(pow(2.0, Double(exponent)))
+    return CoverAspectRatio.widthToHeight * scale
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: spacing) {
       coverView
@@ -132,7 +139,7 @@ struct SettingsBrowseCardPreview: View {
         imageCard
       }
     }
-    .aspectRatio(coverRatio, contentMode: .fit)
+    .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
   }
 
   private var imageCard: some View {
