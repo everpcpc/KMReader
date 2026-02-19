@@ -49,14 +49,6 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
-  private var shouldShowProgressBarSlot: Bool {
-    thumbnailShowProgressBar && !cardTextOverlayMode
-  }
-
-  private var shouldShowProgressBar: Bool {
-    isInProgress && shouldShowProgressBarSlot
-  }
-
   var contentSpacing: CGFloat {
     if cardTextOverlayMode {
       return 0
@@ -107,9 +99,9 @@ struct BookCardView: View {
         )
       }
 
-      if shouldShowProgressBarSlot {
+      if thumbnailShowProgressBar && !cardTextOverlayMode {
         ReadingProgressBar(progress: progress, type: .card)
-          .opacity(shouldShowProgressBar ? 1 : 0)
+          .opacity(isInProgress ? 1 : 0)
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
