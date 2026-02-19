@@ -1,8 +1,6 @@
 //
-//  ServerLibrariesView.swift
-//  Komga
+// ServerLibrariesView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

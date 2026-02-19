@@ -1,6 +1,6 @@
 //
-//  View+ZoomTransition.swift
-//  KMReader
+// View+ZoomTransition.swift
+//
 //
 
 import SwiftUI

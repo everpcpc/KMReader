@@ -1,6 +1,6 @@
 //
-//  SidebarItemLabel.swift
-//  KMReader
+// SidebarItemLabel.swift
+//
 //
 
 import SwiftUI

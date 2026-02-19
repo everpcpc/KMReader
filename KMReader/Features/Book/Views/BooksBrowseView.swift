@@ -1,6 +1,6 @@
 //
-//  BooksBrowseView.swift
-//  Komga
+// BooksBrowseView.swift
+//
 //
 
 import SwiftData

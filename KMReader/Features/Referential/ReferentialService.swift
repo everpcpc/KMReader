@@ -1,8 +1,6 @@
 //
-//  ReferentialService.swift
-//  KMReader
+// ReferentialService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

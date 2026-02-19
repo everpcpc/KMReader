@@ -1,8 +1,6 @@
 //
-//  OfflineManager.swift
-//  KMReader
+// OfflineManager.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Combine

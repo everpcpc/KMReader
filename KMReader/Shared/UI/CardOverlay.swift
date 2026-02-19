@@ -1,8 +1,6 @@
 //
-//  UnreadCountBadge.swift
-//  Komga
+// CardOverlay.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

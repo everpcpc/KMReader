@@ -1,8 +1,6 @@
 //
-//  LibraryEditSheet.swift
-//  KMReader
+// LibraryEditSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

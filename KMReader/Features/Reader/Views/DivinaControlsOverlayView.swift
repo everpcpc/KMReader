@@ -1,8 +1,6 @@
 //
-//  DivinaControlsOverlayView.swift
-//  Komga
+// DivinaControlsOverlayView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

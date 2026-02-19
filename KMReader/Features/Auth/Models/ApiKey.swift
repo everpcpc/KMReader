@@ -1,8 +1,6 @@
 //
-//  ApiKey.swift
-//  Komga
+// ApiKey.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

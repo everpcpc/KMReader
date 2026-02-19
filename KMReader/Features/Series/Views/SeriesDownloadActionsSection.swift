@@ -1,6 +1,6 @@
 //
-//  SeriesDownloadActionsSection.swift
-//  KMReader
+// SeriesDownloadActionsSection.swift
+//
 //
 
 import SwiftData

@@ -1,8 +1,6 @@
 //
-//  BookReadListsSection.swift
-//  KMReader
+// BookReadListsSection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

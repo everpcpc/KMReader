@@ -1,8 +1,6 @@
 //
-//  CustomFontsSheet.swift
-//  KMReader
+// CustomFontsSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

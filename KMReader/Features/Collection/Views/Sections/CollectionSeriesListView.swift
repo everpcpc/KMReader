@@ -1,8 +1,6 @@
 //
-//  CollectionSeriesListView.swift
-//  Komga
+// CollectionSeriesListView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

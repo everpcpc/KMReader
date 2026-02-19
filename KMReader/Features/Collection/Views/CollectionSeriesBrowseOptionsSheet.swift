@@ -1,8 +1,6 @@
 //
-//  CollectionSeriesBrowseOptionsSheet.swift
-//  Komga
+// CollectionSeriesBrowseOptionsSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

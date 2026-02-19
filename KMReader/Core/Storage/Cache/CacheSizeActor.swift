@@ -1,8 +1,6 @@
 //
-//  CacheSizeActor.swift
-//  Komga
+// CacheSizeActor.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  SeriesContextMenu.swift
-//  Komga
+// SeriesContextMenu.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

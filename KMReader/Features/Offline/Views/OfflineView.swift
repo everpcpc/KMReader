@@ -1,8 +1,6 @@
 //
-//  OfflineView.swift
-//  KMReader
+// OfflineView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

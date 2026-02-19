@@ -1,8 +1,6 @@
 //
-//  ReaderManifestService.swift
-//  KMReader
+// ReaderManifestService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

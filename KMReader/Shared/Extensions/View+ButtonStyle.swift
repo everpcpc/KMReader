@@ -1,8 +1,6 @@
 //
-//  AdaptiveButtonStyle.swift
-//  Komga
+// View+ButtonStyle.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

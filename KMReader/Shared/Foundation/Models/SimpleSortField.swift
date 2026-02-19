@@ -1,8 +1,6 @@
 //
-//  SimpleSortField.swift
-//  Komga
+// SimpleSortField.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

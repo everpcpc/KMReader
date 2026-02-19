@@ -1,6 +1,6 @@
 //
-//  AuthenticationMethod.swift
-//  KMReader
+// AuthenticationMethod.swift
+//
 //
 
 import Foundation

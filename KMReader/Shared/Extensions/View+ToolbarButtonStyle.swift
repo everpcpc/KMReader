@@ -1,8 +1,6 @@
 //
-//  View+ToolbarButtonStyle.swift
-//  Komga
+// View+ToolbarButtonStyle.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

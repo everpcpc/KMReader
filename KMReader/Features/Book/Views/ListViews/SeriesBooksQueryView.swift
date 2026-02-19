@@ -1,8 +1,6 @@
 //
-//  SeriesBooksQueryView.swift
-//  KMReader
+// SeriesBooksQueryView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

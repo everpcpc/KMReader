@@ -1,8 +1,6 @@
 //
-//  LibrarySelection.swift
-//  KMReader
+// LibrarySelection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

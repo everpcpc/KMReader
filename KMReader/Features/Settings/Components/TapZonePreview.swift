@@ -1,8 +1,6 @@
 //
-//  TapZonePreview.swift
-//  Komga
+// TapZonePreview.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI
@@ -16,9 +14,9 @@ struct TapZonePreview: View {
   private var aspectRatio: CGFloat {
     switch direction {
     case .vertical, .webtoon:
-      return 0.707
+      return CoverAspectRatio.widthToHeight
     case .ltr, .rtl:
-      return 1.414
+      return CoverAspectRatio.heightToWidth
     }
   }
 

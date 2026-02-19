@@ -1,8 +1,6 @@
 //
-//  CollectionContextMenu.swift
-//  Komga
+// CollectionContextMenu.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

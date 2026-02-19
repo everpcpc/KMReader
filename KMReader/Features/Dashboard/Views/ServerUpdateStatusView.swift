@@ -1,8 +1,6 @@
 //
-//  ServerUpdateStatusView.swift
-//  Komga
+// ServerUpdateStatusView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

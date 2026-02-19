@@ -1,8 +1,6 @@
 //
-//  WebtoonReaderView_iOS.swift
-//  Komga
+// WebtoonReaderView_iOS.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

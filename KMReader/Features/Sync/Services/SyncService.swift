@@ -1,8 +1,6 @@
 //
-//  SyncService.swift
-//  KMReader
+// SyncService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

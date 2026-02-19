@@ -1,8 +1,6 @@
 //
-//  DashboardSection.swift
-//  Komga
+// DashboardSection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

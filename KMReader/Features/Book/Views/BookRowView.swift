@@ -1,8 +1,6 @@
 //
-//  BookRowView.swift
-//  Komga
+// BookRowView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

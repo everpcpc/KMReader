@@ -1,6 +1,6 @@
 //
-//  SpotlightIndexService.swift
-//  KMReader
+// SpotlightIndexService.swift
+//
 //
 
 @preconcurrency import CoreSpotlight

@@ -1,8 +1,6 @@
 //
-//  ReaderXHTMLParser.swift
-//  KMReader
+// ReaderXHTMLParser.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

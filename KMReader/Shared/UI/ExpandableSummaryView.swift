@@ -1,8 +1,6 @@
 //
-//  ExpandableSummaryView.swift
-//  Komga
+// ExpandableSummaryView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

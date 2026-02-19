@@ -1,8 +1,6 @@
 //
-//  OfflineShortcutRow.swift
-//  KMReader
+// OfflineShortcutRow.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

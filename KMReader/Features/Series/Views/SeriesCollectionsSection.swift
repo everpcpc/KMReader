@@ -1,8 +1,6 @@
 //
-//  SeriesCollectionsSection.swift
-//  KMReader
+// SeriesCollectionsSection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

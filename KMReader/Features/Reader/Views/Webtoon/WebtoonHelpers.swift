@@ -1,8 +1,6 @@
 //
-//  WebtoonHelpers.swift
-//  Komga
+// WebtoonHelpers.swift
 //
-//  Created by Komga iOS Client
 //
 
 import CoreGraphics

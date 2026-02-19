@@ -1,8 +1,6 @@
 //
-//  CurlPageView.swift
-//  KMReader
+// CurlPageView.swift
 //
-//  UIPageViewController wrapper for pageCurl transition effect (iOS only)
 //
 
 #if os(iOS)

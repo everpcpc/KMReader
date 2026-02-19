@@ -1,8 +1,6 @@
 //
-//  OfflineSection.swift
-//  Komga
+// OfflineSection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

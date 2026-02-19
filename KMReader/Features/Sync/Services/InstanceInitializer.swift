@@ -1,8 +1,6 @@
 //
-//  InstanceInitializer.swift
-//  KMReader
+// InstanceInitializer.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

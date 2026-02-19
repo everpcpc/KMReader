@@ -1,8 +1,6 @@
 //
-//  AdaptiveButtonStyle.swift
-//  Komga
+// View+TextSelection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

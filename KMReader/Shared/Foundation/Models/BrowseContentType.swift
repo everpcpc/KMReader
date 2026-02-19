@@ -1,8 +1,6 @@
 //
-//  BrowseContentType.swift
-//  Komga
+// BrowseContentType.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

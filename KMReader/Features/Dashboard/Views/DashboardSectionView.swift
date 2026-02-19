@@ -1,8 +1,6 @@
 //
-//  DashboardSectionView.swift
-//  KMReader
+// DashboardSectionView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

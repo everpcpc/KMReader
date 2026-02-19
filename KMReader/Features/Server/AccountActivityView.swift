@@ -1,8 +1,6 @@
 //
-//  AccountActivityView.swift
-//  Komga
+// AccountActivityView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

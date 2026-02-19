@@ -1,8 +1,6 @@
 //
-//  SettingsCacheView.swift
-//  Komga
+// SettingsCacheView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

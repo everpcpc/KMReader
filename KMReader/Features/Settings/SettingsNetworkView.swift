@@ -1,8 +1,6 @@
 //
-//  SettingsNetworkView.swift
-//  Komga
+// SettingsNetworkView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

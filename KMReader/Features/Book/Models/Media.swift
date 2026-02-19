@@ -1,8 +1,6 @@
 //
-//  Media.swift
-//  Komga
+// Media.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

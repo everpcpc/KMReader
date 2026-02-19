@@ -1,8 +1,6 @@
 //
-//  TapZoneOverlay.swift
-//  Komga
+// TapZoneOverlay.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  AppErrorType.swift
-//  Komga
+// AppErrorType.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

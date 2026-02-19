@@ -1,8 +1,6 @@
 //
-//  View+FocusableHighlight.swift
-//  Komga
+// View+FocusableHighlight.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

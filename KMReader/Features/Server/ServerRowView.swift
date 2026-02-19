@@ -1,6 +1,6 @@
 //
-//  ServerRowView.swift
-//  KMReader
+// ServerRowView.swift
+//
 //
 
 import SwiftData

@@ -1,8 +1,6 @@
 //
-//  SeriesContinueReadingResolver.swift
-//  KMReader
+// SeriesContinueReadingResolver.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

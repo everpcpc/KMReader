@@ -1,8 +1,6 @@
 //
-//  DivinaReaderView.swift
-//  Komga
+// DivinaReaderView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

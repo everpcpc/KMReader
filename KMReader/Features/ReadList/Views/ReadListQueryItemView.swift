@@ -1,8 +1,6 @@
 //
-//  ReadListQueryItemView.swift
-//  KMReader
+// ReadListQueryItemView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

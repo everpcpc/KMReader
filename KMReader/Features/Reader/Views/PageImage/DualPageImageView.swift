@@ -1,8 +1,6 @@
 //
-//  DualPageImageView.swift
-//  Komga
+// DualPageImageView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

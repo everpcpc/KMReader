@@ -1,8 +1,6 @@
 //
-//  ServerActionRow.swift
-//  KMReader
+// ServerActionRow.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

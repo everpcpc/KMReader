@@ -1,8 +1,6 @@
 //
-//  TapZoneHelper.swift
-//  KMReader
+// TapZoneHelper.swift
 //
-//  Created by Antigravity
 //
 
 import Foundation

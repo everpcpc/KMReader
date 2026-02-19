@@ -1,8 +1,6 @@
 //
-//  ReadListContextMenu.swift
-//  Komga
+// ReadListContextMenu.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

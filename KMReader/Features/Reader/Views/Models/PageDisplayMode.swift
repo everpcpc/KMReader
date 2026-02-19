@@ -1,8 +1,6 @@
 //
-//  PageDisplayMode.swift
-//  KMReader
+// PageDisplayMode.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  User.swift
-//  Komga
+// User.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

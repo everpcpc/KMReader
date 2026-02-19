@@ -1,8 +1,6 @@
 //
-//  KeyboardEventHandler.swift
-//  Komga
+// KeyboardEventHandler.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

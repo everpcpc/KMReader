@@ -1,8 +1,6 @@
 //
-//  ServerView.swift
-//  KMReader
+// ServerView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Flow

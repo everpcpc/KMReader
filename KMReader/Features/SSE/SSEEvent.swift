@@ -1,8 +1,6 @@
 //
-//  SSEEvent.swift
-//  Komga
+// SSEEvent.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  ErrorManager.swift
-//  Komga
+// ErrorManager.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,6 +1,6 @@
 //
-//  PageTransitionStyle.swift
-//  KMReader
+// PageTransitionStyle.swift
+//
 //
 
 import Foundation

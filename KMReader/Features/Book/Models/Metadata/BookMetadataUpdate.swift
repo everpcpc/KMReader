@@ -1,8 +1,6 @@
 //
-//  BookMetadataUpdate.swift
-//  KMReader
+// BookMetadataUpdate.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

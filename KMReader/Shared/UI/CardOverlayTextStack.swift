@@ -1,8 +1,6 @@
 //
-//  CardOverlayTextStack.swift
-//  KMReader
+// CardOverlayTextStack.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

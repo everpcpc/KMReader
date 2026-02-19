@@ -1,8 +1,6 @@
 //
-//  ReaderBackground.swift
-//  Komga
+// ReaderBackground.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

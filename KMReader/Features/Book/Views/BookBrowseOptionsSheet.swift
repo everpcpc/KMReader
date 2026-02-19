@@ -1,8 +1,6 @@
 //
-//  BookBrowseOptionsSheet.swift
-//  Komga
+// BookBrowseOptionsSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

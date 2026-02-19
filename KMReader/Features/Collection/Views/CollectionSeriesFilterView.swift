@@ -1,8 +1,6 @@
 //
-//  CollectionSeriesFilterView.swift
-//  Komga
+// CollectionSeriesFilterView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

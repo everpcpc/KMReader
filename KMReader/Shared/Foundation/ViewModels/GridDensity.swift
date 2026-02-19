@@ -1,8 +1,6 @@
 //
-//  GridDensity.swift
-//  KMReader
+// GridDensity.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

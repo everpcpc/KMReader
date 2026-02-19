@@ -1,8 +1,6 @@
 //
-//  WebtoonPageCell_macOS.swift
-//  Komga
+// WebtoonPageCell_macOS.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(macOS)

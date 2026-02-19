@@ -1,8 +1,6 @@
 //
-//  SplashView.swift
-//  Komga
+// SplashView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

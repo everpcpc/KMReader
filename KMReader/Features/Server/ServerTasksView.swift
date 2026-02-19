@@ -1,8 +1,6 @@
 //
-//  ServerTasksView.swift
-//  Komga
+// ServerTasksView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

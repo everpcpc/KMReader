@@ -1,8 +1,6 @@
 //
-//  ContentView.swift
-//  Komga
+// ContentView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

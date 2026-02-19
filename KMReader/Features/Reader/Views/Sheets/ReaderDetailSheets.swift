@@ -1,8 +1,6 @@
 //
-//  ReaderDetailSheets.swift
-//  KMReader
+// ReaderDetailSheets.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

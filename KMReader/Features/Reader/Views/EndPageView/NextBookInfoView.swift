@@ -1,8 +1,6 @@
 //
-//  NextBookInfoView.swift
-//  Komga
+// NextBookInfoView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

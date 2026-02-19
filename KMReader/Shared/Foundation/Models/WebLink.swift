@@ -1,8 +1,6 @@
 //
-//  WebLink.swift
-//  Komga
+// WebLink.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

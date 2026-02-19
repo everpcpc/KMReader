@@ -1,8 +1,6 @@
 //
-//  EpubThemePresetsView.swift
-//  KMReader
+// EpubThemePresetsView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

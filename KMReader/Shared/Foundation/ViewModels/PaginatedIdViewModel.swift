@@ -1,8 +1,6 @@
 //
-//  PaginatedIdViewModel.swift
-//  Komga
+// PaginatedIdViewModel.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

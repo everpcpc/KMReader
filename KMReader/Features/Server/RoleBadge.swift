@@ -1,8 +1,6 @@
 //
-//  RoleBadge.swift
-//  KMReader
+// RoleBadge.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

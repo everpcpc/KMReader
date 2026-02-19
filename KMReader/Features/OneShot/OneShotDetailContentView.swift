@@ -1,8 +1,6 @@
 //
-//  OneShotDetailContentView.swift
-//  Komga
+// OneShotDetailContentView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Flow

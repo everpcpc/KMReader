@@ -1,8 +1,6 @@
 //
-//  MetadataFilter.swift
-//  Komga
+// MetadataFilter.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

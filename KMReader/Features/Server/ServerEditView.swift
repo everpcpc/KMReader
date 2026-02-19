@@ -1,8 +1,6 @@
 //
-//  ServerEditView.swift
-//  Komga
+// ServerEditView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

@@ -1,8 +1,6 @@
 //
-//  InfoRow.swift
-//  Komga
+// InfoRow.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

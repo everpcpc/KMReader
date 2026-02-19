@@ -1,8 +1,6 @@
 //
-//  ServerHistoryView.swift
-//  KMReader
+// ServerHistoryView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

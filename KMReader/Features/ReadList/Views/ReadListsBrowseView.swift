@@ -1,8 +1,6 @@
 //
-//  ReadListsBrowseView.swift
-//  Komga
+// ReadListsBrowseView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

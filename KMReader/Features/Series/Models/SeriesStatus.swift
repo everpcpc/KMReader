@@ -1,8 +1,6 @@
 //
-//  SeriesStatus.swift
-//  Komga
+// SeriesStatus.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

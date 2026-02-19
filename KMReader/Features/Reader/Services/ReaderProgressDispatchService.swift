@@ -1,6 +1,6 @@
 //
-//  ReaderProgressDispatchService.swift
-//  KMReader
+// ReaderProgressDispatchService.swift
+//
 //
 
 import Foundation

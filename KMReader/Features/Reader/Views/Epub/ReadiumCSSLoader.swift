@@ -1,8 +1,6 @@
 //
-//  ReadiumCSSLoader.swift
-//  KMReader
+// ReadiumCSSLoader.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

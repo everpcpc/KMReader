@@ -1,8 +1,6 @@
 //
-//  View+PickerStyle.swift
-//  Komga
+// View+PickerStyle.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

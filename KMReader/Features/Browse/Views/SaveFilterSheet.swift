@@ -1,8 +1,6 @@
 //
-//  SaveFilterSheet.swift
-//  KMReader
+// SaveFilterSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

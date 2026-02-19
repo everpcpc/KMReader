@@ -1,8 +1,6 @@
 //
-//  LanguageCodeHelper.swift
-//  Komga
+// LanguageCodeHelper.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

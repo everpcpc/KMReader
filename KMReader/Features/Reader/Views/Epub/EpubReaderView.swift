@@ -1,8 +1,6 @@
 //
-//  EpubReaderView.swift
-//  KMReader
+// EpubReaderView.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

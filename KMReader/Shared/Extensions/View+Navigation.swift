@@ -1,8 +1,6 @@
 //
-//  View+Navigation.swift
-//  Komga
+// View+Navigation.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

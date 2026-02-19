@@ -1,6 +1,6 @@
 //
-//  AnimatedImagePlayButton.swift
-//  KMReader
+// AnimatedImagePlayButton.swift
+//
 //
 
 import SwiftUI

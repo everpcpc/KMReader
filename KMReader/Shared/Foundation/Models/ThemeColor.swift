@@ -1,8 +1,6 @@
 //
-//  ThemeColor.swift
-//  Komga
+// ThemeColor.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

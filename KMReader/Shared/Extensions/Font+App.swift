@@ -1,8 +1,6 @@
 //
-//  Font+App.swift
-//  KMReader
+// Font+App.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

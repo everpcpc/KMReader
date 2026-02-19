@@ -1,8 +1,6 @@
 //
-//  ArcEffectShape.swift
-//  Komga
+// ArcEffectShape.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  ReadingDirection.swift
-//  Komga
+// ReadingDirection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

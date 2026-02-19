@@ -1,8 +1,6 @@
 //
-//  FilterStrings.swift
-//  Komga
+// FilterStrings.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

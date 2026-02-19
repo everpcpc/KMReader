@@ -1,8 +1,6 @@
 //
-//  AppLogger.swift
-//  KMReader
+// AppLogger.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

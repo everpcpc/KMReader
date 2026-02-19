@@ -1,8 +1,6 @@
 //
-//  SeriesRowView.swift
-//  Komga
+// SeriesRowView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

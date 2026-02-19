@@ -1,8 +1,6 @@
 //
-//  SettingsAppearanceView.swift
-//  Komga
+// SettingsAppearanceView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  BookContextMenu.swift
-//  Komga
+// BookContextMenu.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

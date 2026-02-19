@@ -1,8 +1,6 @@
 //
-//  View+ListStyle.swift
-//  Komga
+// View+ListStyle.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

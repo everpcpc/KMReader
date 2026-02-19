@@ -1,8 +1,6 @@
 //
-//  BookSortField.swift
-//  Komga
+// BookSortField.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  NoPagesView.swift
-//  Komga
+// NoPagesView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

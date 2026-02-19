@@ -1,8 +1,6 @@
 //
-//  JSONAny.swift
-//  Komga
+// JSONAny.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

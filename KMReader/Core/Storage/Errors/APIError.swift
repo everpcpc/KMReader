@@ -1,8 +1,6 @@
 //
-//  APIError.swift
-//  Komga
+// APIError.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

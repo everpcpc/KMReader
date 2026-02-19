@@ -1,8 +1,6 @@
 //
-//  View+ReaderSafeArea.swift
-//  KMReader
+// View+ReaderSafeArea.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

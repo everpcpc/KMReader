@@ -1,8 +1,6 @@
 //
-//  SettingsSection.swift
-//  Komga
+// SettingsSection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

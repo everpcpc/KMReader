@@ -1,8 +1,6 @@
 //
-//  R2Types.swift
-//  KMReader
+// R2Types.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

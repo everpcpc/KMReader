@@ -1,8 +1,6 @@
 //
-//  BookCardView.swift
-//  Komga
+// BookCardView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

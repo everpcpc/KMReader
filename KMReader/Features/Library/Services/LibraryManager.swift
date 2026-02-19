@@ -1,8 +1,6 @@
 //
-//  LibraryManager.swift
-//  Komga
+// LibraryManager.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

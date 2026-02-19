@@ -1,8 +1,6 @@
 //
-//  OfflineTasksStatusView.swift
-//  KMReader
+// OfflineTasksStatusView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

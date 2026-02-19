@@ -1,6 +1,6 @@
 //
-//  SettingsSpotlightView.swift
-//  KMReader
+// SettingsSpotlightView.swift
+//
 //
 
 import SwiftUI

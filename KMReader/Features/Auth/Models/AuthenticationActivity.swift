@@ -1,8 +1,6 @@
 //
-//  AuthenticationActivity.swift
-//  Komga
+// AuthenticationActivity.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

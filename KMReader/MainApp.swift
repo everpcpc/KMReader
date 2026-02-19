@@ -1,8 +1,6 @@
 //
-//  KomgaApp.swift
-//  Komga
+// MainApp.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

@@ -1,8 +1,6 @@
 //
-//  ReadListDetailView.swift
-//  Komga
+// ReadListDetailView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

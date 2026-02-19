@@ -1,8 +1,6 @@
 //
-//  ApiKeyAddSheet.swift
-//  Komga
+// ApiKeyAddSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  ReadProgress.swift
-//  Komga
+// ReadProgress.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

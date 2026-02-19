@@ -1,8 +1,6 @@
 //
-//  CollectionEditSheet.swift
-//  Komga
+// CollectionEditSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  SeriesOfflinePolicy.swift
-//  KMReader
+// SeriesOfflinePolicy.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

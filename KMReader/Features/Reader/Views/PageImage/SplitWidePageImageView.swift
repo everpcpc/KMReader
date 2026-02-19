@@ -1,8 +1,6 @@
 //
-//  SplitWidePageImageView.swift
-//  KMReader
+// SplitWidePageImageView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

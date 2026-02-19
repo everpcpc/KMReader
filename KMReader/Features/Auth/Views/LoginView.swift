@@ -1,8 +1,6 @@
 //
-//  LoginView.swift
-//  Komga
+// LoginView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

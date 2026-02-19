@@ -1,8 +1,6 @@
 //
-//  SeriesSearch.swift
-//  Komga
+// SeriesSearch.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

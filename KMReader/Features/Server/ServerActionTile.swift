@@ -1,8 +1,6 @@
 //
-//  ServerActionTile.swift
-//  KMReader
+// ServerActionTile.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

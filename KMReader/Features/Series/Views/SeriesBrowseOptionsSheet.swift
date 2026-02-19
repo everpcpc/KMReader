@@ -1,8 +1,6 @@
 //
-//  SeriesBrowseOptionsSheet.swift
-//  Komga
+// SeriesBrowseOptionsSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

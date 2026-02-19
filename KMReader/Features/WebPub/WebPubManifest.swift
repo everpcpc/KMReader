@@ -1,8 +1,6 @@
 //
-//  WebPubManifest.swift
-//  KMReader
+// WebPubManifest.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

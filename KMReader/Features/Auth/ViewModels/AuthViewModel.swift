@@ -1,8 +1,6 @@
 //
-//  AuthViewModel.swift
-//  Komga
+// AuthViewModel.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

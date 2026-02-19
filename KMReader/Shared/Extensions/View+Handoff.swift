@@ -1,8 +1,6 @@
 //
-//  View+Handoff.swift
-//  KMReader
+// View+Handoff.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

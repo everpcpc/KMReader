@@ -1,8 +1,6 @@
 //
-//  CompositeID.swift
-//  KMReader
+// CompositeID.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,6 +1,6 @@
 //
-//  TappableInfoChip.swift
-//  KMReader
+// TappableInfoChip.swift
+//
 //
 
 import SwiftUI

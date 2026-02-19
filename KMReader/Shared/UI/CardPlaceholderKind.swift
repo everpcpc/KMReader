@@ -1,8 +1,6 @@
 //
-//  CardPlaceholderKind.swift
-//  KMReader
+// CardPlaceholderKind.swift
 //
-//  Created by Komga iOS Client
 //
 
 enum CardPlaceholderKind {

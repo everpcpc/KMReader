@@ -1,8 +1,6 @@
 //
-//  NavDestination.swift
-//  Komga
+// NavDestination.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

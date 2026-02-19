@@ -1,8 +1,6 @@
 //
-//  CollectionCardView.swift
-//  Komga
+// CollectionCardView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

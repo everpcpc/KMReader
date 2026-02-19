@@ -1,8 +1,6 @@
 //
-//  Double+FileSize.swift
-//  Komga
+// Double+FileSize.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

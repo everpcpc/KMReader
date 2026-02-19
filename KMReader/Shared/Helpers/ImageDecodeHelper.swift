@@ -1,8 +1,6 @@
 //
-//  ImageDecodeHelper.swift
-//  Komga
+// ImageDecodeHelper.swift
 //
-//  Created by Komga iOS Client
 //
 
 import CoreGraphics

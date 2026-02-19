@@ -1,8 +1,6 @@
 //
-//  SeriesDetailContentView.swift
-//  Komga
+// SeriesDetailContentView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Flow

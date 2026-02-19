@@ -1,8 +1,6 @@
 //
-//  SeriesEditSheet.swift
-//  Komga
+// SeriesEditSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

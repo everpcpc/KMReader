@@ -1,8 +1,6 @@
 //
-//  AdminRequiredView.swift
-//  Komga
+// AdminRequiredView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

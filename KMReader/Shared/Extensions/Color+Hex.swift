@@ -1,8 +1,6 @@
 //
-//  Color+Hex.swift
-//  KMReader
+// Color+Hex.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

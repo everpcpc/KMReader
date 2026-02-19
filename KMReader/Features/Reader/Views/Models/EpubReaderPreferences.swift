@@ -1,8 +1,6 @@
 //
-//  EpubReaderPreferences.swift
-//  KMReader
+// EpubReaderPreferences.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

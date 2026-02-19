@@ -1,8 +1,6 @@
 //
-//  ReaderViewModel.swift
-//  Komga
+// ReaderViewModel.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

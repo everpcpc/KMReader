@@ -1,8 +1,6 @@
 //
-//  KomgaBook.swift
-//  KMReader
+// KomgaBook.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

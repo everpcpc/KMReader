@@ -1,6 +1,6 @@
 //
-//  NativePageData.swift
-//  KMReader
+// NativePageData.swift
+//
 //
 
 import SwiftUI

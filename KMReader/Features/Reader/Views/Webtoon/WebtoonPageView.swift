@@ -1,8 +1,6 @@
 //
-//  WebtoonPageView.swift
-//  Komga
+// WebtoonPageView.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS) || os(macOS)

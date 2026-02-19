@@ -1,8 +1,6 @@
 //
-//  Book.swift
-//  Komga
+// Book.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

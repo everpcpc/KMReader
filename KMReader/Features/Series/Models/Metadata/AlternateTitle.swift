@@ -1,8 +1,6 @@
 //
-//  AlternateTitle.swift
-//  Komga
+// AlternateTitle.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

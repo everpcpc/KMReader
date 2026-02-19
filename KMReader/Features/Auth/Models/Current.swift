@@ -1,8 +1,6 @@
 //
-//  Current.swift
-//  KMReader
+// Current.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

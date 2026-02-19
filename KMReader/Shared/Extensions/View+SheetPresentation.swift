@@ -1,8 +1,6 @@
 //
-//  View+SheetPresentation.swift
-//  Komga
+// View+SheetPresentation.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

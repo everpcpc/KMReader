@@ -1,8 +1,6 @@
 //
-//  AuthorRole.swift
-//  Komga
+// AuthorRole.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

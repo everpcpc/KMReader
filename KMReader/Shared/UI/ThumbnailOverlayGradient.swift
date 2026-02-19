@@ -1,8 +1,6 @@
 //
-//  ThumbnailOverlayGradient.swift
-//  Komga
+// ThumbnailOverlayGradient.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

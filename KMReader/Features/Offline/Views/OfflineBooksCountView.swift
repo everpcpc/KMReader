@@ -1,8 +1,6 @@
 //
-//  OfflineBooksCountView.swift
-//  KMReader
+// OfflineBooksCountView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

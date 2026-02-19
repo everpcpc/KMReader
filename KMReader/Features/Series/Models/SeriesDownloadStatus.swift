@@ -1,8 +1,6 @@
 //
-//  SeriesDownloadStatus.swift
-//  KMReader
+// SeriesDownloadStatus.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

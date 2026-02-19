@@ -1,8 +1,6 @@
 //
-//  HistoryService.swift
-//  KMReader
+// HistoryService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  Date+Formatting.swift
-//  Komga
+// Date+Formatting.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

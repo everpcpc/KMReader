@@ -1,8 +1,6 @@
 //
-//  DivinaPreferencesView.swift
-//  Komga
+// DivinaPreferencesView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

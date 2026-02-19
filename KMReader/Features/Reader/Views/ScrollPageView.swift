@@ -1,6 +1,6 @@
 //
-//  ScrollPageView.swift
-//  Komga
+// ScrollPageView.swift
+//
 //
 
 import SwiftUI

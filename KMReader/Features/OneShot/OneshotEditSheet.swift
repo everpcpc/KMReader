@@ -1,8 +1,6 @@
 //
-//  OneshotEditSheet.swift
-//  Komga
+// OneshotEditSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

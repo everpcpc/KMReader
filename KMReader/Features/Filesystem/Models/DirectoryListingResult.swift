@@ -1,8 +1,6 @@
 //
-//  DirectoryListingResult.swift
-//  KMReader
+// DirectoryListingResult.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  ReadListService.swift
-//  Komga
+// ReadListService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

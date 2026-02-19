@@ -1,8 +1,6 @@
 //
-//  HorizontalScrollButtons.swift
-//  KMReader
+// HorizontalScrollButtons.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

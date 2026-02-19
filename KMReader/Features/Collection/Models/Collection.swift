@@ -1,8 +1,6 @@
 //
-//  Collection.swift
-//  Komga
+// Collection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  EllipsisMenuButton.swift
-//  Komga
+// EllipsisMenuButton.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

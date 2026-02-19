@@ -1,8 +1,6 @@
 //
-//  View+ControlSize.swift
-//  Komga
+// View+ControlSize.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

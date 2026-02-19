@@ -1,8 +1,6 @@
 //
-//  FontFileManager.swift
-//  KMReader
+// FontFileManager.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

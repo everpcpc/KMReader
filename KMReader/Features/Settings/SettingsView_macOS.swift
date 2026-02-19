@@ -1,8 +1,6 @@
 //
-//  SettingsView_macOS.swift
-//  Komga
+// SettingsView_macOS.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

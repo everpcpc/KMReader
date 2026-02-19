@@ -1,8 +1,6 @@
 //
-//  BookReaderState.swift
-//  Komga
+// BookReaderState.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  AuthService.swift
-//  Komga
+// AuthService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

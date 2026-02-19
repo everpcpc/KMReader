@@ -1,8 +1,6 @@
 //
-//  OfflineSeriesBrowseView.swift
-//  KMReader
+// OfflineSeriesBrowseView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

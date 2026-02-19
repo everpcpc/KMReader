@@ -1,8 +1,6 @@
 //
-//  LibraryMetricsLoader.swift
-//  KMReader
+// LibraryMetricsLoader.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

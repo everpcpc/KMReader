@@ -1,8 +1,6 @@
 //
-//  ReadListCardView.swift
-//  Komga
+// ReadListCardView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

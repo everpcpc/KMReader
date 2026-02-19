@@ -1,8 +1,6 @@
 //
-//  WebtoonConstants.swift
-//  Komga
+// ReaderConstants.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

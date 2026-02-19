@@ -1,8 +1,6 @@
 //
-//  ProgressSyncService.swift
-//  KMReader
+// ProgressSyncService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

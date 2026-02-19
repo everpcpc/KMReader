@@ -1,8 +1,6 @@
 //
-//  ApiKeysView.swift
-//  Komga
+// ApiKeysView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

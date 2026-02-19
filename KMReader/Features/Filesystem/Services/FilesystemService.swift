@@ -1,8 +1,6 @@
 //
-//  FilesystemService.swift
-//  KMReader
+// FilesystemService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

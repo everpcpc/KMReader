@@ -1,8 +1,6 @@
 //
-//  SheetView.swift
-//  KMReader
+// SheetView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  BrowseLayoutMode.swift
-//  Komga
+// BrowseLayoutMode.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

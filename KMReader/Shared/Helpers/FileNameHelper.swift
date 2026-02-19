@@ -1,8 +1,6 @@
 //
-//  FileNameHelper.swift
-//  KMReader
+// FileNameHelper.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

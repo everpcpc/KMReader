@@ -1,8 +1,6 @@
 //
-//  View+MenuStyle.swift
-//  KMReader
+// View+MenuStyle.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  KomgaReadList.swift
-//  KMReader
+// KomgaReadList.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

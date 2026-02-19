@@ -1,8 +1,6 @@
 //
-//  FilterChip.swift
-//  Komga
+// FilterChip.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

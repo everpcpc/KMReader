@@ -1,8 +1,6 @@
 //
-//  LandingView.swift
-//  Komga
+// LandingView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  TriStateFilter.swift
-//  Komga
+// TriStateFilter.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

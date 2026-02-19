@@ -1,8 +1,6 @@
 //
-//  ReadingProgressBar.swift
-//  Komga
+// ReadingProgressBar.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

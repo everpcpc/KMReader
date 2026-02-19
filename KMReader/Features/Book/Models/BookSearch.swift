@@ -1,8 +1,6 @@
 //
-//  BookSearch.swift
-//  Komga
+// BookSearch.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

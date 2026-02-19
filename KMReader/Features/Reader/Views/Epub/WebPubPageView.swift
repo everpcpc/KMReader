@@ -1,8 +1,6 @@
 //
-//  WebPubPageView.swift
-//  KMReader
+// WebPubPageView.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

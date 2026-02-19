@@ -1,8 +1,6 @@
 //
-//  ReadListEditSheet.swift
-//  Komga
+// ReadListEditSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

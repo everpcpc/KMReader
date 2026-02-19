@@ -1,8 +1,6 @@
 //
-//  SortOptionView.swift
-//  Komga
+// SortOptionView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

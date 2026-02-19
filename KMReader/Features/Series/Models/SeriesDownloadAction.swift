@@ -1,6 +1,6 @@
 //
-//  SeriesDownloadAction.swift
-//  KMReader
+// SeriesDownloadAction.swift
+//
 //
 
 import Foundation

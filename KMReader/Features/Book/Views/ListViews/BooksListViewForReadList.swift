@@ -1,8 +1,6 @@
 //
-//  BooksListViewForReadList.swift
-//  Komga
+// BooksListViewForReadList.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

@@ -1,8 +1,6 @@
 //
-//  ReaderSettingsSheet.swift
-//  Komga
+// ReaderSettingsSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

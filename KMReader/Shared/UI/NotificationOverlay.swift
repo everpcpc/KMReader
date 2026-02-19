@@ -1,6 +1,6 @@
 //
-//  NotificationOverlay.swift
-//  KMReader
+// NotificationOverlay.swift
+//
 //
 
 import SwiftData

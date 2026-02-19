@@ -1,8 +1,6 @@
 //
-//  SeriesService.swift
-//  Komga
+// SeriesService.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

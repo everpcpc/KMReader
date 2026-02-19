@@ -1,6 +1,6 @@
 //
-//  WidgetDataService.swift
-//  KMReader
+// WidgetDataService.swift
+//
 //
 
 import Foundation

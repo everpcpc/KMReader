@@ -1,8 +1,6 @@
 //
-//  SavedFilter.swift
-//  KMReader
+// SavedFilter.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

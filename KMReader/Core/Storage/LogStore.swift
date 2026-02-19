@@ -1,8 +1,6 @@
 //
-//  LogStore.swift
-//  KMReader
+// LogStore.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

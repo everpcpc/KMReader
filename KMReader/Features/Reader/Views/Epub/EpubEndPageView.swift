@@ -1,8 +1,6 @@
 //
-//  EpubEndPageView.swift
-//  KMReader
+// EpubEndPageView.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

@@ -1,8 +1,6 @@
 //
-//  SeriesBooksMetadata.swift
-//  Komga
+// SeriesBooksMetadata.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

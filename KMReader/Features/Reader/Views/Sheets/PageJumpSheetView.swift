@@ -1,8 +1,6 @@
 //
-//  PageJumpSheetView.swift
-//  Komga
+// PageJumpSheetView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

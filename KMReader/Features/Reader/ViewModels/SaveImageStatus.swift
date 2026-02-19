@@ -1,8 +1,6 @@
 //
-//  SaveImageStatus.swift
-//  Komga
+// SaveImageStatus.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

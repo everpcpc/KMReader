@@ -1,8 +1,6 @@
 //
-//  SimpleSortOptionsSheet.swift
-//  Komga
+// SimpleSortOptionsSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

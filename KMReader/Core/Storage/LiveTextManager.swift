@@ -1,6 +1,6 @@
 //
-//  LiveTextManager.swift
-//  KMReader
+// LiveTextManager.swift
+//
 //
 
 import Foundation

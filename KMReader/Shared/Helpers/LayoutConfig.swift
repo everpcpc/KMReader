@@ -1,8 +1,6 @@
 //
-//  LayoutConfig.swift
-//  KMReader
+// LayoutConfig.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

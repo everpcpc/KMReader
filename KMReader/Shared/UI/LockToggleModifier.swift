@@ -1,8 +1,6 @@
 //
-//  LockToggleModifier.swift
-//  Komga
+// LockToggleModifier.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

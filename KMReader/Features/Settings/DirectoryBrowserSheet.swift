@@ -1,8 +1,6 @@
 //
-//  DirectoryBrowserSheet.swift
-//  KMReader
+// DirectoryBrowserSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

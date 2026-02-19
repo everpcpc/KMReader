@@ -1,8 +1,6 @@
 //
-//  PlatformHelpers.swift
-//  Komga
+// PlatformHelpers.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  ReadListDetailContentView.swift
-//  Komga
+// ReadListDetailContentView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

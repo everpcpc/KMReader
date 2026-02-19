@@ -1,8 +1,6 @@
 //
-//  LibraryPickerSheet.swift
-//  Komga
+// LibraryPickerSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

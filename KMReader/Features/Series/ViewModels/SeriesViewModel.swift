@@ -1,8 +1,6 @@
 //
-//  SeriesViewModel.swift
-//  Komga
+// SeriesViewModel.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

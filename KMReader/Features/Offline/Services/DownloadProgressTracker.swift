@@ -1,8 +1,6 @@
 //
-//  DownloadProgressTracker.swift
-//  KMReader
+// DownloadProgressTracker.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

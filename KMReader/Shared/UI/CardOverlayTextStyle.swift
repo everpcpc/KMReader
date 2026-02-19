@@ -1,8 +1,6 @@
 //
-//  CardOverlayTextStyle.swift
-//  KMReader
+// CardOverlayTextStyle.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

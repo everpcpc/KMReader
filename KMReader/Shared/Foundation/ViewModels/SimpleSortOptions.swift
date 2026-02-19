@@ -1,8 +1,6 @@
 //
-//  SimpleSortOptions.swift
-//  Komga
+// SimpleSortOptions.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

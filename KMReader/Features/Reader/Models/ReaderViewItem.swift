@@ -1,8 +1,6 @@
 //
-//  ReaderViewItem.swift
-//  KMReader
+// ReaderViewItem.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

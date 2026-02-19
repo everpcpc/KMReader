@@ -1,6 +1,6 @@
 //
-//  BrowseSelectionKey.swift
-//  KMReader
+// SidebarSelectionKey.swift
+//
 //
 
 import SwiftUI

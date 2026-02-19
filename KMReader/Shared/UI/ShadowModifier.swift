@@ -1,8 +1,6 @@
 //
-//  ShadowModifier.swift
-//  Komga
+// ShadowModifier.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

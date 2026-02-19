@@ -1,8 +1,6 @@
 //
-//  EpubTocSheetView.swift
-//  KMReader
+// EpubTocSheetView.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

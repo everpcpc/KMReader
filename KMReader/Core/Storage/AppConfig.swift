@@ -1,8 +1,6 @@
 //
-//  AppConfig.swift
-//  Komga
+// AppConfig.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

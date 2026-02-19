@@ -1,8 +1,6 @@
 //
-//  CardPlaceholder.swift
-//  KMReader
+// CardPlaceholder.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI
@@ -15,7 +13,6 @@ struct CardPlaceholder: View {
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
 
-  private let ratio: CGFloat = 1.414
   private let cornerRadius: CGFloat = 8
   private let lineSpacing: CGFloat = 6
 
@@ -75,7 +72,7 @@ struct CardPlaceholder: View {
       }
     }
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-    .aspectRatio(1 / ratio, contentMode: .fit)
+    .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
   }
 
   private var listPlaceholder: some View {
@@ -83,7 +80,7 @@ struct CardPlaceholder: View {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.gray.opacity(0.2))
         .frame(width: listThumbnailWidth)
-        .aspectRatio(1 / ratio, contentMode: .fit)
+        .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
 
       VStack(alignment: .leading, spacing: lineSpacing) {
         ForEach(Array(listLines.enumerated()), id: \.offset) { item in

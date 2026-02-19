@@ -1,8 +1,6 @@
 //
-//  TabItem.swift
-//  Komga
+// TabItem.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

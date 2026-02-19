@@ -1,8 +1,6 @@
 //
-//  WebPubScrollView.swift
-//  KMReader
+// WebPubScrollView.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

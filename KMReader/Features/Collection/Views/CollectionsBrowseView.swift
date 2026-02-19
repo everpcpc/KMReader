@@ -1,8 +1,6 @@
 //
-//  CollectionsBrowseView.swift
-//  Komga
+// CollectionsBrowseView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftData

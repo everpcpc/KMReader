@@ -1,8 +1,6 @@
 //
-//  BookViewModel.swift
-//  Komga
+// BookViewModel.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

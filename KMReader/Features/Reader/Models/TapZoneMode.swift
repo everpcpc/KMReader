@@ -1,8 +1,6 @@
 //
-//  TapZoneMode.swift
-//  KMReader
+// TapZoneMode.swift
 //
-//  Created by Antigravity
 //
 
 import SwiftUI

@@ -1,8 +1,6 @@
 //
-//  CustomFontStore.swift
-//  KMReader
+// CustomFontStore.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

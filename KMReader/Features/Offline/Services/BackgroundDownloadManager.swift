@@ -1,8 +1,6 @@
 //
-//  BackgroundDownloadManager.swift
-//  KMReader
+// BackgroundDownloadManager.swift
 //
-//  Manages background downloads using URLSession background configuration.
 //
 
 import Foundation

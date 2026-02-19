@@ -1,8 +1,6 @@
 //
-//  SettingsSectionRow.swift
-//  Komga
+// SettingsSectionRow.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

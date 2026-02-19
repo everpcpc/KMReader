@@ -1,8 +1,6 @@
 //
-//  SinglePageImageView.swift
-//  Komga
+// SinglePageImageView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

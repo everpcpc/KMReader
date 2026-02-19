@@ -1,8 +1,6 @@
 //
-//  WebtoonZoomOverlayView.swift
-//  KMReader
+// WebtoonZoomOverlayView.swift
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS) || os(macOS)

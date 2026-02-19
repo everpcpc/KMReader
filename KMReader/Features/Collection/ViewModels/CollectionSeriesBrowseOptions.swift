@@ -1,8 +1,6 @@
 //
-//  CollectionSeriesBrowseOptions.swift
-//  Komga
+// CollectionSeriesBrowseOptions.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  AppColorScheme.swift
-//  KMReader
+// AppColorScheme.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

@@ -1,6 +1,6 @@
 //
-//  BooksListViewForSeries.swift
-//  Komga
+// BooksListViewForSeries.swift
+//
 //
 
 import SwiftData

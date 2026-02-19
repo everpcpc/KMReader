@@ -1,8 +1,6 @@
 //
-//  ReadListRowView.swift
-//  Komga
+// ReadListRowView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

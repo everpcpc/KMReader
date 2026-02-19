@@ -1,8 +1,6 @@
 //
-//  Common.swift
-//  Komga
+// Common.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

@@ -1,8 +1,6 @@
 //
-//  BookItemView.swift
-//  KMReader
+// BookItemView.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

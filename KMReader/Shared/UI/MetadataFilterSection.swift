@@ -1,8 +1,6 @@
 //
-//  MetadataFilterSection.swift
-//  KMReader
+// MetadataFilterSection.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

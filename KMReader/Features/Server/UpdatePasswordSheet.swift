@@ -1,8 +1,6 @@
 //
-//  UpdatePasswordSheet.swift
-//  KMReader
+// UpdatePasswordSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

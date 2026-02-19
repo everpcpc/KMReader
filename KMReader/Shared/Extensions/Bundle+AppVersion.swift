@@ -1,8 +1,6 @@
 //
-//  Bundle+AppVersion.swift
-//  Komga
+// Bundle+AppVersion.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

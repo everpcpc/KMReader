@@ -1,8 +1,6 @@
 //
-//  ReadListBookBrowseOptionsSheet.swift
-//  Komga
+// ReadListBookBrowseOptionsSheet.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

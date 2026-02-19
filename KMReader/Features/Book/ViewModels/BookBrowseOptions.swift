@@ -1,8 +1,6 @@
 //
-//  BookBrowseOptions.swift
-//  Komga
+// BookBrowseOptions.swift
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

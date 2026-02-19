@@ -1,8 +1,6 @@
 //
-//  Bundle+AppVersion.swift
-//  Komga
+// View+TabBar.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

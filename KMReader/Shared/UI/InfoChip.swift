@@ -1,8 +1,6 @@
 //
-//  InfoChip.swift
-//  Komga
+// InfoChip.swift
 //
-//  Created by Komga iOS Client
 //
 
 import SwiftUI

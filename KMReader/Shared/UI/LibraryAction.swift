@@ -1,6 +1,6 @@
 //
-//  LibraryAction.swift
-//  KMReader
+// LibraryAction.swift
+//
 //
 
 import SwiftUI
