@@ -2,7 +2,6 @@
 //  WebtoonFooterCell_iOS.swift
 //  Komga
 //
-//  Created by Komga iOS Client
 //
 
 #if os(iOS)

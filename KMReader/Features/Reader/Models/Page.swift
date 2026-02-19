@@ -2,7 +2,6 @@
 //  Page.swift
 //  Komga
 //
-//  Created by Komga iOS Client
 //
 
 import Foundation

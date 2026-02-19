@@ -2,7 +2,6 @@
 //  IdentifiedString.swift
 //  KMReader
 //
-//  Created by Komga iOS Client
 //
 
 struct IdentifiedString: Identifiable, Equatable {

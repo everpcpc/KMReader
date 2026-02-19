@@ -2,7 +2,6 @@
 //  EpubReaderPreferences.swift
 //  KMReader
 //
-//  Created by Komga iOS Client
 //
 
 enum PageViewMode {
