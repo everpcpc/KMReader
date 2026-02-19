@@ -108,7 +108,7 @@ struct BookCardView: View {
       }
 
       if shouldShowProgressBarSlot {
-        ReadingProgressBar(progress: shouldShowProgressBar ? progress : 0, type: .card)
+        ReadingProgressBar(progress: progress, type: .card)
           .opacity(shouldShowProgressBar ? 1 : 0)
       }
 

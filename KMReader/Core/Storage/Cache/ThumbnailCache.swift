@@ -114,8 +114,7 @@ actor ThumbnailCache {
       }
       let (data, _, _) = try await APIClient.shared.requestData(path: path)
       let oldFileSize: Int64?
-      if
-        FileManager.default.fileExists(atPath: fileURL.path),
+      if FileManager.default.fileExists(atPath: fileURL.path),
         let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
         let size = attributes[.size] as? Int64
       {
@@ -226,8 +225,7 @@ actor ThumbnailCache {
 
     do {
       let oldFileSize: Int64?
-      if
-        fileManager.fileExists(atPath: thumbnailURL.path),
+      if fileManager.fileExists(atPath: thumbnailURL.path),
         let attributes = try? fileManager.attributesOfItem(atPath: thumbnailURL.path),
         let size = attributes[.size] as? Int64
       {
