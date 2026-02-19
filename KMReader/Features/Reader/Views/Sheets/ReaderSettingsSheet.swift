@@ -101,18 +101,20 @@ struct ReaderSettingsSheet: View {
               }
             }
             .pickerStyle(.menu)
-            VStack(alignment: .leading, spacing: 8) {
-              HStack {
-                Text("Double Tap Zoom Scale")
-                Spacer()
-                Text(String(format: "%.1fx", doubleTapZoomScale))
-                  .foregroundColor(.secondary)
+            if doubleTapZoomMode != .disabled {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Double Tap Zoom Scale")
+                  Spacer()
+                  Text(String(format: "%.1fx", doubleTapZoomScale))
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $doubleTapZoomScale,
+                  in: 1.0...8.0,
+                  step: 0.5
+                )
               }
-              Slider(
-                value: $doubleTapZoomScale,
-                in: 1.0...8.0,
-                step: 0.5
-              )
             }
           }
         #endif
@@ -134,8 +136,6 @@ struct ReaderSettingsSheet: View {
 
             Group {
               switch imageUpscalingMode {
-              case .disabled:
-                EmptyView()
               case .auto:
                 VStack(alignment: .leading, spacing: 8) {
                   HStack {
@@ -153,7 +153,6 @@ struct ReaderSettingsSheet: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
-                .transition(.opacity)
               case .always:
                 VStack(alignment: .leading, spacing: 8) {
                   HStack {
@@ -171,10 +170,10 @@ struct ReaderSettingsSheet: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
-                .transition(.opacity)
+              case .disabled:
+                EmptyView()
               }
             }
-            .animation(.easeInOut(duration: 0.2), value: imageUpscalingMode)
           }
         #endif
 
@@ -319,6 +318,8 @@ struct ReaderSettingsSheet: View {
       }
     }
     .animation(.default, value: tapZoneMode)
+    .animation(.default, value: doubleTapZoomMode)
+    .animation(.default, value: imageUpscalingMode)
     .presentationDragIndicator(.visible)
   }
 }

@@ -160,8 +160,6 @@ struct DivinaPreferencesView: View {
 
           Group {
             switch imageUpscalingMode {
-            case .disabled:
-              EmptyView()
             case .auto:
               VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -179,7 +177,6 @@ struct DivinaPreferencesView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
-              .transition(.opacity)
             case .always:
               VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -197,10 +194,10 @@ struct DivinaPreferencesView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
-              .transition(.opacity)
+            case .disabled:
+              EmptyView()
             }
           }
-          .animation(.easeInOut(duration: 0.2), value: imageUpscalingMode)
         }
       #endif
 
@@ -427,6 +424,7 @@ struct DivinaPreferencesView: View {
     }
     .animation(.default, value: tapZoneMode)
     .animation(.default, value: doubleTapZoomMode)
+    .animation(.default, value: imageUpscalingMode)
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.divinaReader.title)
   }
