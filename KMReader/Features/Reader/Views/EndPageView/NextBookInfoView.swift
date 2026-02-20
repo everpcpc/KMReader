@@ -8,7 +8,7 @@ import SwiftUI
 struct NextBookInfoView: View {
   let textColor: Color
   let nextBook: Book?
-  let readList: ReadList?
+  let readListContext: ReaderReadListContext?
   let showImage: Bool
 
   private var bookNumber: String {
@@ -17,7 +17,7 @@ struct NextBookInfoView: View {
   }
 
   private var upNextLabel: String {
-    if readList != nil {
+    if readListContext != nil {
       return String.localizedStringWithFormat(
         String(localized: "UP NEXT IN READ LIST: %@"),
         bookNumber
@@ -59,11 +59,11 @@ struct NextBookInfoView: View {
               .multilineTextAlignment(.center)
               .foregroundColor(textColor)
 
-            if let readList = readList {
+            if let readListContext = readListContext {
               HStack(spacing: 4) {
                 Image(systemName: ContentIcon.readList)
                   .font(.caption)
-                Text(readList.name)
+                Text(readListContext.name)
               }
               .font(.subheadline)
               .fontDesign(.serif)

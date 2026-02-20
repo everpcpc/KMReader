@@ -14,7 +14,7 @@
     let splitWidePageMode: SplitWidePageMode
     let previousBook: Book?
     let nextBook: Book?
-    let readList: ReadList?
+    let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
     let onPreviousBook: (String) -> Void
     let onNextBook: (String) -> Void
@@ -182,7 +182,7 @@
           let endPageView = EndPageView(
             viewModel: parent.viewModel,
             nextBook: parent.nextBook,
-            readList: parent.readList,
+            readListContext: parent.readListContext,
             onDismiss: parent.onDismiss,
             onNextBook: parent.onNextBook,
             readingDirection: parent.readingDirection,

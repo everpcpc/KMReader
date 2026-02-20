@@ -9,7 +9,7 @@
   struct EpubReaderView: View {
     private let book: Book
     private let incognito: Bool
-    private let readList: ReadList?
+    private let readListContext: ReaderReadListContext?
     private let onClose: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
@@ -37,12 +37,12 @@
     init(
       book: Book,
       incognito: Bool = false,
-      readList: ReadList? = nil,
+      readListContext: ReaderReadListContext? = nil,
       onClose: (() -> Void)? = nil
     ) {
       self.book = book
       self.incognito = incognito
-      self.readList = readList
+      self.readListContext = readListContext
       self.onClose = onClose
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
       _activePreferences = State(initialValue: AppConfig.epubPreferences)

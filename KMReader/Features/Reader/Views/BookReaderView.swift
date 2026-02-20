@@ -8,7 +8,7 @@ import SwiftUI
 struct BookReaderView: View {
   let book: Book
   let incognito: Bool
-  let readList: ReadList?
+  let readListContext: ReaderReadListContext?
   let onClose: (() -> Void)?
 
   @Environment(\.dismiss) private var dismiss
@@ -43,7 +43,7 @@ struct BookReaderView: View {
               DivinaReaderView(
                 book: book,
                 incognito: incognito,
-                readList: readList,
+                readListContext: readListContext,
                 onClose: closeReader
               )
             case .epub:
@@ -51,7 +51,7 @@ struct BookReaderView: View {
                 DivinaReaderView(
                   book: book,
                   incognito: incognito,
-                  readList: readList,
+                  readListContext: readListContext,
                   onClose: closeReader
                 )
               } else {
@@ -59,7 +59,7 @@ struct BookReaderView: View {
                   EpubReaderView(
                     book: book,
                     incognito: incognito,
-                    readList: readList,
+                    readListContext: readListContext,
                     onClose: closeReader
                   )
                 #else
@@ -97,7 +97,7 @@ struct BookReaderView: View {
                 DivinaReaderView(
                   book: book,
                   incognito: incognito,
-                  readList: readList,
+                  readListContext: readListContext,
                   onClose: closeReader
                 )
               }

@@ -12,6 +12,7 @@ struct BookQueryItemView: View {
   let layout: BrowseLayoutMode
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
+  var readListContext: ReaderReadListContext? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
@@ -21,12 +22,14 @@ struct BookQueryItemView: View {
     bookId: String,
     layout: BrowseLayoutMode,
     showSeriesTitle: Bool = true,
-    showSeriesNavigation: Bool = true
+    showSeriesNavigation: Bool = true,
+    readListContext: ReaderReadListContext? = nil
   ) {
     self.bookId = bookId
     self.layout = layout
     self.showSeriesTitle = showSeriesTitle
     self.showSeriesNavigation = showSeriesNavigation
+    self.readListContext = readListContext
 
     let compositeId = CompositeID.generate(id: bookId)
     _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
@@ -43,7 +46,11 @@ struct BookQueryItemView: View {
         BookCardView(
           komgaBook: book,
           onReadBook: { incognito in
-            readerPresentation.present(book: book.toBook(), incognito: incognito)
+            readerPresentation.present(
+              book: book.toBook(),
+              incognito: incognito,
+              readListContext: readListContext
+            )
           },
           showSeriesTitle: showSeriesTitle,
           showSeriesNavigation: showSeriesNavigation
@@ -52,7 +59,11 @@ struct BookQueryItemView: View {
         BookRowView(
           komgaBook: book,
           onReadBook: { incognito in
-            readerPresentation.present(book: book.toBook(), incognito: incognito)
+            readerPresentation.present(
+              book: book.toBook(),
+              incognito: incognito,
+              readListContext: readListContext
+            )
           },
           showSeriesTitle: showSeriesTitle,
           showSeriesNavigation: showSeriesNavigation
