@@ -36,6 +36,22 @@ struct ReaderSettingsSheet: View {
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
+  private var isWebtoonDirection: Bool {
+    readingDirection == .webtoon
+  }
+
+  private var shouldShowPagedTurnSettings: Bool {
+    !isWebtoonDirection
+  }
+
+  private var shouldShowScrollTransitionStyle: Bool {
+    #if os(iOS)
+      shouldShowPagedTurnSettings && pageTransitionStyle == .scroll
+    #else
+      shouldShowPagedTurnSettings
+    #endif
+  }
+
   var body: some View {
     SheetView(
       title: String(localized: "Reader Settings"), size: .large, applyFormStyle: true
@@ -56,7 +72,7 @@ struct ReaderSettingsSheet: View {
           }
 
           #if os(iOS) || os(macOS)
-            if readingDirection == .webtoon {
+            if isWebtoonDirection {
               VStack(alignment: .leading, spacing: 8) {
                 HStack {
                   Text("Webtoon Page Width")
@@ -202,7 +218,7 @@ struct ReaderSettingsSheet: View {
 
         Section(header: Text("Page Turn")) {
           #if os(iOS)
-            if readingDirection != .webtoon {
+            if shouldShowPagedTurnSettings {
               VStack(alignment: .leading, spacing: 8) {
                 Picker("Page Transition Style", selection: $pageTransitionStyle) {
                   ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
@@ -217,7 +233,7 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          if readingDirection != .webtoon {
+          if shouldShowScrollTransitionStyle {
             VStack(alignment: .leading, spacing: 8) {
               Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
                 ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
@@ -277,21 +293,7 @@ struct ReaderSettingsSheet: View {
                 .frame(height: 60)
               }
 
-              if readingDirection == .webtoon {
-                VStack(alignment: .leading, spacing: 8) {
-                  HStack {
-                    Text("Webtoon Tap Scroll Height")
-                    Spacer()
-                    Text("\(Int(webtoonTapScrollPercentage))%")
-                      .foregroundColor(.secondary)
-                  }
-                  Slider(
-                    value: $webtoonTapScrollPercentage,
-                    in: 25...100,
-                    step: 5
-                  )
-                }
-              } else {
+              if shouldShowScrollTransitionStyle {
                 VStack(alignment: .leading, spacing: 8) {
                   HStack {
                     Text("Tap Page Scroll Duration")
@@ -310,6 +312,22 @@ struct ReaderSettingsSheet: View {
                   )
                 }
               }
+
+              if isWebtoonDirection {
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Webtoon Tap Scroll Height")
+                    Spacer()
+                    Text("\(Int(webtoonTapScrollPercentage))%")
+                      .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $webtoonTapScrollPercentage,
+                    in: 25...100,
+                    step: 5
+                  )
+                }
+              }
             }
           #endif
         }
@@ -318,6 +336,8 @@ struct ReaderSettingsSheet: View {
     .animation(.default, value: tapZoneMode)
     .animation(.default, value: doubleTapZoomMode)
     .animation(.default, value: imageUpscalingMode)
+    .animation(.default, value: pageTransitionStyle)
+    .animation(.default, value: readingDirection)
     .presentationDragIndicator(.visible)
   }
 }
