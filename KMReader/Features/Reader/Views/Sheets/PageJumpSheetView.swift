@@ -52,7 +52,8 @@ private struct PagePreviewCard: View {
         .fontWeight(isSelected ? .semibold : .regular)
         .foregroundStyle(isSelected ? Color.accentColor : .secondary)
     }
-    .task(id: page) {
+    .task(id: "\(bookId)-\(page)-\(Int(imageHeight))") {
+      loadedImage = nil
       if let url = try? await ThumbnailCache.shared.ensureThumbnail(
         id: bookId, type: .page, page: page)
       {
