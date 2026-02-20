@@ -22,7 +22,7 @@
           BookReaderView(
             book: book,
             incognito: state.incognito,
-            readList: state.readList,
+            readListContext: state.readListContext,
             onClose: { ReaderWindowManager.shared.closeReader() }
           )
           .id("\(book.id)-\(state.incognito)")

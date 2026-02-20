@@ -42,7 +42,9 @@ final class ReaderPresentationManager {
   }
 
   func present(
-    book: Book, incognito: Bool, readList: ReadList? = nil
+    book: Book,
+    incognito: Bool,
+    readListContext: ReaderReadListContext? = nil
   ) {
     #if !os(macOS)
       // On iOS/tvOS we need to re-trigger the presentation cycle by dismissing first
@@ -55,7 +57,11 @@ final class ReaderPresentationManager {
     // Reset tracking sets for new session
     visitedBookIds = []
     visitedSeriesIds = []
-    let state = BookReaderState(book: book, incognito: incognito, readList: readList)
+    let state = BookReaderState(
+      book: book,
+      incognito: incognito,
+      readListContext: readListContext
+    )
     readerState = state
 
     #if os(macOS)
@@ -67,7 +73,7 @@ final class ReaderPresentationManager {
       ReaderWindowManager.shared.openReader(
         book: book,
         incognito: incognito,
-        readList: readList,
+        readListContext: readListContext,
         openWindow: openWindowHandler,
         onDismiss: { [weak self] in
           self?.handleWindowDismissal()

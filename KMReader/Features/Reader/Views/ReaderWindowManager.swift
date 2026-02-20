@@ -32,7 +32,9 @@
     private init() {}
 
     func openReader(
-      book: Book, incognito: Bool = false, readList: ReadList? = nil,
+      book: Book,
+      incognito: Bool = false,
+      readListContext: ReaderReadListContext? = nil,
       openWindow: @escaping () -> Void,
       onDismiss: (() -> Void)? = nil
     ) {
@@ -46,10 +48,18 @@
 
       // If window is already open, just update the state (replace content)
       if isWindowOpen {
-        currentState = BookReaderState(book: book, incognito: incognito, readList: readList)
+        currentState = BookReaderState(
+          book: book,
+          incognito: incognito,
+          readListContext: readListContext
+        )
       } else {
         // Window not open, open it first
-        currentState = BookReaderState(book: book, incognito: incognito, readList: readList)
+        currentState = BookReaderState(
+          book: book,
+          incognito: incognito,
+          readListContext: readListContext
+        )
         openWindow()
         isWindowOpen = true
       }

@@ -8,7 +8,7 @@ import SwiftUI
 struct EndPageView: View {
   @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
-  let readList: ReadList?
+  let readListContext: ReaderReadListContext?
   let onDismiss: () -> Void
   let onNextBook: (String) -> Void
   let readingDirection: ReadingDirection
@@ -58,7 +58,7 @@ struct EndPageView: View {
       NextBookInfoView(
         textColor: textColor,
         nextBook: nextBook,
-        readList: readList,
+        readListContext: readListContext,
         showImage: showImage
       )
       .environment(\.layoutDirection, .leftToRight)

@@ -13,7 +13,7 @@
     let viewModel: ReaderViewModel
     @Binding var isAtBottom: Bool
     let nextBook: Book?
-    let readList: ReadList?
+    let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
     let onNextBook: (String) -> Void
     let toggleControls: () -> Void
@@ -77,7 +77,7 @@
             EndPageView(
               viewModel: viewModel,
               nextBook: nextBook,
-              readList: readList,
+              readListContext: readListContext,
               onDismiss: onDismiss,
               onNextBook: onNextBook,
               readingDirection: .webtoon,

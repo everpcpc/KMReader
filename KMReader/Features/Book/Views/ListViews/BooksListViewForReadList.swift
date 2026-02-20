@@ -29,6 +29,11 @@ struct BooksListViewForReadList: View {
     readLists.first
   }
 
+  private var readListContext: ReaderReadListContext? {
+    guard let readList else { return nil }
+    return ReaderReadListContext(id: readList.readListId, name: readList.name)
+  }
+
   init(
     readListId: String,
     showFilterSheet: Binding<Bool>,
@@ -123,6 +128,7 @@ struct BooksListViewForReadList: View {
       if readList?.bookIds != nil {
         ReadListBooksQueryView(
           readListId: readListId,
+          readListContext: readListContext,
           bookViewModel: bookViewModel,
           browseOpts: browseOpts,
           browseLayout: layoutMode,

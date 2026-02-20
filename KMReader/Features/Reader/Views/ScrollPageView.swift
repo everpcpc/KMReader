@@ -17,7 +17,7 @@ struct ScrollPageView: View {
   @Bindable var viewModel: ReaderViewModel
   let previousBook: Book?
   let nextBook: Book?
-  let readList: ReadList?
+  let readListContext: ReaderReadListContext?
   let onDismiss: () -> Void
   let onPreviousBook: (String) -> Void
   let onNextBook: (String) -> Void
@@ -61,7 +61,7 @@ struct ScrollPageView: View {
     viewModel: ReaderViewModel,
     previousBook: Book?,
     nextBook: Book?,
-    readList: ReadList?,
+    readListContext: ReaderReadListContext?,
     onDismiss: @escaping () -> Void,
     onPreviousBook: @escaping (String) -> Void,
     onNextBook: @escaping (String) -> Void,
@@ -79,7 +79,7 @@ struct ScrollPageView: View {
     self.viewModel = viewModel
     self.previousBook = previousBook
     self.nextBook = nextBook
-    self.readList = readList
+    self.readListContext = readListContext
     self.onDismiss = onDismiss
     self.onPreviousBook = onPreviousBook
     self.onNextBook = onNextBook
@@ -320,7 +320,7 @@ struct ScrollPageView: View {
           EndPageView(
             viewModel: viewModel,
             nextBook: nextBook,
-            readList: readList,
+            readListContext: readListContext,
             onDismiss: onDismiss,
             onNextBook: onNextBook,
             readingDirection: readingDirection,

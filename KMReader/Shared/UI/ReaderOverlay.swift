@@ -48,7 +48,7 @@ import SwiftUI
             BookReaderView(
               book: book,
               incognito: state.incognito,
-              readList: state.readList,
+              readListContext: state.readListContext,
               onClose: { readerPresentation.closeReader() }
             )
           } else {

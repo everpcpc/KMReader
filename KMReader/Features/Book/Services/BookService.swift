@@ -283,9 +283,15 @@ class BookService {
     }
   }
 
-  func getPreviousBook(bookId: String) async throws -> Book? {
+  func getPreviousBook(bookId: String, readListId: String? = nil) async throws -> Book? {
     do {
-      return try await apiClient.request(path: "/api/v1/books/\(bookId)/previous")
+      if let readListId = readListId {
+        return try await apiClient.request(
+          path: "/api/v1/readlists/\(readListId)/books/\(bookId)/previous"
+        )
+      } else {
+        return try await apiClient.request(path: "/api/v1/books/\(bookId)/previous")
+      }
     } catch {
       return nil
     }

@@ -8,6 +8,7 @@ import SwiftUI
 
 struct ReadListBooksQueryView: View {
   let readListId: String
+  let readListContext: ReaderReadListContext?
   @Bindable var bookViewModel: BookViewModel
   let browseOpts: ReadListBookBrowseOptions
   let browseLayout: BrowseLayoutMode
@@ -29,6 +30,7 @@ struct ReadListBooksQueryView: View {
 
   init(
     readListId: String,
+    readListContext: ReaderReadListContext?,
     bookViewModel: BookViewModel,
     browseOpts: ReadListBookBrowseOptions,
     browseLayout: BrowseLayoutMode,
@@ -38,6 +40,7 @@ struct ReadListBooksQueryView: View {
     refreshBooks: @escaping () -> Void
   ) {
     self.readListId = readListId
+    self.readListContext = readListContext
     self.bookViewModel = bookViewModel
     self.browseOpts = browseOpts
     self.browseLayout = browseLayout
@@ -71,7 +74,8 @@ struct ReadListBooksQueryView: View {
                   BookQueryItemView(
                     bookId: book.id,
                     layout: .grid,
-                    showSeriesTitle: true
+                    showSeriesTitle: true,
+                    readListContext: readListContext
                   )
                 }
               }
@@ -100,7 +104,8 @@ struct ReadListBooksQueryView: View {
                   BookQueryItemView(
                     bookId: book.id,
                     layout: .list,
-                    showSeriesTitle: true
+                    showSeriesTitle: true,
+                    readListContext: readListContext
                   )
                 }
               }

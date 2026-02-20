@@ -8,7 +8,7 @@ import SwiftUI
 struct DivinaReaderView: View {
   let book: Book
   let incognito: Bool
-  let readList: ReadList?
+  let readListContext: ReaderReadListContext?
   let onClose: (() -> Void)?
 
   @Environment(\.dismiss) private var dismiss
@@ -75,12 +75,12 @@ struct DivinaReaderView: View {
   init(
     book: Book,
     incognito: Bool = false,
-    readList: ReadList? = nil,
+    readListContext: ReaderReadListContext? = nil,
     onClose: (() -> Void)? = nil
   ) {
     self.book = book
     self.incognito = incognito
-    self.readList = readList
+    self.readListContext = readListContext
     self.onClose = onClose
     self._currentBookId = State(initialValue: book.id)
     self._currentBook = State(initialValue: book)
@@ -638,7 +638,7 @@ struct DivinaReaderView: View {
         // Update window manager state when book changes to refresh window title
         if let book = newBook {
           ReaderWindowManager.shared.currentState = BookReaderState(
-            book: book, incognito: incognito, readList: readList)
+            book: book, incognito: incognito, readListContext: readListContext)
         }
       }
     #endif
@@ -661,7 +661,7 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 isAtBottom: $isAtBottom,
                 nextBook: nextBook,
-                readList: readList,
+                readListContext: readListContext,
                 onDismiss: { closeReader() },
                 onNextBook: { openNextBook(nextBookId: $0) },
                 toggleControls: { toggleControls() },
@@ -680,7 +680,7 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 previousBook: previousBook,
                 nextBook: nextBook,
-                readList: readList,
+                readListContext: readListContext,
                 onDismiss: { closeReader() },
                 onPreviousBook: { openPreviousBook(previousBookId: $0) },
                 onNextBook: { openNextBook(nextBookId: $0) },
@@ -710,7 +710,7 @@ struct DivinaReaderView: View {
                   splitWidePageMode: splitWidePageMode,
                   previousBook: previousBook,
                   nextBook: nextBook,
-                  readList: readList,
+                  readListContext: readListContext,
                   onDismiss: { closeReader() },
                   onPreviousBook: { openPreviousBook(previousBookId: $0) },
                   onNextBook: { openNextBook(nextBookId: $0) },
@@ -733,7 +733,7 @@ struct DivinaReaderView: View {
                   viewModel: viewModel,
                   previousBook: previousBook,
                   nextBook: nextBook,
-                  readList: readList,
+                  readListContext: readListContext,
                   onDismiss: { closeReader() },
                   onPreviousBook: { openPreviousBook(previousBookId: $0) },
                   onNextBook: { openNextBook(nextBookId: $0) },
@@ -762,7 +762,7 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 previousBook: previousBook,
                 nextBook: nextBook,
-                readList: readList,
+                readListContext: readListContext,
                 onDismiss: { closeReader() },
                 onPreviousBook: { openPreviousBook(previousBookId: $0) },
                 onNextBook: { openNextBook(nextBookId: $0) },
@@ -1089,20 +1089,23 @@ struct DivinaReaderView: View {
       self.nextBook = await DatabaseOperator.shared.getNextBook(
         instanceId: AppConfig.current.instanceId,
         bookId: bookId,
-        readListId: readList?.id
+        readListId: readListContext?.id
       )
       if self.nextBook == nil && !AppConfig.isOffline {
         self.nextBook = await SyncService.shared.syncNextBook(
-          bookId: bookId, readListId: readList?.id)
+          bookId: bookId, readListId: readListContext?.id)
       }
 
       self.previousBook = await DatabaseOperator.shared.getPreviousBook(
         instanceId: AppConfig.current.instanceId,
         bookId: bookId,
-        readListId: readList?.id
+        readListId: readListContext?.id
       )
       if self.previousBook == nil && !AppConfig.isOffline {
-        self.previousBook = await SyncService.shared.syncPreviousBook(bookId: bookId)
+        self.previousBook = await SyncService.shared.syncPreviousBook(
+          bookId: bookId,
+          readListId: readListContext?.id
+        )
       }
     }
 
