@@ -37,8 +37,106 @@ struct DivinaPreferencesView: View {
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
+  private var forcedReadingDirection: ReadingDirection? {
+    forceDefaultReadingDirection ? readDirection : nil
+  }
+
+  private var shouldShowWebtoonSpecificSettings: Bool {
+    guard let forcedReadingDirection else { return true }
+    return forcedReadingDirection == .webtoon
+  }
+
+  private var shouldShowPagedSpecificSettings: Bool {
+    guard let forcedReadingDirection else { return true }
+    return forcedReadingDirection != .webtoon
+  }
+
+  private var shouldShowScrollTransitionStyle: Bool {
+    #if os(iOS)
+      shouldShowPagedSpecificSettings && pageTransitionStyle == .scroll
+    #else
+      shouldShowPagedSpecificSettings
+    #endif
+  }
+
+  private var shouldShowWebtoonTapNavigationSettings: Bool {
+    guard !tapZoneMode.isDisabled else { return false }
+    switch tapZoneMode {
+    case .none:
+      return false
+    case .auto:
+      return shouldShowWebtoonSpecificSettings
+    case .ltr, .rtl, .vertical:
+      return false
+    case .webtoon:
+      return true
+    }
+  }
+
   var body: some View {
     Form {
+      Section(header: Text("Default Reading Options")) {
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Preferred Direction", selection: $readDirection) {
+            ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+              Label(direction.displayName, systemImage: direction.icon)
+                .tag(direction)
+            }
+          }
+          .pickerStyle(.menu)
+          Text("Used when a book or series doesn't specify a reading direction")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+
+        Toggle(isOn: $forceDefaultReadingDirection) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Force Default Reading Direction")
+            Text("Ignore book and series metadata and always use the preferred direction")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Page Layout", selection: $pageLayout) {
+            ForEach(PageLayout.allCases, id: \.self) { mode in
+              Label(mode.displayName, systemImage: mode.icon)
+                .tag(mode)
+            }
+          }
+          .pickerStyle(.menu)
+          Text("Opt for single page, auto-detected spreads, or forced dual pages (landscape only)")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+
+        if pageLayout == .single || pageLayout == .auto {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Split Wide Pages", selection: $splitWidePageMode) {
+              ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
+                Label(mode.displayName, systemImage: mode.icon).tag(mode)
+              }
+            }
+            .pickerStyle(.menu)
+            Text("In single page mode, split landscape pages into two separate pages")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        if pageLayout.supportsDualPageOptions {
+          Toggle(isOn: $isolateCoverPage) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Isolate Cover Page")
+              Text("Display the cover page separately, not paired with the next page")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        }
+      }
+
       Section(header: Text("Appearance")) {
         VStack(alignment: .leading, spacing: 8) {
           Picker("Reader Background", selection: $readerBackground) {
@@ -82,21 +180,23 @@ struct DivinaPreferencesView: View {
         #endif
 
         #if os(iOS) || os(macOS)
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              Text("Webtoon Page Width")
-              Spacer()
-              Text("\(Int(webtoonPageWidthPercentage))%")
+          if shouldShowWebtoonSpecificSettings {
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text("Webtoon Page Width")
+                Spacer()
+                Text("\(Int(webtoonPageWidthPercentage))%")
+                  .foregroundColor(.secondary)
+              }
+              Slider(
+                value: $webtoonPageWidthPercentage,
+                in: 50...100,
+                step: 5
+              )
+              Text("Adjust the width of webtoon pages as a percentage of screen width")
+                .font(.caption)
                 .foregroundColor(.secondary)
             }
-            Slider(
-              value: $webtoonPageWidthPercentage,
-              in: 50...100,
-              step: 5
-            )
-            Text("Adjust the width of webtoon pages as a percentage of screen width")
-              .font(.caption)
-              .foregroundColor(.secondary)
           }
         #endif
 
@@ -224,29 +324,33 @@ struct DivinaPreferencesView: View {
 
       Section(header: Text("Page Turn")) {
         #if os(iOS)
+          if shouldShowPagedSpecificSettings {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Page Transition Style", selection: $pageTransitionStyle) {
+                ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                  Text(style.displayName).tag(style)
+                }
+              }
+              .pickerStyle(.menu)
+              Text(pageTransitionStyle.description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        #endif
+
+        if shouldShowScrollTransitionStyle {
           VStack(alignment: .leading, spacing: 8) {
-            Picker("Page Transition Style", selection: $pageTransitionStyle) {
-              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+            Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
+              ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
                 Text(style.displayName).tag(style)
               }
             }
             .pickerStyle(.menu)
-            Text(pageTransitionStyle.description)
+            Text(scrollPageTransitionStyle.description)
               .font(.caption)
               .foregroundColor(.secondary)
           }
-        #endif
-
-        VStack(alignment: .leading, spacing: 8) {
-          Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
-            ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
-              Text(style.displayName).tag(style)
-            }
-          }
-          .pickerStyle(.menu)
-          Text(scrollPageTransitionStyle.description)
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
 
         #if os(macOS)
@@ -317,112 +421,58 @@ struct DivinaPreferencesView: View {
                 .foregroundColor(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-              HStack {
-                Text("Tap Page Scroll Duration")
-                Spacer()
-                Text(
-                  tapPageTransitionDuration == 0
-                    ? String(localized: "None")
-                    : String(format: "%.1fs", tapPageTransitionDuration)
+            if shouldShowScrollTransitionStyle {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Tap Page Scroll Duration")
+                  Spacer()
+                  Text(
+                    tapPageTransitionDuration == 0
+                      ? String(localized: "None")
+                      : String(format: "%.1fs", tapPageTransitionDuration)
+                  )
+                  .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $tapPageTransitionDuration,
+                  in: 0...1,
+                  step: 0.1
                 )
-                .foregroundColor(.secondary)
-              }
-              Slider(
-                value: $tapPageTransitionDuration,
-                in: 0...1,
-                step: 0.1
-              )
-              Text("Animation duration when tap to turn pages")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-              HStack {
-                Text("Webtoon Tap Scroll Height")
-                Spacer()
-                Text("\(Int(webtoonTapScrollPercentage))%")
+                Text("Animation duration when tap to turn pages")
+                  .font(.caption)
                   .foregroundColor(.secondary)
               }
-              Slider(
-                value: $webtoonTapScrollPercentage,
-                in: 25...100,
-                step: 5
-              )
-              Text("Scroll distance when tapping to navigate in webtoon mode")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            }
+
+            if shouldShowWebtoonTapNavigationSettings {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Webtoon Tap Scroll Height")
+                  Spacer()
+                  Text("\(Int(webtoonTapScrollPercentage))%")
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $webtoonTapScrollPercentage,
+                  in: 25...100,
+                  step: 5
+                )
+                Text("Scroll distance when tapping to navigate in webtoon mode")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         #endif
       }
 
-      Section(header: Text("Default Reading Options")) {
-        VStack(alignment: .leading, spacing: 8) {
-          Picker("Preferred Direction", selection: $readDirection) {
-            ForEach(ReadingDirection.availableCases, id: \.self) { direction in
-              Label(direction.displayName, systemImage: direction.icon)
-                .tag(direction)
-            }
-          }
-          .pickerStyle(.menu)
-          Text("Used when a book or series doesn't specify a reading direction")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-
-        Toggle(isOn: $forceDefaultReadingDirection) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Force Default Reading Direction")
-            Text("Ignore book and series metadata and always use the preferred direction")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-
-        VStack(alignment: .leading, spacing: 8) {
-          Picker("Page Layout", selection: $pageLayout) {
-            ForEach(PageLayout.allCases, id: \.self) { mode in
-              Label(mode.displayName, systemImage: mode.icon)
-                .tag(mode)
-            }
-          }
-          .pickerStyle(.menu)
-          Text("Opt for single page, auto-detected spreads, or forced dual pages (landscape only)")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-
-        if pageLayout == .single || pageLayout == .auto {
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Split Wide Pages", selection: $splitWidePageMode) {
-              ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
-                Label(mode.displayName, systemImage: mode.icon).tag(mode)
-              }
-            }
-            .pickerStyle(.menu)
-            Text("In single page mode, split landscape pages into two separate pages")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-
-        if pageLayout.supportsDualPageOptions {
-          Toggle(isOn: $isolateCoverPage) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Isolate Cover Page")
-              Text("Display the cover page separately, not paired with the next page")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-        }
-      }
     }
     .animation(.default, value: tapZoneMode)
     .animation(.default, value: doubleTapZoomMode)
     .animation(.default, value: imageUpscalingMode)
+    .animation(.default, value: pageTransitionStyle)
+    .animation(.default, value: forceDefaultReadingDirection)
+    .animation(.default, value: readDirection)
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.divinaReader.title)
   }

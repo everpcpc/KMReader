@@ -54,19 +54,6 @@
         }
 
         if useNativePdfReader {
-          Section(header: Text("Appearance")) {
-            Picker("Reader Background", selection: $readerBackground) {
-              ForEach(ReaderBackground.allCases, id: \.self) { background in
-                Text(background.displayName).tag(background)
-              }
-            }
-            .pickerStyle(.menu)
-
-            Toggle(isOn: $readerControlsGradientBackground) {
-              Text("Controls Gradient Background")
-            }
-          }
-
           Section(header: Text("Default Reading Options")) {
             VStack(alignment: .leading, spacing: 8) {
               Picker("Preferred Direction", selection: $defaultReadingDirection) {
@@ -114,6 +101,19 @@
                     .foregroundColor(.secondary)
                 }
               }
+            }
+          }
+
+          Section(header: Text("Appearance")) {
+            Picker("Reader Background", selection: $readerBackground) {
+              ForEach(ReaderBackground.allCases, id: \.self) { background in
+                Text(background.displayName).tag(background)
+              }
+            }
+            .pickerStyle(.menu)
+
+            Toggle(isOn: $readerControlsGradientBackground) {
+              Text("Controls Gradient Background")
             }
           }
         } else {
