@@ -26,6 +26,11 @@ nonisolated private struct LogCategoryCountRow {
 actor LogStore {
   static let shared = LogStore()
 
+  struct CategoryCount: Hashable, Sendable {
+    let category: String
+    let count: Int
+  }
+
   private let database: DatabaseQueue?
   private let dbPath: URL
 
@@ -177,8 +182,8 @@ actor LogStore {
     }
   }
 
-  func categoryCounts(minPriority: Int? = nil, since: Date? = nil) -> [String: Int] {
-    guard let database else { return [:] }
+  func categoryCounts(minPriority: Int? = nil, since: Date? = nil) -> [CategoryCount] {
+    guard let database else { return [] }
 
     let hasMinPriority = minPriority != nil
     let minPriorityValue = minPriority ?? 0
@@ -193,6 +198,7 @@ actor LogStore {
               && (!hasSince || $0.date >= sinceValue)
           }
           .group(by: \.category)
+          .order { $0.count().desc() }
           .order(by: \.category)
           .select {
             LogCategoryCountRow.Columns(
@@ -203,15 +209,12 @@ actor LogStore {
           .fetchAll(db)
       }
 
-      var counts: [String: Int] = [:]
-      counts.reserveCapacity(rows.count)
-      for row in rows {
-        counts[row.category] = row.count
+      return rows.map { row in
+        CategoryCount(category: row.category, count: row.count)
       }
-      return counts
     } catch {
       print("Failed to query log category counts: \(error)")
-      return [:]
+      return []
     }
   }
 

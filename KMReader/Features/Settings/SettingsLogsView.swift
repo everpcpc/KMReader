@@ -8,7 +8,7 @@ import SwiftUI
 
 struct SettingsLogsView: View {
   @State private var logEntries: [LogStore.LogEntry] = []
-  @State private var categoryCounts: [String: Int] = [:]
+  @State private var categoryCounts: [LogStore.CategoryCount] = []
   @State private var isLoading = false
   @State private var selectedLevel: LogLevel = .info
   @State private var selectedCategory: String = "All"
@@ -16,12 +16,8 @@ struct SettingsLogsView: View {
   @State private var selectedLimit: LogLimit = .fifty
   @State private var searchText = ""
 
-  private var sortedCategories: [(name: String, count: Int)] {
-    categoryCounts.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
-  }
-
   private var totalCount: Int {
-    categoryCounts.values.reduce(0, +)
+    categoryCounts.reduce(0) { $0 + $1.count }
   }
 
   var body: some View {
@@ -101,13 +97,13 @@ struct SettingsLogsView: View {
               selectedCategory = "All"
             }
 
-            ForEach(sortedCategories, id: \.name) { category in
+            ForEach(categoryCounts, id: \.category) { category in
               CategoryChip(
-                name: category.name,
+                name: category.category,
                 count: category.count,
-                isSelected: selectedCategory == category.name
+                isSelected: selectedCategory == category.category
               ) {
-                selectedCategory = category.name
+                selectedCategory = category.category
               }
             }
           }
