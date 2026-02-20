@@ -4,14 +4,29 @@
 //
 
 import Foundation
-import OSLog
-import SQLite3
+import SQLiteData
+
+@Table("logs")
+nonisolated private struct StoredLogEntry {
+  let id: Int64
+  @Column(as: Date.UnixTimeRepresentation.self)
+  var date: Date
+  var level: Int
+  var category: String
+  var message: String
+}
+
+@Selection
+nonisolated private struct LogCategoryCountRow {
+  let category: String
+  let count: Int
+}
 
 @globalActor
 actor LogStore {
   static let shared = LogStore()
 
-  private var db: OpaquePointer?
+  private let database: DatabaseQueue?
   private let dbPath: URL
 
   private init() {
@@ -23,75 +38,66 @@ actor LogStore {
     try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
     dbPath = logsDir.appendingPathComponent("logs.sqlite")
 
-    // Open and setup database synchronously in init
-    let openResult = sqlite3_open(dbPath.path, &db)
-    if openResult != SQLITE_OK {
-      let errorMessage = db.flatMap { sqlite3_errmsg($0) }.map { String(cString: $0) } ?? "unknown"
-      print("Failed to open log database: \(errorMessage)")
-      if let db {
-        sqlite3_close(db)
+    do {
+      print("LogStore opening database at: \(dbPath.path)")
+      let db = try DatabaseQueue(path: dbPath.path)
+      try Self.migrate(on: db, at: dbPath)
+      let existingCount = try db.read { db in
+        try StoredLogEntry.fetchCount(db)
       }
-      self.db = nil
-      return
+      print("LogStore open complete, existing rows: \(existingCount)")
+      database = db
+    } catch {
+      print("Failed to open log database: \(error)")
+      database = nil
     }
-
-    // Migration: check if schema matches exactly, if not drop table to recreate it
-    var checkStmt: OpaquePointer?
-    let checkSql = "PRAGMA table_info(logs)"
-    var columns: [String: String] = [:]
-    guard let db else { return }
-
-    if sqlite3_prepare_v2(db, checkSql, -1, &checkStmt, nil) == SQLITE_OK {
-      while sqlite3_step(checkStmt) == SQLITE_ROW {
-        if let name = sqlite3_column_text(checkStmt, 1),
-          let type = sqlite3_column_text(checkStmt, 2)
-        {
-          columns[String(cString: name)] = String(cString: type).uppercased()
-        }
-      }
-      sqlite3_finalize(checkStmt)
-    }
-
-    let expectedSchema = [
-      "id": "INTEGER",
-      "date": "REAL",
-      "level": "INTEGER",
-      "category": "TEXT",
-      "message": "TEXT",
-    ]
-    if !columns.isEmpty && columns != expectedSchema {
-      sqlite3_exec(db, "DROP TABLE IF EXISTS logs", nil, nil, nil)
-    }
-
-    let sql = """
-      CREATE TABLE IF NOT EXISTS logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date REAL NOT NULL,
-        level INTEGER NOT NULL,
-        category TEXT NOT NULL,
-        message TEXT NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_logs_date ON logs(date);
-      CREATE INDEX IF NOT EXISTS idx_logs_level ON logs(level);
-      """
-    sqlite3_exec(db, sql, nil, nil, nil)
 
     Task { await cleanup() }
   }
 
-  func insert(date: Date, level: Int, category: String, message: String) {
-    guard let db else { return }
-    let sql = "INSERT INTO logs (date, level, category, message) VALUES (?, ?, ?, ?)"
-    var stmt: OpaquePointer?
-
-    if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-      sqlite3_bind_double(stmt, 1, date.timeIntervalSince1970)
-      sqlite3_bind_int(stmt, 2, Int32(level))
-      sqlite3_bind_text(stmt, 3, category, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-      sqlite3_bind_text(stmt, 4, message, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-      sqlite3_step(stmt)
+  private static func migrate(on database: DatabaseQueue, at dbPath: URL) throws {
+    print("LogStore migration start: \(dbPath.path)")
+    var migrator = DatabaseMigrator()
+    migrator.registerMigration("reset_logs_v2") { db in
+      print("LogStore migration reset_logs_v2: dropping and recreating logs table")
+      try #sql("DROP TABLE IF EXISTS logs").execute(db)
+      try #sql(
+        """
+        CREATE TABLE logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date INTEGER NOT NULL,
+          level INTEGER NOT NULL,
+          category TEXT NOT NULL,
+          message TEXT NOT NULL
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql("CREATE INDEX idx_logs_date ON logs(date)").execute(db)
+      try #sql("CREATE INDEX idx_logs_level ON logs(level)").execute(db)
+      try #sql("CREATE INDEX idx_logs_category ON logs(category)").execute(db)
     }
-    sqlite3_finalize(stmt)
+    try migrator.migrate(database)
+    print("LogStore migration done")
+  }
+
+  func insert(date: Date, level: Int, category: String, message: String) {
+    guard let database else { return }
+    do {
+      try database.write { db in
+        try StoredLogEntry.insert {
+          StoredLogEntry.Draft(
+            date: date,
+            level: level,
+            category: category,
+            message: message
+          )
+        }
+        .execute(db)
+      }
+    } catch {
+      print("Failed to insert log entry: \(error)")
+    }
   }
 
   struct LogEntry: Identifiable, Hashable {
@@ -109,142 +115,141 @@ actor LogStore {
     since: Date? = nil,
     limit: Int = 500
   ) -> [LogEntry] {
-    guard let db else { return [] }
-    var conditions: [String] = []
-    var params: [Any] = []
+    guard let database else { return [] }
 
-    if let minPriority = minPriority {
-      conditions.append("level >= ?")
-      params.append(minPriority)
-    }
-    if let category = category, category != "All" {
-      conditions.append("category = ?")
-      params.append(category)
-    }
-    if let search = search, !search.isEmpty {
-      conditions.append("(message LIKE ? OR category LIKE ?)")
-      params.append("%\(search)%")
-      params.append("%\(search)%")
-    }
-    if let since = since {
-      conditions.append("date >= ?")
-      params.append(since.timeIntervalSince1970)
-    }
+    let categoryFilter: String? = {
+      guard let category else { return nil }
+      return category == "All" ? nil : category
+    }()
+    let searchTerm = search?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-    let whereClause = conditions.isEmpty ? "" : "WHERE " + conditions.joined(separator: " AND ")
-    let sql =
-      "SELECT id, date, level, category, message FROM logs \(whereClause) ORDER BY date DESC LIMIT \(limit)"
+    let hasMinPriority = minPriority != nil
+    let minPriorityValue = minPriority ?? 0
+    let hasCategory = categoryFilter != nil
+    let categoryValue = categoryFilter ?? ""
+    let hasSearch = !searchTerm.isEmpty
+    let hasSince = since != nil
+    let sinceValue = Date.UnixTimeRepresentation(queryOutput: since ?? .distantPast)
+    let limitValue = max(1, limit)
 
-    var stmt: OpaquePointer?
-    var entries: [LogEntry] = []
-
-    if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-      var paramIndex: Int32 = 1
-      for param in params {
-        if let str = param as? String {
-          sqlite3_bind_text(
-            stmt, paramIndex, str, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        } else if let double = param as? Double {
-          sqlite3_bind_double(stmt, paramIndex, double)
-        } else if let int = param as? Int {
-          sqlite3_bind_int(stmt, paramIndex, Int32(int))
-        }
-        paramIndex += 1
+    do {
+      let rows = try database.read { db in
+        try StoredLogEntry
+          .where {
+            (!hasMinPriority || $0.level >= minPriorityValue)
+              && (!hasCategory || $0.category.eq(categoryValue))
+              && (!hasSearch || $0.message.contains(searchTerm) || $0.category.contains(searchTerm))
+              && (!hasSince || $0.date >= sinceValue)
+          }
+          .order { $0.date.desc() }
+          .limit(limitValue)
+          .fetchAll(db)
       }
 
-      while sqlite3_step(stmt) == SQLITE_ROW {
-        let id = sqlite3_column_int64(stmt, 0)
-        let date = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 1))
-        let level = Int(sqlite3_column_int(stmt, 2))
-        let category = sqlite3_column_text(stmt, 3).map { String(cString: $0) } ?? ""
-        let message = sqlite3_column_text(stmt, 4).map { String(cString: $0) } ?? ""
-        entries.append(
-          LogEntry(id: id, date: date, level: level, category: category, message: message))
+      return rows.map { row in
+        LogEntry(
+          id: row.id,
+          date: row.date,
+          level: row.level,
+          category: row.category,
+          message: row.message
+        )
       }
+    } catch {
+      print("Failed to query logs: \(error)")
+      return []
     }
-    sqlite3_finalize(stmt)
-    return entries
   }
 
   func categories() -> [String] {
-    guard let db else { return [] }
-    let sql = "SELECT DISTINCT category FROM logs ORDER BY category"
-    var stmt: OpaquePointer?
-    var categories: [String] = []
-
-    if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-      while sqlite3_step(stmt) == SQLITE_ROW {
-        if let categoryPtr = sqlite3_column_text(stmt, 0) {
-          categories.append(String(cString: categoryPtr))
-        }
+    guard let database else { return [] }
+    do {
+      return try database.read { db in
+        try StoredLogEntry
+          .group(by: \.category)
+          .order(by: \.category)
+          .select { $0.category }
+          .fetchAll(db)
       }
+    } catch {
+      print("Failed to query log categories: \(error)")
+      return []
     }
-    sqlite3_finalize(stmt)
-    return categories
   }
 
   func categoryCounts(minPriority: Int? = nil, since: Date? = nil) -> [String: Int] {
-    guard let db else { return [:] }
-    var conditions: [String] = []
-    var params: [Any] = []
+    guard let database else { return [:] }
 
-    if let minPriority = minPriority {
-      conditions.append("level >= ?")
-      params.append(minPriority)
-    }
-    if let since = since {
-      conditions.append("date >= ?")
-      params.append(since.timeIntervalSince1970)
-    }
+    let hasMinPriority = minPriority != nil
+    let minPriorityValue = minPriority ?? 0
+    let hasSince = since != nil
+    let sinceValue = Date.UnixTimeRepresentation(queryOutput: since ?? .distantPast)
 
-    let whereClause = conditions.isEmpty ? "" : "WHERE " + conditions.joined(separator: " AND ")
-    let sql = "SELECT category, COUNT(*) FROM logs \(whereClause) GROUP BY category"
-
-    var stmt: OpaquePointer?
-    var counts: [String: Int] = [:]
-
-    if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-      var paramIndex: Int32 = 1
-      for param in params {
-        if let str = param as? String {
-          sqlite3_bind_text(
-            stmt, paramIndex, str, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
-        } else if let double = param as? Double {
-          sqlite3_bind_double(stmt, paramIndex, double)
-        } else if let int = param as? Int {
-          sqlite3_bind_int(stmt, paramIndex, Int32(int))
-        }
-        paramIndex += 1
+    do {
+      let rows = try database.read { db in
+        try StoredLogEntry
+          .where {
+            (!hasMinPriority || $0.level >= minPriorityValue)
+              && (!hasSince || $0.date >= sinceValue)
+          }
+          .group(by: \.category)
+          .order(by: \.category)
+          .select {
+            LogCategoryCountRow.Columns(
+              category: $0.category,
+              count: $0.count()
+            )
+          }
+          .fetchAll(db)
       }
 
-      while sqlite3_step(stmt) == SQLITE_ROW {
-        guard let categoryPtr = sqlite3_column_text(stmt, 0) else {
-          continue
-        }
-        let category = String(cString: categoryPtr)
-        let count = Int(sqlite3_column_int(stmt, 1))
-        counts[category] = count
+      var counts: [String: Int] = [:]
+      counts.reserveCapacity(rows.count)
+      for row in rows {
+        counts[row.category] = row.count
       }
+      return counts
+    } catch {
+      print("Failed to query log category counts: \(error)")
+      return [:]
     }
-    sqlite3_finalize(stmt)
-    return counts
   }
 
   func cleanup(keepDays: Int = 7) {
-    guard let db else { return }
+    guard let database else { return }
     let cutoff = Date().addingTimeInterval(-Double(keepDays * 24 * 60 * 60))
-    let sql = "DELETE FROM logs WHERE date < ?"
-    var stmt: OpaquePointer?
-
-    if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-      sqlite3_bind_double(stmt, 1, cutoff.timeIntervalSince1970)
-      sqlite3_step(stmt)
+    let cutoffValue = Date.UnixTimeRepresentation(queryOutput: cutoff)
+    do {
+      let removedCount = try database.write { db in
+        let toDelete =
+          try StoredLogEntry
+          .where { $0.date < cutoffValue }
+          .fetchCount(db)
+        if toDelete > 0 {
+          print("LogStore cleanup removing \(toDelete) rows older than \(cutoff)")
+        }
+        try StoredLogEntry
+          .where { $0.date < cutoffValue }
+          .delete()
+          .execute(db)
+        return toDelete
+      }
+      if removedCount == 0 {
+        print("LogStore cleanup removed 0 rows")
+      }
+    } catch {
+      print("Failed to cleanup logs: \(error)")
     }
-    sqlite3_finalize(stmt)
   }
 
   func clear() {
-    guard let db else { return }
-    sqlite3_exec(db, "DELETE FROM logs", nil, nil, nil)
+    guard let database else { return }
+    do {
+      try database.write { db in
+        try StoredLogEntry.delete().execute(db)
+      }
+    } catch {
+      print("Failed to clear logs: \(error)")
+    }
   }
 }
