@@ -382,27 +382,19 @@ class BuildRunner:
                 print(f"{Color.RED}No device selected{Color.NC}")
                 return False
 
-        sdk_map = {
-            "ios": "iphonesimulator",
-            "macos": "macosx",
-            "tvos": "appletvsimulator",
-        }
-
-        sdk = sdk_map.get(platform.lower())
-        if not sdk:
+        if platform.lower() not in ("ios", "macos", "tvos"):
             print(f"{Color.RED}Unknown platform: {platform}{Color.NC}")
             return False
 
         print(f"{Color.GREEN}Building for {platform.upper()}...{Color.NC}")
 
+        # Do not force -sdk. Let destination drive platform selection, same as Xcode UI.
         cmd = [
             "xcodebuild",
             "-project",
             self.project,
             "-scheme",
             self.scheme,
-            "-sdk",
-            sdk,
             "build",
             "-quiet",
         ]
@@ -473,8 +465,8 @@ class BuildRunner:
             self.project,
             "-scheme",
             self.scheme,
-            "-sdk",
-            "macosx",
+            "-destination",
+            "platform=macOS",
             "build",
             "-quiet",
         ]
@@ -511,18 +503,13 @@ class BuildRunner:
 
     def _run_simulator(self, platform: str, device_udid: str) -> bool:
         """Build and run on simulator."""
-        sdk_map = {
-            "ios": "iphonesimulator",
-            "tvos": "appletvsimulator",
-        }
-
-        sdk = sdk_map.get(platform.lower())
-        if not sdk:
+        if platform.lower() not in ("ios", "tvos"):
             print(f"{Color.RED}Unknown platform: {platform}{Color.NC}")
             return False
 
         print(f"{Color.GREEN}Building for {platform.upper()} simulator...{Color.NC}")
 
+        # Do not force -sdk. Let destination drive platform selection, same as Xcode UI.
         # Build
         build_cmd = [
             "xcodebuild",
@@ -530,8 +517,6 @@ class BuildRunner:
             self.project,
             "-scheme",
             self.scheme,
-            "-sdk",
-            sdk,
             "-destination",
             f"id={device_udid}",
             "build",
@@ -593,13 +578,7 @@ class BuildRunner:
 
     def _run_device(self, platform: str, device_udid: str) -> bool:
         """Build and run on physical device."""
-        sdk_map = {
-            "ios": "iphoneos",
-            "tvos": "appletvos",
-        }
-
-        sdk = sdk_map.get(platform.lower())
-        if not sdk:
+        if platform.lower() not in ("ios", "tvos"):
             print(f"{Color.RED}Unknown platform: {platform}{Color.NC}")
             return False
 
@@ -607,6 +586,7 @@ class BuildRunner:
             f"{Color.GREEN}Building and installing on {platform.upper()} device...{Color.NC}"
         )
 
+        # Do not force -sdk. Let destination drive platform selection, same as Xcode UI.
         # Build and install
         cmd = [
             "xcodebuild",
@@ -614,8 +594,6 @@ class BuildRunner:
             self.project,
             "-scheme",
             self.scheme,
-            "-sdk",
-            sdk,
             "-destination",
             f"id={device_udid}",
             "build",
