@@ -421,6 +421,9 @@ class BuildRunner:
         if ci_mode:
             cmd.extend(
                 [
+                    # GitHub Actions cannot interactively trust Swift macros/plugins.
+                    "-skipMacroValidation",
+                    "-skipPackagePluginValidation",
                     "CODE_SIGN_IDENTITY=",
                     "CODE_SIGNING_REQUIRED=NO",
                     "CODE_SIGNING_ALLOWED=NO",
