@@ -44,6 +44,7 @@ actor OfflineManager {
   private var syncTask: Task<Void, Never>?
   private var syncTaskID: UUID?
   private var isProcessingQueue = false
+  private var completedDownloadsSinceLastNotification = 0
 
   private let logger = AppLogger(.offline)
   private let pageImageCache = ImageCache()
@@ -582,16 +583,27 @@ actor OfflineManager {
 
     await syncMissingOfflineEpubProgressions(instanceId: instanceId)
 
-    while true {
-      let pending = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
+    let pending = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
 
-      guard let nextBook = pending.first else { return }
-
-      // Proceed to download even if it's read, as it was likely manually requested or reader is opening it.
-
-      await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
+    guard let nextBook = pending.first else {
+      if completedDownloadsSinceLastNotification > 0 {
+        completedDownloadsSinceLastNotification = 0
+        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+          instanceId: instanceId
+        )
+        if failedCount == 0 {
+          await MainActor.run {
+            ErrorManager.shared.notify(
+              message: String(localized: "notification.offline.tasksCompleted")
+            )
+          }
+        }
+      }
       return
     }
+
+    // Proceed to download even if it's read, as it was likely manually requested or reader is opening it.
+    await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
   }
 
   private func syncMissingOfflineEpubProgressions(instanceId: String) async {
@@ -1491,6 +1503,7 @@ actor OfflineManager {
     await DatabaseOperator.shared.commit()
     await refreshQueueStatus(instanceId: instanceId)
     await clearCachesAfterDownload(bookId: bookId)
+    completedDownloadsSinceLastNotification += 1
     removeActiveTask(bookId)
     scheduleDownloadedSizeUpdate(instanceId: instanceId, bookId: bookId, bookDir: bookDir)
 

@@ -80,12 +80,22 @@ final class InstanceInitializer {
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
 
-    await performSync(instanceId: instanceId)
+    let hasFailures = await performSync(instanceId: instanceId)
+    if hasFailures {
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.offline.syncCompletedWithIssues")
+      )
+    } else {
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.offline.syncCompleted")
+      )
+    }
   }
 
-  private func performSync(instanceId: String) async {
+  private func performSync(instanceId: String) async -> Bool {
     isSyncing = true
     progress = 0.0
+    var hasFailures = false
 
     let lastSyncedAt = await db.getLastSyncedAt(instanceId: instanceId)
     let syncStartTime = Date()
@@ -96,47 +106,64 @@ final class InstanceInitializer {
 
     // Phase 1: Libraries (always full sync)
     currentPhase = .libraries
-    await syncLibraries(instanceId: instanceId)
+    if !(await syncLibraries(instanceId: instanceId)) {
+      hasFailures = true
+    }
 
     // Phase 2: Collections (always full sync)
     currentPhase = .collections
-    await syncAllCollections(instanceId: instanceId)
+    if !(await syncAllCollections(instanceId: instanceId)) {
+      hasFailures = true
+    }
 
     // Phase 3: Series (incremental sync by lastModified)
     currentPhase = .series
-    await syncSeriesIncremental(instanceId: instanceId, since: lastSyncedAt.series)
+    if !(await syncSeriesIncremental(instanceId: instanceId, since: lastSyncedAt.series)) {
+      hasFailures = true
+    }
     do {
       try await db.updateSeriesLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
       await db.commit()
     } catch {
+      hasFailures = true
       logger.error("❌ Failed to update series lastSyncedAt: \(error)")
     }
 
     // Phase 4: ReadLists (always full sync)
     currentPhase = .readLists
-    await syncAllReadLists(instanceId: instanceId)
+    if !(await syncAllReadLists(instanceId: instanceId)) {
+      hasFailures = true
+    }
 
     // Phase 5: Books (incremental sync by lastModified)
     currentPhase = .books
-    await syncBooksIncremental(instanceId: instanceId, since: lastSyncedAt.books)
+    if !(await syncBooksIncremental(instanceId: instanceId, since: lastSyncedAt.books)) {
+      hasFailures = true
+    }
     do {
       try await db.updateBooksLastSyncedAt(
         instanceId: instanceId, date: syncStartTime)
       await db.commit()
     } catch {
+      hasFailures = true
       logger.error("❌ Failed to update books lastSyncedAt: \(error)")
     }
 
     progress = 1.0
-    logger.info("✅ Sync completed for instance: \(instanceId)")
+    if hasFailures {
+      logger.warning("⚠️ Sync completed with errors for instance: \(instanceId)")
+    } else {
+      logger.info("✅ Sync completed for instance: \(instanceId)")
+    }
 
     isSyncing = false
+    return hasFailures
   }
 
   // MARK: - Sync Methods
 
-  private func syncLibraries(instanceId: String) async {
+  private func syncLibraries(instanceId: String) async -> Bool {
     updateProgress(phase: .libraries, phaseProgress: 0.0)
     do {
       let libraries = try await LibraryService.shared.getLibraries()
@@ -144,13 +171,16 @@ final class InstanceInitializer {
       try await db.replaceLibraries(libraryInfos, for: instanceId)
       await db.commit()
       logger.info("📚 Synced \(libraries.count) libraries")
+      updateProgress(phase: .libraries, phaseProgress: 1.0)
+      return true
     } catch {
       logger.error("❌ Failed to sync libraries: \(error)")
+      updateProgress(phase: .libraries, phaseProgress: 1.0)
+      return false
     }
-    updateProgress(phase: .libraries, phaseProgress: 1.0)
   }
 
-  private func syncAllCollections(instanceId: String) async {
+  private func syncAllCollections(instanceId: String) async -> Bool {
     updateProgress(phase: .collections, phaseProgress: 0.0)
     do {
       var page = 0
@@ -170,12 +200,15 @@ final class InstanceInitializer {
         updateProgress(phase: .collections, phaseProgress: Double(page) / Double(totalPages))
       }
       logger.info("📂 Synced collections")
+      return true
     } catch {
       logger.error("❌ Failed to sync collections: \(error)")
+      updateProgress(phase: .collections, phaseProgress: 1.0)
+      return false
     }
   }
 
-  private func syncSeriesIncremental(instanceId: String, since: Date) async {
+  private func syncSeriesIncremental(instanceId: String, since: Date) async -> Bool {
     updateProgress(phase: .series, phaseProgress: 0.0)
     do {
       var page = 0
@@ -214,12 +247,15 @@ final class InstanceInitializer {
         updateProgress(phase: .series, phaseProgress: Double(page) / Double(totalPages))
       }
       logger.info("📚 Synced series incrementally")
+      return true
     } catch {
       logger.error("❌ Failed to sync series: \(error)")
+      updateProgress(phase: .series, phaseProgress: 1.0)
+      return false
     }
   }
 
-  private func syncAllReadLists(instanceId: String) async {
+  private func syncAllReadLists(instanceId: String) async -> Bool {
     updateProgress(phase: .readLists, phaseProgress: 0.0)
     do {
       var page = 0
@@ -239,12 +275,15 @@ final class InstanceInitializer {
         updateProgress(phase: .readLists, phaseProgress: Double(page) / Double(totalPages))
       }
       logger.info("📖 Synced read lists")
+      return true
     } catch {
       logger.error("❌ Failed to sync read lists: \(error)")
+      updateProgress(phase: .readLists, phaseProgress: 1.0)
+      return false
     }
   }
 
-  private func syncBooksIncremental(instanceId: String, since: Date) async {
+  private func syncBooksIncremental(instanceId: String, since: Date) async -> Bool {
     updateProgress(phase: .books, phaseProgress: 0.0)
     do {
       var page = 0
@@ -283,8 +322,11 @@ final class InstanceInitializer {
         updateProgress(phase: .books, phaseProgress: Double(page) / Double(totalPages))
       }
       logger.info("📖 Synced books incrementally")
+      return true
     } catch {
       logger.error("❌ Failed to sync books: \(error)")
+      updateProgress(phase: .books, phaseProgress: 1.0)
+      return false
     }
   }
 
