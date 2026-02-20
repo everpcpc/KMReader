@@ -85,10 +85,22 @@ actor ProgressSyncService {
 
     if successCount > 0 {
       logger.info("✅ Successfully synced \(successCount) progress items")
+      if failureCount == 0 {
+        await MainActor.run {
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.progressSyncCompleted")
+          )
+        }
+      }
     }
 
     if failureCount > 0 {
       logger.warning("⚠️ Failed to sync \(failureCount) progress items, will retry later")
+      await MainActor.run {
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.progressSyncFailed")
+        )
+      }
     }
   }
 
