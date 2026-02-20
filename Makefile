@@ -1,4 +1,4 @@
-.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci list-device run-ios-sim run-ios-device run-macos run-tvos-sim run-tvos-device archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos artifacts artifact-ios artifact-macos artifact-tvos clean-archives clean-exports clean-artifacts bump major minor patch format localize
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci list-device run-ios-sim run-ios-device run-macos run-tvos-sim run-tvos-device archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer release-ios release-macos release-tvos clean-archives clean-exports bump major minor patch format localize
 
 # Configuration
 SCHEME = KMReader
@@ -49,13 +49,11 @@ help: ## Show this help message
 	@echo "Build all platforms:"
 	@echo "  make release           - Archive and export all platforms (iOS, macOS, tvOS)"
 	@echo "  make release-organizer - Archive and export all platforms (appears in Organizer)"
-	@echo "  make artifacts         - Build release and prepare artifacts (ipa + dmg) for GitHub Release"
 	@echo ""
 	@echo "Clean commands:"
 	@echo "  make clean-archives   - Remove all archives"
 	@echo "  make clean-exports    - Remove all exports"
-	@echo "  make clean-artifacts  - Remove prepared artifacts"
-	@echo "  make clean            - Remove archives, exports, and artifacts"
+	@echo "  make clean            - Remove archives and exports"
 	@echo ""
 	@echo "Version commands:"
 	@echo "  make bump             - Increment CURRENT_PROJECT_VERSION in project.pbxproj"
@@ -116,32 +114,32 @@ run-tvos-device-select: ## Build and run on tvOS device (force device selection)
 
 archive-ios: ## Archive for iOS
 	@echo "$(GREEN)Archiving for iOS...$(NC)"
-	@$(MISC_DIR)/archive.sh ios $(ARCHIVES_DIR)
+	@python3 $(MISC_DIR)/xcode.py archive ios --destination $(ARCHIVES_DIR)
 	@echo "$(GREEN)iOS archived successfully!$(NC)"
 
 archive-macos: ## Archive for macOS
 	@echo "$(GREEN)Archiving for macOS...$(NC)"
-	@$(MISC_DIR)/archive.sh macos $(ARCHIVES_DIR)
+	@python3 $(MISC_DIR)/xcode.py archive macos --destination $(ARCHIVES_DIR)
 	@echo "$(GREEN)macOS archived successfully!$(NC)"
 
 archive-tvos: ## Archive for tvOS
 	@echo "$(GREEN)Archiving for tvOS...$(NC)"
-	@$(MISC_DIR)/archive.sh tvos $(ARCHIVES_DIR)
+	@python3 $(MISC_DIR)/xcode.py archive tvos --destination $(ARCHIVES_DIR)
 	@echo "$(GREEN)tvOS archived successfully!$(NC)"
 
 archive-ios-organizer: ## Archive for iOS (appears in Xcode Organizer)
 	@echo "$(GREEN)Archiving for iOS (will appear in Organizer)...$(NC)"
-	@$(MISC_DIR)/archive.sh ios --show-in-organizer
+	@python3 $(MISC_DIR)/xcode.py archive ios --show-in-organizer
 	@echo "$(GREEN)iOS archived successfully!$(NC)"
 
 archive-macos-organizer: ## Archive for macOS (appears in Xcode Organizer)
 	@echo "$(GREEN)Archiving for macOS (will appear in Organizer)...$(NC)"
-	@$(MISC_DIR)/archive.sh macos --show-in-organizer
+	@python3 $(MISC_DIR)/xcode.py archive macos --show-in-organizer
 	@echo "$(GREEN)macOS archived successfully!$(NC)"
 
 archive-tvos-organizer: ## Archive for tvOS (appears in Xcode Organizer)
 	@echo "$(GREEN)Archiving for tvOS (will appear in Organizer)...$(NC)"
-	@$(MISC_DIR)/archive.sh tvos --show-in-organizer
+	@python3 $(MISC_DIR)/xcode.py archive tvos --show-in-organizer
 	@echo "$(GREEN)tvOS archived successfully!$(NC)"
 
 export: ## Export archive (requires ARCHIVE=<path>)
@@ -150,53 +148,33 @@ export: ## Export archive (requires ARCHIVE=<path>)
 		echo "Usage: make export ARCHIVE=<path> [OPTIONS=<plist>] [DEST=<dir>]"; \
 		exit 1; \
 	fi
-	@$(MISC_DIR)/export.sh "$(ARCHIVE)" "$(OPTIONS)" "$(DEST)"
+	@python3 $(MISC_DIR)/xcode.py export "$(ARCHIVE)" "$(OPTIONS)" "$(DEST)"
 	@echo "$(GREEN)Exported successfully!$(NC)"
 
 release: ## Archive and export all platforms (iOS, macOS, tvOS)
 	@echo "$(GREEN)Building all platforms...$(NC)"
-	@$(MISC_DIR)/release.sh
+	@python3 $(MISC_DIR)/xcode.py release
 	@echo "$(GREEN)All platforms built successfully!$(NC)"
 
 release-organizer: ## Archive and export all platforms (appears in Xcode Organizer)
 	@echo "$(GREEN)Building all platforms (will appear in Organizer)...$(NC)"
-	@$(MISC_DIR)/release.sh --show-in-organizer
+	@python3 $(MISC_DIR)/xcode.py release --show-in-organizer
 	@echo "$(GREEN)All platforms built successfully!$(NC)"
 
 release-ios: ## Archive and export iOS only
 	@echo "$(GREEN)Building iOS...$(NC)"
-	@$(MISC_DIR)/release.sh --platform ios
+	@python3 $(MISC_DIR)/xcode.py release --platform ios
 	@echo "$(GREEN)iOS built successfully!$(NC)"
 
 release-macos: ## Archive and export macOS only
 	@echo "$(GREEN)Building macOS...$(NC)"
-	@$(MISC_DIR)/release.sh --platform macos
+	@python3 $(MISC_DIR)/xcode.py release --platform macos
 	@echo "$(GREEN)macOS built successfully!$(NC)"
 
 release-tvos: ## Archive and export tvOS only
 	@echo "$(GREEN)Building tvOS...$(NC)"
-	@$(MISC_DIR)/release.sh --platform tvos
+	@python3 $(MISC_DIR)/xcode.py release --platform tvos
 	@echo "$(GREEN)tvOS built successfully!$(NC)"
-
-artifacts: ## Prepare artifacts (ipa + dmg) for GitHub Release
-	@echo "$(GREEN)Preparing artifacts for GitHub Release...$(NC)"
-	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts
-	@echo "$(GREEN)Artifacts prepared successfully!$(NC)"
-
-artifact-ios: ## Prepare iOS artifact for GitHub Release
-	@echo "$(GREEN)Preparing iOS artifact for GitHub Release...$(NC)"
-	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts ios
-	@echo "$(GREEN)iOS artifact prepared successfully!$(NC)"
-
-artifact-macos: ## Prepare macOS artifact for GitHub Release
-	@echo "$(GREEN)Preparing macOS artifact for GitHub Release...$(NC)"
-	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts macos
-	@echo "$(GREEN)macOS artifact prepared successfully!$(NC)"
-
-artifact-tvos: ## Prepare tvOS artifact for GitHub Release
-	@echo "$(GREEN)Preparing tvOS artifact for GitHub Release...$(NC)"
-	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts tvos
-	@echo "$(GREEN)tvOS artifact prepared successfully!$(NC)"
 
 clean-archives: ## Remove all archives
 	@echo "$(YELLOW)Cleaning archives...$(NC)"
@@ -208,13 +186,8 @@ clean-exports: ## Remove all exports
 	@rm -rf $(EXPORTS_DIR)
 	@echo "$(GREEN)Exports cleaned successfully!$(NC)"
 
-clean-artifacts: ## Remove prepared artifacts
-	@echo "$(YELLOW)Cleaning artifacts...$(NC)"
-	@rm -rf artifacts
-	@echo "$(GREEN)Artifacts cleaned successfully!$(NC)"
-
-clean: clean-archives clean-exports clean-artifacts ## Remove archives, exports, and artifacts
-	@echo "$(GREEN)Cleaned archives, exports, and artifacts successfully!$(NC)"
+clean: clean-archives clean-exports ## Remove archives and exports
+	@echo "$(GREEN)Cleaned archives and exports successfully!$(NC)"
 
 
 bump: ## Increment CURRENT_PROJECT_VERSION in project.pbxproj

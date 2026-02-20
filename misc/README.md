@@ -39,27 +39,28 @@ make clean            # Remove archives and exports
 
 ```bash
 # Archive
-./misc/archive.sh [platform] [destination] [--show-in-organizer]
+python3 misc/xcode.py archive [platform] [--destination <dir>] [--show-in-organizer] [--ci]
 # platform: ios, macos, tvos (default: ios)
-# destination: output directory (default: ./archives)
+# --destination: output directory (default: ./archives)
 # --show-in-organizer: Save to Xcode's default location (~/Library/Developer/Xcode/Archives/) so it appears in Organizer
 
 # Export
-./misc/export.sh [archive_path] [export_options_plist] [destination] [--keep-archive] [--platform <iOS|macOS|tvOS>]
+python3 misc/xcode.py export [archive_path] [export_options_plist] [destination] [--keep-archive] [--platform <iOS|macOS|tvOS>]
 # --keep-archive: Keep the archive after export (default removes it)
-# --platform: Optional label; when provided the exported IPA/PKG is renamed (e.g., KMReader-iOS.ipa) so artifacts can be distinguished
+# --platform: Optional label; when provided the exported IPA/PKG is renamed (e.g., KMReader-iOS.ipa)
 
 # Build all platforms (archive + export)
-./misc/release.sh [--show-in-organizer] [--skip-export]
+python3 misc/xcode.py release [--show-in-organizer] [--skip-export] [--platform <ios|macos|tvos>]
 # --show-in-organizer: Save archives to Xcode's default location
 # --skip-export: Only create archives, skip export step
+
+# Upload an exported artifact
+python3 misc/xcode.py upload <artifact_path> <ios|macos|tvos>
 ```
 
 ## Files
 
-- `archive.sh` - Executes xcodebuild archive command to create .xcarchive files
-- `export.sh` - Exports archive to IPA/APP files
-- `release.sh` - Archives and exports all platforms (iOS, macOS, tvOS) in one command
+- `xcode.py` - Unified build/run/archive/export/release/upload command entry
 - `exportOptions.plist.example` - Export configuration example file
 
 ## Configuring Export Options
@@ -88,7 +89,7 @@ make clean            # Remove archives and exports
 ## Notes
 
 - Archive uses Release configuration
-- Release/export scripts rename artifacts to `KMReader-<platform>.(ipa|pkg)` so `make artifacts` can differentiate iOS/tvOS/macOS builds
+- Release/export scripts rename outputs to `KMReader-<platform>.(ipa|pkg)` for stable file naming
 - Scripts automatically handle code signing (if configured in the project)
 - All output files include timestamps to prevent overwriting
 - Use `--show-in-organizer` flag or `*-organizer` make targets to save archives to Xcode's default location, making them visible in Xcode Organizer (Window > Organizer)

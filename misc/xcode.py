@@ -7,11 +7,13 @@ Provides device selection with persistence.
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 def is_interactive() -> bool:
@@ -367,8 +369,523 @@ class DeviceManager:
 class BuildRunner:
     def __init__(self, scheme: str = "KMReader", project: str = "KMReader.xcodeproj"):
         self.scheme = scheme
-        self.project = project
+        project_path = Path(project)
+        if project_path.is_absolute():
+            self.project = str(project_path)
+        elif project_path.exists():
+            self.project = str(project_path.resolve())
+        else:
+            repo_root = Path(__file__).resolve().parent.parent
+            self.project = str((repo_root / project).resolve())
         self.device_manager = DeviceManager()
+
+    @staticmethod
+    def _is_ci_environment() -> bool:
+        """Detect whether current process is running in CI."""
+        ci_value = os.getenv("CI", "").strip().lower()
+        return ci_value in ("1", "true", "yes")
+
+    def _validation_args(self, ci_mode: bool) -> List[str]:
+        """Return xcodebuild validation flags for non-interactive CI runs."""
+        if ci_mode or self._is_ci_environment():
+            return ["-skipMacroValidation", "-skipPackagePluginValidation"]
+        return []
+
+    @staticmethod
+    def _auth_args() -> List[str]:
+        """Return authentication arguments for App Store Connect API key."""
+        key_path = os.getenv("APP_STORE_CONNECT_API_KEY_PATH", "").strip()
+        key_id = os.getenv("APP_STORE_CONNECT_API_KEY_ID", "").strip()
+        issuer_id = os.getenv("APP_STORE_CONNECT_API_ISSUER_ID", "").strip()
+
+        if key_path and key_id and issuer_id:
+            print(f"{Color.GREEN}Using App Store Connect API key for authentication{Color.NC}")
+            return [
+                "-authenticationKeyPath",
+                key_path,
+                "-authenticationKeyID",
+                key_id,
+                "-authenticationKeyIssuerID",
+                issuer_id,
+            ]
+
+        if any([key_path, key_id, issuer_id]):
+            print(
+                f"{Color.YELLOW}Warning: Incomplete App Store Connect API key configuration; skipping authentication arguments{Color.NC}"
+            )
+        return []
+
+    @staticmethod
+    def _load_env_if_present(script_dir: Path, project_root: Path) -> None:
+        """Load environment variables from .env if available."""
+        candidates = [project_root / ".env", script_dir / ".env"]
+        for env_file in candidates:
+            if not env_file.exists() or not env_file.is_file():
+                continue
+
+            print(f"{Color.GREEN}Loading environment variables from .env file...{Color.NC}")
+            for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("export "):
+                    line = line[len("export "):].strip()
+                if "=" not in line:
+                    continue
+
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                if not key:
+                    continue
+
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
+                os.environ[key] = value
+            return
+
+    @staticmethod
+    def _platform_normalized(platform: str) -> Optional[str]:
+        """Normalize platform label to canonical key."""
+        value = platform.strip().lower()
+        aliases = {
+            "ios": "ios",
+            "macos": "macos",
+            "osx": "macos",
+            "tvos": "tvos",
+            "appletvos": "tvos",
+        }
+        return aliases.get(value)
+
+    @staticmethod
+    def _platform_display(platform: str) -> str:
+        """Return display name for platform key."""
+        mapping = {"ios": "iOS", "macos": "macOS", "tvos": "tvOS"}
+        return mapping.get(platform, platform)
+
+    @staticmethod
+    def _platform_upload_type(platform: str) -> str:
+        """Return altool upload type for platform key."""
+        mapping = {"ios": "ios", "macos": "macos", "tvos": "appletvos"}
+        return mapping.get(platform, "ios")
+
+    def _archive_internal(
+        self,
+        platform: str,
+        destination_dir: str = "archives",
+        show_in_organizer: bool = False,
+        ci_mode: bool = False,
+    ) -> Tuple[bool, Optional[Path]]:
+        """Archive app and return success flag and archive path."""
+        normalized = self._platform_normalized(platform)
+        archive_targets = {
+            "ios": ("generic/platform=iOS", "KMReader-iOS"),
+            "macos": ("platform=macOS", "KMReader-macOS"),
+            "tvos": ("generic/platform=tvOS", "KMReader-tvOS"),
+        }
+
+        target = archive_targets.get(normalized or "")
+        if not target:
+            print(f"{Color.RED}Unknown platform: {platform}{Color.NC}")
+            return False, None
+
+        destination, archive_name = target
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        if show_in_organizer:
+            archive_root = (
+                Path.home()
+                / "Library/Developer/Xcode/Archives"
+                / datetime.now().strftime("%Y-%m-%d")
+            )
+            print(
+                f"{Color.YELLOW}Note: Archive will be saved to Xcode's default location and appear in Organizer{Color.NC}"
+            )
+        else:
+            archive_root = Path(destination_dir).expanduser()
+
+        archive_root.mkdir(parents=True, exist_ok=True)
+        archive_path = archive_root / f"{archive_name}_{timestamp}.xcarchive"
+
+        print(f"{Color.GREEN}Starting archive for {normalized}...{Color.NC}")
+        print(f"Scheme: {self.scheme}")
+        print(f"Destination: {destination}")
+        print(f"Archive path: {archive_path}")
+        print("")
+
+        validation_args = self._validation_args(ci_mode)
+        if validation_args:
+            print(
+                f"{Color.YELLOW}CI detected: skipping macro/plugin validation{Color.NC}"
+            )
+
+        auth_args = self._auth_args()
+
+        print(f"{Color.YELLOW}Cleaning build folder...{Color.NC}")
+        clean_cmd = [
+            "xcodebuild",
+            "clean",
+            "-project",
+            self.project,
+            "-scheme",
+            self.scheme,
+            "-configuration",
+            "Release",
+            "-destination",
+            destination,
+            "-quiet",
+        ]
+        clean_cmd.extend(validation_args)
+        clean_cmd.extend(auth_args)
+
+        print(f"{Color.YELLOW}Archiving...{Color.NC}")
+        archive_cmd = [
+            "xcodebuild",
+            "archive",
+            "-project",
+            self.project,
+            "-scheme",
+            self.scheme,
+            "-configuration",
+            "Release",
+            "-destination",
+            destination,
+            "-archivePath",
+            str(archive_path),
+            "-quiet",
+        ]
+        archive_cmd.extend(validation_args)
+        archive_cmd.extend(auth_args)
+
+        try:
+            subprocess.run(clean_cmd, check=True)
+            subprocess.run(archive_cmd, check=True)
+            print(f"{Color.GREEN}✓ Archive created successfully!{Color.NC}")
+            print(f"Archive location: {archive_path}")
+            if show_in_organizer:
+                print("")
+                print(
+                    "Archive is now available in Xcode Organizer (Window > Organizer)"
+                )
+            return True, archive_path
+        except subprocess.CalledProcessError as e:
+            print(f"{Color.RED}✗ Archive failed: {e}{Color.NC}")
+            return False, None
+
+    def archive(
+        self,
+        platform: str,
+        destination_dir: str = "archives",
+        show_in_organizer: bool = False,
+        ci_mode: bool = False,
+    ) -> bool:
+        """Archive app for the specified platform."""
+        success, _ = self._archive_internal(
+            platform,
+            destination_dir=destination_dir,
+            show_in_organizer=show_in_organizer,
+            ci_mode=ci_mode,
+        )
+        return success
+
+    def export(
+        self,
+        archive_path: str,
+        export_options: Optional[str] = None,
+        destination_dir: Optional[str] = None,
+        keep_archive: bool = False,
+        platform_label: Optional[str] = None,
+        load_env: bool = True,
+    ) -> bool:
+        """Export an existing archive to IPA/PKG."""
+        script_dir = Path(__file__).resolve().parent
+        project_root = script_dir.parent
+        if load_env:
+            self._load_env_if_present(script_dir, project_root)
+
+        archive_path = archive_path.strip()
+        export_options = (export_options or "").strip() or str(script_dir / "exportOptions.plist")
+        destination_dir = (destination_dir or "").strip() or str(project_root / "exports")
+
+        archive = Path(archive_path).expanduser()
+        export_options_path = Path(export_options).expanduser()
+        destination = Path(destination_dir).expanduser()
+
+        if not archive.exists() or not archive.is_dir():
+            print(f"{Color.RED}Error: Archive not found at '{archive}'{Color.NC}")
+            return False
+
+        if not export_options_path.exists() or not export_options_path.is_file():
+            print(
+                f"{Color.RED}Error: Export options plist not found at '{export_options_path}'{Color.NC}"
+            )
+            return False
+
+        destination.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        export_path = destination / f"export_{timestamp}"
+
+        print(f"{Color.GREEN}Starting export...{Color.NC}")
+        print(f"Archive: {archive}")
+        print(f"Export options: {export_options_path}")
+        print(f"Export path: {export_path}")
+        print("")
+
+        auth_args = self._auth_args()
+        cmd = [
+            "xcodebuild",
+            "-exportArchive",
+            "-archivePath",
+            str(archive),
+            "-exportPath",
+            str(export_path),
+            "-exportOptionsPlist",
+            str(export_options_path),
+            "-quiet",
+        ]
+        cmd.extend(auth_args)
+
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"{Color.RED}✗ Export failed: {e}{Color.NC}")
+            return False
+
+        if platform_label:
+            for ext in ("ipa", "pkg"):
+                for file in export_path.glob(f"*.{ext}"):
+                    target = export_path / f"KMReader-{platform_label}.{ext}"
+                    if file.name != target.name:
+                        file.rename(target)
+                        print(f"{Color.GREEN}Renamed {file.name} -> {target.name}{Color.NC}")
+
+        print(f"{Color.GREEN}✓ Export completed successfully!{Color.NC}")
+        print(f"Export location: {export_path}")
+
+        exported_files = sorted(export_path.iterdir())
+        if exported_files:
+            print("Exported files:")
+            for file in exported_files:
+                size = file.stat().st_size
+                print(f"  - {file.name} ({size} bytes)")
+
+        if keep_archive:
+            print(f"{Color.YELLOW}Archive kept at: {archive}{Color.NC}")
+        else:
+            shutil.rmtree(archive, ignore_errors=False)
+            print(f"{Color.GREEN}✓ Archive deleted{Color.NC}")
+
+        return True
+
+    def upload(self, artifact_path: str, platform: str, load_env: bool = True) -> bool:
+        """Upload exported artifact to App Store Connect."""
+        script_dir = Path(__file__).resolve().parent
+        project_root = script_dir.parent
+        if load_env:
+            self._load_env_if_present(script_dir, project_root)
+
+        artifact = Path(artifact_path).expanduser()
+        if not artifact.exists() or not artifact.is_file():
+            print(f"{Color.RED}Artifact not found at '{artifact}'{Color.NC}")
+            return False
+
+        key_path = os.getenv("APP_STORE_CONNECT_API_KEY_PATH", "").strip()
+        key_id = os.getenv("APP_STORE_CONNECT_API_KEY_ID", "").strip()
+        issuer_id = os.getenv("APP_STORE_CONNECT_API_ISSUER_ID", "").strip()
+
+        key_file = str(Path(key_path).expanduser()) if key_path else ""
+
+        if not key_path:
+            print(
+                f"{Color.RED}Error: APP_STORE_CONNECT_API_KEY_PATH is required for upload{Color.NC}"
+            )
+            return False
+        if not Path(key_file).exists():
+            print(f"{Color.RED}Error: API key file not found at '{key_path}'{Color.NC}")
+            return False
+        if not key_id or not issuer_id:
+            print(
+                f"{Color.RED}Error: APP_STORE_CONNECT_API_KEY_ID and APP_STORE_CONNECT_API_ISSUER_ID are required for upload{Color.NC}"
+            )
+            return False
+
+        normalized = self._platform_normalized(platform) or "ios"
+        upload_type = self._platform_upload_type(normalized)
+        print(f"Uploading {artifact} ({self._platform_display(normalized)}) to App Store Connect...")
+
+        cmd = [
+            "xcrun",
+            "altool",
+            "--upload-app",
+            "-f",
+            str(artifact),
+            "-t",
+            upload_type,
+            "--api-key",
+            key_id,
+            "--api-issuer",
+            issuer_id,
+            "--p8-file-path",
+            key_file,
+        ]
+
+        try:
+            subprocess.run(cmd, check=True)
+            print(f"{Color.GREEN}✓ Upload completed for {artifact}{Color.NC}")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"{Color.RED}✗ Upload failed: {e}{Color.NC}")
+            return False
+
+    def release(
+        self,
+        show_in_organizer: bool = False,
+        skip_export: bool = False,
+        platform: Optional[str] = None,
+    ) -> bool:
+        """Archive/export/upload for platforms."""
+        script_dir = Path(__file__).resolve().parent
+        project_root = script_dir.parent
+        self._load_env_if_present(script_dir, project_root)
+
+        if platform:
+            normalized = self._platform_normalized(platform)
+            if not normalized:
+                print(
+                    f"{Color.RED}Error: Invalid platform '{platform}'. Must be ios, macos, or tvos.{Color.NC}"
+                )
+                return False
+            platforms = [normalized]
+        else:
+            platforms = ["ios", "macos", "tvos"]
+
+        archives_dir = project_root / "archives"
+        exports_dir = project_root / "exports"
+        export_options = {
+            "ios": script_dir / "exportOptions.ios.plist",
+            "macos": script_dir / "exportOptions.macos.plist",
+            "tvos": script_dir / "exportOptions.tvos.plist",
+        }
+
+        if not skip_export:
+            for key in platforms:
+                plist = export_options[key]
+                if not plist.exists():
+                    print(
+                        f"{Color.RED}Error: export options plist not found at '{plist}'{Color.NC}"
+                    )
+                    return False
+
+        print(f"{Color.BLUE}========================================{Color.NC}")
+        print(f"{Color.BLUE}KMReader - Release{Color.NC}")
+        print(f"{Color.BLUE}========================================{Color.NC}")
+        print("")
+        print(f"{Color.GREEN}Step 1: Creating archives for all platforms...{Color.NC}")
+        print("")
+
+        archive_results: List[Tuple[str, Path]] = []
+        archive_failed = False
+        ci_mode = self._is_ci_environment()
+
+        for key in platforms:
+            print(f"{Color.YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Color.NC}")
+            print(f"{Color.YELLOW}Archiving for {key}...{Color.NC}")
+            print(f"{Color.YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Color.NC}")
+
+            success, archive_path = self._archive_internal(
+                key,
+                destination_dir=str(archives_dir),
+                show_in_organizer=show_in_organizer,
+                ci_mode=ci_mode,
+            )
+            if not success or not archive_path:
+                print(f"{Color.RED}✗ Archive failed for {key}!{Color.NC}")
+                archive_failed = True
+                print("")
+                continue
+
+            archive_results.append((key, archive_path))
+            print(f"{Color.GREEN}✓ Archive saved: {archive_path}{Color.NC}")
+            print("")
+
+        if archive_failed:
+            print(f"{Color.RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Color.NC}")
+            print(f"{Color.RED}✗ Some archives failed! Skipping export.{Color.NC}")
+            print(f"{Color.RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Color.NC}")
+            return False
+
+        print(f"{Color.GREEN}✓ All archives created successfully!{Color.NC}")
+        print("")
+
+        if skip_export:
+            print(f"{Color.YELLOW}Skip export requested. Release process finished after archive.{Color.NC}")
+            return True
+
+        print(f"{Color.GREEN}Step 2: Exporting all archives...{Color.NC}")
+        print("")
+
+        for key, archive_path in archive_results:
+            display_name = self._platform_display(key)
+            print(f"{Color.YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Color.NC}")
+            print(f"{Color.YELLOW}Exporting {display_name} archive...{Color.NC}")
+            print(f"{Color.YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Color.NC}")
+
+            success = self.export(
+                str(archive_path),
+                export_options=str(export_options[key]),
+                destination_dir=str(exports_dir),
+                keep_archive=True,
+                platform_label=display_name,
+                load_env=False,
+            )
+            if not success:
+                return False
+            print("")
+
+        print(f"{Color.GREEN}✓ All exports completed successfully!{Color.NC}")
+        print("")
+        print(f"{Color.GREEN}Uploading exported builds...{Color.NC}")
+
+        for key in platforms:
+            display_name = self._platform_display(key)
+            artifact_patterns = {
+                "ios": ["KMReader-iOS.ipa", "*.ipa"],
+                "macos": ["KMReader-macOS.pkg", "*.pkg"],
+                "tvos": ["KMReader-tvOS.ipa", "*tvOS*.ipa"],
+            }
+            found: Optional[Path] = None
+
+            for pattern in artifact_patterns[key]:
+                candidates = sorted(exports_dir.rglob(pattern))
+                if key == "ios":
+                    candidates = [c for c in candidates if not c.name.endswith("tvOS.ipa")]
+                if candidates:
+                    found = candidates[-1]
+                    break
+
+            if not found:
+                print(
+                    f"{Color.YELLOW}No artifact found for {display_name}; skipping upload.{Color.NC}"
+                )
+                continue
+
+            if not self.upload(str(found), key, load_env=False):
+                return False
+
+        print("")
+        print(f"{Color.BLUE}========================================{Color.NC}")
+        print(f"{Color.BLUE}Release Summary{Color.NC}")
+        print(f"{Color.BLUE}========================================{Color.NC}")
+        print("")
+        print(f"{Color.GREEN}Archives created:{Color.NC}")
+        for _, archive_path in archive_results:
+            print(f"  - {archive_path}")
+        print("")
+        print(f"{Color.GREEN}Exports location:{Color.NC}")
+        print(f"  - {exports_dir}")
+        print("")
+        print(f"{Color.GREEN}✓ Release process completed!{Color.NC}")
+        return True
 
     def build(self, platform: str, ci_mode: bool = False) -> bool:
         """Build for the specified platform."""
@@ -411,15 +928,9 @@ class BuildRunner:
             cmd.extend(["-destination", "platform=macOS"])
 
         if ci_mode:
+            cmd.extend(self._validation_args(ci_mode=True))
             cmd.extend(
-                [
-                    # GitHub Actions cannot interactively trust Swift macros/plugins.
-                    "-skipMacroValidation",
-                    "-skipPackagePluginValidation",
-                    "CODE_SIGN_IDENTITY=",
-                    "CODE_SIGNING_REQUIRED=NO",
-                    "CODE_SIGNING_ALLOWED=NO",
-                ]
+                ["CODE_SIGN_IDENTITY=", "CODE_SIGNING_REQUIRED=NO", "CODE_SIGNING_ALLOWED=NO"]
             )
 
         try:
@@ -645,6 +1156,82 @@ def main():
         "--ci", action="store_true", help="CI mode (no code signing)"
     )
 
+    # Archive command
+    archive_parser = subparsers.add_parser("archive", help="Archive for a platform")
+    archive_parser.add_argument(
+        "platform", choices=["ios", "macos", "tvos"], help="Target platform"
+    )
+    archive_parser.add_argument(
+        "--destination",
+        default="archives",
+        help="Archive output directory (ignored with --show-in-organizer)",
+    )
+    archive_parser.add_argument(
+        "--show-in-organizer",
+        action="store_true",
+        help="Save archive to Xcode Organizer location",
+    )
+    archive_parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="Enable CI-safe validation flags",
+    )
+
+    # Export command
+    export_parser = subparsers.add_parser("export", help="Export archive")
+    export_parser.add_argument("archive_path", help="Path to .xcarchive")
+    export_parser.add_argument(
+        "export_options",
+        nargs="?",
+        default=None,
+        help="Export options plist path (default: misc/exportOptions.plist)",
+    )
+    export_parser.add_argument(
+        "destination",
+        nargs="?",
+        default=None,
+        help="Export output directory (default: ./exports)",
+    )
+    export_parser.add_argument(
+        "--keep-archive",
+        action="store_true",
+        help="Keep archive after export",
+    )
+    export_parser.add_argument(
+        "--platform",
+        dest="platform_label",
+        default=None,
+        help="Platform label used to rename exported files (iOS/macOS/tvOS)",
+    )
+
+    # Upload command
+    upload_parser = subparsers.add_parser("upload", help="Upload exported artifact")
+    upload_parser.add_argument("artifact_path", help="Path to IPA/PKG artifact")
+    upload_parser.add_argument(
+        "platform", help="Platform label (ios/macos/tvos)"
+    )
+
+    # Release command
+    release_parser = subparsers.add_parser(
+        "release", help="Archive/export/upload for platforms"
+    )
+    release_parser.add_argument(
+        "--show-in-organizer",
+        action="store_true",
+        help="Save archives to Xcode Organizer location",
+    )
+    release_parser.add_argument(
+        "--skip-export",
+        action="store_true",
+        help="Only create archives; skip export and upload",
+    )
+    release_parser.add_argument(
+        "--platform",
+        choices=["ios", "macos", "tvos"],
+        default=None,
+        help="Process a single platform",
+    )
+
     # Run command
     run_parser = subparsers.add_parser("run", help="Build and run on a device")
     run_parser.add_argument(
@@ -690,6 +1277,37 @@ def main():
 
     if args.command == "build":
         success = runner.build(args.platform, args.ci)
+        return 0 if success else 1
+
+    elif args.command == "archive":
+        success = runner.archive(
+            args.platform,
+            destination_dir=args.destination,
+            show_in_organizer=args.show_in_organizer,
+            ci_mode=args.ci,
+        )
+        return 0 if success else 1
+
+    elif args.command == "export":
+        success = runner.export(
+            args.archive_path,
+            export_options=args.export_options,
+            destination_dir=args.destination,
+            keep_archive=args.keep_archive,
+            platform_label=args.platform_label,
+        )
+        return 0 if success else 1
+
+    elif args.command == "upload":
+        success = runner.upload(args.artifact_path, args.platform)
+        return 0 if success else 1
+
+    elif args.command == "release":
+        success = runner.release(
+            show_in_organizer=args.show_in_organizer,
+            skip_export=args.skip_export,
+            platform=args.platform,
+        )
         return 0 if success else 1
 
     elif args.command == "run":
