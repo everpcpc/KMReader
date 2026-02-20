@@ -14,9 +14,14 @@
     @State private var scrollPosition: Int?
     @State private var document: PDFDocument?
     @State private var thumbnails: [Int: PlatformImage] = [:]
+    @State private var currentDocumentKey: String = ""
 
     private var maxPage: Int {
       max(totalPages, 1)
+    }
+
+    private var documentKey: String {
+      documentURL.standardizedFileURL.path
     }
 
     private var canJump: Bool {
@@ -71,8 +76,10 @@
     }
 
     private func loadDocumentIfNeeded() {
-      if document == nil {
+      if document == nil || currentDocumentKey != documentKey {
         document = PDFDocument(url: documentURL)
+        currentDocumentKey = documentKey
+        thumbnails.removeAll()
       }
     }
 
@@ -117,7 +124,7 @@
                           pageValue = page
                           scrollPosition = page
                         }
-                        .task(id: "\(page)-\(Int(imageHeight))") {
+                        .task(id: "\(documentKey)-\(page)-\(Int(imageHeight))") {
                           loadThumbnail(for: page, targetHeight: imageHeight)
                         }
                       }
@@ -139,6 +146,9 @@
                   .onAppear {
                     loadDocumentIfNeeded()
                     proxy.scrollTo(pageValue, anchor: .center)
+                  }
+                  .onChange(of: documentURL) { _, _ in
+                    loadDocumentIfNeeded()
                   }
                   .onChange(of: scrollPosition) { _, newValue in
                     if let page = newValue {

@@ -101,6 +101,10 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     "\(id)#\(type.rawValue)"
   }
 
+  private var loadTaskKey: String {
+    "\(baseKey)#\(refreshTrigger.uuidString)"
+  }
+
   private var imageAspectRatio: CGFloat {
     guard let loadedImageSize = loadedImageSize, loadedImageSize.height > 0 else {
       return CoverAspectRatio.widthToHeight
@@ -164,11 +168,12 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       }
       refreshTrigger = UUID()
     }
-    .task(id: refreshTrigger) {
+    .task(id: loadTaskKey) {
       isLoading = true
       if currentBaseKey != baseKey {
         currentBaseKey = baseKey
         image = nil
+        loadedImageSize = nil
       }
 
       let loaded = await loadThumbnail(id: id, type: type)
