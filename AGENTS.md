@@ -64,8 +64,7 @@ make build-tvos         # Build for tvOS simulator
 # Other build commands
 make build              # Build all platforms
 make release            # Archive and export all platforms
-make artifacts          # Prepare IPA/DMG for GitHub Release
-make clean              # Remove archives, exports, and artifacts
+make clean              # Remove archives and exports
 ```
 
 Build execution rule:
@@ -366,7 +365,7 @@ Additional patterns:
 - `openapi.json`: Komga REST API contract
 - `AGENTS.md`: Comprehensive contributor guide
 - `Makefile`: Build automation commands
-- `misc/`: Build scripts (archive.sh, release.sh, bump.sh, bump-version.sh, artifacts.sh)
+- `misc/`: Build scripts (`xcode.py`, `bump.sh`, `bump-version.sh`)
 
 ## Reference
 

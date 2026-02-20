@@ -187,7 +187,7 @@ Use App Store Connect API key for automated uploads without interactive login. S
 APP_STORE_CONNECT_API_KEY_PATH=/path/to/AuthKey_XXXXXXXXXX.p8 \
 APP_STORE_CONNECT_API_ISSUER_ID=YOUR_ISSUER_ID \
 APP_STORE_CONNECT_API_KEY_ID=YOUR_KEY_ID \
-./export.sh ./archives/KMReader-iOS_20240101_120000.xcarchive \
+python3 misc/xcode.py export ./archives/KMReader-iOS_20240101_120000.xcarchive \
   exportOptions.plist \
   ./exports
 ```
@@ -244,7 +244,7 @@ Now you can use the API key in the export script by providing environment variab
 APP_STORE_CONNECT_API_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_XXXXXXXXXX.p8 \
 APP_STORE_CONNECT_API_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \
 APP_STORE_CONNECT_API_KEY_ID=XXXXXXXXXX \
-./misc/export.sh ./archives/KMReader-iOS_xxx.xcarchive \
+python3 misc/xcode.py export ./archives/KMReader-iOS_xxx.xcarchive \
   misc/exportOptions.plist \
   ./exports
 ```
@@ -296,7 +296,7 @@ Alternatively, you can set these environment variables instead of using command-
 
 3. Run the export script - it will automatically load `.env`:
    ```bash
-   ./misc/export.sh ./archives/KMReader-iOS_xxx.xcarchive
+   python3 misc/xcode.py export ./archives/KMReader-iOS_xxx.xcarchive
    ```
 
    **Note:** The script automatically detects and loads `.env` file from the project root, so you don't need to manually `source .env`!
@@ -307,7 +307,7 @@ Alternatively, you can set these environment variables instead of using command-
 export APP_STORE_CONNECT_API_KEY_PATH="/path/to/AuthKey_XXXXXXXXXX.p8"
 export APP_STORE_CONNECT_API_ISSUER_ID="YOUR_ISSUER_ID"
 export APP_STORE_CONNECT_API_KEY_ID="YOUR_KEY_ID"
-./misc/export.sh ./archives/KMReader-iOS_xxx.xcarchive
+python3 misc/xcode.py export ./archives/KMReader-iOS_xxx.xcarchive
 ```
 
 **Option 3: Inline with the command**
@@ -316,7 +316,7 @@ export APP_STORE_CONNECT_API_KEY_ID="YOUR_KEY_ID"
 APP_STORE_CONNECT_API_KEY_PATH="/path/to/AuthKey_XXX.p8" \
 APP_STORE_CONNECT_API_ISSUER_ID="your-issuer-id" \
 APP_STORE_CONNECT_API_KEY_ID="your-key-id" \
-./misc/export.sh ./archives/KMReader-iOS_xxx.xcarchive
+python3 misc/xcode.py export ./archives/KMReader-iOS_xxx.xcarchive
 ```
 
 **Note:** The export script automatically reads these environment variables, so no additional command-line flags are required.
