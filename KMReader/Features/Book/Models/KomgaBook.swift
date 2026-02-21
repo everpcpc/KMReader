@@ -23,43 +23,23 @@ final class KomgaBook {
   var sizeBytes: Int64
   var size: String
 
-  // Flattened Media
-  var mediaStatus: String
-  var mediaType: String
+  // API-aligned fields
+  var media: Media?
+  var metadata: BookMetadata?
+  var readProgress: ReadProgress?
+
+  // Query fields
   var mediaPagesCount: Int
-  var mediaComment: String?
   var mediaProfile: String?
-  var mediaEpubDivinaCompatible: Bool?
-  var mediaEpubIsKepub: Bool?
-
-  // Flattened Metadata
-  var metaCreated: String?
-  var metaLastModified: String?
   var metaTitle: String
-  var metaTitleLock: Bool?
-  var metaSummary: String?
-  var metaSummaryLock: Bool?
   var metaNumber: String
-  var metaNumberLock: Bool?
   var metaNumberSort: Double
-  var metaNumberSortLock: Bool?
   var metaReleaseDate: String?
-  var metaReleaseDateLock: Bool?
-  var metaAuthorsRaw: Data?  // JSON encoded [Author]
-  var metaAuthorsLock: Bool?
-  var metaTagsRaw: Data?  // JSON encoded [String]
-  var metaTagsLock: Bool?
-  var metaIsbn: String?
-  var metaIsbnLock: Bool?
-  var metaLinksRaw: Data?  // JSON encoded [WebLink]
-  var metaLinksLock: Bool?
-
-  // Flattened ReadProgress
   var progressPage: Int?
   var progressCompleted: Bool?
   var progressReadDate: Date?
-  var progressCreated: Date?
-  var progressLastModified: Date?
+  var metaAuthorsIndex: String = "|"
+  var metaTagsIndex: String = "|"
 
   var isUnavailable: Bool = false
   var oneshot: Bool
@@ -82,11 +62,6 @@ final class KomgaBook {
 
   var isolatePagesRaw: Data?
   var epubPreferencesRaw: String?
-
-  var metaTags: [String] {
-    get { metaTagsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
-    set { metaTagsRaw = try? JSONEncoder().encode(newValue) }
-  }
 
   var readListIds: [String] {
     get { readListIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
@@ -169,46 +144,22 @@ final class KomgaBook {
     self.lastModified = lastModified
     self.sizeBytes = sizeBytes
     self.size = size
-    self.seriesTitle = seriesTitle
 
-    // Media
-    self.mediaStatus = media.statusRaw
-    self.mediaType = media.mediaType
+    self.media = media
+    self.metadata = metadata
+    self.readProgress = readProgress
+
     self.mediaPagesCount = media.pagesCount
-    self.mediaComment = media.comment
-    self.mediaProfile = media.mediaProfileRaw
-    self.mediaEpubDivinaCompatible = media.epubDivinaCompatible
-    self.mediaEpubIsKepub = media.epubIsKepub
-
-    // Metadata
-    self.metaCreated = metadata.created
-    self.metaLastModified = metadata.lastModified
+    self.mediaProfile = media.mediaProfile
     self.metaTitle = metadata.title
-    self.metaTitleLock = metadata.titleLock
-    self.metaSummary = metadata.summary
-    self.metaSummaryLock = metadata.summaryLock
     self.metaNumber = metadata.number
-    self.metaNumberLock = metadata.numberLock
     self.metaNumberSort = metadata.numberSort
-    self.metaNumberSortLock = metadata.numberSortLock
     self.metaReleaseDate = metadata.releaseDate
-    self.metaReleaseDateLock = metadata.releaseDateLock
-    self.metaAuthorsRaw = try? JSONEncoder().encode(metadata.authors)
-    self.metaAuthorsLock = metadata.authorsLock
-    self.metaTagsRaw = try? JSONEncoder().encode(metadata.tags ?? [])
-    self.metaTagsLock = metadata.tagsLock
-    self.metaIsbn = metadata.isbn
-    self.metaIsbnLock = metadata.isbnLock
-    self.metaLinksRaw = try? JSONEncoder().encode(metadata.links)
-    self.metaLinksLock = metadata.linksLock
-
-    // ReadProgress
     self.progressPage = readProgress?.page
     self.progressCompleted = readProgress?.completed
     self.progressReadDate = readProgress?.readDate
-    self.progressCreated = readProgress?.created
-    self.progressLastModified = readProgress?.lastModified
 
+    self.seriesTitle = seriesTitle
     self.isUnavailable = isUnavailable
     self.oneshot = oneshot
     self.downloadedSize = downloadedSize
@@ -216,63 +167,50 @@ final class KomgaBook {
     self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
     self.epubPreferencesRaw = nil
     self.epubProgressionRaw = nil
+
+    rebuildQueryFields()
   }
 
-  var media: Media {
-    Media(
-      status: MediaStatus(rawValue: mediaStatus) ?? .unknown,
-      mediaType: mediaType,
-      pagesCount: mediaPagesCount,
-      comment: mediaComment,
-      mediaProfile: mediaProfile.flatMap(MediaProfile.init),
-      epubDivinaCompatible: mediaEpubDivinaCompatible,
-      epubIsKepub: mediaEpubIsKepub
-    )
+  func applyContent(media: Media, metadata: BookMetadata, readProgress: ReadProgress?) {
+    self.media = media
+    self.metadata = metadata
+    self.readProgress = readProgress
+    rebuildQueryFields()
   }
 
-  var metadata: BookMetadata {
-    BookMetadata(
-      created: metaCreated,
-      lastModified: metaLastModified,
-      title: metaTitle,
-      titleLock: metaTitleLock,
-      summary: metaSummary,
-      summaryLock: metaSummaryLock,
-      number: metaNumber,
-      numberLock: metaNumberLock,
-      numberSort: metaNumberSort,
-      numberSortLock: metaNumberSortLock,
-      releaseDate: metaReleaseDate,
-      releaseDateLock: metaReleaseDateLock,
-      authors: metaAuthorsRaw.flatMap { try? JSONDecoder().decode([Author].self, from: $0) },
-      authorsLock: metaAuthorsLock,
-      tags: metaTags,
-      tagsLock: metaTagsLock,
-      isbn: metaIsbn,
-      isbnLock: metaIsbnLock,
-      links: metaLinksRaw.flatMap { try? JSONDecoder().decode([WebLink].self, from: $0) },
-      linksLock: metaLinksLock
-    )
+  func updateReadProgress(_ readProgress: ReadProgress?) {
+    self.readProgress = readProgress
+    syncReadProgressFields()
   }
 
-  var readProgress: ReadProgress? {
-    guard let page = progressPage,
-      let completed = progressCompleted,
-      let readDate = progressReadDate,
-      let lastModified = progressLastModified
-    else { return nil }
-    let created = progressCreated ?? readDate
-    return ReadProgress(
-      page: page,
-      completed: completed,
-      readDate: readDate,
-      created: created,
-      lastModified: lastModified
-    )
+  func rebuildQueryFields() {
+    let media = media ?? Media.empty
+    let metadata = metadata ?? BookMetadata.empty
+
+    mediaPagesCount = media.pagesCount
+    mediaProfile = media.mediaProfile
+
+    metaTitle = metadata.title
+    metaNumber = metadata.number
+    metaNumberSort = metadata.numberSort
+    metaReleaseDate = metadata.releaseDate
+    metaAuthorsIndex = MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
+    metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
+
+    syncReadProgressFields()
+  }
+
+  private func syncReadProgressFields() {
+    progressPage = readProgress?.page
+    progressCompleted = readProgress?.completed
+    progressReadDate = readProgress?.readDate
   }
 
   func toBook() -> Book {
-    Book(
+    let media = media ?? Media.empty
+    let metadata = metadata ?? BookMetadata.empty
+
+    return Book(
       id: bookId,
       seriesId: seriesId,
       seriesTitle: seriesTitle,

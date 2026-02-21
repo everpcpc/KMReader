@@ -82,20 +82,43 @@ nonisolated enum MediaStatus: String, Codable, Hashable, Sendable {
 }
 
 nonisolated struct Media: Equatable, Hashable, Sendable {
-  var statusRaw: String
-  var mediaType: String
-  var pagesCount: Int
+  static let empty = Media(status: MediaStatus.unknown.rawValue, mediaType: "", pagesCount: 0)
+
+  var status: String = MediaStatus.unknown.rawValue
+  var mediaType: String = ""
+  var pagesCount: Int = 0
   var comment: String?
-  var mediaProfileRaw: String?
+  var mediaProfile: String?
   var epubDivinaCompatible: Bool?
   var epubIsKepub: Bool?
 
-  var status: MediaStatus {
-    MediaStatus(rawValue: statusRaw) ?? .unknown
+  var statusValue: MediaStatus {
+    MediaStatus(rawValue: status) ?? .unknown
   }
 
-  var mediaProfile: MediaProfile? {
-    mediaProfileRaw.flatMap(MediaProfile.init)
+  var mediaProfileValue: MediaProfile? {
+    guard let mediaProfile else {
+      return nil
+    }
+    return MediaProfile(rawValue: mediaProfile) ?? .unknown
+  }
+
+  init(
+    status: String,
+    mediaType: String,
+    pagesCount: Int,
+    comment: String? = nil,
+    mediaProfile: String? = nil,
+    epubDivinaCompatible: Bool? = nil,
+    epubIsKepub: Bool? = nil
+  ) {
+    self.status = status
+    self.mediaType = mediaType
+    self.pagesCount = pagesCount
+    self.comment = comment
+    self.mediaProfile = mediaProfile
+    self.epubDivinaCompatible = epubDivinaCompatible
+    self.epubIsKepub = epubIsKepub
   }
 
   init(
@@ -107,45 +130,47 @@ nonisolated struct Media: Equatable, Hashable, Sendable {
     epubDivinaCompatible: Bool? = nil,
     epubIsKepub: Bool? = nil
   ) {
-    self.statusRaw = status.rawValue
-    self.mediaType = mediaType
-    self.pagesCount = pagesCount
-    self.comment = comment
-    self.mediaProfileRaw = mediaProfile?.rawValue
-    self.epubDivinaCompatible = epubDivinaCompatible
-    self.epubIsKepub = epubIsKepub
+    self.init(
+      status: status.rawValue,
+      mediaType: mediaType,
+      pagesCount: pagesCount,
+      comment: comment,
+      mediaProfile: mediaProfile?.rawValue,
+      epubDivinaCompatible: epubDivinaCompatible,
+      epubIsKepub: epubIsKepub
+    )
   }
 }
 
-extension Media: Codable {
+nonisolated extension Media: Codable {
   enum CodingKeys: String, CodingKey {
-    case statusRaw = "status"
+    case status
     case mediaType
     case pagesCount
     case comment
-    case mediaProfileRaw = "mediaProfile"
+    case mediaProfile
     case epubDivinaCompatible
     case epubIsKepub
   }
 
   init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    statusRaw = try container.decode(String.self, forKey: .statusRaw)
+    status = try container.decodeIfPresent(String.self, forKey: .status) ?? MediaStatus.unknown.rawValue
     mediaType = try container.decode(String.self, forKey: .mediaType)
     pagesCount = try container.decode(Int.self, forKey: .pagesCount)
     comment = try container.decodeIfPresent(String.self, forKey: .comment)
-    mediaProfileRaw = try container.decodeIfPresent(String.self, forKey: .mediaProfileRaw)
+    mediaProfile = try container.decodeIfPresent(String.self, forKey: .mediaProfile)
     epubDivinaCompatible = try container.decodeIfPresent(Bool.self, forKey: .epubDivinaCompatible)
     epubIsKepub = try container.decodeIfPresent(Bool.self, forKey: .epubIsKepub)
   }
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
-    try container.encode(statusRaw, forKey: .statusRaw)
+    try container.encode(status, forKey: .status)
     try container.encode(mediaType, forKey: .mediaType)
     try container.encode(pagesCount, forKey: .pagesCount)
     try container.encodeIfPresent(comment, forKey: .comment)
-    try container.encodeIfPresent(mediaProfileRaw, forKey: .mediaProfileRaw)
+    try container.encodeIfPresent(mediaProfile, forKey: .mediaProfile)
     try container.encodeIfPresent(epubDivinaCompatible, forKey: .epubDivinaCompatible)
     try container.encodeIfPresent(epubIsKepub, forKey: .epubIsKepub)
   }

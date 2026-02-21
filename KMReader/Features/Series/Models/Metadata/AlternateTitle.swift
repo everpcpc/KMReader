@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct AlternateTitle: Codable, Equatable, Hashable, Sendable {
+nonisolated struct AlternateTitle: Codable, Equatable, Hashable, Sendable {
   let label: String
   let title: String
 }

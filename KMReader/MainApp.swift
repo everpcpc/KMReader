@@ -68,23 +68,13 @@ struct MainApp: App {
   @State private var deepLinkRouter = DeepLinkRouter.shared
 
   init() {
-    let schema = Schema([
-      KomgaInstance.self,
-      KomgaLibrary.self,
-      KomgaSeries.self,
-      KomgaBook.self,
-      KomgaCollection.self,
-      KomgaReadList.self,
-      CustomFont.self,
-      PendingProgress.self,
-      SavedFilter.self,
-      EpubThemePreset.self,
-    ])
+    let schema = Schema(versionedSchema: KMReaderSchemaV2.self)
 
     do {
       let configuration = ModelConfiguration(schema: schema)
       modelContainer = try ModelContainer(
         for: schema,
+        migrationPlan: KMReaderMigrationPlan.self,
         configurations: [configuration]
       )
     } catch {

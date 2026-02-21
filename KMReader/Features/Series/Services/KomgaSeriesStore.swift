@@ -149,12 +149,61 @@ enum KomgaSeriesStore {
       descriptor.sortBy = [SortDescriptor(\KomgaSeries.metaTitleSort, order: .forward)]
     }
 
-    descriptor.fetchLimit = limit
-    descriptor.fetchOffset = offset
-
     do {
       let results = try context.fetch(descriptor)
-      return results.map { $0.seriesId }
+      let filtered = results.filter { series in
+        // Filter by deleted
+        if let deletedState = browseOpts.deletedFilter.effectiveBool {
+          if series.isUnavailable != deletedState { return false }
+        }
+
+        // Filter by oneshot
+        if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
+          if series.oneshot != oneshotState { return false }
+        }
+
+        // Filter by complete
+        if let completeState = browseOpts.completeFilter.effectiveBool {
+          if (series.metadata?.totalBookCount == series.booksCount) != completeState { return false }
+        }
+
+        // Filter by Read Status
+        let status: ReadStatus
+        if series.booksReadCount == series.booksCount && series.booksCount > 0 {
+          status = .read
+        } else if series.booksReadCount > 0 {
+          status = .inProgress
+        } else {
+          status = .unread
+        }
+
+        if !browseOpts.includeReadStatuses.isEmpty {
+          if !browseOpts.includeReadStatuses.contains(status) { return false }
+        }
+
+        if !browseOpts.excludeReadStatuses.isEmpty {
+          if browseOpts.excludeReadStatuses.contains(status) { return false }
+        }
+
+        // Filter by Series Status
+        if !browseOpts.includeSeriesStatuses.isEmpty || !browseOpts.excludeSeriesStatuses.isEmpty {
+          if let seriesStatus = SeriesStatus.fromAPIValue(series.metadata?.status) {
+            if !browseOpts.includeSeriesStatuses.isEmpty {
+              if !browseOpts.includeSeriesStatuses.contains(seriesStatus) { return false }
+            }
+
+            if !browseOpts.excludeSeriesStatuses.isEmpty {
+              if browseOpts.excludeSeriesStatuses.contains(seriesStatus) { return false }
+            }
+          }
+        }
+
+        return matchesMetadataFilter(series: series, filter: browseOpts.metadataFilter)
+      }
+
+      guard offset < filtered.count else { return [] }
+      let end = min(offset + limit, filtered.count)
+      return filtered[offset..<end].map { $0.seriesId }
     } catch {
       return []
     }
@@ -289,7 +338,7 @@ enum KomgaSeriesStore {
 
       // Filter by complete
       if let completeState = browseOpts.completeFilter.effectiveBool {
-        if (series.metadata.totalBookCount == series.booksCount) != completeState { return false }
+        if (series.metadata?.totalBookCount == series.booksCount) != completeState { return false }
       }
 
       // Filter by Read Status
@@ -312,7 +361,7 @@ enum KomgaSeriesStore {
 
       // Filter by Series Status
       if !browseOpts.includeSeriesStatuses.isEmpty || !browseOpts.excludeSeriesStatuses.isEmpty {
-        if let seriesStatus = SeriesStatus.fromAPIValue(series.metadata.status) {
+        if let seriesStatus = SeriesStatus.fromAPIValue(series.metadata?.status) {
           if !browseOpts.includeSeriesStatuses.isEmpty {
             if !browseOpts.includeSeriesStatuses.contains(seriesStatus) { return false }
           }
@@ -321,6 +370,10 @@ enum KomgaSeriesStore {
             if browseOpts.excludeSeriesStatuses.contains(seriesStatus) { return false }
           }
         }
+      }
+
+      if !matchesMetadataFilter(series: series, filter: browseOpts.metadataFilter) {
+        return false
       }
 
       return true
@@ -332,5 +385,51 @@ enum KomgaSeriesStore {
     let pageSlice = filtered[start..<end]
 
     return pageSlice.map { $0.toSeries() }
+  }
+
+  nonisolated private static func matchesMetadataFilter(series: KomgaSeries, filter: MetadataFilterConfig)
+    -> Bool
+  {
+    if !MetadataIndex.matches(
+      index: series.metaPublisherIndex,
+      values: filter.publishers,
+      logic: filter.publishersLogic
+    ) {
+      return false
+    }
+
+    if !MetadataIndex.matches(
+      index: series.metaAuthorsIndex,
+      values: filter.authors,
+      logic: filter.authorsLogic
+    ) {
+      return false
+    }
+
+    if !MetadataIndex.matches(
+      index: series.metaGenresIndex,
+      values: filter.genres,
+      logic: filter.genresLogic
+    ) {
+      return false
+    }
+
+    if !MetadataIndex.matches(
+      index: series.metaTagsIndex,
+      values: filter.tags,
+      logic: filter.tagsLogic
+    ) {
+      return false
+    }
+
+    if !MetadataIndex.matches(
+      index: series.metaLanguageIndex,
+      values: filter.languages,
+      logic: filter.languagesLogic
+    ) {
+      return false
+    }
+
+    return true
   }
 }

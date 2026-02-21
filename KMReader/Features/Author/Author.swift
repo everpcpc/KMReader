@@ -5,42 +5,38 @@
 
 import Foundation
 
-struct Author: Equatable, Hashable, Sendable {
+nonisolated struct Author: Equatable, Hashable, Sendable {
   let name: String
-  private let roleRaw: String
-
-  var role: AuthorRole {
-    AuthorRole(from: roleRaw)
-  }
+  let role: AuthorRole
 
   init(name: String, role: AuthorRole) {
     self.name = name
-    self.roleRaw = role.rawValue
+    self.role = role
   }
 
   init(name: String, role: String) {
     self.name = name
-    self.roleRaw = role
+    self.role = AuthorRole(from: role)
   }
 }
 
 // MARK: - Codable
-extension Author: Codable {
+nonisolated extension Author: Codable {
   enum CodingKeys: String, CodingKey {
     case name
-    case roleRaw = "role"
+    case role
   }
 
   init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     name = try container.decode(String.self, forKey: .name)
-    roleRaw = try container.decode(String.self, forKey: .roleRaw)
+    role = AuthorRole(from: try container.decode(String.self, forKey: .role))
   }
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(name, forKey: .name)
-    try container.encode(roleRaw, forKey: .roleRaw)
+    try container.encode(role.rawValue, forKey: .role)
   }
 }
 

@@ -61,6 +61,7 @@ struct BookDetailContentView: View {
 
         VStack(alignment: .leading) {
           HStack(spacing: 6) {
+            let mediaStatus = book.media.statusValue
             InfoChip(
               label: "\(book.metadata.number)",
               systemImage: "number",
@@ -68,12 +69,12 @@ struct BookDetailContentView: View {
               foregroundColor: .gray
             )
 
-            if book.media.status != .ready {
+            if mediaStatus != .ready {
               InfoChip(
-                label: book.media.status.label,
-                systemImage: book.media.status.icon,
-                backgroundColor: book.media.status.color.opacity(0.2),
-                foregroundColor: book.media.status.color
+                label: mediaStatus.label,
+                systemImage: mediaStatus.icon,
+                backgroundColor: mediaStatus.color.opacity(0.2),
+                foregroundColor: mediaStatus.color
               )
             } else {
               InfoChip(

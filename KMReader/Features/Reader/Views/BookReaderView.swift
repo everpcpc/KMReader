@@ -17,7 +17,11 @@ struct BookReaderView: View {
   @AppStorage("useNativePdfReader") private var useNativePdfReader: Bool = true
 
   private var mediaProfile: MediaProfile {
-    book.media.mediaProfile ?? .unknown
+    book.media.mediaProfileValue ?? .unknown
+  }
+
+  private var mediaStatus: MediaStatus {
+    book.media.statusValue
   }
 
   private var closeReader: () -> Void {
@@ -36,7 +40,7 @@ struct BookReaderView: View {
             onClose: closeReader
           )
         } else {
-          switch book.media.status {
+          switch mediaStatus {
           case .ready:
             switch mediaProfile {
             case .divina, .unknown:
@@ -104,8 +108,8 @@ struct BookReaderView: View {
             }
           default:
             ReaderUnavailableView(
-              icon: book.media.status.icon,
-              title: LocalizedStringKey(book.media.status.message),
+              icon: mediaStatus.icon,
+              title: LocalizedStringKey(mediaStatus.message),
               message: book.media.comment,
               onClose: closeReader
             )

@@ -562,90 +562,11 @@ actor DatabaseOperator {
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
     if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
     if existing.size != dto.size { existing.size = dto.size }
-    // Media fields
-    if existing.mediaStatus != dto.media.statusRaw { existing.mediaStatus = dto.media.statusRaw }
-    if existing.mediaType != dto.media.mediaType { existing.mediaType = dto.media.mediaType }
-    if existing.mediaPagesCount != dto.media.pagesCount {
-      existing.mediaPagesCount = dto.media.pagesCount
-    }
-    if existing.mediaComment != dto.media.comment { existing.mediaComment = dto.media.comment }
-    if existing.mediaProfile != dto.media.mediaProfileRaw {
-      existing.mediaProfile = dto.media.mediaProfileRaw
-    }
-    if existing.mediaEpubDivinaCompatible != dto.media.epubDivinaCompatible {
-      existing.mediaEpubDivinaCompatible = dto.media.epubDivinaCompatible
-    }
-    if existing.mediaEpubIsKepub != dto.media.epubIsKepub {
-      existing.mediaEpubIsKepub = dto.media.epubIsKepub
-    }
-    // Metadata fields
-    if existing.metaCreated != dto.metadata.created {
-      existing.metaCreated = dto.metadata.created
-    }
-    if existing.metaLastModified != dto.metadata.lastModified {
-      existing.metaLastModified = dto.metadata.lastModified
-    }
-    if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
-    if existing.metaTitleLock != dto.metadata.titleLock {
-      existing.metaTitleLock = dto.metadata.titleLock
-    }
-    if existing.metaSummary != dto.metadata.summary {
-      existing.metaSummary = dto.metadata.summary
-    }
-    if existing.metaSummaryLock != dto.metadata.summaryLock {
-      existing.metaSummaryLock = dto.metadata.summaryLock
-    }
-    if existing.metaNumber != dto.metadata.number { existing.metaNumber = dto.metadata.number }
-    if existing.metaNumberLock != dto.metadata.numberLock {
-      existing.metaNumberLock = dto.metadata.numberLock
-    }
-    if existing.metaNumberSort != dto.metadata.numberSort {
-      existing.metaNumberSort = dto.metadata.numberSort
-    }
-    if existing.metaNumberSortLock != dto.metadata.numberSortLock {
-      existing.metaNumberSortLock = dto.metadata.numberSortLock
-    }
-    if existing.metaReleaseDate != dto.metadata.releaseDate {
-      existing.metaReleaseDate = dto.metadata.releaseDate
-    }
-    if existing.metaReleaseDateLock != dto.metadata.releaseDateLock {
-      existing.metaReleaseDateLock = dto.metadata.releaseDateLock
-    }
-    let newAuthorsRaw = try? JSONEncoder().encode(dto.metadata.authors)
-    if existing.metaAuthorsRaw != newAuthorsRaw { existing.metaAuthorsRaw = newAuthorsRaw }
-    if existing.metaAuthorsLock != dto.metadata.authorsLock {
-      existing.metaAuthorsLock = dto.metadata.authorsLock
-    }
-    if existing.metaTags != (dto.metadata.tags ?? []) {
-      existing.metaTags = dto.metadata.tags ?? []
-    }
-    if existing.metaTagsLock != dto.metadata.tagsLock {
-      existing.metaTagsLock = dto.metadata.tagsLock
-    }
-    if existing.metaIsbn != dto.metadata.isbn { existing.metaIsbn = dto.metadata.isbn }
-    if existing.metaIsbnLock != dto.metadata.isbnLock {
-      existing.metaIsbnLock = dto.metadata.isbnLock
-    }
-    let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
-    if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
-    if existing.metaLinksLock != dto.metadata.linksLock {
-      existing.metaLinksLock = dto.metadata.linksLock
-    }
-    // ReadProgress fields
-    if existing.progressPage != dto.readProgress?.page {
-      existing.progressPage = dto.readProgress?.page
-    }
-    if existing.progressCompleted != dto.readProgress?.completed {
-      existing.progressCompleted = dto.readProgress?.completed
-    }
-    if existing.progressReadDate != dto.readProgress?.readDate {
-      existing.progressReadDate = dto.readProgress?.readDate
-    }
-    if existing.progressCreated != dto.readProgress?.created {
-      existing.progressCreated = dto.readProgress?.created
-    }
-    if existing.progressLastModified != dto.readProgress?.lastModified {
-      existing.progressLastModified = dto.readProgress?.lastModified
+    if existing.media != dto.media
+      || existing.metadata != dto.metadata
+      || existing.readProgress != dto.readProgress
+    {
+      existing.applyContent(media: dto.media, metadata: dto.metadata, readProgress: dto.readProgress)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
@@ -666,115 +587,8 @@ actor DatabaseOperator {
     if existing.booksInProgressCount != dto.booksInProgressCount {
       existing.booksInProgressCount = dto.booksInProgressCount
     }
-    // SeriesMetadata fields
-    if existing.metaStatus != dto.metadata.status { existing.metaStatus = dto.metadata.status }
-    if existing.metaStatusLock != dto.metadata.statusLock {
-      existing.metaStatusLock = dto.metadata.statusLock
-    }
-    if existing.metaCreated != dto.metadata.created {
-      existing.metaCreated = dto.metadata.created
-    }
-    if existing.metaLastModified != dto.metadata.lastModified {
-      existing.metaLastModified = dto.metadata.lastModified
-    }
-    if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
-    if existing.metaTitleLock != dto.metadata.titleLock {
-      existing.metaTitleLock = dto.metadata.titleLock
-    }
-    if existing.metaTitleSort != dto.metadata.titleSort {
-      existing.metaTitleSort = dto.metadata.titleSort
-    }
-    if existing.metaTitleSortLock != dto.metadata.titleSortLock {
-      existing.metaTitleSortLock = dto.metadata.titleSortLock
-    }
-    if existing.metaSummary != dto.metadata.summary {
-      existing.metaSummary = dto.metadata.summary
-    }
-    if existing.metaSummaryLock != dto.metadata.summaryLock {
-      existing.metaSummaryLock = dto.metadata.summaryLock
-    }
-    if existing.metaReadingDirection != dto.metadata.readingDirection {
-      existing.metaReadingDirection = dto.metadata.readingDirection
-    }
-    if existing.metaReadingDirectionLock != dto.metadata.readingDirectionLock {
-      existing.metaReadingDirectionLock = dto.metadata.readingDirectionLock
-    }
-    if existing.metaPublisher != dto.metadata.publisher {
-      existing.metaPublisher = dto.metadata.publisher
-    }
-    if existing.metaPublisherLock != dto.metadata.publisherLock {
-      existing.metaPublisherLock = dto.metadata.publisherLock
-    }
-    if existing.metaAgeRating != dto.metadata.ageRating {
-      existing.metaAgeRating = dto.metadata.ageRating
-    }
-    if existing.metaAgeRatingLock != dto.metadata.ageRatingLock {
-      existing.metaAgeRatingLock = dto.metadata.ageRatingLock
-    }
-    if existing.metaLanguage != dto.metadata.language {
-      existing.metaLanguage = dto.metadata.language
-    }
-    if existing.metaLanguageLock != dto.metadata.languageLock {
-      existing.metaLanguageLock = dto.metadata.languageLock
-    }
-    if existing.metaGenres != (dto.metadata.genres ?? []) {
-      existing.metaGenres = dto.metadata.genres ?? []
-    }
-    if existing.metaGenresLock != dto.metadata.genresLock {
-      existing.metaGenresLock = dto.metadata.genresLock
-    }
-    if existing.metaTags != (dto.metadata.tags ?? []) {
-      existing.metaTags = dto.metadata.tags ?? []
-    }
-    if existing.metaTagsLock != dto.metadata.tagsLock {
-      existing.metaTagsLock = dto.metadata.tagsLock
-    }
-    if existing.metaTotalBookCount != dto.metadata.totalBookCount {
-      existing.metaTotalBookCount = dto.metadata.totalBookCount
-    }
-    if existing.metaTotalBookCountLock != dto.metadata.totalBookCountLock {
-      existing.metaTotalBookCountLock = dto.metadata.totalBookCountLock
-    }
-    if existing.metaSharingLabels != (dto.metadata.sharingLabels ?? []) {
-      existing.metaSharingLabels = dto.metadata.sharingLabels ?? []
-    }
-    if existing.metaSharingLabelsLock != dto.metadata.sharingLabelsLock {
-      existing.metaSharingLabelsLock = dto.metadata.sharingLabelsLock
-    }
-    let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
-    if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
-    if existing.metaLinksLock != dto.metadata.linksLock {
-      existing.metaLinksLock = dto.metadata.linksLock
-    }
-    let newAlternateTitlesRaw = try? JSONEncoder().encode(dto.metadata.alternateTitles)
-    if existing.metaAlternateTitlesRaw != newAlternateTitlesRaw {
-      existing.metaAlternateTitlesRaw = newAlternateTitlesRaw
-    }
-    if existing.metaAlternateTitlesLock != dto.metadata.alternateTitlesLock {
-      existing.metaAlternateTitlesLock = dto.metadata.alternateTitlesLock
-    }
-    // SeriesBooksMetadata fields
-    if existing.booksMetaCreated != dto.booksMetadata.created {
-      existing.booksMetaCreated = dto.booksMetadata.created
-    }
-    if existing.booksMetaLastModified != dto.booksMetadata.lastModified {
-      existing.booksMetaLastModified = dto.booksMetadata.lastModified
-    }
-    let newAuthorsRaw = try? JSONEncoder().encode(dto.booksMetadata.authors)
-    if existing.booksMetaAuthorsRaw != newAuthorsRaw {
-      existing.booksMetaAuthorsRaw = newAuthorsRaw
-    }
-    if existing.booksMetaTags != (dto.booksMetadata.tags ?? []) {
-      existing.booksMetaTags = dto.booksMetadata.tags ?? []
-    }
-    if existing.booksMetaReleaseDate != dto.booksMetadata.releaseDate {
-      existing.booksMetaReleaseDate = dto.booksMetadata.releaseDate
-    }
-    if existing.booksMetaSummary != dto.booksMetadata.summary {
-      existing.booksMetaSummary = dto.booksMetadata.summary
-    }
-    if existing.booksMetaSummaryNumber != dto.booksMetadata.summaryNumber {
-      existing.booksMetaSummaryNumber = dto.booksMetadata.summaryNumber
+    if existing.metadata != dto.metadata || existing.booksMetadata != dto.booksMetadata {
+      existing.applyContent(metadata: dto.metadata, booksMetadata: dto.booksMetadata)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
@@ -1126,13 +940,16 @@ actor DatabaseOperator {
     if let book = try? modelContext.fetch(descriptor).first {
       let oldStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
       let now = Date()
-      book.progressPage = page
-      book.progressCompleted = completed
-      book.progressReadDate = now
-      if book.progressCreated == nil {
-        book.progressCreated = now
-      }
-      book.progressLastModified = now
+      let createdAt = book.readProgress?.created ?? now
+      book.updateReadProgress(
+        ReadProgress(
+          page: page,
+          completed: completed,
+          readDate: now,
+          created: createdAt,
+          lastModified: now
+        )
+      )
       let newStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
       if oldStatus != newStatus {
         updateSeriesReadingCounts(

@@ -44,7 +44,7 @@ extension Book {
   }
 
   var isDivina: Bool {
-    guard let mediaProfile = media.mediaProfile else { return true }
+    guard let mediaProfile = media.mediaProfileValue else { return true }
     return mediaProfile != .epub
   }
 }

@@ -123,11 +123,11 @@ actor LogStore {
   private static func isCompatible(schema: [String: String]) -> Bool {
     guard schema.count == 5 else { return false }
     guard schema["id"] == "INTEGER" else { return false }
+    guard schema["date"] == "REAL" else { return false }
     guard schema["level"] == "INTEGER" else { return false }
     guard schema["category"] == "TEXT" else { return false }
     guard schema["message"] == "TEXT" else { return false }
-    guard let dateType = schema["date"] else { return false }
-    return dateType == "REAL" || dateType == "INTEGER"
+    return true
   }
 
   private static func execute(_ sql: String, on db: OpaquePointer) -> Bool {
@@ -152,11 +152,11 @@ actor LogStore {
     for (index, value) in values.enumerated() {
       let position = Int32(index + 1)
       switch value {
-      case let .int(number):
+      case .int(let number):
         sqlite3_bind_int(statement, position, number)
-      case let .double(number):
+      case .double(let number):
         sqlite3_bind_double(statement, position, number)
-      case let .text(text):
+      case .text(let text):
         sqlite3_bind_text(statement, position, text, -1, Self.sqliteTransient)
       }
     }
