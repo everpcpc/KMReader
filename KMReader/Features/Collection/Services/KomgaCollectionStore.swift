@@ -3,16 +3,15 @@
 //
 //
 
+import Dependencies
 import Foundation
-import SwiftData
+import SQLiteData
 
 /// Provides read-only fetch operations for KomgaCollection data.
-/// All View-facing fetch methods require a ModelContext from the caller.
 enum KomgaCollectionStore {
 
-  static func fetchCollections(
-    context: ModelContext,
-    libraryIds: [String]?,
+  nonisolated static func fetchCollections(
+    libraryIds _: [String]?,
     page: Int,
     size: Int,
     sort: String?,
@@ -20,50 +19,23 @@ enum KomgaCollectionStore {
   ) -> [SeriesCollection] {
     let instanceId = AppConfig.current.instanceId
 
-    var descriptor = FetchDescriptor<KomgaCollection>()
-
-    if let search = search, !search.isEmpty {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && col.name.localizedStandardContains(search)
-      }
-    } else {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId
-      }
-    }
-
-    if let sort = sort {
-      if sort.contains("name") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.name, order: isAsc ? .forward : .reverse)
-        ]
-      } else if sort.contains("createdDate") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.createdDate, order: isAsc ? .forward : .reverse)
-        ]
-      } else {
-        descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-      }
-    } else {
-      descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-    }
-
-    descriptor.fetchLimit = size
-    descriptor.fetchOffset = page * size
-
     do {
-      let results = try context.fetch(descriptor)
-      return results.map { $0.toCollection() }
+      var records = try fetchCollectionsForInstance(instanceId: instanceId)
+
+      if let search, !search.isEmpty {
+        records = records.filter { $0.name.localizedStandardContains(search) }
+      }
+
+      records = sortedCollections(records, sort: sort)
+      let pageSlice = paginate(records, page: page, size: size)
+      return pageSlice.map { $0.toCollection() }
     } catch {
       return []
     }
   }
 
-  static func fetchCollectionIds(
-    context: ModelContext,
-    libraryIds: [String]?,
+  nonisolated static func fetchCollectionIds(
+    libraryIds _: [String]?,
     searchText: String,
     sort: String?,
     offset: Int,
@@ -71,65 +43,37 @@ enum KomgaCollectionStore {
   ) -> [String] {
     let instanceId = AppConfig.current.instanceId
 
-    var descriptor = FetchDescriptor<KomgaCollection>()
-
-    if !searchText.isEmpty {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && col.name.localizedStandardContains(searchText)
-      }
-    } else {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId
-      }
-    }
-
-    if let sort = sort {
-      if sort.contains("name") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.name, order: isAsc ? .forward : .reverse)
-        ]
-      } else if sort.contains("createdDate") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.createdDate, order: isAsc ? .forward : .reverse)
-        ]
-      } else {
-        descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-      }
-    } else {
-      descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-    }
-
-    descriptor.fetchLimit = limit
-    descriptor.fetchOffset = offset
-
     do {
-      let results = try context.fetch(descriptor)
-      return results.map { $0.collectionId }
+      var records = try fetchCollectionsForInstance(instanceId: instanceId)
+
+      if !searchText.isEmpty {
+        records = records.filter { $0.name.localizedStandardContains(searchText) }
+      }
+
+      records = sortedCollections(records, sort: sort)
+      let slice = paginate(records, offset: offset, limit: limit)
+      return slice.map { $0.collectionId }
     } catch {
       return []
     }
   }
 
-  static func fetchCollectionsByIds(
-    context: ModelContext,
+  nonisolated static func fetchCollectionsByIds(
     ids: [String],
     instanceId: String
-  ) -> [KomgaCollection] {
+  ) -> [KomgaCollectionRecord] {
     guard !ids.isEmpty else { return [] }
 
-    let descriptor = FetchDescriptor<KomgaCollection>(
-      predicate: #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && ids.contains(col.collectionId)
-      }
-    )
-
     do {
-      let results = try context.fetch(descriptor)
-      let idToIndex = Dictionary(
-        uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
-      return results.sorted {
+      @Dependency(\.defaultDatabase) var database
+      let records = try database.read { db in
+        try KomgaCollectionRecord
+          .where { $0.instanceId.eq(instanceId) && $0.collectionId.in(ids) }
+          .fetchAll(db)
+      }
+
+      let idToIndex = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+      return records.sorted {
         (idToIndex[$0.collectionId] ?? Int.max) < (idToIndex[$1.collectionId] ?? Int.max)
       }
     } catch {
@@ -137,10 +81,68 @@ enum KomgaCollectionStore {
     }
   }
 
-  static func fetchCollection(context: ModelContext, id: String) -> SeriesCollection? {
-    let compositeId = CompositeID.generate(id: id)
-    let descriptor = FetchDescriptor<KomgaCollection>(
-      predicate: #Predicate { $0.id == compositeId })
-    return try? context.fetch(descriptor).first?.toCollection()
+  nonisolated static func fetchCollection(id: String) -> SeriesCollection? {
+    let instanceId = AppConfig.current.instanceId
+
+    do {
+      @Dependency(\.defaultDatabase) var database
+      return try database.read { db in
+        try KomgaCollectionRecord
+          .where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(id) }
+          .fetchOne(db)?
+          .toCollection()
+      }
+    } catch {
+      return nil
+    }
+  }
+
+  nonisolated private static func fetchCollectionsForInstance(instanceId: String) throws -> [KomgaCollectionRecord] {
+    @Dependency(\.defaultDatabase) var database
+    return try database.read { db in
+      try KomgaCollectionRecord
+        .where { $0.instanceId.eq(instanceId) }
+        .fetchAll(db)
+    }
+  }
+
+  nonisolated private static func sortedCollections(_ collections: [KomgaCollectionRecord], sort: String?)
+    -> [KomgaCollectionRecord]
+  {
+    guard let sort else {
+      return collections.sorted {
+        $0.name.localizedStandardCompare($1.name) == .orderedAscending
+      }
+    }
+
+    if sort.contains("name") {
+      let isAsc = !sort.contains("desc")
+      return collections.sorted {
+        let order = $0.name.localizedStandardCompare($1.name)
+        return isAsc ? order == .orderedAscending : order == .orderedDescending
+      }
+    }
+
+    if sort.contains("createdDate") {
+      let isAsc = !sort.contains("desc")
+      return collections.sorted {
+        isAsc ? ($0.createdDate < $1.createdDate) : ($0.createdDate > $1.createdDate)
+      }
+    }
+
+    return collections.sorted {
+      $0.name.localizedStandardCompare($1.name) == .orderedAscending
+    }
+  }
+
+  nonisolated private static func paginate<T>(_ values: [T], page: Int, size: Int) -> ArraySlice<T> {
+    let offset = page * size
+    return paginate(values, offset: offset, limit: size)
+  }
+
+  nonisolated private static func paginate<T>(_ values: [T], offset: Int, limit: Int) -> ArraySlice<T> {
+    guard offset < values.count else { return [] }
+    let end = min(offset + limit, values.count)
+    return values[offset..<end]
   }
 }

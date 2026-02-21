@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 
 struct LibraryMetricsLoader {
   static let shared = LibraryMetricsLoader()

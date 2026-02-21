@@ -3,12 +3,13 @@
 //
 //
 
-import SwiftData
+import Dependencies
+import SQLiteData
 import SwiftUI
 
 struct SaveFilterSheet: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
+  @Dependency(\.defaultDatabase) private var database
 
   let filterType: SavedFilterType
   let seriesOptions: SeriesBrowseOptions?
@@ -70,29 +71,43 @@ struct SaveFilterSheet: View {
 
     isSaving = true
 
-    guard
-      let savedFilter = SavedFilter.create(
-        name: trimmedName,
-        filterType: filterType,
-        seriesOptions: seriesOptions,
-        bookOptions: bookOptions,
-        collectionOptions: collectionOptions,
-        readListOptions: readListOptions
-      )
-    else {
+    guard let filterJSON = selectedFilterJSON() else {
       ErrorManager.shared.alert(message: "Failed to create filter")
       isSaving = false
       return
     }
 
-    modelContext.insert(savedFilter)
-
     do {
-      try modelContext.save()
+      try database.write { db in
+        try SavedFilterRecord.insert {
+          SavedFilterRecord.Draft(
+            id: UUID(),
+            name: trimmedName,
+            filterTypeRaw: filterType.rawValue,
+            filterDataJSON: filterJSON,
+            createdAt: Date(),
+            updatedAt: Date()
+          )
+        }
+        .execute(db)
+      }
       dismiss()
     } catch {
       ErrorManager.shared.alert(error: error)
       isSaving = false
+    }
+  }
+
+  private func selectedFilterJSON() -> String? {
+    switch filterType {
+    case .series:
+      return seriesOptions?.rawValue
+    case .books, .seriesBooks:
+      return bookOptions?.rawValue
+    case .collectionSeries:
+      return collectionOptions?.rawValue
+    case .readListBooks:
+      return readListOptions?.rawValue
     }
   }
 }

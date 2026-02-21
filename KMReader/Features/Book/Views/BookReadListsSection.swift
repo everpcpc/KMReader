@@ -3,18 +3,25 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct BookReadListsSection: View {
-  @Query private var komgaReadLists: [KomgaReadList]
+  @FetchAll private var komgaReadLists: [KomgaReadListRecord]
 
   init(readListIds: [String]) {
     let instanceId = AppConfig.current.instanceId
-    _komgaReadLists = Query(
-      filter: #Predicate<KomgaReadList> {
-        $0.instanceId == instanceId && readListIds.contains($0.readListId)
-      })
+    if readListIds.isEmpty {
+      _komgaReadLists = FetchAll(
+        KomgaReadListRecord.where { $0.id.eq("__none__") }
+      )
+    } else {
+      _komgaReadLists = FetchAll(
+        KomgaReadListRecord.where {
+          $0.instanceId.eq(instanceId) && $0.readListId.in(readListIds)
+        }
+      )
+    }
   }
 
   private var readLists: [ReadList] {

@@ -3,17 +3,19 @@
 //
 //
 
-import SwiftData
+import Dependencies
+import SQLiteData
 import SwiftUI
 
 struct LibraryPickerSheet: View {
   @AppStorage("currentAccount") private var current: Current = .init()
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
+  @FetchAll(KomgaLibraryRecord.order(by: \.name)) private var allLibraries: [KomgaLibraryRecord]
+  @Dependency(\.defaultDatabase) private var database
   @State private var isRefreshing = false
 
   private let metricsLoader = LibraryMetricsLoader.shared
 
-  private var libraries: [KomgaLibrary] {
+  private var libraries: [KomgaLibraryRecord] {
     guard !current.instanceId.isEmpty else {
       return []
     }
@@ -22,7 +24,7 @@ struct LibraryPickerSheet: View {
     }
   }
 
-  private var allLibrariesEntry: KomgaLibrary? {
+  private var allLibrariesEntry: KomgaLibraryRecord? {
     guard !current.instanceId.isEmpty else {
       return nil
     }
@@ -65,13 +67,27 @@ struct LibraryPickerSheet: View {
         libraryIds: libraryIds,
         ensureAllLibrariesEntry: hasAllEntry
       )
+      let updates = libraries.compactMap { library -> (UUID, LibraryMetricValues)? in
+        guard let metrics = metricsByLibrary[library.libraryId] else { return nil }
+        return (library.id, metrics)
+      }
 
-      for library in libraries {
-        guard let metrics = metricsByLibrary[library.libraryId] else { continue }
-        library.fileSize = metrics.fileSize
-        library.booksCount = metrics.booksCount
-        library.seriesCount = metrics.seriesCount
-        library.sidecarsCount = metrics.sidecarsCount
+      do {
+        try await database.write { db in
+          for (id, metrics) in updates {
+            try KomgaLibraryRecord
+              .find(id)
+              .update {
+                $0.fileSize = #bind(metrics.fileSize)
+                $0.booksCount = #bind(metrics.booksCount)
+                $0.seriesCount = #bind(metrics.seriesCount)
+                $0.sidecarsCount = #bind(metrics.sidecarsCount)
+              }
+              .execute(db)
+          }
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
       }
     }
 

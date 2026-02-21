@@ -3,10 +3,10 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// View for book selection mode that accepts only bookId and uses @Query to fetch the book.
+/// View for book selection mode that accepts only bookId and reads the local record.
 struct BookSelectionItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
@@ -14,7 +14,8 @@ struct BookSelectionItemView: View {
   let refreshBooks: () -> Void
   var showSeriesTitle: Bool = true
 
-  @Query private var komgaBooks: [KomgaBook]
+  @FetchAll private var komgaBooks: [KomgaBookRecord]
+  @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
 
   init(
     bookId: String,
@@ -30,12 +31,16 @@ struct BookSelectionItemView: View {
     self.showSeriesTitle = showSeriesTitle
 
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+    _komgaBooks = FetchAll(
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+    )
+    _bookLocalStateList = FetchAll(
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+    )
   }
 
   private var komgaBook: KomgaBook? {
-    komgaBooks.first
+    komgaBooks.first?.toKomgaBook(localState: bookLocalStateList.first)
   }
 
   private var isSelected: Bool {

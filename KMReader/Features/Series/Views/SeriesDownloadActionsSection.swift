@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SeriesDownloadActionsSection: View {
@@ -189,7 +188,6 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: series.id, instanceId: current.instanceId, policy: newPolicy
       )
-      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -202,7 +200,6 @@ struct SeriesDownloadActionsSection: View {
         policy: newPolicy,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -248,7 +245,6 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.downloadSeriesOffline(
         seriesId: series.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -263,7 +259,6 @@ struct SeriesDownloadActionsSection: View {
         instanceId: current.instanceId,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -276,7 +271,6 @@ struct SeriesDownloadActionsSection: View {
         seriesId: series.id,
         instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
@@ -299,7 +293,6 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.removeSeriesOffline(
         seriesId: series.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )

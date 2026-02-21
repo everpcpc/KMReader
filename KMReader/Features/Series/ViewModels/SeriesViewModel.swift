@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -15,7 +14,6 @@ class SeriesViewModel {
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
 
   func loadSeries(
-    context: ModelContext,
     browseOpts: SeriesBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
@@ -42,7 +40,6 @@ class SeriesViewModel {
 
     if AppConfig.isOffline || useLocalOnly {
       let ids = KomgaSeriesStore.fetchSeriesIds(
-        context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
@@ -87,7 +84,6 @@ class SeriesViewModel {
   }
 
   func loadCollectionSeries(
-    context: ModelContext,
     collectionId: String,
     browseOpts: CollectionSeriesBrowseOptions,
     libraryIds: [String]? = nil,
@@ -114,7 +110,6 @@ class SeriesViewModel {
 
     if AppConfig.isOffline {
       let series = KomgaSeriesStore.fetchCollectionSeries(
-        context: context,
         collectionId: collectionId,
         page: pagination.currentPage,
         size: pagination.pageSize,

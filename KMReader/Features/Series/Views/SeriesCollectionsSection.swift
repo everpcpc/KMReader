@@ -3,18 +3,25 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct SeriesCollectionsSection: View {
-  @Query private var komgaCollections: [KomgaCollection]
+  @FetchAll private var komgaCollections: [KomgaCollectionRecord]
 
   init(collectionIds: [String]) {
     let instanceId = AppConfig.current.instanceId
-    _komgaCollections = Query(
-      filter: #Predicate<KomgaCollection> {
-        $0.instanceId == instanceId && collectionIds.contains($0.collectionId)
-      })
+    if collectionIds.isEmpty {
+      _komgaCollections = FetchAll(
+        KomgaCollectionRecord.where { $0.id.eq("__none__") }
+      )
+    } else {
+      _komgaCollections = FetchAll(
+        KomgaCollectionRecord.where {
+          $0.instanceId.eq(instanceId) && $0.collectionId.in(collectionIds)
+        }
+      )
+    }
   }
 
   private var collections: [SeriesCollection] {

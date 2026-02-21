@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ReadListsBrowseView: View {
@@ -12,7 +11,6 @@ struct ReadListsBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
-  @Environment(\.modelContext) private var modelContext
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -116,7 +114,6 @@ struct ReadListsBrowseView: View {
       refresh: refresh,
       offlineFetch: { offset, limit in
         KomgaReadListStore.fetchReadListIds(
-          context: modelContext,
           libraryIds: libraryIds,
           searchText: searchText,
           sort: sortOpts.sortString,

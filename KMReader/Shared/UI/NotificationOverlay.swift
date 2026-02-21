@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 #if os(iOS)
@@ -21,8 +20,7 @@ import SwiftUI
 
     func setup(
       readerPresentation: ReaderPresentationManager,
-      authViewModel: AuthViewModel,
-      modelContainer: ModelContainer
+      authViewModel: AuthViewModel
     ) {
       guard notificationWindow == nil else { return }
 
@@ -45,7 +43,6 @@ import SwiftUI
         NotificationContentView()
           .environment(readerPresentation)
           .environment(authViewModel)
-          .modelContainer(modelContainer)
       )
 
       let hostingController = StatusBarObservingHostingController(
@@ -213,15 +210,13 @@ import SwiftUI
   struct NotificationWindowSetup: ViewModifier {
     @Environment(ReaderPresentationManager.self) private var readerPresentation
     @Environment(AuthViewModel.self) private var authViewModel
-    @Environment(\.modelContext) private var modelContext
 
     func body(content: Content) -> some View {
       content
         .onAppear {
           NotificationWindowManager.shared.setup(
             readerPresentation: readerPresentation,
-            authViewModel: authViewModel,
-            modelContainer: modelContext.container
+            authViewModel: authViewModel
           )
         }
     }

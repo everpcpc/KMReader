@@ -1032,7 +1032,6 @@
           bookId: bookId,
           progression: progression
         )
-        await DatabaseOperator.shared.commit()
         if let progression {
           logger.debug(
             "Synced remote EPUB progression to local storage: href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0)"

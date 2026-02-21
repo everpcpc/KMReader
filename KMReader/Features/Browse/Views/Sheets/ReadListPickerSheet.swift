@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 private struct ReadListItem: Identifiable {
@@ -22,7 +22,7 @@ struct ReadListPickerSheet: View {
   @State private var showCreateSheet = false
   @State private var isCreating = false
 
-  @Query private var komgaReadLists: [KomgaReadList]
+  @FetchAll private var komgaReadLists: [KomgaReadListRecord]
 
   let bookId: String
   let onSelect: (String) -> Void
@@ -35,13 +35,14 @@ struct ReadListPickerSheet: View {
     self.onSelect = onSelect
 
     let instanceId = AppConfig.current.instanceId
-    _komgaReadLists = Query(
-      filter: #Predicate<KomgaReadList> { $0.instanceId == instanceId },
-      sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]
+    _komgaReadLists = FetchAll(
+      KomgaReadListRecord
+        .where { $0.instanceId.eq(instanceId) }
+        .order(by: \.name)
     )
   }
 
-  private var filteredReadLists: [KomgaReadList] {
+  private var filteredReadLists: [KomgaReadListRecord] {
     if searchText.isEmpty {
       return Array(komgaReadLists)
     }
@@ -50,7 +51,7 @@ struct ReadListPickerSheet: View {
     }
   }
 
-  private func isAlreadyInReadList(_ readList: KomgaReadList) -> Bool {
+  private func isAlreadyInReadList(_ readList: KomgaReadListRecord) -> Bool {
     return readList.bookIds.contains(bookId)
   }
 

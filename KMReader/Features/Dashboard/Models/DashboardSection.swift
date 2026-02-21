@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 enum DashboardSection: String, CaseIterable, Identifiable, Codable {
@@ -137,7 +136,6 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
   }
 
   func fetchOfflineBookIds(
-    context: ModelContext,
     libraryIds: [String],
     offset: Int,
     limit: Int
@@ -145,7 +143,6 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
     switch self {
     case .keepReading:
       return KomgaBookStore.fetchKeepReadingBookIds(
-        context: context,
         libraryIds: libraryIds,
         offset: offset,
         limit: limit
@@ -154,21 +151,18 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
       return []
     case .recentlyReadBooks:
       return KomgaBookStore.fetchRecentlyReadBookIds(
-        context: context,
         libraryIds: libraryIds,
         offset: offset,
         limit: limit
       )
     case .recentlyReleasedBooks:
       return KomgaBookStore.fetchRecentlyReleasedBookIds(
-        context: context,
         libraryIds: libraryIds,
         offset: offset,
         limit: limit
       )
     case .recentlyAddedBooks:
       return KomgaBookStore.fetchRecentlyAddedBookIds(
-        context: context,
         libraryIds: libraryIds,
         offset: offset,
         limit: limit
@@ -179,7 +173,6 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
   }
 
   func fetchOfflineSeriesIds(
-    context: ModelContext,
     libraryIds: [String],
     offset: Int,
     limit: Int
@@ -187,14 +180,12 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
     switch self {
     case .recentlyAddedSeries:
       return KomgaSeriesStore.fetchNewlyAddedSeriesIds(
-        context: context,
         libraryIds: libraryIds,
         offset: offset,
         limit: limit
       )
     case .recentlyUpdatedSeries:
       return KomgaSeriesStore.fetchRecentlyUpdatedSeriesIds(
-        context: context,
         libraryIds: libraryIds,
         offset: offset,
         limit: limit

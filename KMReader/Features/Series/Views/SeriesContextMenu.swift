@@ -22,7 +22,6 @@ struct SeriesContextMenu: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  @Environment(\.modelContext) private var modelContext
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   private var status: SeriesDownloadStatus {
@@ -204,8 +203,7 @@ struct SeriesContextMenu: View {
     Task {
       let book = await SeriesContinueReadingResolver.resolve(
         seriesId: seriesId,
-        isOffline: isOffline,
-        context: modelContext
+        isOffline: isOffline
       )
       if let book {
         readerPresentation.present(book: book, incognito: false)
@@ -283,7 +281,6 @@ struct SeriesContextMenu: View {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: seriesId, instanceId: current.instanceId, policy: policy
       )
-      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -296,7 +293,6 @@ struct SeriesContextMenu: View {
         policy: policy,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -373,7 +369,6 @@ struct SeriesContextMenu: View {
       await DatabaseOperator.shared.downloadSeriesOffline(
         seriesId: seriesId, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -388,7 +383,6 @@ struct SeriesContextMenu: View {
         instanceId: current.instanceId,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -400,7 +394,6 @@ struct SeriesContextMenu: View {
       await DatabaseOperator.shared.removeSeriesReadOffline(
         seriesId: seriesId, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
@@ -412,7 +405,6 @@ struct SeriesContextMenu: View {
       await DatabaseOperator.shared.removeSeriesOffline(
         seriesId: seriesId, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )

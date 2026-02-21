@@ -3,9 +3,10 @@
 //
 //
 
+import Dependencies
 import Foundation
 import OSLog
-import SwiftData
+import SQLiteData
 
 struct InstanceSummary: Sendable {
   let id: UUID
@@ -34,129 +35,136 @@ struct DownloadQueueSummary: Sendable {
   }
 }
 
-@ModelActor
 actor DatabaseOperator {
   @MainActor static var shared: DatabaseOperator!
 
   private let logger = AppLogger(.database)
-  private var pendingCommitTask: Task<Void, Never>?
 
-  /// Commits changes with a 2-second debounce to avoid frequent UI updates
-  func commit() {
-    pendingCommitTask?.cancel()
-    pendingCommitTask = Task {
-      try? await Task.sleep(for: .milliseconds(500))
-      guard !Task.isCancelled else { return }
-      do {
-        try modelContext.save()
-      } catch {
-        logger.error("Failed to commit: \(error)")
-      }
-    }
+  init() {}
+
+  private func read<T>(_ block: (Database) throws -> T) throws -> T {
+    @Dependency(\.defaultDatabase) var database
+    return try database.read(block)
   }
 
-  /// Commits changes immediately without debounce
-  func commitImmediately() throws {
-    pendingCommitTask?.cancel()
-    pendingCommitTask = nil
-    try modelContext.save()
-  }
-
-  func hasChanges() -> Bool {
-    return modelContext.hasChanges
+  private func write<T>(_ block: (Database) throws -> T) throws -> T {
+    @Dependency(\.defaultDatabase) var database
+    return try database.write(block)
   }
 
   // MARK: - Book Operations
 
   func upsertBook(dto: Book, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      applyBook(dto: dto, to: existing)
-    } else {
-      let newBook = KomgaBook(
-        bookId: dto.id,
-        seriesId: dto.seriesId,
-        libraryId: dto.libraryId,
-        instanceId: instanceId,
-        name: dto.name,
-        url: dto.url,
-        number: dto.number,
-        created: dto.created,
-        lastModified: dto.lastModified,
-        sizeBytes: dto.sizeBytes,
-        size: dto.size,
-        media: dto.media,
-        metadata: dto.metadata,
-        readProgress: dto.readProgress,
-        isUnavailable: dto.deleted,
-        oneshot: dto.oneshot,
-        seriesTitle: dto.seriesTitle
-      )
-      modelContext.insert(newBook)
+    do {
+      try write { db in
+        if var existing =
+          try KomgaBookRecord
+          .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(dto.id) })
+          .fetchOne(db)
+        {
+          applyBook(dto: dto, to: &existing)
+          try upsertBookRecord(existing, in: db)
+        } else {
+          let newBook = KomgaBookRecord(
+            bookId: dto.id,
+            seriesId: dto.seriesId,
+            libraryId: dto.libraryId,
+            instanceId: instanceId,
+            name: dto.name,
+            url: dto.url,
+            number: dto.number,
+            created: dto.created,
+            lastModified: dto.lastModified,
+            sizeBytes: dto.sizeBytes,
+            size: dto.size,
+            media: dto.media,
+            metadata: dto.metadata,
+            readProgress: dto.readProgress,
+            deleted: dto.deleted,
+            oneshot: dto.oneshot,
+            seriesTitle: dto.seriesTitle
+          )
+          try upsertBookRecord(newBook, in: db)
+        }
+      }
+    } catch {
+      logger.error("Failed to upsert book \(dto.id): \(error.localizedDescription)")
     }
   }
 
   func deleteBook(id: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      modelContext.delete(existing)
+    do {
+      try write { db in
+        try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(id) }
+          .delete()
+          .execute(db)
+        try KomgaBookLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(id) }
+          .delete()
+          .execute(db)
+      }
+    } catch {
+      logger.error("Failed to delete book \(id): \(error.localizedDescription)")
     }
   }
 
   func upsertBooks(_ books: [Book], instanceId: String) {
     guard !books.isEmpty else { return }
 
-    let compositeIds = Set(
-      books.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
-    )
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { compositeIds.contains($0.id) }
-    )
-    let existingBooks = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(
-      existingBooks.map { ($0.id, $0) },
-      uniquingKeysWith: { first, _ in first }
-    )
-
-    for book in books {
-      let compositeId = CompositeID.generate(instanceId: instanceId, id: book.id)
-      if let existing = existingById[compositeId] {
-        applyBook(dto: book, to: existing)
-      } else {
-        let newBook = KomgaBook(
-          bookId: book.id,
-          seriesId: book.seriesId,
-          libraryId: book.libraryId,
-          instanceId: instanceId,
-          name: book.name,
-          url: book.url,
-          number: book.number,
-          created: book.created,
-          lastModified: book.lastModified,
-          sizeBytes: book.sizeBytes,
-          size: book.size,
-          media: book.media,
-          metadata: book.metadata,
-          readProgress: book.readProgress,
-          isUnavailable: book.deleted,
-          oneshot: book.oneshot,
-          seriesTitle: book.seriesTitle
+    do {
+      try write { db in
+        let bookIds = books.map(\.id)
+        let existingBooks =
+          try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.in(bookIds) }
+          .fetchAll(db)
+        let existingById = Dictionary(
+          existingBooks.map { ($0.bookId, $0) },
+          uniquingKeysWith: { first, _ in first }
         )
-        modelContext.insert(newBook)
+
+        for book in books {
+          if var existing = existingById[book.id] {
+            applyBook(dto: book, to: &existing)
+            try upsertBookRecord(existing, in: db)
+          } else {
+            let newBook = KomgaBookRecord(
+              bookId: book.id,
+              seriesId: book.seriesId,
+              libraryId: book.libraryId,
+              instanceId: instanceId,
+              name: book.name,
+              url: book.url,
+              number: book.number,
+              created: book.created,
+              lastModified: book.lastModified,
+              sizeBytes: book.sizeBytes,
+              size: book.size,
+              media: book.media,
+              metadata: book.metadata,
+              readProgress: book.readProgress,
+              deleted: book.deleted,
+              oneshot: book.oneshot,
+              seriesTitle: book.seriesTitle
+            )
+            try upsertBookRecord(newBook, in: db)
+          }
+        }
       }
+    } catch {
+      logger.error("Failed to upsert books batch: \(error.localizedDescription)")
     }
   }
 
   func fetchBook(id: String) async -> Book? {
-    KomgaBookStore.fetchBook(context: modelContext, id: id)
+    KomgaBookStore.fetchBook(id: id)
   }
 
   func getNextBook(instanceId: String, bookId: String, readListId: String?) async -> Book? {
     if let readListId = readListId {
       let books = KomgaBookStore.fetchReadListBooks(
-        context: modelContext, readListId: readListId, page: 0, size: 1000,
+        readListId: readListId, page: 0, size: 1000,
         browseOpts: ReadListBookBrowseOptions())
       if let currentIndex = books.firstIndex(where: { $0.id == bookId }),
         currentIndex + 1 < books.count
@@ -165,7 +173,7 @@ actor DatabaseOperator {
       }
     } else if let currentBook = await fetchBook(id: bookId) {
       let seriesBooks = KomgaBookStore.fetchSeriesBooks(
-        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000,
+        seriesId: currentBook.seriesId, page: 0, size: 1000,
         browseOpts: BookBrowseOptions())
       if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
         currentIndex + 1 < seriesBooks.count
@@ -179,7 +187,7 @@ actor DatabaseOperator {
   func getPreviousBook(instanceId: String, bookId: String, readListId: String? = nil) async -> Book? {
     if let readListId = readListId {
       let books = KomgaBookStore.fetchReadListBooks(
-        context: modelContext, readListId: readListId, page: 0, size: 1000,
+        readListId: readListId, page: 0, size: 1000,
         browseOpts: ReadListBookBrowseOptions())
       if let currentIndex = books.firstIndex(where: { $0.id == bookId }),
         currentIndex > 0
@@ -188,7 +196,7 @@ actor DatabaseOperator {
       }
     } else if let currentBook = await fetchBook(id: bookId) {
       let seriesBooks = KomgaBookStore.fetchSeriesBooks(
-        context: modelContext, seriesId: currentBook.seriesId, page: 0, size: 1000,
+        seriesId: currentBook.seriesId, page: 0, size: 1000,
         browseOpts: BookBrowseOptions())
       if let currentIndex = seriesBooks.firstIndex(where: { $0.id == bookId }),
         currentIndex > 0
@@ -201,51 +209,79 @@ actor DatabaseOperator {
 
   func fetchPages(id: String) -> [BookPage]? {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    return try? modelContext.fetch(descriptor).first?.pages
+    return try? read { db in
+      try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(id) }
+        .fetchOne(db)?
+        .pages
+    }
   }
 
   func fetchIsolatePages(id: String) -> [Int]? {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    return try? modelContext.fetch(descriptor).first?.isolatePages
+    return try? read { db in
+      try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(id) }
+        .fetchOne(db)?
+        .isolatePages
+    }
   }
 
   func updateIsolatePages(bookId: String, pages: [Int]) {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let book = try? modelContext.fetch(descriptor).first {
-      book.isolatePages = pages
+    do {
+      try write { db in
+        guard
+          try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
+        state.isolatePages = pages
+        try upsertBookLocalStateRecord(state, in: db)
+      }
+    } catch {
+      logger.error("Failed to update isolate pages for book \(bookId): \(error.localizedDescription)")
     }
   }
 
   func fetchBookEpubPreferences(bookId: String) -> EpubReaderPreferences? {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    guard let raw = try? modelContext.fetch(descriptor).first?.epubPreferencesRaw else {
-      return nil
+    return try? read { db in
+      try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+        .fetchOne(db)?
+        .epubPreferences
     }
-    return EpubReaderPreferences(rawValue: raw)
   }
 
   func updateBookEpubPreferences(bookId: String, preferences: EpubReaderPreferences?) {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let book = try? modelContext.fetch(descriptor).first {
-      book.epubPreferences = preferences
+    do {
+      try write { db in
+        guard
+          try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
+        state.epubPreferences = preferences
+        try upsertBookLocalStateRecord(state, in: db)
+      }
+    } catch {
+      logger.error("Failed to update EPUB preferences for book \(bookId): \(error.localizedDescription)")
     }
   }
 
   func fetchBookEpubProgression(bookId: String) async -> R2Progression? {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    guard let data = try? modelContext.fetch(descriptor).first?.epubProgressionRaw else {
+    let data = try? read { db in
+      try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+        .fetchOne(db)?
+        .epubProgressionRaw
+    }
+    guard let data else {
       return nil
     }
     return await MainActor.run {
@@ -257,62 +293,107 @@ actor DatabaseOperator {
 
   func updateBookEpubProgression(bookId: String, progression: R2Progression?) async {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let book = try? modelContext.fetch(descriptor).first {
-      if let progression {
-        let data = await MainActor.run {
-          let encoder = JSONEncoder()
-          encoder.dateEncodingStrategy = .iso8601
-          return try? encoder.encode(progression)
-        }
-        book.epubProgressionRaw = data
-      } else {
-        book.epubProgressionRaw = nil
+    let progressionData: Data?
+    if let progression {
+      progressionData = await MainActor.run {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return try? encoder.encode(progression)
       }
+    } else {
+      progressionData = nil
+    }
+
+    do {
+      try write { db in
+        guard
+          try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
+        state.epubProgressionRaw = progressionData
+        try upsertBookLocalStateRecord(state, in: db)
+      }
+    } catch {
+      logger.error("Failed to update EPUB progression for book \(bookId): \(error.localizedDescription)")
     }
   }
 
   func fetchTOC(id: String) -> [ReaderTOCEntry]? {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    return try? modelContext.fetch(descriptor).first?.tableOfContents
+    return try? read { db in
+      try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(id) }
+        .fetchOne(db)?
+        .tableOfContents
+    }
   }
 
   func updateBookPages(bookId: String, pages: [BookPage]) {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let book = try? modelContext.fetch(descriptor).first {
-      book.pages = pages
+    do {
+      try write { db in
+        guard
+          try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
+        state.pages = pages
+        try upsertBookLocalStateRecord(state, in: db)
+      }
+    } catch {
+      logger.error("Failed to update pages for book \(bookId): \(error.localizedDescription)")
     }
   }
 
   func updateBookTOC(bookId: String, toc: [ReaderTOCEntry]) {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let book = try? modelContext.fetch(descriptor).first {
-      book.tableOfContents = toc
+    do {
+      try write { db in
+        guard
+          try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
+        state.tableOfContents = toc
+        try upsertBookLocalStateRecord(state, in: db)
+      }
+    } catch {
+      logger.error("Failed to update TOC for book \(bookId): \(error.localizedDescription)")
     }
   }
 
   func updateBookWebPubManifest(bookId: String, manifest: WebPubPublication) async {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let book = try? modelContext.fetch(descriptor).first {
-      let data = await MainActor.run { try? JSONEncoder().encode(manifest) }
-      book.webPubManifestRaw = data
+    let data = await MainActor.run { try? JSONEncoder().encode(manifest) }
+    do {
+      try write { db in
+        guard
+          try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
+        state.webPubManifestRaw = data
+        try upsertBookLocalStateRecord(state, in: db)
+      }
+    } catch {
+      logger.error("Failed to update WebPub manifest for book \(bookId): \(error.localizedDescription)")
     }
   }
 
   func fetchWebPubManifest(bookId: String) async -> WebPubPublication? {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    guard let data = try? modelContext.fetch(descriptor).first?.webPubManifestRaw else {
+    let data = try? read { db in
+      try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+        .fetchOne(db)?
+        .webPubManifestRaw
+    }
+    guard let data else {
       return nil
     }
     return await MainActor.run { try? JSONDecoder().decode(WebPubPublication.self, from: data) }
@@ -321,338 +402,340 @@ actor DatabaseOperator {
   // MARK: - Series Operations
 
   func upsertSeries(dto: Series, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
-    let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      applySeries(dto: dto, to: existing)
-    } else {
-      let newSeries = KomgaSeries(
-        seriesId: dto.id,
-        libraryId: dto.libraryId,
-        instanceId: instanceId,
-        name: dto.name,
-        url: dto.url,
-        created: dto.created,
-        lastModified: dto.lastModified,
-        booksCount: dto.booksCount,
-        booksReadCount: dto.booksReadCount,
-        booksUnreadCount: dto.booksUnreadCount,
-        booksInProgressCount: dto.booksInProgressCount,
-        metadata: dto.metadata,
-        booksMetadata: dto.booksMetadata,
-        isUnavailable: dto.deleted,
-        oneshot: dto.oneshot
-      )
-      modelContext.insert(newSeries)
+    do {
+      try write { db in
+        if var existing =
+          try KomgaSeriesRecord
+          .where({ $0.instanceId.eq(instanceId) && $0.seriesId.eq(dto.id) })
+          .fetchOne(db)
+        {
+          applySeries(dto: dto, to: &existing)
+          try upsertSeriesRecord(existing, in: db)
+        } else {
+          let newSeries = KomgaSeriesRecord(
+            seriesId: dto.id,
+            libraryId: dto.libraryId,
+            instanceId: instanceId,
+            name: dto.name,
+            url: dto.url,
+            created: dto.created,
+            lastModified: dto.lastModified,
+            booksCount: dto.booksCount,
+            booksReadCount: dto.booksReadCount,
+            booksUnreadCount: dto.booksUnreadCount,
+            booksInProgressCount: dto.booksInProgressCount,
+            metadata: dto.metadata,
+            booksMetadata: dto.booksMetadata,
+            deleted: dto.deleted,
+            oneshot: dto.oneshot
+          )
+          try upsertSeriesRecord(newSeries, in: db)
+        }
+      }
+    } catch {
+      logger.error("Failed to upsert series \(dto.id): \(error.localizedDescription)")
     }
   }
 
   func deleteSeries(id: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
-    let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      modelContext.delete(existing)
+    do {
+      try write { db in
+        try KomgaSeriesRecord
+          .where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(id) }
+          .delete()
+          .execute(db)
+        try KomgaSeriesLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(id) }
+          .delete()
+          .execute(db)
+      }
+    } catch {
+      logger.error("Failed to delete series \(id): \(error.localizedDescription)")
     }
   }
 
   func upsertSeriesList(_ seriesList: [Series], instanceId: String) {
     guard !seriesList.isEmpty else { return }
 
-    let compositeIds = Set(
-      seriesList.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
-    )
-    let descriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { compositeIds.contains($0.id) }
-    )
-    let existingSeries = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(
-      existingSeries.map { ($0.id, $0) },
-      uniquingKeysWith: { first, _ in first }
-    )
-
-    for series in seriesList {
-      let compositeId = CompositeID.generate(instanceId: instanceId, id: series.id)
-      if let existing = existingById[compositeId] {
-        applySeries(dto: series, to: existing)
-      } else {
-        let newSeries = KomgaSeries(
-          seriesId: series.id,
-          libraryId: series.libraryId,
-          instanceId: instanceId,
-          name: series.name,
-          url: series.url,
-          created: series.created,
-          lastModified: series.lastModified,
-          booksCount: series.booksCount,
-          booksReadCount: series.booksReadCount,
-          booksUnreadCount: series.booksUnreadCount,
-          booksInProgressCount: series.booksInProgressCount,
-          metadata: series.metadata,
-          booksMetadata: series.booksMetadata,
-          isUnavailable: series.deleted,
-          oneshot: series.oneshot
+    do {
+      try write { db in
+        let seriesIds = seriesList.map(\.id)
+        let existingSeries =
+          try KomgaSeriesRecord
+          .where { $0.instanceId.eq(instanceId) && $0.seriesId.in(seriesIds) }
+          .fetchAll(db)
+        let existingById = Dictionary(
+          existingSeries.map { ($0.seriesId, $0) },
+          uniquingKeysWith: { first, _ in first }
         )
-        modelContext.insert(newSeries)
+
+        for series in seriesList {
+          if var existing = existingById[series.id] {
+            applySeries(dto: series, to: &existing)
+            try upsertSeriesRecord(existing, in: db)
+          } else {
+            let newSeries = KomgaSeriesRecord(
+              seriesId: series.id,
+              libraryId: series.libraryId,
+              instanceId: instanceId,
+              name: series.name,
+              url: series.url,
+              created: series.created,
+              lastModified: series.lastModified,
+              booksCount: series.booksCount,
+              booksReadCount: series.booksReadCount,
+              booksUnreadCount: series.booksUnreadCount,
+              booksInProgressCount: series.booksInProgressCount,
+              metadata: series.metadata,
+              booksMetadata: series.booksMetadata,
+              deleted: series.deleted,
+              oneshot: series.oneshot
+            )
+            try upsertSeriesRecord(newSeries, in: db)
+          }
+        }
       }
+    } catch {
+      logger.error("Failed to upsert series list: \(error.localizedDescription)")
     }
   }
 
   func fetchSeries(id: String) async -> Series? {
-    KomgaSeriesStore.fetchOne(context: modelContext, seriesId: id)
+    KomgaSeriesStore.fetchOne(seriesId: id)
   }
 
   func updateSeriesCollectionIds(seriesId: String, collectionIds: [String], instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      if existing.collectionIds != collectionIds {
-        existing.collectionIds = collectionIds
+    do {
+      try write { db in
+        guard
+          try KomgaSeriesRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateSeriesLocalState(seriesId: seriesId, instanceId: instanceId, db: db)
+        guard state.collectionIds != collectionIds else { return }
+        state.collectionIds = collectionIds
+        try upsertSeriesLocalStateRecord(state, in: db)
       }
+    } catch {
+      logger.error("Failed to update series collection ids for \(seriesId): \(error.localizedDescription)")
     }
   }
 
   func updateBookReadListIds(bookId: String, readListIds: [String], instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      if existing.readListIds != readListIds {
-        existing.readListIds = readListIds
+    do {
+      try write { db in
+        guard
+          try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db) != nil
+        else { return }
+        var state = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
+        guard state.readListIds != readListIds else { return }
+        state.readListIds = readListIds
+        try upsertBookLocalStateRecord(state, in: db)
       }
+    } catch {
+      logger.error("Failed to update book read list ids for \(bookId): \(error.localizedDescription)")
     }
   }
 
   // MARK: - Collection Operations
 
   func upsertCollection(dto: SeriesCollection, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
-    let descriptor = FetchDescriptor<KomgaCollection>(
-      predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      applyCollection(dto: dto, to: existing)
-    } else {
-      let newCollection = KomgaCollection(
-        collectionId: dto.id,
-        instanceId: instanceId,
-        name: dto.name,
-        ordered: dto.ordered,
-        createdDate: dto.createdDate,
-        lastModifiedDate: dto.lastModifiedDate,
-        filtered: dto.filtered,
-        seriesIds: dto.seriesIds
-      )
-      modelContext.insert(newCollection)
+    do {
+      try write { db in
+        if var existing =
+          try KomgaCollectionRecord
+          .where({ $0.instanceId.eq(instanceId) && $0.collectionId.eq(dto.id) })
+          .fetchOne(db)
+        {
+          applyCollection(dto: dto, to: &existing)
+          try upsertCollectionRecord(existing, in: db)
+        } else {
+          let newCollection = KomgaCollectionRecord(
+            collectionId: dto.id,
+            instanceId: instanceId,
+            name: dto.name,
+            ordered: dto.ordered,
+            createdDate: dto.createdDate,
+            lastModifiedDate: dto.lastModifiedDate,
+            filtered: dto.filtered,
+            seriesIds: dto.seriesIds
+          )
+          try upsertCollectionRecord(newCollection, in: db)
+        }
+      }
+    } catch {
+      logger.error("Failed to upsert collection \(dto.id): \(error.localizedDescription)")
     }
   }
 
   func deleteCollection(id: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
-    let descriptor = FetchDescriptor<KomgaCollection>(
-      predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      modelContext.delete(existing)
+    do {
+      try write { db in
+        try KomgaCollectionRecord
+          .where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(id) }
+          .delete()
+          .execute(db)
+      }
+    } catch {
+      logger.error("Failed to delete collection \(id): \(error.localizedDescription)")
     }
   }
 
   func upsertCollections(_ collections: [SeriesCollection], instanceId: String) {
     guard !collections.isEmpty else { return }
 
-    let compositeIds = Set(
-      collections.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
-    )
-    let descriptor = FetchDescriptor<KomgaCollection>(
-      predicate: #Predicate { compositeIds.contains($0.id) }
-    )
-    let existingCollections = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(
-      existingCollections.map { ($0.id, $0) },
-      uniquingKeysWith: { first, _ in first }
-    )
-
-    for collection in collections {
-      let compositeId = CompositeID.generate(instanceId: instanceId, id: collection.id)
-      if let existing = existingById[compositeId] {
-        applyCollection(dto: collection, to: existing)
-      } else {
-        let newCollection = KomgaCollection(
-          collectionId: collection.id,
-          instanceId: instanceId,
-          name: collection.name,
-          ordered: collection.ordered,
-          createdDate: collection.createdDate,
-          lastModifiedDate: collection.lastModifiedDate,
-          filtered: collection.filtered,
-          seriesIds: collection.seriesIds
+    do {
+      try write { db in
+        let collectionIds = collections.map(\.id)
+        let existingCollections =
+          try KomgaCollectionRecord
+          .where { $0.instanceId.eq(instanceId) && $0.collectionId.in(collectionIds) }
+          .fetchAll(db)
+        let existingById = Dictionary(
+          existingCollections.map { ($0.collectionId, $0) },
+          uniquingKeysWith: { first, _ in first }
         )
-        modelContext.insert(newCollection)
+
+        for collection in collections {
+          if var existing = existingById[collection.id] {
+            applyCollection(dto: collection, to: &existing)
+            try upsertCollectionRecord(existing, in: db)
+          } else {
+            let newCollection = KomgaCollectionRecord(
+              collectionId: collection.id,
+              instanceId: instanceId,
+              name: collection.name,
+              ordered: collection.ordered,
+              createdDate: collection.createdDate,
+              lastModifiedDate: collection.lastModifiedDate,
+              filtered: collection.filtered,
+              seriesIds: collection.seriesIds
+            )
+            try upsertCollectionRecord(newCollection, in: db)
+          }
+        }
       }
+    } catch {
+      logger.error("Failed to upsert collections batch: \(error.localizedDescription)")
     }
   }
 
   // MARK: - ReadList Operations
 
   func upsertReadList(dto: ReadList, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
-    let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      applyReadList(dto: dto, to: existing)
-    } else {
-      let newReadList = KomgaReadList(
-        readListId: dto.id,
-        instanceId: instanceId,
-        name: dto.name,
-        summary: dto.summary,
-        ordered: dto.ordered,
-        createdDate: dto.createdDate,
-        lastModifiedDate: dto.lastModifiedDate,
-        filtered: dto.filtered,
-        bookIds: dto.bookIds
-      )
-      modelContext.insert(newReadList)
+    do {
+      try write { db in
+        if var existing =
+          try KomgaReadListRecord
+          .where({ $0.instanceId.eq(instanceId) && $0.readListId.eq(dto.id) })
+          .fetchOne(db)
+        {
+          applyReadList(dto: dto, to: &existing)
+          try upsertReadListRecord(existing, in: db)
+        } else {
+          let newReadList = KomgaReadListRecord(
+            readListId: dto.id,
+            instanceId: instanceId,
+            name: dto.name,
+            summary: dto.summary,
+            ordered: dto.ordered,
+            createdDate: dto.createdDate,
+            lastModifiedDate: dto.lastModifiedDate,
+            filtered: dto.filtered,
+            bookIds: dto.bookIds
+          )
+          try upsertReadListRecord(newReadList, in: db)
+        }
+      }
+    } catch {
+      logger.error("Failed to upsert read list \(dto.id): \(error.localizedDescription)")
     }
   }
 
   func deleteReadList(id: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
-    let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
-    if let existing = try? modelContext.fetch(descriptor).first {
-      modelContext.delete(existing)
+    do {
+      try write { db in
+        try KomgaReadListRecord
+          .where { $0.instanceId.eq(instanceId) && $0.readListId.eq(id) }
+          .delete()
+          .execute(db)
+        try KomgaReadListLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.readListId.eq(id) }
+          .delete()
+          .execute(db)
+      }
+    } catch {
+      logger.error("Failed to delete read list \(id): \(error.localizedDescription)")
     }
   }
 
   func upsertReadLists(_ readLists: [ReadList], instanceId: String) {
     guard !readLists.isEmpty else { return }
 
-    let compositeIds = Set(
-      readLists.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
-    )
-    let descriptor = FetchDescriptor<KomgaReadList>(
-      predicate: #Predicate { compositeIds.contains($0.id) }
-    )
-    let existingReadLists = (try? modelContext.fetch(descriptor)) ?? []
-    let existingById = Dictionary(
-      existingReadLists.map { ($0.id, $0) },
-      uniquingKeysWith: { first, _ in first }
-    )
-
-    for readList in readLists {
-      let compositeId = CompositeID.generate(instanceId: instanceId, id: readList.id)
-      if let existing = existingById[compositeId] {
-        applyReadList(dto: readList, to: existing)
-      } else {
-        let newReadList = KomgaReadList(
-          readListId: readList.id,
-          instanceId: instanceId,
-          name: readList.name,
-          summary: readList.summary,
-          ordered: readList.ordered,
-          createdDate: readList.createdDate,
-          lastModifiedDate: readList.lastModifiedDate,
-          filtered: readList.filtered,
-          bookIds: readList.bookIds
+    do {
+      try write { db in
+        let readListIds = readLists.map(\.id)
+        let existingReadLists =
+          try KomgaReadListRecord
+          .where { $0.instanceId.eq(instanceId) && $0.readListId.in(readListIds) }
+          .fetchAll(db)
+        let existingById = Dictionary(
+          existingReadLists.map { ($0.readListId, $0) },
+          uniquingKeysWith: { first, _ in first }
         )
-        modelContext.insert(newReadList)
+
+        for readList in readLists {
+          if var existing = existingById[readList.id] {
+            applyReadList(dto: readList, to: &existing)
+            try upsertReadListRecord(existing, in: db)
+          } else {
+            let newReadList = KomgaReadListRecord(
+              readListId: readList.id,
+              instanceId: instanceId,
+              name: readList.name,
+              summary: readList.summary,
+              ordered: readList.ordered,
+              createdDate: readList.createdDate,
+              lastModifiedDate: readList.lastModifiedDate,
+              filtered: readList.filtered,
+              bookIds: readList.bookIds
+            )
+            try upsertReadListRecord(newReadList, in: db)
+          }
+        }
       }
+    } catch {
+      logger.error("Failed to upsert read lists batch: \(error.localizedDescription)")
     }
   }
 
-  private func applyBook(dto: Book, to existing: KomgaBook) {
+  private func applyBook(dto: Book, to existing: inout KomgaBookRecord) {
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
     if existing.number != dto.number { existing.number = dto.number }
+    if existing.created != dto.created { existing.created = dto.created }
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
     if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
     if existing.size != dto.size { existing.size = dto.size }
-    // Media fields
-    if existing.mediaStatus != dto.media.statusRaw { existing.mediaStatus = dto.media.statusRaw }
-    if existing.mediaType != dto.media.mediaType { existing.mediaType = dto.media.mediaType }
-    if existing.mediaPagesCount != dto.media.pagesCount {
-      existing.mediaPagesCount = dto.media.pagesCount
-    }
-    if existing.mediaComment != dto.media.comment { existing.mediaComment = dto.media.comment }
-    if existing.mediaProfile != dto.media.mediaProfileRaw {
-      existing.mediaProfile = dto.media.mediaProfileRaw
-    }
-    if existing.mediaEpubDivinaCompatible != dto.media.epubDivinaCompatible {
-      existing.mediaEpubDivinaCompatible = dto.media.epubDivinaCompatible
-    }
-    if existing.mediaEpubIsKepub != dto.media.epubIsKepub {
-      existing.mediaEpubIsKepub = dto.media.epubIsKepub
-    }
-    // Metadata fields
-    if existing.metaCreated != dto.metadata.created {
-      existing.metaCreated = dto.metadata.created
-    }
-    if existing.metaLastModified != dto.metadata.lastModified {
-      existing.metaLastModified = dto.metadata.lastModified
-    }
-    if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
-    if existing.metaTitleLock != dto.metadata.titleLock {
-      existing.metaTitleLock = dto.metadata.titleLock
-    }
-    if existing.metaSummary != dto.metadata.summary {
-      existing.metaSummary = dto.metadata.summary
-    }
-    if existing.metaSummaryLock != dto.metadata.summaryLock {
-      existing.metaSummaryLock = dto.metadata.summaryLock
-    }
-    if existing.metaNumber != dto.metadata.number { existing.metaNumber = dto.metadata.number }
-    if existing.metaNumberLock != dto.metadata.numberLock {
-      existing.metaNumberLock = dto.metadata.numberLock
-    }
-    if existing.metaNumberSort != dto.metadata.numberSort {
-      existing.metaNumberSort = dto.metadata.numberSort
-    }
-    if existing.metaNumberSortLock != dto.metadata.numberSortLock {
-      existing.metaNumberSortLock = dto.metadata.numberSortLock
-    }
-    if existing.metaReleaseDate != dto.metadata.releaseDate {
-      existing.metaReleaseDate = dto.metadata.releaseDate
-    }
-    if existing.metaReleaseDateLock != dto.metadata.releaseDateLock {
-      existing.metaReleaseDateLock = dto.metadata.releaseDateLock
-    }
-    let newAuthorsRaw = try? JSONEncoder().encode(dto.metadata.authors)
-    if existing.metaAuthorsRaw != newAuthorsRaw { existing.metaAuthorsRaw = newAuthorsRaw }
-    if existing.metaAuthorsLock != dto.metadata.authorsLock {
-      existing.metaAuthorsLock = dto.metadata.authorsLock
-    }
-    if existing.metaTags != (dto.metadata.tags ?? []) {
-      existing.metaTags = dto.metadata.tags ?? []
-    }
-    if existing.metaTagsLock != dto.metadata.tagsLock {
-      existing.metaTagsLock = dto.metadata.tagsLock
-    }
-    if existing.metaIsbn != dto.metadata.isbn { existing.metaIsbn = dto.metadata.isbn }
-    if existing.metaIsbnLock != dto.metadata.isbnLock {
-      existing.metaIsbnLock = dto.metadata.isbnLock
-    }
-    let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
-    if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
-    if existing.metaLinksLock != dto.metadata.linksLock {
-      existing.metaLinksLock = dto.metadata.linksLock
-    }
-    // ReadProgress fields
-    if existing.progressPage != dto.readProgress?.page {
-      existing.progressPage = dto.readProgress?.page
-    }
-    if existing.progressCompleted != dto.readProgress?.completed {
-      existing.progressCompleted = dto.readProgress?.completed
-    }
-    if existing.progressReadDate != dto.readProgress?.readDate {
-      existing.progressReadDate = dto.readProgress?.readDate
-    }
-    if existing.progressCreated != dto.readProgress?.created {
-      existing.progressCreated = dto.readProgress?.created
-    }
-    if existing.progressLastModified != dto.readProgress?.lastModified {
-      existing.progressLastModified = dto.readProgress?.lastModified
-    }
-    if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
+    existing.setMedia(dto.media)
+    existing.setMetadata(dto.metadata)
+    existing.setReadProgress(dto.readProgress)
+    if existing.deleted != dto.deleted { existing.deleted = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
     if existing.seriesTitle != dto.seriesTitle { existing.seriesTitle = dto.seriesTitle }
   }
 
-  private func applySeries(dto: Series, to existing: KomgaSeries) {
+  private static let allLibrariesId = "__all_libraries__"
+
+  private struct SeriesPolicyActions {
+    var needsSyncQueue = false
+    var bookIdsToDelete: [String] = []
+  }
+
+  private func applySeries(dto: Series, to existing: inout KomgaSeriesRecord) {
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
@@ -666,121 +749,13 @@ actor DatabaseOperator {
     if existing.booksInProgressCount != dto.booksInProgressCount {
       existing.booksInProgressCount = dto.booksInProgressCount
     }
-    // SeriesMetadata fields
-    if existing.metaStatus != dto.metadata.status { existing.metaStatus = dto.metadata.status }
-    if existing.metaStatusLock != dto.metadata.statusLock {
-      existing.metaStatusLock = dto.metadata.statusLock
-    }
-    if existing.metaCreated != dto.metadata.created {
-      existing.metaCreated = dto.metadata.created
-    }
-    if existing.metaLastModified != dto.metadata.lastModified {
-      existing.metaLastModified = dto.metadata.lastModified
-    }
-    if existing.metaTitle != dto.metadata.title { existing.metaTitle = dto.metadata.title }
-    if existing.metaTitleLock != dto.metadata.titleLock {
-      existing.metaTitleLock = dto.metadata.titleLock
-    }
-    if existing.metaTitleSort != dto.metadata.titleSort {
-      existing.metaTitleSort = dto.metadata.titleSort
-    }
-    if existing.metaTitleSortLock != dto.metadata.titleSortLock {
-      existing.metaTitleSortLock = dto.metadata.titleSortLock
-    }
-    if existing.metaSummary != dto.metadata.summary {
-      existing.metaSummary = dto.metadata.summary
-    }
-    if existing.metaSummaryLock != dto.metadata.summaryLock {
-      existing.metaSummaryLock = dto.metadata.summaryLock
-    }
-    if existing.metaReadingDirection != dto.metadata.readingDirection {
-      existing.metaReadingDirection = dto.metadata.readingDirection
-    }
-    if existing.metaReadingDirectionLock != dto.metadata.readingDirectionLock {
-      existing.metaReadingDirectionLock = dto.metadata.readingDirectionLock
-    }
-    if existing.metaPublisher != dto.metadata.publisher {
-      existing.metaPublisher = dto.metadata.publisher
-    }
-    if existing.metaPublisherLock != dto.metadata.publisherLock {
-      existing.metaPublisherLock = dto.metadata.publisherLock
-    }
-    if existing.metaAgeRating != dto.metadata.ageRating {
-      existing.metaAgeRating = dto.metadata.ageRating
-    }
-    if existing.metaAgeRatingLock != dto.metadata.ageRatingLock {
-      existing.metaAgeRatingLock = dto.metadata.ageRatingLock
-    }
-    if existing.metaLanguage != dto.metadata.language {
-      existing.metaLanguage = dto.metadata.language
-    }
-    if existing.metaLanguageLock != dto.metadata.languageLock {
-      existing.metaLanguageLock = dto.metadata.languageLock
-    }
-    if existing.metaGenres != (dto.metadata.genres ?? []) {
-      existing.metaGenres = dto.metadata.genres ?? []
-    }
-    if existing.metaGenresLock != dto.metadata.genresLock {
-      existing.metaGenresLock = dto.metadata.genresLock
-    }
-    if existing.metaTags != (dto.metadata.tags ?? []) {
-      existing.metaTags = dto.metadata.tags ?? []
-    }
-    if existing.metaTagsLock != dto.metadata.tagsLock {
-      existing.metaTagsLock = dto.metadata.tagsLock
-    }
-    if existing.metaTotalBookCount != dto.metadata.totalBookCount {
-      existing.metaTotalBookCount = dto.metadata.totalBookCount
-    }
-    if existing.metaTotalBookCountLock != dto.metadata.totalBookCountLock {
-      existing.metaTotalBookCountLock = dto.metadata.totalBookCountLock
-    }
-    if existing.metaSharingLabels != (dto.metadata.sharingLabels ?? []) {
-      existing.metaSharingLabels = dto.metadata.sharingLabels ?? []
-    }
-    if existing.metaSharingLabelsLock != dto.metadata.sharingLabelsLock {
-      existing.metaSharingLabelsLock = dto.metadata.sharingLabelsLock
-    }
-    let newLinksRaw = try? JSONEncoder().encode(dto.metadata.links)
-    if existing.metaLinksRaw != newLinksRaw { existing.metaLinksRaw = newLinksRaw }
-    if existing.metaLinksLock != dto.metadata.linksLock {
-      existing.metaLinksLock = dto.metadata.linksLock
-    }
-    let newAlternateTitlesRaw = try? JSONEncoder().encode(dto.metadata.alternateTitles)
-    if existing.metaAlternateTitlesRaw != newAlternateTitlesRaw {
-      existing.metaAlternateTitlesRaw = newAlternateTitlesRaw
-    }
-    if existing.metaAlternateTitlesLock != dto.metadata.alternateTitlesLock {
-      existing.metaAlternateTitlesLock = dto.metadata.alternateTitlesLock
-    }
-    // SeriesBooksMetadata fields
-    if existing.booksMetaCreated != dto.booksMetadata.created {
-      existing.booksMetaCreated = dto.booksMetadata.created
-    }
-    if existing.booksMetaLastModified != dto.booksMetadata.lastModified {
-      existing.booksMetaLastModified = dto.booksMetadata.lastModified
-    }
-    let newAuthorsRaw = try? JSONEncoder().encode(dto.booksMetadata.authors)
-    if existing.booksMetaAuthorsRaw != newAuthorsRaw {
-      existing.booksMetaAuthorsRaw = newAuthorsRaw
-    }
-    if existing.booksMetaTags != (dto.booksMetadata.tags ?? []) {
-      existing.booksMetaTags = dto.booksMetadata.tags ?? []
-    }
-    if existing.booksMetaReleaseDate != dto.booksMetadata.releaseDate {
-      existing.booksMetaReleaseDate = dto.booksMetadata.releaseDate
-    }
-    if existing.booksMetaSummary != dto.booksMetadata.summary {
-      existing.booksMetaSummary = dto.booksMetadata.summary
-    }
-    if existing.booksMetaSummaryNumber != dto.booksMetadata.summaryNumber {
-      existing.booksMetaSummaryNumber = dto.booksMetadata.summaryNumber
-    }
-    if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
+    existing.setMetadata(dto.metadata)
+    existing.setBooksMetadata(dto.booksMetadata)
+    if existing.deleted != dto.deleted { existing.deleted = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
   }
 
-  private func applyCollection(dto: SeriesCollection, to existing: KomgaCollection) {
+  private func applyCollection(dto: SeriesCollection, to existing: inout KomgaCollectionRecord) {
     if existing.name != dto.name { existing.name = dto.name }
     if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
     if existing.filtered != dto.filtered { existing.filtered = dto.filtered }
@@ -790,7 +765,7 @@ actor DatabaseOperator {
     if existing.seriesIds != dto.seriesIds { existing.seriesIds = dto.seriesIds }
   }
 
-  private func applyReadList(dto: ReadList, to existing: KomgaReadList) {
+  private func applyReadList(dto: ReadList, to existing: inout KomgaReadListRecord) {
     if existing.name != dto.name { existing.name = dto.name }
     if existing.summary != dto.summary { existing.summary = dto.summary }
     if existing.ordered != dto.ordered { existing.ordered = dto.ordered }
@@ -802,12 +777,8 @@ actor DatabaseOperator {
   }
 
   private func readingStatus(progressCompleted: Bool?, progressPage: Int?) -> Int {
-    if progressCompleted == true {
-      return 2
-    }
-    if (progressPage ?? 0) > 0 {
-      return 1
-    }
+    if progressCompleted == true { return 2 }
+    if (progressPage ?? 0) > 0 { return 1 }
     return 0
   }
 
@@ -815,67 +786,58 @@ actor DatabaseOperator {
     seriesId: String,
     instanceId: String,
     oldStatus: Int,
-    newStatus: Int
-  ) {
-    let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeSeriesId }
-    )
-    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+    newStatus: Int,
+    db: Database
+  ) throws {
+    guard var series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else { return }
 
     var unread = series.booksUnreadCount
     var inProgress = series.booksInProgressCount
     var read = series.booksReadCount
 
     switch oldStatus {
-    case 0:
-      unread -= 1
-    case 1:
-      inProgress -= 1
-    case 2:
-      read -= 1
-    default:
-      break
+    case 0: unread -= 1
+    case 1: inProgress -= 1
+    case 2: read -= 1
+    default: break
     }
 
     switch newStatus {
-    case 0:
-      unread += 1
-    case 1:
-      inProgress += 1
-    case 2:
-      read += 1
-    default:
-      break
+    case 0: unread += 1
+    case 1: inProgress += 1
+    case 2: read += 1
+    default: break
     }
 
     if unread < 0 || inProgress < 0 || read < 0 || (unread + inProgress + read) > series.booksCount {
-      syncSeriesReadingStatus(seriesId: seriesId, instanceId: instanceId)
+      try syncSeriesReadingStatus(seriesId: seriesId, instanceId: instanceId, db: db)
       return
     }
 
     series.booksUnreadCount = max(0, unread)
     series.booksInProgressCount = max(0, inProgress)
     series.booksReadCount = max(0, read)
+    try upsertSeriesRecord(series, in: db)
   }
 
   private func applySeriesDownloadDelta(
-    series: KomgaSeries,
+    state: inout KomgaSeriesLocalStateRecord,
+    totalBooks: Int,
     oldStatusRaw: String,
     newStatusRaw: String,
     oldDownloadedSize: Int64,
     newDownloadedSize: Int64,
     oldDownloadAt: Date?,
     newDownloadAt: Date?
-  ) {
+  ) -> Bool {
     let wasDownloaded = oldStatusRaw == "downloaded"
     let isDownloaded = newStatusRaw == "downloaded"
     let wasPending = oldStatusRaw == "pending"
     let isPending = newStatusRaw == "pending"
 
-    var downloadedCount = series.downloadedBooks
-    var pendingCount = series.pendingBooks
-    var downloadedSize = series.downloadedSize
+    var downloadedCount = state.downloadedBooks
+    var pendingCount = state.pendingBooks
+    var downloadedSize = state.downloadedSize
 
     if wasDownloaded && !isDownloaded {
       downloadedCount -= 1
@@ -893,61 +855,56 @@ actor DatabaseOperator {
       pendingCount += 1
     }
 
-    var needsRefresh = false
     if downloadedCount < 0 || pendingCount < 0
-      || downloadedCount > series.booksCount
-      || pendingCount > series.booksCount
+      || downloadedCount > totalBooks
+      || pendingCount > totalBooks
     {
-      needsRefresh = true
+      return true
     }
 
-    if let oldDownloadAt, oldDownloadAt == series.downloadAt {
+    if let oldDownloadAt, oldDownloadAt == state.downloadAt {
       if newDownloadAt == nil || (newDownloadAt ?? oldDownloadAt) < oldDownloadAt {
-        needsRefresh = true
+        return true
       }
     }
 
-    if needsRefresh {
-      syncSeriesDownloadStatus(series: series)
-      return
+    state.downloadedBooks = max(0, downloadedCount)
+    state.pendingBooks = max(0, pendingCount)
+    state.downloadedSize = max(0, downloadedSize)
+
+    if let newDownloadAt, state.downloadAt == nil || newDownloadAt > state.downloadAt! {
+      state.downloadAt = newDownloadAt
     }
 
-    series.downloadedBooks = max(0, downloadedCount)
-    series.pendingBooks = max(0, pendingCount)
-    series.downloadedSize = max(0, downloadedSize)
-
-    if let newDownloadAt {
-      if series.downloadAt == nil || newDownloadAt > series.downloadAt! {
-        series.downloadAt = newDownloadAt
-      }
-    }
-
-    if downloadedCount == series.booksCount {
-      series.downloadStatusRaw = "downloaded"
+    if downloadedCount == totalBooks {
+      state.downloadStatusRaw = "downloaded"
     } else if pendingCount > 0 {
-      series.downloadStatusRaw = "pending"
+      state.downloadStatusRaw = "pending"
     } else {
-      series.downloadStatusRaw = "notDownloaded"
+      state.downloadStatusRaw = "notDownloaded"
     }
+
+    return false
   }
 
   private func applyReadListDownloadDelta(
-    readList: KomgaReadList,
+    state: inout KomgaReadListLocalStateRecord,
+    totalBooks: Int,
     oldStatusRaw: String,
     newStatusRaw: String,
     oldDownloadedSize: Int64,
     newDownloadedSize: Int64,
     oldDownloadAt: Date?,
     newDownloadAt: Date?
-  ) {
+  ) -> Bool {
     let wasDownloaded = oldStatusRaw == "downloaded"
     let isDownloaded = newStatusRaw == "downloaded"
     let wasPending = oldStatusRaw == "pending"
     let isPending = newStatusRaw == "pending"
 
-    var downloadedCount = readList.downloadedBooks
-    var pendingCount = readList.pendingBooks
-    var downloadedSize = readList.downloadedSize
+    var downloadedCount = state.downloadedBooks
+    var pendingCount = state.pendingBooks
+    var downloadedSize = state.downloadedSize
 
     if wasDownloaded && !isDownloaded {
       downloadedCount -= 1
@@ -965,67 +922,359 @@ actor DatabaseOperator {
       pendingCount += 1
     }
 
-    var needsRefresh = false
     if downloadedCount < 0 || pendingCount < 0
-      || downloadedCount > readList.bookIds.count
-      || pendingCount > readList.bookIds.count
+      || downloadedCount > totalBooks
+      || pendingCount > totalBooks
     {
-      needsRefresh = true
+      return true
     }
 
-    if let oldDownloadAt, oldDownloadAt == readList.downloadAt {
+    if let oldDownloadAt, oldDownloadAt == state.downloadAt {
       if !isDownloaded || newDownloadAt == nil || (newDownloadAt ?? oldDownloadAt) < oldDownloadAt {
-        needsRefresh = true
+        return true
       }
     }
 
-    if needsRefresh {
-      syncReadListDownloadStatus(readList: readList)
-      return
-    }
-
-    readList.downloadedBooks = max(0, downloadedCount)
-    readList.pendingBooks = max(0, pendingCount)
-    readList.downloadedSize = max(0, downloadedSize)
+    state.downloadedBooks = max(0, downloadedCount)
+    state.pendingBooks = max(0, pendingCount)
+    state.downloadedSize = max(0, downloadedSize)
 
     if isDownloaded, let newDownloadAt {
-      if readList.downloadAt == nil || newDownloadAt > readList.downloadAt! {
-        readList.downloadAt = newDownloadAt
+      if state.downloadAt == nil || newDownloadAt > state.downloadAt! {
+        state.downloadAt = newDownloadAt
       }
     } else if downloadedCount == 0 {
-      readList.downloadAt = nil
+      state.downloadAt = nil
     }
 
-    let totalCount = readList.bookIds.count
-    if downloadedCount == totalCount && totalCount > 0 {
-      readList.downloadStatusRaw = "downloaded"
+    if downloadedCount == totalBooks && totalBooks > 0 {
+      state.downloadStatusRaw = "downloaded"
     } else if pendingCount > 0 {
-      readList.downloadStatusRaw = "pending"
+      state.downloadStatusRaw = "pending"
     } else if downloadedCount > 0 {
-      readList.downloadStatusRaw = "partiallyDownloaded"
+      state.downloadStatusRaw = "partiallyDownloaded"
     } else {
-      readList.downloadStatusRaw = "notDownloaded"
+      state.downloadStatusRaw = "notDownloaded"
     }
+
+    return false
+  }
+
+  private func fetchSeriesRecord(seriesId: String, instanceId: String, db: Database) throws -> KomgaSeriesRecord? {
+    try KomgaSeriesRecord
+      .where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      .fetchOne(db)
+  }
+
+  private func fetchReadListRecord(readListId: String, instanceId: String, db: Database) throws -> KomgaReadListRecord?
+  {
+    try KomgaReadListRecord
+      .where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }
+      .fetchOne(db)
+  }
+
+  private func fetchBooksForSeries(seriesId: String, instanceId: String, db: Database) throws -> [KomgaBookRecord] {
+    try KomgaBookRecord
+      .where { $0.seriesId.eq(seriesId) && $0.instanceId.eq(instanceId) }
+      .fetchAll(db)
+  }
+
+  private func fetchBookLocalStateMap(
+    books: [KomgaBookRecord],
+    db: Database
+  ) throws -> [String: KomgaBookLocalStateRecord] {
+    guard !books.isEmpty else { return [:] }
+
+    var stateMap: [String: KomgaBookLocalStateRecord] = [:]
+    let grouped = Dictionary(grouping: books, by: \.instanceId)
+    for (instanceId, groupedBooks) in grouped {
+      let bookIds = Array(Set(groupedBooks.map(\.bookId)))
+      guard !bookIds.isEmpty else { continue }
+      let states =
+        try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.bookId.in(bookIds) }
+        .fetchAll(db)
+      for state in states {
+        stateMap[state.bookId] = state
+      }
+    }
+    return stateMap
+  }
+
+  private func recomputeSeriesDownloadStatus(
+    seriesId: String,
+    instanceId: String,
+    db: Database
+  ) throws -> KomgaSeriesRecord? {
+    guard let series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else {
+      return nil
+    }
+
+    var state = try fetchOrCreateSeriesLocalState(
+      seriesId: series.seriesId,
+      instanceId: series.instanceId,
+      db: db
+    )
+    let books = try fetchBooksForSeries(seriesId: seriesId, instanceId: instanceId, db: db)
+    let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+    let totalCount = series.booksCount
+    let localStates = books.map { stateMap[$0.bookId] ?? .empty(instanceId: $0.instanceId, bookId: $0.bookId) }
+    let downloadedCount = localStates.filter { $0.downloadStatusRaw == "downloaded" }.count
+    let pendingCount = localStates.filter { $0.downloadStatusRaw == "pending" }.count
+
+    state.downloadedBooks = downloadedCount
+    state.pendingBooks = pendingCount
+    state.downloadedSize = localStates.reduce(0) { $0 + $1.downloadedSize }
+    state.downloadAt = localStates.compactMap(\.downloadAt).max()
+
+    if downloadedCount == totalCount {
+      state.downloadStatusRaw = "downloaded"
+    } else if pendingCount > 0 {
+      state.downloadStatusRaw = "pending"
+    } else {
+      state.downloadStatusRaw = "notDownloaded"
+    }
+
+    try upsertSeriesLocalStateRecord(state, in: db)
+    return series
+  }
+
+  private func handleSeriesPolicyActions(
+    series: KomgaSeriesRecord,
+    db: Database
+  ) throws -> SeriesPolicyActions {
+    let state = try fetchOrCreateSeriesLocalState(
+      seriesId: series.seriesId,
+      instanceId: series.instanceId,
+      db: db
+    )
+    let policy = state.offlinePolicy
+    guard policy != .manual else { return SeriesPolicyActions() }
+
+    var actions = SeriesPolicyActions()
+    let books = try fetchBooksForSeries(seriesId: series.seriesId, instanceId: series.instanceId, db: db)
+    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    let stateMap = try fetchBookLocalStateMap(books: sortedBooks, db: db)
+    let policyLimit = max(0, state.offlinePolicyLimit)
+    let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
+
+    var allowedUnreadIds = Set<String>()
+    if policyLimit > 0, policySupportsLimit {
+      let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
+      allowedUnreadIds = Set(unreadBooks.prefix(policyLimit).map(\.bookId))
+    }
+
+    let now = Date.now
+    var updatedStates: [KomgaBookLocalStateRecord] = []
+
+    for (index, book) in sortedBooks.enumerated() {
+      let originalState = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
+      var bookState = originalState
+      let isRead = book.progressCompleted ?? false
+      let isDownloaded = bookState.downloadStatusRaw == "downloaded"
+      let isPending = bookState.downloadStatusRaw == "pending"
+      let isFailed = bookState.downloadStatusRaw == "failed"
+
+      var shouldBeOffline: Bool
+      switch policy {
+      case .manual:
+        shouldBeOffline = isDownloaded || isPending
+      case .unreadOnly, .unreadOnlyAndCleanupRead:
+        if isRead {
+          shouldBeOffline = false
+        } else if policyLimit > 0 {
+          shouldBeOffline = allowedUnreadIds.contains(book.bookId)
+        } else {
+          shouldBeOffline = true
+        }
+      case .all:
+        shouldBeOffline = true
+      }
+
+      if AppConfig.offlineAutoDeleteRead && isRead {
+        if let downloadAt = bookState.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+          // Keep recently downloaded for at least 5 minutes.
+        } else {
+          shouldBeOffline = false
+        }
+      }
+
+      if shouldBeOffline {
+        if !isDownloaded && !isPending && !isFailed {
+          bookState.downloadStatusRaw = "pending"
+          bookState.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+          actions.needsSyncQueue = true
+        }
+      } else if (isDownloaded || isPending) && policy == .unreadOnlyAndCleanupRead && isRead {
+        if let downloadAt = bookState.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+          // Keep recently downloaded.
+        } else if !shouldKeepBookDueToOtherPolicies(book: book, excludeSeriesId: series.seriesId, db: db) {
+          bookState.downloadStatusRaw = "notDownloaded"
+          bookState.downloadError = nil
+          bookState.downloadAt = nil
+          bookState.downloadedSize = 0
+          actions.bookIdsToDelete.append(book.bookId)
+        }
+      }
+
+      if bookState != originalState {
+        updatedStates.append(bookState)
+      }
+    }
+
+    for updated in updatedStates {
+      try upsertBookLocalStateRecord(updated, in: db)
+    }
+
+    if !updatedStates.isEmpty {
+      _ = try recomputeSeriesDownloadStatus(seriesId: series.seriesId, instanceId: series.instanceId, db: db)
+    }
+
+    return actions
+  }
+
+  private func syncSeriesDownloadStatus(
+    seriesId: String,
+    instanceId: String,
+    db: Database
+  ) throws -> SeriesPolicyActions {
+    guard let series = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db) else {
+      return SeriesPolicyActions()
+    }
+    return try handleSeriesPolicyActions(series: series, db: db)
+  }
+
+  private func recomputeReadListDownloadStatus(
+    readListId: String,
+    instanceId: String,
+    db: Database
+  ) throws -> KomgaReadListRecord? {
+    guard let readList = try fetchReadListRecord(readListId: readListId, instanceId: instanceId, db: db) else {
+      return nil
+    }
+
+    var state = try fetchOrCreateReadListLocalState(
+      readListId: readList.readListId,
+      instanceId: readList.instanceId,
+      db: db
+    )
+    let bookIds = readList.bookIds
+    guard !bookIds.isEmpty else {
+      state.downloadedBooks = 0
+      state.pendingBooks = 0
+      state.downloadedSize = 0
+      state.downloadAt = nil
+      state.downloadStatusRaw = "notDownloaded"
+      try upsertReadListLocalStateRecord(state, in: db)
+      return readList
+    }
+
+    let books =
+      try KomgaBookRecord
+      .where { $0.instanceId.eq(instanceId) && $0.bookId.in(bookIds) }
+      .fetchAll(db)
+    let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+
+    var downloadedCount = 0
+    var pendingCount = 0
+    var totalSize: Int64 = 0
+    var latestDownloadAt: Date?
+
+    for book in books {
+      let localState = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
+      if localState.downloadStatusRaw == "downloaded" {
+        downloadedCount += 1
+        totalSize += localState.downloadedSize
+        if let downloadAt = localState.downloadAt, latestDownloadAt == nil || downloadAt > latestDownloadAt! {
+          latestDownloadAt = downloadAt
+        }
+      } else if localState.downloadStatusRaw == "pending" {
+        pendingCount += 1
+      }
+    }
+
+    state.downloadedBooks = downloadedCount
+    state.pendingBooks = pendingCount
+    state.downloadedSize = totalSize
+    state.downloadAt = latestDownloadAt
+
+    let totalCount = bookIds.count
+    if downloadedCount == totalCount && totalCount > 0 {
+      state.downloadStatusRaw = "downloaded"
+    } else if pendingCount > 0 {
+      state.downloadStatusRaw = "pending"
+    } else if downloadedCount > 0 {
+      state.downloadStatusRaw = "partiallyDownloaded"
+    } else {
+      state.downloadStatusRaw = "notDownloaded"
+    }
+
+    try upsertReadListLocalStateRecord(state, in: db)
+    return readList
+  }
+
+  private func shouldKeepBookDueToOtherPolicies(
+    book: KomgaBookRecord,
+    excludeSeriesId: String? = nil,
+    db: Database
+  ) -> Bool {
+    let instanceId = book.instanceId
+    if book.seriesId != excludeSeriesId,
+      let series = (try? fetchSeriesRecord(seriesId: book.seriesId, instanceId: instanceId, db: db)) ?? nil
+    {
+      let state =
+        (try? fetchOrCreateSeriesLocalState(
+          seriesId: series.seriesId,
+          instanceId: series.instanceId,
+          db: db
+        ))
+      let policy = state?.offlinePolicy ?? .manual
+      if policy == .all || policy == .unreadOnly {
+        return true
+      }
+    }
+    return false
+  }
+
+  private func syncSeriesReadingStatus(seriesId: String, instanceId: String, db: Database) throws {
+    guard var series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else { return }
+    let books = try fetchBooksForSeries(seriesId: seriesId, instanceId: instanceId, db: db)
+
+    let unreadCount = books.filter { book in
+      if book.progressCompleted == true { return false }
+      if (book.progressPage ?? 0) > 0 { return false }
+      return true
+    }.count
+
+    let inProgressCount = books.filter { book in
+      if book.progressCompleted == true { return false }
+      return (book.progressPage ?? 0) > 0
+    }.count
+
+    let readCount = books.filter { $0.progressCompleted == true }.count
+    series.booksUnreadCount = unreadCount
+    series.booksInProgressCount = inProgressCount
+    series.booksReadCount = readCount
+    try upsertSeriesRecord(series, in: db)
   }
 
   // MARK: - Cleanup
 
   func clearInstanceData(instanceId: String) {
     do {
-      try modelContext.delete(
-        model: KomgaBook.self, where: #Predicate { $0.instanceId == instanceId })
-      try modelContext.delete(
-        model: KomgaSeries.self, where: #Predicate { $0.instanceId == instanceId })
-      try modelContext.delete(
-        model: KomgaCollection.self, where: #Predicate { $0.instanceId == instanceId })
-      try modelContext.delete(
-        model: KomgaReadList.self, where: #Predicate { $0.instanceId == instanceId })
-      try modelContext.delete(
-        model: PendingProgress.self, where: #Predicate { $0.instanceId == instanceId })
-
-      logger.info("🗑️ Cleared all SwiftData entities for instance: \(instanceId)")
+      try write { db in
+        try KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+        try KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+        try KomgaReadListLocalStateRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+        try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+        try KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+        try KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+        try KomgaReadListRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+        try PendingProgressRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+      }
+      logger.info("Cleared all local entities for instance: \(instanceId)")
     } catch {
-      logger.error("❌ Failed to clear instance data: \(error)")
+      logger.error("Failed to clear instance data: \(error.localizedDescription)")
     }
   }
 
@@ -1039,109 +1288,136 @@ actor DatabaseOperator {
     downloadedSize: Int64? = nil,
     syncSeriesStatus: Bool = true
   ) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
+    do {
+      try write { db in
+        guard
+          let book =
+            try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db)
+        else { return }
+        var bookState = try fetchOrCreateBookLocalState(instanceId: instanceId, bookId: bookId, db: db)
 
-    guard let book = try? modelContext.fetch(descriptor).first else { return }
-    let oldStatusRaw = book.downloadStatusRaw
-    let oldDownloadedSize = book.downloadedSize
-    let oldDownloadAt = book.downloadAt
-    book.downloadStatus = status
-    if let downloadAt = downloadAt {
-      book.downloadAt = downloadAt
-    }
-    if let downloadedSize = downloadedSize {
-      book.downloadedSize = downloadedSize
-    } else if case .notDownloaded = status {
-      book.downloadedSize = 0
-    }
+        let oldStatusRaw = bookState.downloadStatusRaw
+        let oldDownloadedSize = bookState.downloadedSize
+        let oldDownloadAt = bookState.downloadAt
 
-    // Clear metadata if deleting offline
-    if case .notDownloaded = status {
-      book.pagesRaw = nil
-      book.tocRaw = nil
-      book.webPubManifestRaw = nil
-    }
+        bookState.downloadStatus = status
+        if let downloadAt { bookState.downloadAt = downloadAt }
+        if let downloadedSize {
+          bookState.downloadedSize = downloadedSize
+        } else if case .notDownloaded = status {
+          bookState.downloadedSize = 0
+        }
 
-    // Sync series status
-    if syncSeriesStatus {
-      let seriesId = book.seriesId
-      let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-        predicate: #Predicate { $0.id == compositeSeriesId }
-      )
-      let newStatusRaw = book.downloadStatusRaw
-      let newDownloadedSize = book.downloadedSize
-      let newDownloadAt = book.downloadAt
+        if case .notDownloaded = status {
+          bookState.pagesRaw = nil
+          bookState.tocRaw = nil
+          bookState.webPubManifestRaw = nil
+        }
 
-      if let series = try? modelContext.fetch(seriesDescriptor).first {
-        if series.offlinePolicy == .manual {
-          applySeriesDownloadDelta(
-            series: series,
-            oldStatusRaw: oldStatusRaw,
-            newStatusRaw: newStatusRaw,
-            oldDownloadedSize: oldDownloadedSize,
-            newDownloadedSize: newDownloadedSize,
-            oldDownloadAt: oldDownloadAt,
-            newDownloadAt: newDownloadAt
+        try upsertBookLocalStateRecord(bookState, in: db)
+
+        guard syncSeriesStatus else { return }
+
+        if let series = try fetchSeriesRecord(seriesId: book.seriesId, instanceId: instanceId, db: db) {
+          var seriesState = try fetchOrCreateSeriesLocalState(
+            seriesId: series.seriesId,
+            instanceId: series.instanceId,
+            db: db
           )
-        } else {
-          syncSeriesDownloadStatus(series: series)
+          let newStatusRaw = bookState.downloadStatusRaw
+          let newDownloadedSize = bookState.downloadedSize
+          let newDownloadAt = bookState.downloadAt
+
+          if seriesState.offlinePolicy == .manual {
+            let needsRefresh = applySeriesDownloadDelta(
+              state: &seriesState,
+              totalBooks: series.booksCount,
+              oldStatusRaw: oldStatusRaw,
+              newStatusRaw: newStatusRaw,
+              oldDownloadedSize: oldDownloadedSize,
+              newDownloadedSize: newDownloadedSize,
+              oldDownloadAt: oldDownloadAt,
+              newDownloadAt: newDownloadAt
+            )
+            if needsRefresh {
+              _ = try syncSeriesDownloadStatus(seriesId: book.seriesId, instanceId: instanceId, db: db)
+            } else {
+              try upsertSeriesLocalStateRecord(seriesState, in: db)
+            }
+          } else {
+            _ = try syncSeriesDownloadStatus(seriesId: book.seriesId, instanceId: instanceId, db: db)
+          }
+        }
+
+        for readListId in bookState.readListIds {
+          guard let readList = try fetchReadListRecord(readListId: readListId, instanceId: instanceId, db: db),
+            readList.bookIds.contains(book.bookId)
+          else { continue }
+          var readListState = try fetchOrCreateReadListLocalState(
+            readListId: readList.readListId,
+            instanceId: readList.instanceId,
+            db: db
+          )
+
+          let needsRefresh = applyReadListDownloadDelta(
+            state: &readListState,
+            totalBooks: readList.bookIds.count,
+            oldStatusRaw: oldStatusRaw,
+            newStatusRaw: bookState.downloadStatusRaw,
+            oldDownloadedSize: oldDownloadedSize,
+            newDownloadedSize: bookState.downloadedSize,
+            oldDownloadAt: oldDownloadAt,
+            newDownloadAt: bookState.downloadAt
+          )
+          if needsRefresh {
+            _ = try recomputeReadListDownloadStatus(readListId: readListId, instanceId: instanceId, db: db)
+          } else {
+            try upsertReadListLocalStateRecord(readListState, in: db)
+          }
         }
       }
-
-      // Also sync readlists that contain this book (use cached ids to avoid full scan)
-      let readListIds = book.readListIds
-      for readListId in readListIds {
-        let compositeReadListId = CompositeID.generate(instanceId: instanceId, id: readListId)
-        let readListDescriptor = FetchDescriptor<KomgaReadList>(
-          predicate: #Predicate { $0.id == compositeReadListId }
-        )
-        if let readList = try? modelContext.fetch(readListDescriptor).first,
-          readList.bookIds.contains(book.bookId)
-        {
-          applyReadListDownloadDelta(
-            readList: readList,
-            oldStatusRaw: oldStatusRaw,
-            newStatusRaw: newStatusRaw,
-            oldDownloadedSize: oldDownloadedSize,
-            newDownloadedSize: newDownloadedSize,
-            oldDownloadAt: oldDownloadAt,
-            newDownloadAt: newDownloadAt
-          )
-        }
-      }
+    } catch {
+      logger.error("Failed to update book download status for \(bookId): \(error.localizedDescription)")
     }
   }
 
   func updateReadingProgress(bookId: String, page: Int, completed: Bool) {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
+    do {
+      try write { db in
+        guard
+          var book =
+            try KomgaBookRecord
+            .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+            .fetchOne(db)
+        else { return }
 
-    if let book = try? modelContext.fetch(descriptor).first {
-      let oldStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
-      let now = Date()
-      book.progressPage = page
-      book.progressCompleted = completed
-      book.progressReadDate = now
-      if book.progressCreated == nil {
-        book.progressCreated = now
+        let oldStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
+        let now = Date()
+        book.progressPage = page
+        book.progressCompleted = completed
+        book.progressReadDate = now
+        if book.progressCreated == nil {
+          book.progressCreated = now
+        }
+        book.progressLastModified = now
+        try upsertBookRecord(book, in: db)
+
+        let newStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
+        if oldStatus != newStatus {
+          try updateSeriesReadingCounts(
+            seriesId: book.seriesId,
+            instanceId: instanceId,
+            oldStatus: oldStatus,
+            newStatus: newStatus,
+            db: db
+          )
+        }
       }
-      book.progressLastModified = now
-      let newStatus = readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage)
-      if oldStatus != newStatus {
-        updateSeriesReadingCounts(
-          seriesId: book.seriesId,
-          instanceId: instanceId,
-          oldStatus: oldStatus,
-          newStatus: newStatus
-        )
-      }
+    } catch {
+      logger.error("Failed to update reading progress for \(bookId): \(error.localizedDescription)")
     }
   }
 
@@ -1151,16 +1427,17 @@ actor DatabaseOperator {
     fallbackPage: Int
   ) -> (page: Int, completed: Bool) {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-
     let normalized = min(max(totalProgression ?? 0, 0), 1)
     let completed = normalized >= 0.999_999
     var resolvedPage = max(0, fallbackPage)
 
-    if let book = try? modelContext.fetch(descriptor).first {
+    if let book =
+      (try? read({ db in
+        try KomgaBookRecord
+          .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+          .fetchOne(db)
+      })) ?? nil
+    {
       let totalPages = max(0, book.mediaPagesCount)
       if totalPages > 0 {
         if completed {
@@ -1179,269 +1456,215 @@ actor DatabaseOperator {
   }
 
   func syncSeriesDownloadStatus(series: KomgaSeries) {
-    let seriesId = series.seriesId
-    let instanceId = series.instanceId
-
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
-    )
-    let books = (try? modelContext.fetch(descriptor)) ?? []
-
-    let totalCount = series.booksCount
-    let downloadedCount = books.filter { $0.downloadStatusRaw == "downloaded" }.count
-    let pendingCount = books.filter { $0.downloadStatusRaw == "pending" }.count
-
-    series.downloadedBooks = downloadedCount
-    series.pendingBooks = pendingCount
-    series.downloadedSize = books.reduce(0) { $0 + $1.downloadedSize }
-    series.downloadAt = books.compactMap { $0.downloadAt }.max()
-
-    if downloadedCount == totalCount {
-      series.downloadStatusRaw = "downloaded"
-    } else if pendingCount > 0 {
-      series.downloadStatusRaw = "pending"
-    } else {
-      series.downloadStatusRaw = "notDownloaded"
-    }
-
-    handlePolicyActions(series: series, books: books)
+    syncSeriesDownloadStatus(seriesId: series.seriesId, instanceId: series.instanceId)
   }
 
   func syncSeriesDownloadStatus(seriesId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let descriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let series = try? modelContext.fetch(descriptor).first else { return }
-    syncSeriesDownloadStatus(series: series)
-  }
-
-  private func handlePolicyActions(series: KomgaSeries, books: [KomgaBook]) {
-    let policy = series.offlinePolicy
-    guard policy != .manual else { return }
-
-    var needsSyncQueue = false
-    var booksToDelete: [KomgaBook] = []
-    let policyLimit = max(0, series.offlinePolicyLimit)
-    let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
-
-    // Sort books to ensure they are processed in order
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
-    var allowedUnreadIds = Set<String>()
-    if policyLimit > 0, policySupportsLimit {
-      let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
-      allowedUnreadIds = Set(unreadBooks.prefix(policyLimit).map { $0.bookId })
-    }
-    let now = Date.now
-
-    for (index, book) in sortedBooks.enumerated() {
-      let isRead = book.progressCompleted ?? false
-      let isDownloaded = book.downloadStatusRaw == "downloaded"
-      let isPending = book.downloadStatusRaw == "pending"
-      let isFailed = book.downloadStatusRaw == "failed"
-
-      var shouldBeOffline: Bool
-      switch policy {
-      case .manual:
-        shouldBeOffline = (isDownloaded || isPending)
-      case .unreadOnly, .unreadOnlyAndCleanupRead:
-        if isRead {
-          shouldBeOffline = false
-        } else if policyLimit > 0 {
-          shouldBeOffline = allowedUnreadIds.contains(book.bookId)
-        } else {
-          shouldBeOffline = true
-        }
-      case .all:
-        shouldBeOffline = true
+    do {
+      let actions = try write { db in
+        try syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
       }
 
-      if AppConfig.offlineAutoDeleteRead && isRead {
-        if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
-          // Keep recently downloaded for at least 5 minutes to avoid immediate deletion
-        } else {
-          shouldBeOffline = false
-        }
+      if actions.needsSyncQueue {
+        OfflineManager.shared.triggerSync(instanceId: instanceId)
       }
 
-      if shouldBeOffline {
-        if !isDownloaded && !isPending && !isFailed {
-          book.downloadStatusRaw = "pending"
-          // Add a small increment to ensure stable sorting by downloadAt
-          book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
-          needsSyncQueue = true
-        }
-      } else if (isDownloaded || isPending) && policy == .unreadOnlyAndCleanupRead && isRead {
-        if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
-          // Keep recently downloaded
-        } else {
-          // Check if any other policy wants to keep this book
-          if !shouldKeepBookDueToOtherPolicies(book: book, excludeSeriesId: series.seriesId) {
-            booksToDelete.append(book)
+      if !actions.bookIdsToDelete.isEmpty {
+        let ids = actions.bookIdsToDelete
+        Task {
+          for id in ids {
+            await OfflineManager.shared.deleteBook(
+              instanceId: instanceId, bookId: id, commit: false, syncSeriesStatus: false)
           }
+          await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
         }
       }
-    }
-
-    if needsSyncQueue {
-      OfflineManager.shared.triggerSync(instanceId: series.instanceId)
-    }
-
-    if !booksToDelete.isEmpty {
-      let instanceId = series.instanceId
-      let seriesId = series.seriesId
-      let bookIdsToDelete = booksToDelete.map { $0.bookId }
-      Task {
-        for bookId in bookIdsToDelete {
-          await OfflineManager.shared.deleteBook(
-            instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
-        }
-        await DatabaseOperator.shared.syncSeriesDownloadStatus(
-          seriesId: seriesId, instanceId: instanceId)
-        await DatabaseOperator.shared.commit()
-      }
+    } catch {
+      logger.error("Failed to sync series download status for \(seriesId): \(error.localizedDescription)")
     }
   }
 
   func downloadSeriesOffline(seriesId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+    do {
+      try write { db in
+        guard let series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else { return }
+        var state = try fetchOrCreateSeriesLocalState(
+          seriesId: series.seriesId,
+          instanceId: series.instanceId,
+          db: db
+        )
+        state.offlinePolicy = .manual
+        try upsertSeriesLocalStateRecord(state, in: db)
 
-    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+        let books = try fetchBooksForSeries(seriesId: seriesId, instanceId: instanceId, db: db)
+          .sorted { $0.metaNumberSort < $1.metaNumberSort }
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+        let now = Date.now
+        for (index, originalBook) in books.enumerated() {
+          if AppConfig.offlineAutoDeleteRead && originalBook.progressCompleted == true {
+            continue
+          }
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          if bookState.downloadStatusRaw != "downloaded" && bookState.downloadStatusRaw != "pending" {
+            bookState.downloadStatusRaw = "pending"
+            bookState.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+            try upsertBookLocalStateRecord(bookState, in: db)
+          }
+        }
 
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
-    )
-    let books = (try? modelContext.fetch(descriptor)) ?? []
-
-    // Sort books by metaNumberSort before bulk assigning downloadAt
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
-    let now = Date.now
-
-    for (index, book) in sortedBooks.enumerated() {
-      if AppConfig.offlineAutoDeleteRead && book.progressCompleted == true {
-        continue
+        _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
       }
-      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
-        book.downloadStatusRaw = "pending"
-        // Add a small increment to ensure stable sorting by downloadAt
-        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
-      }
+      OfflineManager.shared.triggerSync(instanceId: instanceId)
+    } catch {
+      logger.error("Failed to queue series download for \(seriesId): \(error.localizedDescription)")
     }
-
-    OfflineManager.shared.triggerSync(instanceId: instanceId)
-    syncSeriesDownloadStatus(series: series)
   }
 
   func downloadSeriesUnreadOffline(seriesId: String, instanceId: String, limit: Int) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+    do {
+      try write { db in
+        guard let series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else { return }
+        var state = try fetchOrCreateSeriesLocalState(
+          seriesId: series.seriesId,
+          instanceId: series.instanceId,
+          db: db
+        )
+        state.offlinePolicy = .manual
+        try upsertSeriesLocalStateRecord(state, in: db)
 
-    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+        let books = try fetchBooksForSeries(seriesId: seriesId, instanceId: instanceId, db: db)
+          .sorted { $0.metaNumberSort < $1.metaNumberSort }
+        let unreadBooks = books.filter { $0.progressCompleted != true }
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+        let targetBooks: [KomgaBookRecord]
+        let limitValue = max(0, limit)
+        if limitValue > 0 {
+          targetBooks = Array(unreadBooks.prefix(limitValue))
+        } else {
+          targetBooks = unreadBooks
+        }
 
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
-    )
-    let books = (try? modelContext.fetch(descriptor)) ?? []
+        let now = Date.now
+        for (index, originalBook) in targetBooks.enumerated() {
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          if bookState.downloadStatusRaw != "downloaded" && bookState.downloadStatusRaw != "pending" {
+            bookState.downloadStatusRaw = "pending"
+            bookState.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+            try upsertBookLocalStateRecord(bookState, in: db)
+          }
+        }
 
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
-    let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
-
-    let limitValue = max(0, limit)
-    let targetBooks = limitValue > 0 ? Array(unreadBooks.prefix(limitValue)) : unreadBooks
-
-    let now = Date.now
-    for (index, book) in targetBooks.enumerated() {
-      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
-        book.downloadStatusRaw = "pending"
-        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+        _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
       }
+      OfflineManager.shared.triggerSync(instanceId: instanceId)
+    } catch {
+      logger.error("Failed to queue unread series download for \(seriesId): \(error.localizedDescription)")
     }
-
-    OfflineManager.shared.triggerSync(instanceId: instanceId)
-    syncSeriesDownloadStatus(series: series)
   }
 
   func removeSeriesOffline(seriesId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+    var bookIdsToDelete: [String] = []
+    do {
+      try write { db in
+        guard let series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else { return }
+        var state = try fetchOrCreateSeriesLocalState(
+          seriesId: series.seriesId,
+          instanceId: series.instanceId,
+          db: db
+        )
+        state.offlinePolicy = .manual
+        try upsertSeriesLocalStateRecord(state, in: db)
 
-    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+        let books = try fetchBooksForSeries(seriesId: seriesId, instanceId: instanceId, db: db)
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+        for originalBook in books {
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          bookState.downloadStatusRaw = "notDownloaded"
+          bookState.downloadError = nil
+          bookState.downloadAt = nil
+          bookState.downloadedSize = 0
+          try upsertBookLocalStateRecord(bookState, in: db)
+          bookIdsToDelete.append(originalBook.bookId)
+        }
 
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
-    )
-    let books = (try? modelContext.fetch(descriptor)) ?? []
-    for book in books {
-      book.downloadStatusRaw = "notDownloaded"
-      book.downloadError = nil
-      book.downloadAt = nil
-      book.downloadedSize = 0
+        _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+      }
+    } catch {
+      logger.error("Failed to remove series offline data for \(seriesId): \(error.localizedDescription)")
+      return
     }
 
-    let bookIds = books.map { $0.bookId }
     Task {
-      for bookId in bookIds {
+      for id in bookIdsToDelete {
         await OfflineManager.shared.deleteBook(
-          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+          instanceId: instanceId, bookId: id, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncSeriesDownloadStatus(
-        seriesId: seriesId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
     }
   }
 
   func removeSeriesReadOffline(seriesId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
+    var bookIdsToDelete: [String] = []
+    do {
+      try write { db in
+        guard let series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else { return }
+        var state = try fetchOrCreateSeriesLocalState(
+          seriesId: series.seriesId,
+          instanceId: series.instanceId,
+          db: db
+        )
+        state.offlinePolicy = .manual
+        try upsertSeriesLocalStateRecord(state, in: db)
 
-    series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
+        let books = try fetchBooksForSeries(seriesId: seriesId, instanceId: instanceId, db: db)
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+        for originalBook in books where originalBook.progressCompleted == true {
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          bookState.downloadStatusRaw = "notDownloaded"
+          bookState.downloadError = nil
+          bookState.downloadAt = nil
+          bookState.downloadedSize = 0
+          try upsertBookLocalStateRecord(bookState, in: db)
+          bookIdsToDelete.append(originalBook.bookId)
+        }
 
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
-    )
-    let books = (try? modelContext.fetch(descriptor)) ?? []
-
-    var bookIds: [String] = []
-    for book in books where book.progressCompleted == true {
-      book.downloadStatusRaw = "notDownloaded"
-      book.downloadError = nil
-      book.downloadAt = nil
-      book.downloadedSize = 0
-      bookIds.append(book.bookId)
+        _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+      }
+    } catch {
+      logger.error("Failed to remove read books offline for series \(seriesId): \(error.localizedDescription)")
+      return
     }
 
     Task {
-      for bookId in bookIds {
+      for id in bookIdsToDelete {
         await OfflineManager.shared.deleteBook(
-          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+          instanceId: instanceId, bookId: id, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncSeriesDownloadStatus(
-        seriesId: seriesId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
     }
   }
 
   func toggleSeriesDownload(seriesId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let descriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let series = try? modelContext.fetch(descriptor).first else { return }
+    let status: SeriesDownloadStatus? = try? read { db in
+      guard let series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else {
+        return nil
+      }
+      let state =
+        try KomgaSeriesLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+        .fetchOne(db)
+      return (state ?? .empty(instanceId: instanceId, seriesId: seriesId)).downloadStatus(totalBooks: series.booksCount)
+    }
+    guard let status else { return }
 
-    let status = series.downloadStatus
     switch status {
     case .downloaded, .partiallyDownloaded, .pending:
       removeSeriesOffline(seriesId: seriesId, instanceId: instanceId)
@@ -1457,337 +1680,343 @@ actor DatabaseOperator {
     limit: Int? = nil,
     syncSeriesStatus: Bool = true
   ) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let descriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let series = try? modelContext.fetch(descriptor).first else { return }
+    do {
+      try write { db in
+        guard let series = try fetchSeriesRecord(seriesId: seriesId, instanceId: instanceId, db: db) else { return }
+        var state = try fetchOrCreateSeriesLocalState(
+          seriesId: series.seriesId,
+          instanceId: series.instanceId,
+          db: db
+        )
+        state.offlinePolicy = policy
+        if let limit {
+          state.offlinePolicyLimit = max(0, limit)
+        }
+        try upsertSeriesLocalStateRecord(state, in: db)
 
-    series.offlinePolicy = policy
-    if let limit {
-      series.offlinePolicyLimit = max(0, limit)
-    }
-
-    if syncSeriesStatus {
-      self.syncSeriesDownloadStatus(series: series)
+        if syncSeriesStatus {
+          _ = try syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+        }
+      }
+    } catch {
+      logger.error("Failed to update series offline policy for \(seriesId): \(error.localizedDescription)")
     }
   }
 
   // MARK: - ReadList Download Status Operations
 
   func syncReadListDownloadStatus(readList: KomgaReadList) {
-    let instanceId = readList.instanceId
-    let bookIds = readList.bookIds
-    guard !bookIds.isEmpty else {
-      readList.downloadedBooks = 0
-      readList.pendingBooks = 0
-      readList.downloadedSize = 0
-      readList.downloadAt = nil
-      readList.downloadStatusRaw = "notDownloaded"
-      return
-    }
-
-    // Fetch only the books that belong to this readlist
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { book in
-        book.instanceId == instanceId && bookIds.contains(book.bookId)
-      }
-    )
-    let books = (try? modelContext.fetch(descriptor)) ?? []
-
-    var downloadedCount = 0
-    var pendingCount = 0
-    var totalSize: Int64 = 0
-    var latestDownloadAt: Date?
-
-    for book in books {
-      if book.downloadStatusRaw == "downloaded" {
-        downloadedCount += 1
-        totalSize += book.downloadedSize
-        if let downloadAt = book.downloadAt {
-          if latestDownloadAt == nil || downloadAt > latestDownloadAt! {
-            latestDownloadAt = downloadAt
-          }
-        }
-      } else if book.downloadStatusRaw == "pending" {
-        pendingCount += 1
-      }
-    }
-
-    let totalCount = bookIds.count
-    readList.downloadedBooks = downloadedCount
-    readList.pendingBooks = pendingCount
-    readList.downloadedSize = totalSize
-    readList.downloadAt = latestDownloadAt
-
-    if downloadedCount == totalCount && totalCount > 0 {
-      readList.downloadStatusRaw = "downloaded"
-    } else if pendingCount > 0 {
-      readList.downloadStatusRaw = "pending"
-    } else if downloadedCount > 0 {
-      readList.downloadStatusRaw = "partiallyDownloaded"
-    } else {
-      readList.downloadStatusRaw = "notDownloaded"
-    }
+    syncReadListDownloadStatus(readListId: readList.readListId, instanceId: readList.instanceId)
   }
 
   func syncReadListDownloadStatus(readListId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
-    let descriptor = FetchDescriptor<KomgaReadList>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let readList = try? modelContext.fetch(descriptor).first else { return }
-    syncReadListDownloadStatus(readList: readList)
+    do {
+      try write { db in
+        _ = try recomputeReadListDownloadStatus(readListId: readListId, instanceId: instanceId, db: db)
+      }
+    } catch {
+      logger.error("Failed to sync read list download status for \(readListId): \(error.localizedDescription)")
+    }
   }
 
-  /// Sync download status for all readlists that contain any of the given book IDs.
   func syncReadListsContainingBooks(bookIds: [String], instanceId: String) {
     guard !bookIds.isEmpty else { return }
-    let bookIdSet = Set(bookIds)
-
-    let descriptor = FetchDescriptor<KomgaReadList>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    guard let readLists = try? modelContext.fetch(descriptor) else { return }
-
-    for readList in readLists {
-      // Check if this readlist contains any of the books
-      let hasBook = readList.bookIds.contains { bookIdSet.contains($0) }
-      if hasBook {
-        syncReadListDownloadStatus(readList: readList)
-      }
-    }
-  }
-
-  /// Check if a book should be kept due to series policy.
-  /// Used for conflict resolution when cleanup would be triggered but series wants to keep.
-  private func shouldKeepBookDueToOtherPolicies(
-    book: KomgaBook,
-    excludeSeriesId: String? = nil
-  ) -> Bool {
-    let instanceId = book.instanceId
-
-    // Check series policy (if not excluded)
-    if book.seriesId != excludeSeriesId {
-      let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: book.seriesId)
-      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-        predicate: #Predicate { $0.id == compositeSeriesId }
-      )
-      if let series = try? modelContext.fetch(seriesDescriptor).first {
-        let policy = series.offlinePolicy
-        // If series wants to keep (all or unreadOnly without cleanup), keep it
-        if policy == .all || policy == .unreadOnly {
-          return true
+    let set = Set(bookIds)
+    do {
+      try write { db in
+        let readLists = try KomgaReadListRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+        for readList in readLists where readList.bookIds.contains(where: { set.contains($0) }) {
+          _ = try recomputeReadListDownloadStatus(
+            readListId: readList.readListId,
+            instanceId: instanceId,
+            db: db
+          )
         }
       }
+    } catch {
+      logger.error("Failed to sync read lists containing books: \(error.localizedDescription)")
     }
-
-    return false
   }
 
   func downloadReadListOffline(readListId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
-    let readListDescriptor = FetchDescriptor<KomgaReadList>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+    var shouldTriggerSync = false
+    do {
+      try write { db in
+        guard let readList = try fetchReadListRecord(readListId: readListId, instanceId: instanceId, db: db) else {
+          return
+        }
+        let bookIds = readList.bookIds
+        let books =
+          try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.in(bookIds) }
+          .fetchAll(db)
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
 
-    let bookIds = readList.bookIds
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
-    let books = allBooks.filter { bookIds.contains($0.bookId) }
+        let now = Date.now
+        var affectedSeries = Set<String>()
+        for (index, originalBook) in books.enumerated() {
+          if AppConfig.offlineAutoDeleteRead && originalBook.progressCompleted == true {
+            continue
+          }
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          if bookState.downloadStatusRaw != "downloaded" && bookState.downloadStatusRaw != "pending" {
+            bookState.downloadStatusRaw = "pending"
+            bookState.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+            try upsertBookLocalStateRecord(bookState, in: db)
+            affectedSeries.insert(originalBook.seriesId)
+            shouldTriggerSync = true
+          }
+        }
 
-    let now = Date.now
-    for (index, book) in books.enumerated() {
-      if AppConfig.offlineAutoDeleteRead && book.progressCompleted == true {
-        continue
+        for seriesId in affectedSeries {
+          _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+        }
+        _ = try recomputeReadListDownloadStatus(readListId: readListId, instanceId: instanceId, db: db)
       }
-      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
-        book.downloadStatusRaw = "pending"
-        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+      if shouldTriggerSync {
+        OfflineManager.shared.triggerSync(instanceId: instanceId)
       }
+    } catch {
+      logger.error("Failed to queue read list download for \(readListId): \(error.localizedDescription)")
     }
-
-    OfflineManager.shared.triggerSync(instanceId: instanceId)
-    syncReadListDownloadStatus(readList: readList)
   }
 
   func downloadReadListUnreadOffline(readListId: String, instanceId: String, limit: Int) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
-    let readListDescriptor = FetchDescriptor<KomgaReadList>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+    var shouldTriggerSync = false
+    do {
+      try write { db in
+        guard let readList = try fetchReadListRecord(readListId: readListId, instanceId: instanceId, db: db) else {
+          return
+        }
+        let bookIds = readList.bookIds
+        let books =
+          try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.in(bookIds) }
+          .fetchAll(db)
+          .sorted { $0.metaNumberSort < $1.metaNumberSort }
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
 
-    let bookIds = readList.bookIds
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
-    let books = allBooks.filter { bookIds.contains($0.bookId) }
+        let unreadBooks = books.filter { $0.progressCompleted != true }
+        let targetBooks: [KomgaBookRecord]
+        let limitValue = max(0, limit)
+        if limitValue > 0 {
+          targetBooks = Array(unreadBooks.prefix(limitValue))
+        } else {
+          targetBooks = unreadBooks
+        }
 
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
-    let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
-    let limitValue = max(0, limit)
-    let targetBooks = limitValue > 0 ? Array(unreadBooks.prefix(limitValue)) : unreadBooks
+        let now = Date.now
+        var affectedSeries = Set<String>()
+        for (index, originalBook) in targetBooks.enumerated() {
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          if bookState.downloadStatusRaw != "downloaded" && bookState.downloadStatusRaw != "pending" {
+            bookState.downloadStatusRaw = "pending"
+            bookState.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+            try upsertBookLocalStateRecord(bookState, in: db)
+            affectedSeries.insert(originalBook.seriesId)
+            shouldTriggerSync = true
+          }
+        }
 
-    let now = Date.now
-    for (index, book) in targetBooks.enumerated() {
-      if book.downloadStatusRaw != "downloaded" && book.downloadStatusRaw != "pending" {
-        book.downloadStatusRaw = "pending"
-        book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+        for seriesId in affectedSeries {
+          _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+        }
+        _ = try recomputeReadListDownloadStatus(readListId: readListId, instanceId: instanceId, db: db)
       }
+      if shouldTriggerSync {
+        OfflineManager.shared.triggerSync(instanceId: instanceId)
+      }
+    } catch {
+      logger.error("Failed to queue unread read list download for \(readListId): \(error.localizedDescription)")
     }
-
-    OfflineManager.shared.triggerSync(instanceId: instanceId)
-    syncReadListDownloadStatus(readList: readList)
   }
 
   func removeReadListOffline(readListId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
-    let readListDescriptor = FetchDescriptor<KomgaReadList>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+    var idsToDelete: [String] = []
+    do {
+      try write { db in
+        guard let readList = try fetchReadListRecord(readListId: readListId, instanceId: instanceId, db: db) else {
+          return
+        }
+        let books =
+          try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.in(readList.bookIds) }
+          .fetchAll(db)
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
 
-    let bookIds = readList.bookIds
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
-    let books = allBooks.filter { bookIds.contains($0.bookId) }
+        var affectedSeries = Set<String>()
+        for originalBook in books {
+          if shouldKeepBookDueToOtherPolicies(book: originalBook, db: db) {
+            continue
+          }
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          bookState.downloadStatusRaw = "notDownloaded"
+          bookState.downloadError = nil
+          bookState.downloadAt = nil
+          bookState.downloadedSize = 0
+          try upsertBookLocalStateRecord(bookState, in: db)
+          idsToDelete.append(originalBook.bookId)
+          affectedSeries.insert(originalBook.seriesId)
+        }
 
-    // Only remove books that are not protected by other policies
-    var bookIdsToRemove: [String] = []
-    for book in books {
-      if !shouldKeepBookDueToOtherPolicies(book: book) {
-        book.downloadStatusRaw = "notDownloaded"
-        book.downloadError = nil
-        book.downloadAt = nil
-        book.downloadedSize = 0
-        bookIdsToRemove.append(book.bookId)
+        for seriesId in affectedSeries {
+          _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+        }
+        _ = try recomputeReadListDownloadStatus(readListId: readListId, instanceId: instanceId, db: db)
       }
+    } catch {
+      logger.error("Failed to remove read list offline data for \(readListId): \(error.localizedDescription)")
+      return
     }
 
     Task {
-      for bookId in bookIdsToRemove {
+      for id in idsToDelete {
         await OfflineManager.shared.deleteBook(
-          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+          instanceId: instanceId, bookId: id, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncReadListDownloadStatus(
-        readListId: readListId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.syncReadListDownloadStatus(readListId: readListId, instanceId: instanceId)
     }
   }
 
   func removeReadListReadOffline(readListId: String, instanceId: String) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
-    let readListDescriptor = FetchDescriptor<KomgaReadList>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let readList = try? modelContext.fetch(readListDescriptor).first else { return }
+    var idsToDelete: [String] = []
+    do {
+      try write { db in
+        guard let readList = try fetchReadListRecord(readListId: readListId, instanceId: instanceId, db: db) else {
+          return
+        }
+        let books =
+          try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.in(readList.bookIds) }
+          .fetchAll(db)
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
 
-    let bookIds = readList.bookIds
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    let allBooks = (try? modelContext.fetch(descriptor)) ?? []
-    let books = allBooks.filter { bookIds.contains($0.bookId) }
+        var affectedSeries = Set<String>()
+        for originalBook in books where originalBook.progressCompleted == true {
+          if shouldKeepBookDueToOtherPolicies(book: originalBook, db: db) {
+            continue
+          }
+          var bookState =
+            stateMap[originalBook.bookId]
+            ?? .empty(instanceId: originalBook.instanceId, bookId: originalBook.bookId)
+          bookState.downloadStatusRaw = "notDownloaded"
+          bookState.downloadError = nil
+          bookState.downloadAt = nil
+          bookState.downloadedSize = 0
+          try upsertBookLocalStateRecord(bookState, in: db)
+          idsToDelete.append(originalBook.bookId)
+          affectedSeries.insert(originalBook.seriesId)
+        }
 
-    var bookIdsToRemove: [String] = []
-    for book in books where book.progressCompleted == true {
-      if shouldKeepBookDueToOtherPolicies(book: book) {
-        continue
+        for seriesId in affectedSeries {
+          _ = try recomputeSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+        }
+        _ = try recomputeReadListDownloadStatus(readListId: readListId, instanceId: instanceId, db: db)
       }
-      book.downloadStatusRaw = "notDownloaded"
-      book.downloadError = nil
-      book.downloadAt = nil
-      book.downloadedSize = 0
-      bookIdsToRemove.append(book.bookId)
+    } catch {
+      logger.error("Failed to remove read books for read list \(readListId): \(error.localizedDescription)")
+      return
     }
 
     Task {
-      for bookId in bookIdsToRemove {
+      for id in idsToDelete {
         await OfflineManager.shared.deleteBook(
-          instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
+          instanceId: instanceId, bookId: id, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncReadListDownloadStatus(
-        readListId: readListId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      await DatabaseOperator.shared.syncReadListDownloadStatus(readListId: readListId, instanceId: instanceId)
     }
   }
 
   // MARK: - Library Operations
 
   func replaceLibraries(_ libraries: [LibraryInfo], for instanceId: String) throws {
-    let descriptor = FetchDescriptor<KomgaLibrary>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    let existing = try modelContext.fetch(descriptor)
+    try write { db in
+      let existing = try KomgaLibraryRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      var existingMap = Dictionary(uniqueKeysWithValues: existing.map { ($0.libraryId, $0) })
 
-    var existingMap = Dictionary(
-      uniqueKeysWithValues: existing.map { ($0.libraryId, $0) }
-    )
-
-    for library in libraries {
-      if let existingLibrary = existingMap[library.id] {
-        if existingLibrary.name != library.name {
-          existingLibrary.name = library.name
-        }
-        existingMap.removeValue(forKey: library.id)
-      } else {
-        modelContext.insert(
-          KomgaLibrary(
+      for library in libraries {
+        if var existingLibrary = existingMap[library.id] {
+          if existingLibrary.name != library.name {
+            existingLibrary.name = library.name
+            try upsertLibraryRecord(existingLibrary, in: db)
+          }
+          existingMap.removeValue(forKey: library.id)
+        } else {
+          let libraryRecord = KomgaLibraryRecord(
             instanceId: instanceId,
             libraryId: library.id,
             name: library.name
-          ))
+          )
+          try upsertLibraryRecord(libraryRecord, in: db)
+        }
       }
-    }
 
-    let allLibrariesId = KomgaLibrary.allLibrariesId
-    for (_, library) in existingMap {
-      if library.libraryId != allLibrariesId {
-        modelContext.delete(library)
+      for (_, library) in existingMap where library.libraryId != Self.allLibrariesId {
+        try KomgaLibraryRecord.find(library.id).delete().execute(db)
       }
     }
   }
 
   func deleteLibrary(libraryId: String, instanceId: String) {
-    // Delete the library entry
-    let descriptor = FetchDescriptor<KomgaLibrary>(
-      predicate: #Predicate { $0.instanceId == instanceId && $0.libraryId == libraryId }
-    )
-    if let existing = try? modelContext.fetch(descriptor).first {
-      modelContext.delete(existing)
+    do {
+      try write { db in
+        let bookIds =
+          try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.libraryId.eq(libraryId) }
+          .select { $0.bookId }
+          .fetchAll(db)
+        let seriesIds =
+          try KomgaSeriesRecord
+          .where { $0.instanceId.eq(instanceId) && $0.libraryId.eq(libraryId) }
+          .select { $0.seriesId }
+          .fetchAll(db)
+
+        try KomgaLibraryRecord
+          .where { $0.instanceId.eq(instanceId) && $0.libraryId.eq(libraryId) }
+          .delete()
+          .execute(db)
+
+        if !bookIds.isEmpty {
+          try KomgaBookLocalStateRecord
+            .where { $0.instanceId.eq(instanceId) && $0.bookId.in(bookIds) }
+            .delete()
+            .execute(db)
+        }
+        try KomgaBookRecord
+          .where { $0.instanceId.eq(instanceId) && $0.libraryId.eq(libraryId) }
+          .delete()
+          .execute(db)
+
+        if !seriesIds.isEmpty {
+          try KomgaSeriesLocalStateRecord
+            .where { $0.instanceId.eq(instanceId) && $0.seriesId.in(seriesIds) }
+            .delete()
+            .execute(db)
+        }
+        try KomgaSeriesRecord
+          .where { $0.instanceId.eq(instanceId) && $0.libraryId.eq(libraryId) }
+          .delete()
+          .execute(db)
+      }
+    } catch {
+      logger.error("Failed to delete library \(libraryId): \(error.localizedDescription)")
     }
-
-    // Delete all books in this library
-    try? modelContext.delete(
-      model: KomgaBook.self,
-      where: #Predicate { $0.instanceId == instanceId && $0.libraryId == libraryId }
-    )
-
-    // Delete all series in this library
-    try? modelContext.delete(
-      model: KomgaSeries.self,
-      where: #Predicate { $0.instanceId == instanceId && $0.libraryId == libraryId }
-    )
   }
 
   func deleteLibraries(instanceId: String?) throws {
-    let descriptor: FetchDescriptor<KomgaLibrary>
-    if let instanceId {
-      descriptor = FetchDescriptor(
-        predicate: #Predicate { $0.instanceId == instanceId }
-      )
-    } else {
-      descriptor = FetchDescriptor()
+    try write { db in
+      if let instanceId {
+        try KomgaLibraryRecord.where { $0.instanceId.eq(instanceId) }.delete().execute(db)
+      } else {
+        try KomgaLibraryRecord.delete().execute(db)
+      }
     }
-    let items = try modelContext.fetch(descriptor)
-    items.forEach { modelContext.delete($0) }
   }
 
   func upsertAllLibrariesEntry(
@@ -1799,61 +2028,70 @@ actor DatabaseOperator {
     collectionsCount: Double?,
     readlistsCount: Double?
   ) throws {
-    let allLibrariesId = KomgaLibrary.allLibrariesId
-    let descriptor = FetchDescriptor<KomgaLibrary>(
-      predicate: #Predicate { library in
-        library.instanceId == instanceId && library.libraryId == allLibrariesId
+    try write { db in
+      if var existing = try KomgaLibraryRecord.where({ library in
+        library.instanceId.eq(instanceId) && library.libraryId.eq(Self.allLibrariesId)
+      }).fetchOne(db) {
+        if existing.fileSize != fileSize { existing.fileSize = fileSize }
+        if existing.booksCount != booksCount { existing.booksCount = booksCount }
+        if existing.seriesCount != seriesCount { existing.seriesCount = seriesCount }
+        if existing.sidecarsCount != sidecarsCount { existing.sidecarsCount = sidecarsCount }
+        if existing.collectionsCount != collectionsCount { existing.collectionsCount = collectionsCount }
+        if existing.readlistsCount != readlistsCount { existing.readlistsCount = readlistsCount }
+        try upsertLibraryRecord(existing, in: db)
+      } else {
+        let allLibrariesEntry = KomgaLibraryRecord(
+          instanceId: instanceId,
+          libraryId: Self.allLibrariesId,
+          name: "All Libraries",
+          fileSize: fileSize,
+          booksCount: booksCount,
+          seriesCount: seriesCount,
+          sidecarsCount: sidecarsCount,
+          collectionsCount: collectionsCount,
+          readlistsCount: readlistsCount
+        )
+        try upsertLibraryRecord(allLibrariesEntry, in: db)
       }
-    )
-
-    if let existing = try modelContext.fetch(descriptor).first {
-      if existing.fileSize != fileSize { existing.fileSize = fileSize }
-      if existing.booksCount != booksCount { existing.booksCount = booksCount }
-      if existing.seriesCount != seriesCount { existing.seriesCount = seriesCount }
-      if existing.sidecarsCount != sidecarsCount { existing.sidecarsCount = sidecarsCount }
-      if existing.collectionsCount != collectionsCount {
-        existing.collectionsCount = collectionsCount
-      }
-      if existing.readlistsCount != readlistsCount { existing.readlistsCount = readlistsCount }
-    } else {
-      let allLibrariesEntry = KomgaLibrary(
-        instanceId: instanceId,
-        libraryId: KomgaLibrary.allLibrariesId,
-        name: "All Libraries",
-        fileSize: fileSize,
-        booksCount: booksCount,
-        seriesCount: seriesCount,
-        sidecarsCount: sidecarsCount,
-        collectionsCount: collectionsCount,
-        readlistsCount: readlistsCount
-      )
-      modelContext.insert(allLibrariesEntry)
     }
   }
 
   func retryFailedBooks(instanceId: String) {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
-    )
-    if let results = try? modelContext.fetch(descriptor) {
-      for book in results {
-        book.downloadStatusRaw = "pending"
-        book.downloadError = nil
-        book.downloadAt = Date.now
+    do {
+      try write { db in
+        let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+        for book in books {
+          var state = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
+          guard state.downloadStatusRaw == "failed" else { continue }
+          state.downloadStatusRaw = "pending"
+          state.downloadError = nil
+          state.downloadAt = Date.now
+          try upsertBookLocalStateRecord(state, in: db)
+        }
       }
+    } catch {
+      logger.error("Failed to retry failed books for instance \(instanceId): \(error.localizedDescription)")
     }
   }
 
   func cancelFailedBooks(instanceId: String) {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
-    )
-    if let results = try? modelContext.fetch(descriptor) {
-      for book in results {
-        book.downloadStatusRaw = "notDownloaded"
-        book.downloadError = nil
-        book.downloadAt = nil
+    do {
+      try write { db in
+        let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+        for book in books {
+          var state = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
+          guard state.downloadStatusRaw == "failed" else { continue }
+          state.downloadStatusRaw = "notDownloaded"
+          state.downloadError = nil
+          state.downloadAt = nil
+          state.downloadedSize = 0
+          try upsertBookLocalStateRecord(state, in: db)
+        }
       }
+    } catch {
+      logger.error("Failed to cancel failed books for instance \(instanceId): \(error.localizedDescription)")
     }
   }
 
@@ -1869,36 +2107,40 @@ actor DatabaseOperator {
     instanceId: UUID? = nil
   ) throws -> InstanceSummary {
     let trimmedDisplayName = displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
-    let descriptor = FetchDescriptor<KomgaInstance>(
-      predicate: #Predicate { instance in
-        instance.serverURL == serverURL && instance.username == username
-      })
 
-    if let existing = try modelContext.fetch(descriptor).first {
-      existing.authToken = authToken
-      existing.isAdmin = isAdmin
-      existing.authMethod = authMethod
-      existing.lastUsedAt = Date()
-      if let trimmedDisplayName, !trimmedDisplayName.isEmpty {
-        existing.name = trimmedDisplayName
-      } else if existing.name.isEmpty {
-        existing.name = Self.defaultName(serverURL: serverURL, username: username)
+    return try write { db in
+      if var existing = try KomgaInstanceRecord.where({ instance in
+        instance.serverURL.eq(serverURL) && instance.username.eq(username)
+      }).fetchOne(db) {
+        existing.authToken = authToken
+        existing.isAdmin = isAdmin
+        existing.authMethod = authMethod
+        existing.lastUsedAt = Date()
+        if let trimmedDisplayName, !trimmedDisplayName.isEmpty {
+          existing.name = trimmedDisplayName
+        } else if existing.name.isEmpty {
+          existing.name = Self.defaultName(serverURL: serverURL, username: username)
+        }
+        try upsertInstanceRecord(existing, in: db)
+        return InstanceSummary(id: existing.id, displayName: existing.displayName)
+      } else {
+        let resolvedName = Self.resolvedName(
+          displayName: trimmedDisplayName,
+          serverURL: serverURL,
+          username: username
+        )
+        let record = KomgaInstanceRecord(
+          id: instanceId ?? UUID(),
+          name: resolvedName,
+          serverURL: serverURL,
+          username: username,
+          authToken: authToken,
+          isAdmin: isAdmin,
+          authMethod: authMethod
+        )
+        try upsertInstanceRecord(record, in: db)
+        return InstanceSummary(id: record.id, displayName: record.displayName)
       }
-      return InstanceSummary(id: existing.id, displayName: existing.displayName)
-    } else {
-      let resolvedName = Self.resolvedName(
-        displayName: trimmedDisplayName, serverURL: serverURL, username: username)
-      let instance = KomgaInstance(
-        id: instanceId ?? UUID(),
-        name: resolvedName,
-        serverURL: serverURL,
-        username: username,
-        authToken: authToken,
-        isAdmin: isAdmin,
-        authMethod: authMethod
-      )
-      modelContext.insert(instance)
-      return InstanceSummary(id: instance.id, displayName: instance.displayName)
     }
   }
 
@@ -1910,7 +2152,9 @@ actor DatabaseOperator {
   }
 
   private static func resolvedName(
-    displayName: String?, serverURL: String, username: String
+    displayName: String?,
+    serverURL: String,
+    username: String
   ) -> String {
     if let displayName, !displayName.isEmpty {
       return displayName
@@ -1920,53 +2164,44 @@ actor DatabaseOperator {
 
   func updateInstanceLastUsed(instanceId: String) {
     guard let uuid = UUID(uuidString: instanceId) else { return }
-    let descriptor = FetchDescriptor<KomgaInstance>(
-      predicate: #Predicate { instance in
-        instance.id == uuid
-      })
-    if let instance = try? modelContext.fetch(descriptor).first {
-      instance.lastUsedAt = Date()
+    do {
+      try write { db in
+        guard var instance = try KomgaInstanceRecord.find(uuid).fetchOne(db) else { return }
+        instance.lastUsedAt = Date()
+        try upsertInstanceRecord(instance, in: db)
+      }
+    } catch {
+      logger.error("Failed to update last used for instance \(instanceId): \(error.localizedDescription)")
     }
   }
 
   func updateSeriesLastSyncedAt(instanceId: String, date: Date) throws {
     guard let uuid = UUID(uuidString: instanceId) else { return }
-    let descriptor = FetchDescriptor<KomgaInstance>(
-      predicate: #Predicate { instance in
-        instance.id == uuid
-      })
-    if let instance = try modelContext.fetch(descriptor).first {
+    try write { db in
+      guard var instance = try KomgaInstanceRecord.find(uuid).fetchOne(db) else { return }
       instance.seriesLastSyncedAt = date
+      try upsertInstanceRecord(instance, in: db)
     }
   }
 
   func updateBooksLastSyncedAt(instanceId: String, date: Date) throws {
     guard let uuid = UUID(uuidString: instanceId) else { return }
-    let descriptor = FetchDescriptor<KomgaInstance>(
-      predicate: #Predicate { instance in
-        instance.id == uuid
-      })
-    if let instance = try modelContext.fetch(descriptor).first {
+    try write { db in
+      guard var instance = try KomgaInstanceRecord.find(uuid).fetchOne(db) else { return }
       instance.booksLastSyncedAt = date
+      try upsertInstanceRecord(instance, in: db)
     }
   }
 
   // MARK: - Fetch Operations
 
   func fetchInstance(idString: String?) -> KomgaInstance? {
-    guard
-      let idString,
-      let uuid = UUID(uuidString: idString)
-    else {
+    guard let idString, let uuid = UUID(uuidString: idString) else {
       return nil
     }
-
-    let descriptor = FetchDescriptor<KomgaInstance>(
-      predicate: #Predicate { instance in
-        instance.id == uuid
-      })
-
-    return try? modelContext.fetch(descriptor).first
+    return try? read { db in
+      try KomgaInstanceRecord.find(uuid).fetchOne(db)?.toKomgaInstance()
+    }
   }
 
   func getLastSyncedAt(instanceId: String) -> (series: Date, books: Date) {
@@ -1977,67 +2212,64 @@ actor DatabaseOperator {
   }
 
   func fetchLibraries(instanceId: String) -> [LibraryInfo] {
-    let descriptor = FetchDescriptor<KomgaLibrary>(
-      predicate: #Predicate { $0.instanceId == instanceId },
-      sortBy: [SortDescriptor(\KomgaLibrary.name, order: .forward)]
-    )
-    guard let libraries = try? modelContext.fetch(descriptor) else { return [] }
-    return libraries.map { LibraryInfo(id: $0.libraryId, name: $0.name) }
+    (try? read { db in
+      let libraries =
+        try KomgaLibraryRecord
+        .where { $0.instanceId.eq(instanceId) }
+        .fetchAll(db)
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+      return libraries.map { LibraryInfo(id: $0.libraryId, name: $0.name) }
+    }) ?? []
   }
 
   // MARK: - Book Fetch Operations (for internal use, e.g., OfflineManager)
 
   func getDownloadStatus(bookId: String) -> DownloadStatus {
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-
-    guard let book = try? modelContext.fetch(descriptor).first else { return .notDownloaded }
-    return book.downloadStatus
+    return
+      (try? read { db in
+        let state =
+          try KomgaBookLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+          .fetchOne(db)
+        return (state ?? .empty(instanceId: instanceId, bookId: bookId)).downloadStatus
+      }) ?? .notDownloaded
   }
 
   func isBookReadCompleted(bookId: String, instanceId: String) -> Bool {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-    guard let book = try? modelContext.fetch(descriptor).first else { return false }
-    return book.progressCompleted == true
+    return
+      (try? read { db in
+        try KomgaBookRecord
+          .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+          .fetchOne(db)?
+          .progressCompleted == true
+      }) ?? false
   }
 
   func fetchPendingBooks(instanceId: String, limit: Int? = nil) -> [Book] {
-    var descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "pending" },
-      sortBy: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
-    )
-
-    if let limit = limit {
-      descriptor.fetchLimit = limit
-    }
-
-    do {
-      let results = try modelContext.fetch(descriptor)
-      return results.map { $0.toBook() }
-    } catch {
-      return []
-    }
+    (try? read { db in
+      var books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+      books = books.filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == "pending" }
+      books.sort { lhs, rhs in
+        switch (stateMap[lhs.bookId]?.downloadAt, stateMap[rhs.bookId]?.downloadAt) {
+        case (let l?, let r?): return l < r
+        case (nil, nil): return false
+        case (nil, _): return false
+        case (_, nil): return true
+        }
+      }
+      if let limit {
+        books = Array(books.prefix(limit))
+      }
+      return books.map { $0.toBook() }
+    }) ?? []
   }
 
   func fetchDownloadQueueSummary(instanceId: String) -> DownloadQueueSummary {
-    let downloadingCount = fetchBooksCount(
-      instanceId: instanceId,
-      status: "downloading"
-    )
-    let pendingCount = fetchBooksCount(
-      instanceId: instanceId,
-      status: "pending"
-    )
-    let failedCount = fetchBooksCount(
-      instanceId: instanceId,
-      status: "failed"
-    )
+    let downloadingCount = fetchBooksCount(instanceId: instanceId, status: "downloading")
+    let pendingCount = fetchBooksCount(instanceId: instanceId, status: "pending")
+    let failedCount = fetchBooksCount(instanceId: instanceId, status: "failed")
     return DownloadQueueSummary(
       downloadingCount: downloadingCount,
       pendingCount: pendingCount,
@@ -2050,181 +2282,131 @@ actor DatabaseOperator {
   }
 
   func fetchDownloadedBooks(instanceId: String) -> [Book] {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded" }
-    )
-
-    do {
-      let results = try modelContext.fetch(descriptor)
-      return results.map { $0.toBook() }
-    } catch {
-      return []
-    }
+    (try? read { db in
+      let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+      return
+        books
+        .filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == "downloaded" }
+        .map { $0.toBook() }
+    }) ?? []
   }
 
   func fetchOfflineEpubBookIdsMissingProgression(instanceId: String) -> [String] {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate {
-        $0.instanceId == instanceId
-          && $0.downloadStatusRaw == "downloaded"
+    (try? read { db in
+      let allBooks = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      let stateMap = Dictionary(
+        uniqueKeysWithValues:
+          try fetchBookLocalStateMap(books: allBooks, db: db).map { ($0.key, $0.value) }
+      )
+      return allBooks.compactMap { book in
+        guard
+          stateMap[book.bookId]?.downloadStatusRaw == "downloaded",
+          book.mediaProfile == "EPUB",
+          (book.progressPage ?? 0) > 0,
+          stateMap[book.bookId]?.epubProgressionRaw == nil
+        else {
+          return nil
+        }
+        return book.bookId
       }
-    )
-
-    guard let results = try? modelContext.fetch(descriptor) else { return [] }
-    return results.compactMap { book in
-      guard
-        book.mediaProfile == "EPUB",
-        (book.progressPage ?? 0) > 0,
-        book.epubProgressionRaw == nil
-      else { return nil }
-      return book.bookId
-    }
+    }) ?? []
   }
 
   func fetchReadBooksEligibleForAutoDelete(instanceId: String) -> [(id: String, seriesId: String)] {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate {
-        $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded"
-          && $0.progressCompleted == true
+    (try? read { db in
+      let results = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.progressCompleted.eq(true) }
+        .fetchAll(db)
+      let stateMap = try fetchBookLocalStateMap(books: results, db: db)
+      let now = Date.now
+      return results.compactMap { book in
+        guard stateMap[book.bookId]?.downloadStatusRaw == "downloaded" else {
+          return nil
+        }
+        if let downloadAt = stateMap[book.bookId]?.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+          return nil
+        }
+        return (id: book.bookId, seriesId: book.seriesId)
       }
-    )
-
-    guard let results = try? modelContext.fetch(descriptor) else { return [] }
-    let now = Date.now
-    return results.compactMap { book in
-      if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
-        return nil
-      }
-      return (id: book.bookId, seriesId: book.seriesId)
-    }
+    }) ?? []
   }
 
   func fetchKeepReadingBooksForWidget(
-    instanceId: String, libraryIds: [String], limit: Int
+    instanceId: String,
+    libraryIds: [String],
+    limit: Int
   ) -> [Book] {
-    let ids = libraryIds
-    var descriptor = FetchDescriptor<KomgaBook>()
-
-    if !ids.isEmpty {
-      descriptor.predicate = #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId && ids.contains(book.libraryId)
-          && book.progressReadDate != nil && book.progressCompleted == false
+    (try? read { db in
+      var results = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      if !libraryIds.isEmpty {
+        let allowed = Set(libraryIds)
+        results = results.filter { allowed.contains($0.libraryId) }
       }
-    } else {
-      descriptor.predicate = #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId
-          && book.progressReadDate != nil && book.progressCompleted == false
+      results = results.filter { $0.progressReadDate != nil && $0.progressCompleted == false }
+      results.sort {
+        switch ($0.progressReadDate, $1.progressReadDate) {
+        case (let l?, let r?): return l > r
+        case (nil, nil): return false
+        case (nil, _): return false
+        case (_, nil): return true
+        }
       }
-    }
-
-    descriptor.sortBy = [SortDescriptor(\KomgaBook.progressReadDate, order: .reverse)]
-    descriptor.fetchLimit = limit
-
-    do {
-      let results = try modelContext.fetch(descriptor)
-      return results.map { $0.toBook() }
-    } catch {
-      return []
-    }
+      return Array(results.prefix(limit)).map { $0.toBook() }
+    }) ?? []
   }
 
   func fetchRecentlyAddedBooksForWidget(
-    instanceId: String, libraryIds: [String], limit: Int
+    instanceId: String,
+    libraryIds: [String],
+    limit: Int
   ) -> [Book] {
-    let ids = libraryIds
-    var descriptor = FetchDescriptor<KomgaBook>()
-
-    if !ids.isEmpty {
-      descriptor.predicate = #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId && ids.contains(book.libraryId)
+    (try? read { db in
+      var results = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      if !libraryIds.isEmpty {
+        let allowed = Set(libraryIds)
+        results = results.filter { allowed.contains($0.libraryId) }
       }
-    } else {
-      descriptor.predicate = #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId
-      }
-    }
-
-    descriptor.sortBy = [SortDescriptor(\KomgaBook.created, order: .reverse)]
-    descriptor.fetchLimit = limit
-
-    do {
-      let results = try modelContext.fetch(descriptor)
-      return results.map { $0.toBook() }
-    } catch {
-      return []
-    }
+      results.sort { $0.created > $1.created }
+      return Array(results.prefix(limit)).map { $0.toBook() }
+    }) ?? []
   }
 
   func fetchRecentlyUpdatedSeriesForWidget(
-    instanceId: String, libraryIds: [String], limit: Int
+    instanceId: String,
+    libraryIds: [String],
+    limit: Int
   ) -> [Series] {
-    let ids = libraryIds
-    var descriptor = FetchDescriptor<KomgaSeries>()
-
-    if !ids.isEmpty {
-      descriptor.predicate = #Predicate<KomgaSeries> { series in
-        series.instanceId == instanceId && ids.contains(series.libraryId)
+    (try? read { db in
+      var results = try KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      if !libraryIds.isEmpty {
+        let allowed = Set(libraryIds)
+        results = results.filter { allowed.contains($0.libraryId) }
       }
-    } else {
-      descriptor.predicate = #Predicate<KomgaSeries> { series in
-        series.instanceId == instanceId
-      }
-    }
-
-    descriptor.sortBy = [SortDescriptor(\KomgaSeries.lastModified, order: .reverse)]
-    descriptor.fetchLimit = limit
-
-    do {
-      let results = try modelContext.fetch(descriptor)
-      return results.map { $0.toSeries() }
-    } catch {
-      return []
-    }
+      results.sort { $0.lastModified > $1.lastModified }
+      return Array(results.prefix(limit)).map { $0.toSeries() }
+    }) ?? []
   }
 
   func fetchFailedBooksCount(instanceId: String) -> Int {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
-    )
-    return (try? modelContext.fetchCount(descriptor)) ?? 0
+    fetchBooksCount(instanceId: instanceId, status: "failed")
   }
 
   private func fetchBooksCount(instanceId: String, status: String) -> Int {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == status }
-    )
-    return (try? modelContext.fetchCount(descriptor)) ?? 0
+    (try? read { db in
+      let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
+      let stateMap = try fetchBookLocalStateMap(books: books, db: db)
+      return books.filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == status }.count
+    }) ?? 0
   }
 
   func syncSeriesReadingStatus(seriesId: String, instanceId: String) {
-    let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeSeriesId }
-    )
-    guard let series = try? modelContext.fetch(seriesDescriptor).first else { return }
-
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId }
-    )
-    let books = (try? modelContext.fetch(descriptor)) ?? []
-
-    let unreadCount = books.filter { book in
-      if book.progressCompleted == true { return false }
-      if (book.progressPage ?? 0) > 0 { return false }
-      return true
-    }.count
-
-    let inProgressCount = books.filter { book in
-      if book.progressCompleted == true { return false }
-      if (book.progressPage ?? 0) > 0 { return true }
-      return false
-    }.count
-
-    let readCount = books.filter { $0.progressCompleted == true }.count
-
-    series.booksUnreadCount = unreadCount
-    series.booksInProgressCount = inProgressCount
-    series.booksReadCount = readCount
+    do {
+      try write { db in
+        try syncSeriesReadingStatus(seriesId: seriesId, instanceId: instanceId, db: db)
+      }
+    } catch {
+      logger.error("Failed to sync series reading status for \(seriesId): \(error.localizedDescription)")
+    }
   }
 
   // MARK: - Pending Progress Operations
@@ -2236,48 +2418,59 @@ actor DatabaseOperator {
     completed: Bool,
     progressionData: Data? = nil
   ) {
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    let descriptor = FetchDescriptor<PendingProgress>(
-      predicate: #Predicate { $0.id == compositeId }
-    )
-
-    if let existing = try? modelContext.fetch(descriptor).first {
-      if existing.page != page { existing.page = page }
-      if existing.completed != completed { existing.completed = completed }
-      existing.createdAt = Date()  // Always update timestamp
-      if existing.progressionData != progressionData { existing.progressionData = progressionData }
-      logger.debug(
-        "📝 Updated pending progress id=\(existing.id): book=\(bookId), page=\(page), completed=\(completed), hasProgressionData=\(progressionData != nil)"
-      )
-    } else {
-      let pending = PendingProgress(
-        instanceId: instanceId,
-        bookId: bookId,
-        page: page,
-        completed: completed,
-        progressionData: progressionData
-      )
-      modelContext.insert(pending)
-      logger.debug(
-        "🆕 Queued pending progress id=\(pending.id): book=\(bookId), page=\(page), completed=\(completed), hasProgressionData=\(progressionData != nil)"
-      )
+    do {
+      try write { db in
+        if var existing =
+          try PendingProgressRecord
+          .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+          .fetchOne(db)
+        {
+          if existing.page != page { existing.page = page }
+          if existing.completed != completed { existing.completed = completed }
+          existing.createdAt = Date()
+          if existing.progressionData != progressionData { existing.progressionData = progressionData }
+          try upsertPendingProgressRecord(existing, in: db)
+          logger.debug(
+            "Updated pending progress id=\(existing.id): book=\(bookId), page=\(page), completed=\(completed), hasProgressionData=\(progressionData != nil)"
+          )
+        } else {
+          var pending = PendingProgressRecord(
+            instanceId: instanceId,
+            bookId: bookId,
+            page: page,
+            completed: completed,
+            progressionData: progressionData
+          )
+          pending.createdAt = Date()
+          try upsertPendingProgressRecord(pending, in: db)
+          logger.debug(
+            "Queued pending progress id=\(pending.id): book=\(bookId), page=\(page), completed=\(completed), hasProgressionData=\(progressionData != nil)"
+          )
+        }
+      }
+    } catch {
+      logger.error("Failed to queue pending progress for book \(bookId): \(error.localizedDescription)")
     }
   }
 
   func fetchPendingProgress(instanceId: String, limit: Int? = nil) -> [PendingProgressSummary] {
-    var descriptor = FetchDescriptor<PendingProgress>(
-      predicate: #Predicate { $0.instanceId == instanceId },
-      sortBy: [SortDescriptor(\.createdAt, order: .forward)]
-    )
+    let results: [PendingProgressRecord] =
+      (try? read { db in
+        var records =
+          try PendingProgressRecord
+          .where { $0.instanceId.eq(instanceId) }
+          .fetchAll(db)
+        records.sort { $0.createdAt < $1.createdAt }
+        if let limit {
+          records = Array(records.prefix(limit))
+        }
+        return records
+      }) ?? []
 
-    if let limit = limit {
-      descriptor.fetchLimit = limit
-    }
-
-    let results = (try? modelContext.fetch(descriptor)) ?? []
     logger.debug(
-      "📚 Fetched pending progress items for instance \(instanceId): count=\(results.count), limit=\(limit?.description ?? "nil")"
+      "Fetched pending progress for instance \(instanceId): count=\(results.count), limit=\(limit?.description ?? "nil")"
     )
+
     return results.map {
       PendingProgressSummary(
         id: $0.id,
@@ -2292,15 +2485,358 @@ actor DatabaseOperator {
   }
 
   func deletePendingProgress(id: String) {
-    let descriptor = FetchDescriptor<PendingProgress>(
-      predicate: #Predicate { $0.id == id }
-    )
-
-    if let pending = try? modelContext.fetch(descriptor).first {
-      modelContext.delete(pending)
-      logger.debug("🗑️ Deleted pending progress id=\(id)")
-    } else {
-      logger.warning("⚠️ Pending progress id=\(id) not found when deleting")
+    do {
+      try write { db in
+        try PendingProgressRecord.find(id).delete().execute(db)
+      }
+      logger.debug("Deleted pending progress id=\(id)")
+    } catch {
+      logger.warning("Pending progress id=\(id) delete failed: \(error.localizedDescription)")
     }
+  }
+
+  private func upsertBookRecord(_ record: KomgaBookRecord, in db: Database) throws {
+    let existing = try KomgaBookRecord.where({ $0.id.eq(record.id) }).fetchOne(db)
+    if existing != record {
+      try KomgaBookRecord.upsert {
+        KomgaBookRecord.Draft(
+          id: record.id,
+          bookId: record.bookId,
+          seriesId: record.seriesId,
+          libraryId: record.libraryId,
+          instanceId: record.instanceId,
+          name: record.name,
+          url: record.url,
+          seriesTitle: record.seriesTitle,
+          number: record.number,
+          created: record.created,
+          lastModified: record.lastModified,
+          sizeBytes: record.sizeBytes,
+          size: record.size,
+          deleted: record.deleted,
+          oneshot: record.oneshot,
+          mediaRaw: record.mediaRaw,
+          metadataRaw: record.metadataRaw,
+          readProgressRaw: record.readProgressRaw,
+          mediaProfile: record.mediaProfile,
+          mediaPagesCount: record.mediaPagesCount,
+          metaTitle: record.metaTitle,
+          metaNumber: record.metaNumber,
+          metaNumberSort: record.metaNumberSort,
+          metaReleaseDate: record.metaReleaseDate,
+          progressPage: record.progressPage,
+          progressCompleted: record.progressCompleted,
+          progressReadDate: record.progressReadDate,
+          progressCreated: record.progressCreated,
+          progressLastModified: record.progressLastModified
+        )
+      }
+      .execute(db)
+    }
+
+    if try KomgaBookLocalStateRecord
+      .where({ $0.instanceId.eq(record.instanceId) && $0.bookId.eq(record.bookId) })
+      .fetchOne(db) == nil
+    {
+      try upsertBookLocalStateRecord(
+        .empty(instanceId: record.instanceId, bookId: record.bookId),
+        in: db
+      )
+    }
+  }
+
+  private func fetchOrCreateBookLocalState(
+    instanceId: String,
+    bookId: String,
+    db: Database
+  ) throws -> KomgaBookLocalStateRecord {
+    if let state =
+      try KomgaBookLocalStateRecord
+      .where({ $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) })
+      .fetchOne(db)
+    {
+      return state
+    }
+    let state = KomgaBookLocalStateRecord.empty(instanceId: instanceId, bookId: bookId)
+    try upsertBookLocalStateRecord(state, in: db)
+    return state
+  }
+
+  private func upsertBookLocalStateRecord(_ record: KomgaBookLocalStateRecord, in db: Database) throws {
+    if let existing =
+      try KomgaBookLocalStateRecord
+      .where({ $0.instanceId.eq(record.instanceId) && $0.bookId.eq(record.bookId) })
+      .fetchOne(db)
+    {
+      if existing == record {
+        return
+      }
+    }
+    try KomgaBookLocalStateRecord.upsert {
+      KomgaBookLocalStateRecord.Draft(
+        id: record.id,
+        instanceId: record.instanceId,
+        bookId: record.bookId,
+        pagesRaw: record.pagesRaw,
+        tocRaw: record.tocRaw,
+        webPubManifestRaw: record.webPubManifestRaw,
+        epubProgressionRaw: record.epubProgressionRaw,
+        isolatePagesRaw: record.isolatePagesRaw,
+        epubPreferencesRaw: record.epubPreferencesRaw,
+        downloadStatusRaw: record.downloadStatusRaw,
+        downloadError: record.downloadError,
+        downloadAt: record.downloadAt,
+        downloadedSize: record.downloadedSize,
+        readListIdsRaw: record.readListIdsRaw
+      )
+    }
+    .execute(db)
+  }
+
+  private func upsertSeriesRecord(_ record: KomgaSeriesRecord, in db: Database) throws {
+    let existing = try KomgaSeriesRecord.where({ $0.id.eq(record.id) }).fetchOne(db)
+    if existing != record {
+      try KomgaSeriesRecord.upsert {
+        KomgaSeriesRecord.Draft(
+          id: record.id,
+          seriesId: record.seriesId,
+          libraryId: record.libraryId,
+          instanceId: record.instanceId,
+          name: record.name,
+          url: record.url,
+          created: record.created,
+          lastModified: record.lastModified,
+          booksCount: record.booksCount,
+          booksReadCount: record.booksReadCount,
+          booksUnreadCount: record.booksUnreadCount,
+          booksInProgressCount: record.booksInProgressCount,
+          deleted: record.deleted,
+          oneshot: record.oneshot,
+          metadataRaw: record.metadataRaw,
+          booksMetadataRaw: record.booksMetadataRaw,
+          metaStatus: record.metaStatus,
+          metaTitle: record.metaTitle,
+          metaTitleSort: record.metaTitleSort,
+          booksMetaReleaseDate: record.booksMetaReleaseDate
+        )
+      }
+      .execute(db)
+    }
+
+    if try KomgaSeriesLocalStateRecord
+      .where({ $0.instanceId.eq(record.instanceId) && $0.seriesId.eq(record.seriesId) })
+      .fetchOne(db) == nil
+    {
+      try upsertSeriesLocalStateRecord(
+        .empty(instanceId: record.instanceId, seriesId: record.seriesId),
+        in: db
+      )
+    }
+  }
+
+  private func upsertCollectionRecord(_ record: KomgaCollectionRecord, in db: Database) throws {
+    if let existing = try KomgaCollectionRecord.where({ $0.id.eq(record.id) }).fetchOne(db),
+      existing == record
+    {
+      return
+    }
+    try KomgaCollectionRecord.upsert {
+      KomgaCollectionRecord.Draft(
+        id: record.id,
+        collectionId: record.collectionId,
+        instanceId: record.instanceId,
+        name: record.name,
+        ordered: record.ordered,
+        createdDate: record.createdDate,
+        lastModifiedDate: record.lastModifiedDate,
+        filtered: record.filtered,
+        seriesIdsRaw: record.seriesIdsRaw
+      )
+    }
+    .execute(db)
+  }
+
+  private func upsertReadListRecord(_ record: KomgaReadListRecord, in db: Database) throws {
+    let existing = try KomgaReadListRecord.where({ $0.id.eq(record.id) }).fetchOne(db)
+    if existing != record {
+      try KomgaReadListRecord.upsert {
+        KomgaReadListRecord.Draft(
+          id: record.id,
+          readListId: record.readListId,
+          instanceId: record.instanceId,
+          name: record.name,
+          summary: record.summary,
+          ordered: record.ordered,
+          createdDate: record.createdDate,
+          lastModifiedDate: record.lastModifiedDate,
+          filtered: record.filtered,
+          bookIdsRaw: record.bookIdsRaw
+        )
+      }
+      .execute(db)
+    }
+
+    if try KomgaReadListLocalStateRecord
+      .where({ $0.instanceId.eq(record.instanceId) && $0.readListId.eq(record.readListId) })
+      .fetchOne(db) == nil
+    {
+      try upsertReadListLocalStateRecord(
+        .empty(instanceId: record.instanceId, readListId: record.readListId),
+        in: db
+      )
+    }
+  }
+
+  private func fetchOrCreateSeriesLocalState(
+    seriesId: String,
+    instanceId: String,
+    db: Database
+  ) throws -> KomgaSeriesLocalStateRecord {
+    if let state =
+      try KomgaSeriesLocalStateRecord
+      .where({ $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) })
+      .fetchOne(db)
+    {
+      return state
+    }
+    let state = KomgaSeriesLocalStateRecord.empty(instanceId: instanceId, seriesId: seriesId)
+    try upsertSeriesLocalStateRecord(state, in: db)
+    return state
+  }
+
+  private func upsertSeriesLocalStateRecord(_ record: KomgaSeriesLocalStateRecord, in db: Database) throws {
+    if let existing =
+      try KomgaSeriesLocalStateRecord
+      .where({ $0.instanceId.eq(record.instanceId) && $0.seriesId.eq(record.seriesId) })
+      .fetchOne(db)
+    {
+      if existing == record {
+        return
+      }
+    }
+    try KomgaSeriesLocalStateRecord.upsert {
+      KomgaSeriesLocalStateRecord.Draft(
+        id: record.id,
+        instanceId: record.instanceId,
+        seriesId: record.seriesId,
+        downloadStatusRaw: record.downloadStatusRaw,
+        downloadError: record.downloadError,
+        downloadAt: record.downloadAt,
+        downloadedSize: record.downloadedSize,
+        downloadedBooks: record.downloadedBooks,
+        pendingBooks: record.pendingBooks,
+        offlinePolicyRaw: record.offlinePolicyRaw,
+        offlinePolicyLimit: record.offlinePolicyLimit,
+        collectionIdsRaw: record.collectionIdsRaw
+      )
+    }
+    .execute(db)
+  }
+
+  private func fetchOrCreateReadListLocalState(
+    readListId: String,
+    instanceId: String,
+    db: Database
+  ) throws -> KomgaReadListLocalStateRecord {
+    if let state =
+      try KomgaReadListLocalStateRecord
+      .where({ $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) })
+      .fetchOne(db)
+    {
+      return state
+    }
+    let state = KomgaReadListLocalStateRecord.empty(instanceId: instanceId, readListId: readListId)
+    try upsertReadListLocalStateRecord(state, in: db)
+    return state
+  }
+
+  private func upsertReadListLocalStateRecord(_ record: KomgaReadListLocalStateRecord, in db: Database) throws {
+    if let existing =
+      try KomgaReadListLocalStateRecord
+      .where({ $0.instanceId.eq(record.instanceId) && $0.readListId.eq(record.readListId) })
+      .fetchOne(db)
+    {
+      if existing == record {
+        return
+      }
+    }
+    try KomgaReadListLocalStateRecord.upsert {
+      KomgaReadListLocalStateRecord.Draft(
+        id: record.id,
+        instanceId: record.instanceId,
+        readListId: record.readListId,
+        downloadStatusRaw: record.downloadStatusRaw,
+        downloadError: record.downloadError,
+        downloadAt: record.downloadAt,
+        downloadedSize: record.downloadedSize,
+        downloadedBooks: record.downloadedBooks,
+        pendingBooks: record.pendingBooks
+      )
+    }
+    .execute(db)
+  }
+
+  private func upsertLibraryRecord(_ record: KomgaLibraryRecord, in db: Database) throws {
+    if let existing = try KomgaLibraryRecord.where({ $0.id.eq(record.id) }).fetchOne(db), existing == record {
+      return
+    }
+    try KomgaLibraryRecord.upsert {
+      KomgaLibraryRecord.Draft(
+        id: record.id,
+        instanceId: record.instanceId,
+        libraryId: record.libraryId,
+        name: record.name,
+        createdAt: record.createdAt,
+        fileSize: record.fileSize,
+        booksCount: record.booksCount,
+        seriesCount: record.seriesCount,
+        sidecarsCount: record.sidecarsCount,
+        collectionsCount: record.collectionsCount,
+        readlistsCount: record.readlistsCount
+      )
+    }
+    .execute(db)
+  }
+
+  private func upsertInstanceRecord(_ record: KomgaInstanceRecord, in db: Database) throws {
+    if let existing = try KomgaInstanceRecord.where({ $0.id.eq(record.id) }).fetchOne(db), existing == record {
+      return
+    }
+    try KomgaInstanceRecord.upsert {
+      KomgaInstanceRecord.Draft(
+        id: record.id,
+        name: record.name,
+        serverURL: record.serverURL,
+        username: record.username,
+        authToken: record.authToken,
+        isAdmin: record.isAdmin,
+        authMethodRaw: record.authMethodRaw,
+        createdAt: record.createdAt,
+        lastUsedAt: record.lastUsedAt,
+        seriesLastSyncedAt: record.seriesLastSyncedAt,
+        booksLastSyncedAt: record.booksLastSyncedAt
+      )
+    }
+    .execute(db)
+  }
+
+  private func upsertPendingProgressRecord(_ record: PendingProgressRecord, in db: Database) throws {
+    if let existing = try PendingProgressRecord.where({ $0.id.eq(record.id) }).fetchOne(db),
+      existing == record
+    {
+      return
+    }
+    try PendingProgressRecord.upsert {
+      PendingProgressRecord.Draft(
+        id: record.id,
+        instanceId: record.instanceId,
+        bookId: record.bookId,
+        page: record.page,
+        completed: record.completed,
+        createdAt: record.createdAt,
+        progressionData: record.progressionData
+      )
+    }
+    .execute(db)
   }
 }

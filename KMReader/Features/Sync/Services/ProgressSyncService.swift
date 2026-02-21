@@ -54,7 +54,6 @@ actor ProgressSyncService {
       do {
         try await syncProgressItem(item)
         await DatabaseOperator.shared.deletePendingProgress(id: item.id)
-        await DatabaseOperator.shared.commit()
         successCount += 1
         logger.debug("🧹 Removed synced pending item id=\(item.id)")
 

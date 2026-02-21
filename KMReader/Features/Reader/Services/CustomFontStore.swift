@@ -3,61 +3,59 @@
 //
 //
 
+import Dependencies
 import Foundation
-import SwiftData
-
-#if os(iOS)
-  import CoreText
-#endif
+import SQLiteData
 
 @MainActor
 final class CustomFontStore {
   static let shared = CustomFontStore()
-
-  private var container: ModelContainer?
+  @Dependency(\.defaultDatabase) private var database
+  private let logger = AppLogger(.reader)
 
   private init() {}
 
-  func configure(with container: ModelContainer) {
-    self.container = container
-  }
-
-  private func makeContext() throws -> ModelContext {
-    guard let container else {
-      throw AppErrorType.storageNotConfigured(message: "ModelContainer is not configured")
-    }
-    return ModelContext(container)
-  }
-
   func fetchCustomFonts() -> [String] {
-    guard let container else { return [] }
-    let context = ModelContext(container)
-    let descriptor = FetchDescriptor<CustomFont>(
-      sortBy: [SortDescriptor(\CustomFont.name, order: .forward)]
-    )
-    guard let fonts = try? context.fetch(descriptor) else { return [] }
-    return fonts.map { $0.name }
+    do {
+      return try database.read { db in
+        try CustomFontRecord
+          .order(by: \.name)
+          .select { $0.name }
+          .fetchAll(db)
+      }
+    } catch {
+      logger.error("Failed to fetch custom fonts: \(error.localizedDescription)")
+      return []
+    }
   }
 
   func customFontCount() -> Int {
-    guard let container else { return 0 }
-    let context = ModelContext(container)
-    let descriptor = FetchDescriptor<CustomFont>()
-    return (try? context.fetchCount(descriptor)) ?? 0
+    do {
+      return try database.read { db in
+        try CustomFontRecord.fetchCount(db)
+      }
+    } catch {
+      logger.error("Failed to count custom fonts: \(error.localizedDescription)")
+      return 0
+    }
   }
 
   func getFontPath(for fontName: String) -> String? {
-    guard let container else { return nil }
-    let context = ModelContext(container)
-    let descriptor = FetchDescriptor<CustomFont>(
-      predicate: #Predicate<CustomFont> { font in
-        font.name == fontName
+    let relativePath: String?
+    do {
+      relativePath = try database.read { db in
+        try CustomFontRecord
+          .where { $0.name.eq(fontName) }
+          .fetchOne(db)?
+          .path
       }
-    )
-    guard let font = try? context.fetch(descriptor).first else { return nil }
-    guard let relativePath = font.path else { return nil }
+    } catch {
+      logger.error("Failed to resolve custom font path for \(fontName): \(error.localizedDescription)")
+      return nil
+    }
 
-    // Resolve relative path to absolute path using FontFileManager
+    guard let relativePath else { return nil }
+
     return FontFileManager.resolvePath(relativePath)
   }
 }

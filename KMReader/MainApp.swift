@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 #if !os(tvOS)
@@ -61,40 +60,14 @@ struct MainApp: App {
     @Environment(\.openWindow) private var openWindow
   #endif
 
-  private let modelContainer: ModelContainer
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
   @State private var dashboardSectionCacheStore = DashboardSectionCacheStore.shared
   @State private var deepLinkRouter = DeepLinkRouter.shared
 
   init() {
-    let schema = Schema([
-      KomgaInstance.self,
-      KomgaLibrary.self,
-      KomgaSeries.self,
-      KomgaBook.self,
-      KomgaCollection.self,
-      KomgaReadList.self,
-      CustomFont.self,
-      PendingProgress.self,
-      SavedFilter.self,
-      EpubThemePreset.self,
-    ])
-
-    do {
-      let configuration = ModelConfiguration(schema: schema)
-      modelContainer = try ModelContainer(
-        for: schema,
-        configurations: [configuration]
-      )
-    } catch {
-      let errorMessage = String(describing: error)
-      AppLogger(.database).error("Failed to create ModelContainer: \(errorMessage)")
-      fatalError("Failed to create ModelContainer: \(errorMessage)")
-    }
-
-    CustomFontStore.shared.configure(with: modelContainer)
-    DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
+    AppSQLiteBootstrap.bootstrap()
+    DatabaseOperator.shared = DatabaseOperator()
     #if os(iOS)
       Task { @MainActor in
         QuickActionService.handlePendingShortcutIfNeeded()
@@ -138,7 +111,6 @@ struct MainApp: App {
         .environment(readerPresentation)
         .environment(dashboardSectionCacheStore)
         .environment(deepLinkRouter)
-        .modelContainer(modelContainer)
         .preferredColorScheme(appColorScheme.colorScheme)
     }
     #if os(macOS)
@@ -146,7 +118,6 @@ struct MainApp: App {
         ReaderWindowView()
           .environment(authViewModel)
           .environment(readerPresentation)
-          .modelContainer(modelContainer)
           .preferredColorScheme(appColorScheme.colorScheme)
       }
       .windowToolbarStyle(.unifiedCompact)
@@ -155,7 +126,6 @@ struct MainApp: App {
       Settings {
         SettingsView_macOS()
           .environment(authViewModel)
-          .modelContainer(modelContainer)
           .preferredColorScheme(appColorScheme.colorScheme)
       }
       .windowToolbarStyle(.unifiedCompact)

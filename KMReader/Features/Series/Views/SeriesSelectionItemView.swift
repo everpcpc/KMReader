@@ -3,16 +3,17 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// View for series selection mode that accepts only seriesId and uses @Query to fetch the series.
+/// View for series selection mode that accepts only seriesId and reads the local record.
 struct SeriesSelectionItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
   @Binding var selectedSeriesIds: Set<String>
 
-  @Query private var komgaSeriesList: [KomgaSeries]
+  @FetchAll private var komgaSeriesList: [KomgaSeriesRecord]
+  @FetchAll private var seriesLocalStateList: [KomgaSeriesLocalStateRecord]
 
   init(
     seriesId: String,
@@ -24,12 +25,17 @@ struct SeriesSelectionItemView: View {
     self._selectedSeriesIds = selectedSeriesIds
 
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+    _komgaSeriesList = FetchAll(
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+    )
+    _seriesLocalStateList = FetchAll(
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+    )
   }
 
   private var komgaSeries: KomgaSeries? {
-    komgaSeriesList.first
+    guard let record = komgaSeriesList.first else { return nil }
+    return record.toKomgaSeries(localState: seriesLocalStateList.first)
   }
 
   private var isSelected: Bool {

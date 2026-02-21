@@ -4,7 +4,7 @@
 //
 
 import Flow
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct OneshotDetailView: View {
@@ -13,8 +13,10 @@ struct OneshotDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("currentAccount") private var current: Current = .init()
 
-  @Query private var komgaSeriesList: [KomgaSeries]
-  @Query private var komgaBookList: [KomgaBook]
+  @FetchAll private var komgaSeriesList: [KomgaSeriesRecord]
+  @FetchAll private var seriesLocalStateList: [KomgaSeriesLocalStateRecord]
+  @FetchAll private var komgaBookList: [KomgaBookRecord]
+  @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
 
   @State private var isLoading = true
   @State private var hasError = false
@@ -26,20 +28,35 @@ struct OneshotDetailView: View {
   init(seriesId: String) {
     self.seriesId = seriesId
     let instanceId = AppConfig.current.instanceId
-    let seriesCompositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == seriesCompositeId })
-    _komgaBookList = Query(
-      filter: #Predicate<KomgaBook> { $0.instanceId == instanceId && $0.seriesId == seriesId })
+    _komgaSeriesList = FetchAll(
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+    )
+    _seriesLocalStateList = FetchAll(
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+    )
+    _komgaBookList = FetchAll(
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+    )
+    _bookLocalStateList = FetchAll(
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) }.order(by: \.bookId)
+    )
   }
 
-  /// The KomgaSeries from SwiftData (reactive).
-  private var komgaSeries: KomgaSeries? {
+  private var komgaSeries: KomgaSeriesRecord? {
     komgaSeriesList.first
   }
 
-  /// The KomgaBook from SwiftData (reactive).
-  private var komgaBook: KomgaBook? {
+  private var komgaBook: KomgaBookRecord? {
     komgaBookList.first
+  }
+
+  private var seriesLocalState: KomgaSeriesLocalStateRecord? {
+    seriesLocalStateList.first
+  }
+
+  private var bookLocalState: KomgaBookLocalStateRecord? {
+    guard let bookId = komgaBook?.bookId else { return nil }
+    return bookLocalStateList.first(where: { $0.bookId == bookId })
   }
 
   private var series: Series? {
@@ -51,7 +68,7 @@ struct OneshotDetailView: View {
   }
 
   private var downloadStatus: DownloadStatus {
-    komgaBook?.downloadStatus ?? .notDownloaded
+    bookLocalState?.downloadStatus ?? .notDownloaded
   }
 
   private var navigationTitle: String {
@@ -74,12 +91,12 @@ struct OneshotDetailView: View {
             inSheet: false
           )
 
-          if let komgaSeries = komgaSeries {
-            SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+          if let seriesLocalState = seriesLocalState {
+            SeriesCollectionsSection(collectionIds: seriesLocalState.collectionIds)
           }
 
-          if let komgaBook = komgaBook {
-            BookReadListsSection(readListIds: komgaBook.readListIds)
+          if let bookLocalState = bookLocalState {
+            BookReadListsSection(readListIds: bookLocalState.readListIds)
           }
         } else if hasError {
           VStack(spacing: 16) {

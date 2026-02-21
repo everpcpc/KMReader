@@ -8,7 +8,7 @@ import SwiftData
 
 @Model
 final class PendingProgress {
-  @Attribute(.unique) var id: String  // Composite: "instanceId_bookId"
+  @Attribute(.unique) var id: String
 
   var instanceId: String
   var bookId: String
@@ -24,7 +24,7 @@ final class PendingProgress {
     completed: Bool,
     progressionData: Data? = nil
   ) {
-    self.id = CompositeID.generate(instanceId: instanceId, id: bookId)
+    self.id = UUID().uuidString
     self.instanceId = instanceId
     self.bookId = bookId
     self.page = page

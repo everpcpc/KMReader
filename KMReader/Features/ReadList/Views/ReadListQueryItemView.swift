@@ -3,15 +3,16 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// Wrapper view that accepts only readListId and uses @Query to fetch the read list reactively.
+/// Wrapper view that accepts only readListId and fetches the local record reactively.
 struct ReadListQueryItemView: View {
   let readListId: String
   var layout: BrowseLayoutMode = .grid
 
-  @Query private var komgaReadLists: [KomgaReadList]
+  @FetchAll private var komgaReadLists: [KomgaReadListRecord]
+  @FetchAll private var readListLocalStateList: [KomgaReadListLocalStateRecord]
 
   init(
     readListId: String,
@@ -20,12 +21,18 @@ struct ReadListQueryItemView: View {
     self.readListId = readListId
     self.layout = layout
 
-    let compositeId = CompositeID.generate(id: readListId)
-    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _komgaReadLists = FetchAll(
+      KomgaReadListRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }
+    )
+    _readListLocalStateList = FetchAll(
+      KomgaReadListLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }
+    )
   }
 
   private var komgaReadList: KomgaReadList? {
-    komgaReadLists.first
+    guard let record = komgaReadLists.first else { return nil }
+    return record.toKomgaReadList(localState: readListLocalStateList.first)
   }
 
   var body: some View {

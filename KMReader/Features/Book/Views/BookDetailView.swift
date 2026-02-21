@@ -4,7 +4,7 @@
 //
 
 import Flow
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct BookDetailView: View {
@@ -13,7 +13,8 @@ struct BookDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("currentAccount") private var current: Current = .init()
 
-  @Query private var komgaBooks: [KomgaBook]
+  @FetchAll private var komgaBooks: [KomgaBookRecord]
+  @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
 
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
@@ -22,22 +23,30 @@ struct BookDetailView: View {
 
   init(bookId: String) {
     self.bookId = bookId
-    let compositeId = CompositeID.generate(id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _komgaBooks = FetchAll(
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+    )
+    _bookLocalStateList = FetchAll(
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+    )
   }
 
-  /// The KomgaBook from SwiftData (reactive).
-  private var komgaBook: KomgaBook? {
+  /// The local book record (reactive).
+  private var komgaBook: KomgaBookRecord? {
     komgaBooks.first
   }
 
-  /// Convert to API Book type for compatibility with existing components.
   private var book: Book? {
     komgaBook?.toBook()
   }
 
+  private var bookLocalState: KomgaBookLocalStateRecord? {
+    bookLocalStateList.first
+  }
+
   private var downloadStatus: DownloadStatus {
-    komgaBook?.downloadStatus ?? .notDownloaded
+    bookLocalState?.downloadStatus ?? .notDownloaded
   }
 
   private var navigationTitle: String {
@@ -59,8 +68,8 @@ struct BookDetailView: View {
             inSheet: false
           )
 
-          if let komgaBook = komgaBook {
-            BookReadListsSection(readListIds: komgaBook.readListIds)
+          if let bookLocalState = bookLocalState {
+            BookReadListsSection(readListIds: bookLocalState.readListIds)
           }
         } else if hasError {
           VStack(spacing: 16) {

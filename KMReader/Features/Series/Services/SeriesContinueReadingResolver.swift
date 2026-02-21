@@ -3,18 +3,18 @@
 //
 //
 
+import Dependencies
 import Foundation
-import SwiftData
+import SQLiteData
 
 @MainActor
 enum SeriesContinueReadingResolver {
   static func resolve(
     seriesId: String,
-    isOffline: Bool,
-    context: ModelContext
+    isOffline: Bool
   ) async -> Book? {
     if isOffline {
-      return resolveOffline(seriesId: seriesId, context: context)
+      return resolveOffline(seriesId: seriesId)
     }
     return await resolveOnline(seriesId: seriesId)
   }
@@ -77,15 +77,15 @@ enum SeriesContinueReadingResolver {
     return nil
   }
 
-  private static func resolveOffline(seriesId: String, context: ModelContext) -> Book? {
-    if let inProgress = fetchLatestOfflineBook(seriesId: seriesId, status: .inProgress, context: context) {
+  private static func resolveOffline(seriesId: String) -> Book? {
+    if let inProgress = fetchLatestOfflineBook(seriesId: seriesId, status: .inProgress) {
       return inProgress
     }
 
-    let orderedBooks = fetchOfflineSeriesBooks(context: context, seriesId: seriesId)
+    let orderedBooks = fetchOfflineSeriesBooks(seriesId: seriesId)
     guard !orderedBooks.isEmpty else { return nil }
 
-    if let lastRead = fetchLatestOfflineBook(seriesId: seriesId, status: .read, context: context) {
+    if let lastRead = fetchLatestOfflineBook(seriesId: seriesId, status: .read) {
       if let index = orderedBooks.firstIndex(where: { $0.bookId == lastRead.id }) {
         let nextIndex = orderedBooks.index(after: index)
         if nextIndex < orderedBooks.endIndex {
@@ -103,8 +103,7 @@ enum SeriesContinueReadingResolver {
 
   private static func fetchLatestOfflineBook(
     seriesId: String,
-    status: ReadStatus,
-    context: ModelContext
+    status: ReadStatus
   ) -> Book? {
     var opts = BookBrowseOptions()
     opts.includeReadStatuses = [status]
@@ -112,7 +111,6 @@ enum SeriesContinueReadingResolver {
     opts.sortDirection = .descending
 
     return KomgaBookStore.fetchSeriesBooks(
-      context: context,
       seriesId: seriesId,
       page: 0,
       size: 1,
@@ -120,20 +118,23 @@ enum SeriesContinueReadingResolver {
     ).first
   }
 
-  private static func fetchOfflineSeriesBooks(
-    context: ModelContext,
-    seriesId: String
-  ) -> [KomgaBook] {
+  private static func fetchOfflineSeriesBooks(seriesId: String) -> [KomgaBookRecord] {
     let instanceId = AppConfig.current.instanceId
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.seriesId == seriesId && $0.instanceId == instanceId },
-      sortBy: [SortDescriptor(\KomgaBook.metaNumberSort, order: .forward)]
-    )
+    @Dependency(\.defaultDatabase) var database
 
-    return (try? context.fetch(descriptor)) ?? []
+    do {
+      return try database.read { db in
+        try KomgaBookRecord
+          .where { $0.seriesId.eq(seriesId) && $0.instanceId.eq(instanceId) }
+          .order(by: \.metaNumberSort)
+          .fetchAll(db)
+      }
+    } catch {
+      return []
+    }
   }
 
-  private static func isUnread(_ book: KomgaBook) -> Bool {
+  private static func isUnread(_ book: KomgaBookRecord) -> Bool {
     book.progressReadDate == nil
   }
 }

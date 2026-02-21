@@ -3,13 +3,14 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct OfflineBooksView: View {
-  @Environment(\.modelContext) private var modelContext
-  @Query var downloadedBooks: [KomgaBook]
-  @Query var libraries: [KomgaLibrary]
+  @FetchAll private var books: [KomgaBookRecord]
+  @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
+  @FetchAll private var libraries: [KomgaLibraryRecord]
+  @FetchAll private var allSeries: [KomgaSeriesRecord]
 
   @State private var showRemoveAllAlert = false
   @State private var showRemoveReadAlert = false
@@ -17,17 +18,24 @@ struct OfflineBooksView: View {
   @State private var isScanning = false
   @State private var cleanupResult: (deletedCount: Int, bytesFreed: Int64)?
 
+  struct OfflineBookItem: Identifiable {
+    let book: KomgaBookRecord
+    let localState: KomgaBookLocalStateRecord
+
+    var id: String { book.bookId }
+  }
+
   struct SeriesGroup: Identifiable {
     let id: String
-    let series: KomgaSeries?
-    let books: [KomgaBook]
+    let series: KomgaSeriesRecord?
+    let books: [OfflineBookItem]
   }
 
   struct LibraryGroup: Identifiable {
     let id: String
-    let library: KomgaLibrary?
+    let library: KomgaLibraryRecord?
     let seriesGroups: [SeriesGroup]
-    let oneshotBooks: [KomgaBook]
+    let oneshotBooks: [OfflineBookItem]
   }
 
   private let formatter: ByteCountFormatter = {
@@ -39,38 +47,53 @@ struct OfflineBooksView: View {
 
   init() {
     let instanceId = AppConfig.current.instanceId
-    _downloadedBooks = Query(
-      filter: #Predicate<KomgaBook> {
-        $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded"
-      },
-      sort: [SortDescriptor(\KomgaBook.libraryId)]
+    _books = FetchAll(
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.order(by: \.libraryId)
     )
-    _libraries = Query(
-      filter: #Predicate<KomgaLibrary> {
-        $0.instanceId == instanceId
-      }
+    _bookLocalStateList = FetchAll(
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) }.order(by: \.bookId)
+    )
+    _libraries = FetchAll(
+      KomgaLibraryRecord
+        .where {
+          $0.instanceId.eq(instanceId)
+        }
+    )
+    _allSeries = FetchAll(
+      KomgaSeriesRecord
+        .where {
+          $0.instanceId.eq(instanceId)
+        }
     )
   }
 
+  private var downloadedBookItems: [OfflineBookItem] {
+    let bookIds = Set(books.map(\.bookId))
+    let stateMap = Dictionary(
+      bookLocalStateList
+        .filter { bookIds.contains($0.bookId) }
+        .map { ($0.bookId, $0) },
+      uniquingKeysWith: { first, _ in first }
+    )
+
+    return books.compactMap { book in
+      let state = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
+      guard state.downloadStatusRaw == "downloaded" else { return nil }
+      return OfflineBookItem(book: book, localState: state)
+    }
+  }
+
   private var groupedBooks: [LibraryGroup] {
-    let libraryGroups = Dictionary(grouping: downloadedBooks) { $0.libraryId }
+    let libraryGroups = Dictionary(grouping: downloadedBookItems) { $0.book.libraryId }
     var result: [LibraryGroup] = []
 
     for (libraryId, lBooks) in libraryGroups {
       let library = libraries.first { $0.libraryId == libraryId }
 
-      let oneshots = lBooks.filter { $0.oneshot }
-      let seriesBooks = lBooks.filter { !$0.oneshot }
+      let oneshots = lBooks.filter { $0.book.oneshot }
+      let seriesBooks = lBooks.filter { !$0.book.oneshot }
 
-      let seriesGroupsMap = Dictionary(grouping: seriesBooks) { $0.seriesId }
-
-      // Batch fetch all series at once
-      let instanceId = AppConfig.current.instanceId
-      let seriesIds = Set(seriesGroupsMap.keys)
-      let compositeIds = seriesIds.map { CompositeID.generate(instanceId: instanceId, id: $0) }
-      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-        predicate: #Predicate { compositeIds.contains($0.id) })
-      let allSeries = (try? modelContext.fetch(seriesDescriptor)) ?? []
+      let seriesGroupsMap = Dictionary(grouping: seriesBooks) { $0.book.seriesId }
       let seriesMap = Dictionary(
         allSeries.map { ($0.seriesId, $0) },
         uniquingKeysWith: { first, _ in first }
@@ -81,12 +104,12 @@ struct OfflineBooksView: View {
         sGroups.append(
           SeriesGroup(
             id: seriesId, series: seriesMap[seriesId],
-            books: sBooks.sorted { $0.metadata.numberSort < $1.metadata.numberSort }))
+            books: sBooks.sorted { $0.book.metadata.numberSort < $1.book.metadata.numberSort }))
       }
 
       sGroups.sort {
-        ($0.series?.name ?? $0.books.first?.seriesTitle ?? "")
-          < ($1.series?.name ?? $1.books.first?.seriesTitle ?? "")
+        ($0.series?.name ?? $0.books.first?.book.seriesTitle ?? "")
+          < ($1.series?.name ?? $1.books.first?.book.seriesTitle ?? "")
       }
       result.append(
         LibraryGroup(
@@ -94,8 +117,8 @@ struct OfflineBooksView: View {
           library: library,
           seriesGroups: sGroups,
           oneshotBooks: oneshots.sorted {
-            ($0.metadata.title.isEmpty ? $0.name : $0.metadata.title)
-              < ($1.metadata.title.isEmpty ? $1.name : $1.metadata.title)
+            ($0.book.metadata.title.isEmpty ? $0.book.name : $0.book.metadata.title)
+              < ($1.book.metadata.title.isEmpty ? $1.book.name : $1.book.metadata.title)
           }
         ))
     }
@@ -105,16 +128,16 @@ struct OfflineBooksView: View {
   }
 
   private var totalDownloadedSize: Int64 {
-    downloadedBooks.reduce(0) { $0 + $1.downloadedSize }
+    downloadedBookItems.reduce(0) { $0 + $1.localState.downloadedSize }
   }
 
   private var hasReadBooks: Bool {
-    downloadedBooks.contains { $0.readProgress?.completed == true }
+    downloadedBookItems.contains { $0.book.readProgress?.completed == true }
   }
 
   var body: some View {
     Form {
-      if downloadedBooks.isEmpty {
+      if downloadedBookItems.isEmpty {
         ContentUnavailableView {
           Label(String(localized: "settings.offline.no_books"), systemImage: ContentIcon.book)
         } description: {
@@ -192,7 +215,8 @@ struct OfflineBooksView: View {
                       .foregroundColor(.secondary)
                   }
                 ) {
-                  ForEach(sGroup.books) { book in
+                  ForEach(sGroup.books) { item in
+                    let book = item.book
                     HStack {
                       Text("#\(book.metaNumber) - \(book.metaTitle)")
                         .font(.footnote)
@@ -203,7 +227,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                      Text(formatter.string(fromByteCount: item.localState.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
@@ -211,7 +235,8 @@ struct OfflineBooksView: View {
                 }
               #else
                 DisclosureGroup {
-                  ForEach(sGroup.books) { book in
+                  ForEach(sGroup.books) { item in
+                    let book = item.book
                     HStack {
                       Text("#\(book.metaNumber) - \(book.metaTitle)")
                         .font(.footnote)
@@ -222,13 +247,13 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                      Text(formatter.string(fromByteCount: item.localState.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
                     .swipeActions(edge: .trailing) {
                       Button(role: .destructive) {
-                        deleteBook(book)
+                        deleteBook(item)
                       } label: {
                         Label(String(localized: "Delete"), systemImage: "trash")
                       }.optimizedControlSize()
@@ -264,7 +289,8 @@ struct OfflineBooksView: View {
                       .foregroundColor(.secondary)
                   }
                 ) {
-                  ForEach(lGroup.oneshotBooks) { book in
+                  ForEach(lGroup.oneshotBooks) { item in
+                    let book = item.book
                     HStack {
                       Text(book.metaTitle)
                         .font(.footnote)
@@ -275,7 +301,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                      Text(formatter.string(fromByteCount: item.localState.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
@@ -283,7 +309,8 @@ struct OfflineBooksView: View {
                 }
               #else
                 DisclosureGroup {
-                  ForEach(lGroup.oneshotBooks) { book in
+                  ForEach(lGroup.oneshotBooks) { item in
+                    let book = item.book
                     HStack {
                       Text(book.metaTitle)
                         .font(.footnote)
@@ -295,13 +322,13 @@ struct OfflineBooksView: View {
                           .foregroundColor(.secondary)
                       }
                       Spacer()
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
+                      Text(formatter.string(fromByteCount: item.localState.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     }
                     .swipeActions(edge: .trailing) {
                       Button(role: .destructive) {
-                        deleteBook(book)
+                        deleteBook(item)
                       } label: {
                         Label(String(localized: "Delete"), systemImage: "trash")
                       }.optimizedControlSize()
@@ -373,30 +400,31 @@ struct OfflineBooksView: View {
     }
   }
 
-  private func seriesSize(for books: [KomgaBook]) -> Int64 {
-    books.reduce(0) { $0 + $1.downloadedSize }
+  private func seriesSize(for books: [OfflineBookItem]) -> Int64 {
+    books.reduce(0) { $0 + $1.localState.downloadedSize }
   }
 
   private func totalSize(for lGroup: LibraryGroup) -> Int64 {
     let sSize = lGroup.seriesGroups.reduce(0) { $0 + seriesSize(for: $1.books) }
-    let oSize = lGroup.oneshotBooks.reduce(0) { $0 + $1.downloadedSize }
+    let oSize = lGroup.oneshotBooks.reduce(0) { $0 + $1.localState.downloadedSize }
     return sSize + oSize
   }
 
-  private func deleteBook(_ book: KomgaBook) {
+  private func deleteBook(_ item: OfflineBookItem) {
+    let book = item.book
     Task {
       await OfflineManager.shared.deleteBookManually(
         seriesId: book.seriesId, instanceId: book.instanceId, bookId: book.bookId)
     }
   }
 
-  private func deleteSeries(_ books: [KomgaBook]) {
-    guard let firstBook = books.first else { return }
+  private func deleteSeries(_ books: [OfflineBookItem]) {
+    guard let firstBook = books.first?.book else { return }
     Task {
       await OfflineManager.shared.deleteBooksManually(
         seriesId: firstBook.seriesId,
         instanceId: firstBook.instanceId,
-        bookIds: books.map { $0.bookId }
+        bookIds: books.map { $0.book.bookId }
       )
     }
   }

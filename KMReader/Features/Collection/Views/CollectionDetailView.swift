@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct CollectionDetailView: View {
@@ -14,8 +14,7 @@ struct CollectionDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
 
-  // SwiftData query for reactive updates
-  @Query private var komgaCollections: [KomgaCollection]
+  @FetchAll private var komgaCollections: [KomgaCollectionRecord]
 
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -24,16 +23,16 @@ struct CollectionDetailView: View {
 
   init(collectionId: String) {
     self.collectionId = collectionId
-    let compositeId = CompositeID.generate(id: collectionId)
-    _komgaCollections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _komgaCollections = FetchAll(
+      KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }
+    )
   }
 
-  /// The KomgaCollection from SwiftData (reactive).
-  private var komgaCollection: KomgaCollection? {
+  private var komgaCollection: KomgaCollectionRecord? {
     komgaCollections.first
   }
 
-  /// Convert to API SeriesCollection type for compatibility with existing components.
   private var collection: SeriesCollection? {
     komgaCollection?.toCollection()
   }
@@ -116,7 +115,6 @@ struct CollectionDetailView: View {
 extension CollectionDetailView {
   private func loadCollectionDetails() async {
     do {
-      // Sync from network to SwiftData (collection property will update reactively)
       _ = try await SyncService.shared.syncCollection(id: collectionId)
     } catch {
       if case APIError.notFound = error {

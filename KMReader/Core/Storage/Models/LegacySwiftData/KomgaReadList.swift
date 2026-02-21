@@ -8,7 +8,7 @@ import SwiftData
 
 @Model
 final class KomgaReadList {
-  @Attribute(.unique) var id: String  // Composite: CompositeID.generate
+  @Attribute(.unique) var id: String
 
   var readListId: String
   var instanceId: String
@@ -71,7 +71,7 @@ final class KomgaReadList {
     pendingBooks: Int = 0,
     downloadedSize: Int64 = 0
   ) {
-    self.id = id ?? CompositeID.generate(instanceId: instanceId, id: readListId)
+    self.id = id ?? UUID().uuidString
     self.readListId = readListId
     self.instanceId = instanceId
     self.name = name

@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct CollectionsBrowseView: View {
@@ -12,7 +11,6 @@ struct CollectionsBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
-  @Environment(\.modelContext) private var modelContext
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -115,7 +113,6 @@ struct CollectionsBrowseView: View {
       refresh: refresh,
       offlineFetch: { offset, limit in
         KomgaCollectionStore.fetchCollectionIds(
-          context: modelContext,
           libraryIds: libraryIds,
           searchText: searchText,
           sort: sortOpts.sortString,

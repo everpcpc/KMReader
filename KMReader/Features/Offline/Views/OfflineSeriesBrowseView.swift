@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct OfflineSeriesBrowseView: View {
@@ -17,8 +16,6 @@ struct OfflineSeriesBrowseView: View {
     Self.defaultBrowseOptions
   @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
-
-  @Environment(\.modelContext) private var modelContext
 
   @State private var browseOpts: SeriesBrowseOptions = Self.defaultBrowseOptions
   @State private var viewModel = SeriesViewModel()
@@ -89,7 +86,6 @@ struct OfflineSeriesBrowseView: View {
     let effectiveBrowseOpts =
       (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
     await viewModel.loadSeries(
-      context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,

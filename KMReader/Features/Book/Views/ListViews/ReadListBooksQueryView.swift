@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ReadListBooksQueryView: View {
@@ -18,7 +17,6 @@ struct ReadListBooksQueryView: View {
   let refreshBooks: () -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -127,7 +125,6 @@ struct ReadListBooksQueryView: View {
 
   private func loadMore(refresh: Bool) async {
     await bookViewModel.loadReadListBooks(
-      context: modelContext,
       readListId: readListId,
       browseOpts: browseOpts,
       refresh: refresh

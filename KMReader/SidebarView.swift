@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct SidebarView: View {
@@ -11,10 +11,9 @@ struct SidebarView: View {
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
-  @Query(sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]) private
-    var allCollections: [KomgaCollection]
-  @Query(sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]) private var allReadLists: [KomgaReadList]
+  @FetchAll(KomgaLibraryRecord.order(by: \.name)) private var allLibraries: [KomgaLibraryRecord]
+  @FetchAll(KomgaCollectionRecord.order(by: \.name)) private var allCollections: [KomgaCollectionRecord]
+  @FetchAll(KomgaReadListRecord.order(by: \.name)) private var allReadLists: [KomgaReadListRecord]
 
   @AppStorage("sidebarBrowseExpanded") private var browseExpanded: Bool = true
   @AppStorage("sidebarLibrariesExpanded") private var librariesExpanded: Bool = true
@@ -31,19 +30,19 @@ struct SidebarView: View {
     #endif
   }
 
-  private var libraries: [KomgaLibrary] {
+  private var libraries: [KomgaLibraryRecord] {
     guard !current.instanceId.isEmpty else { return [] }
     return allLibraries.filter {
       $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
     }
   }
 
-  private var collections: [KomgaCollection] {
+  private var collections: [KomgaCollectionRecord] {
     guard !current.instanceId.isEmpty else { return [] }
     return allCollections.filter { $0.instanceId == current.instanceId }
   }
 
-  private var readLists: [KomgaReadList] {
+  private var readLists: [KomgaReadListRecord] {
     guard !current.instanceId.isEmpty else { return [] }
     return allReadLists.filter { $0.instanceId == current.instanceId }
   }
@@ -142,8 +141,9 @@ struct SidebarView: View {
     if !libraries.isEmpty {
       Section(isExpanded: $librariesExpanded) {
         ForEach(libraries) { library in
+          let legacyLibrary = library.toKomgaLibrary()
           NavigationLink(
-            value: NavDestination.browseLibrary(selection: LibrarySelection(library: library))
+            value: NavDestination.browseLibrary(selection: LibrarySelection(library: legacyLibrary))
           ) {
             SidebarItemLabel(
               title: library.name,

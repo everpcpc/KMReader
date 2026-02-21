@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 // Series list view for collection
@@ -21,11 +21,10 @@ struct CollectionSeriesListView: View {
   @State private var selectedSeriesIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
-  @Environment(\.modelContext) private var modelContext
 
-  @Query private var collections: [KomgaCollection]
+  @FetchAll private var collections: [KomgaCollectionRecord]
 
-  private var collection: KomgaCollection? {
+  private var collection: KomgaCollectionRecord? {
     collections.first
   }
 
@@ -38,8 +37,10 @@ struct CollectionSeriesListView: View {
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
 
-    let compositeId = CompositeID.generate(id: collectionId)
-    _collections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _collections = FetchAll(
+      KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }
+    )
   }
 
   private var supportsSelectionMode: Bool {
@@ -137,7 +138,6 @@ struct CollectionSeriesListView: View {
 
   private func refreshSeries() async {
     await seriesViewModel.loadCollectionSeries(
-      context: modelContext,
       collectionId: collectionId,
       browseOpts: browseOpts,
       refresh: true

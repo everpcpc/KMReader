@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ReadListDownloadActionsSection: View {
@@ -146,7 +145,6 @@ struct ReadListDownloadActionsSection: View {
       await DatabaseOperator.shared.downloadReadListOffline(
         readListId: readList.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -161,7 +159,6 @@ struct ReadListDownloadActionsSection: View {
         instanceId: current.instanceId,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -174,7 +171,6 @@ struct ReadListDownloadActionsSection: View {
         readListId: readList.id,
         instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
@@ -197,7 +193,6 @@ struct ReadListDownloadActionsSection: View {
       await DatabaseOperator.shared.removeReadListOffline(
         readListId: readList.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )

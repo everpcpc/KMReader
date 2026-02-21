@@ -4,7 +4,7 @@
 //
 
 import Flow
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct SeriesDetailView: View {
@@ -15,10 +15,10 @@ struct SeriesDetailView: View {
   @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
-  @Query private var komgaSeriesList: [KomgaSeries]
+  @FetchAll private var komgaSeriesList: [KomgaSeriesRecord]
+  @FetchAll private var seriesLocalStateList: [KomgaSeriesLocalStateRecord]
 
   @State private var bookViewModel = BookViewModel()
   @State private var showDeleteConfirmation = false
@@ -29,16 +29,23 @@ struct SeriesDetailView: View {
 
   init(seriesId: String) {
     self.seriesId = seriesId
-    let compositeId = CompositeID.generate(id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _komgaSeriesList = FetchAll(
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+    )
+    _seriesLocalStateList = FetchAll(
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+    )
   }
 
-  /// The KomgaSeries from SwiftData (reactive).
-  private var komgaSeries: KomgaSeries? {
+  private var komgaSeries: KomgaSeriesRecord? {
     komgaSeriesList.first
   }
 
-  /// Convert to API Series type for compatibility with existing components.
+  private var seriesLocalState: KomgaSeriesLocalStateRecord? {
+    seriesLocalStateList.first
+  }
+
   private var series: Series? {
     komgaSeries?.toSeries()
   }
@@ -97,13 +104,13 @@ struct SeriesDetailView: View {
               .padding(.vertical, 8)
             }
 
-            if let komgaSeries = komgaSeries {
-              SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+            if let seriesLocalState = seriesLocalState {
+              SeriesCollectionsSection(collectionIds: seriesLocalState.collectionIds)
             }
 
             Divider()
             if let komgaSeries = komgaSeries {
-              SeriesDownloadActionsSection(komgaSeries: komgaSeries)
+              SeriesDownloadActionsSection(komgaSeries: komgaSeries.toKomgaSeries(localState: seriesLocalState))
             }
             Divider()
           }
@@ -174,7 +181,6 @@ struct SeriesDetailView: View {
 extension SeriesDetailView {
   private func refreshSeriesData() async {
     do {
-      // Sync from network to SwiftData (series property will update reactively)
       _ = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await SyncService.shared.syncSeriesCollections(seriesId: seriesId)
     } catch {
@@ -252,8 +258,7 @@ extension SeriesDetailView {
     Task {
       let book = await SeriesContinueReadingResolver.resolve(
         seriesId: seriesId,
-        isOffline: isOffline,
-        context: modelContext
+        isOffline: isOffline
       )
       if let book {
         readerPresentation.present(book: book, incognito: false)

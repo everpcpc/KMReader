@@ -1,24 +1,29 @@
 //
-// KomgaCollection.swift
+// KomgaCollectionRecord.swift
 //
 //
 
 import Foundation
-import SwiftData
+import SQLiteData
 
-@Model
-final class KomgaCollection {
-  @Attribute(.unique) var id: String  // Composite: CompositeID.generate
+@Table("komga_collections")
+nonisolated struct KomgaCollectionRecord: Identifiable, Hashable, Sendable {
+  let id: String
 
+  // API identifier (CollectionDto.id).
   var collectionId: String
   var instanceId: String
 
+  // API scalar fields.
   var name: String
   var ordered: Bool
+  @Column(as: Date.UnixTimeRepresentation.self)
   var createdDate: Date
+  @Column(as: Date.UnixTimeRepresentation.self)
   var lastModifiedDate: Date
   var filtered: Bool
 
+  // API array field persisted as JSON for SQLite storage.
   var seriesIdsRaw: Data?
 
   var seriesIds: [String] {
@@ -37,7 +42,7 @@ final class KomgaCollection {
     filtered: Bool,
     seriesIds: [String] = []
   ) {
-    self.id = id ?? CompositeID.generate(instanceId: instanceId, id: collectionId)
+    self.id = id ?? UUID().uuidString
     self.collectionId = collectionId
     self.instanceId = instanceId
     self.name = name
@@ -57,6 +62,20 @@ final class KomgaCollection {
       createdDate: createdDate,
       lastModifiedDate: lastModifiedDate,
       filtered: filtered
+    )
+  }
+
+  func toKomgaCollection() -> KomgaCollection {
+    KomgaCollection(
+      id: id,
+      collectionId: collectionId,
+      instanceId: instanceId,
+      name: name,
+      ordered: ordered,
+      createdDate: createdDate,
+      lastModifiedDate: lastModifiedDate,
+      filtered: filtered,
+      seriesIds: seriesIds
     )
   }
 }

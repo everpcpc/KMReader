@@ -3,11 +3,10 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct OfflineTasksView: View {
-  @Environment(\.modelContext) private var modelContext
   @AppStorage("currentAccount") private var current: Current = .init()
   private var instanceId: String { current.instanceId }
   @AppStorage("offlinePaused") private var isPaused: Bool = false
@@ -20,30 +19,64 @@ struct OfflineTasksView: View {
     case retryAll, cancelAll
   }
 
-  @Query private var books: [KomgaBook]
+  @FetchAll private var books: [KomgaBookRecord]
+  @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
+
+  private struct TaskItem: Identifiable {
+    let book: KomgaBookRecord
+    let localState: KomgaBookLocalStateRecord
+
+    var id: String { book.bookId }
+  }
 
   init() {
     let instanceId = AppConfig.current.instanceId
-    _books = Query(
-      filter: #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId
-          && (book.downloadStatusRaw == "pending" || book.downloadStatusRaw == "downloading"
-            || book.downloadStatusRaw == "failed")
-      },
-      sort: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
+    _books = FetchAll(
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) }
+    )
+    _bookLocalStateList = FetchAll(
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) }.order(by: \.bookId)
     )
   }
 
-  private var downloadingBooks: [KomgaBook] {
-    books.filter { $0.downloadStatusRaw == "downloading" }
+  private var taskItems: [TaskItem] {
+    let bookIds = Set(books.map(\.bookId))
+    let stateMap = Dictionary(
+      bookLocalStateList
+        .filter { bookIds.contains($0.bookId) }
+        .map { ($0.bookId, $0) },
+      uniquingKeysWith: { first, _ in first }
+    )
+
+    let filtered = books.compactMap { book -> TaskItem? in
+      let state = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
+      let status = state.downloadStatusRaw
+      guard status == "pending" || status == "downloading" || status == "failed" else {
+        return nil
+      }
+      return TaskItem(book: book, localState: state)
+    }
+
+    return filtered.sorted {
+      switch ($0.localState.downloadAt, $1.localState.downloadAt) {
+      case (let lhs?, let rhs?): return lhs < rhs
+      case (nil, nil): return false
+      case (nil, _): return false
+      case (_, nil): return true
+      }
+    }
   }
 
-  private var pendingBooks: [KomgaBook] {
-    books.filter { $0.downloadStatusRaw == "pending" }
+  private var downloadingBooks: [TaskItem] {
+    taskItems.filter { $0.localState.downloadStatusRaw == "downloading" }
   }
 
-  private var failedBooks: [KomgaBook] {
-    books.filter { $0.downloadStatusRaw == "failed" }
+  private var pendingBooks: [TaskItem] {
+    taskItems.filter { $0.localState.downloadStatusRaw == "pending" }
+  }
+
+  private var failedBooks: [TaskItem] {
+    taskItems.filter { $0.localState.downloadStatusRaw == "failed" }
   }
 
   private var currentStatus: SyncStatus {
@@ -95,24 +128,24 @@ struct OfflineTasksView: View {
 
       if !downloadingBooks.isEmpty {
         Section("Downloading") {
-          ForEach(downloadingBooks) { book in
-            OfflineTaskRow(book: book)
+          ForEach(downloadingBooks) { item in
+            OfflineTaskRow(book: item.book, localState: item.localState)
           }
         }
       }
 
       if !pendingBooks.isEmpty {
         Section("Pending") {
-          ForEach(pendingBooks) { book in
-            OfflineTaskRow(book: book)
+          ForEach(pendingBooks) { item in
+            OfflineTaskRow(book: item.book, localState: item.localState)
           }
         }
       }
 
       if !failedBooks.isEmpty {
         Section {
-          ForEach(failedBooks) { book in
-            OfflineTaskRow(book: book)
+          ForEach(failedBooks) { item in
+            OfflineTaskRow(book: item.book, localState: item.localState)
           }
         } header: {
           HStack {
@@ -147,7 +180,7 @@ struct OfflineTasksView: View {
         }
       }
 
-      if books.isEmpty {
+      if taskItems.isEmpty {
         ContentUnavailableView {
           Label("No Download Tasks", systemImage: "square.and.arrow.down")
         } description: {
@@ -226,7 +259,8 @@ struct OfflineTasksView: View {
 struct OfflineTaskRow: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   private var instanceId: String { current.instanceId }
-  @Bindable var book: KomgaBook
+  let book: KomgaBookRecord
+  let localState: KomgaBookLocalStateRecord
 
   private var progress: Double? {
     DownloadProgressTracker.shared.progress[book.bookId]
@@ -241,7 +275,7 @@ struct OfflineTaskRow: View {
         Text("#\(book.metaNumber) - \(book.metaTitle)")
           .lineLimit(1)
 
-        switch book.downloadStatus {
+        switch localState.downloadStatus {
         case .pending:
           if let progress = progress {
             ProgressView(value: progress) {
@@ -268,7 +302,7 @@ struct OfflineTaskRow: View {
 
       #if !os(tvOS)
         HStack(spacing: 16) {
-          if case .failed = book.downloadStatus {
+          if case .failed = localState.downloadStatus {
             Button {
               Task {
                 await OfflineManager.shared.retryDownload(
@@ -287,7 +321,7 @@ struct OfflineTaskRow: View {
               OfflineManager.shared.triggerSync(instanceId: instanceId)
             }
           } label: {
-            Image(systemName: book.downloadStatusRaw == "failed" ? "trash" : "xmark.circle")
+            Image(systemName: localState.downloadStatusRaw == "failed" ? "trash" : "xmark.circle")
               .foregroundColor(.red)
           }
           .adaptiveButtonStyle(.plain)

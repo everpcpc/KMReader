@@ -320,7 +320,6 @@ class ReaderViewModel {
 
     await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: result.pages)
     await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: result.tableOfContents)
-    await DatabaseOperator.shared.commit()
     if result.renderedImageCount > 0 {
       await OfflineManager.shared.refreshDownloadedBookSize(
         instanceId: AppConfig.current.instanceId,
@@ -917,7 +916,6 @@ class ReaderViewModel {
     regenerateViewState()
     Task {
       await DatabaseOperator.shared.updateIsolatePages(bookId: bookId, pages: isolatePages)
-      await DatabaseOperator.shared.commit()
     }
   }
 
