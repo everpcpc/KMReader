@@ -23,10 +23,10 @@ struct ReadListQueryItemView: View {
 
     let instanceId = AppConfig.current.instanceId
     _readListRecords = FetchAll(
-      KomgaReadListRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }
+      KomgaReadListRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }.limit(1)
     )
     _readListLocalStateList = FetchAll(
-      KomgaReadListLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }
+      KomgaReadListLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }.limit(1)
     )
   }
 

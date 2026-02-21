@@ -22,7 +22,7 @@ struct CollectionQueryItemView: View {
 
     let instanceId = AppConfig.current.instanceId
     _collectionRecords = FetchAll(
-      KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }
+      KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }.limit(1)
     )
   }
 

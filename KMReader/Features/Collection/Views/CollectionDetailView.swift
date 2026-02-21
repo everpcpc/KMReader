@@ -25,7 +25,7 @@ struct CollectionDetailView: View {
     self.collectionId = collectionId
     let instanceId = AppConfig.current.instanceId
     _komgaCollections = FetchAll(
-      KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }
+      KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }.limit(1)
     )
   }
 

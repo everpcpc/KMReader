@@ -319,21 +319,23 @@ enum KomgaBookStore {
     let instanceId = AppConfig.current.instanceId
 
     do {
-      var records = try fetchBooksForInstance(instanceId: instanceId)
-      let stateMap = fetchBookLocalStateMap(books: records)
-      records = records.filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == "pending" }
-      records.sort {
-        compareOptionalDate(
-          stateMap[$0.bookId]?.downloadAt,
-          stateMap[$1.bookId]?.downloadAt,
-          ascending: true
-        )
+      @Dependency(\.defaultDatabase) var database
+      let pendingStates = try database.read { db in
+        try KomgaBookLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.downloadStatusRaw.eq("pending") }
+          .fetchAll(db)
       }
+      var orderedIds =
+        pendingStates
+        .sorted { compareOptionalDate($0.downloadAt, $1.downloadAt, ascending: true) }
+        .map(\.bookId)
 
       if let limit {
-        records = Array(records.prefix(limit))
+        let boundedLimit = max(0, limit)
+        guard boundedLimit > 0 else { return [] }
+        orderedIds = Array(orderedIds.prefix(boundedLimit))
       }
-
+      let records = fetchBooksByIds(ids: orderedIds, instanceId: instanceId)
       return records.map { $0.toBook() }
     } catch {
       return []
@@ -344,12 +346,15 @@ enum KomgaBookStore {
     let instanceId = AppConfig.current.instanceId
 
     do {
-      let records = try fetchBooksForInstance(instanceId: instanceId)
-      let stateMap = fetchBookLocalStateMap(books: records)
-      return
-        records
-        .filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == "downloaded" }
-        .map { $0.toBook() }
+      @Dependency(\.defaultDatabase) var database
+      let downloadedIds = try database.read { db in
+        try KomgaBookLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.downloadStatusRaw.eq("downloaded") }
+          .select { $0.bookId }
+          .fetchAll(db)
+      }
+      let records = fetchBooksByIds(ids: downloadedIds, instanceId: instanceId)
+      return records.map { $0.toBook() }
     } catch {
       return []
     }

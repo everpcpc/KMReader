@@ -979,6 +979,24 @@ actor DatabaseOperator {
       .fetchAll(db)
   }
 
+  private func fetchBooksByIds(
+    _ bookIds: [String],
+    instanceId: String,
+    db: Database
+  ) throws -> [KomgaBookRecord] {
+    guard !bookIds.isEmpty else { return [] }
+
+    let records =
+      try KomgaBookRecord
+      .where { $0.instanceId.eq(instanceId) && $0.bookId.in(bookIds) }
+      .fetchAll(db)
+
+    let order = Dictionary(uniqueKeysWithValues: bookIds.enumerated().map { ($0.element, $0.offset) })
+    return records.sorted { lhs, rhs in
+      (order[lhs.bookId] ?? Int.max) < (order[rhs.bookId] ?? Int.max)
+    }
+  }
+
   private func fetchBookLocalStateMap(
     books: [KomgaBookRecord],
     db: Database
@@ -2051,11 +2069,11 @@ actor DatabaseOperator {
   func retryFailedBooks(instanceId: String) {
     do {
       try write { db in
-        let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
-        for book in books {
-          var state = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
-          guard state.downloadStatusRaw == "failed" else { continue }
+        let failedStates =
+          try KomgaBookLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.downloadStatusRaw.eq("failed") }
+          .fetchAll(db)
+        for var state in failedStates {
           state.downloadStatusRaw = "pending"
           state.downloadError = nil
           state.downloadAt = Date.now
@@ -2070,11 +2088,11 @@ actor DatabaseOperator {
   func cancelFailedBooks(instanceId: String) {
     do {
       try write { db in
-        let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-        let stateMap = try fetchBookLocalStateMap(books: books, db: db)
-        for book in books {
-          var state = stateMap[book.bookId] ?? .empty(instanceId: book.instanceId, bookId: book.bookId)
-          guard state.downloadStatusRaw == "failed" else { continue }
+        let failedStates =
+          try KomgaBookLocalStateRecord
+          .where { $0.instanceId.eq(instanceId) && $0.downloadStatusRaw.eq("failed") }
+          .fetchAll(db)
+        for var state in failedStates {
           state.downloadStatusRaw = "notDownloaded"
           state.downloadError = nil
           state.downloadAt = nil
@@ -2240,20 +2258,25 @@ actor DatabaseOperator {
 
   func fetchPendingBooks(instanceId: String, limit: Int? = nil) -> [Book] {
     (try? read { db in
-      var books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-      let stateMap = try fetchBookLocalStateMap(books: books, db: db)
-      books = books.filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == "pending" }
-      books.sort { lhs, rhs in
-        switch (stateMap[lhs.bookId]?.downloadAt, stateMap[rhs.bookId]?.downloadAt) {
+      let pendingStates =
+        try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.downloadStatusRaw.eq("pending") }
+        .fetchAll(db)
+      var pendingIds = pendingStates.sorted { lhs, rhs in
+        switch (lhs.downloadAt, rhs.downloadAt) {
         case (let l?, let r?): return l < r
         case (nil, nil): return false
         case (nil, _): return false
         case (_, nil): return true
         }
       }
+      .map(\.bookId)
       if let limit {
-        books = Array(books.prefix(limit))
+        let boundedLimit = max(0, limit)
+        guard boundedLimit > 0 else { return [] }
+        pendingIds = Array(pendingIds.prefix(boundedLimit))
       }
+      let books = try fetchBooksByIds(pendingIds, instanceId: instanceId, db: db)
       return books.map { $0.toBook() }
     }) ?? []
   }
@@ -2275,12 +2298,13 @@ actor DatabaseOperator {
 
   func fetchDownloadedBooks(instanceId: String) -> [Book] {
     (try? read { db in
-      let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-      let stateMap = try fetchBookLocalStateMap(books: books, db: db)
-      return
-        books
-        .filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == "downloaded" }
-        .map { $0.toBook() }
+      let downloadedIds =
+        try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.downloadStatusRaw.eq("downloaded") }
+        .select { $0.bookId }
+        .fetchAll(db)
+      let books = try fetchBooksByIds(downloadedIds, instanceId: instanceId, db: db)
+      return books.map { $0.toBook() }
     }) ?? []
   }
 
@@ -2329,21 +2353,25 @@ actor DatabaseOperator {
     limit: Int
   ) -> [Book] {
     (try? read { db in
-      var results = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-      if !libraryIds.isEmpty {
-        let allowed = Set(libraryIds)
-        results = results.filter { allowed.contains($0.libraryId) }
-      }
-      results = results.filter { $0.progressReadDate != nil && $0.progressCompleted == false }
-      results.sort {
-        switch ($0.progressReadDate, $1.progressReadDate) {
-        case (let l?, let r?): return l > r
-        case (nil, nil): return false
-        case (nil, _): return false
-        case (_, nil): return true
+      let boundedLimit = max(0, limit)
+      guard boundedLimit > 0 else { return [] }
+
+      let hasLibraryFilter = !libraryIds.isEmpty
+      let records =
+        try KomgaBookRecord
+        .where {
+          $0.instanceId.eq(instanceId)
+            && (!hasLibraryFilter || $0.libraryId.in(libraryIds))
+            && $0.progressCompleted.eq(false)
         }
-      }
-      return Array(results.prefix(limit)).map { $0.toBook() }
+        .order { $0.progressReadDate.desc() }
+        .limit(boundedLimit)
+        .fetchAll(db)
+
+      return
+        records
+        .filter { $0.progressReadDate != nil }
+        .map { $0.toBook() }
     }) ?? []
   }
 
@@ -2353,13 +2381,21 @@ actor DatabaseOperator {
     limit: Int
   ) -> [Book] {
     (try? read { db in
-      var results = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-      if !libraryIds.isEmpty {
-        let allowed = Set(libraryIds)
-        results = results.filter { allowed.contains($0.libraryId) }
-      }
-      results.sort { $0.created > $1.created }
-      return Array(results.prefix(limit)).map { $0.toBook() }
+      let boundedLimit = max(0, limit)
+      guard boundedLimit > 0 else { return [] }
+
+      let hasLibraryFilter = !libraryIds.isEmpty
+      let records =
+        try KomgaBookRecord
+        .where {
+          $0.instanceId.eq(instanceId)
+            && (!hasLibraryFilter || $0.libraryId.in(libraryIds))
+        }
+        .order { $0.created.desc() }
+        .limit(boundedLimit)
+        .fetchAll(db)
+
+      return records.map { $0.toBook() }
     }) ?? []
   }
 
@@ -2369,13 +2405,21 @@ actor DatabaseOperator {
     limit: Int
   ) -> [Series] {
     (try? read { db in
-      var results = try KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-      if !libraryIds.isEmpty {
-        let allowed = Set(libraryIds)
-        results = results.filter { allowed.contains($0.libraryId) }
-      }
-      results.sort { $0.lastModified > $1.lastModified }
-      return Array(results.prefix(limit)).map { $0.toSeries() }
+      let boundedLimit = max(0, limit)
+      guard boundedLimit > 0 else { return [] }
+
+      let hasLibraryFilter = !libraryIds.isEmpty
+      let records =
+        try KomgaSeriesRecord
+        .where {
+          $0.instanceId.eq(instanceId)
+            && (!hasLibraryFilter || $0.libraryId.in(libraryIds))
+        }
+        .order { $0.lastModified.desc() }
+        .limit(boundedLimit)
+        .fetchAll(db)
+
+      return records.map { $0.toSeries() }
     }) ?? []
   }
 
@@ -2385,9 +2429,9 @@ actor DatabaseOperator {
 
   private func fetchBooksCount(instanceId: String, status: String) -> Int {
     (try? read { db in
-      let books = try KomgaBookRecord.where { $0.instanceId.eq(instanceId) }.fetchAll(db)
-      let stateMap = try fetchBookLocalStateMap(books: books, db: db)
-      return books.filter { (stateMap[$0.bookId]?.downloadStatusRaw ?? "notDownloaded") == status }.count
+      try KomgaBookLocalStateRecord
+        .where { $0.instanceId.eq(instanceId) && $0.downloadStatusRaw.eq(status) }
+        .fetchCount(db)
     }) ?? 0
   }
 
@@ -2448,15 +2492,21 @@ actor DatabaseOperator {
   func fetchPendingProgress(instanceId: String, limit: Int? = nil) -> [PendingProgressSummary] {
     let results: [PendingProgressRecord] =
       (try? read { db in
-        var records =
+        if let limit {
+          let boundedLimit = max(0, limit)
+          guard boundedLimit > 0 else { return [] }
+          return
+            try PendingProgressRecord
+            .where { $0.instanceId.eq(instanceId) }
+            .order { $0.createdAt.asc() }
+            .limit(boundedLimit)
+            .fetchAll(db)
+        }
+        return
           try PendingProgressRecord
           .where { $0.instanceId.eq(instanceId) }
+          .order { $0.createdAt.asc() }
           .fetchAll(db)
-        records.sort { $0.createdAt < $1.createdAt }
-        if let limit {
-          records = Array(records.prefix(limit))
-        }
-        return records
       }) ?? []
 
     logger.debug(

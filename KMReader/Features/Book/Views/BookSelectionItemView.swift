@@ -32,10 +32,10 @@ struct BookSelectionItemView: View {
 
     let instanceId = AppConfig.current.instanceId
     _bookRecords = FetchAll(
-      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }.limit(1)
     )
     _bookLocalStateList = FetchAll(
-      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }.limit(1)
     )
   }
 

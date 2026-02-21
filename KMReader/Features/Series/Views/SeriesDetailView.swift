@@ -31,10 +31,10 @@ struct SeriesDetailView: View {
     self.seriesId = seriesId
     let instanceId = AppConfig.current.instanceId
     _komgaSeriesList = FetchAll(
-      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
     )
     _seriesLocalStateList = FetchAll(
-      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
     )
   }
 

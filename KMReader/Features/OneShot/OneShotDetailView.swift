@@ -29,13 +29,13 @@ struct OneshotDetailView: View {
     self.seriesId = seriesId
     let instanceId = AppConfig.current.instanceId
     _komgaSeriesList = FetchAll(
-      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
     )
     _seriesLocalStateList = FetchAll(
-      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
     )
     _komgaBookList = FetchAll(
-      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
     )
     _bookLocalStateList = FetchAll(
       KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) }.order(by: \.bookId)

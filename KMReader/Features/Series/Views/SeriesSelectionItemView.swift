@@ -26,10 +26,10 @@ struct SeriesSelectionItemView: View {
 
     let instanceId = AppConfig.current.instanceId
     _seriesRecords = FetchAll(
-      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
     )
     _seriesLocalStateList = FetchAll(
-      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
     )
   }
 
