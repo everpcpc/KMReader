@@ -22,14 +22,8 @@ actor LogStore {
     let count: Int
   }
 
-  private enum DateStorageKind {
-    case real
-    case integer
-  }
-
   private let dbPath: URL
   private var db: OpaquePointer?
-  private var dateStorageKind: DateStorageKind = .real
 
   private init() {
     let appSupport =
@@ -52,25 +46,23 @@ actor LogStore {
       return
     }
 
-    guard let dateStorageKind = Self.migrate(on: database) else {
+    guard Self.migrate(on: database) else {
       sqlite3_close(database)
       db = nil
       return
     }
 
     db = database
-    self.dateStorageKind = dateStorageKind
     Task { await cleanup() }
   }
 
   private enum SQLValue {
     case int(Int32)
-    case int64(Int64)
     case double(Double)
     case text(String)
   }
 
-  private static func migrate(on db: OpaquePointer) -> DateStorageKind? {
+  private static func migrate(on db: OpaquePointer) -> Bool {
     let schema = currentSchema(on: db)
     let needsRebuild = !schema.isEmpty && !isCompatible(schema: schema)
     if needsRebuild {
@@ -82,7 +74,7 @@ actor LogStore {
       )
       guard execute("DROP TABLE IF EXISTS logs", on: db) else {
         systemLogger.error("Failed to drop logs table while rebuilding logs schema")
-        return nil
+        return false
       }
     }
 
@@ -102,13 +94,7 @@ actor LogStore {
     if created && needsRebuild {
       systemLogger.notice("Logs table rebuild completed")
     }
-    guard created else {
-      return nil
-    }
-    if needsRebuild {
-      return .real
-    }
-    return dateStorageKind(for: schema) ?? .real
+    return created
   }
 
   private static func currentSchema(on db: OpaquePointer) -> [String: String] {
@@ -137,22 +123,11 @@ actor LogStore {
   private static func isCompatible(schema: [String: String]) -> Bool {
     guard schema.count == 5 else { return false }
     guard schema["id"] == "INTEGER" else { return false }
+    guard schema["date"] == "REAL" else { return false }
     guard schema["level"] == "INTEGER" else { return false }
     guard schema["category"] == "TEXT" else { return false }
     guard schema["message"] == "TEXT" else { return false }
-    guard let dateType = schema["date"] else { return false }
-    return dateType == "REAL" || dateType == "INTEGER"
-  }
-
-  private static func dateStorageKind(for schema: [String: String]) -> DateStorageKind? {
-    switch schema["date"] {
-    case "INTEGER":
-      return .integer
-    case "REAL":
-      return .real
-    default:
-      return nil
-    }
+    return true
   }
 
   private static func execute(_ sql: String, on db: OpaquePointer) -> Bool {
@@ -179,22 +154,11 @@ actor LogStore {
       switch value {
       case .int(let number):
         sqlite3_bind_int(statement, position, number)
-      case .int64(let number):
-        sqlite3_bind_int64(statement, position, number)
       case .double(let number):
         sqlite3_bind_double(statement, position, number)
       case .text(let text):
         sqlite3_bind_text(statement, position, text, -1, Self.sqliteTransient)
       }
-    }
-  }
-
-  private func dateValue(_ date: Date) -> SQLValue {
-    switch dateStorageKind {
-    case .real:
-      return .double(date.timeIntervalSince1970)
-    case .integer:
-      return .int64(Int64(date.timeIntervalSince1970.rounded(.towardZero)))
     }
   }
 
@@ -212,7 +176,7 @@ actor LogStore {
 
     bind(
       [
-        dateValue(date),
+        .double(date.timeIntervalSince1970),
         .int(Int32(clamping: level)),
         .text(category),
         .text(message),
@@ -263,7 +227,7 @@ actor LogStore {
     }
     if let since {
       conditions.append("date >= ?")
-      params.append(dateValue(since))
+      params.append(.double(since.timeIntervalSince1970))
     }
 
     let whereClause = conditions.isEmpty ? "" : "WHERE \(conditions.joined(separator: " AND "))"
@@ -331,7 +295,7 @@ actor LogStore {
     }
     if let since {
       conditions.append("date >= ?")
-      params.append(dateValue(since))
+      params.append(.double(since.timeIntervalSince1970))
     }
 
     let whereClause = conditions.isEmpty ? "" : "WHERE \(conditions.joined(separator: " AND "))"
@@ -380,7 +344,7 @@ actor LogStore {
       return
     }
 
-    bind([dateValue(cutoff)], to: statement)
+    bind([.double(cutoff.timeIntervalSince1970)], to: statement)
     if sqlite3_step(statement) != SQLITE_DONE {
       print("Failed to cleanup logs: \(String(cString: sqlite3_errmsg(db)))")
     }
