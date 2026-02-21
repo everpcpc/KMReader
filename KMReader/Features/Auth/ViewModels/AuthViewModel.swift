@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -207,6 +206,10 @@ class AuthViewModel {
       ErrorManager.shared.alert(error: error)
       return false
     }
+  }
+
+  func switchTo(record: KomgaInstanceRecord) async -> Bool {
+    await switchTo(instance: record.toKomgaInstance())
   }
 
   private func applyLoginConfiguration(

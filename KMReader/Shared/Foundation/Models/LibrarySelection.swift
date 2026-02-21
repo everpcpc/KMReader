@@ -14,13 +14,13 @@ struct LibrarySelection: Hashable {
   let collectionsCount: Double?
   let readlistsCount: Double?
 
-  init(library: KomgaLibrary) {
-    libraryId = library.libraryId
-    name = library.name
-    fileSize = library.fileSize
-    booksCount = library.booksCount
-    seriesCount = library.seriesCount
-    collectionsCount = library.collectionsCount
-    readlistsCount = library.readlistsCount
+  init(record: KomgaLibraryRecord) {
+    libraryId = record.libraryId
+    name = record.name
+    fileSize = record.fileSize
+    booksCount = record.booksCount
+    seriesCount = record.seriesCount
+    collectionsCount = record.collectionsCount
+    readlistsCount = record.readlistsCount
   }
 }

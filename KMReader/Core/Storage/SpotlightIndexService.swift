@@ -261,21 +261,25 @@ import Foundation
     }
 
     private static nonisolated func extractItemId(from payload: String) -> String {
-      guard let separator = payload.firstIndex(of: "_") else {
-        return payload
+      if let separator = payload.lastIndex(of: "|") {
+        let itemStart = payload.index(after: separator)
+        let itemId = String(payload[itemStart...])
+        return itemId.isEmpty ? payload : itemId
       }
-
-      let itemStart = payload.index(after: separator)
-      let itemId = String(payload[itemStart...])
-      return itemId.isEmpty ? payload : itemId
+      if let separator = payload.firstIndex(of: "_") {
+        let itemStart = payload.index(after: separator)
+        let itemId = String(payload[itemStart...])
+        return itemId.isEmpty ? payload : itemId
+      }
+      return payload
     }
 
     private static nonisolated func bookIdentifier(bookId: String, instanceId: String) -> String {
-      "\(bookPrefix)\(CompositeID.generate(instanceId: instanceId, id: bookId))"
+      "\(bookPrefix)\(instanceId)|\(bookId)"
     }
 
     private static nonisolated func seriesIdentifier(seriesId: String, instanceId: String) -> String {
-      "\(seriesPrefix)\(CompositeID.generate(instanceId: instanceId, id: seriesId))"
+      "\(seriesPrefix)\(instanceId)|\(seriesId)"
     }
   }
 #endif

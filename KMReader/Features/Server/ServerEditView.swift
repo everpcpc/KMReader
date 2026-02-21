@@ -3,14 +3,15 @@
 //
 //
 
-import SwiftData
+import Dependencies
+import SQLiteData
 import SwiftUI
 
 struct ServerEditView: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
   @Environment(AuthViewModel.self) private var authViewModel
-  @Bindable var instance: KomgaInstance
+  @Dependency(\.defaultDatabase) private var database
+  let instance: KomgaInstanceRecord
   @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var name: String
@@ -40,8 +41,8 @@ struct ServerEditView: View {
     }
   }
 
-  init(instance: KomgaInstance) {
-    _instance = Bindable(instance)
+  init(instance: KomgaInstanceRecord) {
+    self.instance = instance
     _name = State(initialValue: instance.name)
     _serverURL = State(initialValue: instance.serverURL)
     _username = State(initialValue: instance.username)
@@ -252,36 +253,59 @@ struct ServerEditView: View {
       return
     }
 
-    instance.name =
+    let finalName =
       trimmedName.isEmpty
       ? defaultInstanceName(serverURL: trimmedServerURL)
       : trimmedName
-    instance.serverURL = trimmedServerURL
-    instance.authMethod = authMethod
 
+    let finalUsername =
+      authMethod == .basicAuth
+      ? trimmedUsername
+      : username.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    let finalAuthToken: String
     if authMethod == .basicAuth {
-      instance.username = trimmedUsername
       if !password.isEmpty {
         guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
           ErrorManager.shared.notify(
             message: String(localized: "notification.settings.encodeCredentialsFailed"))
           return
         }
-        instance.authToken = token
+        finalAuthToken = token
+      } else {
+        finalAuthToken = instance.authToken
       }
     } else {
-      // For API Key, we use the key as the token directly
-      instance.authToken = apiKey
-      // API Key auth returns a User object, so we can use that email/username
+      finalAuthToken = apiKey
     }
 
-    instance.lastUsedAt = Date()
+    let now = Date()
 
     do {
-      try modelContext.save()
+      try database.write { db in
+        try KomgaInstanceRecord
+          .find(instance.id)
+          .update {
+            $0.name = #bind(finalName)
+            $0.serverURL = #bind(trimmedServerURL)
+            $0.username = #bind(finalUsername)
+            $0.authToken = #bind(finalAuthToken)
+            $0.authMethodRaw = #bind(authMethod.rawValue)
+            $0.lastUsedAt = #bind(now)
+          }
+          .execute(db)
+      }
+
       if current.instanceId == instance.id.uuidString {
+        var updated = instance
+        updated.name = finalName
+        updated.serverURL = trimmedServerURL
+        updated.username = finalUsername
+        updated.authToken = finalAuthToken
+        updated.authMethodRaw = authMethod.rawValue
+        updated.lastUsedAt = now
         Task {
-          _ = await authViewModel.switchTo(instance: instance)
+          _ = await authViewModel.switchTo(record: updated)
         }
       }
       dismiss()

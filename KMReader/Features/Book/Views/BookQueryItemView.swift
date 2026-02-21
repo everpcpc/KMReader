@@ -3,10 +3,10 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// Wrapper view that accepts only bookId and uses @Query to fetch the book reactively.
+/// Wrapper view that accepts only bookId and fetches the local record reactively.
 struct BookQueryItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
@@ -14,9 +14,9 @@ struct BookQueryItemView: View {
   var showSeriesNavigation: Bool = true
   var readListContext: ReaderReadListContext? = nil
 
-  @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
-  @Query private var komgaBooks: [KomgaBook]
+  @FetchAll private var bookRecords: [KomgaBookRecord]
+  @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
 
   init(
     bookId: String,
@@ -31,23 +31,33 @@ struct BookQueryItemView: View {
     self.showSeriesNavigation = showSeriesNavigation
     self.readListContext = readListContext
 
-    let compositeId = CompositeID.generate(id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _bookRecords = FetchAll(
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }.limit(1)
+    )
+    _bookLocalStateList = FetchAll(
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }.limit(1)
+    )
   }
 
-  private var komgaBook: KomgaBook? {
-    komgaBooks.first
+  private var book: Book? {
+    bookRecords.first?.toBook()
+  }
+
+  private var downloadStatus: DownloadStatus {
+    bookLocalStateList.first?.downloadStatus ?? .notDownloaded
   }
 
   var body: some View {
-    if let book = komgaBook {
+    if let book = book {
       switch layout {
       case .grid:
         BookCardView(
-          komgaBook: book,
+          book: book,
+          downloadStatus: downloadStatus,
           onReadBook: { incognito in
             readerPresentation.present(
-              book: book.toBook(),
+              book: book,
               incognito: incognito,
               readListContext: readListContext
             )
@@ -57,10 +67,11 @@ struct BookQueryItemView: View {
         )
       case .list:
         BookRowView(
-          komgaBook: book,
+          book: book,
+          downloadStatus: downloadStatus,
           onReadBook: { incognito in
             readerPresentation.present(
-              book: book.toBook(),
+              book: book,
               incognito: incognito,
               readListContext: readListContext
             )

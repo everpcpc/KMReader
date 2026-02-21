@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct OfflineView: View {
@@ -17,7 +17,7 @@ struct OfflineView: View {
   @AppStorage("offlineBrowseContent") private var offlineBrowseContent: BrowseContentType = .series
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  @Query private var instances: [KomgaInstance]
+  @FetchAll private var instances: [KomgaInstanceRecord]
 
   @State private var refreshTrigger = UUID()
   @State private var searchQuery: String = ""
@@ -31,7 +31,7 @@ struct OfflineView: View {
     InstanceInitializer.shared
   }
 
-  private var currentInstance: KomgaInstance? {
+  private var currentInstance: KomgaInstanceRecord? {
     guard let uuid = UUID(uuidString: current.instanceId) else { return nil }
     return instances.first { $0.id == uuid }
   }

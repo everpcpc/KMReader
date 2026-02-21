@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct OfflineBooksBrowseView: View {
@@ -12,8 +11,6 @@ struct OfflineBooksBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
-
-  @Environment(\.modelContext) private var modelContext
 
   @AppStorage("offlineBookBrowseOptions") private var storedBrowseOpts: BookBrowseOptions =
     Self.defaultBrowseOptions
@@ -90,7 +87,6 @@ struct OfflineBooksBrowseView: View {
       (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts
 
     await viewModel.loadBrowseBooks(
-      context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,

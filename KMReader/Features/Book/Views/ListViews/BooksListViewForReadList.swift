@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 // Books list view for read list
@@ -21,11 +21,10 @@ struct BooksListViewForReadList: View {
   @State private var selectedBookIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
-  @Environment(\.modelContext) private var modelContext
 
-  @Query private var readLists: [KomgaReadList]
+  @FetchAll private var readLists: [KomgaReadListRecord]
 
-  private var readList: KomgaReadList? {
+  private var readList: KomgaReadListRecord? {
     readLists.first
   }
 
@@ -43,8 +42,10 @@ struct BooksListViewForReadList: View {
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
 
-    let compositeId = CompositeID.generate(id: readListId)
-    _readLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _readLists = FetchAll(
+      KomgaReadListRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }
+    )
   }
 
   private var supportsSelectionMode: Bool {
@@ -159,7 +160,6 @@ struct BooksListViewForReadList: View {
 
   private func refreshBooks() async {
     await bookViewModel.loadReadListBooks(
-      context: modelContext,
       readListId: readListId,
       browseOpts: browseOpts,
       refresh: true

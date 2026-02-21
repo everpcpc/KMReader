@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 struct ReadListDetailView: View {
@@ -14,8 +14,8 @@ struct ReadListDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
 
-  // SwiftData query for reactive updates
-  @Query private var komgaReadLists: [KomgaReadList]
+  @FetchAll private var komgaReadLists: [KomgaReadListRecord]
+  @FetchAll private var readListLocalStateList: [KomgaReadListLocalStateRecord]
 
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -24,18 +24,25 @@ struct ReadListDetailView: View {
 
   init(readListId: String) {
     self.readListId = readListId
-    let compositeId = CompositeID.generate(id: readListId)
-    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _komgaReadLists = FetchAll(
+      KomgaReadListRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }.limit(1)
+    )
+    _readListLocalStateList = FetchAll(
+      KomgaReadListLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }.limit(1)
+    )
   }
 
-  /// The KomgaReadList from SwiftData (reactive).
-  private var komgaReadList: KomgaReadList? {
+  private var komgaReadList: KomgaReadListRecord? {
     komgaReadLists.first
   }
 
-  /// Convert to API ReadList type for compatibility with existing components.
   private var readList: ReadList? {
     komgaReadList?.toReadList()
+  }
+
+  private var readListLocalState: KomgaReadListLocalStateRecord? {
+    readListLocalStateList.first
   }
 
   private var navigationTitle: String {
@@ -58,7 +65,10 @@ struct ReadListDetailView: View {
 
             Divider()
             if let komgaReadList = komgaReadList {
-              ReadListDownloadActionsSection(komgaReadList: komgaReadList)
+              ReadListDownloadActionsSection(
+                readList: komgaReadList.toReadList(),
+                localState: readListLocalState
+              )
             }
             Divider()
           }
@@ -124,7 +134,6 @@ struct ReadListDetailView: View {
 extension ReadListDetailView {
   private func loadReadListDetails() async {
     do {
-      // Sync from network to SwiftData (readList property will update reactively)
       _ = try await SyncService.shared.syncReadList(id: readListId)
     } catch {
       if case APIError.notFound = error {

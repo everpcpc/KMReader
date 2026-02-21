@@ -3,15 +3,16 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// Wrapper view that accepts only readListId and uses @Query to fetch the read list reactively.
+/// Wrapper view that accepts only readListId and fetches the local record reactively.
 struct ReadListQueryItemView: View {
   let readListId: String
   var layout: BrowseLayoutMode = .grid
 
-  @Query private var komgaReadLists: [KomgaReadList]
+  @FetchAll private var readListRecords: [KomgaReadListRecord]
+  @FetchAll private var readListLocalStateList: [KomgaReadListLocalStateRecord]
 
   init(
     readListId: String,
@@ -20,24 +21,35 @@ struct ReadListQueryItemView: View {
     self.readListId = readListId
     self.layout = layout
 
-    let compositeId = CompositeID.generate(id: readListId)
-    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _readListRecords = FetchAll(
+      KomgaReadListRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }.limit(1)
+    )
+    _readListLocalStateList = FetchAll(
+      KomgaReadListLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }.limit(1)
+    )
   }
 
-  private var komgaReadList: KomgaReadList? {
-    komgaReadLists.first
+  private var readList: ReadList? {
+    readListRecords.first?.toReadList()
+  }
+
+  private var localState: KomgaReadListLocalStateRecord? {
+    readListLocalStateList.first
   }
 
   var body: some View {
-    if let readList = komgaReadList {
+    if let readList = readList {
       switch layout {
       case .grid:
         ReadListCardView(
-          komgaReadList: readList
+          readList: readList,
+          localState: localState
         )
       case .list:
         ReadListRowView(
-          komgaReadList: readList
+          readList: readList,
+          localState: localState
         )
       }
     } else {

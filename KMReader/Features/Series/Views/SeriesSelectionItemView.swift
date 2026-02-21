@@ -3,16 +3,17 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// View for series selection mode that accepts only seriesId and uses @Query to fetch the series.
+/// View for series selection mode that accepts only seriesId and reads the local record.
 struct SeriesSelectionItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
   @Binding var selectedSeriesIds: Set<String>
 
-  @Query private var komgaSeriesList: [KomgaSeries]
+  @FetchAll private var seriesRecords: [KomgaSeriesRecord]
+  @FetchAll private var seriesLocalStateList: [KomgaSeriesLocalStateRecord]
 
   init(
     seriesId: String,
@@ -24,12 +25,20 @@ struct SeriesSelectionItemView: View {
     self._selectedSeriesIds = selectedSeriesIds
 
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+    _seriesRecords = FetchAll(
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
+    )
+    _seriesLocalStateList = FetchAll(
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
+    )
   }
 
-  private var komgaSeries: KomgaSeries? {
-    komgaSeriesList.first
+  private var series: Series? {
+    seriesRecords.first?.toSeries()
+  }
+
+  private var localState: KomgaSeriesLocalStateRecord? {
+    seriesLocalStateList.first
   }
 
   private var isSelected: Bool {
@@ -37,16 +46,18 @@ struct SeriesSelectionItemView: View {
   }
 
   var body: some View {
-    if let series = komgaSeries {
+    if let series = series {
       Group {
         switch layout {
         case .grid:
           SeriesCardView(
-            komgaSeries: series
+            series: series,
+            localState: localState
           )
         case .list:
           SeriesRowView(
-            komgaSeries: series
+            series: series,
+            localState: localState
           )
         }
       }

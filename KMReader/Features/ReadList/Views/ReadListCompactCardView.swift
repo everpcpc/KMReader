@@ -6,25 +6,25 @@
 import SwiftUI
 
 struct ReadListCompactCardView: View {
-  @Bindable var komgaReadList: KomgaReadList
+  let readList: ReadList
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
+    NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
       HStack {
-        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 60)
+        ThumbnailImage(id: readList.id, type: .readlist, width: 60)
 
         VStack(alignment: .leading, spacing: 4) {
-          Text(komgaReadList.name)
+          Text(readList.name)
             .font(.callout)
             .fontWeight(.medium)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
-          Text("\(komgaReadList.bookIds.count) books")
+          Text("\(readList.bookIds.count) books")
             .font(.footnote)
             .foregroundColor(.secondary)
 
-          Text(komgaReadList.lastModifiedDate.formattedMediumDate)
+          Text(readList.lastModifiedDate.formattedMediumDate)
             .font(.caption)
             .foregroundColor(.secondary)
         }

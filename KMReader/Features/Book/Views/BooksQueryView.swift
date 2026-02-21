@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct BooksQueryView: View {
@@ -16,7 +15,6 @@ struct BooksQueryView: View {
   let offlineOnly: Bool
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -97,7 +95,6 @@ struct BooksQueryView: View {
   private func loadBooks(refresh: Bool) {
     Task {
       await viewModel.loadBrowseBooks(
-        context: modelContext,
         browseOpts: browseOpts,
         searchText: searchText,
         libraryIds: libraryIds,

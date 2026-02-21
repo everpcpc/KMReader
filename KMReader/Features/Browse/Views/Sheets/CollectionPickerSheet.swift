@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
 private struct CollectionItem: Identifiable {
@@ -22,7 +22,7 @@ struct CollectionPickerSheet: View {
   @State private var showCreateSheet = false
   @State private var isCreating = false
 
-  @Query private var komgaCollections: [KomgaCollection]
+  @FetchAll private var komgaCollections: [KomgaCollectionRecord]
 
   let seriesId: String
   let onSelect: (String) -> Void
@@ -35,13 +35,14 @@ struct CollectionPickerSheet: View {
     self.onSelect = onSelect
 
     let instanceId = AppConfig.current.instanceId
-    _komgaCollections = Query(
-      filter: #Predicate<KomgaCollection> { $0.instanceId == instanceId },
-      sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]
+    _komgaCollections = FetchAll(
+      KomgaCollectionRecord
+        .where { $0.instanceId.eq(instanceId) }
+        .order(by: \.name)
     )
   }
 
-  private var filteredCollections: [KomgaCollection] {
+  private var filteredCollections: [KomgaCollectionRecord] {
     if searchText.isEmpty {
       return Array(komgaCollections)
     }

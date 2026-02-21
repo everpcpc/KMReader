@@ -3,7 +3,8 @@
 //
 //
 
-import SwiftData
+import Dependencies
+import SQLiteData
 import SwiftUI
 
 struct LibraryListContent: View {
@@ -11,8 +12,9 @@ struct LibraryListContent: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)])
-  private var allLibraries: [KomgaLibrary]
+  @FetchAll(KomgaLibraryRecord.order(by: \.name))
+  private var allLibraries: [KomgaLibraryRecord]
+  @Dependency(\.defaultDatabase) private var database
 
   @State private var isLoading = false
   @State private var isLoadingMetrics = false
@@ -49,21 +51,21 @@ struct LibraryListContent: View {
     _selectedLibraryIds = State(initialValue: initialSelection)
   }
 
-  private var libraries: [KomgaLibrary] {
+  private var libraries: [KomgaLibraryRecord] {
     guard !current.instanceId.isEmpty else {
       return []
     }
     return allLibraries.filter {
-      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibraryRecord.allLibrariesId
     }
   }
 
-  private var allLibrariesEntry: KomgaLibrary? {
+  private var allLibrariesEntry: KomgaLibraryRecord? {
     guard !current.instanceId.isEmpty else {
       return nil
     }
     return allLibraries.first {
-      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibraryRecord.allLibrariesId
     }
   }
 
@@ -137,7 +139,7 @@ struct LibraryListContent: View {
               },
               onEdit: onEditLibrary != nil ? { onEditLibrary?(library.libraryId) } : nil,
               onDelete: onDeleteLibrary != nil
-                ? { onDeleteLibrary?(LibrarySelection(library: library)) } : nil
+                ? { onDeleteLibrary?(LibrarySelection(record: library)) } : nil
             )
           }
         }
@@ -192,13 +194,27 @@ struct LibraryListContent: View {
       libraryIds: libraryIds,
       ensureAllLibrariesEntry: hasAllEntry
     )
+    let updates = libraries.compactMap { library -> (UUID, LibraryMetricValues)? in
+      guard let metrics = metricsByLibrary[library.libraryId] else { return nil }
+      return (library.id, metrics)
+    }
 
-    for library in libraries {
-      guard let metrics = metricsByLibrary[library.libraryId] else { continue }
-      library.fileSize = metrics.fileSize
-      library.booksCount = metrics.booksCount
-      library.seriesCount = metrics.seriesCount
-      library.sidecarsCount = metrics.sidecarsCount
+    do {
+      try await database.write { db in
+        for (id, metrics) in updates {
+          try KomgaLibraryRecord
+            .find(id)
+            .update {
+              $0.fileSize = #bind(metrics.fileSize)
+              $0.booksCount = #bind(metrics.booksCount)
+              $0.seriesCount = #bind(metrics.seriesCount)
+              $0.sidecarsCount = #bind(metrics.sidecarsCount)
+            }
+            .execute(db)
+        }
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
     }
 
     isLoadingMetrics = false
@@ -303,7 +319,7 @@ struct LibraryListContent: View {
 
   // MARK: - Helper Functions
 
-  private func hasMetrics(_ library: KomgaLibrary) -> Bool {
+  private func hasMetrics(_ library: KomgaLibraryRecord) -> Bool {
     library.seriesCount != nil || library.booksCount != nil || library.fileSize != nil
       || library.sidecarsCount != nil
   }
@@ -319,14 +335,14 @@ struct LibraryListContent: View {
     return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .binary)
   }
 
-  private func hasAllLibrariesMetrics(_ entry: KomgaLibrary?) -> Bool {
+  private func hasAllLibrariesMetrics(_ entry: KomgaLibraryRecord?) -> Bool {
     guard let entry else { return false }
     return entry.seriesCount != nil || entry.booksCount != nil || entry.fileSize != nil
       || entry.sidecarsCount != nil || entry.collectionsCount != nil
       || entry.readlistsCount != nil
   }
 
-  private func allLibrariesMetricsView(_ entry: KomgaLibrary?) -> Text? {
+  private func allLibrariesMetricsView(_ entry: KomgaLibraryRecord?) -> Text? {
     guard let entry else { return nil }
     var lines: [Text] = []
 

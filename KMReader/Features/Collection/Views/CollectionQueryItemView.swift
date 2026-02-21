@@ -3,15 +3,15 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// Wrapper view that accepts only collectionId and uses @Query to fetch the collection reactively.
+/// Wrapper view that accepts only collectionId and fetches the local record reactively.
 struct CollectionQueryItemView: View {
   let collectionId: String
   var layout: BrowseLayoutMode = .grid
 
-  @Query private var komgaCollections: [KomgaCollection]
+  @FetchAll private var collectionRecords: [KomgaCollectionRecord]
 
   init(
     collectionId: String,
@@ -20,24 +20,26 @@ struct CollectionQueryItemView: View {
     self.collectionId = collectionId
     self.layout = layout
 
-    let compositeId = CompositeID.generate(id: collectionId)
-    _komgaCollections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _collectionRecords = FetchAll(
+      KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }.limit(1)
+    )
   }
 
-  private var komgaCollection: KomgaCollection? {
-    komgaCollections.first
+  private var collection: SeriesCollection? {
+    collectionRecords.first?.toCollection()
   }
 
   var body: some View {
-    if let collection = komgaCollection {
+    if let collection = collection {
       switch layout {
       case .grid:
         CollectionCardView(
-          komgaCollection: collection
+          collection: collection
         )
       case .list:
         CollectionRowView(
-          komgaCollection: collection
+          collection: collection
         )
       }
     } else {

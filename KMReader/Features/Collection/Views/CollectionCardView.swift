@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct CollectionCardView: View {
-  @Bindable var komgaCollection: KomgaCollection
+  let collection: SeriesCollection
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -20,11 +20,11 @@ struct CollectionCardView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
-        id: komgaCollection.collectionId,
+        id: collection.id,
         type: .collection,
         shadowStyle: .platform,
         alignment: .bottom,
-        navigationLink: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId),
+        navigationLink: NavDestination.collectionDetail(collectionId: collection.id),
         preserveAspectRatioOverride: cardTextOverlayMode ? false : nil
       ) {
         if cardTextOverlayMode {
@@ -34,8 +34,8 @@ struct CollectionCardView: View {
         }
       } menu: {
         CollectionContextMenu(
-          collectionId: komgaCollection.collectionId,
-          menuTitle: komgaCollection.name,
+          collectionId: collection.id,
+          menuTitle: collection.name,
           onDeleteRequested: {
             showDeleteConfirmation = true
           },
@@ -47,11 +47,11 @@ struct CollectionCardView: View {
 
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
-          Text(komgaCollection.name)
+          Text(collection.name)
             .lineLimit(1)
 
           HStack(spacing: 4) {
-            Text("\(komgaCollection.seriesIds.count) series")
+            Text("\(collection.seriesIds.count) series")
             Spacer()
           }.foregroundColor(.secondary)
         }.font(.footnote)
@@ -68,15 +68,15 @@ struct CollectionCardView: View {
       Text("Are you sure you want to delete this collection? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      CollectionEditSheet(collection: komgaCollection.toCollection())
+      CollectionEditSheet(collection: collection)
     }
   }
 
   @ViewBuilder
   private var overlayTextContent: some View {
-    CardOverlayTextStack(title: komgaCollection.name) {
+    CardOverlayTextStack(title: collection.name) {
       HStack(spacing: 4) {
-        Text("\(komgaCollection.seriesIds.count) series")
+        Text("\(collection.seriesIds.count) series")
         Spacer()
       }
     }
@@ -86,7 +86,7 @@ struct CollectionCardView: View {
     Task {
       do {
         try await CollectionService.shared.deleteCollection(
-          collectionId: komgaCollection.collectionId)
+          collectionId: collection.id)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
       } catch {
         ErrorManager.shared.alert(error: error)

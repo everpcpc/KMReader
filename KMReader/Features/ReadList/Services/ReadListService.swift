@@ -125,7 +125,6 @@ class ReadListService {
     // Delete from local SwiftData
     let instanceId = AppConfig.current.instanceId
     await DatabaseOperator.shared.deleteReadList(id: readListId, instanceId: instanceId)
-    await DatabaseOperator.shared.commit()
   }
 
   func removeBooksFromReadList(readListId: String, bookIds: [String]) async throws {

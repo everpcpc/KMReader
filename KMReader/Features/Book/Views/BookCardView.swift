@@ -3,11 +3,11 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct BookCardView: View {
-  @Bindable var komgaBook: KomgaBook
+  let book: Book
+  let downloadStatus: DownloadStatus
   var onReadBook: ((Bool) -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
@@ -22,29 +22,29 @@ struct BookCardView: View {
   @State private var showEditSheet = false
 
   private var progress: Double {
-    guard let progressPage = komgaBook.progressPage else { return 0 }
-    guard komgaBook.mediaPagesCount > 0 else { return 0 }
-    return Double(progressPage) / Double(komgaBook.mediaPagesCount)
+    guard let progressPage = book.readProgress?.page else { return 0 }
+    guard book.media.pagesCount > 0 else { return 0 }
+    return Double(progressPage) / Double(book.media.pagesCount)
   }
 
   private var isInProgress: Bool {
-    guard let progressCompleted = komgaBook.progressCompleted else { return false }
+    guard let progressCompleted = book.readProgress?.completed else { return false }
     return !progressCompleted
   }
 
   var shouldShowSeriesTitle: Bool {
-    return showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
+    return showSeriesTitle && showBookCardSeriesTitle && !book.seriesTitle.isEmpty
   }
 
   var bookTitleLine: String {
-    if komgaBook.oneshot {
-      return komgaBook.metaTitle
+    if book.oneshot {
+      return book.metadata.title
     }
-    return String("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+    return String("\(book.metadata.number) - \(book.metadata.title)")
   }
 
   var bookTitleLineLimit: Int {
-    (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
+    (shouldShowSeriesTitle || book.oneshot) ? 1 : 2
   }
 
   var contentSpacing: CGFloat {
@@ -60,7 +60,7 @@ struct BookCardView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
-        id: komgaBook.bookId,
+        id: book.id,
         type: .book,
         shadowStyle: .platform,
         alignment: .bottom,
@@ -74,15 +74,15 @@ struct BookCardView: View {
             }
           }
 
-          if komgaBook.progressCompleted == nil && thumbnailShowUnreadIndicator {
+          if book.readProgress == nil && thumbnailShowUnreadIndicator {
             UnreadIndicator()
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
       } menu: {
         BookContextMenu(
-          book: komgaBook.toBook(),
-          downloadStatus: komgaBook.downloadStatus,
+          book: book,
+          downloadStatus: downloadStatus,
           onReadBook: onReadBook,
           onShowReadListPicker: {
             showReadListPicker = true
@@ -104,13 +104,13 @@ struct BookCardView: View {
 
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
-          if komgaBook.oneshot {
+          if book.oneshot {
             Text("Oneshot")
               .font(.caption)
               .foregroundColor(.blue)
               .lineLimit(1)
           } else if shouldShowSeriesTitle {
-            Text(komgaBook.seriesTitle)
+            Text(book.seriesTitle)
               .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(1)
@@ -120,12 +120,12 @@ struct BookCardView: View {
             .lineLimit(bookTitleLineLimit)
 
           HStack(spacing: 4) {
-            if komgaBook.isUnavailable {
+            if book.deleted {
               Text("Unavailable")
                 .foregroundColor(.red)
-            } else if komgaBook.media.status != .ready {
-              Text(komgaBook.media.status.label)
-                .foregroundColor(komgaBook.media.status.color)
+            } else if book.media.status != .ready {
+              Text(book.media.status.label)
+                .foregroundColor(book.media.status.color)
             } else {
               if progress > 0 && progress < 1 {
                 Text("\(progress * 100, specifier: "%.0f")%")
@@ -136,13 +136,13 @@ struct BookCardView: View {
                   .foregroundColor(.secondary)
                   .font(.caption2)
               }
-              Text("\(komgaBook.mediaPagesCount) pages")
+              Text("\(book.media.pagesCount) pages")
                 .lineLimit(1)
             }
-            if komgaBook.downloadStatus != .notDownloaded {
+            if downloadStatus != .notDownloaded {
               Spacer()
-              Image(systemName: komgaBook.downloadStatus.displayIcon)
-                .foregroundColor(komgaBook.downloadStatus.displayColor)
+              Image(systemName: downloadStatus.displayIcon)
+                .foregroundColor(downloadStatus.displayColor)
                 .font(.caption2)
             }
           }
@@ -162,14 +162,14 @@ struct BookCardView: View {
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
-        bookId: komgaBook.bookId,
+        bookId: book.id,
         onSelect: { readListId in
           addToReadList(readListId: readListId)
         }
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      BookEditSheet(book: komgaBook.toBook())
+      BookEditSheet(book: book)
     }
 
   }
@@ -177,22 +177,22 @@ struct BookCardView: View {
   @ViewBuilder
   private var overlayTextContent: some View {
     let style = CardOverlayTextStyle.standard
-    let showDownloadIcon = komgaBook.downloadStatus != .notDownloaded
+    let showDownloadIcon = downloadStatus != .notDownloaded
     let showProgressBar = isInProgress && thumbnailShowProgressBar
 
     CardOverlayTextStack(
       title: bookTitleLine,
-      subtitle: (shouldShowSeriesTitle && !komgaBook.oneshot) ? komgaBook.seriesTitle : nil,
+      subtitle: (shouldShowSeriesTitle && !book.oneshot) ? book.seriesTitle : nil,
       titleLineLimit: bookTitleLineLimit,
       style: style
     ) {
       HStack(spacing: 4) {
-        if komgaBook.isUnavailable {
+        if book.deleted {
           Text("Unavailable")
             .foregroundColor(.red)
-        } else if komgaBook.media.status != .ready {
-          Text(komgaBook.media.status.label)
-            .foregroundColor(komgaBook.media.status.color)
+        } else if book.media.status != .ready {
+          Text(book.media.status.label)
+            .foregroundColor(book.media.status.color)
         } else {
           if progress > 0 && progress < 1 {
             Text("\(progress * 100, specifier: "%.0f")%")
@@ -203,13 +203,13 @@ struct BookCardView: View {
               .foregroundColor(style.secondaryColor)
               .font(.caption2)
           }
-          Text("\(komgaBook.mediaPagesCount) pages")
+          Text("\(book.media.pagesCount) pages")
             .lineLimit(1)
         }
         if showDownloadIcon && !showProgressBar {
           Spacer()
-          Image(systemName: komgaBook.downloadStatus.displayIcon)
-            .foregroundColor(komgaBook.downloadStatus.displayColor)
+          Image(systemName: downloadStatus.displayIcon)
+            .foregroundColor(downloadStatus.displayColor)
             .font(.caption2)
         }
       }
@@ -220,8 +220,8 @@ struct BookCardView: View {
             .padding(.top, 2)
             .layoutPriority(1)
           if showDownloadIcon {
-            Image(systemName: komgaBook.downloadStatus.displayIcon)
-              .foregroundColor(komgaBook.downloadStatus.displayColor)
+            Image(systemName: downloadStatus.displayIcon)
+              .foregroundColor(downloadStatus.displayColor)
               .font(.caption2)
           }
         }
@@ -234,7 +234,7 @@ struct BookCardView: View {
       do {
         try await ReadListService.shared.addBooksToReadList(
           readListId: readListId,
-          bookIds: [komgaBook.bookId]
+          bookIds: [book.id]
         )
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.booksAddedToReadList"))
@@ -247,8 +247,8 @@ struct BookCardView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.shared.deleteBook(bookId: komgaBook.bookId)
-        await CacheManager.clearCache(forBookId: komgaBook.bookId)
+        try await BookService.shared.deleteBook(bookId: book.id)
+        await CacheManager.clearCache(forBookId: book.id)
         ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
       } catch {
         ErrorManager.shared.alert(error: error)

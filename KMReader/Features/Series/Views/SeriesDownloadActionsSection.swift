@@ -3,24 +3,25 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SeriesDownloadActionsSection: View {
-  @Bindable var komgaSeries: KomgaSeries
+  let series: Series
+  let localState: KomgaSeriesLocalStateRecord?
 
   @AppStorage("currentAccount") private var current: Current = .init()
 
-  private var series: Series {
-    komgaSeries.toSeries()
-  }
-
   private var status: SeriesDownloadStatus {
-    komgaSeries.downloadStatus
+    (localState ?? .empty(instanceId: AppConfig.current.instanceId, seriesId: series.id))
+      .downloadStatus(totalBooks: series.booksCount)
   }
 
   private var policy: SeriesOfflinePolicy {
-    komgaSeries.offlinePolicy
+    localState?.offlinePolicy ?? .manual
+  }
+
+  private var policyLimit: Int {
+    localState?.offlinePolicyLimit ?? 0
   }
 
   private var limitPresets: [Int] {
@@ -28,7 +29,7 @@ struct SeriesDownloadActionsSection: View {
   }
 
   private var policyLabel: Text {
-    Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: komgaSeries.offlinePolicyLimit))
+    Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: policyLimit))
   }
 
   private var actions: [SeriesDownloadAction] {
@@ -189,7 +190,6 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.updateSeriesOfflinePolicy(
         seriesId: series.id, instanceId: current.instanceId, policy: newPolicy
       )
-      await DatabaseOperator.shared.commit()
     }
   }
 
@@ -202,13 +202,12 @@ struct SeriesDownloadActionsSection: View {
         policy: newPolicy,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
     }
   }
 
   @ViewBuilder
   private func offlinePolicyLabel(_ value: SeriesOfflinePolicy) -> some View {
-    let title = value.title(limit: komgaSeries.offlinePolicyLimit)
+    let title = value.title(limit: policyLimit)
     if value == policy {
       Label(title, systemImage: "checkmark")
     } else {
@@ -219,7 +218,7 @@ struct SeriesDownloadActionsSection: View {
   @ViewBuilder
   private func limitOptionLabel(policy: SeriesOfflinePolicy, limit: Int) -> some View {
     let title = SeriesOfflinePolicy.limitTitle(limit)
-    if komgaSeries.offlinePolicy == policy && komgaSeries.offlinePolicyLimit == limit {
+    if self.policy == policy && policyLimit == limit {
       Label(title, systemImage: "checkmark")
     } else {
       Text(title)
@@ -231,7 +230,7 @@ struct SeriesDownloadActionsSection: View {
     case .download:
       downloadAll()
     case .downloadUnread:
-      let limit = pendingUnreadLimit ?? komgaSeries.offlinePolicyLimit
+      let limit = pendingUnreadLimit ?? policyLimit
       pendingUnreadLimit = nil
       downloadUnread(limit: limit)
     case .removeRead:
@@ -248,7 +247,6 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.downloadSeriesOffline(
         seriesId: series.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -263,7 +261,6 @@ struct SeriesDownloadActionsSection: View {
         instanceId: current.instanceId,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -276,7 +273,6 @@ struct SeriesDownloadActionsSection: View {
         seriesId: series.id,
         instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
@@ -299,7 +295,6 @@ struct SeriesDownloadActionsSection: View {
       await DatabaseOperator.shared.removeSeriesOffline(
         seriesId: series.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )

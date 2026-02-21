@@ -129,7 +129,6 @@ struct ReadListContextMenu: View {
       await DatabaseOperator.shared.downloadReadListOffline(
         readListId: readListId, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -144,7 +143,6 @@ struct ReadListContextMenu: View {
         instanceId: current.instanceId,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -157,7 +155,6 @@ struct ReadListContextMenu: View {
         readListId: readListId,
         instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
@@ -169,7 +166,6 @@ struct ReadListContextMenu: View {
       await DatabaseOperator.shared.removeReadListOffline(
         readListId: readListId, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )

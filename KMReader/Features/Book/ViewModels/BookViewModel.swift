@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -17,7 +16,6 @@ class BookViewModel {
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
 
   func loadSeriesBooks(
-    context: ModelContext,
     seriesId: String,
     browseOpts: BookBrowseOptions,
     refresh: Bool = true
@@ -41,7 +39,6 @@ class BookViewModel {
 
     if AppConfig.isOffline {
       let books = KomgaBookStore.fetchSeriesBooks(
-        context: context,
         seriesId: seriesId,
         page: pagination.currentPage,
         size: pagination.pageSize,
@@ -77,10 +74,10 @@ class BookViewModel {
     pagination.advance(moreAvailable: moreAvailable)
   }
 
-  func loadBook(context: ModelContext, id: String) async {
+  func loadBook(id: String) async {
     isLoading = true
 
-    if let cached = KomgaBookStore.fetchBook(context: context, id: id) {
+    if let cached = KomgaBookStore.fetchBook(id: id) {
       currentBook = cached
     }
 
@@ -132,7 +129,6 @@ class BookViewModel {
   }
 
   func loadBrowseBooks(
-    context: ModelContext,
     browseOpts: BookBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
@@ -159,7 +155,6 @@ class BookViewModel {
 
     if AppConfig.isOffline || useLocalOnly {
       let ids = KomgaBookStore.fetchBookIds(
-        context: context,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
@@ -202,7 +197,6 @@ class BookViewModel {
   }
 
   func loadReadListBooks(
-    context: ModelContext,
     readListId: String,
     browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil,
@@ -229,7 +223,6 @@ class BookViewModel {
 
     if AppConfig.isOffline {
       let books = KomgaBookStore.fetchReadListBooks(
-        context: context,
         readListId: readListId,
         page: pagination.currentPage,
         size: pagination.pageSize,

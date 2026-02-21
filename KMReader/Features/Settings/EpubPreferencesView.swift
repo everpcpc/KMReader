@@ -5,8 +5,9 @@
 
 #if os(iOS)
   import CoreText
+  import Dependencies
   import Foundation
-  import SwiftData
+  import SQLiteData
   import SwiftUI
   import UIKit
   import WebKit
@@ -30,9 +31,9 @@
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
-    @Environment(\.modelContext) private var modelContext
+    @Dependency(\.defaultDatabase) private var database
 
-    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
+    @FetchAll(CustomFontRecord.order(by: \.name)) private var customFonts: [CustomFontRecord]
 
     init(
       inSheet: Bool = false,
@@ -413,12 +414,23 @@
       let trimmed = newPresetName.trimmingCharacters(in: .whitespaces)
       guard !trimmed.isEmpty else { return }
 
-      let preset = EpubThemePreset.create(
-        name: trimmed,
-        preferences: draft
-      )
-      modelContext.insert(preset)
-      try? modelContext.save()
+      do {
+        try database.write { db in
+          try EpubThemePresetRecord.insert {
+            EpubThemePresetRecord.Draft(
+              id: UUID(),
+              name: trimmed,
+              preferencesJSON: draft.rawValue,
+              createdAt: Date(),
+              updatedAt: Date()
+            )
+          }
+          .execute(db)
+        }
+      } catch {
+        ErrorManager.shared.alert(message: "Failed to save preset: \(error.localizedDescription)")
+        return
+      }
 
       ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
       newPresetName = ""
@@ -431,7 +443,6 @@
             bookId: bookId,
             preferences: draft
           )
-          await DatabaseOperator.shared.commit()
         }
         onPreferencesSaved?(draft)
         dismiss()
@@ -449,7 +460,6 @@
           bookId: bookId,
           preferences: nil
         )
-        await DatabaseOperator.shared.commit()
       }
       onPreferencesCleared?()
       ErrorManager.shared.notify(message: String(localized: "Reset to Global"))
@@ -460,7 +470,7 @@
   struct EpubPreviewView: View {
     let preferences: EpubReaderPreferences
     @Environment(\.colorScheme) var colorScheme
-    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
+    @FetchAll(CustomFontRecord.order(by: \.name)) private var customFonts: [CustomFontRecord]
 
     private var customFontPath: String? {
       guard case .system(let fontName) = preferences.fontFamily else { return nil }

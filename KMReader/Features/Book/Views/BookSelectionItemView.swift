@@ -3,10 +3,10 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// View for book selection mode that accepts only bookId and uses @Query to fetch the book.
+/// View for book selection mode that accepts only bookId and reads the local record.
 struct BookSelectionItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
@@ -14,7 +14,8 @@ struct BookSelectionItemView: View {
   let refreshBooks: () -> Void
   var showSeriesTitle: Bool = true
 
-  @Query private var komgaBooks: [KomgaBook]
+  @FetchAll private var bookRecords: [KomgaBookRecord]
+  @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
 
   init(
     bookId: String,
@@ -30,12 +31,20 @@ struct BookSelectionItemView: View {
     self.showSeriesTitle = showSeriesTitle
 
     let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
+    _bookRecords = FetchAll(
+      KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }.limit(1)
+    )
+    _bookLocalStateList = FetchAll(
+      KomgaBookLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }.limit(1)
+    )
   }
 
-  private var komgaBook: KomgaBook? {
-    komgaBooks.first
+  private var book: Book? {
+    bookRecords.first?.toBook()
+  }
+
+  private var downloadStatus: DownloadStatus {
+    bookLocalStateList.first?.downloadStatus ?? .notDownloaded
   }
 
   private var isSelected: Bool {
@@ -43,18 +52,20 @@ struct BookSelectionItemView: View {
   }
 
   var body: some View {
-    if let book = komgaBook {
+    if let book = book {
       Group {
         switch layout {
         case .grid:
           BookCardView(
-            komgaBook: book,
+            book: book,
+            downloadStatus: downloadStatus,
             onReadBook: { _ in },
             showSeriesTitle: showSeriesTitle
           )
         case .list:
           BookRowView(
-            komgaBook: book,
+            book: book,
+            downloadStatus: downloadStatus,
             onReadBook: { _ in },
             showSeriesTitle: showSeriesTitle
           )

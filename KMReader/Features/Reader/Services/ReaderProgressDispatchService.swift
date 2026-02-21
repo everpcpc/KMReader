@@ -571,7 +571,6 @@ actor ReaderProgressDispatchService {
       page: update.page,
       completed: update.completed
     )
-    await DatabaseOperator.shared.commit()
     logger.debug(
       "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
@@ -655,7 +654,6 @@ actor ReaderProgressDispatchService {
         bookId: update.bookId,
         progression: update.progression
       )
-      await DatabaseOperator.shared.commit()
     } catch let apiError as APIError {
       if case .badRequest(let message, _, _, _) = apiError,
         message.lowercased().contains("epub extension not found")

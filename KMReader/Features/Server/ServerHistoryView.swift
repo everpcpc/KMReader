@@ -3,12 +3,13 @@
 //
 //
 
-import SwiftData
+import Dependencies
+import SQLiteData
 import SwiftUI
 
 struct ServerHistoryView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
-  @Environment(\.modelContext) private var modelContext
+  @Dependency(\.defaultDatabase) private var database
 
   @State private var pagination = PaginationState<HistoricalEvent>(pageSize: 20)
   @State private var isLoading = false
@@ -262,12 +263,15 @@ struct ServerHistoryView: View {
     if !bookIds.isEmpty {
       let idsToFetch = Array(bookIds.subtracting(bookNameById.keys))
       if !idsToFetch.isEmpty {
-        let descriptor = FetchDescriptor<KomgaBook>(
-          predicate: #Predicate { book in
-            book.instanceId == instanceId && idsToFetch.contains(book.bookId)
-          }
-        )
-        if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
+        let results =
+          (try? await database.read { db in
+            try KomgaBookRecord
+              .where { book in
+                book.instanceId.eq(instanceId) && book.bookId.in(idsToFetch)
+              }
+              .fetchAll(db)
+          }) ?? []
+        if !results.isEmpty {
           hasLocalMatches = true
           for book in results {
             bookNameById[book.bookId] = book.metaTitle
@@ -281,12 +285,15 @@ struct ServerHistoryView: View {
     if !seriesIds.isEmpty {
       let idsToFetch = Array(seriesIds.subtracting(seriesNameById.keys))
       if !idsToFetch.isEmpty {
-        let descriptor = FetchDescriptor<KomgaSeries>(
-          predicate: #Predicate { series in
-            series.instanceId == instanceId && idsToFetch.contains(series.seriesId)
-          }
-        )
-        if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
+        let results =
+          (try? await database.read { db in
+            try KomgaSeriesRecord
+              .where { series in
+                series.instanceId.eq(instanceId) && series.seriesId.in(idsToFetch)
+              }
+              .fetchAll(db)
+          }) ?? []
+        if !results.isEmpty {
           hasLocalMatches = true
           for series in results {
             seriesNameById[series.seriesId] = series.metaTitle
@@ -298,34 +305,42 @@ struct ServerHistoryView: View {
     }
 
     if hasLocalMatches == false && (!bookIds.isEmpty || !seriesIds.isEmpty) {
-      hasLocalMatches =
-        containsLocalMatches(bookIds: Array(bookIds), seriesIds: Array(seriesIds))
+      hasLocalMatches = await containsLocalMatches(
+        bookIds: Array(bookIds),
+        seriesIds: Array(seriesIds)
+      )
     }
 
   }
 
   @MainActor
-  private func containsLocalMatches(bookIds: [String], seriesIds: [String]) -> Bool {
+  private func containsLocalMatches(bookIds: [String], seriesIds: [String]) async -> Bool {
     let instanceId = AppConfig.current.instanceId
 
     if !bookIds.isEmpty {
-      let descriptor = FetchDescriptor<KomgaBook>(
-        predicate: #Predicate { book in
-          book.instanceId == instanceId && bookIds.contains(book.bookId)
-        }
-      )
-      if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
+      let hasBookMatch =
+        (try? await database.read { db in
+          try KomgaBookRecord
+            .where { book in
+              book.instanceId.eq(instanceId) && book.bookId.in(bookIds)
+            }
+            .fetchCount(db)
+        }) ?? 0
+      if hasBookMatch > 0 {
         return true
       }
     }
 
     if !seriesIds.isEmpty {
-      let descriptor = FetchDescriptor<KomgaSeries>(
-        predicate: #Predicate { series in
-          series.instanceId == instanceId && seriesIds.contains(series.seriesId)
-        }
-      )
-      if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
+      let hasSeriesMatch =
+        (try? await database.read { db in
+          try KomgaSeriesRecord
+            .where { series in
+              series.instanceId.eq(instanceId) && series.seriesId.in(seriesIds)
+            }
+            .fetchCount(db)
+        }) ?? 0
+      if hasSeriesMatch > 0 {
         return true
       }
     }
@@ -351,26 +366,21 @@ struct ServerHistoryView: View {
         .filter { !$0.isEmpty }
     )
 
-    do {
-      for bookId in bookIds {
-        await DatabaseOperator.shared.deleteBook(id: bookId, instanceId: instanceId)
-      }
-      for seriesId in seriesIds {
-        await DatabaseOperator.shared.deleteSeries(id: seriesId, instanceId: instanceId)
-      }
-      try await DatabaseOperator.shared.commitImmediately()
-
-      for bookId in bookIds {
-        bookNameById.removeValue(forKey: bookId)
-      }
-      for seriesId in seriesIds {
-        seriesNameById.removeValue(forKey: seriesId)
-      }
-
-      await updateLocalReferences(for: pagination.items)
-    } catch {
-      ErrorManager.shared.alert(error: error)
+    for bookId in bookIds {
+      await DatabaseOperator.shared.deleteBook(id: bookId, instanceId: instanceId)
     }
+    for seriesId in seriesIds {
+      await DatabaseOperator.shared.deleteSeries(id: seriesId, instanceId: instanceId)
+    }
+
+    for bookId in bookIds {
+      bookNameById.removeValue(forKey: bookId)
+    }
+    for seriesId in seriesIds {
+      seriesNameById.removeValue(forKey: seriesId)
+    }
+
+    await updateLocalReferences(for: pagination.items)
 
     let removedBooks = bookIds.count
     let removedSeries = seriesIds.count

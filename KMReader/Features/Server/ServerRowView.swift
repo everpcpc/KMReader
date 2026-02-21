@@ -3,11 +3,10 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ServerRowView: View {
-  @Bindable var instance: KomgaInstance
+  let instance: KomgaInstanceRecord
   @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.colorScheme) private var colorScheme
   @AppStorage("currentAccount") private var current: Current = .init()

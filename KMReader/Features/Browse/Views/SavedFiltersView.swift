@@ -3,16 +3,17 @@
 //
 //
 
-import SwiftData
+import Dependencies
+import SQLiteData
 import SwiftUI
 
 struct SavedFiltersView: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: \SavedFilter.updatedAt, order: .reverse) private var savedFilters: [SavedFilter]
+  @Dependency(\.defaultDatabase) private var database
+  @FetchAll(SavedFilterRecord.order { $0.updatedAt.desc() }) private var savedFilters: [SavedFilterRecord]
 
   let filterType: SavedFilterType
-  @State private var filterToRename: SavedFilter?
+  @State private var filterToRename: SavedFilterRecord?
   @State private var newName: String = ""
 
   var body: some View {
@@ -62,7 +63,7 @@ struct SavedFiltersView: View {
   }
 
   @ViewBuilder
-  private func filterRow(_ filter: SavedFilter) -> some View {
+  private func filterRow(_ filter: SavedFilterRecord) -> some View {
     HStack {
       VStack(alignment: .leading, spacing: 4) {
         Text(filter.name)
@@ -125,45 +126,61 @@ struct SavedFiltersView: View {
     }
   }
 
-  private func applyFilterDirectly(_ filter: SavedFilter) {
+  private func applyFilterDirectly(_ filter: SavedFilterRecord) {
     switch filter.filterType {
     case .series:
-      if let options = filter.getSeriesBrowseOptions() {
+      if let options = filter.seriesOptions() {
         AppConfig.seriesBrowseOptions = options.rawValue
       }
     case .books:
-      if let options = filter.getBookBrowseOptions() {
+      if let options = filter.bookOptions() {
         AppConfig.bookBrowseOptions = options.rawValue
       }
     case .collectionSeries:
-      if let options = filter.getCollectionSeriesBrowseOptions() {
+      if let options = filter.collectionOptions() {
         AppConfig.collectionSeriesBrowseOptions = options.rawValue
       }
     case .readListBooks:
-      if let options = filter.getReadListBookBrowseOptions() {
+      if let options = filter.readListOptions() {
         AppConfig.readListBookBrowseOptions = options.rawValue
       }
     case .seriesBooks:
-      if let options = filter.getBookBrowseOptions() {
+      if let options = filter.bookOptions() {
         AppConfig.seriesBookBrowseOptions = options.rawValue
       }
     }
   }
 
-  private func deleteFilter(_ filter: SavedFilter) {
-    modelContext.delete(filter)
-    try? modelContext.save()
+  private func deleteFilter(_ filter: SavedFilterRecord) {
+    do {
+      try database.write { db in
+        try SavedFilterRecord.find(filter.id).delete().execute(db)
+      }
+    } catch {
+      ErrorManager.shared.alert(message: "Failed to delete filter: \(error.localizedDescription)")
+    }
   }
 
-  private func renameFilter(_ filter: SavedFilter, to newName: String) {
+  private func renameFilter(_ filter: SavedFilterRecord, to newName: String) {
     let trimmed = newName.trimmingCharacters(in: .whitespaces)
     guard !trimmed.isEmpty else { return }
+    let now = Date()
 
-    filter.name = trimmed
-    filter.updatedAt = Date()
-    try? modelContext.save()
+    do {
+      try database.write { db in
+        try SavedFilterRecord
+          .find(filter.id)
+          .update {
+            $0.name = #bind(trimmed)
+            $0.updatedAt = #bind(now)
+          }
+          .execute(db)
+      }
 
-    filterToRename = nil
-    self.newName = ""
+      filterToRename = nil
+      self.newName = ""
+    } catch {
+      ErrorManager.shared.alert(message: "Failed to rename filter: \(error.localizedDescription)")
+    }
   }
 }

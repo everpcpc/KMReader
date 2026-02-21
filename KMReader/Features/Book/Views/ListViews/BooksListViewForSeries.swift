@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 // Books list view for series detail
@@ -16,7 +15,6 @@ struct BooksListViewForSeries: View {
   @AppStorage("seriesDetailLayout") private var layoutMode: BrowseLayoutMode = .list
   @AppStorage("seriesBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
-  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -66,7 +64,6 @@ struct BooksListViewForSeries: View {
 
   private func refreshBooks(refresh: Bool) async {
     await bookViewModel.loadSeriesBooks(
-      context: modelContext,
       seriesId: seriesId,
       browseOpts: browseOpts,
       refresh: refresh

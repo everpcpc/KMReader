@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 enum DashboardRefreshSource {
@@ -26,7 +25,6 @@ struct DashboardSectionView: View {
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
   @Environment(DashboardSectionCacheStore.self) private var sectionCacheStore
-  @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
   @Environment(ReaderPresentationManager.self) private var readerPresentation
 
@@ -218,14 +216,12 @@ struct DashboardSectionView: View {
       let ids: [String]
       if section.isBookSection {
         ids = section.fetchOfflineBookIds(
-          context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
       } else {
         ids = section.fetchOfflineSeriesIds(
-          context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize

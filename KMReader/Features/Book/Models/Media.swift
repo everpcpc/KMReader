@@ -117,7 +117,7 @@ nonisolated struct Media: Equatable, Hashable, Sendable {
   }
 }
 
-extension Media: Codable {
+nonisolated extension Media: Codable {
   enum CodingKeys: String, CodingKey {
     case statusRaw = "status"
     case mediaType

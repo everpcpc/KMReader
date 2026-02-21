@@ -5,7 +5,8 @@
 
 #if os(iOS)
   import CoreText
-  import SwiftData
+  import Dependencies
+  import SQLiteData
   import SwiftUI
   import UIKit
   import UniformTypeIdentifiers
@@ -17,8 +18,8 @@
     @State private var showFontPicker: Bool = false
     @State private var showDocumentPicker: Bool = false
 
-    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
-    @Environment(\.modelContext) private var modelContext
+    @FetchAll(CustomFontRecord.order(by: \.name)) private var customFonts: [CustomFontRecord]
+    @Dependency(\.defaultDatabase) private var database
 
     var body: some View {
       SheetView(title: String(localized: "Custom Fonts"), size: .large, applyFormStyle: true) {
@@ -171,10 +172,8 @@
 
       // Add font to custom fonts list (even if it's in system fonts,
       // because it might be a profile-installed font that we want to ensure is available)
-      let customFont = CustomFont(name: familyName)
-      modelContext.insert(customFont)
       do {
-        try modelContext.save()
+        try insertCustomFont(name: familyName)
       } catch {
         showFontInputError = true
         fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
@@ -273,11 +272,13 @@
       }
 
       // Add font to custom fonts list with relative path, fileName, and fileSize
-      let customFont = CustomFont(
-        name: actualFontName, path: relativePath, fileName: fileName, fileSize: fileSize)
-      modelContext.insert(customFont)
       do {
-        try modelContext.save()
+        try insertCustomFont(
+          name: actualFontName,
+          path: relativePath,
+          fileName: fileName,
+          fileSize: fileSize
+        )
       } catch {
         showFontInputError = true
         fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
@@ -324,10 +325,8 @@
       }
 
       // Add font to custom fonts list
-      let customFont = CustomFont(name: fontName)
-      modelContext.insert(customFont)
       do {
-        try modelContext.save()
+        try insertCustomFont(name: fontName)
       } catch {
         showFontInputError = true
         fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
@@ -343,15 +342,16 @@
       FontProvider.refresh()
     }
 
-    private func removeCustomFont(_ font: CustomFont) {
+    private func removeCustomFont(_ font: CustomFontRecord) {
       // If this is an imported font, clean up the file
       if let relativePath = font.path {
         FontFileManager.deleteFont(at: relativePath)
       }
 
-      modelContext.delete(font)
       do {
-        try modelContext.save()
+        try database.write { db in
+          try CustomFontRecord.find(font.id).delete().execute(db)
+        }
       } catch {
         showFontInputError = true
         fontInputErrorMessage = "Failed to delete font: \(error.localizedDescription)"
@@ -360,6 +360,27 @@
 
       // Refresh font provider
       FontProvider.refresh()
+    }
+
+    private func insertCustomFont(
+      name: String,
+      path: String? = nil,
+      fileName: String? = nil,
+      fileSize: Int64? = nil
+    ) throws {
+      try database.write { db in
+        try CustomFontRecord.insert {
+          CustomFontRecord.Draft(
+            id: UUID(),
+            name: name,
+            path: path,
+            fileName: fileName,
+            fileSize: fileSize,
+            createdAt: Date()
+          )
+        }
+        .execute(db)
+      }
     }
 
     private func isFontAvailable(_ fontName: String) -> Bool {

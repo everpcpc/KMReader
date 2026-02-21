@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct BookMetadata: Codable, Equatable, Hashable, Sendable {
+nonisolated struct BookMetadata: Codable, Equatable, Hashable, Sendable {
   let created: String?
   let lastModified: String?
   let title: String

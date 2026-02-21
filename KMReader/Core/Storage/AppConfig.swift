@@ -233,6 +233,15 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var sqliteImportedFromSwiftDataV1: Bool {
+    get {
+      UserDefaults.standard.bool(forKey: "sqliteImportedFromSwiftDataV1")
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "sqliteImportedFromSwiftDataV1")
+    }
+  }
+
   // MARK: - Appearance
   static nonisolated var themeColor: ThemeColor {
     get {

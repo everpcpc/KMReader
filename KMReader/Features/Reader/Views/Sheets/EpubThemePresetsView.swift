@@ -3,17 +3,18 @@
 //
 //
 
-import SwiftData
+import Dependencies
+import SQLiteData
 import SwiftUI
 
 struct EpubThemePresetsView: View {
   let onApply: ((EpubReaderPreferences) -> Void)?
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: \EpubThemePreset.updatedAt, order: .reverse) private var presets: [EpubThemePreset]
+  @FetchAll(EpubThemePresetRecord.order { $0.updatedAt.desc() }) private var presets: [EpubThemePresetRecord]
+  @Dependency(\.defaultDatabase) private var database
 
-  @State private var presetToRename: EpubThemePreset?
+  @State private var presetToRename: EpubThemePresetRecord?
   @State private var newName: String = ""
 
   init(onApply: ((EpubReaderPreferences) -> Void)? = nil) {
@@ -65,7 +66,7 @@ struct EpubThemePresetsView: View {
   }
 
   @ViewBuilder
-  private func presetRow(_ preset: EpubThemePreset) -> some View {
+  private func presetRow(_ preset: EpubThemePresetRecord) -> some View {
     HStack {
       VStack(alignment: .leading, spacing: 4) {
         Text(preset.name)
@@ -128,8 +129,8 @@ struct EpubThemePresetsView: View {
     }
   }
 
-  private func applyPreset(_ preset: EpubThemePreset) {
-    if let preferences = preset.getPreferences() {
+  private func applyPreset(_ preset: EpubThemePresetRecord) {
+    if let preferences = EpubReaderPreferences(rawValue: preset.preferencesJSON) {
       if let onApply {
         onApply(preferences)
       } else {
@@ -139,20 +140,36 @@ struct EpubThemePresetsView: View {
     }
   }
 
-  private func deletePreset(_ preset: EpubThemePreset) {
-    modelContext.delete(preset)
-    try? modelContext.save()
+  private func deletePreset(_ preset: EpubThemePresetRecord) {
+    do {
+      try database.write { db in
+        try EpubThemePresetRecord.find(preset.id).delete().execute(db)
+      }
+    } catch {
+      ErrorManager.shared.alert(message: "Failed to delete preset: \(error.localizedDescription)")
+    }
   }
 
-  private func renamePreset(_ preset: EpubThemePreset, to newName: String) {
+  private func renamePreset(_ preset: EpubThemePresetRecord, to newName: String) {
     let trimmed = newName.trimmingCharacters(in: .whitespaces)
     guard !trimmed.isEmpty else { return }
+    let now = Date()
 
-    preset.name = trimmed
-    preset.updatedAt = Date()
-    try? modelContext.save()
+    do {
+      try database.write { db in
+        try EpubThemePresetRecord
+          .find(preset.id)
+          .update {
+            $0.name = #bind(trimmed)
+            $0.updatedAt = #bind(now)
+          }
+          .execute(db)
+      }
 
-    presetToRename = nil
-    self.newName = ""
+      presetToRename = nil
+      self.newName = ""
+    } catch {
+      ErrorManager.shared.alert(message: "Failed to rename preset: \(error.localizedDescription)")
+    }
   }
 }

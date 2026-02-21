@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -17,8 +16,6 @@ struct DashboardSectionDetailView: View {
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   @State private var isLoading = false
   @State private var hasLoadedInitial = false
-
-  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -175,14 +172,12 @@ struct DashboardSectionDetailView: View {
       let ids: [String]
       if section.isBookSection {
         ids = section.fetchOfflineBookIds(
-          context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
       } else {
         ids = section.fetchOfflineSeriesIds(
-          context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize

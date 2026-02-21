@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ContentView: View {
@@ -110,7 +109,6 @@ struct ContentView: View {
               await SSEService.shared.disconnect(notify: false)
             }
             Task.detached(priority: .utility) {
-              try? await DatabaseOperator.shared.commitImmediately()
             }
             WidgetDataService.refreshWidgetData()
           }

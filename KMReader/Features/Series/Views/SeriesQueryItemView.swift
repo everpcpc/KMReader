@@ -3,16 +3,16 @@
 //
 //
 
-import SwiftData
+import SQLiteData
 import SwiftUI
 
-/// Wrapper view that accepts only seriesId and uses @Query to fetch the series reactively.
+/// Wrapper view that accepts only seriesId and fetches the local record reactively.
 struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
 
-  @AppStorage("currentAccount") private var current: Current = .init()
-  @Query private var komgaSeriesList: [KomgaSeries]
+  @FetchAll private var seriesRecords: [KomgaSeriesRecord]
+  @FetchAll private var seriesLocalStateList: [KomgaSeriesLocalStateRecord]
 
   init(
     seriesId: String,
@@ -21,24 +21,35 @@ struct SeriesQueryItemView: View {
     self.seriesId = seriesId
     self.layout = layout
 
-    let compositeId = CompositeID.generate(id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
+    let instanceId = AppConfig.current.instanceId
+    _seriesRecords = FetchAll(
+      KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
+    )
+    _seriesLocalStateList = FetchAll(
+      KomgaSeriesLocalStateRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }.limit(1)
+    )
   }
 
-  private var komgaSeries: KomgaSeries? {
-    komgaSeriesList.first
+  private var series: Series? {
+    seriesRecords.first?.toSeries()
+  }
+
+  private var localState: KomgaSeriesLocalStateRecord? {
+    seriesLocalStateList.first
   }
 
   var body: some View {
-    if let series = komgaSeries {
+    if let series = series {
       switch layout {
       case .grid:
         SeriesCardView(
-          komgaSeries: series
+          series: series,
+          localState: localState
         )
       case .list:
         SeriesRowView(
-          komgaSeries: series
+          series: series,
+          localState: localState
         )
       }
     } else {
