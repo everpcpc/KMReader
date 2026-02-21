@@ -11,7 +11,6 @@
 		193F577A2EFA1C1D003362E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57792EFA1C1D003362E1 /* SwiftUI.framework */; };
 		193F578B2EFA1C1F003362E1 /* KMReaderWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 196028582ED9F7980066E8A4 /* SwiftSoup */; };
-		19A273F12F47FF0A00C36995 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 19A273F02F47FF0A00C36995 /* SQLiteData */; };
 		19AEC07F2EE714150073EB5F /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 19AEC07E2EE714150073EB5F /* Flow */; };
 		19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19AEFE562EFC62E200EC7D3B /* StoreKit.framework */; };
 /* End PBXBuildFile section */
@@ -96,7 +95,6 @@
 			files = (
 				196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */,
 				19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */,
-				19A273F12F47FF0A00C36995 /* SQLiteData in Frameworks */,
 				19AEC07F2EE714150073EB5F /* Flow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -168,7 +166,6 @@
 			packageProductDependencies = (
 				196028582ED9F7980066E8A4 /* SwiftSoup */,
 				19AEC07E2EE714150073EB5F /* Flow */,
-				19A273F02F47FF0A00C36995 /* SQLiteData */,
 			);
 			productName = KMReader;
 			productReference = 192E6F7D2EC4B4E20040D165 /* KMReader.app */;
@@ -233,7 +230,6 @@
 			packageReferences = (
 				196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
 				19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
-				19A273EF2F47FF0A00C36995 /* XCRemoteSwiftPackageReference "sqlite-data" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 192E6F7E2EC4B4E20040D165 /* Products */;
@@ -644,14 +640,6 @@
 				minimumVersion = 2.11.2;
 			};
 		};
-		19A273EF2F47FF0A00C36995 /* XCRemoteSwiftPackageReference "sqlite-data" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pointfreeco/sqlite-data";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.6.0;
-			};
-		};
 		19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/tevelee/SwiftUI-Flow";
@@ -667,11 +655,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
 			productName = SwiftSoup;
-		};
-		19A273F02F47FF0A00C36995 /* SQLiteData */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 19A273EF2F47FF0A00C36995 /* XCRemoteSwiftPackageReference "sqlite-data" */;
-			productName = SQLiteData;
 		};
 		19AEC07E2EE714150073EB5F /* Flow */ = {
 			isa = XCSwiftPackageProductDependency;
