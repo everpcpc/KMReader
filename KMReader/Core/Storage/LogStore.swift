@@ -4,12 +4,17 @@
 //
 
 import Foundation
+import OSLog
 import SQLite3
 
 @globalActor
 actor LogStore {
   static let shared = LogStore()
 
+  nonisolated private static let systemLogger = Logger(
+    subsystem: "com.everpcpc.kmreader",
+    category: "Database"
+  )
   nonisolated private static let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
   struct CategoryCount: Hashable, Sendable {
@@ -59,8 +64,16 @@ actor LogStore {
 
   private static func migrate(on db: OpaquePointer) -> Bool {
     let schema = currentSchema(on: db)
-    if !schema.isEmpty && !isCompatible(schema: schema) {
+    let needsRebuild = !schema.isEmpty && !isCompatible(schema: schema)
+    if needsRebuild {
+      let schemaDescription = schema.keys.sorted().map { key in
+        "\(key)=\(schema[key] ?? "")"
+      }.joined(separator: ", ")
+      systemLogger.notice(
+        "Rebuilding logs table due to schema mismatch. Existing schema: \(schemaDescription, privacy: .public)"
+      )
       guard execute("DROP TABLE IF EXISTS logs", on: db) else {
+        systemLogger.error("Failed to drop logs table while rebuilding logs schema")
         return false
       }
     }
@@ -77,7 +90,11 @@ actor LogStore {
       CREATE INDEX IF NOT EXISTS idx_logs_level ON logs(level);
       CREATE INDEX IF NOT EXISTS idx_logs_category ON logs(category);
       """
-    return execute(createSQL, on: db)
+    let created = execute(createSQL, on: db)
+    if created && needsRebuild {
+      systemLogger.notice("Logs table rebuild completed")
+    }
+    return created
   }
 
   private static func currentSchema(on db: OpaquePointer) -> [String: String] {
