@@ -61,18 +61,12 @@ struct MainApp: App {
   #endif
 
   @State private var authViewModel: AuthViewModel
+  @State private var appBootstrapper = AppBootstrapper.shared
   @State private var readerPresentation = ReaderPresentationManager()
   @State private var dashboardSectionCacheStore = DashboardSectionCacheStore.shared
   @State private var deepLinkRouter = DeepLinkRouter.shared
 
   init() {
-    AppSQLiteBootstrap.bootstrap()
-    DatabaseOperator.shared = DatabaseOperator()
-    #if os(iOS)
-      Task { @MainActor in
-        QuickActionService.handlePendingShortcutIfNeeded()
-      }
-    #endif
     _ = OfflineManager.shared
     PlatformHelper.setup()
     _authViewModel = State(initialValue: AuthViewModel())
@@ -80,38 +74,47 @@ struct MainApp: App {
 
   var body: some Scene {
     WindowGroup {
-      ContentView()
-        .onOpenURL { url in
-          deepLinkRouter.handle(url: url)
-        }
-        #if !os(tvOS)
-          .onContinueUserActivity(CSSearchableItemActionType) { activity in
-            if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
-              if let deepLink = SpotlightIndexService.deepLink(for: identifier) {
-                deepLinkRouter.pendingDeepLink = deepLink
-              }
+      Group {
+        if appBootstrapper.isBootstrapping {
+          SplashView(bootstrapper: appBootstrapper)
+            .task {
+              appBootstrapper.startIfNeeded()
             }
-          }
-        #endif
-        #if os(macOS)
-          .background(
-            MacReaderWindowConfigurator(openWindow: {
-              openWindow(id: "reader")
-            })
-          )
-          .overlay(alignment: .bottom) {
-            NotificationOverlay()
-          }
-        #endif
-        #if os(iOS)
-          .tint(themeColor.color)
-          .accentColor(themeColor.color)
-        #endif
-        .environment(authViewModel)
-        .environment(readerPresentation)
-        .environment(dashboardSectionCacheStore)
-        .environment(deepLinkRouter)
-        .preferredColorScheme(appColorScheme.colorScheme)
+        } else {
+          ContentView()
+            .onOpenURL { url in
+              deepLinkRouter.handle(url: url)
+            }
+            #if !os(tvOS)
+              .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
+                  if let deepLink = SpotlightIndexService.deepLink(for: identifier) {
+                    deepLinkRouter.pendingDeepLink = deepLink
+                  }
+                }
+              }
+            #endif
+            #if os(macOS)
+              .background(
+                MacReaderWindowConfigurator(openWindow: {
+                  openWindow(id: "reader")
+                })
+              )
+              .overlay(alignment: .bottom) {
+                NotificationOverlay()
+              }
+            #endif
+        }
+      }
+      #if os(iOS)
+        .tint(themeColor.color)
+        .accentColor(themeColor.color)
+      #endif
+      .environment(authViewModel)
+      .environment(readerPresentation)
+      .environment(dashboardSectionCacheStore)
+      .environment(deepLinkRouter)
+      .preferredColorScheme(appColorScheme.colorScheme)
     }
     #if os(macOS)
       WindowGroup(id: "reader") {

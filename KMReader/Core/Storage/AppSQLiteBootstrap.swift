@@ -8,26 +8,58 @@ import Foundation
 import SQLiteData
 import SwiftData
 
-@MainActor
-enum AppSQLiteBootstrap {
+nonisolated enum AppSQLiteBootstrap {
+  enum Phase: Sendable {
+    case preparing
+    case importing
+    case finalizing
+  }
+
+  struct ProgressUpdate: Sendable {
+    let fractionComplete: Double
+    let phase: Phase
+  }
+
+  typealias ProgressHandler = @Sendable (ProgressUpdate) -> Void
+
   private static let logger = AppLogger(.database)
 
-  static func bootstrap() {
+  static func bootstrap(progressHandler: ProgressHandler? = nil) {
+    report(progress: 0.0, phase: .preparing, to: progressHandler)
     do {
       let database = try makeDatabase()
+      report(progress: 0.08, phase: .preparing, to: progressHandler)
       try createSchema(database: database)
+      report(progress: 0.16, phase: .preparing, to: progressHandler)
 
       let _ = prepareDependencies {
         $0.defaultDatabase = database
       }
+      report(progress: 0.24, phase: .preparing, to: progressHandler)
 
       if needsLegacySwiftDataImport {
         let modelContainer = try makeLegacyModelContainer()
-        try importFromSwiftDataIfNeeded(database: database, modelContainer: modelContainer)
+        try importFromSwiftDataIfNeeded(
+          database: database,
+          modelContainer: modelContainer,
+          progressHandler: progressHandler
+        )
       }
+
+      report(progress: 1.0, phase: .finalizing, to: progressHandler)
     } catch {
       logger.error("Failed to bootstrap app SQLite database: \(error.localizedDescription)")
+      report(progress: 1.0, phase: .finalizing, to: progressHandler)
     }
+  }
+
+  private static func report(
+    progress: Double,
+    phase: Phase,
+    to progressHandler: ProgressHandler?
+  ) {
+    let clamped = min(max(progress, 0.0), 1.0)
+    progressHandler?(ProgressUpdate(fractionComplete: clamped, phase: phase))
   }
 
   private static var needsLegacySwiftDataImport: Bool {
@@ -404,9 +436,15 @@ enum AppSQLiteBootstrap {
 
   private static func importFromSwiftDataIfNeeded(
     database: DatabaseQueue,
-    modelContainer: ModelContainer
+    modelContainer: ModelContainer,
+    progressHandler: ProgressHandler?
   ) throws {
-    guard !AppConfig.sqliteImportedFromSwiftDataV1 else { return }
+    guard !AppConfig.sqliteImportedFromSwiftDataV1 else {
+      report(progress: 1.0, phase: .finalizing, to: progressHandler)
+      return
+    }
+
+    report(progress: 0.3, phase: .importing, to: progressHandler)
 
     let context = ModelContext(modelContainer)
     let instances = try context.fetch(FetchDescriptor<KomgaInstance>())
@@ -420,30 +458,62 @@ enum AppSQLiteBootstrap {
     let presets = try context.fetch(FetchDescriptor<EpubThemePreset>())
     let savedFilters = try context.fetch(FetchDescriptor<SavedFilter>())
 
+    let totalRows =
+      instances.count + libraries.count + series.count + books.count + collections.count
+      + readLists.count + pendingProgress.count + customFonts.count + presets.count
+      + savedFilters.count
+    let importProgressStart = 0.3
+    let importProgressEnd = 0.94
+    let progressStep = max(totalRows / 200, 1)
+    var processedRows = 0
+
+    func advanceImportProgress() {
+      guard totalRows > 0 else { return }
+
+      processedRows += 1
+      guard processedRows == totalRows || processedRows % progressStep == 0 else { return }
+
+      let ratio = Double(processedRows) / Double(totalRows)
+      let progress = importProgressStart + ((importProgressEnd - importProgressStart) * ratio)
+      report(progress: progress, phase: .importing, to: progressHandler)
+    }
+
+    if totalRows == 0 {
+      report(progress: importProgressEnd, phase: .importing, to: progressHandler)
+    }
+
     try database.write { db in
       for instance in instances {
         try upsertInstance(instance, in: db)
+        advanceImportProgress()
       }
       for library in libraries {
         try upsertLibrary(library, in: db)
+        advanceImportProgress()
       }
       for item in series {
         try upsertSeries(item, in: db)
+        advanceImportProgress()
       }
       for item in books {
         try upsertBook(item, in: db)
+        advanceImportProgress()
       }
       for item in collections {
         try upsertCollection(item, in: db)
+        advanceImportProgress()
       }
       for item in readLists {
         try upsertReadList(item, in: db)
+        advanceImportProgress()
       }
       for item in pendingProgress {
         try upsertPendingProgress(item, in: db)
+        advanceImportProgress()
       }
       for font in customFonts {
         try upsertCustomFont(font, in: db)
+        advanceImportProgress()
       }
       for preset in presets {
         try EpubThemePresetRecord.upsert {
@@ -456,6 +526,7 @@ enum AppSQLiteBootstrap {
           )
         }
         .execute(db)
+        advanceImportProgress()
       }
       for filter in savedFilters {
         try SavedFilterRecord.upsert {
@@ -469,10 +540,12 @@ enum AppSQLiteBootstrap {
           )
         }
         .execute(db)
+        advanceImportProgress()
       }
     }
 
     AppConfig.sqliteImportedFromSwiftDataV1 = true
+    report(progress: 0.98, phase: .finalizing, to: progressHandler)
     logger.info(
       "Imported legacy SwiftData data (instances=\(instances.count), libraries=\(libraries.count), series=\(series.count), books=\(books.count), collections=\(collections.count), readLists=\(readLists.count), pending=\(pendingProgress.count), fonts=\(customFonts.count), presets=\(presets.count), filters=\(savedFilters.count))"
     )

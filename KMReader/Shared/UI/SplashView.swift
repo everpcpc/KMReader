@@ -12,6 +12,7 @@ struct SplashView: View {
   @State private var messageRotationTask: Task<Void, Never>?
 
   var initializer: InstanceInitializer?
+  var bootstrapper: AppBootstrapper?
 
   private let loadingMessages = [
     String(localized: "splash.loading.connecting"),
@@ -24,12 +25,36 @@ struct SplashView: View {
     initializer?.isSyncing ?? false
   }
 
+  private var isBootstrapping: Bool {
+    bootstrapper?.isBootstrapping ?? false
+  }
+
   private var initializationProgress: Double {
     initializer?.progress ?? 0.0
   }
 
+  private var bootstrapProgress: Double {
+    bootstrapper?.progress ?? 0.0
+  }
+
   private var currentPhaseName: String {
     initializer?.currentPhaseName ?? ""
+  }
+
+  private var bootstrapPhaseName: String {
+    bootstrapper?.phaseName ?? ""
+  }
+
+  private var showsDeterminateProgress: Bool {
+    isBootstrapping || isSyncing
+  }
+
+  private var determinateProgress: Double {
+    min(max(isBootstrapping ? bootstrapProgress : initializationProgress, 0.0), 1.0)
+  }
+
+  private var determinatePhaseName: String {
+    isBootstrapping ? bootstrapPhaseName : currentPhaseName
   }
 
   var body: some View {
@@ -65,20 +90,20 @@ struct SplashView: View {
       Spacer()
 
       VStack(spacing: 16) {
-        if isSyncing {
+        if showsDeterminateProgress {
           // Determinate progress bar during initialization
           VStack(spacing: 8) {
-            ProgressView(value: initializationProgress)
+            ProgressView(value: determinateProgress)
               .progressViewStyle(.linear)
               .frame(maxWidth: 280)
               .opacity(isVisible ? 1.0 : 0.0)
 
-            Text(currentPhaseName)
+            Text(determinatePhaseName)
               .font(.caption)
               .foregroundStyle(.secondary)
               .monospacedDigit()
 
-            Text("\(Int(initializationProgress * 100))%")
+            Text("\(Int(determinateProgress * 100))%")
               .font(.caption2)
               .foregroundStyle(.tertiary)
               .monospacedDigit()
@@ -140,4 +165,8 @@ struct SplashView: View {
 
 #Preview("Initializing") {
   SplashView(initializer: InstanceInitializer.shared)
+}
+
+#Preview("Bootstrapping") {
+  SplashView(bootstrapper: AppBootstrapper.shared)
 }
