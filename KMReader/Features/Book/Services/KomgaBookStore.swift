@@ -76,6 +76,10 @@ enum KomgaBookStore {
           if browseOpts.excludeReadStatuses.contains(status) { return false }
         }
 
+        if !matchesMetadataFilter(book: book, filter: browseOpts.metadataFilter) {
+          return false
+        }
+
         return true
       }
 
@@ -144,6 +148,10 @@ enum KomgaBookStore {
 
       if !browseOpts.excludeReadStatuses.isEmpty {
         if browseOpts.excludeReadStatuses.contains(status) { return false }
+      }
+
+      if !matchesMetadataFilter(book: book, filter: browseOpts.metadataFilter) {
+        return false
       }
 
       return true
@@ -291,12 +299,40 @@ enum KomgaBookStore {
       descriptor.sortBy = [SortDescriptor(\KomgaBook.name, order: .forward)]
     }
 
-    descriptor.fetchLimit = limit
-    descriptor.fetchOffset = offset
-
     do {
       let results = try context.fetch(descriptor)
-      return results.map { $0.bookId }
+      let filtered = results.filter { book in
+        if let deletedState = browseOpts.deletedFilter.effectiveBool {
+          if book.isUnavailable != deletedState { return false }
+        }
+
+        if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
+          if book.oneshot != oneshotState { return false }
+        }
+
+        let status: ReadStatus
+        if let completed = book.progressCompleted, completed {
+          status = .read
+        } else if book.progressReadDate != nil {
+          status = .inProgress
+        } else {
+          status = .unread
+        }
+
+        if !browseOpts.includeReadStatuses.isEmpty {
+          if !browseOpts.includeReadStatuses.contains(status) { return false }
+        }
+
+        if !browseOpts.excludeReadStatuses.isEmpty {
+          if browseOpts.excludeReadStatuses.contains(status) { return false }
+        }
+
+        return matchesMetadataFilter(book: book, filter: browseOpts.metadataFilter)
+      }
+
+      guard offset < filtered.count else { return [] }
+      let end = min(offset + limit, filtered.count)
+      return filtered[offset..<end].map { $0.bookId }
     } catch {
       return []
     }
@@ -511,5 +547,28 @@ enum KomgaBookStore {
     } catch {
       return []
     }
+  }
+
+  nonisolated private static func matchesMetadataFilter(
+    book: KomgaBook,
+    filter: MetadataFilterConfig
+  ) -> Bool {
+    if !MetadataIndex.matches(
+      index: book.metaAuthorsIndex,
+      values: filter.authors,
+      logic: filter.authorsLogic
+    ) {
+      return false
+    }
+
+    if !MetadataIndex.matches(
+      index: book.metaTagsIndex,
+      values: filter.tags,
+      logic: filter.tagsLogic
+    ) {
+      return false
+    }
+
+    return true
   }
 }

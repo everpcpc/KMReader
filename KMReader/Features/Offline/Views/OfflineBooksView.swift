@@ -81,7 +81,7 @@ struct OfflineBooksView: View {
         sGroups.append(
           SeriesGroup(
             id: seriesId, series: seriesMap[seriesId],
-            books: sBooks.sorted { $0.metadata.numberSort < $1.metadata.numberSort }))
+            books: sBooks.sorted { ($0.metadata?.numberSort ?? 0) < ($1.metadata?.numberSort ?? 0) }))
       }
 
       sGroups.sort {
@@ -94,8 +94,10 @@ struct OfflineBooksView: View {
           library: library,
           seriesGroups: sGroups,
           oneshotBooks: oneshots.sorted {
-            ($0.metadata.title.isEmpty ? $0.name : $0.metadata.title)
-              < ($1.metadata.title.isEmpty ? $1.name : $1.metadata.title)
+            let lhsTitle = $0.metadata?.title ?? ""
+            let rhsTitle = $1.metadata?.title ?? ""
+            return (lhsTitle.isEmpty ? $0.name : lhsTitle)
+              < (rhsTitle.isEmpty ? $1.name : rhsTitle)
           }
         ))
     }

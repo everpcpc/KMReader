@@ -88,7 +88,7 @@ class ReaderViewModel {
 
   func loadPages(book: Book, initialPageNumber: Int? = nil) async {
     self.bookId = book.id
-    self.bookMediaProfile = book.media.mediaProfile ?? .unknown
+    self.bookMediaProfile = book.media.mediaProfileValue ?? .unknown
     isLoading = true
 
     // Cancel all ongoing download tasks when loading a new book
@@ -137,7 +137,7 @@ class ReaderViewModel {
       regenerateViewState()
 
       // For EPUB, fetch manifest and parse TOC
-      if book.media.mediaProfile == .epub {
+      if book.media.mediaProfileValue == .epub {
         if let localTOC = await DatabaseOperator.shared.fetchTOC(id: book.id) {
           tableOfContents = localTOC
         } else if !AppConfig.isOffline {
@@ -150,7 +150,7 @@ class ReaderViewModel {
         } else {
           tableOfContents = []
         }
-      } else if book.media.mediaProfile == .pdf {
+      } else if book.media.mediaProfileValue == .pdf {
         tableOfContents = await DatabaseOperator.shared.fetchTOC(id: book.id) ?? []
       } else {
         tableOfContents = []

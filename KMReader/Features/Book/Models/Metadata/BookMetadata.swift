@@ -5,7 +5,30 @@
 
 import Foundation
 
-struct BookMetadata: Codable, Equatable, Hashable, Sendable {
+nonisolated struct BookMetadata: Codable, Equatable, Hashable, Sendable {
+  static let empty = BookMetadata(
+    created: nil,
+    lastModified: nil,
+    title: "",
+    titleLock: nil,
+    summary: nil,
+    summaryLock: nil,
+    number: "",
+    numberLock: nil,
+    numberSort: 0,
+    numberSortLock: nil,
+    releaseDate: nil,
+    releaseDateLock: nil,
+    authors: nil,
+    authorsLock: nil,
+    tags: nil,
+    tagsLock: nil,
+    isbn: nil,
+    isbnLock: nil,
+    links: nil,
+    linksLock: nil
+  )
+
   let created: String?
   let lastModified: String?
   let title: String

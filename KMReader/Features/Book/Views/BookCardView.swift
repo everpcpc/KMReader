@@ -120,12 +120,13 @@ struct BookCardView: View {
             .lineLimit(bookTitleLineLimit)
 
           HStack(spacing: 4) {
+            let mediaStatus = komgaBook.media?.statusValue ?? .unknown
             if komgaBook.isUnavailable {
               Text("Unavailable")
                 .foregroundColor(.red)
-            } else if komgaBook.media.status != .ready {
-              Text(komgaBook.media.status.label)
-                .foregroundColor(komgaBook.media.status.color)
+            } else if mediaStatus != .ready {
+              Text(mediaStatus.label)
+                .foregroundColor(mediaStatus.color)
             } else {
               if progress > 0 && progress < 1 {
                 Text("\(progress * 100, specifier: "%.0f")%")
@@ -187,12 +188,13 @@ struct BookCardView: View {
       style: style
     ) {
       HStack(spacing: 4) {
+        let mediaStatus = komgaBook.media?.statusValue ?? .unknown
         if komgaBook.isUnavailable {
           Text("Unavailable")
             .foregroundColor(.red)
-        } else if komgaBook.media.status != .ready {
-          Text(komgaBook.media.status.label)
-            .foregroundColor(komgaBook.media.status.color)
+        } else if mediaStatus != .ready {
+          Text(mediaStatus.label)
+            .foregroundColor(mediaStatus.color)
         } else {
           if progress > 0 && progress < 1 {
             Text("\(progress * 100, specifier: "%.0f")%")

@@ -152,11 +152,11 @@ actor LogStore {
     for (index, value) in values.enumerated() {
       let position = Int32(index + 1)
       switch value {
-      case let .int(number):
+      case .int(let number):
         sqlite3_bind_int(statement, position, number)
-      case let .double(number):
+      case .double(let number):
         sqlite3_bind_double(statement, position, number)
-      case let .text(text):
+      case .text(let text):
         sqlite3_bind_text(statement, position, text, -1, Self.sqliteTransient)
       }
     }

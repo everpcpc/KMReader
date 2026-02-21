@@ -1642,9 +1642,9 @@ actor OfflineManager {
 extension Book {
   var downloadInfo: DownloadInfo {
     let kind: DownloadContentKind
-    if media.mediaProfile == .pdf {
+    if media.mediaProfileValue == .pdf {
       kind = .pdf
-    } else if media.mediaProfile == .epub {
+    } else if media.mediaProfileValue == .epub {
       kind = (media.epubDivinaCompatible ?? false) ? .epubDivina : .epubWebPub
     } else {
       kind = .pages
