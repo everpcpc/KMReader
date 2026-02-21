@@ -7,9 +7,7 @@ import Foundation
 import SQLiteData
 
 @Table("komga_series")
-nonisolated struct KomgaSeriesRecord: Identifiable, Hashable, Sendable {
-  let id: String
-
+nonisolated struct KomgaSeriesRecord: Hashable, Sendable {
   // API identifiers.
   var seriesId: String
   var libraryId: String
@@ -41,7 +39,6 @@ nonisolated struct KomgaSeriesRecord: Identifiable, Hashable, Sendable {
   var booksMetaReleaseDate: String?
 
   init(
-    id: String? = nil,
     seriesId: String,
     libraryId: String,
     instanceId: String,
@@ -58,7 +55,6 @@ nonisolated struct KomgaSeriesRecord: Identifiable, Hashable, Sendable {
     deleted: Bool,
     oneshot: Bool
   ) {
-    self.id = id ?? UUID().uuidString
     self.seriesId = seriesId
     self.libraryId = libraryId
     self.instanceId = instanceId
@@ -169,37 +165,5 @@ nonisolated struct KomgaSeriesRecord: Identifiable, Hashable, Sendable {
       deleted: deleted,
       oneshot: oneshot
     )
-  }
-
-  func toKomgaSeries(localState: KomgaSeriesLocalStateRecord? = nil) -> KomgaSeries {
-    let state = localState ?? .empty(instanceId: instanceId, seriesId: seriesId)
-    let legacy = KomgaSeries(
-      id: id,
-      seriesId: seriesId,
-      libraryId: libraryId,
-      instanceId: instanceId,
-      name: name,
-      url: url,
-      created: created,
-      lastModified: lastModified,
-      booksCount: booksCount,
-      booksReadCount: booksReadCount,
-      booksUnreadCount: booksUnreadCount,
-      booksInProgressCount: booksInProgressCount,
-      metadata: metadata,
-      booksMetadata: booksMetadata,
-      isUnavailable: deleted,
-      oneshot: oneshot,
-      downloadedBooks: state.downloadedBooks,
-      pendingBooks: state.pendingBooks,
-      downloadedSize: state.downloadedSize,
-      offlinePolicy: state.offlinePolicy,
-      offlinePolicyLimit: state.offlinePolicyLimit
-    )
-    legacy.downloadStatusRaw = state.downloadStatusRaw
-    legacy.downloadError = state.downloadError
-    legacy.downloadAt = state.downloadAt
-    legacy.collectionIds = state.collectionIds
-    return legacy
   }
 }

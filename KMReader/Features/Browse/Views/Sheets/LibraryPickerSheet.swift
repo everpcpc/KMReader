@@ -20,7 +20,7 @@ struct LibraryPickerSheet: View {
       return []
     }
     return allLibraries.filter {
-      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibraryRecord.allLibrariesId
     }
   }
 
@@ -29,7 +29,7 @@ struct LibraryPickerSheet: View {
       return nil
     }
     return allLibraries.first {
-      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibraryRecord.allLibrariesId
     }
   }
 

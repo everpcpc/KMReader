@@ -11,7 +11,7 @@ struct ReadListQueryItemView: View {
   let readListId: String
   var layout: BrowseLayoutMode = .grid
 
-  @FetchAll private var komgaReadLists: [KomgaReadListRecord]
+  @FetchAll private var readListRecords: [KomgaReadListRecord]
   @FetchAll private var readListLocalStateList: [KomgaReadListLocalStateRecord]
 
   init(
@@ -22,7 +22,7 @@ struct ReadListQueryItemView: View {
     self.layout = layout
 
     let instanceId = AppConfig.current.instanceId
-    _komgaReadLists = FetchAll(
+    _readListRecords = FetchAll(
       KomgaReadListRecord.where { $0.instanceId.eq(instanceId) && $0.readListId.eq(readListId) }
     )
     _readListLocalStateList = FetchAll(
@@ -30,21 +30,26 @@ struct ReadListQueryItemView: View {
     )
   }
 
-  private var komgaReadList: KomgaReadList? {
-    guard let record = komgaReadLists.first else { return nil }
-    return record.toKomgaReadList(localState: readListLocalStateList.first)
+  private var readList: ReadList? {
+    readListRecords.first?.toReadList()
+  }
+
+  private var localState: KomgaReadListLocalStateRecord? {
+    readListLocalStateList.first
   }
 
   var body: some View {
-    if let readList = komgaReadList {
+    if let readList = readList {
       switch layout {
       case .grid:
         ReadListCardView(
-          komgaReadList: readList
+          readList: readList,
+          localState: localState
         )
       case .list:
         ReadListRowView(
-          komgaReadList: readList
+          readList: readList,
+          localState: localState
         )
       }
     } else {

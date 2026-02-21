@@ -8,6 +8,8 @@ import SQLiteData
 
 @Table("komga_libraries")
 nonisolated struct KomgaLibraryRecord: Identifiable, Hashable, Sendable {
+  static let allLibrariesId = "__all_libraries__"
+
   let id: UUID
   var instanceId: String
   var libraryId: String
@@ -46,21 +48,5 @@ nonisolated struct KomgaLibraryRecord: Identifiable, Hashable, Sendable {
     self.sidecarsCount = sidecarsCount
     self.collectionsCount = collectionsCount
     self.readlistsCount = readlistsCount
-  }
-
-  func toKomgaLibrary() -> KomgaLibrary {
-    KomgaLibrary(
-      id: id,
-      instanceId: instanceId,
-      libraryId: libraryId,
-      name: name,
-      createdAt: createdAt,
-      fileSize: fileSize,
-      booksCount: booksCount,
-      seriesCount: seriesCount,
-      sidecarsCount: sidecarsCount,
-      collectionsCount: collectionsCount,
-      readlistsCount: readlistsCount
-    )
   }
 }

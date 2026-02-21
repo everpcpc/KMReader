@@ -6,18 +6,21 @@
 import SwiftUI
 
 struct SeriesItemView: View {
-  @Bindable var series: KomgaSeries
+  let series: Series
+  let localState: KomgaSeriesLocalStateRecord?
   let layout: BrowseLayoutMode
 
   var body: some View {
     switch layout {
     case .grid:
       SeriesCardView(
-        komgaSeries: series
+        series: series,
+        localState: localState
       )
     case .list:
       SeriesRowView(
-        komgaSeries: series
+        series: series,
+        localState: localState
       )
     }
   }

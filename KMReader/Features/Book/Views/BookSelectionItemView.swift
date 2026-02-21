@@ -14,7 +14,7 @@ struct BookSelectionItemView: View {
   let refreshBooks: () -> Void
   var showSeriesTitle: Bool = true
 
-  @FetchAll private var komgaBooks: [KomgaBookRecord]
+  @FetchAll private var bookRecords: [KomgaBookRecord]
   @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
 
   init(
@@ -31,7 +31,7 @@ struct BookSelectionItemView: View {
     self.showSeriesTitle = showSeriesTitle
 
     let instanceId = AppConfig.current.instanceId
-    _komgaBooks = FetchAll(
+    _bookRecords = FetchAll(
       KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
     )
     _bookLocalStateList = FetchAll(
@@ -39,8 +39,12 @@ struct BookSelectionItemView: View {
     )
   }
 
-  private var komgaBook: KomgaBook? {
-    komgaBooks.first?.toKomgaBook(localState: bookLocalStateList.first)
+  private var book: Book? {
+    bookRecords.first?.toBook()
+  }
+
+  private var downloadStatus: DownloadStatus {
+    bookLocalStateList.first?.downloadStatus ?? .notDownloaded
   }
 
   private var isSelected: Bool {
@@ -48,18 +52,20 @@ struct BookSelectionItemView: View {
   }
 
   var body: some View {
-    if let book = komgaBook {
+    if let book = book {
       Group {
         switch layout {
         case .grid:
           BookCardView(
-            komgaBook: book,
+            book: book,
+            downloadStatus: downloadStatus,
             onReadBook: { _ in },
             showSeriesTitle: showSeriesTitle
           )
         case .list:
           BookRowView(
-            komgaBook: book,
+            book: book,
+            downloadStatus: downloadStatus,
             onReadBook: { _ in },
             showSeriesTitle: showSeriesTitle
           )

@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct CollectionRowView: View {
-  @Bindable var komgaCollection: KomgaCollection
+  let collection: SeriesCollection
 
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
@@ -14,29 +14,29 @@ struct CollectionRowView: View {
   var body: some View {
     HStack(spacing: 12) {
       NavigationLink(
-        value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+        value: NavDestination.collectionDetail(collectionId: collection.id)
       ) {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
+        ThumbnailImage(id: collection.id, type: .collection, width: 60)
       }
       .adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(
-          value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+          value: NavDestination.collectionDetail(collectionId: collection.id)
         ) {
-          Text(komgaCollection.name)
+          Text(collection.name)
             .font(.callout)
             .lineLimit(2)
         }.adaptiveButtonStyle(.plain)
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
-            Label("\(komgaCollection.seriesIds.count) series", systemImage: ContentIcon.series)
+            Label("\(collection.seriesIds.count) series", systemImage: ContentIcon.series)
               .font(.footnote)
               .foregroundColor(.secondary)
 
             Label(
-              komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
+              collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
               systemImage: "clock"
             )
             .font(.caption)
@@ -47,8 +47,8 @@ struct CollectionRowView: View {
 
           EllipsisMenuButton {
             CollectionContextMenu(
-              collectionId: komgaCollection.collectionId,
-              menuTitle: komgaCollection.name,
+              collectionId: collection.id,
+              menuTitle: collection.name,
               onDeleteRequested: {
                 showDeleteConfirmation = true
               },
@@ -56,7 +56,7 @@ struct CollectionRowView: View {
                 showEditSheet = true
               }
             )
-            .id(komgaCollection.collectionId)
+            .id(collection.id)
           }
         }
       }
@@ -70,7 +70,7 @@ struct CollectionRowView: View {
       Text("Are you sure you want to delete this collection? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      CollectionEditSheet(collection: komgaCollection.toCollection())
+      CollectionEditSheet(collection: collection)
     }
   }
 
@@ -78,7 +78,7 @@ struct CollectionRowView: View {
     Task {
       do {
         try await CollectionService.shared.deleteCollection(
-          collectionId: komgaCollection.collectionId)
+          collectionId: collection.id)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
       } catch {
         ErrorManager.shared.alert(error: error)

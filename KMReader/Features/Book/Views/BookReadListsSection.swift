@@ -13,7 +13,7 @@ struct BookReadListsSection: View {
     let instanceId = AppConfig.current.instanceId
     if readListIds.isEmpty {
       _komgaReadLists = FetchAll(
-        KomgaReadListRecord.where { $0.id.eq("__none__") }
+        KomgaReadListRecord.where { $0.readListId.eq("__none__") }
       )
     } else {
       _komgaReadLists = FetchAll(

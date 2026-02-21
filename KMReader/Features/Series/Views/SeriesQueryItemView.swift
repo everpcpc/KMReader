@@ -11,8 +11,7 @@ struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
 
-  @AppStorage("currentAccount") private var current: Current = .init()
-  @FetchAll private var komgaSeriesList: [KomgaSeriesRecord]
+  @FetchAll private var seriesRecords: [KomgaSeriesRecord]
   @FetchAll private var seriesLocalStateList: [KomgaSeriesLocalStateRecord]
 
   init(
@@ -23,7 +22,7 @@ struct SeriesQueryItemView: View {
     self.layout = layout
 
     let instanceId = AppConfig.current.instanceId
-    _komgaSeriesList = FetchAll(
+    _seriesRecords = FetchAll(
       KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
     )
     _seriesLocalStateList = FetchAll(
@@ -31,21 +30,26 @@ struct SeriesQueryItemView: View {
     )
   }
 
-  private var komgaSeries: KomgaSeries? {
-    guard let record = komgaSeriesList.first else { return nil }
-    return record.toKomgaSeries(localState: seriesLocalStateList.first)
+  private var series: Series? {
+    seriesRecords.first?.toSeries()
+  }
+
+  private var localState: KomgaSeriesLocalStateRecord? {
+    seriesLocalStateList.first
   }
 
   var body: some View {
-    if let series = komgaSeries {
+    if let series = series {
       switch layout {
       case .grid:
         SeriesCardView(
-          komgaSeries: series
+          series: series,
+          localState: localState
         )
       case .list:
         SeriesRowView(
-          komgaSeries: series
+          series: series,
+          localState: localState
         )
       }
     } else {

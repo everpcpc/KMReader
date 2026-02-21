@@ -110,7 +110,7 @@ struct SeriesDetailView: View {
 
             Divider()
             if let komgaSeries = komgaSeries {
-              SeriesDownloadActionsSection(komgaSeries: komgaSeries.toKomgaSeries(localState: seriesLocalState))
+              SeriesDownloadActionsSection(series: komgaSeries.toSeries(), localState: seriesLocalState)
             }
             Divider()
           }

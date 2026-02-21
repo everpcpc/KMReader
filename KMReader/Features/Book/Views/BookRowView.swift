@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct BookRowView: View {
-  @Bindable var komgaBook: KomgaBook
+  let book: Book
+  let downloadStatus: DownloadStatus
   var onReadBook: ((Bool) -> Void)?
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
@@ -16,34 +17,34 @@ struct BookRowView: View {
   @State private var showEditSheet = false
 
   var completed: Bool {
-    guard let progressCompleted = komgaBook.progressCompleted else { return false }
+    guard let progressCompleted = book.readProgress?.completed else { return false }
     return progressCompleted
   }
 
   private var progress: Double {
-    guard let progressPage = komgaBook.progressPage else { return 0 }
-    guard komgaBook.mediaPagesCount > 0 else { return 0 }
-    return Double(progressPage) / Double(komgaBook.mediaPagesCount)
+    guard let progressPage = book.readProgress?.page else { return 0 }
+    guard book.media.pagesCount > 0 else { return 0 }
+    return Double(progressPage) / Double(book.media.pagesCount)
   }
 
   private var isInProgress: Bool {
-    guard let progressCompleted = komgaBook.progressCompleted else { return false }
+    guard let progressCompleted = book.readProgress?.completed else { return false }
     return !progressCompleted
   }
 
   var shouldShowSeriesTitle: Bool {
-    return showSeriesTitle && !komgaBook.seriesTitle.isEmpty
+    return showSeriesTitle && !book.seriesTitle.isEmpty
   }
 
   var bookTitleLine: String {
-    if komgaBook.oneshot {
-      return komgaBook.metaTitle
+    if book.oneshot {
+      return book.metadata.title
     }
-    return String("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+    return String("\(book.metadata.number) - \(book.metadata.title)")
   }
 
   var bookTitleLineLimit: Int {
-    (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
+    (shouldShowSeriesTitle || book.oneshot) ? 1 : 2
   }
 
   var body: some View {
@@ -51,7 +52,7 @@ struct BookRowView: View {
       Button {
         onReadBook?(false)
       } label: {
-        ThumbnailImage(id: komgaBook.bookId, type: .book, width: 60)
+        ThumbnailImage(id: book.id, type: .book, width: 60)
       }.adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 4) {
@@ -59,17 +60,17 @@ struct BookRowView: View {
           onReadBook?(false)
         } label: {
           VStack(alignment: .leading, spacing: 4) {
-            if komgaBook.oneshot {
+            if book.oneshot {
               Text("Oneshot")
                 .font(.footnote)
                 .foregroundColor(.blue)
             } else if shouldShowSeriesTitle {
-              Text(komgaBook.seriesTitle)
+              Text(book.seriesTitle)
                 .font(.footnote)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
             }
-            Text("#\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+            Text("#\(book.metadata.number) - \(book.metadata.title)")
               .foregroundColor(completed ? .secondary : .primary)
               .lineLimit(bookTitleLineLimit)
           }
@@ -78,15 +79,15 @@ struct BookRowView: View {
         HStack {
           VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
-              if let releaseDate = komgaBook.metaReleaseDate, !releaseDate.isEmpty {
+              if let releaseDate = book.metadata.releaseDate, !releaseDate.isEmpty {
                 Label(releaseDate, systemImage: "calendar")
               } else {
                 Label(
-                  komgaBook.created.formatted(date: .abbreviated, time: .omitted),
+                  book.created.formatted(date: .abbreviated, time: .omitted),
                   systemImage: "clock")
               }
-              if let progressPage = komgaBook.progressPage,
-                let progressCompleted = komgaBook.progressCompleted
+              if let progressPage = book.readProgress?.page,
+                let progressCompleted = book.readProgress?.completed
               {
                 Text("•")
                 if progressCompleted {
@@ -106,17 +107,17 @@ struct BookRowView: View {
             .foregroundColor(.secondary)
 
             HStack(spacing: 4) {
-              if komgaBook.isUnavailable {
+              if book.deleted {
                 Text("Unavailable")
                   .foregroundColor(.red)
-              } else if komgaBook.media.status != .ready {
-                Text(komgaBook.media.status.label)
-                  .foregroundColor(komgaBook.media.status.color)
+              } else if book.media.status != .ready {
+                Text(book.media.status.label)
+                  .foregroundColor(book.media.status.color)
               } else {
-                Label("\(komgaBook.mediaPagesCount) pages", systemImage: "book.pages")
+                Label("\(book.media.pagesCount) pages", systemImage: "book.pages")
                   .foregroundColor(.secondary)
                 Text("•").foregroundColor(.secondary)
-                Label(komgaBook.size, systemImage: "doc")
+                Label(book.size, systemImage: "doc")
                   .foregroundColor(.secondary)
               }
             }.font(.footnote)
@@ -124,14 +125,14 @@ struct BookRowView: View {
 
           Spacer()
 
-          if komgaBook.downloadStatus != .notDownloaded {
-            Image(systemName: komgaBook.downloadStatus.displayIcon)
-              .foregroundColor(komgaBook.downloadStatus.displayColor)
+          if downloadStatus != .notDownloaded {
+            Image(systemName: downloadStatus.displayIcon)
+              .foregroundColor(downloadStatus.displayColor)
           }
           EllipsisMenuButton {
             BookContextMenu(
-              book: komgaBook.toBook(),
-              downloadStatus: komgaBook.downloadStatus,
+              book: book,
+              downloadStatus: downloadStatus,
               onReadBook: onReadBook,
               onShowReadListPicker: {
                 showReadListPicker = true
@@ -144,7 +145,7 @@ struct BookRowView: View {
               },
               showSeriesNavigation: showSeriesNavigation
             )
-            .id(komgaBook.bookId)
+            .id(book.id)
           }
         }
       }
@@ -159,14 +160,14 @@ struct BookRowView: View {
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
-        bookId: komgaBook.bookId,
+        bookId: book.id,
         onSelect: { readListId in
           addToReadList(readListId: readListId)
         }
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      BookEditSheet(book: komgaBook.toBook())
+      BookEditSheet(book: book)
     }
 
   }
@@ -176,7 +177,7 @@ struct BookRowView: View {
       do {
         try await ReadListService.shared.addBooksToReadList(
           readListId: readListId,
-          bookIds: [komgaBook.bookId]
+          bookIds: [book.id]
         )
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.booksAddedToReadList"))
@@ -189,8 +190,8 @@ struct BookRowView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.shared.deleteBook(bookId: komgaBook.bookId)
-        await CacheManager.clearCache(forBookId: komgaBook.bookId)
+        try await BookService.shared.deleteBook(bookId: book.id)
+        await CacheManager.clearCache(forBookId: book.id)
         ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
       } catch {
         ErrorManager.shared.alert(error: error)

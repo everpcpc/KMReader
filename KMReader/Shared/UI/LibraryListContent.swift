@@ -56,7 +56,7 @@ struct LibraryListContent: View {
       return []
     }
     return allLibraries.filter {
-      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibraryRecord.allLibrariesId
     }
   }
 
@@ -65,7 +65,7 @@ struct LibraryListContent: View {
       return nil
     }
     return allLibraries.first {
-      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibraryRecord.allLibrariesId
     }
   }
 
@@ -115,9 +115,8 @@ struct LibraryListContent: View {
         Section {
           allLibrariesRowView()
           ForEach(libraries, id: \.libraryId) { library in
-            let legacyLibrary = library.toKomgaLibrary()
             LibraryRowView(
-              library: legacyLibrary,
+              library: library,
               isSelected: selectedLibraryIds.contains(library.libraryId),
               onSelect: {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -140,7 +139,7 @@ struct LibraryListContent: View {
               },
               onEdit: onEditLibrary != nil ? { onEditLibrary?(library.libraryId) } : nil,
               onDelete: onDeleteLibrary != nil
-                ? { onDeleteLibrary?(LibrarySelection(library: legacyLibrary)) } : nil
+                ? { onDeleteLibrary?(LibrarySelection(record: library)) } : nil
             )
           }
         }

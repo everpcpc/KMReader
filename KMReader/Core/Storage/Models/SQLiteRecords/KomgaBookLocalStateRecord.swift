@@ -7,8 +7,7 @@ import Foundation
 import SQLiteData
 
 @Table("komga_book_local_state")
-nonisolated struct KomgaBookLocalStateRecord: Identifiable, Hashable, Sendable {
-  let id: String
+nonisolated struct KomgaBookLocalStateRecord: Hashable, Sendable {
   var instanceId: String
   var bookId: String
   var pagesRaw: Data?
@@ -103,7 +102,6 @@ nonisolated struct KomgaBookLocalStateRecord: Identifiable, Hashable, Sendable {
 
   static func empty(instanceId: String, bookId: String) -> KomgaBookLocalStateRecord {
     KomgaBookLocalStateRecord(
-      id: UUID().uuidString,
       instanceId: instanceId,
       bookId: bookId,
       pagesRaw: nil,

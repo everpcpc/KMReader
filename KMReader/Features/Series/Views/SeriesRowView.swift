@@ -6,32 +6,38 @@
 import SwiftUI
 
 struct SeriesRowView: View {
-  @Bindable var komgaSeries: KomgaSeries
+  let series: Series
+  let localState: KomgaSeriesLocalStateRecord?
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-  var series: Series {
-    komgaSeries.toSeries()
+  var downloadStatus: SeriesDownloadStatus {
+    (localState ?? .empty(instanceId: AppConfig.current.instanceId, seriesId: series.id))
+      .downloadStatus(totalBooks: series.booksCount)
   }
 
-  var downloadStatus: SeriesDownloadStatus {
-    komgaSeries.downloadStatus
+  private var offlinePolicy: SeriesOfflinePolicy {
+    localState?.offlinePolicy ?? .manual
+  }
+
+  private var offlinePolicyLimit: Int {
+    localState?.offlinePolicyLimit ?? 0
   }
 
   var navDestination: NavDestination {
-    if komgaSeries.oneshot {
-      return NavDestination.oneshotDetail(seriesId: komgaSeries.seriesId)
+    if series.oneshot {
+      return NavDestination.oneshotDetail(seriesId: series.id)
     } else {
-      return NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)
+      return NavDestination.seriesDetail(seriesId: series.id)
     }
   }
 
   var progress: Double {
-    guard komgaSeries.booksCount > 0 else { return 0 }
-    guard komgaSeries.booksReadCount > 0 else { return 0 }
-    return Double(komgaSeries.booksReadCount) / Double(komgaSeries.booksCount)
+    guard series.booksCount > 0 else { return 0 }
+    guard series.booksReadCount > 0 else { return 0 }
+    return Double(series.booksReadCount) / Double(series.booksCount)
   }
 
   var body: some View {
@@ -101,14 +107,14 @@ struct SeriesRowView: View {
           }
           EllipsisMenuButton {
             SeriesContextMenu(
-              seriesId: komgaSeries.seriesId,
-              menuTitle: komgaSeries.metaTitle,
-              downloadStatus: komgaSeries.downloadStatus,
-              offlinePolicy: komgaSeries.offlinePolicy,
-              offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
-              booksUnreadCount: komgaSeries.booksUnreadCount,
-              booksReadCount: komgaSeries.booksReadCount,
-              booksInProgressCount: komgaSeries.booksInProgressCount,
+              seriesId: series.id,
+              menuTitle: series.metadata.title,
+              downloadStatus: downloadStatus,
+              offlinePolicy: offlinePolicy,
+              offlinePolicyLimit: offlinePolicyLimit,
+              booksUnreadCount: series.booksUnreadCount,
+              booksReadCount: series.booksReadCount,
+              booksInProgressCount: series.booksInProgressCount,
               onShowCollectionPicker: {
                 showCollectionPicker = true
               },
@@ -119,7 +125,7 @@ struct SeriesRowView: View {
                 showEditSheet = true
               }
             )
-            .id(komgaSeries.seriesId)
+            .id(series.id)
           }
         }
       }

@@ -7,9 +7,7 @@ import Foundation
 import SQLiteData
 
 @Table("komga_books")
-nonisolated struct KomgaBookRecord: Identifiable, Hashable, Sendable {
-  let id: String
-
+nonisolated struct KomgaBookRecord: Hashable, Sendable {
   // API identifiers.
   var bookId: String
   var seriesId: String
@@ -52,7 +50,6 @@ nonisolated struct KomgaBookRecord: Identifiable, Hashable, Sendable {
   var progressLastModified: Date?
 
   init(
-    id: String? = nil,
     bookId: String,
     seriesId: String,
     libraryId: String,
@@ -71,7 +68,6 @@ nonisolated struct KomgaBookRecord: Identifiable, Hashable, Sendable {
     oneshot: Bool,
     seriesTitle: String = ""
   ) {
-    self.id = id ?? UUID().uuidString
     self.bookId = bookId
     self.seriesId = seriesId
     self.libraryId = libraryId
@@ -210,35 +206,5 @@ nonisolated struct KomgaBookRecord: Identifiable, Hashable, Sendable {
       deleted: deleted,
       oneshot: oneshot
     )
-  }
-
-  func toKomgaBook(localState: KomgaBookLocalStateRecord? = nil) -> KomgaBook {
-    let state = localState ?? .empty(instanceId: instanceId, bookId: bookId)
-    let legacy = KomgaBook(
-      id: id,
-      bookId: bookId,
-      seriesId: seriesId,
-      libraryId: libraryId,
-      instanceId: instanceId,
-      name: name,
-      url: url,
-      number: number,
-      created: created,
-      lastModified: lastModified,
-      sizeBytes: sizeBytes,
-      size: size,
-      media: media,
-      metadata: metadata,
-      readProgress: readProgress,
-      isUnavailable: deleted,
-      oneshot: oneshot,
-      seriesTitle: seriesTitle,
-      downloadedSize: state.downloadedSize
-    )
-    legacy.downloadStatusRaw = state.downloadStatusRaw
-    legacy.downloadError = state.downloadError
-    legacy.downloadAt = state.downloadAt
-    legacy.readListIds = state.readListIds
-    return legacy
   }
 }

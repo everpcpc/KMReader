@@ -7,8 +7,7 @@ import Foundation
 import SQLiteData
 
 @Table("komga_series_local_state")
-nonisolated struct KomgaSeriesLocalStateRecord: Identifiable, Hashable, Sendable {
-  let id: String
+nonisolated struct KomgaSeriesLocalStateRecord: Hashable, Sendable {
   var instanceId: String
   var seriesId: String
 
@@ -62,7 +61,6 @@ nonisolated struct KomgaSeriesLocalStateRecord: Identifiable, Hashable, Sendable
 
   static func empty(instanceId: String, seriesId: String) -> KomgaSeriesLocalStateRecord {
     KomgaSeriesLocalStateRecord(
-      id: UUID().uuidString,
       instanceId: instanceId,
       seriesId: seriesId,
       downloadStatusRaw: "notDownloaded",

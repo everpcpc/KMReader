@@ -7,9 +7,7 @@ import Foundation
 import SQLiteData
 
 @Table("komga_read_lists")
-nonisolated struct KomgaReadListRecord: Identifiable, Hashable, Sendable {
-  let id: String
-
+nonisolated struct KomgaReadListRecord: Hashable, Sendable {
   // API identifier (ReadListDto.id).
   var readListId: String
   var instanceId: String
@@ -33,7 +31,6 @@ nonisolated struct KomgaReadListRecord: Identifiable, Hashable, Sendable {
   }
 
   init(
-    id: String? = nil,
     readListId: String,
     instanceId: String,
     name: String,
@@ -44,7 +41,6 @@ nonisolated struct KomgaReadListRecord: Identifiable, Hashable, Sendable {
     filtered: Bool,
     bookIds: [String] = []
   ) {
-    self.id = id ?? UUID().uuidString
     self.readListId = readListId
     self.instanceId = instanceId
     self.name = name
@@ -67,28 +63,5 @@ nonisolated struct KomgaReadListRecord: Identifiable, Hashable, Sendable {
       lastModifiedDate: lastModifiedDate,
       filtered: filtered
     )
-  }
-
-  func toKomgaReadList(localState: KomgaReadListLocalStateRecord? = nil) -> KomgaReadList {
-    let state = localState ?? .empty(instanceId: instanceId, readListId: readListId)
-    let legacy = KomgaReadList(
-      id: id,
-      readListId: readListId,
-      instanceId: instanceId,
-      name: name,
-      summary: summary,
-      ordered: ordered,
-      createdDate: createdDate,
-      lastModifiedDate: lastModifiedDate,
-      filtered: filtered,
-      bookIds: bookIds,
-      downloadedBooks: state.downloadedBooks,
-      pendingBooks: state.pendingBooks,
-      downloadedSize: state.downloadedSize
-    )
-    legacy.downloadStatusRaw = state.downloadStatusRaw
-    legacy.downloadError = state.downloadError
-    legacy.downloadAt = state.downloadAt
-    return legacy
   }
 }

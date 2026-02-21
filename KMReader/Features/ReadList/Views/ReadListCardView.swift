@@ -6,12 +6,18 @@
 import SwiftUI
 
 struct ReadListCardView: View {
-  @Bindable var komgaReadList: KomgaReadList
+  let readList: ReadList
+  let localState: KomgaReadListLocalStateRecord?
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
+
+  private var downloadStatus: SeriesDownloadStatus {
+    (localState ?? .empty(instanceId: AppConfig.current.instanceId, readListId: readList.id))
+      .downloadStatus(totalBooks: readList.bookIds.count)
+  }
 
   private var contentSpacing: CGFloat {
     cardTextOverlayMode ? 0 : 12
@@ -20,11 +26,11 @@ struct ReadListCardView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
-        id: komgaReadList.readListId,
+        id: readList.id,
         type: .readlist,
         shadowStyle: .platform,
         alignment: .bottom,
-        navigationLink: NavDestination.readListDetail(readListId: komgaReadList.readListId),
+        navigationLink: NavDestination.readListDetail(readListId: readList.id),
         preserveAspectRatioOverride: cardTextOverlayMode ? false : nil
       ) {
         if cardTextOverlayMode {
@@ -34,9 +40,9 @@ struct ReadListCardView: View {
         }
       } menu: {
         ReadListContextMenu(
-          readListId: komgaReadList.readListId,
-          menuTitle: komgaReadList.name,
-          downloadStatus: komgaReadList.downloadStatus,
+          readListId: readList.id,
+          menuTitle: readList.name,
+          downloadStatus: downloadStatus,
           onDeleteRequested: {
             showDeleteConfirmation = true
           },
@@ -48,11 +54,11 @@ struct ReadListCardView: View {
 
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
-          Text(komgaReadList.name)
+          Text(readList.name)
             .lineLimit(1)
 
           HStack(spacing: 4) {
-            Text("\(komgaReadList.bookIds.count) books")
+            Text("\(readList.bookIds.count) books")
             Spacer()
           }.foregroundColor(.secondary)
         }.font(.footnote)
@@ -69,15 +75,15 @@ struct ReadListCardView: View {
       Text("Are you sure you want to delete this read list? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      ReadListEditSheet(readList: komgaReadList.toReadList())
+      ReadListEditSheet(readList: readList)
     }
   }
 
   @ViewBuilder
   private var overlayTextContent: some View {
-    CardOverlayTextStack(title: komgaReadList.name) {
+    CardOverlayTextStack(title: readList.name) {
       HStack(spacing: 4) {
-        Text("\(komgaReadList.bookIds.count) books")
+        Text("\(readList.bookIds.count) books")
         Spacer()
       }
     }
@@ -86,7 +92,7 @@ struct ReadListCardView: View {
   private func deleteReadList() {
     Task {
       do {
-        try await ReadListService.shared.deleteReadList(readListId: komgaReadList.readListId)
+        try await ReadListService.shared.deleteReadList(readListId: readList.id)
         ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
       } catch {
         ErrorManager.shared.alert(error: error)

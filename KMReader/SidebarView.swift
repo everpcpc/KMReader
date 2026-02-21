@@ -33,7 +33,7 @@ struct SidebarView: View {
   private var libraries: [KomgaLibraryRecord] {
     guard !current.instanceId.isEmpty else { return [] }
     return allLibraries.filter {
-      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
+      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibraryRecord.allLibrariesId
     }
   }
 
@@ -141,9 +141,8 @@ struct SidebarView: View {
     if !libraries.isEmpty {
       Section(isExpanded: $librariesExpanded) {
         ForEach(libraries) { library in
-          let legacyLibrary = library.toKomgaLibrary()
           NavigationLink(
-            value: NavDestination.browseLibrary(selection: LibrarySelection(library: legacyLibrary))
+            value: NavDestination.browseLibrary(selection: LibrarySelection(record: library))
           ) {
             SidebarItemLabel(
               title: library.name,
@@ -169,7 +168,7 @@ struct SidebarView: View {
 
     if !collections.isEmpty {
       Section(isExpanded: $collectionsExpanded) {
-        ForEach(collections) { collection in
+        ForEach(collections, id: \.collectionId) { collection in
           NavigationLink(
             value: NavDestination.collectionDetail(collectionId: collection.collectionId)
           ) {
@@ -186,7 +185,7 @@ struct SidebarView: View {
 
     if !readLists.isEmpty {
       Section(isExpanded: $readListsExpanded) {
-        ForEach(readLists) { readList in
+        ForEach(readLists, id: \.readListId) { readList in
           NavigationLink(
             value: NavDestination.readListDetail(readListId: readList.readListId)
           ) {

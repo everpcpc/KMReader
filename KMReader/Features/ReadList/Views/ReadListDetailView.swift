@@ -66,7 +66,8 @@ struct ReadListDetailView: View {
             Divider()
             if let komgaReadList = komgaReadList {
               ReadListDownloadActionsSection(
-                komgaReadList: komgaReadList.toKomgaReadList(localState: readListLocalState)
+                readList: komgaReadList.toReadList(),
+                localState: readListLocalState
               )
             }
             Divider()

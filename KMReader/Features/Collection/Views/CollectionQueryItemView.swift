@@ -11,7 +11,7 @@ struct CollectionQueryItemView: View {
   let collectionId: String
   var layout: BrowseLayoutMode = .grid
 
-  @FetchAll private var komgaCollections: [KomgaCollectionRecord]
+  @FetchAll private var collectionRecords: [KomgaCollectionRecord]
 
   init(
     collectionId: String,
@@ -21,25 +21,25 @@ struct CollectionQueryItemView: View {
     self.layout = layout
 
     let instanceId = AppConfig.current.instanceId
-    _komgaCollections = FetchAll(
+    _collectionRecords = FetchAll(
       KomgaCollectionRecord.where { $0.instanceId.eq(instanceId) && $0.collectionId.eq(collectionId) }
     )
   }
 
-  private var komgaCollection: KomgaCollection? {
-    komgaCollections.first?.toKomgaCollection()
+  private var collection: SeriesCollection? {
+    collectionRecords.first?.toCollection()
   }
 
   var body: some View {
-    if let collection = komgaCollection {
+    if let collection = collection {
       switch layout {
       case .grid:
         CollectionCardView(
-          komgaCollection: collection
+          collection: collection
         )
       case .list:
         CollectionRowView(
-          komgaCollection: collection
+          collection: collection
         )
       }
     } else {

@@ -6,19 +6,22 @@
 import SwiftUI
 
 struct ReadListItemQueryView: View {
-  @Bindable var readList: KomgaReadList
+  let readList: ReadList
+  let localState: KomgaReadListLocalStateRecord?
   var layout: BrowseLayoutMode = .grid
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: readList.readListId)) {
+    NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
       switch layout {
       case .grid:
         ReadListCardView(
-          komgaReadList: readList
+          readList: readList,
+          localState: localState
         )
       case .list:
         ReadListRowView(
-          komgaReadList: readList
+          readList: readList,
+          localState: localState
         )
       }
     }

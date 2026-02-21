@@ -7,9 +7,7 @@ import Foundation
 import SQLiteData
 
 @Table("komga_collections")
-nonisolated struct KomgaCollectionRecord: Identifiable, Hashable, Sendable {
-  let id: String
-
+nonisolated struct KomgaCollectionRecord: Hashable, Sendable {
   // API identifier (CollectionDto.id).
   var collectionId: String
   var instanceId: String
@@ -32,7 +30,6 @@ nonisolated struct KomgaCollectionRecord: Identifiable, Hashable, Sendable {
   }
 
   init(
-    id: String? = nil,
     collectionId: String,
     instanceId: String,
     name: String,
@@ -42,7 +39,6 @@ nonisolated struct KomgaCollectionRecord: Identifiable, Hashable, Sendable {
     filtered: Bool,
     seriesIds: [String] = []
   ) {
-    self.id = id ?? UUID().uuidString
     self.collectionId = collectionId
     self.instanceId = instanceId
     self.name = name
@@ -62,20 +58,6 @@ nonisolated struct KomgaCollectionRecord: Identifiable, Hashable, Sendable {
       createdDate: createdDate,
       lastModifiedDate: lastModifiedDate,
       filtered: filtered
-    )
-  }
-
-  func toKomgaCollection() -> KomgaCollection {
-    KomgaCollection(
-      id: id,
-      collectionId: collectionId,
-      instanceId: instanceId,
-      name: name,
-      ordered: ordered,
-      createdDate: createdDate,
-      lastModifiedDate: lastModifiedDate,
-      filtered: filtered,
-      seriesIds: seriesIds
     )
   }
 }

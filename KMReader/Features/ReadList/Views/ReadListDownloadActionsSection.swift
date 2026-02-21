@@ -6,16 +6,14 @@
 import SwiftUI
 
 struct ReadListDownloadActionsSection: View {
-  @Bindable var komgaReadList: KomgaReadList
+  let readList: ReadList
+  let localState: KomgaReadListLocalStateRecord?
 
   @AppStorage("currentAccount") private var current: Current = .init()
 
-  private var readList: ReadList {
-    komgaReadList.toReadList()
-  }
-
   private var status: SeriesDownloadStatus {
-    komgaReadList.downloadStatus
+    (localState ?? .empty(instanceId: AppConfig.current.instanceId, readListId: readList.id))
+      .downloadStatus(totalBooks: readList.bookIds.count)
   }
 
   @State private var pendingAction: SeriesDownloadAction?

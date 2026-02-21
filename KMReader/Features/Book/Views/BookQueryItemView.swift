@@ -14,9 +14,8 @@ struct BookQueryItemView: View {
   var showSeriesNavigation: Bool = true
   var readListContext: ReaderReadListContext? = nil
 
-  @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
-  @FetchAll private var komgaBooks: [KomgaBookRecord]
+  @FetchAll private var bookRecords: [KomgaBookRecord]
   @FetchAll private var bookLocalStateList: [KomgaBookLocalStateRecord]
 
   init(
@@ -33,7 +32,7 @@ struct BookQueryItemView: View {
     self.readListContext = readListContext
 
     let instanceId = AppConfig.current.instanceId
-    _komgaBooks = FetchAll(
+    _bookRecords = FetchAll(
       KomgaBookRecord.where { $0.instanceId.eq(instanceId) && $0.bookId.eq(bookId) }
     )
     _bookLocalStateList = FetchAll(
@@ -41,19 +40,24 @@ struct BookQueryItemView: View {
     )
   }
 
-  private var komgaBook: KomgaBook? {
-    komgaBooks.first?.toKomgaBook(localState: bookLocalStateList.first)
+  private var book: Book? {
+    bookRecords.first?.toBook()
+  }
+
+  private var downloadStatus: DownloadStatus {
+    bookLocalStateList.first?.downloadStatus ?? .notDownloaded
   }
 
   var body: some View {
-    if let book = komgaBook {
+    if let book = book {
       switch layout {
       case .grid:
         BookCardView(
-          komgaBook: book,
+          book: book,
+          downloadStatus: downloadStatus,
           onReadBook: { incognito in
             readerPresentation.present(
-              book: book.toBook(),
+              book: book,
               incognito: incognito,
               readListContext: readListContext
             )
@@ -63,10 +67,11 @@ struct BookQueryItemView: View {
         )
       case .list:
         BookRowView(
-          komgaBook: book,
+          book: book,
+          downloadStatus: downloadStatus,
           onReadBook: { incognito in
             readerPresentation.present(
-              book: book.toBook(),
+              book: book,
               incognito: incognito,
               readListContext: readListContext
             )

@@ -13,7 +13,7 @@ struct SeriesCollectionsSection: View {
     let instanceId = AppConfig.current.instanceId
     if collectionIds.isEmpty {
       _komgaCollections = FetchAll(
-        KomgaCollectionRecord.where { $0.id.eq("__none__") }
+        KomgaCollectionRecord.where { $0.collectionId.eq("__none__") }
       )
     } else {
       _komgaCollections = FetchAll(

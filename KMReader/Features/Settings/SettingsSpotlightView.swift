@@ -179,7 +179,7 @@ import SwiftUI
 
       await LibraryManager.shared.loadLibraries()
       let loadedLibraries = await DatabaseOperator.shared.fetchLibraries(instanceId: instanceId)
-        .filter { $0.id != KomgaLibrary.allLibrariesId }
+        .filter { $0.id != KomgaLibraryRecord.allLibrariesId }
       libraries = loadedLibraries
 
       let validLibraryIds = Set(loadedLibraries.map(\.id))

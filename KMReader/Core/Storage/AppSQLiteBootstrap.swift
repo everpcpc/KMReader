@@ -112,7 +112,6 @@ enum AppSQLiteBootstrap {
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS komga_series (
-          id TEXT PRIMARY KEY NOT NULL,
           seriesId TEXT NOT NULL,
           libraryId TEXT NOT NULL,
           instanceId TEXT NOT NULL,
@@ -128,6 +127,7 @@ enum AppSQLiteBootstrap {
           oneshot INTEGER NOT NULL,
           metadataRaw BLOB,
           booksMetadataRaw BLOB,
+          -- Query projection columns for filtering/sorting only.
           metaStatus TEXT,
           metaTitle TEXT NOT NULL,
           metaTitleSort TEXT NOT NULL,
@@ -150,7 +150,6 @@ enum AppSQLiteBootstrap {
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS komga_series_local_state (
-          id TEXT PRIMARY KEY NOT NULL,
           instanceId TEXT NOT NULL,
           seriesId TEXT NOT NULL,
           downloadStatusRaw TEXT NOT NULL,
@@ -182,7 +181,6 @@ enum AppSQLiteBootstrap {
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS komga_books (
-          id TEXT PRIMARY KEY NOT NULL,
           bookId TEXT NOT NULL,
           seriesId TEXT NOT NULL,
           libraryId TEXT NOT NULL,
@@ -200,6 +198,7 @@ enum AppSQLiteBootstrap {
           mediaRaw BLOB,
           metadataRaw BLOB,
           readProgressRaw BLOB,
+          -- Query projection columns for filtering/sorting only.
           mediaProfile TEXT,
           mediaPagesCount INTEGER NOT NULL,
           metaTitle TEXT NOT NULL,
@@ -227,7 +226,6 @@ enum AppSQLiteBootstrap {
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS komga_book_local_state (
-          id TEXT PRIMARY KEY NOT NULL,
           instanceId TEXT NOT NULL,
           bookId TEXT NOT NULL,
           pagesRaw BLOB,
@@ -261,7 +259,6 @@ enum AppSQLiteBootstrap {
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS komga_collections (
-          id TEXT PRIMARY KEY NOT NULL,
           collectionId TEXT NOT NULL,
           instanceId TEXT NOT NULL,
           name TEXT NOT NULL,
@@ -285,7 +282,6 @@ enum AppSQLiteBootstrap {
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS komga_read_lists (
-          id TEXT PRIMARY KEY NOT NULL,
           readListId TEXT NOT NULL,
           instanceId TEXT NOT NULL,
           name TEXT NOT NULL,
@@ -309,7 +305,6 @@ enum AppSQLiteBootstrap {
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS komga_read_list_local_state (
-          id TEXT PRIMARY KEY NOT NULL,
           instanceId TEXT NOT NULL,
           readListId TEXT NOT NULL,
           downloadStatusRaw TEXT NOT NULL,
@@ -523,7 +518,6 @@ enum AppSQLiteBootstrap {
 
   private static func upsertSeries(_ series: KomgaSeries, in db: Database) throws {
     let record = KomgaSeriesRecord(
-      id: series.id,
       seriesId: series.seriesId,
       libraryId: series.libraryId,
       instanceId: series.instanceId,
@@ -540,55 +534,26 @@ enum AppSQLiteBootstrap {
       deleted: series.isUnavailable,
       oneshot: series.oneshot
     )
+    try insertOrUpdateSeriesRecord(record, in: db)
 
-    try KomgaSeriesRecord.upsert {
-      KomgaSeriesRecord.Draft(
-        id: record.id,
-        seriesId: record.seriesId,
-        libraryId: record.libraryId,
-        instanceId: record.instanceId,
-        name: record.name,
-        url: record.url,
-        created: record.created,
-        lastModified: record.lastModified,
-        booksCount: record.booksCount,
-        booksReadCount: record.booksReadCount,
-        booksUnreadCount: record.booksUnreadCount,
-        booksInProgressCount: record.booksInProgressCount,
-        deleted: record.deleted,
-        oneshot: record.oneshot,
-        metadataRaw: record.metadataRaw,
-        booksMetadataRaw: record.booksMetadataRaw,
-        metaStatus: record.metaStatus,
-        metaTitle: record.metaTitle,
-        metaTitleSort: record.metaTitleSort,
-        booksMetaReleaseDate: record.booksMetaReleaseDate
-      )
-    }
-    .execute(db)
-
-    try KomgaSeriesLocalStateRecord.upsert {
-      KomgaSeriesLocalStateRecord.Draft(
-        id: UUID().uuidString,
-        instanceId: series.instanceId,
-        seriesId: series.seriesId,
-        downloadStatusRaw: series.downloadStatusRaw,
-        downloadError: series.downloadError,
-        downloadAt: series.downloadAt,
-        downloadedSize: series.downloadedSize,
-        downloadedBooks: series.downloadedBooks,
-        pendingBooks: series.pendingBooks,
-        offlinePolicyRaw: series.offlinePolicyRaw,
-        offlinePolicyLimit: series.offlinePolicyLimit,
-        collectionIdsRaw: series.collectionIdsRaw
-      )
-    }
-    .execute(db)
+    let localState = KomgaSeriesLocalStateRecord(
+      instanceId: series.instanceId,
+      seriesId: series.seriesId,
+      downloadStatusRaw: series.downloadStatusRaw,
+      downloadError: series.downloadError,
+      downloadAt: series.downloadAt,
+      downloadedSize: series.downloadedSize,
+      downloadedBooks: series.downloadedBooks,
+      pendingBooks: series.pendingBooks,
+      offlinePolicyRaw: series.offlinePolicyRaw,
+      offlinePolicyLimit: series.offlinePolicyLimit,
+      collectionIdsRaw: series.collectionIdsRaw
+    )
+    try insertOrUpdateSeriesLocalStateRecord(localState, in: db)
   }
 
   private static func upsertBook(_ book: KomgaBook, in db: Database) throws {
     let record = KomgaBookRecord(
-      id: book.id,
       bookId: book.bookId,
       seriesId: book.seriesId,
       libraryId: book.libraryId,
@@ -607,67 +572,29 @@ enum AppSQLiteBootstrap {
       oneshot: book.oneshot,
       seriesTitle: book.seriesTitle
     )
+    try insertOrUpdateBookRecord(record, in: db)
 
-    try KomgaBookRecord.upsert {
-      KomgaBookRecord.Draft(
-        id: record.id,
-        bookId: record.bookId,
-        seriesId: record.seriesId,
-        libraryId: record.libraryId,
-        instanceId: record.instanceId,
-        name: record.name,
-        url: record.url,
-        seriesTitle: record.seriesTitle,
-        number: record.number,
-        created: record.created,
-        lastModified: record.lastModified,
-        sizeBytes: record.sizeBytes,
-        size: record.size,
-        deleted: record.deleted,
-        oneshot: record.oneshot,
-        mediaRaw: record.mediaRaw,
-        metadataRaw: record.metadataRaw,
-        readProgressRaw: record.readProgressRaw,
-        mediaProfile: record.mediaProfile,
-        mediaPagesCount: record.mediaPagesCount,
-        metaTitle: record.metaTitle,
-        metaNumber: record.metaNumber,
-        metaNumberSort: record.metaNumberSort,
-        metaReleaseDate: record.metaReleaseDate,
-        progressPage: record.progressPage,
-        progressCompleted: record.progressCompleted,
-        progressReadDate: record.progressReadDate,
-        progressCreated: record.progressCreated,
-        progressLastModified: record.progressLastModified
-      )
-    }
-    .execute(db)
-
-    try KomgaBookLocalStateRecord.upsert {
-      KomgaBookLocalStateRecord.Draft(
-        id: UUID().uuidString,
-        instanceId: book.instanceId,
-        bookId: book.bookId,
-        pagesRaw: book.pagesRaw,
-        tocRaw: book.tocRaw,
-        webPubManifestRaw: book.webPubManifestRaw,
-        epubProgressionRaw: book.epubProgressionRaw,
-        isolatePagesRaw: book.isolatePagesRaw,
-        epubPreferencesRaw: book.epubPreferencesRaw,
-        downloadStatusRaw: book.downloadStatusRaw,
-        downloadError: book.downloadError,
-        downloadAt: book.downloadAt,
-        downloadedSize: book.downloadedSize,
-        readListIdsRaw: book.readListIdsRaw
-      )
-    }
-    .execute(db)
+    let localState = KomgaBookLocalStateRecord(
+      instanceId: book.instanceId,
+      bookId: book.bookId,
+      pagesRaw: book.pagesRaw,
+      tocRaw: book.tocRaw,
+      webPubManifestRaw: book.webPubManifestRaw,
+      epubProgressionRaw: book.epubProgressionRaw,
+      isolatePagesRaw: book.isolatePagesRaw,
+      epubPreferencesRaw: book.epubPreferencesRaw,
+      downloadStatusRaw: book.downloadStatusRaw,
+      downloadError: book.downloadError,
+      downloadAt: book.downloadAt,
+      downloadedSize: book.downloadedSize,
+      readListIdsRaw: book.readListIdsRaw
+    )
+    try insertOrUpdateBookLocalStateRecord(localState, in: db)
   }
 
   private static func upsertCollection(_ collection: KomgaCollection, in db: Database) throws {
-    try KomgaCollectionRecord.upsert {
-      KomgaCollectionRecord.Draft(
-        id: collection.id,
+    try insertOrUpdateCollectionRecord(
+      KomgaCollectionRecord(
         collectionId: collection.collectionId,
         instanceId: collection.instanceId,
         name: collection.name,
@@ -675,16 +602,15 @@ enum AppSQLiteBootstrap {
         createdDate: collection.createdDate,
         lastModifiedDate: collection.lastModifiedDate,
         filtered: collection.filtered,
-        seriesIdsRaw: collection.seriesIdsRaw
-      )
-    }
-    .execute(db)
+        seriesIds: collection.seriesIds
+      ),
+      in: db
+    )
   }
 
   private static func upsertReadList(_ readList: KomgaReadList, in db: Database) throws {
-    try KomgaReadListRecord.upsert {
-      KomgaReadListRecord.Draft(
-        id: readList.id,
+    try insertOrUpdateReadListRecord(
+      KomgaReadListRecord(
         readListId: readList.readListId,
         instanceId: readList.instanceId,
         name: readList.name,
@@ -693,14 +619,13 @@ enum AppSQLiteBootstrap {
         createdDate: readList.createdDate,
         lastModifiedDate: readList.lastModifiedDate,
         filtered: readList.filtered,
-        bookIdsRaw: readList.bookIdsRaw
-      )
-    }
-    .execute(db)
+        bookIds: readList.bookIds
+      ),
+      in: db
+    )
 
-    try KomgaReadListLocalStateRecord.upsert {
-      KomgaReadListLocalStateRecord.Draft(
-        id: UUID().uuidString,
+    try insertOrUpdateReadListLocalStateRecord(
+      KomgaReadListLocalStateRecord(
         instanceId: readList.instanceId,
         readListId: readList.readListId,
         downloadStatusRaw: readList.downloadStatusRaw,
@@ -709,9 +634,212 @@ enum AppSQLiteBootstrap {
         downloadedSize: readList.downloadedSize,
         downloadedBooks: readList.downloadedBooks,
         pendingBooks: readList.pendingBooks
-      )
+      ),
+      in: db
+    )
+  }
+
+  private static func insertOrUpdateBookRecord(_ record: KomgaBookRecord, in db: Database) throws {
+    let query = KomgaBookRecord.where { $0.instanceId.eq(record.instanceId) && $0.bookId.eq(record.bookId) }
+
+    if let existing = try query.fetchOne(db) {
+      guard existing != record else { return }
+      try query
+        .update {
+          $0.seriesId = #bind(record.seriesId)
+          $0.libraryId = #bind(record.libraryId)
+          $0.name = #bind(record.name)
+          $0.url = #bind(record.url)
+          $0.number = #bind(record.number)
+          $0.created = #bind(record.created)
+          $0.lastModified = #bind(record.lastModified)
+          $0.sizeBytes = #bind(record.sizeBytes)
+          $0.size = #bind(record.size)
+          $0.seriesTitle = #bind(record.seriesTitle)
+          $0.deleted = #bind(record.deleted)
+          $0.oneshot = #bind(record.oneshot)
+          $0.mediaRaw = #bind(record.mediaRaw)
+          $0.metadataRaw = #bind(record.metadataRaw)
+          $0.readProgressRaw = #bind(record.readProgressRaw)
+          $0.mediaProfile = #bind(record.mediaProfile)
+          $0.mediaPagesCount = #bind(record.mediaPagesCount)
+          $0.metaTitle = #bind(record.metaTitle)
+          $0.metaNumber = #bind(record.metaNumber)
+          $0.metaNumberSort = #bind(record.metaNumberSort)
+          $0.metaReleaseDate = #bind(record.metaReleaseDate)
+          $0.progressPage = #bind(record.progressPage)
+          $0.progressCompleted = #bind(record.progressCompleted)
+          $0.progressReadDate = #bind(record.progressReadDate)
+          $0.progressCreated = #bind(record.progressCreated)
+          $0.progressLastModified = #bind(record.progressLastModified)
+        }
+        .execute(db)
+      return
     }
-    .execute(db)
+
+    try KomgaBookRecord.insert { record }.execute(db)
+  }
+
+  private static func insertOrUpdateBookLocalStateRecord(_ record: KomgaBookLocalStateRecord, in db: Database) throws {
+    let query = KomgaBookLocalStateRecord.where {
+      $0.instanceId.eq(record.instanceId) && $0.bookId.eq(record.bookId)
+    }
+
+    if let existing = try query.fetchOne(db) {
+      guard existing != record else { return }
+      try query
+        .update {
+          $0.pagesRaw = #bind(record.pagesRaw)
+          $0.tocRaw = #bind(record.tocRaw)
+          $0.webPubManifestRaw = #bind(record.webPubManifestRaw)
+          $0.epubProgressionRaw = #bind(record.epubProgressionRaw)
+          $0.isolatePagesRaw = #bind(record.isolatePagesRaw)
+          $0.epubPreferencesRaw = #bind(record.epubPreferencesRaw)
+          $0.downloadStatusRaw = #bind(record.downloadStatusRaw)
+          $0.downloadError = #bind(record.downloadError)
+          $0.downloadAt = #bind(record.downloadAt)
+          $0.downloadedSize = #bind(record.downloadedSize)
+          $0.readListIdsRaw = #bind(record.readListIdsRaw)
+        }
+        .execute(db)
+      return
+    }
+
+    try KomgaBookLocalStateRecord.insert { record }.execute(db)
+  }
+
+  private static func insertOrUpdateSeriesRecord(_ record: KomgaSeriesRecord, in db: Database) throws {
+    let query = KomgaSeriesRecord.where { $0.instanceId.eq(record.instanceId) && $0.seriesId.eq(record.seriesId) }
+
+    if let existing = try query.fetchOne(db) {
+      guard existing != record else { return }
+      try query
+        .update {
+          $0.libraryId = #bind(record.libraryId)
+          $0.name = #bind(record.name)
+          $0.url = #bind(record.url)
+          $0.created = #bind(record.created)
+          $0.lastModified = #bind(record.lastModified)
+          $0.booksCount = #bind(record.booksCount)
+          $0.booksReadCount = #bind(record.booksReadCount)
+          $0.booksUnreadCount = #bind(record.booksUnreadCount)
+          $0.booksInProgressCount = #bind(record.booksInProgressCount)
+          $0.deleted = #bind(record.deleted)
+          $0.oneshot = #bind(record.oneshot)
+          $0.metadataRaw = #bind(record.metadataRaw)
+          $0.booksMetadataRaw = #bind(record.booksMetadataRaw)
+          $0.metaStatus = #bind(record.metaStatus)
+          $0.metaTitle = #bind(record.metaTitle)
+          $0.metaTitleSort = #bind(record.metaTitleSort)
+          $0.booksMetaReleaseDate = #bind(record.booksMetaReleaseDate)
+        }
+        .execute(db)
+      return
+    }
+
+    try KomgaSeriesRecord.insert { record }.execute(db)
+  }
+
+  private static func insertOrUpdateSeriesLocalStateRecord(
+    _ record: KomgaSeriesLocalStateRecord,
+    in db: Database
+  ) throws {
+    let query = KomgaSeriesLocalStateRecord.where {
+      $0.instanceId.eq(record.instanceId) && $0.seriesId.eq(record.seriesId)
+    }
+
+    if let existing = try query.fetchOne(db) {
+      guard existing != record else { return }
+      try query
+        .update {
+          $0.downloadStatusRaw = #bind(record.downloadStatusRaw)
+          $0.downloadError = #bind(record.downloadError)
+          $0.downloadAt = #bind(record.downloadAt)
+          $0.downloadedSize = #bind(record.downloadedSize)
+          $0.downloadedBooks = #bind(record.downloadedBooks)
+          $0.pendingBooks = #bind(record.pendingBooks)
+          $0.offlinePolicyRaw = #bind(record.offlinePolicyRaw)
+          $0.offlinePolicyLimit = #bind(record.offlinePolicyLimit)
+          $0.collectionIdsRaw = #bind(record.collectionIdsRaw)
+        }
+        .execute(db)
+      return
+    }
+
+    try KomgaSeriesLocalStateRecord.insert { record }.execute(db)
+  }
+
+  private static func insertOrUpdateCollectionRecord(_ record: KomgaCollectionRecord, in db: Database) throws {
+    let query = KomgaCollectionRecord.where {
+      $0.instanceId.eq(record.instanceId) && $0.collectionId.eq(record.collectionId)
+    }
+
+    if let existing = try query.fetchOne(db) {
+      guard existing != record else { return }
+      try query
+        .update {
+          $0.name = #bind(record.name)
+          $0.ordered = #bind(record.ordered)
+          $0.createdDate = #bind(record.createdDate)
+          $0.lastModifiedDate = #bind(record.lastModifiedDate)
+          $0.filtered = #bind(record.filtered)
+          $0.seriesIdsRaw = #bind(record.seriesIdsRaw)
+        }
+        .execute(db)
+      return
+    }
+
+    try KomgaCollectionRecord.insert { record }.execute(db)
+  }
+
+  private static func insertOrUpdateReadListRecord(_ record: KomgaReadListRecord, in db: Database) throws {
+    let query = KomgaReadListRecord.where {
+      $0.instanceId.eq(record.instanceId) && $0.readListId.eq(record.readListId)
+    }
+
+    if let existing = try query.fetchOne(db) {
+      guard existing != record else { return }
+      try query
+        .update {
+          $0.name = #bind(record.name)
+          $0.summary = #bind(record.summary)
+          $0.ordered = #bind(record.ordered)
+          $0.createdDate = #bind(record.createdDate)
+          $0.lastModifiedDate = #bind(record.lastModifiedDate)
+          $0.filtered = #bind(record.filtered)
+          $0.bookIdsRaw = #bind(record.bookIdsRaw)
+        }
+        .execute(db)
+      return
+    }
+
+    try KomgaReadListRecord.insert { record }.execute(db)
+  }
+
+  private static func insertOrUpdateReadListLocalStateRecord(
+    _ record: KomgaReadListLocalStateRecord,
+    in db: Database
+  ) throws {
+    let query = KomgaReadListLocalStateRecord.where {
+      $0.instanceId.eq(record.instanceId) && $0.readListId.eq(record.readListId)
+    }
+
+    if let existing = try query.fetchOne(db) {
+      guard existing != record else { return }
+      try query
+        .update {
+          $0.downloadStatusRaw = #bind(record.downloadStatusRaw)
+          $0.downloadError = #bind(record.downloadError)
+          $0.downloadAt = #bind(record.downloadAt)
+          $0.downloadedSize = #bind(record.downloadedSize)
+          $0.downloadedBooks = #bind(record.downloadedBooks)
+          $0.pendingBooks = #bind(record.pendingBooks)
+        }
+        .execute(db)
+      return
+    }
+
+    try KomgaReadListLocalStateRecord.insert { record }.execute(db)
   }
 
   private static func upsertPendingProgress(_ progress: PendingProgress, in db: Database) throws {

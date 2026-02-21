@@ -6,27 +6,27 @@
 import SwiftUI
 
 struct CollectionCompactCardView: View {
-  @Bindable var komgaCollection: KomgaCollection
+  let collection: SeriesCollection
 
   var body: some View {
     NavigationLink(
-      value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+      value: NavDestination.collectionDetail(collectionId: collection.id)
     ) {
       HStack {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
+        ThumbnailImage(id: collection.id, type: .collection, width: 60)
 
         VStack(alignment: .leading, spacing: 4) {
-          Text(komgaCollection.name)
+          Text(collection.name)
             .font(.callout)
             .fontWeight(.medium)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
-          Text("\(komgaCollection.seriesIds.count) series")
+          Text("\(collection.seriesIds.count) series")
             .font(.footnote)
             .foregroundColor(.secondary)
 
-          Text(komgaCollection.lastModifiedDate.formattedMediumDate)
+          Text(collection.lastModifiedDate.formattedMediumDate)
             .font(.caption)
             .foregroundColor(.secondary)
         }

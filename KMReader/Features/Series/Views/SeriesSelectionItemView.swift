@@ -12,7 +12,7 @@ struct SeriesSelectionItemView: View {
   let layout: BrowseLayoutMode
   @Binding var selectedSeriesIds: Set<String>
 
-  @FetchAll private var komgaSeriesList: [KomgaSeriesRecord]
+  @FetchAll private var seriesRecords: [KomgaSeriesRecord]
   @FetchAll private var seriesLocalStateList: [KomgaSeriesLocalStateRecord]
 
   init(
@@ -25,7 +25,7 @@ struct SeriesSelectionItemView: View {
     self._selectedSeriesIds = selectedSeriesIds
 
     let instanceId = AppConfig.current.instanceId
-    _komgaSeriesList = FetchAll(
+    _seriesRecords = FetchAll(
       KomgaSeriesRecord.where { $0.instanceId.eq(instanceId) && $0.seriesId.eq(seriesId) }
     )
     _seriesLocalStateList = FetchAll(
@@ -33,9 +33,12 @@ struct SeriesSelectionItemView: View {
     )
   }
 
-  private var komgaSeries: KomgaSeries? {
-    guard let record = komgaSeriesList.first else { return nil }
-    return record.toKomgaSeries(localState: seriesLocalStateList.first)
+  private var series: Series? {
+    seriesRecords.first?.toSeries()
+  }
+
+  private var localState: KomgaSeriesLocalStateRecord? {
+    seriesLocalStateList.first
   }
 
   private var isSelected: Bool {
@@ -43,16 +46,18 @@ struct SeriesSelectionItemView: View {
   }
 
   var body: some View {
-    if let series = komgaSeries {
+    if let series = series {
       Group {
         switch layout {
         case .grid:
           SeriesCardView(
-            komgaSeries: series
+            series: series,
+            localState: localState
           )
         case .list:
           SeriesRowView(
-            komgaSeries: series
+            series: series,
+            localState: localState
           )
         }
       }
