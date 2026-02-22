@@ -726,7 +726,6 @@ struct DivinaReaderView: View {
                   readingDirection: readingDirection,
                   splitWidePageMode: splitWidePageMode,
                   renderConfig: renderConfig,
-                  readerPresentation: readerPresentation,
                   previousBook: previousBook,
                   nextBook: nextBook,
                   readListContext: readListContext,
