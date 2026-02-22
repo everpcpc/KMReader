@@ -203,7 +203,8 @@
     private func applyConfiguration() {
       let textColor = contentColor
       view.backgroundColor = UIColor(renderConfig.readerBackground.color)
-      let directionAttribute: UISemanticContentAttribute = readingDirection == .rtl ? .forceRightToLeft : .forceLeftToRight
+      let directionAttribute: UISemanticContentAttribute =
+        readingDirection == .rtl ? .forceRightToLeft : .forceLeftToRight
       view.semanticContentAttribute = directionAttribute
       contentStack.semanticContentAttribute = directionAttribute
       buttonStack.semanticContentAttribute = directionAttribute

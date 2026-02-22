@@ -20,6 +20,7 @@ nonisolated enum EpubConstants {
   static let defaultPageMargins: Double = 1.0
 
   static let defaultFontWeight: Double = 1.0
+  static let defaultTapScrollPercentage: Double = 80.0
 }
 
 nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
@@ -29,6 +30,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   static let readiumPropertyKeys: [String] = [
     "--RS__textColor",
     "--RS__backgroundColor",
+    "--USER__view",
     "--USER__fontOverride",
     "--USER__fontFamily",
     "--USER__fontWeightOverride",
@@ -46,6 +48,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   ]
 
   var theme: ThemeChoice
+  var flowStyle: EpubFlowStyle
   var fontFamily: FontFamilyChoice
   var fontWeight: Double?
   var advancedLayout: Bool
@@ -57,9 +60,11 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   var lineHeight: Double
   var columnCount: EpubColumnCount
   var pageMargins: Double
+  var tapScrollPercentage: Double
 
   init(
     theme: ThemeChoice = .system,
+    flowStyle: EpubFlowStyle = .paged,
     fontFamily: FontFamilyChoice = .publisher,
     fontWeight: Double? = nil,
     advancedLayout: Bool = false,
@@ -71,8 +76,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     lineHeight: Double = EpubConstants.defaultLineHeight,
     columnCount: EpubColumnCount = .auto,
     pageMargins: Double = EpubConstants.defaultPageMargins,
+    tapScrollPercentage: Double = EpubConstants.defaultTapScrollPercentage,
   ) {
     self.theme = theme
+    self.flowStyle = flowStyle
     self.fontFamily = fontFamily
     self.fontSize = fontSize
     self.wordSpacing = wordSpacing
@@ -84,6 +91,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     self.lineHeight = lineHeight
     self.fontWeight = fontWeight
     self.advancedLayout = advancedLayout
+    self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
   }
 
   init?(rawValue: String) {
@@ -100,6 +108,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     }
 
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
+    let flowStyleRaw = dict["flowStyle"] as? String ?? EpubFlowStyle.paged.rawValue
+    let flowStyle = EpubFlowStyle(rawValue: flowStyleRaw) ?? .paged
     let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
     let font = FontFamilyChoice(rawValue: fontString)
     let rawFontWeight = dict["fontWeight"] as? Double
@@ -118,9 +128,13 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let columnCount = EpubColumnCount(rawValue: columnCountRaw) ?? .auto
     let rawPageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
     let pageMargins = Self.normalizedPageMargins(rawPageMargins)
+    let rawTapScrollPercentage =
+      dict["tapScrollPercentage"] as? Double ?? EpubConstants.defaultTapScrollPercentage
+    let tapScrollPercentage = Self.normalizedTapScrollPercentage(rawTapScrollPercentage)
 
     self.init(
       theme: theme,
+      flowStyle: flowStyle,
       fontFamily: font,
       fontWeight: fontWeight,
       advancedLayout: advancedLayout,
@@ -132,12 +146,14 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       lineHeight: lineHeight,
       columnCount: columnCount,
       pageMargins: pageMargins,
+      tapScrollPercentage: tapScrollPercentage,
     )
   }
 
   var rawValue: String {
     var dict: [String: Any] = [
       "theme": theme.rawValue,
+      "flowStyle": flowStyle.rawValue,
       "fontFamily": fontFamily.rawValue,
       "advancedLayout": advancedLayout,
       "fontSize": fontSize,
@@ -148,6 +164,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       "lineHeight": lineHeight,
       "columnCount": columnCount.rawValue,
       "pageMargins": pageMargins,
+      "tapScrollPercentage": tapScrollPercentage,
     ]
     if let fontWeight {
       dict["fontWeight"] = fontWeight
@@ -175,6 +192,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       "--RS__textColor": theme.textColorHex,
       "--RS__backgroundColor": theme.backgroundColorHex,
     ]
+    properties["--USER__view"] = flowStyle == .scrolled ? "readium-scroll-on" : nil
     properties["font-weight"] = nil
 
     let fontFamilyValue = fontName.map(cssFontFamilyValue)
@@ -329,6 +347,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   private static func normalizedPageMargins(_ value: Double) -> Double {
     let normalized = value > 4.0 ? value / 20.0 : value
     return max(0, normalized)
+  }
+
+  private static func normalizedTapScrollPercentage(_ value: Double) -> Double {
+    min(100.0, max(25.0, value))
   }
 }
 
