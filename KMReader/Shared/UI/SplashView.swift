@@ -6,13 +6,19 @@
 import SwiftUI
 
 struct SplashView: View {
-  @State private var isVisible = false
+  @State private var isVisible: Bool
   @State private var loadingMessageIndex = 0
   @State private var pulseProgress = 1.0
   @State private var messageRotationTask: Task<Void, Never>?
 
-  var initializer: InstanceInitializer?
-  var isMigration: Bool = false
+  let initializer: InstanceInitializer?
+  let isMigration: Bool
+
+  init(initializer: InstanceInitializer? = nil, isMigration: Bool = false) {
+    self.initializer = initializer
+    self.isMigration = isMigration
+    _isVisible = State(initialValue: isMigration)
+  }
 
   private var loadingMessages: [String] {
     if isMigration {
@@ -120,6 +126,20 @@ struct SplashView: View {
                 removal: .move(edge: .top).combined(with: .opacity))
             )
             .id(loadingMessageIndex)
+
+          if isMigration {
+            Text(
+              String(
+                localized: "splash.migration.duration_hint",
+                defaultValue:
+                  "Large libraries may take 1-2 minutes to migrate. Please keep KMReader open."
+              )
+            )
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 320)
+          }
         }
       }
 
@@ -127,8 +147,10 @@ struct SplashView: View {
         .frame(height: 60)
     }
     .onAppear {
-      withAnimation(.spring(response: 0.8, dampingFraction: 0.7, blendDuration: 0)) {
-        isVisible = true
+      if !isVisible {
+        withAnimation(.spring(response: 0.8, dampingFraction: 0.7, blendDuration: 0)) {
+          isVisible = true
+        }
       }
 
       // Pulse animation for ProgressView
