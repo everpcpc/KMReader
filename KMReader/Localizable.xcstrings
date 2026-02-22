@@ -42766,6 +42766,52 @@
         }
       }
     },
+    "splash.migration.duration_hint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei großen Bibliotheken kann die Migration 1-2 Minuten dauern. Bitte KMReader geöffnet lassen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large libraries may take 1-2 minutes to migrate. Please keep KMReader open."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour les grandes bibliothèques, la migration peut prendre 1 à 2 minutes. Veuillez laisser KMReader ouvert."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリが大きい場合、移行には1〜2分かかることがあります。KMReaderを開いたままにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "라이브러리가 큰 경우 마이그레이션에 1-2분 정도 걸릴 수 있습니다. KMReader를 계속 열어 두세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大型书库迁移可能需要 1-2 分钟，请保持 KMReader 打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大型書庫遷移可能需要 1-2 分鐘，請保持 KMReader 開啟。"
+          }
+        }
+      }
+    },
     "splash.migration.finalizing" : {
       "localizations" : {
         "de" : {
