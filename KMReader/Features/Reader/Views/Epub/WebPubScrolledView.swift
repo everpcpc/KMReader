@@ -101,9 +101,6 @@
           viewModel.targetChapterIndex = targetChapterIndex
           viewModel.targetPageIndex = 0
         }
-        Task { @MainActor in
-          viewModel.pageDidChange()
-        }
       }
       vc.onPageDidChange = { [weak viewModel] chapterIndex, pageIndex in
         guard let viewModel = viewModel else { return }

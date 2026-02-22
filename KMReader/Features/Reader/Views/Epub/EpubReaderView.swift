@@ -87,6 +87,22 @@
       bookPreferences != nil
     }
 
+    private var dismissGestureReadingDirection: ReadingDirection {
+      switch activePreferences.flowStyle {
+      case .paged:
+        return viewModel.publicationReadingProgression == .rtl ? .rtl : .ltr
+      case .scrolled:
+        return .webtoon
+      }
+    }
+
+    private func updateDismissGestureReadingDirection() {
+      let direction = dismissGestureReadingDirection
+      if direction != readerPresentation.readingDirection {
+        readerPresentation.readingDirection = direction
+      }
+    }
+
     private func updateHandoff() {
       let url = KomgaWebLinkBuilder.epubReader(
         serverURL: current.serverURL,
@@ -100,21 +116,29 @@
       readerBody
         .iPadIgnoresSafeArea()
         .task(id: book.id) {
+          readerPresentation.setReaderFlushHandler {
+            viewModel.flushProgress()
+          }
           await loadBook()
         }
         .onAppear {
           updateHandoff()
           viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
+          updateDismissGestureReadingDirection()
         }
         .onChange(of: currentBook?.id) { _, _ in
           updateHandoff()
         }
         .onChange(of: activePreferences) { _, newPrefs in
           viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)
+          updateDismissGestureReadingDirection()
         }
         .onChange(of: globalPreferences) { _, newPrefs in
           guard !isUsingBookPreferences else { return }
           activePreferences = newPrefs
+        }
+        .onChange(of: viewModel.publicationReadingProgression) { _, _ in
+          updateDismissGestureReadingDirection()
         }
         .onChange(of: colorScheme) { _, newScheme in
           viewModel.applyPreferences(activePreferences, colorScheme: newScheme)
@@ -203,9 +227,7 @@
         }
         .onAppear {
           viewModel.updateViewport(size: geometry.size)
-          if .ltr != readerPresentation.readingDirection {
-            readerPresentation.readingDirection = .ltr
-          }
+          updateDismissGestureReadingDirection()
         }
         .onChange(of: geometry.size) { _, newSize in
           viewModel.updateViewport(size: newSize)
