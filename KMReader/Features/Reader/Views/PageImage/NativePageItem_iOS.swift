@@ -42,6 +42,9 @@
 
     func prepareForDismantle() {
       #if !os(tvOS)
+        if imageView.interactions.contains(where: { $0 === interaction }) {
+          imageView.removeInteraction(interaction)
+        }
         clearAnalysis()
         analyzedImage = nil
       #endif

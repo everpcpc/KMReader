@@ -1062,7 +1062,13 @@ struct DivinaReaderView: View {
       if !incognito {
         readerPresentation.trackVisitedBook(bookId: resolvedBook.id, seriesId: resolvedBook.seriesId)
       }
-      initialPageNumber = incognito ? nil : resolvedBook.readProgress?.page
+      if incognito {
+        initialPageNumber = nil
+      } else if resolvedBook.readProgress?.completed == true {
+        initialPageNumber = nil
+      } else {
+        initialPageNumber = resolvedBook.readProgress?.page
+      }
     }
 
     if let activeBook = currentBook {

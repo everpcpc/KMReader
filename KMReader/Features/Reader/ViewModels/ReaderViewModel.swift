@@ -122,6 +122,11 @@ class ReaderViewModel {
         isolatePages = localIsolatePages
       }
 
+      currentPageIndex = 0
+      currentViewItemIndex = 0
+      targetPageIndex = nil
+      targetViewItemIndex = nil
+
       // Set initial page index BEFORE assigning pages to ensure proper scroll synchronization
       // This prevents race condition where pages.count changes but currentPageIndex is still 0
       if let initialPageNumber = initialPageNumber,
