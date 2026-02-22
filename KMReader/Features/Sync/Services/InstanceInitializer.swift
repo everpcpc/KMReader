@@ -75,12 +75,13 @@ final class InstanceInitializer {
     DatabaseOperator.shared
   }
 
-  /// Sync data for the current instance. Uses incremental sync based on lastModified.
-  func syncData() async {
+  /// Sync data for the current instance.
+  /// - Parameter forceFullSync: If true, ignores lastSyncedAt and fetches all series/books.
+  func syncData(forceFullSync: Bool = false) async {
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
 
-    let hasFailures = await performSync(instanceId: instanceId)
+    let hasFailures = await performSync(instanceId: instanceId, forceFullSync: forceFullSync)
     if hasFailures {
       ErrorManager.shared.notify(
         message: String(localized: "notification.offline.syncCompletedWithIssues")
@@ -92,16 +93,20 @@ final class InstanceInitializer {
     }
   }
 
-  private func performSync(instanceId: String) async -> Bool {
+  private func performSync(instanceId: String, forceFullSync: Bool) async -> Bool {
     isSyncing = true
     progress = 0.0
     var hasFailures = false
 
-    let lastSyncedAt = await db.getLastSyncedAt(instanceId: instanceId)
+    let storedLastSyncedAt = await db.getLastSyncedAt(instanceId: instanceId)
+    let lastSyncedAt: (series: Date, books: Date) =
+      forceFullSync
+      ? (Date(timeIntervalSince1970: 0), Date(timeIntervalSince1970: 0))
+      : storedLastSyncedAt
     let syncStartTime = Date()
 
     logger.info(
-      "🔄 Starting sync for instance: \(instanceId), seriesLastSynced: \(lastSyncedAt.series), booksLastSynced: \(lastSyncedAt.books)"
+      "🔄 Starting sync for instance: \(instanceId), forceFullSync: \(forceFullSync), seriesLastSynced: \(storedLastSyncedAt.series), booksLastSynced: \(storedLastSyncedAt.books)"
     )
 
     // Phase 1: Libraries (always full sync)
@@ -118,16 +123,18 @@ final class InstanceInitializer {
 
     // Phase 3: Series (incremental sync by lastModified)
     currentPhase = .series
-    if !(await syncSeriesIncremental(instanceId: instanceId, since: lastSyncedAt.series)) {
+    let seriesSyncSucceeded = await syncSeriesIncremental(instanceId: instanceId, since: lastSyncedAt.series)
+    if !seriesSyncSucceeded {
       hasFailures = true
-    }
-    do {
-      try await db.updateSeriesLastSyncedAt(
-        instanceId: instanceId, date: syncStartTime)
-      await db.commit()
-    } catch {
-      hasFailures = true
-      logger.error("❌ Failed to update series lastSyncedAt: \(error)")
+    } else {
+      do {
+        try await db.updateSeriesLastSyncedAt(
+          instanceId: instanceId, date: syncStartTime)
+        await db.commit()
+      } catch {
+        hasFailures = true
+        logger.error("❌ Failed to update series lastSyncedAt: \(error)")
+      }
     }
 
     // Phase 4: ReadLists (always full sync)
@@ -138,16 +145,18 @@ final class InstanceInitializer {
 
     // Phase 5: Books (incremental sync by lastModified)
     currentPhase = .books
-    if !(await syncBooksIncremental(instanceId: instanceId, since: lastSyncedAt.books)) {
+    let booksSyncSucceeded = await syncBooksIncremental(instanceId: instanceId, since: lastSyncedAt.books)
+    if !booksSyncSucceeded {
       hasFailures = true
-    }
-    do {
-      try await db.updateBooksLastSyncedAt(
-        instanceId: instanceId, date: syncStartTime)
-      await db.commit()
-    } catch {
-      hasFailures = true
-      logger.error("❌ Failed to update books lastSyncedAt: \(error)")
+    } else {
+      do {
+        try await db.updateBooksLastSyncedAt(
+          instanceId: instanceId, date: syncStartTime)
+        await db.commit()
+      } catch {
+        hasFailures = true
+        logger.error("❌ Failed to update books lastSyncedAt: \(error)")
+      }
     }
 
     progress = 1.0

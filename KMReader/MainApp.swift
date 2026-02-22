@@ -61,92 +61,136 @@ struct MainApp: App {
     @Environment(\.openWindow) private var openWindow
   #endif
 
-  private let modelContainer: ModelContainer
+  @State private var modelContainer: ModelContainer?
+  @State private var isPreparingModelContainer = false
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
   @State private var dashboardSectionCacheStore = DashboardSectionCacheStore.shared
   @State private var deepLinkRouter = DeepLinkRouter.shared
 
   init() {
-    let schema = Schema(versionedSchema: KMReaderSchemaV2.self)
-
-    do {
-      let configuration = ModelConfiguration(schema: schema)
-      modelContainer = try ModelContainer(
-        for: schema,
-        migrationPlan: KMReaderMigrationPlan.self,
-        configurations: [configuration]
-      )
-    } catch {
-      let errorMessage = String(describing: error)
-      AppLogger(.database).error("Failed to create ModelContainer: \(errorMessage)")
-      fatalError("Failed to create ModelContainer: \(errorMessage)")
-    }
-
-    CustomFontStore.shared.configure(with: modelContainer)
-    DatabaseOperator.shared = DatabaseOperator(modelContainer: modelContainer)
     #if os(iOS)
       Task { @MainActor in
         QuickActionService.handlePendingShortcutIfNeeded()
       }
     #endif
-    _ = OfflineManager.shared
     PlatformHelper.setup()
     _authViewModel = State(initialValue: AuthViewModel())
   }
 
+  private func makeModelContainer() throws -> ModelContainer {
+    let schema = Schema(versionedSchema: KMReaderSchemaV2.self)
+    let configuration = ModelConfiguration(schema: schema)
+    return try ModelContainer(
+      for: schema,
+      migrationPlan: KMReaderMigrationPlan.self,
+      configurations: [configuration]
+    )
+  }
+
+  @MainActor
+  private func prepareModelContainerIfNeeded() async {
+    guard modelContainer == nil, !isPreparingModelContainer else { return }
+    isPreparingModelContainer = true
+    defer { isPreparingModelContainer = false }
+
+    do {
+      let container = try makeModelContainer()
+      CustomFontStore.shared.configure(with: container)
+      DatabaseOperator.shared = DatabaseOperator(modelContainer: container)
+      _ = OfflineManager.shared
+      modelContainer = container
+    } catch {
+      let errorMessage = String(describing: error)
+      AppLogger(.database).error("Failed to create ModelContainer: \(errorMessage)")
+      fatalError("Failed to create ModelContainer: \(errorMessage)")
+    }
+  }
+
+  @ViewBuilder
+  private func mainWindowContent(modelContainer: ModelContainer) -> some View {
+    ContentView()
+      #if os(macOS)
+        .background(
+          MacReaderWindowConfigurator(openWindow: {
+            openWindow(id: "reader")
+          })
+        )
+        .overlay(alignment: .bottom) {
+          NotificationOverlay()
+        }
+      #endif
+      .modelContainer(modelContainer)
+  }
+
   var body: some Scene {
     WindowGroup {
-      ContentView()
-        .onOpenURL { url in
-          deepLinkRouter.handle(url: url)
+      Group {
+        if let modelContainer {
+          mainWindowContent(modelContainer: modelContainer)
+        } else {
+          SplashView(isMigration: true)
+            .task {
+              await prepareModelContainerIfNeeded()
+            }
         }
-        #if !os(tvOS)
-          .onContinueUserActivity(CSSearchableItemActionType) { activity in
-            if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
-              if let deepLink = SpotlightIndexService.deepLink(for: identifier) {
-                deepLinkRouter.pendingDeepLink = deepLink
-              }
+      }
+      .onOpenURL { url in
+        deepLinkRouter.handle(url: url)
+      }
+      #if !os(tvOS)
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+          if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
+            if let deepLink = SpotlightIndexService.deepLink(for: identifier) {
+              deepLinkRouter.pendingDeepLink = deepLink
             }
           }
-        #endif
-        #if os(macOS)
-          .background(
-            MacReaderWindowConfigurator(openWindow: {
-              openWindow(id: "reader")
-            })
-          )
-          .overlay(alignment: .bottom) {
-            NotificationOverlay()
-          }
-        #endif
-        #if os(iOS)
-          .tint(themeColor.color)
-          .accentColor(themeColor.color)
-        #endif
-        .environment(authViewModel)
-        .environment(readerPresentation)
-        .environment(dashboardSectionCacheStore)
-        .environment(deepLinkRouter)
-        .modelContainer(modelContainer)
-        .preferredColorScheme(appColorScheme.colorScheme)
+        }
+      #endif
+      #if os(iOS)
+        .tint(themeColor.color)
+        .accentColor(themeColor.color)
+      #endif
+      .environment(authViewModel)
+      .environment(readerPresentation)
+      .environment(dashboardSectionCacheStore)
+      .environment(deepLinkRouter)
+      .preferredColorScheme(appColorScheme.colorScheme)
     }
     #if os(macOS)
       WindowGroup(id: "reader") {
-        ReaderWindowView()
-          .environment(authViewModel)
-          .environment(readerPresentation)
-          .modelContainer(modelContainer)
-          .preferredColorScheme(appColorScheme.colorScheme)
+        Group {
+          if let modelContainer {
+            ReaderWindowView()
+              .environment(authViewModel)
+              .environment(readerPresentation)
+              .modelContainer(modelContainer)
+          } else {
+            SplashView(isMigration: true)
+              .task {
+                await prepareModelContainerIfNeeded()
+              }
+          }
+        }
+        .preferredColorScheme(appColorScheme.colorScheme)
       }
       .windowToolbarStyle(.unifiedCompact)
       .defaultSize(width: 1200, height: 800)
 
       Settings {
-        SettingsView_macOS()
-          .environment(authViewModel)
-          .modelContainer(modelContainer)
-          .preferredColorScheme(appColorScheme.colorScheme)
+        Group {
+          if let modelContainer {
+            SettingsView_macOS()
+              .environment(authViewModel)
+              .modelContainer(modelContainer)
+          } else {
+            SplashView(isMigration: true)
+              .task {
+                await prepareModelContainerIfNeeded()
+              }
+          }
+        }
+        .preferredColorScheme(appColorScheme.colorScheme)
       }
       .windowToolbarStyle(.unifiedCompact)
       .defaultSize(width: 800, height: 600)

@@ -12,13 +12,33 @@ struct SplashView: View {
   @State private var messageRotationTask: Task<Void, Never>?
 
   var initializer: InstanceInitializer?
+  var isMigration: Bool = false
 
-  private let loadingMessages = [
-    String(localized: "splash.loading.connecting"),
-    String(localized: "splash.loading.syncing"),
-    String(localized: "splash.loading.updating"),
-    String(localized: "splash.loading.preparing"),
-  ]
+  private var loadingMessages: [String] {
+    if isMigration {
+      [
+        String(
+          localized: "splash.migration.preparing",
+          defaultValue: "Preparing local database migration"
+        ),
+        String(
+          localized: "splash.migration.migrating",
+          defaultValue: "Migrating existing local data"
+        ),
+        String(
+          localized: "splash.migration.finalizing",
+          defaultValue: "Finalizing local data migration"
+        ),
+      ]
+    } else {
+      [
+        String(localized: "splash.loading.connecting"),
+        String(localized: "splash.loading.syncing"),
+        String(localized: "splash.loading.updating"),
+        String(localized: "splash.loading.preparing"),
+      ]
+    }
+  }
 
   private var isSyncing: Bool {
     initializer?.isSyncing ?? false
@@ -136,6 +156,10 @@ struct SplashView: View {
 
 #Preview {
   SplashView()
+}
+
+#Preview("Migrating") {
+  SplashView(isMigration: true)
 }
 
 #Preview("Initializing") {
