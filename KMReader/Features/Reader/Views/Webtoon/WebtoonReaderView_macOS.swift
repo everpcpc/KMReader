@@ -17,18 +17,12 @@
     let onNextBookPanEnd: ((CGFloat) -> Void)?
     let onZoomRequest: ((Int, CGPoint) -> Void)?
     let pageWidth: CGFloat
-    let readerBackground: ReaderBackground
-    let tapZoneMode: TapZoneMode
-    let doubleTapZoomMode: DoubleTapZoomMode
-    let showPageNumber: Bool
+    let renderConfig: ReaderRenderConfig
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
-      readerBackground: ReaderBackground,
-      tapZoneMode: TapZoneMode = .auto,
-      doubleTapZoomMode: DoubleTapZoomMode = .fast,
-      showPageNumber: Bool = true,
+      renderConfig: ReaderRenderConfig,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil,
@@ -39,10 +33,7 @@
       self.pages = pages
       self.viewModel = viewModel
       self.pageWidth = pageWidth
-      self.readerBackground = readerBackground
-      self.tapZoneMode = tapZoneMode
-      self.doubleTapZoomMode = doubleTapZoomMode
-      self.showPageNumber = showPageNumber
+      self.renderConfig = renderConfig
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
@@ -57,7 +48,7 @@
       collectionView.collectionViewLayout = layout
       collectionView.delegate = context.coordinator
       collectionView.dataSource = context.coordinator
-      collectionView.backgroundColors = [NSColor(readerBackground.color)]
+      collectionView.backgroundColors = [NSColor(renderConfig.readerBackground.color)]
       collectionView.isSelectable = false
 
       collectionView.register(
@@ -72,7 +63,7 @@
       scrollView.hasVerticalScroller = false
       scrollView.hasHorizontalScroller = false
       // scrollView.autohidesScrollers = true
-      scrollView.backgroundColor = NSColor(readerBackground.color)
+      scrollView.backgroundColor = NSColor(renderConfig.readerBackground.color)
       scrollView.contentView.postsBoundsChangedNotifications = true
 
       let clickGesture = NSClickGestureRecognizer(
@@ -114,9 +105,9 @@
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
-      scrollView.backgroundColor = NSColor(readerBackground.color)
+      scrollView.backgroundColor = NSColor(renderConfig.readerBackground.color)
       if let collectionView = scrollView.documentView as? NSCollectionView {
-        collectionView.backgroundColors = [NSColor(readerBackground.color)]
+        collectionView.backgroundColors = [NSColor(renderConfig.readerBackground.color)]
         context.coordinator.update(
           pages: pages,
           viewModel: viewModel,
@@ -126,9 +117,7 @@
           onZoomRequest: onZoomRequest,
           pageWidth: pageWidth,
           collectionView: collectionView,
-          readerBackground: readerBackground,
-          tapZoneMode: tapZoneMode,
-          showPageNumber: showPageNumber)
+          renderConfig: renderConfig)
       }
     }
 
@@ -168,6 +157,7 @@
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var tapZoneMode: TapZoneMode = .auto
+      var tapZoneSize: TapZoneSize = .large
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
@@ -187,8 +177,10 @@
         self.lastPagesCount = parent.pages.count
         self.pageWidth = parent.pageWidth
         self.heightCache.lastPageWidth = parent.pageWidth
-        self.readerBackground = parent.readerBackground
-        self.tapZoneMode = parent.tapZoneMode
+        self.readerBackground = parent.renderConfig.readerBackground
+        self.tapZoneMode = parent.renderConfig.tapZoneMode
+        self.tapZoneSize = parent.renderConfig.tapZoneSize
+        self.showPageNumber = parent.renderConfig.showPageNumber
       }
 
       func teardown() {
@@ -263,9 +255,7 @@
         onZoomRequest: ((Int, CGPoint) -> Void)?,
         pageWidth: CGFloat,
         collectionView: NSCollectionView,
-        readerBackground: ReaderBackground,
-        tapZoneMode: TapZoneMode,
-        showPageNumber: Bool
+        renderConfig: ReaderRenderConfig
       ) {
         self.pages = pages
         self.viewModel = viewModel
@@ -274,21 +264,23 @@
         self.onScrollToBottom = onScrollToBottom
         self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
-        self.readerBackground = readerBackground
-        self.tapZoneMode = tapZoneMode
+        self.readerBackground = renderConfig.readerBackground
+        self.tapZoneMode = renderConfig.tapZoneMode
+        self.tapZoneSize = renderConfig.tapZoneSize
 
         let currentPage = viewModel.currentPageIndex
 
-        if self.showPageNumber != showPageNumber {
-          self.showPageNumber = showPageNumber
+        if self.showPageNumber != renderConfig.showPageNumber {
+          self.showPageNumber = renderConfig.showPageNumber
           for ip in collectionView.indexPathsForVisibleItems() {
             if ip.item < pages.count,
               let cell = collectionView.item(at: ip) as? WebtoonPageCell
             {
-              cell.showPageNumber = showPageNumber
+              cell.showPageNumber = renderConfig.showPageNumber
             }
           }
         }
+        self.showPageNumber = renderConfig.showPageNumber
 
         if lastPagesCount != pages.count || abs(heightCache.lastPageWidth - pageWidth) > 0.1 {
           if lastPagesCount != pages.count {
@@ -305,9 +297,10 @@
           if ip.item < pages.count,
             let cell = collectionView.item(at: ip) as? WebtoonPageCell
           {
-            cell.readerBackground = readerBackground
+            cell.readerBackground = renderConfig.readerBackground
+            cell.showPageNumber = renderConfig.showPageNumber
           } else if let cell = collectionView.item(at: ip) as? WebtoonFooterCell {
-            cell.readerBackground = readerBackground
+            cell.readerBackground = renderConfig.readerBackground
           }
         }
 
@@ -578,7 +571,7 @@
           normalizedY: normalizedY,
           tapZoneMode: tapZoneMode,
           readingDirection: .webtoon,
-          zoneThreshold: AppConfig.tapZoneSize.value
+          zoneThreshold: tapZoneSize.value
         )
 
         switch action {

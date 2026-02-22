@@ -21,7 +21,7 @@ import SwiftUI
             set: { if !$0 { readerPresentation.closeReader() } }
           )
         ) {
-          ReaderContentView()
+          ReaderContentView(readerPresentation: readerPresentation)
             #if os(iOS)
               .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
             #endif
@@ -29,6 +29,7 @@ import SwiftUI
               sourceID: readerPresentation.sourceBookId,
               in: namespace
             )
+            .environment(readerPresentation)
             #if os(iOS)
               .tint(themeColor.color)
               .accentColor(themeColor.color)
@@ -39,7 +40,7 @@ import SwiftUI
 
   /// Reader content extracted to be used in fullScreenCover
   private struct ReaderContentView: View {
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
+    let readerPresentation: ReaderPresentationManager
 
     var body: some View {
       Group {

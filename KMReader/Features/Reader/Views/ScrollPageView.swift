@@ -13,6 +13,7 @@ struct ScrollPageView: View {
   let mode: PageViewMode
   let readingDirection: ReadingDirection
   let splitWidePageMode: SplitWidePageMode
+  let renderConfig: ReaderRenderConfig
   let showingControls: Bool
   @Bindable var viewModel: ReaderViewModel
   let previousBook: Book?
@@ -27,8 +28,6 @@ struct ScrollPageView: View {
   let onPlayAnimatedPage: ((Int) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
   let onBoundaryPanUpdate: ((CGFloat) -> Void)?
-
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   private let logger = AppLogger(.reader)
 
@@ -57,6 +56,7 @@ struct ScrollPageView: View {
     mode: PageViewMode,
     readingDirection: ReadingDirection,
     splitWidePageMode: SplitWidePageMode,
+    renderConfig: ReaderRenderConfig,
     showingControls: Bool,
     viewModel: ReaderViewModel,
     previousBook: Book?,
@@ -75,6 +75,7 @@ struct ScrollPageView: View {
     self.mode = mode
     self.readingDirection = readingDirection
     self.splitWidePageMode = splitWidePageMode
+    self.renderConfig = renderConfig
     self.showingControls = showingControls
     self.viewModel = viewModel
     self.previousBook = previousBook
@@ -332,6 +333,7 @@ struct ScrollPageView: View {
             firstPageIndex: first,
             secondPageIndex: second,
             screenSize: geometry.size,
+            renderConfig: renderConfig,
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
@@ -343,6 +345,7 @@ struct ScrollPageView: View {
             viewModel: viewModel,
             pageIndex: index,
             screenSize: geometry.size,
+            renderConfig: renderConfig,
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,
@@ -360,6 +363,7 @@ struct ScrollPageView: View {
             pageIndex: index,
             isLeftHalf: isLeftHalf,
             screenSize: geometry.size,
+            renderConfig: renderConfig,
             readingDirection: readingDirection,
             onNextPage: goToNextPage,
             onPreviousPage: goToPreviousPage,

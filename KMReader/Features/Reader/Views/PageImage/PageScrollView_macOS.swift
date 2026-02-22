@@ -27,13 +27,7 @@
     let maxScale: CGFloat
     let displayMode: PageDisplayMode
     let readingDirection: ReadingDirection
-    let doubleTapScale: CGFloat
-    let doubleTapZoomMode: DoubleTapZoomMode
-    let tapZoneSize: TapZoneSize
-    let tapZoneMode: TapZoneMode
-    let showPageNumber: Bool
-    let readerBackground: ReaderBackground
-    let enableLiveText: Bool
+    let renderConfig: ReaderRenderConfig
     let initialZoomScale: CGFloat?
     let initialZoomAnchor: CGPoint?
     let initialZoomID: AnyHashable?
@@ -52,13 +46,7 @@
       maxScale: CGFloat,
       displayMode: PageDisplayMode = .fit,
       readingDirection: ReadingDirection,
-      doubleTapScale: CGFloat,
-      doubleTapZoomMode: DoubleTapZoomMode,
-      tapZoneSize: TapZoneSize,
-      tapZoneMode: TapZoneMode,
-      showPageNumber: Bool,
-      readerBackground: ReaderBackground,
-      enableLiveText: Bool,
+      renderConfig: ReaderRenderConfig,
       initialZoomScale: CGFloat? = nil,
       initialZoomAnchor: CGPoint? = nil,
       initialZoomID: AnyHashable? = nil,
@@ -74,13 +62,7 @@
       self.maxScale = maxScale
       self.displayMode = displayMode
       self.readingDirection = readingDirection
-      self.doubleTapScale = doubleTapScale
-      self.doubleTapZoomMode = doubleTapZoomMode
-      self.tapZoneSize = tapZoneSize
-      self.tapZoneMode = tapZoneMode
-      self.showPageNumber = showPageNumber
-      self.readerBackground = readerBackground
-      self.enableLiveText = enableLiveText
+      self.renderConfig = renderConfig
       self.initialZoomScale = initialZoomScale
       self.initialZoomAnchor = initialZoomAnchor
       self.initialZoomID = initialZoomID
@@ -102,7 +84,7 @@
       scrollView.minMagnification = minScale
       scrollView.maxMagnification = maxScale
 
-      scrollView.backgroundColor = NSColor(readerBackground.color)
+      scrollView.backgroundColor = NSColor(renderConfig.readerBackground.color)
       scrollView.drawsBackground = true
 
       let contentStack = NSStackView()
@@ -161,7 +143,7 @@
         }
       }
 
-      nsView.backgroundColor = NSColor(readerBackground.color)
+      nsView.backgroundColor = NSColor(renderConfig.readerBackground.color)
 
       if let focusScroll = nsView as? FocusScrollView {
         focusScroll.readingDirection = readingDirection
@@ -233,8 +215,9 @@
             with: data,
             viewModel: parent.viewModel,
             image: image,
-            showPageNumber: parent.showPageNumber,
-            background: parent.readerBackground,
+            showPageNumber: parent.renderConfig.showPageNumber,
+            enableLiveText: parent.renderConfig.enableLiveText,
+            background: parent.renderConfig.readerBackground,
             readingDirection: parent.readingDirection,
             displayMode: parent.displayMode,
             targetHeight: targetHeight
@@ -389,9 +372,9 @@
         let action = TapZoneHelper.action(
           normalizedX: normalizedX,
           normalizedY: normalizedY,
-          tapZoneMode: parent.tapZoneMode,
+          tapZoneMode: parent.renderConfig.tapZoneMode,
           readingDirection: parent.readingDirection,
-          zoneThreshold: parent.tapZoneSize.value
+          zoneThreshold: parent.renderConfig.tapZoneSize.value
         )
 
         switch action {
@@ -454,9 +437,9 @@
           // Rule 3: If Live Text is active, and we hit the overlay area (VKCActionInfoView etc.):
           // We only allow the paging gesture if the click is in the LEFT/RIGHT paging zones.
           // This allows the center to be used for Live Text interaction (like clicking to deselect).
-          if AppConfig.enableLiveText && className.contains("VK") {
+          if parent.renderConfig.enableLiveText && className.contains("VK") {
             let normalizedX = location.x / parent.screenSize.width
-            let threshold = parent.tapZoneSize.value
+            let threshold = parent.renderConfig.tapZoneSize.value
             let isEdge = normalizedX < threshold || normalizedX > (1.0 - threshold)
 
             if !isEdge {
@@ -607,6 +590,7 @@
     private var currentData: NativePageData?
     private var readingDirection: ReadingDirection = .ltr
     private var displayMode: PageDisplayMode = .fit
+    private var enableLiveText = false
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
     private var heightConstraint: NSLayoutConstraint?
@@ -645,7 +629,7 @@
         if imageView.image == nil, let data = currentData {
           imageView.image = readerViewModel?.preloadedImages[data.pageNumber]
         }
-        if AppConfig.enableLiveText {
+        if enableLiveText {
           if let image = imageView.image {
             analyzeImage(image)
           }
@@ -754,6 +738,7 @@
       viewModel: ReaderViewModel,
       image: PlatformImage?,
       showPageNumber: Bool,
+      enableLiveText: Bool,
       background: ReaderBackground,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
@@ -762,6 +747,7 @@
       self.currentData = data
       self.readerViewModel = viewModel
       self.readingDirection = readingDirection
+      self.enableLiveText = enableLiveText
 
       // Handle split mode - crop the image if needed
       let displayImage: PlatformImage?
@@ -796,9 +782,9 @@
         progressIndicator.stopAnimation(nil)
       }
 
-      if AppConfig.enableLiveText, let img = displayImage, !visibleRect.isEmpty {
+      if enableLiveText, let img = displayImage, !visibleRect.isEmpty {
         analyzeImage(img)
-      } else if !AppConfig.enableLiveText {
+      } else if !enableLiveText {
         clearAnalysis()
       }
 
@@ -986,7 +972,7 @@
       }
       imageView.layer?.shadowPath = CGPath(rect: shadowRect, transform: nil)
 
-      if AppConfig.enableLiveText, currentData != nil,
+      if enableLiveText, currentData != nil,
         let image = imageView.image,
         !visibleRect.isEmpty, overlayView.analysis == nil, analysisTask == nil
       {

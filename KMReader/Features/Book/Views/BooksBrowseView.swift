@@ -14,7 +14,6 @@ struct BooksBrowseView: View {
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
 
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
   @Environment(\.modelContext) private var modelContext
 
   @AppStorage("bookBrowseOptions") private var storedBrowseOpts: BookBrowseOptions = BookBrowseOptions()

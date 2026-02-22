@@ -19,7 +19,6 @@ struct ContentView: View {
 
   #if os(iOS) || os(tvOS)
     @Namespace private var zoomNamespace
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
   #endif
 
   private var instanceInitializer: InstanceInitializer {

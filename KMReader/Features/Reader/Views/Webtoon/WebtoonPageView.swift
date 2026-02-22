@@ -18,12 +18,8 @@
     let onNextBook: (String) -> Void
     let toggleControls: () -> Void
     let pageWidthPercentage: Double
-    let readerBackground: ReaderBackground
+    let renderConfig: ReaderRenderConfig
     let onBoundaryPanUpdate: ((CGFloat) -> Void)?
-
-    @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
-    @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
-    @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
     #if os(iOS)
       @State private var boundaryDragOffset: CGFloat = 0
@@ -45,10 +41,7 @@
             pages: viewModel.pages,
             viewModel: viewModel,
             pageWidth: pageWidth(geometry),
-            readerBackground: readerBackground,
-            tapZoneMode: tapZoneMode,
-            doubleTapZoomMode: doubleTapZoomMode,
-            showPageNumber: showPageNumber,
+            renderConfig: renderConfig,
             onPageChange: { pageIndex in
               viewModel.currentPageIndex = pageIndex
             },
@@ -96,7 +89,7 @@
               pageIndex: zoomTargetPageIndex,
               zoomAnchor: zoomAnchor,
               zoomRequestID: zoomRequestID,
-              readerBackground: readerBackground,
+              renderConfig: renderConfig,
               onClose: {
                 viewModel.isZoomed = false
                 withAnimation(.easeInOut(duration: 0.2)) {

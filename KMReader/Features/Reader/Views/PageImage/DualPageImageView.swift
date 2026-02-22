@@ -11,6 +11,7 @@ struct DualPageImageView: View {
   let firstPageIndex: Int
   let secondPageIndex: Int
   let screenSize: CGSize
+  let renderConfig: ReaderRenderConfig
 
   let readingDirection: ReadingDirection
   let onNextPage: () -> Void
@@ -21,14 +22,6 @@ struct DualPageImageView: View {
   var resetID: String {
     "\(firstPageIndex)-\(secondPageIndex)"
   }
-
-  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
-  @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
-  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
-  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
 
   var body: some View {
     let page1 = firstPageIndex >= 0 && firstPageIndex < viewModel.pages.count ? viewModel.pages[firstPageIndex] : nil
@@ -41,13 +34,7 @@ struct DualPageImageView: View {
       minScale: 1.0,
       maxScale: 8.0,
       readingDirection: readingDirection,
-      doubleTapScale: CGFloat(doubleTapZoomScale),
-      doubleTapZoomMode: doubleTapZoomMode,
-      tapZoneSize: tapZoneSize,
-      tapZoneMode: tapZoneMode,
-      showPageNumber: showPageNumber,
-      readerBackground: readerBackground,
-      enableLiveText: enableLiveText,
+      renderConfig: renderConfig,
       onNextPage: onNextPage,
       onPreviousPage: onPreviousPage,
       onToggleControls: onToggleControls,

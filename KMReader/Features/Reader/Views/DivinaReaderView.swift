@@ -21,9 +21,13 @@ struct DivinaReaderView: View {
     @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   #endif
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
+  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   #if os(iOS)
     @AppStorage("autoHideControls") private var autoHideControls: Bool = false
@@ -109,6 +113,18 @@ struct DivinaReaderView: View {
         && (viewModel.pages.isEmpty || showingControls || isShowingEndPage
           || (readingDirection == .webtoon && isAtBottom))
     #endif
+  }
+
+  private var renderConfig: ReaderRenderConfig {
+    ReaderRenderConfig(
+      tapZoneSize: tapZoneSize,
+      tapZoneMode: tapZoneMode,
+      showPageNumber: showPageNumber,
+      readerBackground: readerBackground,
+      enableLiveText: enableLiveText,
+      doubleTapZoomScale: doubleTapZoomScale,
+      doubleTapZoomMode: doubleTapZoomMode
+    )
   }
 
   #if os(iOS)
@@ -666,7 +682,7 @@ struct DivinaReaderView: View {
                 onNextBook: { openNextBook(nextBookId: $0) },
                 toggleControls: { toggleControls() },
                 pageWidthPercentage: webtoonPageWidthPercentage,
-                readerBackground: readerBackground,
+                renderConfig: renderConfig,
                 onBoundaryPanUpdate: { translation in
                   boundaryDragOffset = translation
                 }
@@ -676,6 +692,7 @@ struct DivinaReaderView: View {
                 mode: .vertical,
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                renderConfig: renderConfig,
                 showingControls: showingControls,
                 viewModel: viewModel,
                 previousBook: previousBook,
@@ -708,6 +725,8 @@ struct DivinaReaderView: View {
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
                   splitWidePageMode: splitWidePageMode,
+                  renderConfig: renderConfig,
+                  readerPresentation: readerPresentation,
                   previousBook: previousBook,
                   nextBook: nextBook,
                   readListContext: readListContext,
@@ -729,6 +748,7 @@ struct DivinaReaderView: View {
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
                   splitWidePageMode: splitWidePageMode,
+                  renderConfig: renderConfig,
                   showingControls: showingControls,
                   viewModel: viewModel,
                   previousBook: previousBook,
@@ -758,6 +778,7 @@ struct DivinaReaderView: View {
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                renderConfig: renderConfig,
                 showingControls: showingControls,
                 viewModel: viewModel,
                 previousBook: previousBook,

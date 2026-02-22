@@ -17,18 +17,12 @@
     let onNextBookPanEnd: ((CGFloat) -> Void)?
     let onZoomRequest: ((Int, CGPoint) -> Void)?
     let pageWidth: CGFloat
-    let readerBackground: ReaderBackground
-    let tapZoneMode: TapZoneMode
-    let doubleTapZoomMode: DoubleTapZoomMode
-    let showPageNumber: Bool
+    let renderConfig: ReaderRenderConfig
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
-      readerBackground: ReaderBackground,
-      tapZoneMode: TapZoneMode = .auto,
-      doubleTapZoomMode: DoubleTapZoomMode = .fast,
-      showPageNumber: Bool = true,
+      renderConfig: ReaderRenderConfig,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil,
@@ -39,10 +33,7 @@
       self.pages = pages
       self.viewModel = viewModel
       self.pageWidth = pageWidth
-      self.readerBackground = readerBackground
-      self.tapZoneMode = tapZoneMode
-      self.doubleTapZoomMode = doubleTapZoomMode
-      self.showPageNumber = showPageNumber
+      self.renderConfig = renderConfig
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
@@ -56,7 +47,7 @@
       let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
       collectionView.delegate = context.coordinator
       collectionView.dataSource = context.coordinator
-      collectionView.backgroundColor = UIColor(readerBackground.color)
+      collectionView.backgroundColor = UIColor(renderConfig.readerBackground.color)
       collectionView.showsVerticalScrollIndicator = false
       collectionView.showsHorizontalScrollIndicator = false
       collectionView.contentInsetAdjustmentBehavior = .never
@@ -118,7 +109,7 @@
     }
 
     func updateUIView(_ collectionView: UICollectionView, context: Context) {
-      collectionView.backgroundColor = UIColor(readerBackground.color)
+      collectionView.backgroundColor = UIColor(renderConfig.readerBackground.color)
       context.coordinator.update(
         pages: pages,
         viewModel: viewModel,
@@ -130,10 +121,7 @@
         onZoomRequest: onZoomRequest,
         pageWidth: pageWidth,
         collectionView: collectionView,
-        readerBackground: readerBackground,
-        tapZoneMode: tapZoneMode,
-        doubleTapZoomMode: doubleTapZoomMode,
-        showPageNumber: showPageNumber
+        renderConfig: renderConfig
       )
     }
 
@@ -169,6 +157,7 @@
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
       var tapZoneMode: TapZoneMode = .auto
+      var tapZoneSize: TapZoneSize = .large
       var doubleTapZoomMode: DoubleTapZoomMode = .fast
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
@@ -194,8 +183,11 @@
         self.hasScrolledToInitialPage = false
         self.pageWidth = parent.pageWidth
         self.heightCache.lastPageWidth = parent.pageWidth
-        self.readerBackground = parent.readerBackground
-        self.doubleTapZoomMode = parent.doubleTapZoomMode
+        self.readerBackground = parent.renderConfig.readerBackground
+        self.tapZoneMode = parent.renderConfig.tapZoneMode
+        self.tapZoneSize = parent.renderConfig.tapZoneSize
+        self.doubleTapZoomMode = parent.renderConfig.doubleTapZoomMode
+        self.showPageNumber = parent.renderConfig.showPageNumber
       }
 
       // MARK: - Helper Methods
@@ -242,10 +234,7 @@
         onZoomRequest: ((Int, CGPoint) -> Void)?,
         pageWidth: CGFloat,
         collectionView: UICollectionView,
-        readerBackground: ReaderBackground,
-        tapZoneMode: TapZoneMode,
-        doubleTapZoomMode: DoubleTapZoomMode,
-        showPageNumber: Bool
+        renderConfig: ReaderRenderConfig
       ) {
         applySafeAreaInsetsIfNeeded(for: collectionView)
         self.pages = pages
@@ -257,18 +246,19 @@
         self.onNextBookPanEnd = onNextBookPanEnd
         self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
-        self.readerBackground = readerBackground
-        self.tapZoneMode = tapZoneMode
-        self.doubleTapZoomMode = doubleTapZoomMode
-        if self.showPageNumber != showPageNumber {
-          self.showPageNumber = showPageNumber
+        self.readerBackground = renderConfig.readerBackground
+        self.tapZoneMode = renderConfig.tapZoneMode
+        self.tapZoneSize = renderConfig.tapZoneSize
+        self.doubleTapZoomMode = renderConfig.doubleTapZoomMode
+        if self.showPageNumber != renderConfig.showPageNumber {
+          self.showPageNumber = renderConfig.showPageNumber
           for cell in collectionView.visibleCells {
             if let pageCell = cell as? WebtoonPageCell {
-              pageCell.showPageNumber = showPageNumber
+              pageCell.showPageNumber = renderConfig.showPageNumber
             }
           }
         }
-        self.showPageNumber = showPageNumber
+        self.showPageNumber = renderConfig.showPageNumber
 
         let currentPage = viewModel.currentPageIndex
 
@@ -278,10 +268,10 @@
 
         for cell in collectionView.visibleCells {
           if let pageCell = cell as? WebtoonPageCell {
-            pageCell.readerBackground = readerBackground
-            pageCell.showPageNumber = showPageNumber
+            pageCell.readerBackground = renderConfig.readerBackground
+            pageCell.showPageNumber = renderConfig.showPageNumber
           } else if let footerCell = cell as? WebtoonFooterCell {
-            footerCell.readerBackground = readerBackground
+            footerCell.readerBackground = renderConfig.readerBackground
           }
         }
 
@@ -666,7 +656,7 @@
           normalizedY: normalizedY,
           tapZoneMode: tapZoneMode,
           readingDirection: .webtoon,
-          zoneThreshold: AppConfig.tapZoneSize.value
+          zoneThreshold: tapZoneSize.value
         )
 
         let workItem = DispatchWorkItem { [weak self] in

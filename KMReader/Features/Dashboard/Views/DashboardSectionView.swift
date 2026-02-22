@@ -28,7 +28,6 @@ struct DashboardSectionView: View {
   @Environment(DashboardSectionCacheStore.self) private var sectionCacheStore
   @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 20)
   @State private var isLoading = false

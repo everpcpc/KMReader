@@ -12,6 +12,8 @@
     let mode: PageViewMode
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let renderConfig: ReaderRenderConfig
+    let readerPresentation: ReaderPresentationManager
     let previousBook: Book?
     let nextBook: Book?
     let readListContext: ReaderReadListContext?
@@ -23,9 +25,6 @@
     let toggleControls: () -> Void
     let onPlayAnimatedPage: ((Int) -> Void)?
     let onBoundaryPanUpdate: ((CGFloat) -> Void)?
-
-    @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-    @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -167,6 +166,18 @@
         parent.viewModel.viewItems.count
       }
 
+      private func makeHostingController<Content: View>(_ content: Content)
+        -> UIHostingController<AnyView>
+      {
+        UIHostingController(
+          rootView: AnyView(
+            content
+              .environment(parent.readerPresentation)
+              .environment(\.readerBackgroundPreference, parent.renderConfig.readerBackground)
+          )
+        )
+      }
+
       func pageViewController(for index: Int) -> UIViewController? {
         guard index >= 0 && index < totalPages else { return nil }
 
@@ -188,31 +199,33 @@
             readingDirection: parent.readingDirection,
             showImage: true
           )
-          hostingController = UIHostingController(rootView: AnyView(endPageView))
+          hostingController = makeHostingController(endPageView)
         case .dual(let first, _):
           let pageView = CurlSinglePageView(
             viewModel: parent.viewModel,
             pageIndex: first,
             readingDirection: parent.readingDirection,
             splitWidePageMode: parent.splitWidePageMode,
+            renderConfig: parent.renderConfig,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
             onToggleControls: parent.toggleControls,
             onPlayAnimatedPage: parent.onPlayAnimatedPage
           )
-          hostingController = UIHostingController(rootView: AnyView(pageView))
+          hostingController = makeHostingController(pageView)
         case .page(let index):
           let pageView = CurlSinglePageView(
             viewModel: parent.viewModel,
             pageIndex: index,
             readingDirection: parent.readingDirection,
             splitWidePageMode: parent.splitWidePageMode,
+            renderConfig: parent.renderConfig,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
             onToggleControls: parent.toggleControls,
             onPlayAnimatedPage: parent.onPlayAnimatedPage
           )
-          hostingController = UIHostingController(rootView: AnyView(pageView))
+          hostingController = makeHostingController(pageView)
         case .split(let index, let isFirstHalf):
           let isLeftHalf = parent.viewModel.isLeftSplitHalf(
             isFirstHalf: isFirstHalf,
@@ -224,13 +237,14 @@
             pageIndex: index,
             readingDirection: parent.readingDirection,
             splitWidePageMode: parent.splitWidePageMode,
+            renderConfig: parent.renderConfig,
             isLeftHalf: isLeftHalf,
             onNextPage: parent.goToNextPage,
             onPreviousPage: parent.goToPreviousPage,
             onToggleControls: parent.toggleControls,
             onPlayAnimatedPage: parent.onPlayAnimatedPage
           )
-          hostingController = UIHostingController(rootView: AnyView(splitPageView))
+          hostingController = makeHostingController(splitPageView)
         }
 
         hostingController.view.tag = index
@@ -401,9 +415,9 @@
           let action = TapZoneHelper.action(
             normalizedX: normalizedX,
             normalizedY: normalizedY,
-            tapZoneMode: parent.tapZoneMode,
+            tapZoneMode: parent.renderConfig.tapZoneMode,
             readingDirection: parent.readingDirection,
-            zoneThreshold: parent.tapZoneSize.value
+            zoneThreshold: parent.renderConfig.tapZoneSize.value
           )
 
           switch action {
@@ -511,18 +525,17 @@
     let pageIndex: Int
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let renderConfig: ReaderRenderConfig
     var isLeftHalf: Bool? = nil  // nil for non-split pages, true/false for split pages
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
     let onToggleControls: () -> Void
     let onPlayAnimatedPage: ((Int) -> Void)?
 
-    @Environment(\.readerBackgroundPreference) private var readerBackground
-
     var body: some View {
       GeometryReader { proxy in
         ZStack {
-          readerBackground.color.readerIgnoresSafeArea()
+          renderConfig.readerBackground.color.readerIgnoresSafeArea()
 
           // Check if current page is a split wide page
           if let isLeftHalf = isLeftHalf {
@@ -532,6 +545,7 @@
               pageIndex: pageIndex,
               isLeftHalf: isLeftHalf,
               screenSize: proxy.size,
+              renderConfig: renderConfig,
               readingDirection: readingDirection,
               onNextPage: onNextPage,
               onPreviousPage: onPreviousPage,
@@ -544,6 +558,7 @@
               viewModel: viewModel,
               pageIndex: pageIndex,
               screenSize: proxy.size,
+              renderConfig: renderConfig,
               readingDirection: readingDirection,
               onNextPage: onNextPage,
               onPreviousPage: onPreviousPage,
