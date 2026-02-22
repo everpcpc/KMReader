@@ -1,7 +1,6 @@
 //
 // CurlPageView.swift
 //
-//
 
 #if os(iOS)
   import SwiftUI
@@ -13,7 +12,6 @@
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
     let renderConfig: ReaderRenderConfig
-    let readerPresentation: ReaderPresentationManager
     let previousBook: Book?
     let nextBook: Book?
     let readListContext: ReaderReadListContext?
@@ -41,7 +39,6 @@
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
 
-      // Allow simultaneous gesture recognition for zoom transition return gesture
       for recognizer in pageVC.gestureRecognizers {
         recognizer.delegate = context.coordinator
         if recognizer is UITapGestureRecognizer {
@@ -57,14 +54,10 @@
       boundaryPanRecognizer.delegate = context.coordinator
       pageVC.view.addGestureRecognizer(boundaryPanRecognizer)
       context.coordinator.boundaryPanRecognizer = boundaryPanRecognizer
-      // isDoubleSided requires 2 VCs for animated transitions which complicates the logic
-      // For single-page curl effect, keep it false
-      pageVC.isDoubleSided = false
 
-      // Match page curl direction to reading order
+      pageVC.isDoubleSided = false
       pageVC.view.semanticContentAttribute = mode.isRTL ? .forceRightToLeft : .forceLeftToRight
 
-      // Set initial page (non-animated, so single VC is fine)
       let initialIndex = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
       context.coordinator.currentPageIndex = initialIndex
       Task { @MainActor in
@@ -86,6 +79,7 @@
       context.coordinator.parent = self
       context.coordinator.pageViewController = pageVC
       context.coordinator.syncCurrentPageIndexWithVisibleController()
+      context.coordinator.refreshVisibleControllerConfiguration()
 
       let targetViewItemIndex: Int? = {
         if let explicitTarget = viewModel.targetViewItemIndex {
@@ -161,108 +155,111 @@
         self.currentPageIndex = parent.viewModel.currentViewItemIndex
       }
 
-      // Total page count including end page
       var totalPages: Int {
         parent.viewModel.viewItems.count
       }
 
-      private func makeHostingController<Content: View>(_ content: Content)
-        -> UIHostingController<AnyView>
-      {
-        UIHostingController(
-          rootView: AnyView(
-            content
-              .environment(parent.readerPresentation)
-              .environment(\.readerBackgroundPreference, parent.renderConfig.readerBackground)
-          )
-        )
-      }
-
-      func pageViewController(for index: Int) -> UIViewController? {
-        guard index >= 0 && index < totalPages else { return nil }
-
-        // Safety check: ensure we have pages loaded
-        guard !parent.viewModel.pages.isEmpty else { return nil }
-
-        let hostingController: UIHostingController<AnyView>
-
-        let item = parent.viewModel.viewItems[index]
+      private func configureImageController(
+        _ controller: NativeImagePageViewController,
+        with item: ReaderViewItem
+      ) {
+        let pageIndex: Int
+        let splitMode: PageSplitMode
 
         switch item {
-        case .end:
-          let endPageView = EndPageView(
-            viewModel: parent.viewModel,
-            nextBook: parent.nextBook,
-            readListContext: parent.readListContext,
-            onDismiss: parent.onDismiss,
-            onNextBook: parent.onNextBook,
-            readingDirection: parent.readingDirection,
-            showImage: true
-          )
-          hostingController = makeHostingController(endPageView)
-        case .dual(let first, _):
-          let pageView = CurlSinglePageView(
-            viewModel: parent.viewModel,
-            pageIndex: first,
-            readingDirection: parent.readingDirection,
-            splitWidePageMode: parent.splitWidePageMode,
-            renderConfig: parent.renderConfig,
-            onNextPage: parent.goToNextPage,
-            onPreviousPage: parent.goToPreviousPage,
-            onToggleControls: parent.toggleControls,
-            onPlayAnimatedPage: parent.onPlayAnimatedPage
-          )
-          hostingController = makeHostingController(pageView)
         case .page(let index):
-          let pageView = CurlSinglePageView(
-            viewModel: parent.viewModel,
-            pageIndex: index,
-            readingDirection: parent.readingDirection,
-            splitWidePageMode: parent.splitWidePageMode,
-            renderConfig: parent.renderConfig,
-            onNextPage: parent.goToNextPage,
-            onPreviousPage: parent.goToPreviousPage,
-            onToggleControls: parent.toggleControls,
-            onPlayAnimatedPage: parent.onPlayAnimatedPage
-          )
-          hostingController = makeHostingController(pageView)
+          pageIndex = index
+          splitMode = .none
+        case .dual(let first, _):
+          pageIndex = first
+          splitMode = .none
         case .split(let index, let isFirstHalf):
+          pageIndex = index
           let isLeftHalf = parent.viewModel.isLeftSplitHalf(
             isFirstHalf: isFirstHalf,
             readingDirection: parent.readingDirection,
             splitWidePageMode: parent.splitWidePageMode
           )
-          let splitPageView = CurlSinglePageView(
-            viewModel: parent.viewModel,
-            pageIndex: index,
-            readingDirection: parent.readingDirection,
-            splitWidePageMode: parent.splitWidePageMode,
-            renderConfig: parent.renderConfig,
-            isLeftHalf: isLeftHalf,
-            onNextPage: parent.goToNextPage,
-            onPreviousPage: parent.goToPreviousPage,
-            onToggleControls: parent.toggleControls,
-            onPlayAnimatedPage: parent.onPlayAnimatedPage
-          )
-          hostingController = makeHostingController(splitPageView)
+          splitMode = isLeftHalf ? .leftHalf : .rightHalf
+        case .end:
+          return
         }
 
-        hostingController.view.tag = index
-        return hostingController
+        controller.configure(
+          viewModel: parent.viewModel,
+          pageIndex: pageIndex,
+          splitMode: splitMode,
+          readingDirection: parent.readingDirection,
+          renderConfig: parent.renderConfig,
+          onNextPage: parent.goToNextPage,
+          onPreviousPage: parent.goToPreviousPage,
+          onToggleControls: parent.toggleControls,
+          onPlayAnimatedPage: parent.onPlayAnimatedPage
+        )
+      }
+
+      private func configureEndController(_ controller: NativeEndPageViewController) {
+        controller.configure(
+          nextBook: parent.nextBook,
+          readListContext: parent.readListContext,
+          readingDirection: parent.readingDirection,
+          renderConfig: parent.renderConfig,
+          onDismiss: parent.onDismiss,
+          onNextBook: parent.onNextBook
+        )
+      }
+
+      func refreshVisibleControllerConfiguration() {
+        guard let pageViewController else { return }
+        guard let visibleController = pageViewController.viewControllers?.first else { return }
+        let index = visibleController.view.tag
+        guard let item = parent.viewModel.viewItem(at: index) else { return }
+
+        switch item {
+        case .end:
+          if let endController = visibleController as? NativeEndPageViewController {
+            configureEndController(endController)
+          } else if let replacement = self.pageViewController(for: index) {
+            pageViewController.setViewControllers([replacement], direction: .forward, animated: false)
+          }
+        case .page, .dual, .split:
+          if let imageController = visibleController as? NativeImagePageViewController {
+            configureImageController(imageController, with: item)
+          } else if let replacement = self.pageViewController(for: index) {
+            pageViewController.setViewControllers([replacement], direction: .forward, animated: false)
+          }
+        }
+      }
+
+      func pageViewController(for index: Int) -> UIViewController? {
+        guard index >= 0 && index < totalPages else { return nil }
+        guard !parent.viewModel.pages.isEmpty else { return nil }
+        guard let item = parent.viewModel.viewItem(at: index) else { return nil }
+
+        let controller: UIViewController
+
+        switch item {
+        case .end:
+          let endController = NativeEndPageViewController()
+          configureEndController(endController)
+          controller = endController
+        case .page, .dual, .split:
+          let imageController = NativeImagePageViewController()
+          configureImageController(imageController, with: item)
+          controller = imageController
+        }
+
+        controller.view.tag = index
+        return controller
       }
 
       // MARK: - UIPageViewControllerDataSource
-
-      // For pageCurl, "before" = page spatially on the left, "after" = page on the right
-      // In LTR: left = previous page (index - 1), right = next page (index + 1)
-      // In RTL: left = next page (index + 1), right = previous page (index - 1)
 
       func pageViewController(
         _ pageViewController: UIPageViewController,
         viewControllerBefore viewController: UIViewController
       ) -> UIViewController? {
         let index = viewController.view.tag
-        // "before" = page on the left side
         let targetIndex = parent.mode.isRTL ? index + 1 : index - 1
         if !isValidIndex(targetIndex) { return nil }
         return self.pageViewController(for: targetIndex)
@@ -273,7 +270,6 @@
         viewControllerAfter viewController: UIViewController
       ) -> UIViewController? {
         let index = viewController.view.tag
-        // "after" = page on the right side
         let targetIndex = parent.mode.isRTL ? index - 1 : index + 1
         if !isValidIndex(targetIndex) { return nil }
         return self.pageViewController(for: targetIndex)
@@ -450,8 +446,6 @@
             return afterExists
           }
 
-          // Ambiguous initial pan direction: allow only when both sides exist.
-          // This avoids boundary curls (e.g. first page -> previous) that can crash.
           return beforeExists && afterExists
         }
 
@@ -511,66 +505,8 @@
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
-        // Allow UIPageViewController's gestures to work with other gestures (like zoom transition)
-        return true
+        true
       }
-    }
-  }
-
-  // MARK: - CurlSinglePageView
-
-  /// Simplified page view for use within UIPageViewController
-  private struct CurlSinglePageView: View {
-    let viewModel: ReaderViewModel
-    let pageIndex: Int
-    let readingDirection: ReadingDirection
-    let splitWidePageMode: SplitWidePageMode
-    let renderConfig: ReaderRenderConfig
-    var isLeftHalf: Bool? = nil  // nil for non-split pages, true/false for split pages
-    let onNextPage: () -> Void
-    let onPreviousPage: () -> Void
-    let onToggleControls: () -> Void
-    let onPlayAnimatedPage: ((Int) -> Void)?
-
-    var body: some View {
-      GeometryReader { proxy in
-        ZStack {
-          renderConfig.readerBackground.color.readerIgnoresSafeArea()
-
-          // Check if current page is a split wide page
-          if let isLeftHalf = isLeftHalf {
-            // This is a split page
-            SplitWidePageImageView(
-              viewModel: viewModel,
-              pageIndex: pageIndex,
-              isLeftHalf: isLeftHalf,
-              screenSize: proxy.size,
-              renderConfig: renderConfig,
-              readingDirection: readingDirection,
-              onNextPage: onNextPage,
-              onPreviousPage: onPreviousPage,
-              onToggleControls: onToggleControls,
-              onPlayAnimatedPage: onPlayAnimatedPage
-            )
-          } else {
-            // Regular single page
-            SinglePageImageView(
-              viewModel: viewModel,
-              pageIndex: pageIndex,
-              screenSize: proxy.size,
-              renderConfig: renderConfig,
-              readingDirection: readingDirection,
-              onNextPage: onNextPage,
-              onPreviousPage: onPreviousPage,
-              onToggleControls: onToggleControls,
-              onPlayAnimatedPage: onPlayAnimatedPage
-            )
-          }
-        }
-        .frame(width: proxy.size.width, height: proxy.size.height)
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .readerIgnoresSafeArea()
     }
   }
 #endif
