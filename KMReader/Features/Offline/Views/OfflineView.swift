@@ -208,6 +208,11 @@ struct OfflineView: View {
           await instanceInitializer.syncData()
         }
       }
+      Button(String(localized: "offline.sync.confirm.forceAction"), role: .destructive) {
+        Task {
+          await instanceInitializer.syncData(forceFullSync: true)
+        }
+      }
       Button(String(localized: "Cancel"), role: .cancel) {}
     } message: {
       Text(String(localized: "offline.sync.confirm.message"))

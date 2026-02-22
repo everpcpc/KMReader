@@ -19,37 +19,94 @@ nonisolated private struct MigrationSeriesSnapshot: Codable {
   let booksMetadata: SeriesBooksMetadata
 }
 
-nonisolated private struct MigrationSnapshot: Codable {
-  let books: [MigrationBookSnapshot]
-  let series: [MigrationSeriesSnapshot]
-}
-
 nonisolated private enum MigrationSnapshotStore {
-  private static var snapshotURL: URL {
-    FileManager.default.temporaryDirectory
-      .appendingPathComponent("kmreader_swiftdata_v1_v2_migration")
-      .appendingPathExtension("json")
+  private static let directoryName = "kmreader_swiftdata_v1_v2_migration"
+  private static let booksPrefix = "books"
+  private static let seriesPrefix = "series"
+
+  private static var directoryURL: URL {
+    let baseURL =
+      FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+      ?? FileManager.default.temporaryDirectory
+    return baseURL.appendingPathComponent(directoryName, isDirectory: true)
   }
 
-  static func write(_ snapshot: MigrationSnapshot) throws {
+  static func prepare() throws {
     clear()
-    let data = try JSONEncoder().encode(snapshot)
-    try data.write(to: snapshotURL, options: .atomic)
+    try FileManager.default.createDirectory(
+      at: directoryURL,
+      withIntermediateDirectories: true,
+      attributes: nil
+    )
   }
 
-  static func read() -> MigrationSnapshot? {
-    guard let data = try? Data(contentsOf: snapshotURL) else {
-      return nil
+  static func writeBookChunk(_ chunk: [MigrationBookSnapshot], index: Int) throws {
+    try writeChunk(chunk, prefix: booksPrefix, index: index)
+  }
+
+  static func writeSeriesChunk(_ chunk: [MigrationSeriesSnapshot], index: Int) throws {
+    try writeChunk(chunk, prefix: seriesPrefix, index: index)
+  }
+
+  static func readBookChunk(at url: URL) throws -> [MigrationBookSnapshot] {
+    try readChunk(at: url)
+  }
+
+  static func readSeriesChunk(at url: URL) throws -> [MigrationSeriesSnapshot] {
+    try readChunk(at: url)
+  }
+
+  static func bookChunkURLs() -> [URL] {
+    chunkURLs(prefix: booksPrefix)
+  }
+
+  static func seriesChunkURLs() -> [URL] {
+    chunkURLs(prefix: seriesPrefix)
+  }
+
+  private static func writeChunk<T: Encodable>(
+    _ chunk: [T],
+    prefix: String,
+    index: Int
+  ) throws {
+    guard !chunk.isEmpty else { return }
+    let data = try JSONEncoder().encode(chunk)
+    try data.write(to: chunkURL(prefix: prefix, index: index), options: .atomic)
+  }
+
+  private static func readChunk<T: Decodable>(at url: URL) throws -> [T] {
+    let data = try Data(contentsOf: url)
+    return try JSONDecoder().decode([T].self, from: data)
+  }
+
+  private static func chunkURL(prefix: String, index: Int) -> URL {
+    let filename = "\(prefix)-\(String(format: "%05d", index)).json"
+    return directoryURL.appendingPathComponent(filename)
+  }
+
+  private static func chunkURLs(prefix: String) -> [URL] {
+    guard
+      let urls = try? FileManager.default.contentsOfDirectory(
+        at: directoryURL,
+        includingPropertiesForKeys: nil
+      )
+    else {
+      return []
     }
-    return try? JSONDecoder().decode(MigrationSnapshot.self, from: data)
+    return
+      urls
+      .filter { $0.lastPathComponent.hasPrefix("\(prefix)-") }
+      .sorted { $0.lastPathComponent < $1.lastPathComponent }
   }
 
   static func clear() {
-    try? FileManager.default.removeItem(at: snapshotURL)
+    try? FileManager.default.removeItem(at: directoryURL)
   }
 }
 
 enum KMReaderMigrationPlan: SchemaMigrationPlan {
+  private static let migrationBatchSize = 500
+
   static var schemas: [any VersionedSchema.Type] {
     [
       KMReaderSchemaV1.self,
@@ -67,46 +124,118 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
     fromVersion: KMReaderSchemaV1.self,
     toVersion: KMReaderSchemaV2.self,
     willMigrate: { context in
-      let v1Books = try context.fetch(FetchDescriptor<KMReaderSchemaV1.KomgaBook>())
-      let v1Series = try context.fetch(FetchDescriptor<KMReaderSchemaV1.KomgaSeries>())
-
-      let snapshot = MigrationSnapshot(
-        books: v1Books.map(makeBookSnapshot),
-        series: v1Series.map(makeSeriesSnapshot)
-      )
-
-      try MigrationSnapshotStore.write(snapshot)
+      try MigrationSnapshotStore.prepare()
+      try snapshotBooks(context: context)
+      try snapshotSeries(context: context)
     },
     didMigrate: { context in
       defer { MigrationSnapshotStore.clear() }
 
-      let snapshot = MigrationSnapshotStore.read()
-      let bookSnapshots = Dictionary(uniqueKeysWithValues: snapshot?.books.map { ($0.id, $0) } ?? [])
-      let seriesSnapshots = Dictionary(uniqueKeysWithValues: snapshot?.series.map { ($0.id, $0) } ?? [])
-
-      let books = try context.fetch(FetchDescriptor<KomgaBook>())
-      for book in books {
-        if let item = bookSnapshots[book.id] {
-          book.applyContent(media: item.media, metadata: item.metadata, readProgress: item.readProgress)
-        } else {
-          book.rebuildQueryFields()
-        }
-      }
-
-      let seriesList = try context.fetch(FetchDescriptor<KomgaSeries>())
-      for series in seriesList {
-        if let item = seriesSnapshots[series.id] {
-          series.applyContent(metadata: item.metadata, booksMetadata: item.booksMetadata)
-        } else {
-          series.rebuildQueryFields()
-        }
-      }
+      try applyBookSnapshots(context: context)
+      try applySeriesSnapshots(context: context)
 
       if context.hasChanges {
         try context.save()
       }
     }
   )
+
+  private static func snapshotBooks(context: ModelContext) throws {
+    var offset = 0
+    var chunkIndex = 0
+
+    while true {
+      var descriptor = FetchDescriptor<KMReaderSchemaV1.KomgaBook>(
+        sortBy: [SortDescriptor(\KMReaderSchemaV1.KomgaBook.id, order: .forward)]
+      )
+      descriptor.fetchOffset = offset
+      descriptor.fetchLimit = migrationBatchSize
+
+      let books = try context.fetch(descriptor)
+      guard !books.isEmpty else { break }
+
+      let chunk = books.map(makeBookSnapshot)
+      try MigrationSnapshotStore.writeBookChunk(chunk, index: chunkIndex)
+
+      offset += books.count
+      chunkIndex += 1
+    }
+  }
+
+  private static func snapshotSeries(context: ModelContext) throws {
+    var offset = 0
+    var chunkIndex = 0
+
+    while true {
+      var descriptor = FetchDescriptor<KMReaderSchemaV1.KomgaSeries>(
+        sortBy: [SortDescriptor(\KMReaderSchemaV1.KomgaSeries.id, order: .forward)]
+      )
+      descriptor.fetchOffset = offset
+      descriptor.fetchLimit = migrationBatchSize
+
+      let series = try context.fetch(descriptor)
+      guard !series.isEmpty else { break }
+
+      let chunk = series.map(makeSeriesSnapshot)
+      try MigrationSnapshotStore.writeSeriesChunk(chunk, index: chunkIndex)
+
+      offset += series.count
+      chunkIndex += 1
+    }
+  }
+
+  private static func applyBookSnapshots(context: ModelContext) throws {
+    for chunkURL in MigrationSnapshotStore.bookChunkURLs() {
+      let snapshots = try MigrationSnapshotStore.readBookChunk(at: chunkURL)
+      guard !snapshots.isEmpty else { continue }
+
+      let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
+      let ids = Set(byID.keys)
+      let descriptor = FetchDescriptor<KomgaBook>(
+        predicate: #Predicate { ids.contains($0.id) }
+      )
+      let books = try context.fetch(descriptor)
+
+      for book in books {
+        guard let snapshot = byID[book.id] else { continue }
+        book.applyContent(
+          media: snapshot.media,
+          metadata: snapshot.metadata,
+          readProgress: snapshot.readProgress
+        )
+      }
+
+      if context.hasChanges {
+        try context.save()
+      }
+    }
+  }
+
+  private static func applySeriesSnapshots(context: ModelContext) throws {
+    for chunkURL in MigrationSnapshotStore.seriesChunkURLs() {
+      let snapshots = try MigrationSnapshotStore.readSeriesChunk(at: chunkURL)
+      guard !snapshots.isEmpty else { continue }
+
+      let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
+      let ids = Set(byID.keys)
+      let descriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { ids.contains($0.id) }
+      )
+      let seriesList = try context.fetch(descriptor)
+
+      for series in seriesList {
+        guard let snapshot = byID[series.id] else { continue }
+        series.applyContent(
+          metadata: snapshot.metadata,
+          booksMetadata: snapshot.booksMetadata
+        )
+      }
+
+      if context.hasChanges {
+        try context.save()
+      }
+    }
+  }
 
   private static func makeBookSnapshot(_ book: KMReaderSchemaV1.KomgaBook) -> MigrationBookSnapshot {
     let media = Media(
