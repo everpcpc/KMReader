@@ -92,7 +92,7 @@
       case .paged:
         return viewModel.publicationReadingProgression == .rtl ? .rtl : .ltr
       case .scrolled:
-        return .vertical
+        return .webtoon
       }
     }
 
