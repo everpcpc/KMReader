@@ -5,10 +5,11 @@
 #if os(iOS)
   import SwiftUI
   import UIKit
+  import WebKit
 
   @MainActor
   final class NativeImagePageViewController: UIViewController, UIScrollViewDelegate,
-    UIGestureRecognizerDelegate
+    UIGestureRecognizerDelegate, WKNavigationDelegate
   {
     private weak var viewModel: ReaderViewModel?
 
@@ -19,6 +20,7 @@
       tapZoneSize: .large,
       tapZoneMode: .auto,
       showPageNumber: true,
+      autoPlayAnimatedImages: false,
       readerBackground: .system,
       enableLiveText: false,
       doubleTapZoomScale: 3.0,
@@ -32,6 +34,7 @@
 
     private let scrollView = UIScrollView()
     private let pageItem = NativePageItem()
+    private let animatedInlineContainer = UIView()
     private let playButton = UIButton(type: .system)
 
     private var singleTapWorkItem: DispatchWorkItem?
@@ -75,6 +78,7 @@
         loadError = nil
         scrollView.setZoomScale(scrollView.minimumZoomScale, animated: false)
         viewModel.isZoomed = false
+        hideAnimatedInlinePlayback()
       }
       lastConfiguredPageIndex = pageIndex
 
@@ -135,7 +139,17 @@
       playButton.isHidden = true
       view.addSubview(playButton)
 
+      animatedInlineContainer.translatesAutoresizingMaskIntoConstraints = false
+      animatedInlineContainer.backgroundColor = .black
+      animatedInlineContainer.isHidden = true
+      animatedInlineContainer.isUserInteractionEnabled = false
+      view.addSubview(animatedInlineContainer)
+
       NSLayoutConstraint.activate([
+        animatedInlineContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+        animatedInlineContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        animatedInlineContainer.topAnchor.constraint(equalTo: view.topAnchor),
+        animatedInlineContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         playButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         playButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         playButton.widthAnchor.constraint(equalToConstant: 56),
@@ -199,6 +213,7 @@
         targetHeight: view.bounds.height
       )
 
+      updateAnimatedInlinePlayback()
       updatePlayButtonVisibility()
 
       if image == nil, let page, loadError == nil {
@@ -234,8 +249,77 @@
         return
       }
 
-      let shouldShow = onPlayAnimatedPage != nil && viewModel.shouldShowAnimatedPlayButton(for: pageIndex)
+      let shouldShow =
+        !renderConfig.autoPlayAnimatedImages
+        && onPlayAnimatedPage != nil
+        && viewModel.shouldShowAnimatedPlayButton(for: pageIndex)
       playButton.isHidden = !shouldShow
+    }
+
+    private func updateAnimatedInlinePlayback() {
+      guard renderConfig.autoPlayAnimatedImages else {
+        hideAnimatedInlinePlayback()
+        return
+      }
+      guard let viewModel else {
+        hideAnimatedInlinePlayback()
+        return
+      }
+      guard let fileURL = viewModel.animatedPlaybackFileURL(for: pageIndex) else {
+        hideAnimatedInlinePlayback()
+        return
+      }
+
+      let slot = max(pageIndex, 0) % 4
+      let webView = AnimatedImageWebViewPool.shared.webView(for: slot)
+      webView.navigationDelegate = self
+      if webView.superview !== animatedInlineContainer {
+        webView.removeFromSuperview()
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        animatedInlineContainer.addSubview(webView)
+        NSLayoutConstraint.activate([
+          webView.leadingAnchor.constraint(equalTo: animatedInlineContainer.leadingAnchor),
+          webView.trailingAnchor.constraint(equalTo: animatedInlineContainer.trailingAnchor),
+          webView.topAnchor.constraint(equalTo: animatedInlineContainer.topAnchor),
+          webView.bottomAnchor.constraint(equalTo: animatedInlineContainer.bottomAnchor),
+        ])
+      }
+
+      let didStartLoad = AnimatedImageWebViewPool.shared.loadFileIfNeeded(fileURL, slot: slot)
+      animatedInlineContainer.isHidden = didStartLoad
+      if !didStartLoad {
+        animatedInlineContainer.isHidden = false
+      }
+    }
+
+    private func hideAnimatedInlinePlayback() {
+      animatedInlineContainer.isHidden = true
+      for subview in animatedInlineContainer.subviews {
+        subview.removeFromSuperview()
+      }
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+      guard webView.superview === animatedInlineContainer else { return }
+      animatedInlineContainer.isHidden = false
+    }
+
+    func webView(
+      _ webView: WKWebView,
+      didFail navigation: WKNavigation!,
+      withError error: Error
+    ) {
+      guard webView.superview === animatedInlineContainer else { return }
+      animatedInlineContainer.isHidden = false
+    }
+
+    func webView(
+      _ webView: WKWebView,
+      didFailProvisionalNavigation navigation: WKNavigation!,
+      withError error: Error
+    ) {
+      guard webView.superview === animatedInlineContainer else { return }
+      animatedInlineContainer.isHidden = false
     }
 
     @objc private func handlePlayButtonTap() {
