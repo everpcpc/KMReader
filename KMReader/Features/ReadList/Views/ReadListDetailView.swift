@@ -42,6 +42,10 @@ struct ReadListDetailView: View {
     readList?.name ?? String(localized: "title.readList")
   }
 
+  private var isPinned: Bool {
+    komgaReadList?.isPinned ?? false
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
@@ -146,6 +150,19 @@ extension ReadListDetailView {
     }
   }
 
+  private func togglePinned() {
+    guard let komgaReadList else { return }
+    let nextPinned = !komgaReadList.isPinned
+    Task {
+      await DatabaseOperator.shared.setReadListPinned(
+        readListId: komgaReadList.readListId,
+        instanceId: komgaReadList.instanceId,
+        isPinned: nextPinned
+      )
+      await DatabaseOperator.shared.commit()
+    }
+  }
+
   @ViewBuilder
   private var readListToolbarContent: some View {
     HStack {
@@ -166,7 +183,18 @@ extension ReadListDetailView {
 
         Divider()
 
+        Button {
+          togglePinned()
+        } label: {
+          Label(
+            isPinned ? String(localized: "action.unpinFromTop") : String(localized: "action.pinToTop"),
+            systemImage: isPinned ? "pin.slash" : "pin"
+          )
+        }
+
         if current.isAdmin {
+          Divider()
+
           Button {
             showEditSheet = true
           } label: {

@@ -25,6 +25,10 @@ struct CardPlaceholder: View {
     }
   }
 
+  private var listThumbnailHeight: CGFloat {
+    listThumbnailWidth / CoverAspectRatio.widthToHeight
+  }
+
   var body: some View {
     switch layout {
     case .grid:
@@ -80,7 +84,7 @@ struct CardPlaceholder: View {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.gray.opacity(0.2))
         .frame(width: listThumbnailWidth)
-        .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
+        .frame(height: listThumbnailHeight)
 
       VStack(alignment: .leading, spacing: lineSpacing) {
         ForEach(Array(listLines.enumerated()), id: \.offset) { item in

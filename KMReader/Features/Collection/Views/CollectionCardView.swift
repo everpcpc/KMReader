@@ -36,19 +36,28 @@ struct CollectionCardView: View {
         CollectionContextMenu(
           collectionId: komgaCollection.collectionId,
           menuTitle: komgaCollection.name,
+          isPinned: komgaCollection.isPinned,
           onDeleteRequested: {
             showDeleteConfirmation = true
           },
           onEditRequested: {
             showEditSheet = true
+          },
+          onPinToggleRequested: {
+            togglePinned()
           }
         )
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
-          Text(komgaCollection.name)
-            .lineLimit(1)
+          HStack(spacing: 4) {
+            if komgaCollection.isPinned {
+              Image(systemName: "pin.fill")
+            }
+            Text(komgaCollection.name)
+              .lineLimit(1)
+          }
 
           HStack(spacing: 4) {
             Text("\(komgaCollection.seriesIds.count) series")
@@ -74,10 +83,12 @@ struct CollectionCardView: View {
 
   @ViewBuilder
   private var overlayTextContent: some View {
-    CardOverlayTextStack(title: komgaCollection.name) {
+    CardOverlayTextStack(
+      title: komgaCollection.name,
+      titleLeadingSystemImage: komgaCollection.isPinned ? "pin.fill" : nil
+    ) {
       HStack(spacing: 4) {
         Text("\(komgaCollection.seriesIds.count) series")
-        Spacer()
       }
     }
   }
@@ -91,6 +102,18 @@ struct CollectionCardView: View {
       } catch {
         ErrorManager.shared.alert(error: error)
       }
+    }
+  }
+
+  private func togglePinned() {
+    let nextPinned = !komgaCollection.isPinned
+    Task {
+      await DatabaseOperator.shared.setCollectionPinned(
+        collectionId: komgaCollection.collectionId,
+        instanceId: komgaCollection.instanceId,
+        isPinned: nextPinned
+      )
+      await DatabaseOperator.shared.commit()
     }
   }
 }

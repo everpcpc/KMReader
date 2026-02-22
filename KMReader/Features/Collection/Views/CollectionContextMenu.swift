@@ -9,8 +9,10 @@ import SwiftUI
 struct CollectionContextMenu: View {
   let collectionId: String
   let menuTitle: String
+  let isPinned: Bool
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+  var onPinToggleRequested: (() -> Void)? = nil
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
@@ -27,6 +29,16 @@ struct CollectionContextMenu: View {
 
       NavigationLink(value: NavDestination.collectionDetail(collectionId: collectionId)) {
         Label("View Details", systemImage: "info.circle")
+      }
+
+      Divider()
+      Button {
+        onPinToggleRequested?()
+      } label: {
+        Label(
+          isPinned ? String(localized: "action.unpinFromTop") : String(localized: "action.pinToTop"),
+          systemImage: isPinned ? "pin.slash" : "pin"
+        )
       }
 
       if !isOffline {

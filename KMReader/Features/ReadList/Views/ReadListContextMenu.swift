@@ -9,9 +9,11 @@ struct ReadListContextMenu: View {
   let readListId: String
   let menuTitle: String
   let downloadStatus: SeriesDownloadStatus
+  let isPinned: Bool
 
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+  var onPinToggleRequested: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
@@ -37,6 +39,16 @@ struct ReadListContextMenu: View {
 
       NavigationLink(value: NavDestination.readListDetail(readListId: readListId)) {
         Label("View Details", systemImage: "info.circle")
+      }
+
+      Divider()
+      Button {
+        onPinToggleRequested?()
+      } label: {
+        Label(
+          isPinned ? String(localized: "action.unpinFromTop") : String(localized: "action.pinToTop"),
+          systemImage: isPinned ? "pin.slash" : "pin"
+        )
       }
 
       if !isOffline {

@@ -24,9 +24,16 @@ struct CollectionRowView: View {
         NavigationLink(
           value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
         ) {
-          Text(komgaCollection.name)
-            .font(.callout)
-            .lineLimit(2)
+          HStack(spacing: 6) {
+            Text(komgaCollection.name)
+              .font(.callout)
+              .lineLimit(2)
+            if komgaCollection.isPinned {
+              Image(systemName: "pin.fill")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+          }
         }.adaptiveButtonStyle(.plain)
 
         HStack {
@@ -49,11 +56,15 @@ struct CollectionRowView: View {
             CollectionContextMenu(
               collectionId: komgaCollection.collectionId,
               menuTitle: komgaCollection.name,
+              isPinned: komgaCollection.isPinned,
               onDeleteRequested: {
                 showDeleteConfirmation = true
               },
               onEditRequested: {
                 showEditSheet = true
+              },
+              onPinToggleRequested: {
+                togglePinned()
               }
             )
             .id(komgaCollection.collectionId)
@@ -83,6 +94,18 @@ struct CollectionRowView: View {
       } catch {
         ErrorManager.shared.alert(error: error)
       }
+    }
+  }
+
+  private func togglePinned() {
+    let nextPinned = !komgaCollection.isPinned
+    Task {
+      await DatabaseOperator.shared.setCollectionPinned(
+        collectionId: komgaCollection.collectionId,
+        instanceId: komgaCollection.instanceId,
+        isPinned: nextPinned
+      )
+      await DatabaseOperator.shared.commit()
     }
   }
 }

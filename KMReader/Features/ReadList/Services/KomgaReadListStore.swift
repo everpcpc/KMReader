@@ -34,30 +34,12 @@ enum KomgaReadListStore {
       }
     }
 
-    if let sort = sort {
-      if sort.contains("name") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaReadList.name, order: isAsc ? .forward : .reverse)
-        ]
-      } else if sort.contains("createdDate") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaReadList.createdDate, order: isAsc ? .forward : .reverse)
-        ]
-      } else {
-        descriptor.sortBy = [SortDescriptor(\KomgaReadList.name, order: .forward)]
-      }
-    } else {
-      descriptor.sortBy = [SortDescriptor(\KomgaReadList.name, order: .forward)]
-    }
-
-    descriptor.fetchLimit = size
-    descriptor.fetchOffset = page * size
+    descriptor.sortBy = sortDescriptors(sort: sort)
 
     do {
       let results = try context.fetch(descriptor)
-      return results.map { $0.toReadList() }
+      let ordered = pinnedFirst(results)
+      return paginate(ordered, offset: page * size, limit: size).map { $0.toReadList() }
     } catch {
       return []
     }
@@ -87,30 +69,12 @@ enum KomgaReadListStore {
       }
     }
 
-    if let sort = sort {
-      if sort.contains("name") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaReadList.name, order: isAsc ? .forward : .reverse)
-        ]
-      } else if sort.contains("createdDate") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaReadList.createdDate, order: isAsc ? .forward : .reverse)
-        ]
-      } else {
-        descriptor.sortBy = [SortDescriptor(\KomgaReadList.name, order: .forward)]
-      }
-    } else {
-      descriptor.sortBy = [SortDescriptor(\KomgaReadList.name, order: .forward)]
-    }
-
-    descriptor.fetchLimit = limit
-    descriptor.fetchOffset = offset
+    descriptor.sortBy = sortDescriptors(sort: sort)
 
     do {
       let results = try context.fetch(descriptor)
-      return results.map { $0.readListId }
+      let ordered = pinnedFirst(results)
+      return paginate(ordered, offset: offset, limit: limit).map { $0.readListId }
     } catch {
       return []
     }
@@ -145,5 +109,42 @@ enum KomgaReadListStore {
     let compositeId = CompositeID.generate(id: id)
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     return try? context.fetch(descriptor).first?.toReadList()
+  }
+
+  private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaReadList>] {
+    let isAscending = sort?.contains("desc") != true
+
+    if sort?.contains("createdDate") == true {
+      return [
+        SortDescriptor(\KomgaReadList.createdDate, order: isAscending ? .forward : .reverse)
+      ]
+    }
+
+    if sort?.contains("lastModifiedDate") == true {
+      return [
+        SortDescriptor(\KomgaReadList.lastModifiedDate, order: isAscending ? .forward : .reverse)
+      ]
+    }
+
+    return [
+      SortDescriptor(\KomgaReadList.name, order: isAscending ? .forward : .reverse)
+    ]
+  }
+
+  private static func pinnedFirst(_ readLists: [KomgaReadList]) -> [KomgaReadList] {
+    let pinned = readLists.filter(\.isPinned)
+    let unpinned = readLists.filter { !$0.isPinned }
+    return pinned + unpinned
+  }
+
+  private static func paginate(
+    _ readLists: [KomgaReadList],
+    offset: Int,
+    limit: Int
+  ) -> ArraySlice<KomgaReadList> {
+    guard !readLists.isEmpty, limit > 0 else { return [] }
+    let safeOffset = min(max(0, offset), readLists.count)
+    let end = min(safeOffset + limit, readLists.count)
+    return readLists[safeOffset..<end]
   }
 }

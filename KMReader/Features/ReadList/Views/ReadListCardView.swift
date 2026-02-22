@@ -37,19 +37,28 @@ struct ReadListCardView: View {
           readListId: komgaReadList.readListId,
           menuTitle: komgaReadList.name,
           downloadStatus: komgaReadList.downloadStatus,
+          isPinned: komgaReadList.isPinned,
           onDeleteRequested: {
             showDeleteConfirmation = true
           },
           onEditRequested: {
             showEditSheet = true
+          },
+          onPinToggleRequested: {
+            togglePinned()
           }
         )
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
-          Text(komgaReadList.name)
-            .lineLimit(1)
+          HStack(spacing: 4) {
+            if komgaReadList.isPinned {
+              Image(systemName: "pin.fill")
+            }
+            Text(komgaReadList.name)
+              .lineLimit(1)
+          }
 
           HStack(spacing: 4) {
             Text("\(komgaReadList.bookIds.count) books")
@@ -75,10 +84,12 @@ struct ReadListCardView: View {
 
   @ViewBuilder
   private var overlayTextContent: some View {
-    CardOverlayTextStack(title: komgaReadList.name) {
+    CardOverlayTextStack(
+      title: komgaReadList.name,
+      titleLeadingSystemImage: komgaReadList.isPinned ? "pin.fill" : nil
+    ) {
       HStack(spacing: 4) {
         Text("\(komgaReadList.bookIds.count) books")
-        Spacer()
       }
     }
   }
@@ -91,6 +102,18 @@ struct ReadListCardView: View {
       } catch {
         ErrorManager.shared.alert(error: error)
       }
+    }
+  }
+
+  private func togglePinned() {
+    let nextPinned = !komgaReadList.isPinned
+    Task {
+      await DatabaseOperator.shared.setReadListPinned(
+        readListId: komgaReadList.readListId,
+        instanceId: komgaReadList.instanceId,
+        isPinned: nextPinned
+      )
+      await DatabaseOperator.shared.commit()
     }
   }
 }

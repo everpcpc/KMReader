@@ -75,10 +75,13 @@ struct DashboardSectionDetailView: View {
 
   @ViewBuilder
   private var contentView: some View {
-    if section.isBookSection {
+    switch section.contentKind {
+    case .books:
       bookContentView
-    } else {
+    case .series:
       seriesContentView
+    case .collections, .readLists:
+      EmptyView()
     }
   }
 
@@ -173,25 +176,29 @@ struct DashboardSectionDetailView: View {
 
     if AppConfig.isOffline {
       let ids: [String]
-      if section.isBookSection {
+      switch section.contentKind {
+      case .books:
         ids = section.fetchOfflineBookIds(
           context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
-      } else {
+      case .series:
         ids = section.fetchOfflineSeriesIds(
           context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
+      case .collections, .readLists:
+        ids = []
       }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        if section.isBookSection {
+        switch section.contentKind {
+        case .books:
           if let page = try await section.fetchBooks(
             libraryIds: libraryIds,
             page: pagination.currentPage,
@@ -200,7 +207,7 @@ struct DashboardSectionDetailView: View {
             let ids = page.content.map { $0.id }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
-        } else {
+        case .series:
           if let page = try await section.fetchSeries(
             libraryIds: libraryIds,
             page: pagination.currentPage,
@@ -209,6 +216,8 @@ struct DashboardSectionDetailView: View {
             let ids = page.content.map { $0.id }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
+        case .collections, .readLists:
+          applyPage(ids: [], moreAvailable: false)
         }
       } catch {
         ErrorManager.shared.alert(error: error)

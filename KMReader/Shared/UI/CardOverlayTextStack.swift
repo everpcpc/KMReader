@@ -7,6 +7,7 @@ import SwiftUI
 
 struct CardOverlayTextStack<Detail: View, Progress: View>: View {
   let title: String
+  let titleLeadingSystemImage: String?
   let subtitle: String?
   let titleLineLimit: Int
   let style: CardOverlayTextStyle
@@ -16,6 +17,7 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
 
   init(
     title: String,
+    titleLeadingSystemImage: String? = nil,
     subtitle: String? = nil,
     titleLineLimit: Int = 1,
     style: CardOverlayTextStyle = .standard,
@@ -24,6 +26,7 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
     @ViewBuilder progress: () -> Progress
   ) {
     self.title = title
+    self.titleLeadingSystemImage = titleLeadingSystemImage
     self.subtitle = subtitle
     self.titleLineLimit = titleLineLimit
     self.style = style
@@ -40,9 +43,18 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
           .lineLimit(1)
       }
 
-      Text(title)
+      if let titleLeadingSystemImage {
+        HStack(spacing: 4) {
+          Image(systemName: titleLeadingSystemImage)
+          Text(title)
+            .lineLimit(titleLineLimit)
+        }
         .cardOverlayTitle(style)
-        .lineLimit(titleLineLimit)
+      } else {
+        Text(title)
+          .cardOverlayTitle(style)
+          .lineLimit(titleLineLimit)
+      }
 
       detail
         .cardOverlayDetail(style)
@@ -55,6 +67,7 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
 extension CardOverlayTextStack where Progress == EmptyView {
   init(
     title: String,
+    titleLeadingSystemImage: String? = nil,
     subtitle: String? = nil,
     titleLineLimit: Int = 1,
     style: CardOverlayTextStyle = .standard,
@@ -63,6 +76,7 @@ extension CardOverlayTextStack where Progress == EmptyView {
   ) {
     self.init(
       title: title,
+      titleLeadingSystemImage: titleLeadingSystemImage,
       subtitle: subtitle,
       titleLineLimit: titleLineLimit,
       style: style,

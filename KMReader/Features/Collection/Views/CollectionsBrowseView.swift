@@ -131,7 +131,15 @@ struct CollectionsBrowseView: View {
           sort: sortOpts.sortString,
           search: searchText.isEmpty ? nil : searchText
         )
-        return (ids: result.content.map { $0.id }, isLastPage: result.last)
+        let ids = KomgaCollectionStore.fetchCollectionIds(
+          context: modelContext,
+          libraryIds: libraryIds,
+          searchText: searchText,
+          sort: sortOpts.sortString,
+          offset: page * size,
+          limit: size
+        )
+        return (ids: ids, isLastPage: result.last || ids.count < size)
       }
     )
   }

@@ -18,6 +18,7 @@ final class KomgaCollection {
   var createdDate: Date
   var lastModifiedDate: Date
   var filtered: Bool
+  var isPinned: Bool = false
 
   var seriesIdsRaw: Data?
 
@@ -35,6 +36,7 @@ final class KomgaCollection {
     createdDate: Date,
     lastModifiedDate: Date,
     filtered: Bool,
+    isPinned: Bool = false,
     seriesIds: [String] = []
   ) {
     self.id = id ?? CompositeID.generate(instanceId: instanceId, id: collectionId)
@@ -45,6 +47,7 @@ final class KomgaCollection {
     self.createdDate = createdDate
     self.lastModifiedDate = lastModifiedDate
     self.filtered = filtered
+    self.isPinned = isPinned
     self.seriesIdsRaw = try? JSONEncoder().encode(seriesIds)
   }
 

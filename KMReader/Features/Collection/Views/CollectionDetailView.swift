@@ -42,6 +42,10 @@ struct CollectionDetailView: View {
     collection?.name ?? String(localized: "title.collection")
   }
 
+  private var isPinned: Bool {
+    komgaCollection?.isPinned ?? false
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
@@ -138,6 +142,19 @@ extension CollectionDetailView {
     }
   }
 
+  private func togglePinned() {
+    guard let komgaCollection else { return }
+    let nextPinned = !komgaCollection.isPinned
+    Task {
+      await DatabaseOperator.shared.setCollectionPinned(
+        collectionId: komgaCollection.collectionId,
+        instanceId: komgaCollection.instanceId,
+        isPinned: nextPinned
+      )
+      await DatabaseOperator.shared.commit()
+    }
+  }
+
   @ViewBuilder
   private var collectionToolbarContent: some View {
     HStack {
@@ -164,7 +181,18 @@ extension CollectionDetailView {
 
       Divider()
 
+      Button {
+        togglePinned()
+      } label: {
+        Label(
+          isPinned ? String(localized: "action.unpinFromTop") : String(localized: "action.pinToTop"),
+          systemImage: isPinned ? "pin.slash" : "pin"
+        )
+      }
+
       if current.isAdmin {
+        Divider()
+
         Button {
           showEditSheet = true
         } label: {
