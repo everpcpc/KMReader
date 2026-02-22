@@ -17,8 +17,8 @@ enum KMReaderSchemaV1: VersionedSchema {
       KomgaLibrary.self,
       KMReaderSchemaV1.KomgaSeries.self,
       KMReaderSchemaV1.KomgaBook.self,
-      KomgaCollection.self,
-      KomgaReadList.self,
+      KMReaderSchemaV1.KomgaCollection.self,
+      KMReaderSchemaV1.KomgaReadList.self,
       CustomFont.self,
       PendingProgress.self,
       SavedFilter.self,
@@ -170,6 +170,50 @@ enum KMReaderSchemaV1: VersionedSchema {
     var offlinePolicyLimit: Int = 0
 
     var collectionIdsRaw: Data?
+
+    init() {}
+  }
+
+  @Model
+  final class KomgaCollection {
+    @Attribute(.unique) var id: String = ""
+
+    var collectionId: String = ""
+    var instanceId: String = ""
+
+    var name: String = ""
+    var ordered: Bool = false
+    var createdDate: Date = Date(timeIntervalSince1970: 0)
+    var lastModifiedDate: Date = Date(timeIntervalSince1970: 0)
+    var filtered: Bool = false
+
+    var seriesIdsRaw: Data?
+
+    init() {}
+  }
+
+  @Model
+  final class KomgaReadList {
+    @Attribute(.unique) var id: String = ""
+
+    var readListId: String = ""
+    var instanceId: String = ""
+
+    var name: String = ""
+    var summary: String = ""
+    var ordered: Bool = false
+    var createdDate: Date = Date(timeIntervalSince1970: 0)
+    var lastModifiedDate: Date = Date(timeIntervalSince1970: 0)
+    var filtered: Bool = false
+
+    var bookIdsRaw: Data?
+
+    var downloadStatusRaw: String = "notDownloaded"
+    var downloadError: String?
+    var downloadAt: Date?
+    var downloadedSize: Int64 = 0
+    var downloadedBooks: Int = 0
+    var pendingBooks: Int = 0
 
     init() {}
   }

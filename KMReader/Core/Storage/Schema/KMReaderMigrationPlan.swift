@@ -111,12 +111,14 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
     [
       KMReaderSchemaV1.self,
       KMReaderSchemaV2.self,
+      KMReaderSchemaV3.self,
     ]
   }
 
   static var stages: [MigrationStage] {
     [
-      migrateV1toV2
+      migrateV1toV2,
+      migrateV2toV3,
     ]
   }
 
@@ -138,6 +140,11 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
         try context.save()
       }
     }
+  )
+
+  static let migrateV2toV3 = MigrationStage.lightweight(
+    fromVersion: KMReaderSchemaV2.self,
+    toVersion: KMReaderSchemaV3.self
   )
 
   private static func snapshotBooks(context: ModelContext) throws {

@@ -79,7 +79,7 @@ struct MainApp: App {
   }
 
   private func makeModelContainer() throws -> ModelContainer {
-    let schema = Schema(versionedSchema: KMReaderSchemaV2.self)
+    let schema = Schema(versionedSchema: KMReaderSchemaV3.self)
     let configuration = ModelConfiguration(schema: schema)
     return try ModelContainer(
       for: schema,

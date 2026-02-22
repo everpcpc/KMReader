@@ -360,6 +360,22 @@ Additional patterns:
 - Do not use xcodebuild directly, use the Makefile instead.
 - Translation all supported languages, refer to ../komga/komga-webui/src/locales/ if available.
 
+### SwiftData Migration Discipline
+
+When changing any SwiftData `@Model`, migration updates are mandatory.
+
+- Any persisted model shape change requires a new schema version: add/remove/rename field, type change, default semantics change, relationship/index/uniqueness change.
+- Never mutate already-shipped schema definitions in place. Keep historical versions frozen and add a new `VersionedSchema` (for example `KMReaderSchemaV3` -> `KMReaderSchemaV4`).
+- Historical schemas must define their own model snapshots for entities that may evolve (for example nested `KMReaderSchemaVx.KomgaCollection`) instead of pointing to current runtime model types.
+- Update `KMReaderMigrationPlan` in lockstep: append the new schema in `schemas`, add an explicit migration stage, and keep stage order strictly linear.
+- Update app container target schema to the latest version in `MainApp.makeModelContainer` (`Schema(versionedSchema: KMReaderSchemaVx.self)`).
+- Prefer lightweight migration only for additive/compatible changes; use custom migration when data transform/backfill is needed.
+- Do not change old `versionIdentifier` values and do not rewrite old migration stages after release.
+- Validation before merge:
+  - open existing DB from previous release and verify upgrade to latest schema;
+  - verify fresh install creates latest schema directly;
+  - verify ModelContainer init does not fail and critical flows still work (login, dashboard load, reader open).
+
 ## Important Files
 
 - `openapi.json`: Komga REST API contract
