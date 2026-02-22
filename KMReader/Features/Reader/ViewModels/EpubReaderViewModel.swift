@@ -136,10 +136,17 @@
 
     func load(book: Book) async {
       downloadInfo = book.downloadInfo
-      await load(bookId: book.id)
+      let shouldResumeFromProgression = book.readProgress?.completed != true
+      await load(
+        bookId: book.id,
+        shouldResumeFromProgression: shouldResumeFromProgression
+      )
     }
 
-    private func load(bookId: String) async {
+    private func load(
+      bookId: String,
+      shouldResumeFromProgression: Bool
+    ) async {
       downloadResumeTask?.cancel()
       downloadResumeTask = nil
 
@@ -218,7 +225,7 @@
         try await cacheChapterURLs()
 
         var savedProgression: R2Progression?
-        if !incognito {
+        if shouldResumeFromProgression, !incognito {
           if !AppConfig.isOffline {
             await syncRemoteProgressionToLocal(bookId: bookId)
           }
@@ -273,7 +280,10 @@
           isLoading = true
           errorMessage = nil
           downloadResumeTask = Task { [weak self] in
-            await self?.waitForDownloadAndReload(bookId: bookId)
+            await self?.waitForDownloadAndReload(
+              bookId: bookId,
+              shouldResumeFromProgression: shouldResumeFromProgression
+            )
           }
           return
         }
@@ -348,7 +358,10 @@
       }
     }
 
-    private func waitForDownloadAndReload(bookId: String) async {
+    private func waitForDownloadAndReload(
+      bookId: String,
+      shouldResumeFromProgression: Bool
+    ) async {
       while true {
         if AppConfig.isOffline {
           errorMessage = AppErrorType.networkUnavailable.localizedDescription
@@ -360,7 +373,10 @@
         let status = await OfflineManager.shared.getDownloadStatus(bookId: bookId)
         switch status {
         case .downloaded:
-          await load(bookId: bookId)
+          await load(
+            bookId: bookId,
+            shouldResumeFromProgression: shouldResumeFromProgression
+          )
           return
         case .failed(let error):
           errorMessage = AppErrorType.operationFailed(message: error).localizedDescription
