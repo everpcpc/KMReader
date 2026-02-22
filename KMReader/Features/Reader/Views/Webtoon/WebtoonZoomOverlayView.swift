@@ -11,20 +11,26 @@
     let pageIndex: Int
     let zoomAnchor: CGPoint?
     let zoomRequestID: UUID
-    let readerBackground: ReaderBackground
+    let renderConfig: ReaderRenderConfig
     let onClose: () -> Void
-
-    @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-    @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
-    @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-    @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-    @AppStorage("enableLiveText") private var enableLiveText: Bool = false
 
     @State private var hasZoomedIn = false
 
+    private var zoomRenderConfig: ReaderRenderConfig {
+      ReaderRenderConfig(
+        tapZoneSize: renderConfig.tapZoneSize,
+        tapZoneMode: .none,
+        showPageNumber: renderConfig.showPageNumber,
+        readerBackground: renderConfig.readerBackground,
+        enableLiveText: renderConfig.enableLiveText,
+        doubleTapZoomScale: renderConfig.doubleTapZoomScale,
+        doubleTapZoomMode: renderConfig.doubleTapZoomMode
+      )
+    }
+
     var body: some View {
       GeometryReader { geometry in
-        let initialScale = CGFloat(doubleTapZoomScale)
+        let initialScale = CGFloat(zoomRenderConfig.doubleTapZoomScale)
 
         PageScrollView(
           viewModel: viewModel,
@@ -34,13 +40,7 @@
           maxScale: 8.0,
           displayMode: .fillWidth,
           readingDirection: .webtoon,
-          doubleTapScale: CGFloat(doubleTapZoomScale),
-          doubleTapZoomMode: doubleTapZoomMode,
-          tapZoneSize: tapZoneSize,
-          tapZoneMode: .none,
-          showPageNumber: showPageNumber,
-          readerBackground: readerBackground,
-          enableLiveText: enableLiveText,
+          renderConfig: zoomRenderConfig,
           initialZoomScale: initialScale,
           initialZoomAnchor: zoomAnchor,
           initialZoomID: zoomRequestID,
@@ -58,7 +58,7 @@
           ]
         )
       }
-      .background(readerBackground.color.readerIgnoresSafeArea())
+      .background(renderConfig.readerBackground.color.readerIgnoresSafeArea())
       .readerIgnoresSafeArea()
       .onChange(of: viewModel.isZoomed) { _, isZoomed in
         if isZoomed {

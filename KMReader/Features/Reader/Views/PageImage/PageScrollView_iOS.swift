@@ -14,13 +14,7 @@
     let maxScale: CGFloat
     let displayMode: PageDisplayMode
     let readingDirection: ReadingDirection
-    let doubleTapScale: CGFloat
-    let doubleTapZoomMode: DoubleTapZoomMode
-    let tapZoneSize: TapZoneSize
-    let tapZoneMode: TapZoneMode
-    let showPageNumber: Bool
-    let readerBackground: ReaderBackground
-    let enableLiveText: Bool
+    let renderConfig: ReaderRenderConfig
     let initialZoomScale: CGFloat?
     let initialZoomAnchor: CGPoint?
     let initialZoomID: AnyHashable?
@@ -39,13 +33,7 @@
       maxScale: CGFloat,
       displayMode: PageDisplayMode = .fit,
       readingDirection: ReadingDirection,
-      doubleTapScale: CGFloat,
-      doubleTapZoomMode: DoubleTapZoomMode,
-      tapZoneSize: TapZoneSize,
-      tapZoneMode: TapZoneMode,
-      showPageNumber: Bool,
-      readerBackground: ReaderBackground,
-      enableLiveText: Bool,
+      renderConfig: ReaderRenderConfig,
       initialZoomScale: CGFloat? = nil,
       initialZoomAnchor: CGPoint? = nil,
       initialZoomID: AnyHashable? = nil,
@@ -61,13 +49,7 @@
       self.maxScale = maxScale
       self.displayMode = displayMode
       self.readingDirection = readingDirection
-      self.doubleTapScale = doubleTapScale
-      self.doubleTapZoomMode = doubleTapZoomMode
-      self.tapZoneSize = tapZoneSize
-      self.tapZoneMode = tapZoneMode
-      self.showPageNumber = showPageNumber
-      self.readerBackground = readerBackground
-      self.enableLiveText = enableLiveText
+      self.renderConfig = renderConfig
       self.initialZoomScale = initialZoomScale
       self.initialZoomAnchor = initialZoomAnchor
       self.initialZoomID = initialZoomID
@@ -95,7 +77,7 @@
         scrollView.panGestureRecognizer.isEnabled = false
       #endif
 
-      scrollView.backgroundColor = UIColor(readerBackground.color)
+      scrollView.backgroundColor = UIColor(renderConfig.readerBackground.color)
 
       let contentStack = UIStackView()
       contentStack.axis = .horizontal
@@ -137,7 +119,7 @@
       context.coordinator.applyDisplayModeIfNeeded(in: uiView)
       context.coordinator.updatePages()
 
-      uiView.backgroundColor = UIColor(readerBackground.color)
+      uiView.backgroundColor = UIColor(renderConfig.readerBackground.color)
 
       if context.coordinator.lastResetID != resetID {
         context.coordinator.lastResetID = resetID
@@ -195,7 +177,8 @@
             with: data,
             viewModel: parent.viewModel,
             image: image,
-            showPageNumber: parent.showPageNumber,
+            showPageNumber: parent.renderConfig.showPageNumber,
+            enableLiveText: parent.renderConfig.enableLiveText,
             readingDirection: parent.readingDirection,
             displayMode: parent.displayMode,
             targetHeight: targetHeight
@@ -245,7 +228,7 @@
       }
 
       func setupNativeInteractions(on scrollView: UIScrollView) {
-        if parent.doubleTapZoomMode != .disabled {
+        if parent.renderConfig.doubleTapZoomMode != .disabled {
           let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
           doubleTap.numberOfTapsRequired = 2
           doubleTap.delegate = self
@@ -328,7 +311,11 @@
           lastZoomOutTime = Date()
         } else {
           let point = gesture.location(in: contentStack)
-          let zoomRect = calculateZoomRect(scale: parent.doubleTapScale, center: point, scrollView: scrollView)
+          let zoomRect = calculateZoomRect(
+            scale: CGFloat(parent.renderConfig.doubleTapZoomScale),
+            center: point,
+            scrollView: scrollView
+          )
           scrollView.zoom(to: zoomRect, animated: true)
         }
       }
@@ -361,7 +348,7 @@
         let item = DispatchWorkItem { [weak self] in
           self?.performSingleTapAction(location: location)
         }
-        let delay = parent.doubleTapZoomMode.tapDebounceDelay
+        let delay = parent.renderConfig.doubleTapZoomMode.tapDebounceDelay
 
         if delay > 0 {
           singleTapWorkItem = item
@@ -380,9 +367,9 @@
         let action = TapZoneHelper.action(
           normalizedX: normalizedX,
           normalizedY: normalizedY,
-          tapZoneMode: parent.tapZoneMode,
+          tapZoneMode: parent.renderConfig.tapZoneMode,
           readingDirection: parent.readingDirection,
-          zoneThreshold: parent.tapZoneSize.value
+          zoneThreshold: parent.renderConfig.tapZoneSize.value
         )
 
         switch action {
@@ -448,6 +435,7 @@
     private weak var viewModel: ReaderViewModel?
     private var readingDirection: ReadingDirection = .ltr
     private var displayMode: PageDisplayMode = .fit
+    private var enableLiveText = false
     private let logger = AppLogger(.reader)
 
     #if !os(tvOS)
@@ -489,7 +477,7 @@
           imageView.image = viewModel?.preloadedImages[data.pageNumber]
         }
         #if !os(tvOS)
-          if AppConfig.enableLiveText {
+          if enableLiveText {
             analyzeImage()
           }
         #endif
@@ -548,6 +536,7 @@
       viewModel: ReaderViewModel,
       image: PlatformImage?,
       showPageNumber: Bool,
+      enableLiveText: Bool,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
       targetHeight: CGFloat
@@ -556,6 +545,7 @@
       self.viewModel = viewModel
       self.readingDirection = readingDirection
       self.displayMode = displayMode
+      self.enableLiveText = enableLiveText
 
       // Handle split mode - crop the image if needed
       let displayImage: PlatformImage?
@@ -592,7 +582,7 @@
 
       #if !os(tvOS)
         // Only analyze if enableLiveText is on AND the view is likely visible
-        if AppConfig.enableLiveText {
+        if enableLiveText {
           if window != nil && !isHidden {
             if !imageView.interactions.contains(where: { $0 === interaction }) {
               imageView.addInteraction(interaction)
@@ -736,7 +726,7 @@
       #if !os(tvOS)
         // When layout happens (e.g. during scroll),
         // check if we should start analysis if it hasn't been started yet
-        if AppConfig.enableLiveText, imageView.image != nil,
+        if enableLiveText, imageView.image != nil,
           window != nil, !isHidden, interaction.analysis == nil, analysisTask == nil
         {
           if !imageView.interactions.contains(where: { $0 === interaction }) {

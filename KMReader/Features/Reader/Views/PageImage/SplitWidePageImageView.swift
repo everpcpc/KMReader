@@ -11,20 +11,13 @@ struct SplitWidePageImageView: View {
   let pageIndex: Int
   let isLeftHalf: Bool  // true for left half, false for right half
   let screenSize: CGSize
+  let renderConfig: ReaderRenderConfig
 
   let readingDirection: ReadingDirection
   let onNextPage: () -> Void
   let onPreviousPage: () -> Void
   let onToggleControls: () -> Void
   let onPlayAnimatedPage: ((Int) -> Void)?
-
-  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
-  @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
-  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
-  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
 
   var body: some View {
     let page = pageIndex >= 0 && pageIndex < viewModel.pages.count ? viewModel.pages[pageIndex] : nil
@@ -36,13 +29,7 @@ struct SplitWidePageImageView: View {
       minScale: 1.0,
       maxScale: 8.0,
       readingDirection: readingDirection,
-      doubleTapScale: CGFloat(doubleTapZoomScale),
-      doubleTapZoomMode: doubleTapZoomMode,
-      tapZoneSize: tapZoneSize,
-      tapZoneMode: tapZoneMode,
-      showPageNumber: showPageNumber,
-      readerBackground: readerBackground,
-      enableLiveText: enableLiveText,
+      renderConfig: renderConfig,
       onNextPage: onNextPage,
       onPreviousPage: onPreviousPage,
       onToggleControls: onToggleControls,
