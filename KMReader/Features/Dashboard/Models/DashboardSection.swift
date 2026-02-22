@@ -7,9 +7,18 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+enum DashboardSectionContentKind {
+  case books
+  case series
+  case collections
+  case readLists
+}
+
 enum DashboardSection: String, CaseIterable, Identifiable, Codable {
   case keepReading = "keepReading"
   case onDeck = "onDeck"
+  case pinnedCollections = "pinnedCollections"
+  case pinnedReadLists = "pinnedReadLists"
   case recentlyReleasedBooks = "recentlyReleasedBooks"
   case recentlyAddedBooks = "recentlyAddedBooks"
   case recentlyAddedSeries = "recentlyAddedSeries"
@@ -24,6 +33,10 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
       return String(localized: "dashboard.keepReading")
     case .onDeck:
       return String(localized: "dashboard.onDeck")
+    case .pinnedCollections:
+      return String(localized: "dashboard.pinnedCollections")
+    case .pinnedReadLists:
+      return String(localized: "dashboard.pinnedReadLists")
     case .recentlyReleasedBooks:
       return String(localized: "dashboard.recentlyReleasedBooks")
     case .recentlyAddedBooks:
@@ -43,6 +56,10 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
       return "book.fill"
     case .onDeck:
       return "bookmark.fill"
+    case .pinnedCollections:
+      return "square.stack.3d.down.right"
+    case .pinnedReadLists:
+      return "list.bullet.rectangle"
     case .recentlyReleasedBooks:
       return "calendar.badge.clock"
     case .recentlyAddedBooks:
@@ -56,11 +73,24 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
     }
   }
 
-  var isBookSection: Bool {
+  var contentKind: DashboardSectionContentKind {
     switch self {
     case .keepReading, .onDeck, .recentlyReadBooks, .recentlyReleasedBooks, .recentlyAddedBooks:
-      return true
+      return .books
     case .recentlyUpdatedSeries, .recentlyAddedSeries:
+      return .series
+    case .pinnedCollections:
+      return .collections
+    case .pinnedReadLists:
+      return .readLists
+    }
+  }
+
+  var isLocalSection: Bool {
+    switch contentKind {
+    case .collections, .readLists:
+      return true
+    default:
       return false
     }
   }

@@ -32,30 +32,12 @@ enum KomgaCollectionStore {
       }
     }
 
-    if let sort = sort {
-      if sort.contains("name") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.name, order: isAsc ? .forward : .reverse)
-        ]
-      } else if sort.contains("createdDate") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.createdDate, order: isAsc ? .forward : .reverse)
-        ]
-      } else {
-        descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-      }
-    } else {
-      descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-    }
-
-    descriptor.fetchLimit = size
-    descriptor.fetchOffset = page * size
+    descriptor.sortBy = sortDescriptors(sort: sort)
 
     do {
       let results = try context.fetch(descriptor)
-      return results.map { $0.toCollection() }
+      let ordered = pinnedFirst(results)
+      return paginate(ordered, offset: page * size, limit: size).map { $0.toCollection() }
     } catch {
       return []
     }
@@ -83,30 +65,12 @@ enum KomgaCollectionStore {
       }
     }
 
-    if let sort = sort {
-      if sort.contains("name") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.name, order: isAsc ? .forward : .reverse)
-        ]
-      } else if sort.contains("createdDate") {
-        let isAsc = !sort.contains("desc")
-        descriptor.sortBy = [
-          SortDescriptor(\KomgaCollection.createdDate, order: isAsc ? .forward : .reverse)
-        ]
-      } else {
-        descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-      }
-    } else {
-      descriptor.sortBy = [SortDescriptor(\KomgaCollection.name, order: .forward)]
-    }
-
-    descriptor.fetchLimit = limit
-    descriptor.fetchOffset = offset
+    descriptor.sortBy = sortDescriptors(sort: sort)
 
     do {
       let results = try context.fetch(descriptor)
-      return results.map { $0.collectionId }
+      let ordered = pinnedFirst(results)
+      return paginate(ordered, offset: offset, limit: limit).map { $0.collectionId }
     } catch {
       return []
     }
@@ -142,5 +106,42 @@ enum KomgaCollectionStore {
     let descriptor = FetchDescriptor<KomgaCollection>(
       predicate: #Predicate { $0.id == compositeId })
     return try? context.fetch(descriptor).first?.toCollection()
+  }
+
+  private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaCollection>] {
+    let isAscending = sort?.contains("desc") != true
+
+    if sort?.contains("createdDate") == true {
+      return [
+        SortDescriptor(\KomgaCollection.createdDate, order: isAscending ? .forward : .reverse)
+      ]
+    }
+
+    if sort?.contains("lastModifiedDate") == true {
+      return [
+        SortDescriptor(\KomgaCollection.lastModifiedDate, order: isAscending ? .forward : .reverse)
+      ]
+    }
+
+    return [
+      SortDescriptor(\KomgaCollection.name, order: isAscending ? .forward : .reverse)
+    ]
+  }
+
+  private static func pinnedFirst(_ collections: [KomgaCollection]) -> [KomgaCollection] {
+    let pinned = collections.filter(\.isPinned)
+    let unpinned = collections.filter { !$0.isPinned }
+    return pinned + unpinned
+  }
+
+  private static func paginate(
+    _ collections: [KomgaCollection],
+    offset: Int,
+    limit: Int
+  ) -> ArraySlice<KomgaCollection> {
+    guard !collections.isEmpty, limit > 0 else { return [] }
+    let safeOffset = min(max(0, offset), collections.count)
+    let end = min(safeOffset + limit, collections.count)
+    return collections[safeOffset..<end]
   }
 }

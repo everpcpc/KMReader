@@ -19,6 +19,7 @@ final class KomgaReadList {
   var createdDate: Date
   var lastModifiedDate: Date
   var filtered: Bool
+  var isPinned: Bool = false
 
   var bookIdsRaw: Data?
 
@@ -66,6 +67,7 @@ final class KomgaReadList {
     createdDate: Date,
     lastModifiedDate: Date,
     filtered: Bool,
+    isPinned: Bool = false,
     bookIds: [String] = [],
     downloadedBooks: Int = 0,
     pendingBooks: Int = 0,
@@ -80,6 +82,7 @@ final class KomgaReadList {
     self.createdDate = createdDate
     self.lastModifiedDate = lastModifiedDate
     self.filtered = filtered
+    self.isPinned = isPinned
     self.bookIdsRaw = try? JSONEncoder().encode(bookIds)
     self.downloadedBooks = downloadedBooks
     self.pendingBooks = pendingBooks

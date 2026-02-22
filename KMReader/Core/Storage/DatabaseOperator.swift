@@ -453,6 +453,16 @@ actor DatabaseOperator {
     }
   }
 
+  func setCollectionPinned(collectionId: String, instanceId: String, isPinned: Bool) {
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: collectionId)
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { $0.id == compositeId })
+    guard let existing = try? modelContext.fetch(descriptor).first else { return }
+    if existing.isPinned != isPinned {
+      existing.isPinned = isPinned
+    }
+  }
+
   func upsertCollections(_ collections: [SeriesCollection], instanceId: String) {
     guard !collections.isEmpty else { return }
 
@@ -516,6 +526,17 @@ actor DatabaseOperator {
     let descriptor = FetchDescriptor<KomgaReadList>(predicate: #Predicate { $0.id == compositeId })
     if let existing = try? modelContext.fetch(descriptor).first {
       modelContext.delete(existing)
+    }
+  }
+
+  func setReadListPinned(readListId: String, instanceId: String, isPinned: Bool) {
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let existing = try? modelContext.fetch(descriptor).first else { return }
+    if existing.isPinned != isPinned {
+      existing.isPinned = isPinned
     }
   }
 

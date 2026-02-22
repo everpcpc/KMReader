@@ -201,10 +201,17 @@ struct DashboardView: View {
         }.padding()
 
         ForEach(dashboard.sections, id: \.id) { section in
-          DashboardSectionView(
-            section: section,
-            refreshTrigger: refreshTrigger
-          )
+          if section.isLocalSection {
+            DashboardPinnedSectionView(
+              section: section,
+              refreshTrigger: refreshTrigger
+            )
+          } else {
+            DashboardSectionView(
+              section: section,
+              refreshTrigger: refreshTrigger
+            )
+          }
         }
       }
       .padding(.vertical)

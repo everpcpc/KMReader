@@ -20,9 +20,16 @@ struct ReadListRowView: View {
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
-          Text(komgaReadList.name)
-            .font(.callout)
-            .lineLimit(2)
+          HStack(spacing: 6) {
+            Text(komgaReadList.name)
+              .font(.callout)
+              .lineLimit(2)
+            if komgaReadList.isPinned {
+              Image(systemName: "pin.fill")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+          }
         }.adaptiveButtonStyle(.plain)
 
         HStack {
@@ -53,11 +60,15 @@ struct ReadListRowView: View {
               readListId: komgaReadList.readListId,
               menuTitle: komgaReadList.name,
               downloadStatus: komgaReadList.downloadStatus,
+              isPinned: komgaReadList.isPinned,
               onDeleteRequested: {
                 showDeleteConfirmation = true
               },
               onEditRequested: {
                 showEditSheet = true
+              },
+              onPinToggleRequested: {
+                togglePinned()
               }
             )
             .id(komgaReadList.readListId)
@@ -86,6 +97,18 @@ struct ReadListRowView: View {
       } catch {
         ErrorManager.shared.alert(error: error)
       }
+    }
+  }
+
+  private func togglePinned() {
+    let nextPinned = !komgaReadList.isPinned
+    Task {
+      await DatabaseOperator.shared.setReadListPinned(
+        readListId: komgaReadList.readListId,
+        instanceId: komgaReadList.instanceId,
+        isPinned: nextPinned
+      )
+      await DatabaseOperator.shared.commit()
     }
   }
 }

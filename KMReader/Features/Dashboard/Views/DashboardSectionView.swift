@@ -183,17 +183,20 @@ struct DashboardSectionView: View {
 
   @ViewBuilder
   private func itemView(for itemId: String) -> some View {
-    if section.isBookSection {
+    switch section.contentKind {
+    case .books:
       BookQueryItemView(
         bookId: itemId,
         layout: .grid,
         showSeriesTitle: true
       )
-    } else {
+    case .series:
       SeriesQueryItemView(
         seriesId: itemId,
         layout: .grid
       )
+    case .collections, .readLists:
+      EmptyView()
     }
   }
 
@@ -215,25 +218,29 @@ struct DashboardSectionView: View {
 
     if AppConfig.isOffline {
       let ids: [String]
-      if section.isBookSection {
+      switch section.contentKind {
+      case .books:
         ids = section.fetchOfflineBookIds(
           context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
-      } else {
+      case .series:
         ids = section.fetchOfflineSeriesIds(
           context: modelContext,
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
+      case .collections, .readLists:
+        ids = []
       }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        if section.isBookSection {
+        switch section.contentKind {
+        case .books:
           if let page = try await section.fetchBooks(
             libraryIds: libraryIds,
             page: pagination.currentPage,
@@ -245,7 +252,7 @@ struct DashboardSectionView: View {
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
-        } else {
+        case .series:
           if let page = try await section.fetchSeries(
             libraryIds: libraryIds,
             page: pagination.currentPage,
@@ -257,6 +264,8 @@ struct DashboardSectionView: View {
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
+        case .collections, .readLists:
+          applyPage(ids: [], moreAvailable: false)
         }
       } catch {
         ErrorManager.shared.alert(error: error)
