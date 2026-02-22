@@ -14,6 +14,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("autoPlayAnimatedImages") private var autoPlayAnimatedImages: Bool = false
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
@@ -69,6 +70,10 @@ struct ReaderSettingsSheet: View {
 
           Toggle(isOn: $showPageNumber) {
             Text("Always Show Page Number")
+          }
+
+          Toggle(isOn: $autoPlayAnimatedImages) {
+            Text("Auto Play Animated Images")
           }
 
           #if os(iOS) || os(macOS)

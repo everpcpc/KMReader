@@ -70,12 +70,31 @@ struct DualPageImageView: View {
   @ViewBuilder
   private func pagePlayButton(for pageIndex: Int) -> some View {
     ZStack {
-      if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
+      if let animatedFileURL = autoPlayAnimatedFileURL(for: pageIndex) {
+        ReusableAnimatedImageWebView(
+          fileURL: animatedFileURL,
+          poolSlot: animatedPoolSlot(for: pageIndex)
+        )
+        .allowsHitTesting(false)
+      } else if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
         AnimatedImagePlayButton {
           onPlayAnimatedPage?(pageIndex)
         }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func autoPlayAnimatedFileURL(for pageIndex: Int) -> URL? {
+    #if os(tvOS)
+      return nil
+    #else
+      guard renderConfig.autoPlayAnimatedImages else { return nil }
+      return viewModel.animatedPlaybackFileURL(for: pageIndex)
+    #endif
+  }
+
+  private func animatedPoolSlot(for pageIndex: Int) -> Int {
+    max(pageIndex, 0) % 4
   }
 }

@@ -4768,6 +4768,52 @@
         }
       }
     },
+    "Auto Play Animated Images" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animierte Bilder automatisch abspielen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Play Animated Images"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture automatique des images animées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アニメーション画像を自動再生"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "애니메이션 이미지를 자동 재생"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动播放动图"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動播放動圖"
+          }
+        }
+      }
+    },
     "Auto scale only when required scale to fit the page on screen is greater than this value." : {
       "localizations" : {
         "de" : {
@@ -5086,6 +5132,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "短暫延遲後自動隱藏閱讀器控制項"
+          }
+        }
+      }
+    },
+    "Automatically play animated pages inline without blocking page navigation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animierte Seiten automatisch inline wiedergeben, ohne die Seitennavigation zu blockieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically play animated pages inline without blocking page navigation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire automatiquement les pages animées en ligne sans bloquer la navigation entre les pages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ送り操作を妨げずに、アニメーションページをインラインで自動再生します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 탐색을 막지 않고 애니메이션 페이지를 인라인으로 자동 재생합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在页面内自动播放动图，不阻塞翻页操作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在頁面內自動播放動圖，不會阻礙翻頁操作"
           }
         }
       }

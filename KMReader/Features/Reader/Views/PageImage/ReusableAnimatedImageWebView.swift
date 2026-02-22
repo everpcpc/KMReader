@@ -10,98 +10,34 @@ import SwiftUI
 
   struct ReusableAnimatedImageWebView: View {
     let fileURL: URL
+    let poolSlot: Int
     let onLoadStateChange: ((Bool) -> Void)?
 
-    init(fileURL: URL, onLoadStateChange: ((Bool) -> Void)? = nil) {
+    init(fileURL: URL, poolSlot: Int = 0, onLoadStateChange: ((Bool) -> Void)? = nil) {
       self.fileURL = fileURL
+      self.poolSlot = poolSlot
       self.onLoadStateChange = onLoadStateChange
     }
 
     var body: some View {
-      PlatformWebView(fileURL: fileURL, onLoadStateChange: onLoadStateChange)
+      PlatformWebView(fileURL: fileURL, poolSlot: poolSlot, onLoadStateChange: onLoadStateChange)
         .background(Color.black)
     }
 
     @MainActor
-    private static var lastLoadedURL: URL?
+    private static func webView(for slot: Int) -> WKWebView {
+      AnimatedImageWebViewPool.shared.webView(for: slot)
+    }
 
     @MainActor
-    private static let sharedWebView: WKWebView = {
-      let config = WKWebViewConfiguration()
-      config.defaultWebpagePreferences.allowsContentJavaScript = false
-      config.suppressesIncrementalRendering = false
-
-      let webView = WKWebView(frame: .zero, configuration: config)
-
-      #if os(iOS)
-        webView.isOpaque = false
-        webView.scrollView.showsVerticalScrollIndicator = false
-        webView.scrollView.showsHorizontalScrollIndicator = false
-        webView.scrollView.isScrollEnabled = false
-        webView.backgroundColor = .black
-        webView.scrollView.backgroundColor = .black
-        webView.scrollView.bounces = false
-      #elseif os(macOS)
-        webView.setValue(false, forKey: "drawsBackground")
-      #endif
-
-      return webView
-    }()
-
-    @MainActor
-    private static func updateWebViewIfNeeded(fileURL: URL) -> Bool {
-      guard lastLoadedURL != fileURL else { return false }
-
-      let fileName =
-        fileURL.lastPathComponent.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
-        ?? fileURL.lastPathComponent
-      let html = """
-        <!doctype html>
-        <html>
-        <head>
-        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-        <style>
-        html, body {
-          margin: 0;
-          width: 100%;
-          height: 100%;
-          background: #000;
-          overflow: hidden;
-        }
-        body {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          image-rendering: auto;
-        }
-        </style>
-        </head>
-        <body>
-        <img src="\(fileName)" alt="">
-        </body>
-        </html>
-        """
-
-      let baseDir = fileURL.deletingLastPathComponent()
-      let htmlFileURL = baseDir.appendingPathComponent(".animated_preview.html")
-      do {
-        try html.write(to: htmlFileURL, atomically: true, encoding: .utf8)
-      } catch {
-        return false
-      }
-      sharedWebView.loadFileURL(htmlFileURL, allowingReadAccessTo: baseDir)
-      lastLoadedURL = fileURL
-      return true
+    private static func updateWebViewIfNeeded(webView: WKWebView, fileURL: URL, slot: Int) -> Bool {
+      AnimatedImageWebViewPool.shared.loadFileIfNeeded(fileURL, slot: slot)
     }
 
     #if os(iOS)
       private struct PlatformWebView: UIViewRepresentable {
         let fileURL: URL
+        let poolSlot: Int
         var onLoadStateChange: ((Bool) -> Void)?
 
         func makeCoordinator() -> Coordinator {
@@ -124,7 +60,7 @@ import SwiftUI
 
         @MainActor
         private func attachSharedWebView(to container: UIView, coordinator: Coordinator) {
-          let webView = ReusableAnimatedImageWebView.sharedWebView
+          let webView = ReusableAnimatedImageWebView.webView(for: poolSlot)
           webView.navigationDelegate = coordinator
           if webView.superview !== container {
             webView.removeFromSuperview()
@@ -137,7 +73,11 @@ import SwiftUI
               webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             ])
           }
-          if ReusableAnimatedImageWebView.updateWebViewIfNeeded(fileURL: fileURL) {
+          if ReusableAnimatedImageWebView.updateWebViewIfNeeded(
+            webView: webView,
+            fileURL: fileURL,
+            slot: poolSlot
+          ) {
             coordinator.markLoading()
           } else {
             coordinator.markLoaded()
@@ -187,6 +127,7 @@ import SwiftUI
     #elseif os(macOS)
       private struct PlatformWebView: NSViewRepresentable {
         let fileURL: URL
+        let poolSlot: Int
         var onLoadStateChange: ((Bool) -> Void)?
 
         func makeCoordinator() -> Coordinator {
@@ -210,7 +151,7 @@ import SwiftUI
 
         @MainActor
         private func attachSharedWebView(to container: NSView, coordinator: Coordinator) {
-          let webView = ReusableAnimatedImageWebView.sharedWebView
+          let webView = ReusableAnimatedImageWebView.webView(for: poolSlot)
           webView.navigationDelegate = coordinator
           if webView.superview !== container {
             webView.removeFromSuperview()
@@ -223,7 +164,11 @@ import SwiftUI
               webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             ])
           }
-          if ReusableAnimatedImageWebView.updateWebViewIfNeeded(fileURL: fileURL) {
+          if ReusableAnimatedImageWebView.updateWebViewIfNeeded(
+            webView: webView,
+            fileURL: fileURL,
+            slot: poolSlot
+          ) {
             coordinator.markLoading()
           } else {
             coordinator.markLoaded()
@@ -275,10 +220,12 @@ import SwiftUI
 #else
   struct ReusableAnimatedImageWebView: View {
     let fileURL: URL
+    let poolSlot: Int
     let onLoadStateChange: ((Bool) -> Void)?
 
-    init(fileURL: URL, onLoadStateChange: ((Bool) -> Void)? = nil) {
+    init(fileURL: URL, poolSlot: Int = 0, onLoadStateChange: ((Bool) -> Void)? = nil) {
       self.fileURL = fileURL
+      self.poolSlot = poolSlot
       self.onLoadStateChange = onLoadStateChange
     }
 

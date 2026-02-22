@@ -46,11 +46,30 @@ struct SplitWidePageImageView: View {
     )
     .frame(width: screenSize.width, height: screenSize.height)
     .overlay {
-      if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
+      if let animatedFileURL = autoPlayAnimatedFileURL {
+        ReusableAnimatedImageWebView(
+          fileURL: animatedFileURL,
+          poolSlot: animatedPoolSlot
+        )
+        .allowsHitTesting(false)
+      } else if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
         AnimatedImagePlayButton {
           onPlayAnimatedPage?(pageIndex)
         }
       }
     }
+  }
+
+  private var autoPlayAnimatedFileURL: URL? {
+    #if os(tvOS)
+      return nil
+    #else
+      guard renderConfig.autoPlayAnimatedImages else { return nil }
+      return viewModel.animatedPlaybackFileURL(for: pageIndex)
+    #endif
+  }
+
+  private var animatedPoolSlot: Int {
+    max(pageIndex, 0) % 4
   }
 }

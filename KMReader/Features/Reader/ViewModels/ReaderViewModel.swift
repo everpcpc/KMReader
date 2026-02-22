@@ -34,6 +34,8 @@ class ReaderViewModel {
   var liveTextActivePageIndex: Int? = nil
   /// Confirmed animated image capability keyed by page index.
   private var animatedPageStates: [Int: Bool] = [:]
+  /// Local file URL for animated page playback keyed by page index.
+  private var animatedPageFileURLs: [Int: URL] = [:]
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
@@ -104,6 +106,7 @@ class ReaderViewModel {
     #endif
     preloadedImages.removeAll()
     animatedPageStates.removeAll()
+    animatedPageFileURLs.removeAll()
 
     do {
       await prepareOfflinePDFForDivina(book: book)
@@ -363,8 +366,8 @@ class ReaderViewModel {
       guard let self = self else { return }
 
       // Load pages concurrently and collect decoded images
-      let results = await withTaskGroup(of: (Int, PlatformImage?, Bool).self) {
-        group -> [(Int, PlatformImage?, Bool)] in
+      let results = await withTaskGroup(of: (Int, PlatformImage?, Bool, URL?).self) {
+        group -> [(Int, PlatformImage?, Bool, URL?)] in
         for index in pagesToPreload {
           if Task.isCancelled { break }
           let page = self.pages[index]
@@ -373,12 +376,12 @@ class ReaderViewModel {
             continue
           }
           group.addTask {
-            if Task.isCancelled { return (index, nil, false) }
-            let (image, isAnimated) = await self.preloadDecodedPageImage(page: page)
-            return (index, image, isAnimated)
+            if Task.isCancelled { return (index, nil, false, nil) }
+            let (image, isAnimated, animatedFileURL) = await self.preloadDecodedPageImage(page: page)
+            return (index, image, isAnimated, animatedFileURL)
           }
         }
-        var collected: [(Int, PlatformImage?, Bool)] = []
+        var collected: [(Int, PlatformImage?, Bool, URL?)] = []
         for await result in group {
           if !Task.isCancelled {
             collected.append(result)
@@ -390,8 +393,13 @@ class ReaderViewModel {
       if Task.isCancelled { return }
 
       // Store preloaded images for instant access by PageImageView
-      for (pageIndex, image, isAnimated) in results {
+      for (pageIndex, image, isAnimated, animatedFileURL) in results {
         self.animatedPageStates[pageIndex] = isAnimated
+        if let animatedFileURL {
+          self.animatedPageFileURLs[pageIndex] = animatedFileURL
+        } else {
+          self.animatedPageFileURLs.removeValue(forKey: pageIndex)
+        }
         if let image = image {
           self.preloadedImages[pageIndex] = image
         }
@@ -463,12 +471,13 @@ class ReaderViewModel {
     return await ImageDecodeHelper.decodeForDisplay(image)
   }
 
-  private func preloadDecodedPageImage(page: BookPage) async -> (PlatformImage?, Bool) {
+  private func preloadDecodedPageImage(page: BookPage) async -> (PlatformImage?, Bool, URL?) {
     guard let sourceFileURL = await getPageImageFileURL(page: page) else {
-      return (nil, false)
+      return (nil, false, nil)
     }
 
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: sourceFileURL)
+    let animatedFileURL = isAnimated ? sourceFileURL : nil
     let preferredFileURL = await preferredDisplayImageFileURL(
       page: page,
       sourceFileURL: sourceFileURL,
@@ -476,17 +485,17 @@ class ReaderViewModel {
     )
 
     if let image = await loadImageFromFile(fileURL: preferredFileURL, decodeForDisplay: !isAnimated) {
-      return (image, isAnimated)
+      return (image, isAnimated, animatedFileURL)
     }
 
     if preferredFileURL != sourceFileURL {
       logger.debug(
         "⏭️ [Upscale] Fallback to original file for page \(page.number + 1) because @2x decode failed")
       let fallbackImage = await loadImageFromFile(fileURL: sourceFileURL, decodeForDisplay: !isAnimated)
-      return (fallbackImage, isAnimated)
+      return (fallbackImage, isAnimated, animatedFileURL)
     }
 
-    return (nil, isAnimated)
+    return (nil, isAnimated, animatedFileURL)
   }
 
   private func preferredDisplayImageFileURL(
@@ -771,6 +780,10 @@ class ReaderViewModel {
     #endif
   }
 
+  func animatedPlaybackFileURL(for pageIndex: Int) -> URL? {
+    animatedPageFileURLs[pageIndex]
+  }
+
   /// Resolve local file URL for animated playback. Returns nil when this page is not animated.
   func prepareAnimatedPagePlaybackURL(pageIndex: Int) async -> URL? {
     guard pageIndex >= 0 && pageIndex < pages.count else { return nil }
@@ -783,6 +796,11 @@ class ReaderViewModel {
     guard let fileURL = await getPageImageFileURL(page: page) else { return nil }
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
     animatedPageStates[pageIndex] = isAnimated
+    if isAnimated {
+      animatedPageFileURLs[pageIndex] = fileURL
+    } else {
+      animatedPageFileURLs.removeValue(forKey: pageIndex)
+    }
     return isAnimated ? fileURL : nil
   }
 
@@ -792,8 +810,13 @@ class ReaderViewModel {
     if let cached = preloadedImages[index] {
       return cached
     }
-    let (image, isAnimated) = await preloadDecodedPageImage(page: page)
+    let (image, isAnimated, animatedFileURL) = await preloadDecodedPageImage(page: page)
     animatedPageStates[index] = isAnimated
+    if let animatedFileURL {
+      animatedPageFileURLs[index] = animatedFileURL
+    } else {
+      animatedPageFileURLs.removeValue(forKey: index)
+    }
     guard let image else {
       return nil
     }
@@ -813,6 +836,7 @@ class ReaderViewModel {
     #endif
     preloadedImages.removeAll()
     animatedPageStates.removeAll()
+    animatedPageFileURLs.removeAll()
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
   }
 
