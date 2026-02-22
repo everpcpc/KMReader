@@ -1,5 +1,5 @@
 //
-// WebPubPageView.swift
+// WebPubPagedCurlView.swift
 //
 //
 
@@ -55,7 +55,7 @@
     }
   }
 
-  struct WebPubPageView: UIViewControllerRepresentable {
+  struct WebPubPagedCurlView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
@@ -272,7 +272,7 @@
     class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
       UIGestureRecognizerDelegate
     {
-      var parent: WebPubPageView
+      var parent: WebPubPagedCurlView
       var currentChapterIndex: Int
       var currentPageIndex: Int
       var isAnimating = false
@@ -289,7 +289,7 @@
       private var reservedControllers: Set<ObjectIdentifier> = []
       private var reserveCleanupTask: DispatchWorkItem?
 
-      init(_ parent: WebPubPageView) {
+      init(_ parent: WebPubPagedCurlView) {
         self.parent = parent
         self.currentChapterIndex = parent.viewModel.currentChapterIndex
         self.currentPageIndex = parent.viewModel.currentPageIndex

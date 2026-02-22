@@ -1,5 +1,5 @@
 //
-// WebPubScrollView.swift
+// WebPubScrolledView.swift
 //
 //
 
@@ -27,9 +27,8 @@
     }
   }
 
-  /// A SwiftUI view that displays EPUB content in scroll mode
-  /// Uses a single WKWebView with horizontal scrolling, reusing the same CSS system as WebPubPageView
-  struct WebPubScrollView: UIViewControllerRepresentable {
+  /// A SwiftUI view that displays EPUB content in continuous vertical scroll mode.
+  struct WebPubScrolledView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
@@ -42,7 +41,7 @@
       Coordinator(self)
     }
 
-    func makeUIViewController(context: Context) -> ScrollEpubViewController {
+    func makeUIViewController(context: Context) -> ScrolledEpubViewController {
       let chapterIndex = viewModel.currentChapterIndex
       let pageIndex = viewModel.currentPageIndex
       let currentLocation = viewModel.pageLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
@@ -56,10 +55,11 @@
         rootURL: viewModel.resourceRootURL
       )
 
-      let vc = ScrollEpubViewController(
+      let vc = ScrolledEpubViewController(
         chapterURL: viewModel.chapterURL(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
         containerInsets: viewModel.containerInsetsForLabels(),
+        tapScrollPercentage: preferences.tapScrollPercentage,
         theme: theme,
         contentCSS: readiumPayload.css,
         readiumProperties: readiumPayload.properties,
@@ -126,7 +126,7 @@
       return vc
     }
 
-    func updateUIViewController(_ uiViewController: ScrollEpubViewController, context: Context) {
+    func updateUIViewController(_ uiViewController: ScrolledEpubViewController, context: Context) {
       context.coordinator.parent = self
       uiViewController.onEndReached = onEndReached
 
@@ -218,6 +218,7 @@
         chapterURL: viewModel.chapterURL(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
         containerInsets: containerInsets,
+        tapScrollPercentage: preferences.tapScrollPercentage,
         theme: theme,
         contentCSS: readiumPayload.css,
         readiumProperties: readiumPayload.properties,
@@ -236,28 +237,33 @@
     }
 
     class Coordinator: NSObject {
-      var parent: WebPubScrollView
-      weak var viewController: ScrollEpubViewController?
+      var parent: WebPubScrolledView
+      weak var viewController: ScrolledEpubViewController?
 
-      init(_ parent: WebPubScrollView) {
+      init(_ parent: WebPubScrolledView) {
         self.parent = parent
       }
     }
   }
 
-  // MARK: - ScrollEpubViewController
+  // MARK: - ScrolledEpubViewController
 
-  /// A view controller that displays a single EPUB chapter with horizontal scrolling
-  /// Reuses the exact same CSS system as EpubPageViewController, just enables horizontal scrolling
+  /// A view controller that displays a single EPUB chapter with continuous vertical scrolling.
   @MainActor
-  final class ScrollEpubViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler,
+  final class ScrolledEpubViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler,
     UIScrollViewDelegate, UIGestureRecognizerDelegate
   {
+    private enum BoundaryDirection {
+      case previousChapter
+      case nextChapter
+    }
+
     private var webView: WKWebView!
     private var chapterIndex: Int
     private var currentSubPageIndex: Int = 0
     private var totalPagesInChapter: Int = 1
     private var containerInsets: UIEdgeInsets
+    private var tapScrollPercentage: Double
     private var theme: ReaderTheme
     private var contentCSS: String
     private var readiumProperties: [String: String?]
@@ -302,6 +308,11 @@
     private var bottomChapterLabel: UILabel?
     private var bottomPageCenterLabel: UILabel?
     private var bottomPageRightLabel: UILabel?
+    private var topBoundaryIndicatorView: UIVisualEffectView?
+    private var bottomBoundaryIndicatorView: UIVisualEffectView?
+    private var topBoundaryIconView: UIImageView?
+    private var bottomBoundaryIconView: UIImageView?
+    private var boundaryHintHideWorkItem: DispatchWorkItem?
 
     private var loadingIndicator: UIActivityIndicatorView?
 
@@ -313,11 +324,17 @@
     private var isLongPressing = false
     private var lastLongPressEndTime: Date = .distantPast
     private var lastTouchStartTime: Date = .distantPast
+    private var isBoundaryTransitionInFlight = false
+    private var boundaryReadyDirection: BoundaryDirection?
+    private let boundaryOverscrollThreshold: CGFloat = 48
+    private let boundaryHintDuration: TimeInterval = 0.6
+    private let boundaryTransitionDelay: TimeInterval = 0.14
 
     init(
       chapterURL: URL?,
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
+      tapScrollPercentage: Double,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -338,6 +355,7 @@
       self.chapterURL = chapterURL
       self.rootURL = rootURL
       self.containerInsets = containerInsets
+      self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -423,11 +441,12 @@
       webView.scrollView.delegate = self
       webView.scrollView.isScrollEnabled = true
       webView.scrollView.bounces = true
-      webView.scrollView.alwaysBounceVertical = false
+      webView.scrollView.alwaysBounceVertical = true
+      webView.scrollView.alwaysBounceHorizontal = false
       webView.scrollView.showsHorizontalScrollIndicator = false
       webView.scrollView.showsVerticalScrollIndicator = false
       webView.scrollView.contentInsetAdjustmentBehavior = .never
-      webView.scrollView.isPagingEnabled = true
+      webView.scrollView.isPagingEnabled = false
       webView.isOpaque = false
       webView.alpha = 0
 
@@ -549,6 +568,60 @@
         pageRightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chapterLabel.trailingAnchor, constant: 8),
       ])
       self.bottomPageRightLabel = pageRightLabel
+
+      let topIndicator = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+      topIndicator.translatesAutoresizingMaskIntoConstraints = false
+      topIndicator.layer.cornerRadius = 18
+      topIndicator.clipsToBounds = true
+      topIndicator.alpha = 0
+      topIndicator.isUserInteractionEnabled = false
+      let topIcon = UIImageView(image: UIImage(systemName: "chevron.up"))
+      topIcon.translatesAutoresizingMaskIntoConstraints = false
+      topIcon.contentMode = .scaleAspectFit
+      topIcon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 20, weight: .bold)
+      topIndicator.contentView.addSubview(topIcon)
+      NSLayoutConstraint.activate([
+        topIcon.centerXAnchor.constraint(equalTo: topIndicator.contentView.centerXAnchor),
+        topIcon.centerYAnchor.constraint(equalTo: topIndicator.contentView.centerYAnchor),
+        topIcon.widthAnchor.constraint(equalToConstant: 20),
+        topIcon.heightAnchor.constraint(equalToConstant: 20),
+      ])
+      view.addSubview(topIndicator)
+      NSLayoutConstraint.activate([
+        topIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        topIndicator.topAnchor.constraint(equalTo: topAnchor, constant: topOffset + 14),
+        topIndicator.widthAnchor.constraint(equalToConstant: 40),
+        topIndicator.heightAnchor.constraint(equalToConstant: 40),
+      ])
+      self.topBoundaryIndicatorView = topIndicator
+      self.topBoundaryIconView = topIcon
+
+      let bottomIndicator = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+      bottomIndicator.translatesAutoresizingMaskIntoConstraints = false
+      bottomIndicator.layer.cornerRadius = 18
+      bottomIndicator.clipsToBounds = true
+      bottomIndicator.alpha = 0
+      bottomIndicator.isUserInteractionEnabled = false
+      let bottomIcon = UIImageView(image: UIImage(systemName: "chevron.down"))
+      bottomIcon.translatesAutoresizingMaskIntoConstraints = false
+      bottomIcon.contentMode = .scaleAspectFit
+      bottomIcon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 20, weight: .bold)
+      bottomIndicator.contentView.addSubview(bottomIcon)
+      NSLayoutConstraint.activate([
+        bottomIcon.centerXAnchor.constraint(equalTo: bottomIndicator.contentView.centerXAnchor),
+        bottomIcon.centerYAnchor.constraint(equalTo: bottomIndicator.contentView.centerYAnchor),
+        bottomIcon.widthAnchor.constraint(equalToConstant: 20),
+        bottomIcon.heightAnchor.constraint(equalToConstant: 20),
+      ])
+      view.addSubview(bottomIndicator)
+      NSLayoutConstraint.activate([
+        bottomIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        bottomIndicator.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset - 14),
+        bottomIndicator.widthAnchor.constraint(equalToConstant: 40),
+        bottomIndicator.heightAnchor.constraint(equalToConstant: 40),
+      ])
+      self.bottomBoundaryIndicatorView = bottomIndicator
+      self.bottomBoundaryIconView = bottomIcon
     }
 
     func updateOverlayLabels() {
@@ -575,11 +648,19 @@
 
         // Bottom labels
         if self.totalPagesInChapter > 0 {
+          let chapterProgress = min(
+            1.0,
+            max(
+              0.0,
+              Double(self.currentSubPageIndex + 1) / Double(self.totalPagesInChapter)
+            )
+          )
+          let chapterProgressText = String(format: "%.1f%%", chapterProgress * 100)
+          let chapterRemainingText = String(format: "%.1f%%", (1.0 - chapterProgress) * 100)
+
           if self.showingControls {
             self.bottomChapterLabel?.alpha = 0.0
-            let current = self.currentSubPageIndex + 1
-            let total = self.totalPagesInChapter
-            self.bottomPageCenterLabel?.text = String(localized: "Chapter Progress \(current) / \(total)")
+            self.bottomPageCenterLabel?.text = String(localized: "Chapter Progress \(chapterProgressText)")
             self.bottomPageCenterLabel?.alpha = 1.0
             self.bottomPageRightLabel?.alpha = 0.0
           } else {
@@ -590,12 +671,7 @@
               self.bottomChapterLabel?.alpha = 0.0
             }
             self.bottomPageCenterLabel?.alpha = 0.0
-            let remainingPages = self.totalPagesInChapter - (self.currentSubPageIndex + 1)
-            if remainingPages > 0 {
-              self.bottomPageRightLabel?.text = String(localized: "\(remainingPages) pages left")
-            } else {
-              self.bottomPageRightLabel?.text = String(localized: "Last page")
-            }
+            self.bottomPageRightLabel?.text = String(localized: "\(chapterRemainingText) left")
             self.bottomPageRightLabel?.alpha = 1.0
           }
         } else {
@@ -648,39 +724,37 @@
     }
 
     private func tapReadingDirection() -> ReadingDirection {
-      switch publicationReadingProgression {
-      case .rtl:
-        return .rtl
-      case .ttb, .btt:
-        return .vertical
-      case .ltr, .auto, .none:
-        return .ltr
-      }
+      .vertical
+    }
+
+    private var tapScrollStepRatio: CGFloat {
+      CGFloat(tapScrollPercentage / 100.0)
     }
 
     private func scrollToPreviousPage() {
       guard isContentLoaded else { return }
-
-      // If at first page of chapter, try to go to previous chapter
-      if currentSubPageIndex <= 0 {
+      let pageHeight = webView.bounds.height
+      guard pageHeight > 0 else { return }
+      let currentOffset = webView.scrollView.contentOffset.y
+      if currentOffset <= 1 {
         if chapterIndex > 0 {
           onChapterNavigationNeeded?(chapterIndex - 1)
         }
         return
       }
-
-      let newIndex = currentSubPageIndex - 1
-      scrollToPage(newIndex)
-      currentSubPageIndex = newIndex
-      updateOverlayLabels()
-      onPageDidChange?(chapterIndex, currentSubPageIndex)
+      let step = pageHeight * tapScrollStepRatio
+      let targetOffset = max(0, currentOffset - step)
+      scrollToOffset(targetOffset)
     }
 
     private func scrollToNextPage() {
       guard isContentLoaded else { return }
-
-      // If at last page of chapter, try to go to next chapter
-      if currentSubPageIndex >= totalPagesInChapter - 1 {
+      let pageHeight = webView.bounds.height
+      guard pageHeight > 0 else { return }
+      let contentHeight = webView.scrollView.contentSize.height
+      let maxOffset = max(0, contentHeight - pageHeight)
+      let currentOffset = webView.scrollView.contentOffset.y
+      if currentOffset >= maxOffset - 1 {
         if chapterIndex < totalChapters - 1 {
           onChapterNavigationNeeded?(chapterIndex + 1)
         } else {
@@ -688,12 +762,9 @@
         }
         return
       }
-
-      let newIndex = currentSubPageIndex + 1
-      scrollToPage(newIndex)
-      currentSubPageIndex = newIndex
-      updateOverlayLabels()
-      onPageDidChange?(chapterIndex, currentSubPageIndex)
+      let step = pageHeight * tapScrollStepRatio
+      let targetOffset = min(maxOffset, currentOffset + step)
+      scrollToOffset(targetOffset)
     }
 
     func navigateToPage(chapterIndex: Int, subPageIndex: Int, jumpToLastPage: Bool = false) {
@@ -729,6 +800,8 @@
       bottomChapterLabel?.textColor = labelColor
       bottomPageCenterLabel?.textColor = labelColor
       bottomPageRightLabel?.textColor = labelColor
+      topBoundaryIconView?.tintColor = theme.uiColorText.withAlphaComponent(0.9)
+      bottomBoundaryIconView?.tintColor = theme.uiColorText.withAlphaComponent(0.9)
     }
 
     private func applyContainerInsets() {
@@ -744,6 +817,7 @@
       chapterURL: URL?,
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
+      tapScrollPercentage: Double,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -760,9 +834,11 @@
       useSafeArea: Bool
     ) {
       let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
+      let normalizedTapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
       let appearanceChanged =
         theme != self.theme
         || containerInsets != self.containerInsets
+        || normalizedTapScrollPercentage != self.tapScrollPercentage
         || contentCSS != self.contentCSS
         || readiumProperties != self.readiumProperties
         || publicationLanguage != self.publicationLanguage
@@ -774,6 +850,7 @@
       self.chapterURL = chapterURL
       self.rootURL = rootURL
       self.containerInsets = containerInsets
+      self.tapScrollPercentage = normalizedTapScrollPercentage
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -803,6 +880,10 @@
       } else if appearanceChanged {
         applyPagination(scrollToPage: currentSubPageIndex)
       }
+    }
+
+    private static func normalizedTapScrollPercentage(_ value: Double) -> Double {
+      min(100.0, max(25.0, value))
     }
 
     private func loadContentIfNeeded(force: Bool) {
@@ -882,14 +963,33 @@
 
     private func scrollToPage(_ pageIndex: Int, animated: Bool = true) {
       guard isContentLoaded else { return }
-      let pageWidth = webView.bounds.width
-      guard pageWidth > 0 else { return }
+      let pageHeight = webView.bounds.height
+      guard pageHeight > 0 else { return }
 
-      let contentWidth = webView.scrollView.contentSize.width
-      let maxOffset = max(0, contentWidth - webView.bounds.width)
-      let targetOffset = min(pageWidth * CGFloat(pageIndex), maxOffset)
+      let contentHeight = webView.scrollView.contentSize.height
+      let maxOffset = max(0, contentHeight - webView.bounds.height)
+      let targetOffset = min(pageHeight * CGFloat(pageIndex), maxOffset)
 
-      webView.scrollView.setContentOffset(CGPoint(x: targetOffset, y: 0), animated: animated)
+      webView.scrollView.setContentOffset(CGPoint(x: 0, y: targetOffset), animated: animated)
+    }
+
+    private func scrollToOffset(_ targetOffset: CGFloat, animated: Bool = true) {
+      guard isContentLoaded else { return }
+      let pageHeight = webView.bounds.height
+      guard pageHeight > 0 else { return }
+      let contentHeight = webView.scrollView.contentSize.height
+      let maxOffset = max(0, contentHeight - pageHeight)
+      let clampedOffset = min(max(0, targetOffset), maxOffset)
+
+      webView.scrollView.setContentOffset(CGPoint(x: 0, y: clampedOffset), animated: animated)
+
+      let newPageIndex = Int(round(clampedOffset / pageHeight))
+      let clampedIndex = max(0, min(totalPagesInChapter - 1, newPageIndex))
+      if clampedIndex != currentSubPageIndex {
+        currentSubPageIndex = clampedIndex
+        updateOverlayLabels()
+        onPageDidChange?(chapterIndex, currentSubPageIndex)
+      }
     }
 
     private func injectPaginationJS(targetPageIndex: Int) {
@@ -904,19 +1004,19 @@
               hasFinalized = true;
 
               var root = document.documentElement;
-              var pageWidth = root.clientWidth || window.innerWidth;
-              if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
+              var pageHeight = root.clientHeight || window.innerHeight;
+              if (!pageHeight || pageHeight <= 0) { pageHeight = 1; }
 
-              var currentWidth = root.scrollWidth || document.body.scrollWidth;
-              var total = Math.max(1, Math.ceil(currentWidth / pageWidth));
-              var maxScroll = Math.max(0, currentWidth - pageWidth);
+              var currentHeight = root.scrollHeight || document.body.scrollHeight;
+              var total = Math.max(1, Math.ceil(currentHeight / pageHeight));
+              var maxScroll = Math.max(0, currentHeight - pageHeight);
 
               var finalTarget = target;
-              var offset = Math.min(pageWidth * finalTarget, maxScroll);
+              var offset = Math.min(pageHeight * finalTarget, maxScroll);
 
-              window.scrollTo(offset, 0);
-              if (document.documentElement) { document.documentElement.scrollLeft = offset; }
-              if (document.body) { document.body.scrollLeft = offset; }
+              window.scrollTo(0, offset);
+              if (document.documentElement) { document.documentElement.scrollTop = offset; }
+              if (document.body) { document.body.scrollTop = offset; }
 
               lastReportedPageCount = total;
 
@@ -933,7 +1033,7 @@
 
             var startLayoutCheck = function() {
               var root = document.documentElement;
-              var lastW = root.scrollWidth || document.body.scrollWidth;
+              var lastH = root.scrollHeight || document.body.scrollHeight;
               var stableCount = 0;
               var attempt = 0;
 
@@ -941,19 +1041,19 @@
                 if (hasFinalized) return;
 
                 attempt++;
-                var currentW = root.scrollWidth || document.body.scrollWidth;
-                var pageWidth = root.clientWidth || window.innerWidth;
-                if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
+                var currentH = root.scrollHeight || document.body.scrollHeight;
+                var pageHeight = root.clientHeight || window.innerHeight;
+                if (!pageHeight || pageHeight <= 0) { pageHeight = 1; }
 
-                if (currentW === lastW && currentW > 0) {
+                if (currentH === lastH && currentH > 0) {
                   stableCount++;
                 } else {
                   stableCount = 0;
-                  lastW = currentW;
+                  lastH = currentH;
                 }
 
                 var isProbablyReady = (stableCount >= 4);
-                if (target > 0 && currentW <= pageWidth && attempt < 40) {
+                if (target > 0 && currentH <= pageHeight && attempt < 40) {
                   isProbablyReady = false;
                 }
 
@@ -1187,57 +1287,142 @@
       }
     }
 
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+      guard isContentLoaded else { return }
+      guard !isBoundaryTransitionInFlight else { return }
+
+      let pageHeight = webView.bounds.height
+      guard pageHeight > 0 else { return }
+
+      let maxOffset = max(0, scrollView.contentSize.height - pageHeight)
+      let topOverscroll = max(0, -scrollView.contentOffset.y)
+      let bottomOverscroll = max(0, scrollView.contentOffset.y - maxOffset)
+
+      var candidateDirection: BoundaryDirection?
+      var overscrollDistance: CGFloat = 0
+
+      if topOverscroll > 0, chapterIndex > 0, topOverscroll >= bottomOverscroll {
+        candidateDirection = .previousChapter
+        overscrollDistance = topOverscroll
+      } else if bottomOverscroll > 0, chapterIndex <= totalChapters - 1 {
+        candidateDirection = .nextChapter
+        overscrollDistance = bottomOverscroll
+      }
+
+      guard let candidateDirection, overscrollDistance >= boundaryOverscrollThreshold else {
+        if boundaryReadyDirection != nil {
+          boundaryReadyDirection = nil
+          hideBoundaryHint()
+        }
+        return
+      }
+
+      if boundaryReadyDirection != candidateDirection {
+        boundaryReadyDirection = candidateDirection
+        showBoundaryHint(for: candidateDirection, autoHideAfter: nil)
+        let haptic = UIImpactFeedbackGenerator(style: .light)
+        haptic.impactOccurred()
+      }
+    }
+
     func scrollViewWillEndDragging(
       _ scrollView: UIScrollView,
       withVelocity velocity: CGPoint,
       targetContentOffset: UnsafeMutablePointer<CGPoint>
     ) {
       guard isContentLoaded else { return }
-      let pageWidth = webView.bounds.width
-      guard pageWidth > 0 else { return }
-
-      let targetOffset = targetContentOffset.pointee.x
-
-      // Check if user is trying to scroll left from the first page
-      if currentSubPageIndex == 0 {
-        // Detect leftward scroll attempt (negative velocity or trying to scroll before start)
-        if velocity.x < -0.1 || targetOffset < -pageWidth * 0.3 {
-          if chapterIndex > 0 {
-            // Cancel the scroll animation
-            targetContentOffset.pointee = CGPoint(x: 0, y: 0)
-            // Navigate to previous chapter
-            onChapterNavigationNeeded?(chapterIndex - 1)
-          }
-          return
-        }
+      let pageHeight = webView.bounds.height
+      guard pageHeight > 0 else { return }
+      let maxOffset = max(0, scrollView.contentSize.height - pageHeight)
+      guard let direction = boundaryReadyDirection else {
+        hideBoundaryHint()
+        return
       }
 
-      // Check if user is trying to scroll right from the last page
-      if currentSubPageIndex == totalPagesInChapter - 1 {
-        let contentWidth = scrollView.contentSize.width
-        let maxOffset = max(0, contentWidth - pageWidth)
-        // Detect rightward scroll attempt (positive velocity or trying to scroll past end)
-        if velocity.x > 0.1 || targetOffset > maxOffset + pageWidth * 0.3 {
-          if chapterIndex < totalChapters - 1 {
-            // Cancel the scroll animation
-            targetContentOffset.pointee = CGPoint(x: maxOffset, y: 0)
-            // Navigate to next chapter
-            onChapterNavigationNeeded?(chapterIndex + 1)
-          } else {
-            onEndReached?()
+      switch direction {
+      case .previousChapter:
+        targetContentOffset.pointee = CGPoint(x: 0, y: 0)
+      case .nextChapter:
+        targetContentOffset.pointee = CGPoint(x: 0, y: maxOffset)
+      }
+      triggerBoundaryNavigation(direction)
+    }
+
+    private func triggerBoundaryNavigation(_ direction: BoundaryDirection) {
+      guard !isBoundaryTransitionInFlight else { return }
+      isBoundaryTransitionInFlight = true
+      boundaryReadyDirection = nil
+      showBoundaryHint(for: direction, autoHideAfter: boundaryHintDuration)
+
+      DispatchQueue.main.asyncAfter(deadline: .now() + boundaryTransitionDelay) { [weak self] in
+        guard let self else { return }
+        switch direction {
+        case .previousChapter:
+          if self.chapterIndex > 0 {
+            self.onChapterNavigationNeeded?(self.chapterIndex - 1)
           }
-          return
+        case .nextChapter:
+          if self.chapterIndex < self.totalChapters - 1 {
+            self.onChapterNavigationNeeded?(self.chapterIndex + 1)
+          } else {
+            self.onEndReached?()
+          }
         }
+        self.isBoundaryTransitionInFlight = false
+      }
+    }
+
+    private func showBoundaryHint(for direction: BoundaryDirection, autoHideAfter delay: TimeInterval? = nil) {
+      boundaryHintHideWorkItem?.cancel()
+
+      let showView: UIVisualEffectView?
+      let hideView: UIVisualEffectView?
+      let initialTransform: CGAffineTransform
+      switch direction {
+      case .previousChapter:
+        showView = topBoundaryIndicatorView
+        hideView = bottomBoundaryIndicatorView
+        initialTransform = CGAffineTransform(translationX: 0, y: -10)
+      case .nextChapter:
+        showView = bottomBoundaryIndicatorView
+        hideView = topBoundaryIndicatorView
+        initialTransform = CGAffineTransform(translationX: 0, y: 10)
+      }
+
+      if let hideView {
+        hideView.alpha = 0
+      }
+      guard let showView else { return }
+      showView.transform = initialTransform
+      UIView.animate(withDuration: 0.18, delay: 0, options: [.curveEaseOut]) {
+        showView.alpha = 1
+        showView.transform = .identity
+      }
+
+      guard let delay else { return }
+      let workItem = DispatchWorkItem { [weak self] in
+        self?.hideBoundaryHint()
+      }
+      boundaryHintHideWorkItem = workItem
+      DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func hideBoundaryHint() {
+      boundaryHintHideWorkItem?.cancel()
+      boundaryHintHideWorkItem = nil
+      UIView.animate(withDuration: 0.18, delay: 0, options: [.curveEaseIn]) {
+        self.topBoundaryIndicatorView?.alpha = 0
+        self.bottomBoundaryIndicatorView?.alpha = 0
       }
     }
 
     private func updateCurrentPageFromScroll() {
       guard isContentLoaded else { return }
-      let pageWidth = webView.bounds.width
-      guard pageWidth > 0 else { return }
+      let pageHeight = webView.bounds.height
+      guard pageHeight > 0 else { return }
 
-      let scrollOffset = webView.scrollView.contentOffset.x
-      let newPageIndex = Int(round(scrollOffset / pageWidth))
+      let scrollOffset = webView.scrollView.contentOffset.y
+      let newPageIndex = Int(round(scrollOffset / pageHeight))
       let clampedIndex = max(0, min(totalPagesInChapter - 1, newPageIndex))
 
       if clampedIndex != currentSubPageIndex {

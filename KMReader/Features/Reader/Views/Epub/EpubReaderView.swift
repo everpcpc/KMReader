@@ -259,26 +259,46 @@
         }
         .padding()
       } else if viewModel.hasContent {
-        switch epubPageTransitionStyle {
-        case .scroll:
-          WebPubScrollView(
-            viewModel: viewModel,
-            preferences: activePreferences,
-            colorScheme: colorScheme,
-            showingControls: shouldShowControls,
-            bookTitle: currentBook?.metadata.title,
-            onCenterTap: {
-              toggleControls()
-            },
-            onEndReached: {
-              if !showingEndPage {
-                viewModel.syncEndProgression()
-                showingEndPage = true
+        switch activePreferences.flowStyle {
+        case .paged:
+          switch epubPageTransitionStyle {
+          case .scroll:
+            WebPubPagedScrollView(
+              viewModel: viewModel,
+              preferences: activePreferences,
+              colorScheme: colorScheme,
+              showingControls: shouldShowControls,
+              bookTitle: currentBook?.metadata.title,
+              onCenterTap: {
+                toggleControls()
+              },
+              onEndReached: {
+                if !showingEndPage {
+                  viewModel.syncEndProgression()
+                  showingEndPage = true
+                }
               }
-            }
-          ).readerIgnoresSafeArea()
-        case .pageCurl:
-          WebPubPageView(
+            ).readerIgnoresSafeArea()
+          case .pageCurl:
+            WebPubPagedCurlView(
+              viewModel: viewModel,
+              preferences: activePreferences,
+              colorScheme: colorScheme,
+              showingControls: shouldShowControls,
+              bookTitle: currentBook?.metadata.title,
+              onCenterTap: {
+                toggleControls()
+              },
+              onEndReached: {
+                if !showingEndPage {
+                  viewModel.syncEndProgression()
+                  showingEndPage = true
+                }
+              }
+            ).readerIgnoresSafeArea()
+          }
+        case .scrolled:
+          WebPubScrolledView(
             viewModel: viewModel,
             preferences: activePreferences,
             colorScheme: colorScheme,

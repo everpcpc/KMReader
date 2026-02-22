@@ -25,7 +25,6 @@
     @State private var showSavePresetAlert: Bool = false
     @State private var newPresetName: String = ""
     @State private var fontListRefreshId: UUID = UUID()
-
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
 
     @Environment(\.dismiss) private var dismiss
@@ -156,12 +155,21 @@
     var body: some View {
       Form {
         Section(String(localized: "Page Turn")) {
-          Picker(String(localized: "Page Transition Style"), selection: $epubPageTransitionStyle) {
-            ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+          Picker(String(localized: "epub.reading_flow"), selection: $draft.flowStyle) {
+            ForEach(EpubFlowStyle.allCases) { style in
               Text(style.displayName).tag(style)
             }
           }
           .pickerStyle(.menu)
+
+          if draft.flowStyle.isPaged {
+            Picker(String(localized: "Page Transition Style"), selection: $epubPageTransitionStyle) {
+              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+              }
+            }
+            .pickerStyle(.menu)
+          }
         }
 
         Section(String(localized: "Presets")) {
@@ -223,13 +231,34 @@
         }
 
         Section(String(localized: "Page")) {
-          Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
-            ForEach(EpubColumnCount.allCases) { option in
-              Text(option.label)
-                .tag(option)
+          if draft.flowStyle.isPaged {
+            Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
+              ForEach(EpubColumnCount.allCases) { option in
+                Text(option.label)
+                  .tag(option)
+              }
+            }
+            .pickerStyle(.segmented)
+          }
+
+          if draft.flowStyle == .scrolled {
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text(String(localized: "epub.scrolled.tap_scroll_height"))
+                Spacer()
+                Text("\(Int(draft.tapScrollPercentage))%")
+                  .foregroundStyle(.secondary)
+              }
+              Slider(
+                value: $draft.tapScrollPercentage,
+                in: 25...100,
+                step: 5
+              )
+              Text(String(localized: "epub.scrolled.tap_scroll_height.description"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
           }
-          .pickerStyle(.segmented)
 
           VStack(alignment: .leading) {
             Slider(value: $draft.pageMargins, in: 0.25...2.0, step: 0.05)
@@ -308,6 +337,7 @@
       .formStyle(.grouped)
       .animation(.easeInOut(duration: 0.2), value: draft.advancedLayout)
       .animation(.easeInOut(duration: 0.2), value: draft.fontWeight != nil)
+      .animation(.easeInOut(duration: 0.2), value: draft.flowStyle)
       .onChange(of: draft.advancedLayout) {
         draft.fontSize = EpubConstants.defaultFontScale
         draft.wordSpacing = EpubConstants.defaultWordSpacing
