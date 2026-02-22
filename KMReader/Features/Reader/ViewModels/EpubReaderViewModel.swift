@@ -496,6 +496,33 @@
       }
     }
 
+    func flushProgress() {
+      let chapterIndex = currentChapterIndex
+      let pageIndex = currentPageIndex
+      updateLocation(chapterIndex: chapterIndex, pageIndex: pageIndex)
+      guard currentLocation != nil else {
+        logger.debug("⏭️ [Progress/Epub] Skip flush: current location unavailable")
+        return
+      }
+      guard !incognito else {
+        logger.debug("⏭️ [Progress/Epub] Skip flush: incognito mode enabled")
+        return
+      }
+      guard !bookId.isEmpty else {
+        logger.warning("⚠️ [Progress/Epub] Skip flush: missing book ID")
+        return
+      }
+
+      let snapshotBookId = bookId
+      logger.debug(
+        "🚿 [Progress/Epub] Flush requested from EPUB reader: book=\(snapshotBookId), chapterIndex=\(chapterIndex), pageIndex=\(pageIndex)"
+      )
+
+      Task {
+        await updateProgression(chapterIndex: chapterIndex, pageIndex: pageIndex)
+      }
+    }
+
     var chapterCount: Int {
       readingOrder.count
     }
