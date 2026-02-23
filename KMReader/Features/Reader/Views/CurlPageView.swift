@@ -167,14 +167,17 @@
         let splitMode: PageSplitMode
 
         switch item {
-        case .page(let index):
-          pageIndex = index
+        case .page(let id):
+          guard let resolvedIndex = parent.viewModel.pageIndex(for: id) else { return }
+          pageIndex = resolvedIndex
           splitMode = .none
         case .dual(let first, _):
-          pageIndex = first
+          guard let resolvedIndex = parent.viewModel.pageIndex(for: first) else { return }
+          pageIndex = resolvedIndex
           splitMode = .none
-        case .split(let index, let isFirstHalf):
-          pageIndex = index
+        case .split(let id, let isFirstHalf):
+          guard let resolvedIndex = parent.viewModel.pageIndex(for: id) else { return }
+          pageIndex = resolvedIndex
           let isLeftHalf = parent.viewModel.isLeftSplitHalf(
             isFirstHalf: isFirstHalf,
             readingDirection: parent.readingDirection,
@@ -204,8 +207,7 @@
           readListContext: parent.readListContext,
           readingDirection: parent.readingDirection,
           renderConfig: parent.renderConfig,
-          onDismiss: parent.onDismiss,
-          onNextBook: parent.onNextBook
+          showImage: true
         )
       }
 

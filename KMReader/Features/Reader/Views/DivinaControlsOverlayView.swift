@@ -91,7 +91,7 @@ struct DivinaControlsOverlayView: View {
       for index in indices {
         if index >= 0 && index < viewModel.pages.count {
           let page = viewModel.pages[index]
-          if let image = viewModel.preloadedImages[index] {
+          if let image = viewModel.preloadedImage(forPageIndex: index) {
             images.append(image)
             names.append(page.fileName)
           }
