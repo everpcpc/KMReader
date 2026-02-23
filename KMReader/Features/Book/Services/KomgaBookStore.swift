@@ -443,11 +443,13 @@ enum KomgaBookStore {
       descriptor.predicate = #Predicate<KomgaBook> { book in
         book.instanceId == instanceId && ids.contains(book.libraryId)
           && book.progressReadDate != nil
+          && book.progressCompleted == true
       }
     } else {
       descriptor.predicate = #Predicate<KomgaBook> { book in
         book.instanceId == instanceId
           && book.progressReadDate != nil
+          && book.progressCompleted == true
       }
     }
 

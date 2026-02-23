@@ -231,6 +231,74 @@ class SyncService {
     return result
   }
 
+  func syncLatestRecentlyReadProgress() async {
+    let instanceId = AppConfig.current.instanceId
+    guard !instanceId.isEmpty else { return }
+
+    let marker = AppConfig.recentlyReadRecordTime(instanceId: instanceId)
+    let pageSize = 20
+    var page = 0
+    var shouldContinue = true
+    var latestServerReadDate = marker
+    var syncedCount = 0
+
+    do {
+      while shouldContinue {
+        let result = try await BookService.shared.getBooksList(
+          search: BookSearch(condition: nil),
+          page: page,
+          size: pageSize,
+          sort: "readProgress.readDate,desc"
+        )
+
+        let books = result.content
+        guard !books.isEmpty else { break }
+
+        if let newestInPage = books.compactMap({ $0.readProgress?.readDate }).max() {
+          if let currentLatest = latestServerReadDate {
+            latestServerReadDate = max(currentLatest, newestInPage)
+          } else {
+            latestServerReadDate = newestInPage
+          }
+        }
+
+        let booksToUpsert: [Book]
+        if let marker {
+          booksToUpsert = books.filter { book in
+            guard let readDate = book.readProgress?.readDate else { return false }
+            return readDate > marker
+          }
+          let reachedMarker = books.contains { book in
+            guard let readDate = book.readProgress?.readDate else { return true }
+            return readDate <= marker
+          }
+          shouldContinue = !result.last && !reachedMarker
+        } else {
+          booksToUpsert = books.filter { $0.readProgress?.readDate != nil }
+          shouldContinue = false
+        }
+
+        if !booksToUpsert.isEmpty {
+          await db.upsertBooks(booksToUpsert, instanceId: instanceId)
+          await db.commit()
+          syncedCount += booksToUpsert.count
+        }
+
+        page += 1
+      }
+
+      if let latestServerReadDate {
+        AppConfig.setRecentlyReadRecordTime(latestServerReadDate, instanceId: instanceId)
+      }
+
+      logger.debug(
+        "📘 Synced latest recently-read progress: count=\(syncedCount), marker=\(String(describing: latestServerReadDate))"
+      )
+    } catch {
+      logger.warning("⚠️ Failed to sync latest recently-read progress: \(error)")
+    }
+  }
+
   func syncRecentlyAddedBooks(libraryIds: [String]?, page: Int, size: Int) async throws -> Page<
     Book
   > {

@@ -41,23 +41,35 @@ struct DashboardView: View {
     )
   }
 
-  private func performRefresh(reason: String, source: DashboardRefreshSource) {
+  private func performRefresh(
+    reason: String,
+    source: DashboardRefreshSource,
+    sectionsToRefresh: Set<DashboardSection>? = nil
+  ) {
     logger.debug("Dashboard refresh start: \(reason)")
 
-    // Update refresh trigger to cause all sections to reload
-    refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: source)
-    isRefreshing = true
     Task {
+      if sectionsToRefresh == nil {
+        isRefreshing = true
+      }
+
+      refreshTrigger = DashboardRefreshTrigger(
+        id: UUID(),
+        source: source,
+        sectionsToRefresh: sectionsToRefresh
+      )
+
+      guard sectionsToRefresh == nil else { return }
+
+      defer { isRefreshing = false }
       // Wait for 2 seconds to allow any pending refreshes to complete
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
-      isRefreshing = false
     }
   }
 
   private func refreshSections(_ sections: Set<DashboardSection>, reason: String) {
-    logger.debug("Dashboard partial refresh: \(reason)")
-    refreshTrigger = DashboardRefreshTrigger(
-      id: UUID(),
+    performRefresh(
+      reason: "Dashboard partial refresh: \(reason)",
       source: .manual,
       sectionsToRefresh: sections
     )

@@ -13,9 +13,7 @@ struct OfflineBooksView: View {
 
   @State private var showRemoveAllAlert = false
   @State private var showRemoveReadAlert = false
-  @State private var showCleanupAlert = false
   @State private var isScanning = false
-  @State private var cleanupResult: (deletedCount: Int, bytesFreed: Int64)?
 
   struct SeriesGroup: Identifiable {
     let id: String
@@ -137,9 +135,19 @@ struct OfflineBooksView: View {
             Task {
               isScanning = true
               let result = await OfflineManager.shared.cleanupOrphanedFiles()
-              cleanupResult = result
               isScanning = false
-              showCleanupAlert = true
+              if result.deletedCount > 0 {
+                ErrorManager.shared.notify(
+                  message: String(
+                    localized:
+                      "settings.offline_books.cleanup_orphaned.result \(result.deletedCount) \(formatter.string(fromByteCount: result.bytesFreed))"
+                  )
+                )
+              } else {
+                ErrorManager.shared.notify(
+                  message: String(localized: "settings.offline_books.cleanup_orphaned.no_orphaned")
+                )
+              }
             }
           } label: {
             HStack {
@@ -354,24 +362,6 @@ struct OfflineBooksView: View {
       }
     } message: {
       Text(String(localized: "settings.offline_books.remove_read.message"))
-    }
-    .alert(
-      String(localized: "settings.offline_books.cleanup_orphaned"),
-      isPresented: $showCleanupAlert
-    ) {
-      Button(String(localized: "OK")) {}
-    } message: {
-      if let result = cleanupResult {
-        if result.deletedCount > 0 {
-          Text(
-            String(
-              localized:
-                "settings.offline_books.cleanup_orphaned.result \(result.deletedCount) \(formatter.string(fromByteCount: result.bytesFreed))"
-            ))
-        } else {
-          Text(String(localized: "settings.offline_books.cleanup_orphaned.no_orphaned"))
-        }
-      }
     }
   }
 

@@ -26,6 +26,7 @@ struct OfflineView: View {
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
   @State private var showSyncConfirmation = false
+  @State private var latestReadHistoryTime: Date?
 
   private var instanceInitializer: InstanceInitializer {
     InstanceInitializer.shared
@@ -231,6 +232,11 @@ struct OfflineView: View {
         refreshBrowse()
       }
     }
+    .task(id: current.instanceId) {
+      guard !authViewModel.isSwitching else { return }
+      latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
+      triggerReadingProgressSync()
+    }
     .task(id: resolvedLibraryIdsKey) {
       guard !authViewModel.isSwitching else { return }
       refreshBrowse()
@@ -284,6 +290,45 @@ struct OfflineView: View {
       Text(String(localized: "settings.sync_data.description"))
         .font(.caption)
         .foregroundColor(.secondary)
+
+      Divider()
+
+      Button {
+        triggerReadingProgressSync()
+      } label: {
+        HStack {
+          Image(systemName: "book.circle")
+            .imageScale(.small)
+          Text(
+            String(
+              localized: "offline.sync.confirm.progressOnlyAction",
+              defaultValue: "Sync Reading History"
+            )
+          )
+          .font(.caption)
+          Spacer()
+          if let syncTime = latestReadHistoryTime {
+            HStack(spacing: 4) {
+              Text(
+                String(
+                  localized: "offline.sync.readHistory.lastRead",
+                  defaultValue: "Last read"
+                )
+              )
+              Text(syncTime, style: .relative)
+                .monospacedDigit()
+            }
+            .font(.caption2)
+            .foregroundColor(.secondary)
+          } else {
+            Text(String(localized: "settings.sync_data.never"))
+              .font(.caption2)
+              .foregroundColor(.secondary)
+              .monospacedDigit()
+          }
+        }
+      }
+      .disabled(isOffline)
     }
     .padding(12)
     .background(.thinMaterial)
@@ -317,5 +362,16 @@ struct OfflineView: View {
 
   private func refreshBrowse() {
     refreshTrigger = UUID()
+  }
+
+  private func triggerReadingProgressSync() {
+    guard !isOffline, !current.instanceId.isEmpty else { return }
+
+    Task(priority: .utility) {
+      await instanceInitializer.syncReadingProgressOnly()
+      await MainActor.run {
+        latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
+      }
+    }
   }
 }

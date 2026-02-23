@@ -771,6 +771,47 @@ enum AppConfig {
     }
   }
 
+  private static nonisolated var recentlyReadRecordTimeByInstance: [String: TimeInterval] {
+    get {
+      guard
+        let stored = UserDefaults.standard.string(forKey: "recentlyReadRecordTimeByInstance"),
+        let data = stored.data(using: .utf8),
+        let dict = try? JSONSerialization.jsonObject(with: data) as? [String: TimeInterval]
+      else {
+        return [:]
+      }
+      return dict
+    }
+    set {
+      if newValue.isEmpty {
+        UserDefaults.standard.removeObject(forKey: "recentlyReadRecordTimeByInstance")
+        return
+      }
+
+      guard
+        let data = try? JSONSerialization.data(withJSONObject: newValue, options: [.sortedKeys]),
+        let encoded = String(data: data, encoding: .utf8)
+      else {
+        return
+      }
+      UserDefaults.standard.set(encoded, forKey: "recentlyReadRecordTimeByInstance")
+    }
+  }
+
+  static nonisolated func recentlyReadRecordTime(instanceId: String) -> Date? {
+    guard !instanceId.isEmpty, let timestamp = recentlyReadRecordTimeByInstance[instanceId] else {
+      return nil
+    }
+    return Date(timeIntervalSince1970: timestamp)
+  }
+
+  static nonisolated func setRecentlyReadRecordTime(_ date: Date, instanceId: String) {
+    guard !instanceId.isEmpty else { return }
+    var store = recentlyReadRecordTimeByInstance
+    store[instanceId] = date.timeIntervalSince1970
+    recentlyReadRecordTimeByInstance = store
+  }
+
   // MARK: - Spotlight
   static nonisolated var enableSpotlightIndexing: Bool {
     get {
