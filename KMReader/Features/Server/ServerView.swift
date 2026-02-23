@@ -94,6 +94,14 @@ struct ServerView: View {
         }
         .adaptiveButtonStyle(.plain)
 
+        NavigationLink(value: NavDestination.settingsReadingStats) {
+          ServerActionTile(
+            title: ServerSection.readingStats.title,
+            systemImage: ServerSection.readingStats.icon
+          )
+        }
+        .adaptiveButtonStyle(.plain)
+
         if current.isAdmin {
           NavigationLink(value: NavDestination.settingsServerInfo) {
             ServerActionTile(
