@@ -1,24 +1,28 @@
-KMReader - What's New (from v3.4 to current)
+KMReader - What's New (from v3.5 to current)
 
-NEW
-- Added optional waifu2x super resolution for reader pages with three modes: Off, Auto, and Always.
-- Added smarter offline preparation for downloaded PDF books, so PDF reading starts faster and feels more reliable.
-- Added a setting to choose Native PDF Reader or DIVINA for PDF books.
+Reading Insights
+- Added a new Reading Stats page so you can quickly see your reading activity trends.
+- Added pinned Collections and Read Lists, including dedicated pinned sections on the Dashboard.
 
-IMPROVED
-- Reading progress now saves more reliably, especially when closing the reader or moving between books.
-- Offline EPUB progress recovery is more consistent, making it easier to continue where you left off.
-- PDF reading controls are more consistent across reading directions and layouts.
-- The large Keep Reading widget now shows up to six books.
-- Spotlight search results now open the correct book or series more reliably.
-- waifu2x super resolution settings and descriptions are clearer and easier to understand.
-- Connection fallback behavior is faster when a server is temporarily unavailable.
+Reader Experience
+- Added inline autoplay for animated pages, so motion content plays without interrupting navigation.
+- Added a new EPUB scrolled reading mode with adjustable tap-scroll distance.
+- Improved EPUB progress handling when switching chapters or closing the reader.
+- Finished books now reopen from the beginning, making re-reads easier.
+- Improved navigation flow when opening books from Read Lists.
+- Simplified reader settings so options are shown only when relevant to your current reading mode.
 
-FIXED
-- Fixed an important iOS 17 crash that could happen when switching main tabs, including Browse.
-- Resolved a broad set of crash issues across startup, reading, page turning, notifications, quick actions, widgets, logs, and Live Text interactions.
-- Fixed multiple page-turn and edge-swipe issues at the beginning or end of books.
-- Fixed cases where PDF pages could fail to appear after offline files were removed.
-- Improved Live Text stability on iOS and macOS.
-- Fixed occasional EPUB typeface selection not being remembered correctly.
-- Improved touch behavior in table of contents for more accurate selection.
+Offline and Sync
+- Improved offline reading history sync and made recent reading updates clearer.
+- Added clearer completion notifications for offline sync and download tasks.
+- Added a full re-sync action to help recover quickly if local data gets out of sync.
+- Added metadata-based filters in Offline mode, so finding downloaded books is faster and easier.
+- Improved sync behavior for deleted or changed items to keep your library cleaner and more accurate.
+
+Performance and Polish
+- Improved progress update speed and overall refresh responsiveness.
+- Improved cache cleanup behavior for smoother performance, especially with larger libraries.
+- Fixed a rare page-curl reader crash for more stable reading sessions.
+- Fixed stale thumbnail and preview issues when switching content.
+- Improved book grid alignment and several visual polish details across cards and badges.
+- Improved update and loading messaging so long migrations are clearer and less confusing.

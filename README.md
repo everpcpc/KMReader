@@ -6,7 +6,7 @@
   <img src="icon.svg" alt="KMReader Icon" width="128" height="128">
 </div>
 
-**Full-featured native SwiftUI Komga client for iOS, macOS, and tvOS.**
+**Native SwiftUI Komga client for iOS, macOS, and tvOS.**
 
 [![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)](https://www.apple.com/ios/)
 [![macOS](https://img.shields.io/badge/macOS-14.0+-blue.svg)](https://www.apple.com/macos/)
@@ -20,46 +20,40 @@
 
 ## Important Features
 
-### Readers
+### Reading Experience
 
-- DIVINA reader on iOS/macOS/tvOS with LTR/RTL/vertical/Webtoon modes, spreads, zoom, and tap zones.
-- EPUB reader on iOS with custom font import (`.ttf`/`.otf`), theme presets, layout controls, and per-book EPUB preferences.
-- Native PDF reader on iOS/macOS with TOC, page jump, search, and reading direction/layout controls.
-- Incognito mode to read without sending progress updates.
+- DIVINA reader on iOS/macOS/tvOS with LTR, RTL, vertical, spreads, zoom, and page curl transitions.
+- Webtoon reading mode on iOS/macOS.
+- EPUB reader on iOS/macOS with paged and scrolled flow, custom fonts (`.ttf`/`.otf`), and per-book preferences.
+- PDF reading on iOS/macOS with native PDF mode, search, table of contents, and page jump.
+- Per-book reading preferences and Incognito mode.
 
-### Offline & Sync
+### Dashboard and Discovery
+
+- Dashboard sections for Keep Reading, On Deck, recently added/updated content, and pinned sections.
+- Pin collections and read lists to keep favorites at the top.
+- Reading Stats page for daily, weekly, and monthly reading insights.
+- Browse Series, Books, Collections, and Read Lists with metadata filters (publisher, author, genre, tag, language).
+
+### Offline and Sync
 
 - Download books for full offline reading.
-- iOS background download queue with Live Activities.
-- Per-series offline policies: `Manual`, `Unread only`, `Unread + cleanup read`, `All`.
-- Auto-resume downloads and pending progress sync when back online.
+- iOS background downloads with Live Activities.
+- Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
+- Offline mode supports metadata-based filtering to quickly find downloaded books.
+- Progress and offline data sync automatically when reconnecting.
 
-### Browse & Real-Time
-
-- Dashboard sections: Keep Reading, On Deck, Recently Released/Added/Read books, Recently Added/Updated series.
-- SSE-based dashboard auto refresh with debounce and reader-aware timing.
-- Browse Series, Books, Collections, and Read Lists.
-- Metadata filters (publisher, author, genre, tag, language) with all/any logic.
-
-### Multi-Server & Account
+### Multi-Server and Management
 
 - Save multiple Komga servers and switch instantly.
-- Login with username/password or API key.
-- Manage API keys and view authentication activity.
-
-### Admin & Diagnostics
-
-- Edit metadata for series, books, collections, and read lists.
-- Create/edit/delete libraries with scanner options and directory browser.
-- Monitor server task queues and cancel all tasks.
-- Built-in logs viewer with filters and export.
+- Sign in with username/password or API key.
+- Admin tools for metadata editing, library management, task management, and logs.
 
 ### Platform Highlights
 
 - iOS/iPadOS: widgets, quick actions, background downloads, Live Activities.
-- macOS: dedicated reader window and keyboard-first workflows.
-- tvOS: remote-first DIVINA reading experience.
-- iOS/macOS: optional Spotlight indexing for downloaded books and series.
+- macOS: dedicated reader windows and keyboard-first controls.
+- tvOS: remote-first DIVINA reading.
 
 ## Getting Started
 
@@ -67,7 +61,7 @@
 
 - Komga 1.19.0+
 - Xcode 15.0+
-- iOS 17.0+, macOS 14.0+, or tvOS 17.0+
+- iOS 17.0+, macOS 14.0+, tvOS 17.0+
 
 ### Build and run
 
@@ -90,7 +84,6 @@ make run-tvos-sim
 ## Compatibility
 
 - Komga API v1 and v2
-- SSE-based real-time updates
 
 ## Community
 
