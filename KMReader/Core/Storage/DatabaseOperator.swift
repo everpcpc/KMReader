@@ -149,6 +149,22 @@ actor DatabaseOperator {
     }
   }
 
+  func deleteBooksNotIn(_ bookIds: Set<String>, instanceId: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    guard let existingBooks = try? modelContext.fetch(descriptor), !existingBooks.isEmpty else {
+      return 0
+    }
+
+    var deletedCount = 0
+    for book in existingBooks where !bookIds.contains(book.bookId) {
+      modelContext.delete(book)
+      deletedCount += 1
+    }
+    return deletedCount
+  }
+
   func fetchBook(id: String) async -> Book? {
     KomgaBookStore.fetchBook(context: modelContext, id: id)
   }
@@ -397,6 +413,22 @@ actor DatabaseOperator {
     }
   }
 
+  func deleteSeriesNotIn(_ seriesIds: Set<String>, instanceId: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    guard let existingSeries = try? modelContext.fetch(descriptor), !existingSeries.isEmpty else {
+      return 0
+    }
+
+    var deletedCount = 0
+    for series in existingSeries where !seriesIds.contains(series.seriesId) {
+      modelContext.delete(series)
+      deletedCount += 1
+    }
+    return deletedCount
+  }
+
   func fetchSeries(id: String) async -> Series? {
     KomgaSeriesStore.fetchOne(context: modelContext, seriesId: id)
   }
@@ -498,6 +530,25 @@ actor DatabaseOperator {
     }
   }
 
+  func deleteCollectionsNotIn(_ collectionIds: Set<String>, instanceId: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    guard
+      let existingCollections = try? modelContext.fetch(descriptor),
+      !existingCollections.isEmpty
+    else {
+      return 0
+    }
+
+    var deletedCount = 0
+    for collection in existingCollections where !collectionIds.contains(collection.collectionId) {
+      modelContext.delete(collection)
+      deletedCount += 1
+    }
+    return deletedCount
+  }
+
   // MARK: - ReadList Operations
 
   func upsertReadList(dto: ReadList, instanceId: String) {
@@ -574,6 +625,25 @@ actor DatabaseOperator {
         modelContext.insert(newReadList)
       }
     }
+  }
+
+  func deleteReadListsNotIn(_ readListIds: Set<String>, instanceId: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    guard
+      let existingReadLists = try? modelContext.fetch(descriptor),
+      !existingReadLists.isEmpty
+    else {
+      return 0
+    }
+
+    var deletedCount = 0
+    for readList in existingReadLists where !readListIds.contains(readList.readListId) {
+      modelContext.delete(readList)
+      deletedCount += 1
+    }
+    return deletedCount
   }
 
   private func applyBook(dto: Book, to existing: KomgaBook) {
