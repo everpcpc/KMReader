@@ -6,9 +6,9 @@
 import Foundation
 
 enum ReaderViewItem: Hashable {
-  case page(index: Int)
-  case split(index: Int, isFirstHalf: Bool)
-  case dual(first: Int, second: Int)
+  case page(id: ReaderPageID)
+  case split(id: ReaderPageID, isFirstHalf: Bool)
+  case dual(first: ReaderPageID, second: ReaderPageID)
   case end
 }
 
@@ -20,12 +20,12 @@ extension ReaderViewItem {
     return false
   }
 
-  var primaryPageIndex: Int? {
+  var primaryPageID: ReaderPageID? {
     switch self {
-    case .page(let index):
-      return index
-    case .split(let index, _):
-      return index
+    case .page(let id):
+      return id
+    case .split(let id, _):
+      return id
     case .dual(let first, _):
       return first
     case .end:
@@ -33,7 +33,7 @@ extension ReaderViewItem {
     }
   }
 
-  var secondaryPageIndex: Int? {
+  var secondaryPageID: ReaderPageID? {
     switch self {
     case .dual(_, let second):
       return second

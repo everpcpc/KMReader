@@ -23,9 +23,6 @@
     )
     private var showImage = true
 
-    private var onDismiss: (() -> Void)?
-    private var onNextBook: ((String) -> Void)?
-
     private let contentStack = UIStackView()
     private let infoStack = UIStackView()
     private let nextBookStack = UIStackView()
@@ -46,29 +43,18 @@
     private let caughtUpIconView = UIImageView()
     private let caughtUpLabel = UILabel()
 
-    private let buttonStack = UIStackView()
-    private let closeButton = UIButton(type: .system)
-    private let nextButton = UIButton(type: .system)
-
-    private var nextBookID: String?
-
     func configure(
       nextBook: Book?,
       readListContext: ReaderReadListContext?,
       readingDirection: ReadingDirection,
       renderConfig: ReaderRenderConfig,
-      showImage: Bool = true,
-      onDismiss: @escaping () -> Void,
-      onNextBook: @escaping (String) -> Void
+      showImage: Bool = true
     ) {
       self.nextBook = nextBook
       self.readListContext = readListContext
       self.readingDirection = readingDirection
       self.renderConfig = renderConfig
       self.showImage = showImage
-      self.onDismiss = onDismiss
-      self.onNextBook = onNextBook
-      self.nextBookID = nextBook?.id
 
       if isViewLoaded {
         applyConfiguration()
@@ -175,17 +161,6 @@
       caughtUpLabel.adjustsFontForContentSizeCategory = true
       caughtUpStack.addArrangedSubview(caughtUpLabel)
 
-      buttonStack.axis = .horizontal
-      buttonStack.alignment = .center
-      buttonStack.spacing = 16
-      contentStack.addArrangedSubview(buttonStack)
-
-      closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
-      nextButton.addTarget(self, action: #selector(handleNextBook), for: .touchUpInside)
-
-      buttonStack.addArrangedSubview(closeButton)
-      buttonStack.addArrangedSubview(nextButton)
-
       NSLayoutConstraint.activate([
         contentStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 40),
         contentStack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -40),
@@ -208,7 +183,6 @@
         readingDirection == .rtl ? .forceRightToLeft : .forceLeftToRight
       view.semanticContentAttribute = directionAttribute
       contentStack.semanticContentAttribute = directionAttribute
-      buttonStack.semanticContentAttribute = directionAttribute
       infoStack.semanticContentAttribute = .forceLeftToRight
 
       upNextLabel.font = preferredFont(textStyle: .title3, design: .rounded, weight: .semibold)
@@ -257,45 +231,6 @@
         caughtUpLabel.text = String(localized: "You're all caught up!")
         coverViewController.configure(bookID: nil)
       }
-
-      var closeConfig = borderedButtonConfiguration()
-      closeConfig.image = UIImage(systemName: "xmark")
-      closeConfig.imagePlacement = .leading
-      closeConfig.imagePadding = 8
-      closeConfig.preferredSymbolConfigurationForImage = buttonSymbolConfiguration
-      closeConfig.title = String(localized: "Close")
-      closeConfig.cornerStyle = .capsule
-      closeButton.configuration = closeConfig
-      closeButton.tintColor = textColor
-
-      var nextConfig = borderedButtonConfiguration()
-      nextConfig.image = UIImage(systemName: nextArrowSymbolName)
-      nextConfig.imagePlacement = .trailing
-      nextConfig.imagePadding = 8
-      nextConfig.preferredSymbolConfigurationForImage = buttonSymbolConfiguration
-      nextConfig.title = String(localized: "reader.nextBook")
-      nextConfig.cornerStyle = .capsule
-      nextButton.configuration = nextConfig
-      nextButton.tintColor = textColor
-      nextButton.isHidden = nextBook == nil
-    }
-
-    private func borderedButtonConfiguration() -> UIButton.Configuration {
-      if #available(iOS 26.0, *) {
-        return .glass()
-      }
-      return .bordered()
-    }
-
-    private var nextArrowSymbolName: String {
-      readingDirection == .rtl ? "arrow.left" : "arrow.right"
-    }
-
-    private var buttonSymbolConfiguration: UIImage.SymbolConfiguration {
-      UIImage.SymbolConfiguration(
-        textStyle: .body,
-        scale: .small
-      )
     }
 
     private var contentColor: UIColor {
@@ -342,13 +277,5 @@
       return UIFont(descriptor: descriptor, size: 0)
     }
 
-    @objc private func handleClose() {
-      onDismiss?()
-    }
-
-    @objc private func handleNextBook() {
-      guard let nextBookID else { return }
-      onNextBook?(nextBookID)
-    }
   }
 #endif

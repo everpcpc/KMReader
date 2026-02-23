@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 @Observable
 class ReaderViewModel {
   var pages: [BookPage] = []
+  var readerPages: [ReaderPage] = []
   var isolatePages: [Int] = []
   var currentPageIndex = 0
   var currentViewItemIndex = 0  // Index in viewItems array
@@ -26,16 +27,16 @@ class ReaderViewModel {
   var isZoomed: Bool = false
 
   var viewItems: [ReaderViewItem] = []
-  var viewItemIndexByPage: [Int: Int] = [:]
+  var viewItemIndexByPage: [ReaderPageID: Int] = [:]
   var tableOfContents: [ReaderTOCEntry] = []
-  /// Cache of preloaded images keyed by page number for instant display
-  var preloadedImages: [Int: PlatformImage] = [:]
+  /// Cache of preloaded images keyed by reader page ID.
+  private var preloadedImagesByID: [ReaderPageID: PlatformImage] = [:]
   /// Page index with Live Text mode active (nil = no Live Text active)
   var liveTextActivePageIndex: Int? = nil
-  /// Confirmed animated image capability keyed by page index.
-  private var animatedPageStates: [Int: Bool] = [:]
-  /// Local file URL for animated page playback keyed by page index.
-  private var animatedPageFileURLs: [Int: URL] = [:]
+  /// Confirmed animated image capability keyed by reader page ID.
+  private var animatedPageStates: [ReaderPageID: Bool] = [:]
+  /// Local file URL for animated page playback keyed by reader page ID.
+  private var animatedPageFileURLs: [ReaderPageID: URL] = [:]
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
@@ -46,11 +47,12 @@ class ReaderViewModel {
   var bookId: String = ""
   private var bookMediaProfile: MediaProfile = .unknown
 
-  /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
-  private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
+  /// Track ongoing download tasks to prevent duplicate downloads for the same page.
+  private var downloadingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
   #if os(iOS) || os(tvOS)
-    private var upscalingTasks: [Int: Task<URL?, Never>] = [:]
+    private var upscalingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
   #endif
+  private var readerPageIndexByID: [ReaderPageID: Int] = [:]
   private var lastPreloadRequestTime: Date?
   private var preloadTask: Task<Void, Never>?
 
@@ -59,6 +61,13 @@ class ReaderViewModel {
     guard !pages.isEmpty else { return nil }
     let clampedIndex = min(currentPageIndex, pages.count - 1)
     return pages[clampedIndex]
+  }
+
+  var currentReaderPage: ReaderPage? {
+    guard currentPageIndex >= 0 else { return nil }
+    guard !readerPages.isEmpty else { return nil }
+    let clampedIndex = min(currentPageIndex, readerPages.count - 1)
+    return readerPages[clampedIndex]
   }
 
   var isCurrentPageIsolated: Bool {
@@ -88,6 +97,43 @@ class ReaderViewModel {
     regenerateViewState()
   }
 
+  private func rebuildReaderPages() {
+    readerPages = pages.map { ReaderPage(bookId: bookId, page: $0) }
+    readerPageIndexByID = Dictionary(
+      uniqueKeysWithValues: readerPages.enumerated().map { index, readerPage in
+        (readerPage.id, index)
+      }
+    )
+  }
+
+  private func readerPageID(for page: BookPage) -> ReaderPageID {
+    ReaderPageID(bookId: bookId, pageNumber: page.number)
+  }
+
+  private func readerPageID(forPageIndex pageIndex: Int) -> ReaderPageID? {
+    guard pageIndex >= 0, pageIndex < readerPages.count else { return nil }
+    return readerPages[pageIndex].id
+  }
+
+  func preloadedImage(forPageIndex pageIndex: Int) -> PlatformImage? {
+    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
+    return preloadedImagesByID[pageID]
+  }
+
+  private func setPreloadedImage(_ image: PlatformImage, forPageIndex pageIndex: Int) {
+    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return }
+    preloadedImagesByID[pageID] = image
+  }
+
+  func readerPage(at pageIndex: Int) -> ReaderPage? {
+    guard pageIndex >= 0, pageIndex < readerPages.count else { return nil }
+    return readerPages[pageIndex]
+  }
+
+  func pageIndex(for readerPageID: ReaderPageID) -> Int? {
+    readerPageIndexByID[readerPageID]
+  }
+
   func loadPages(book: Book, initialPageNumber: Int? = nil) async {
     self.bookId = book.id
     self.bookMediaProfile = book.media.mediaProfileValue ?? .unknown
@@ -104,7 +150,9 @@ class ReaderViewModel {
       }
       upscalingTasks.removeAll()
     #endif
-    preloadedImages.removeAll()
+    preloadedImagesByID.removeAll()
+    readerPages.removeAll()
+    readerPageIndexByID.removeAll()
     animatedPageStates.removeAll()
     animatedPageFileURLs.removeAll()
 
@@ -140,6 +188,7 @@ class ReaderViewModel {
 
       // Now assign pages, which will trigger View's onChange(of: pages.count)
       pages = fetchedPages
+      rebuildReaderPages()
 
       // Update page pairs and dual page indices after loading pages
       regenerateViewState()
@@ -179,8 +228,9 @@ class ReaderViewModel {
       logger.warning("⚠️ Book ID is empty, cannot load page image")
       return nil
     }
+    let pageID = readerPageID(for: page)
 
-    if let existingTask = downloadingTasks[page.number] {
+    if let existingTask = downloadingTasks[pageID] {
       logger.debug(
         "⏳ Waiting for existing download task for page \(page.number) for book \(self.bookId)"
       )
@@ -256,9 +306,9 @@ class ReaderViewModel {
       }
     }
 
-    downloadingTasks[page.number] = loadTask
+    downloadingTasks[pageID] = loadTask
     let result = await loadTask.value
-    downloadingTasks.removeValue(forKey: page.number)
+    downloadingTasks.removeValue(forKey: pageID)
     return result
   }
 
@@ -366,22 +416,23 @@ class ReaderViewModel {
       guard let self = self else { return }
 
       // Load pages concurrently and collect decoded images
-      let results = await withTaskGroup(of: (Int, PlatformImage?, Bool, URL?).self) {
-        group -> [(Int, PlatformImage?, Bool, URL?)] in
+      let results = await withTaskGroup(of: (Int, ReaderPageID, PlatformImage?, Bool, URL?).self)
+      { group -> [(Int, ReaderPageID, PlatformImage?, Bool, URL?)] in
         for index in pagesToPreload {
           if Task.isCancelled { break }
           let page = self.pages[index]
+          guard let pageID = self.readerPageID(forPageIndex: index) else { continue }
           // Skip if already preloaded
-          if self.preloadedImages[index] != nil {
+          if self.preloadedImage(forPageIndex: index) != nil {
             continue
           }
           group.addTask {
-            if Task.isCancelled { return (index, nil, false, nil) }
+            if Task.isCancelled { return (index, pageID, nil, false, nil) }
             let (image, isAnimated, animatedFileURL) = await self.preloadDecodedPageImage(page: page)
-            return (index, image, isAnimated, animatedFileURL)
+            return (index, pageID, image, isAnimated, animatedFileURL)
           }
         }
-        var collected: [(Int, PlatformImage?, Bool, URL?)] = []
+        var collected: [(Int, ReaderPageID, PlatformImage?, Bool, URL?)] = []
         for await result in group {
           if !Task.isCancelled {
             collected.append(result)
@@ -393,15 +444,15 @@ class ReaderViewModel {
       if Task.isCancelled { return }
 
       // Store preloaded images for instant access by PageImageView
-      for (pageIndex, image, isAnimated, animatedFileURL) in results {
-        self.animatedPageStates[pageIndex] = isAnimated
+      for (pageIndex, pageID, image, isAnimated, animatedFileURL) in results {
+        self.animatedPageStates[pageID] = isAnimated
         if let animatedFileURL {
-          self.animatedPageFileURLs[pageIndex] = animatedFileURL
+          self.animatedPageFileURLs[pageID] = animatedFileURL
         } else {
-          self.animatedPageFileURLs.removeValue(forKey: pageIndex)
+          self.animatedPageFileURLs.removeValue(forKey: pageID)
         }
         if let image = image {
-          self.preloadedImages[pageIndex] = image
+          self.setPreloadedImage(image, forPageIndex: pageIndex)
         }
       }
 
@@ -417,17 +468,34 @@ class ReaderViewModel {
     let keepRangeEnd = min(currentPageIndex + ReaderConstants.keepRangeAfter, pages.count)
     let keepRange = keepRangeStart...keepRangeEnd
 
-    let keysToRemove = preloadedImages.keys.filter { !keepRange.contains($0) }
-    if !keysToRemove.isEmpty {
-      for key in keysToRemove {
-        preloadedImages.removeValue(forKey: key)
+    let keepPageIDs = Set(keepRange.compactMap { readerPageID(forPageIndex: $0) })
+    if !keepPageIDs.isEmpty {
+      let imageKeysToRemove = preloadedImagesByID.keys.filter { !keepPageIDs.contains($0) }
+      if !imageKeysToRemove.isEmpty {
+        for key in imageKeysToRemove {
+          preloadedImagesByID.removeValue(forKey: key)
+        }
+      }
+
+      let animatedStateKeysToRemove = animatedPageStates.keys.filter { !keepPageIDs.contains($0) }
+      if !animatedStateKeysToRemove.isEmpty {
+        for key in animatedStateKeysToRemove {
+          animatedPageStates.removeValue(forKey: key)
+        }
+      }
+
+      let animatedURLKeysToRemove = animatedPageFileURLs.keys.filter { !keepPageIDs.contains($0) }
+      if !animatedURLKeysToRemove.isEmpty {
+        for key in animatedURLKeysToRemove {
+          animatedPageFileURLs.removeValue(forKey: key)
+        }
       }
     }
 
     // Log current memory usage
-    let count = preloadedImages.count
+    let count = preloadedImagesByID.count
     var totalBytes: Int64 = 0
-    for image in preloadedImages.values {
+    for image in preloadedImagesByID.values {
       let size = image.size
       // Rough estimation: width * height * 4 bytes per pixel (RGBA)
       totalBytes += Int64(size.width * size.height * 4)
@@ -552,7 +620,8 @@ class ReaderViewModel {
         return cachedUpscaledURL
       }
 
-      if let existingTask = upscalingTasks[page.number] {
+      let pageID = readerPageID(for: page)
+      if let existingTask = upscalingTasks[pageID] {
         logger.debug("⏳ [Upscale] Await running upscale task for page \(page.number + 1)")
         if let cachedURL = await existingTask.value {
           logger.debug("✅ [Upscale] Reuse task result for page \(page.number + 1): \(cachedURL.lastPathComponent)")
@@ -620,9 +689,9 @@ class ReaderViewModel {
         return persistedURL
       }
 
-      upscalingTasks[pageNumber] = upscaleTask
+      upscalingTasks[pageID] = upscaleTask
       let result = await upscaleTask.value
-      upscalingTasks.removeValue(forKey: pageNumber)
+      upscalingTasks.removeValue(forKey: pageID)
       if let result {
         logger.debug("✅ [Upscale] Ready page \(pageNumber + 1): \(result.lastPathComponent)")
       } else {
@@ -776,30 +845,33 @@ class ReaderViewModel {
     #if os(tvOS)
       return false
     #else
-      return animatedPageStates[pageIndex] == true
+      guard let pageID = readerPageID(forPageIndex: pageIndex) else { return false }
+      return animatedPageStates[pageID] == true
     #endif
   }
 
   func animatedPlaybackFileURL(for pageIndex: Int) -> URL? {
-    animatedPageFileURLs[pageIndex]
+    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
+    return animatedPageFileURLs[pageID]
   }
 
   /// Resolve local file URL for animated playback. Returns nil when this page is not animated.
   func prepareAnimatedPagePlaybackURL(pageIndex: Int) async -> URL? {
     guard pageIndex >= 0 && pageIndex < pages.count else { return nil }
+    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
     let page = pages[pageIndex]
     guard page.isAnimatedImageCandidate else {
-      animatedPageStates[pageIndex] = false
+      animatedPageStates[pageID] = false
       return nil
     }
 
     guard let fileURL = await getPageImageFileURL(page: page) else { return nil }
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
-    animatedPageStates[pageIndex] = isAnimated
+    animatedPageStates[pageID] = isAnimated
     if isAnimated {
-      animatedPageFileURLs[pageIndex] = fileURL
+      animatedPageFileURLs[pageID] = fileURL
     } else {
-      animatedPageFileURLs.removeValue(forKey: pageIndex)
+      animatedPageFileURLs.removeValue(forKey: pageID)
     }
     return isAnimated ? fileURL : nil
   }
@@ -807,20 +879,21 @@ class ReaderViewModel {
   /// Preload a single page image into memory for instant display.
   func preloadImageForPage(_ page: BookPage) async -> PlatformImage? {
     guard let index = pages.firstIndex(where: { $0.number == page.number }) else { return nil }
-    if let cached = preloadedImages[index] {
+    guard let pageID = readerPageID(forPageIndex: index) else { return nil }
+    if let cached = preloadedImagesByID[pageID] {
       return cached
     }
     let (image, isAnimated, animatedFileURL) = await preloadDecodedPageImage(page: page)
-    animatedPageStates[index] = isAnimated
+    animatedPageStates[pageID] = isAnimated
     if let animatedFileURL {
-      animatedPageFileURLs[index] = animatedFileURL
+      animatedPageFileURLs[pageID] = animatedFileURL
     } else {
-      animatedPageFileURLs.removeValue(forKey: index)
+      animatedPageFileURLs.removeValue(forKey: pageID)
     }
     guard let image else {
       return nil
     }
-    preloadedImages[index] = image
+    preloadedImagesByID[pageID] = image
     return image
   }
 
@@ -834,7 +907,7 @@ class ReaderViewModel {
       }
       upscalingTasks.removeAll()
     #endif
-    preloadedImages.removeAll()
+    preloadedImagesByID.removeAll()
     animatedPageStates.removeAll()
     animatedPageFileURLs.removeAll()
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
@@ -959,6 +1032,7 @@ class ReaderViewModel {
     let shouldIsolateCover = isolateCoverPageEnabled && (forceDualPagePairs || isActuallyUsingDualPageMode)
 
     viewItems = generateViewItems(
+      readerPages: readerPages,
       pages: pages,
       noCover: !shouldIsolateCover,
       allowDualPairs: isActuallyUsingDualPageMode,
@@ -987,7 +1061,9 @@ class ReaderViewModel {
     if pageIndex < 0 {
       return 0
     }
-    if let mapped = viewItemIndexByPage[pageIndex] {
+    if let pageID = readerPageID(forPageIndex: pageIndex),
+      let mapped = viewItemIndexByPage[pageID]
+    {
       return mapped
     }
     return min(pageIndex, viewItems.count - 1)
@@ -998,12 +1074,12 @@ class ReaderViewModel {
       return max(0, min(viewItemIndex, pages.count))
     }
     switch item {
-    case .page(let index):
-      return index
-    case .split(let index, _):
-      return index
+    case .page(let id):
+      return pageIndex(for: id) ?? 0
+    case .split(let id, _):
+      return pageIndex(for: id) ?? 0
     case .dual(let first, _):
-      return first
+      return pageIndex(for: first) ?? 0
     case .end:
       return pages.count
     }
@@ -1025,11 +1101,16 @@ class ReaderViewModel {
   func currentPagePair() -> (first: Int, second: Int?)? {
     guard let item = currentViewItem() else { return nil }
     switch item {
-    case .page(let index):
-      return (first: index, second: nil)
-    case .split(let index, _):
-      return (first: index, second: nil)
-    case .dual(let first, let second):
+    case .page(let id):
+      guard let first = pageIndex(for: id) else { return nil }
+      return (first: first, second: nil)
+    case .split(let id, _):
+      guard let first = pageIndex(for: id) else { return nil }
+      return (first: first, second: nil)
+    case .dual(let firstID, let secondID):
+      guard let first = pageIndex(for: firstID),
+        let second = pageIndex(for: secondID)
+      else { return nil }
       return (first: first, second: second)
     case .end:
       return nil
@@ -1048,6 +1129,7 @@ class ReaderViewModel {
 }
 
 private func generateViewItems(
+  readerPages: [ReaderPage],
   pages: [BookPage],
   noCover: Bool,
   allowDualPairs: Bool,
@@ -1055,7 +1137,7 @@ private func generateViewItems(
   splitWidePages: Bool,
   isolatePages: Set<Int> = []
 ) -> [ReaderViewItem] {
-  guard pages.count > 0 else { return [] }
+  guard pages.count > 0, pages.count == readerPages.count else { return [] }
 
   var items: [ReaderViewItem] = []
   let shouldForceDualPairs = allowDualPairs && forceDualPairs
@@ -1067,11 +1149,11 @@ private func generateViewItems(
         (!noCover && index == 0) || index == pages.count - 1
         || isolatePages.contains(index) || isolatePages.contains(index + 1)
       if shouldShowSingle {
-        items.append(.page(index: index))
+        items.append(.page(id: readerPages[index].id))
         index += 1
       } else {
         let nextIndex = index + 1
-        items.append(.dual(first: index, second: nextIndex))
+        items.append(.dual(first: readerPages[index].id, second: readerPages[nextIndex].id))
         index += 2
       }
       continue
@@ -1111,19 +1193,19 @@ private func generateViewItems(
 
     if shouldSplitPage {
       // Split the wide page into two items
-      items.append(.split(index: index, isFirstHalf: true))
-      items.append(.split(index: index, isFirstHalf: false))
+      items.append(.split(id: readerPages[index].id, isFirstHalf: true))
+      items.append(.split(id: readerPages[index].id, isFirstHalf: false))
       index += 1
     } else if useSinglePage {
-      items.append(.page(index: index))
+      items.append(.page(id: readerPages[index].id))
       index += 1
     } else {
       let nextPage = pages[index + 1]
       if allowDualPairs && nextPage.isPortrait && !isolatePages.contains(index + 1) {
-        items.append(.dual(first: index, second: index + 1))
+        items.append(.dual(first: readerPages[index].id, second: readerPages[index + 1].id))
         index += 2
       } else {
-        items.append(.page(index: index))
+        items.append(.page(id: readerPages[index].id))
         index += 1
       }
     }
@@ -1134,8 +1216,8 @@ private func generateViewItems(
   return items
 }
 
-private func generateViewItemIndexMap(items: [ReaderViewItem]) -> [Int: Int] {
-  var indices: [Int: Int] = [:]
+private func generateViewItemIndexMap(items: [ReaderViewItem]) -> [ReaderPageID: Int] {
+  var indices: [ReaderPageID: Int] = [:]
   for (index, item) in items.enumerated() {
     switch item {
     case .dual(let first, let second):
@@ -1146,9 +1228,9 @@ private func generateViewItemIndexMap(items: [ReaderViewItem]) -> [Int: Int] {
         indices[second] = index
       }
     default:
-      guard let pageIndex = item.primaryPageIndex else { continue }
-      if indices[pageIndex] == nil {
-        indices[pageIndex] = index
+      guard let pageID = item.primaryPageID else { continue }
+      if indices[pageID] == nil {
+        indices[pageID] = index
       }
     }
   }

@@ -347,6 +347,7 @@ KMReader/
 8. **@AppStorage over UserDefaults**: In views use @AppStorage; elsewhere use AppConfig, UserDefaults is forbidden in files except AppConfig.swift
 9. **Computed properties in view bodies**: Avoid stored variables in view bodies
 10. **Platform differences**: Use `PlatformHelper` and `#if os(...)` blocks
+11. **Direction rule (UI bridging)**: Allow `SwiftUI -> UIKit/AppKit`, but do not use `UIKit/AppKit -> SwiftUI` (`UIHostingController`/`NSHostingController`) for feature screens/components, because `UIHostingController`/`NSHostingController` does not inherit required SwiftUI environment values in this project.
 
 Additional patterns:
 

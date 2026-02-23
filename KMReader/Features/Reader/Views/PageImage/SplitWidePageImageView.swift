@@ -37,7 +37,7 @@ struct SplitWidePageImageView: View {
         NativePageData(
           bookId: viewModel.bookId,
           pageNumber: pageIndex,
-          isLoading: viewModel.isLoading && page != nil && viewModel.preloadedImages[pageIndex] == nil,
+          isLoading: viewModel.isLoading && page != nil && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
           error: nil,
           alignment: .center,
           splitMode: isLeftHalf ? .leftHalf : .rightHalf

@@ -55,7 +55,7 @@
         analyzedImage = nil
       } else {
         if imageView.image == nil, let data = currentData {
-          imageView.image = readerViewModel?.preloadedImages[data.pageNumber]
+          imageView.image = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber)
         }
         if enableLiveText {
           if let image = imageView.image {

@@ -52,7 +52,7 @@
             NativePageData(
               bookId: viewModel.bookId,
               pageNumber: pageIndex,
-              isLoading: viewModel.isLoading && viewModel.preloadedImages[pageIndex] == nil,
+              isLoading: viewModel.isLoading && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
               error: nil,
               alignment: .center
             )

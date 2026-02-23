@@ -186,7 +186,7 @@
       guard let viewModel else { return }
 
       let page = pageIndex >= 0 && pageIndex < viewModel.pages.count ? viewModel.pages[pageIndex] : nil
-      let image = viewModel.preloadedImages[pageIndex]
+      let image = viewModel.preloadedImage(forPageIndex: pageIndex)
 
       if image != nil {
         loadError = nil
@@ -234,7 +234,7 @@
         guard self.pageIndex == requestedPageIndex else { return }
 
         self.loadTask = nil
-        if image == nil && viewModel.preloadedImages[requestedPageIndex] == nil {
+        if image == nil && viewModel.preloadedImage(forPageIndex: requestedPageIndex) == nil {
           self.loadError = "Failed to load page"
         } else {
           self.loadError = nil

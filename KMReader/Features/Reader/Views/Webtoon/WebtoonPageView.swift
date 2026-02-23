@@ -71,8 +71,6 @@
               viewModel: viewModel,
               nextBook: nextBook,
               readListContext: readListContext,
-              onDismiss: onDismiss,
-              onNextBook: onNextBook,
               readingDirection: .webtoon,
               showImage: false
             )
@@ -160,7 +158,7 @@
         zoomAnchor = anchor
         zoomRequestID = UUID()
       }
-      if viewModel.preloadedImages[pageIndex] == nil {
+      if viewModel.preloadedImage(forPageIndex: pageIndex) == nil {
         let page = viewModel.pages[pageIndex]
         Task {
           await viewModel.preloadImageForPage(page)

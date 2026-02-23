@@ -57,7 +57,7 @@
         prepareForDismantle()
       } else {
         if imageView.image == nil, let data = currentData {
-          imageView.image = viewModel?.preloadedImages[data.pageNumber]
+          imageView.image = viewModel?.preloadedImage(forPageIndex: data.pageNumber)
         }
         #if !os(tvOS)
           if enableLiveText {

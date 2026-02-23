@@ -322,54 +322,60 @@ struct ScrollPageView: View {
             viewModel: viewModel,
             nextBook: nextBook,
             readListContext: readListContext,
-            onDismiss: onDismiss,
-            onNextBook: onNextBook,
             readingDirection: readingDirection,
             showImage: true
           )
         case .dual(let first, let second):
-          DualPageImageView(
-            viewModel: viewModel,
-            firstPageIndex: first,
-            secondPageIndex: second,
-            screenSize: geometry.size,
-            renderConfig: renderConfig,
-            readingDirection: readingDirection,
-            onNextPage: goToNextPage,
-            onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls,
-            onPlayAnimatedPage: onPlayAnimatedPage
-          )
-        case .page(let index):
-          SinglePageImageView(
-            viewModel: viewModel,
-            pageIndex: index,
-            screenSize: geometry.size,
-            renderConfig: renderConfig,
-            readingDirection: readingDirection,
-            onNextPage: goToNextPage,
-            onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls,
-            onPlayAnimatedPage: onPlayAnimatedPage
-          )
-        case .split(let index, let isFirstHalf):
-          let isLeftHalf = viewModel.isLeftSplitHalf(
-            isFirstHalf: isFirstHalf,
-            readingDirection: readingDirection,
-            splitWidePageMode: splitWidePageMode
-          )
-          SplitWidePageImageView(
-            viewModel: viewModel,
-            pageIndex: index,
-            isLeftHalf: isLeftHalf,
-            screenSize: geometry.size,
-            renderConfig: renderConfig,
-            readingDirection: readingDirection,
-            onNextPage: goToNextPage,
-            onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls,
-            onPlayAnimatedPage: onPlayAnimatedPage
-          )
+          if let firstPageIndex = viewModel.pageIndex(for: first),
+            let secondPageIndex = viewModel.pageIndex(for: second)
+          {
+            DualPageImageView(
+              viewModel: viewModel,
+              firstPageIndex: firstPageIndex,
+              secondPageIndex: secondPageIndex,
+              screenSize: geometry.size,
+              renderConfig: renderConfig,
+              readingDirection: readingDirection,
+              onNextPage: goToNextPage,
+              onPreviousPage: goToPreviousPage,
+              onToggleControls: toggleControls,
+              onPlayAnimatedPage: onPlayAnimatedPage
+            )
+          }
+        case .page(let id):
+          if let pageIndex = viewModel.pageIndex(for: id) {
+            SinglePageImageView(
+              viewModel: viewModel,
+              pageIndex: pageIndex,
+              screenSize: geometry.size,
+              renderConfig: renderConfig,
+              readingDirection: readingDirection,
+              onNextPage: goToNextPage,
+              onPreviousPage: goToPreviousPage,
+              onToggleControls: toggleControls,
+              onPlayAnimatedPage: onPlayAnimatedPage
+            )
+          }
+        case .split(let id, let isFirstHalf):
+          if let pageIndex = viewModel.pageIndex(for: id) {
+            let isLeftHalf = viewModel.isLeftSplitHalf(
+              isFirstHalf: isFirstHalf,
+              readingDirection: readingDirection,
+              splitWidePageMode: splitWidePageMode
+            )
+            SplitWidePageImageView(
+              viewModel: viewModel,
+              pageIndex: pageIndex,
+              isLeftHalf: isLeftHalf,
+              screenSize: geometry.size,
+              renderConfig: renderConfig,
+              readingDirection: readingDirection,
+              onNextPage: goToNextPage,
+              onPreviousPage: goToPreviousPage,
+              onToggleControls: toggleControls,
+              onPlayAnimatedPage: onPlayAnimatedPage
+            )
+          }
         }
       }
       .frame(width: geometry.size.width, height: geometry.size.height)
