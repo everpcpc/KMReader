@@ -55,6 +55,7 @@ enum NavDestination: Hashable {
   case settingsOfflineBooks
 
   case settingsLibraries
+  case settingsReadingStats
   case settingsServerInfo
   case settingsTasks
   case settingsHistory
@@ -149,6 +150,8 @@ enum NavDestination: Hashable {
 
     case .settingsLibraries:
       ServerLibrariesView()
+    case .settingsReadingStats:
+      ServerReadingStatsView()
     case .settingsServerInfo:
       ServerInfoView()
     case .settingsTasks:

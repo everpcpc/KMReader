@@ -8,6 +8,7 @@ import Foundation
 enum ServerSection: String, CaseIterable {
 
   case libraries
+  case readingStats
   case serverInfo
   case tasks
   case history
@@ -21,6 +22,8 @@ enum ServerSection: String, CaseIterable {
     switch self {
     case .libraries:
       return ContentIcon.library
+    case .readingStats:
+      return "chart.bar.doc.horizontal"
     case .serverInfo:
       return "server.rack"
     case .tasks:
@@ -44,6 +47,8 @@ enum ServerSection: String, CaseIterable {
     switch self {
     case .libraries:
       return String(localized: "Libraries")
+    case .readingStats:
+      return String(localized: "Reading Stats")
     case .serverInfo:
       return String(localized: "Server Info")
     case .tasks:

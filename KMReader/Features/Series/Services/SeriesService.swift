@@ -65,12 +65,17 @@ class SeriesService {
     search: SeriesSearch,
     page: Int = 0,
     size: Int = 20,
-    sort: String? = nil
+    sort: String? = nil,
+    unpaged: Bool = false
   ) async throws -> Page<Series> {
-    var queryItems = [
-      URLQueryItem(name: "page", value: "\(page)"),
-      URLQueryItem(name: "size", value: "\(size)"),
-    ]
+    var queryItems: [URLQueryItem] = []
+
+    if unpaged {
+      queryItems.append(URLQueryItem(name: "unpaged", value: "true"))
+    } else {
+      queryItems.append(URLQueryItem(name: "page", value: "\(page)"))
+      queryItems.append(URLQueryItem(name: "size", value: "\(size)"))
+    }
 
     if let sort = sort {
       queryItems.append(URLQueryItem(name: "sort", value: sort))

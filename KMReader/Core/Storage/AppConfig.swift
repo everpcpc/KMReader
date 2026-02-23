@@ -771,6 +771,20 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var readingStatsCache: ReadingStatsCache {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "readingStatsCache"),
+        let cache = ReadingStatsCache(rawValue: stored)
+      {
+        return cache
+      }
+      return ReadingStatsCache()
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "readingStatsCache")
+    }
+  }
+
   private static nonisolated var recentlyReadRecordTimeByInstance: [String: TimeInterval] {
     get {
       guard
