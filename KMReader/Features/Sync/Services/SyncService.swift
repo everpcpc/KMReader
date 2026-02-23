@@ -45,14 +45,20 @@ class SyncService {
     do {
       var page = 0
       var hasMore = true
+      var remoteCollectionIds = Set<String>()
       while hasMore {
         let result: Page<SeriesCollection> = try await CollectionService.shared.getCollections(
           page: page, size: 500)
+        remoteCollectionIds.formUnion(result.content.map(\.id))
         await db.upsertCollections(result.content, instanceId: instanceId)
         hasMore = !result.last
         page += 1
       }
+      let deletedCount = await db.deleteCollectionsNotIn(remoteCollectionIds, instanceId: instanceId)
       await db.commit()
+      if deletedCount > 0 {
+        logger.info("🧹 Removed \(deletedCount) stale collections")
+      }
       logger.info("📂 Synced collections")
     } catch {
       logger.error("❌ Failed to sync collections: \(error)")
@@ -63,14 +69,20 @@ class SyncService {
     do {
       var page = 0
       var hasMore = true
+      var remoteReadListIds = Set<String>()
       while hasMore {
         let result: Page<ReadList> = try await ReadListService.shared.getReadLists(
           page: page, size: 500)
+        remoteReadListIds.formUnion(result.content.map(\.id))
         await db.upsertReadLists(result.content, instanceId: instanceId)
         hasMore = !result.last
         page += 1
       }
+      let deletedCount = await db.deleteReadListsNotIn(remoteReadListIds, instanceId: instanceId)
       await db.commit()
+      if deletedCount > 0 {
+        logger.info("🧹 Removed \(deletedCount) stale read lists")
+      }
       logger.info("📖 Synced readlists")
     } catch {
       logger.error("❌ Failed to sync readlists: \(error)")
