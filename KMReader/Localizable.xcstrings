@@ -28969,43 +28969,90 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dadurch werden Bibliotheken, Serien und Bücher für die Offline-Nutzung aktualisiert."
+            "value" : "Dadurch werden Bibliotheken, Serien und Bücher für die Offline-Nutzung aktualisiert. Bei großen Bibliotheken kann die Synchronisierung länger dauern."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This will refresh libraries, series, and books for offline browsing."
+            "value" : "This will refresh libraries, series, and books for offline browsing. Large libraries may take longer to sync."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela actualisera les bibliothèques, séries et livres pour la navigation hors ligne."
+            "value" : "Cela actualisera les bibliothèques, séries et livres pour la navigation hors ligne. La synchronisation peut prendre plus de temps pour les grandes bibliothèques."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "オフライン閲覧のためにライブラリ、シリーズ、書籍を更新します。"
+            "value" : "オフライン閲覧のためにライブラリ、シリーズ、書籍を更新します。ライブラリが大きい場合、同期に時間がかかることがあります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오프라인 탐색을 위해 라이브러리, 시리즈, 도서를 새로 고칩니다."
+            "value" : "오프라인 탐색을 위해 라이브러리, 시리즈, 도서를 새로 고칩니다. 라이브러리가 큰 경우 동기화에 시간이 더 걸릴 수 있습니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将刷新用于离线浏览的库、系列和书籍数据。"
+            "value" : "将刷新用于离线浏览的库、系列和书籍数据。库较大时同步可能需要更长时间。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將刷新用於離線瀏覽的資料庫、系列和書籍資料。"
+            "value" : "將刷新用於離線瀏覽的資料庫、系列和書籍資料。大型資料庫同步可能需要較長時間。"
+          }
+        }
+      }
+    },
+    "offline.sync.confirm.progressOnlyAction" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Reading History"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leseverlauf synchronisieren"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchroniser l'historique de lecture"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書履歴を同期"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽기 기록 동기화"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步阅读历史"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步閱讀歷史"
           }
         }
       }
@@ -29052,6 +29099,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同步離線資料？"
+          }
+        }
+      }
+    },
+    "offline.sync.readHistory.lastRead" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last read"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt gelesen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière lecture"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終閲覧"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 읽음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近阅读"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近閱讀"
           }
         }
       }

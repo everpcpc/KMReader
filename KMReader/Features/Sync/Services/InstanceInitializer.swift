@@ -78,6 +78,7 @@ final class InstanceInitializer {
   /// Sync data for the current instance.
   /// - Parameter forceFullSync: If true, ignores lastSyncedAt and fetches all series/books.
   func syncData(forceFullSync: Bool = false) async {
+    guard !isSyncing else { return }
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
 
@@ -91,6 +92,13 @@ final class InstanceInitializer {
         message: String(localized: "notification.offline.syncCompleted")
       )
     }
+  }
+
+  func syncReadingProgressOnly() async {
+    guard !isSyncing else { return }
+    let instanceId = AppConfig.current.instanceId
+    guard !instanceId.isEmpty else { return }
+    await SyncService.shared.syncLatestRecentlyReadProgress()
   }
 
   private func performSync(instanceId: String, forceFullSync: Bool) async -> Bool {
@@ -158,6 +166,9 @@ final class InstanceInitializer {
         logger.error("❌ Failed to update books lastSyncedAt: \(error)")
       }
     }
+
+    // Keep reading progress aligned across all libraries (no dashboard library filter).
+    await SyncService.shared.syncLatestRecentlyReadProgress()
 
     progress = 1.0
     if hasFailures {
