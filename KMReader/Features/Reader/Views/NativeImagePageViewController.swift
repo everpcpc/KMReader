@@ -27,9 +27,6 @@
       doubleTapZoomMode: .fast
     )
 
-    private var onNextPage: (() -> Void)?
-    private var onPreviousPage: (() -> Void)?
-    private var onToggleControls: (() -> Void)?
     private var onPlayAnimatedPage: ((Int) -> Void)?
 
     private let scrollView = UIScrollView()
@@ -37,19 +34,12 @@
     private let animatedInlineContainer = UIView()
     private let playButton = UIButton(type: .system)
 
-    private var singleTapWorkItem: DispatchWorkItem?
     private var loadTask: Task<Void, Never>?
 
     private var lastConfiguredPageIndex: Int?
     private var loadError: String?
-    private var isMenuVisible = false
-    private var isLongPressing = false
     private var isVisibleForAnimatedInlinePlayback = false
     private var inlineReadyProbeToken: UInt64 = 0
-    private var lastZoomOutTime: Date = .distantPast
-    private var lastLongPressEndTime: Date = .distantPast
-    private var lastTouchStartTime: Date = .distantPast
-    private var lastSingleTapActionTime: Date = .distantPast
 
     func configure(
       viewModel: ReaderViewModel,
@@ -57,9 +47,6 @@
       splitMode: PageSplitMode,
       readingDirection: ReadingDirection,
       renderConfig: ReaderRenderConfig,
-      onNextPage: @escaping () -> Void,
-      onPreviousPage: @escaping () -> Void,
-      onToggleControls: @escaping () -> Void,
       onPlayAnimatedPage: ((Int) -> Void)?
     ) {
       let isPageChanged = lastConfiguredPageIndex != pageIndex
@@ -69,9 +56,6 @@
       self.splitMode = splitMode
       self.readingDirection = readingDirection
       self.renderConfig = renderConfig
-      self.onNextPage = onNextPage
-      self.onPreviousPage = onPreviousPage
-      self.onToggleControls = onToggleControls
       self.onPlayAnimatedPage = onPlayAnimatedPage
 
       if isPageChanged {
@@ -178,18 +162,6 @@
       doubleTap.numberOfTapsRequired = 2
       doubleTap.delegate = self
       scrollView.addGestureRecognizer(doubleTap)
-
-      let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
-      singleTap.numberOfTapsRequired = 1
-      singleTap.cancelsTouchesInView = false
-      singleTap.delegate = self
-      scrollView.addGestureRecognizer(singleTap)
-
-      let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-      longPress.minimumPressDuration = 0.5
-      longPress.cancelsTouchesInView = false
-      longPress.delegate = self
-      scrollView.addGestureRecognizer(longPress)
     }
 
     private func applyConfiguration() {
@@ -365,12 +337,8 @@
     @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
       guard renderConfig.doubleTapZoomMode != .disabled else { return }
 
-      singleTapWorkItem?.cancel()
-      if Date().timeIntervalSince(lastSingleTapActionTime) < 0.3 { return }
-
       if scrollView.zoomScale > scrollView.minimumZoomScale + 0.01 {
         scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
-        lastZoomOutTime = Date()
       } else {
         let point = gesture.location(in: pageItem)
         let zoomRect = calculateZoomRect(
@@ -378,65 +346,6 @@
           center: point
         )
         scrollView.zoom(to: zoomRect, animated: true)
-      }
-    }
-
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-      if gesture.state == .began {
-        isLongPressing = true
-      } else if gesture.state == .ended || gesture.state == .cancelled {
-        lastLongPressEndTime = Date()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-          self?.isLongPressing = false
-        }
-      }
-    }
-
-    @objc private func handleSingleTap(_ gesture: UITapGestureRecognizer) {
-      singleTapWorkItem?.cancel()
-
-      let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
-      guard !isLongPressing && !isMenuVisible && holdDuration < 0.3 else { return }
-      if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
-      if scrollView.zoomScale > scrollView.minimumZoomScale + 0.01 { return }
-      if Date().timeIntervalSince(lastZoomOutTime) < 0.4 { return }
-
-      let location = gesture.location(in: view)
-      let actionItem = DispatchWorkItem { [weak self] in
-        self?.performSingleTapAction(location: location)
-      }
-
-      let delay = renderConfig.doubleTapZoomMode.tapDebounceDelay
-      if delay > 0 {
-        singleTapWorkItem = actionItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: actionItem)
-      } else {
-        actionItem.perform()
-      }
-    }
-
-    private func performSingleTapAction(location: CGPoint) {
-      guard view.bounds.width > 0, view.bounds.height > 0 else { return }
-
-      lastSingleTapActionTime = Date()
-      let normalizedX = location.x / view.bounds.width
-      let normalizedY = location.y / view.bounds.height
-
-      let action = TapZoneHelper.action(
-        normalizedX: normalizedX,
-        normalizedY: normalizedY,
-        tapZoneMode: renderConfig.tapZoneMode,
-        readingDirection: readingDirection,
-        zoneThreshold: renderConfig.tapZoneSize.value
-      )
-
-      switch action {
-      case .previous:
-        onPreviousPage?()
-      case .next:
-        onNextPage?()
-      case .toggleControls:
-        onToggleControls?()
       }
     }
 
@@ -453,7 +362,6 @@
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-      lastTouchStartTime = Date()
       if let touchedView = touch.view, touchedView is UIControl {
         return false
       }
