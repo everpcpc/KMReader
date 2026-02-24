@@ -70,6 +70,13 @@ struct DivinaReaderView: View {
   @State private var requestedPreviousSegmentPreloads: Set<String> = []
   @State private var inFlightNextSegmentPreloads: Set<String> = []
   @State private var inFlightPreviousSegmentPreloads: Set<String> = []
+  #if os(iOS) || os(macOS)
+    @State private var tapZoneSingleTapTask: Task<Void, Never>?
+    @State private var tapZoneLastLongPressEndTime: Date = .distantPast
+    @State private var tapZoneLastDoubleTapTime: Date = .distantPast
+    @State private var tapZoneLastSingleTapActionTime: Date = .distantPast
+    @GestureState private var tapZoneIsLongPressing = false
+  #endif
 
   #if os(tvOS)
     @State private var lastTVRemoteMoveSignature: String = ""
@@ -399,7 +406,8 @@ struct DivinaReaderView: View {
 
         readerContent(
           useDualPage: useDualPage,
-          screenKey: screenKey
+          screenKey: screenKey,
+          screenSize: screenSize
         )
 
         #if os(tvOS)
@@ -535,6 +543,10 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
+      #if os(iOS) || os(macOS)
+        tapZoneSingleTapTask?.cancel()
+        tapZoneSingleTapTask = nil
+      #endif
       animatedPlaybackLoading = false
       animatedPlaybackURL = nil
       viewModel.clearPreloadedImages()
@@ -607,7 +619,8 @@ struct DivinaReaderView: View {
   @ViewBuilder
   private func readerContent(
     useDualPage: Bool,
-    screenKey: String
+    screenKey: String,
+    screenSize: CGSize
   ) -> some View {
     let _ = viewModel.updateActualDualPageMode(useDualPage)
 
@@ -634,8 +647,6 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                goToNextPage: { goToNextPage() },
-                goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
                 onPlayAnimatedPage: { pageIndex in
                   requestAnimatedPlayback(for: pageIndex)
@@ -658,9 +669,6 @@ struct DivinaReaderView: View {
                   renderConfig: renderConfig,
                   readListContext: readListContext,
                   onDismiss: { closeReader() },
-                  goToNextPage: { goToNextPage() },
-                  goToPreviousPage: { goToPreviousPage() },
-                  toggleControls: { toggleControls() },
                   onPlayAnimatedPage: { pageIndex in
                     requestAnimatedPlayback(for: pageIndex)
                   }
@@ -675,8 +683,6 @@ struct DivinaReaderView: View {
                   viewModel: viewModel,
                   readListContext: readListContext,
                   onDismiss: { closeReader() },
-                  goToNextPage: { goToNextPage() },
-                  goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
                   onPlayAnimatedPage: { pageIndex in
                     requestAnimatedPlayback(for: pageIndex)
@@ -698,8 +704,6 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                goToNextPage: { goToNextPage() },
-                goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
                 onPlayAnimatedPage: { pageIndex in
                   requestAnimatedPlayback(for: pageIndex)
@@ -715,6 +719,32 @@ struct DivinaReaderView: View {
         }
         .readerIgnoresSafeArea()
         .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
+        #if os(iOS) || os(macOS)
+          .simultaneousGesture(
+            SpatialTapGesture(count: 2).onEnded { _ in
+              handleTapZoneDoubleTap()
+            },
+            including: .gesture
+          )
+          .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5)
+              .updating($tapZoneIsLongPressing) { _, state, _ in
+                if !state {
+                  state = true
+                }
+              }
+              .onEnded { _ in
+                handleTapZoneLongPressEnded()
+              },
+            including: .gesture
+          )
+          .simultaneousGesture(
+            SpatialTapGesture(count: 1).onEnded { value in
+              scheduleTapZoneSingleTap(location: value.location, size: screenSize)
+            },
+            including: .gesture
+          )
+        #endif
         .onChange(of: viewModel.currentPageIndex) { oldIndex, newIndex in
           #if os(tvOS)
             if oldIndex >= viewModel.pageCount && newIndex < viewModel.pageCount {
@@ -1201,6 +1231,73 @@ struct DivinaReaderView: View {
 
     let globalPage = segmentRange.lowerBound + entry.pageIndex + 1
     jumpToPage(page: globalPage)
+  }
+
+  #if os(iOS) || os(macOS)
+    private var isTapZoneGestureEnabled: Bool {
+      viewModel.hasPages
+        && readingDirection != .webtoon
+        && !viewModel.isZoomed
+    }
+
+    private func handleTapZoneDoubleTap() {
+      guard isTapZoneGestureEnabled else { return }
+      tapZoneSingleTapTask?.cancel()
+      tapZoneSingleTapTask = nil
+      tapZoneLastDoubleTapTime = Date()
+    }
+
+    private func handleTapZoneLongPressEnded() {
+      tapZoneLastLongPressEndTime = Date()
+    }
+
+    private func scheduleTapZoneSingleTap(location: CGPoint, size: CGSize) {
+      tapZoneSingleTapTask?.cancel()
+      guard isTapZoneGestureEnabled else { return }
+      guard !tapZoneIsLongPressing else { return }
+
+      let now = Date()
+      if now.timeIntervalSince(tapZoneLastLongPressEndTime) < 0.5 { return }
+      if now.timeIntervalSince(tapZoneLastDoubleTapTime) < 0.35 { return }
+      if now.timeIntervalSince(tapZoneLastSingleTapActionTime) < 0.3 { return }
+
+      let delay = doubleTapZoomMode.tapDebounceDelay
+      tapZoneSingleTapTask = Task { @MainActor in
+        if delay > 0 {
+          try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+          if Task.isCancelled { return }
+        }
+        dispatchTapZoneSingleTap(location: location, size: size)
+      }
+    }
+
+    private func dispatchTapZoneSingleTap(location: CGPoint, size: CGSize) {
+      guard isTapZoneGestureEnabled else { return }
+      guard size.width > 0, size.height > 0 else { return }
+
+      tapZoneLastSingleTapActionTime = Date()
+      let normalizedX = max(0, min(1, location.x / size.width))
+      let normalizedY = max(0, min(1, location.y / size.height))
+      let action = TapZoneHelper.action(
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+        tapZoneMode: tapZoneMode,
+        readingDirection: readingDirection,
+        zoneThreshold: tapZoneSize.value
+      )
+      handleTapZoneAction(action)
+    }
+  #endif
+
+  private func handleTapZoneAction(_ action: TapZoneAction) {
+    switch action {
+    case .previous:
+      goToPreviousPage()
+    case .next:
+      goToNextPage()
+    case .toggleControls:
+      toggleControls()
+    }
   }
 
   private func goToNextPage() {

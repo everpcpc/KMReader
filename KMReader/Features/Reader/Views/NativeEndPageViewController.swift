@@ -7,7 +7,7 @@
   import UIKit
 
   @MainActor
-  final class NativeEndPageViewController: UIViewController, UIGestureRecognizerDelegate {
+  final class NativeEndPageViewController: UIViewController {
     private var previousBook: Book?
     private var nextBook: Book?
     private var readListContext: ReaderReadListContext?
@@ -23,9 +23,6 @@
       doubleTapZoomMode: .fast
     )
     private var onDismiss: (() -> Void)?
-    private var onNextPage: (() -> Void)?
-    private var onPreviousPage: (() -> Void)?
-    private var onToggleControls: (() -> Void)?
     private var lastIsPortrait: Bool?
 
     private let contentStack = UIStackView()
@@ -66,9 +63,6 @@
       readListContext: ReaderReadListContext?,
       readingDirection: ReadingDirection,
       renderConfig: ReaderRenderConfig,
-      onNextPage: (() -> Void)? = nil,
-      onPreviousPage: (() -> Void)? = nil,
-      onToggleControls: (() -> Void)? = nil,
       onDismiss: @escaping () -> Void
     ) {
       self.previousBook = previousBook
@@ -76,9 +70,6 @@
       self.readListContext = readListContext
       self.readingDirection = readingDirection
       self.renderConfig = renderConfig
-      self.onNextPage = onNextPage
-      self.onPreviousPage = onPreviousPage
-      self.onToggleControls = onToggleControls
       self.onDismiss = onDismiss
 
       if isViewLoaded {
@@ -99,11 +90,6 @@
 
     private func setupUI() {
       view.backgroundColor = UIColor(renderConfig.readerBackground.color)
-
-      let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
-      singleTap.cancelsTouchesInView = false
-      singleTap.delegate = self
-      view.addGestureRecognizer(singleTap)
 
       contentStack.translatesAutoresizingMaskIntoConstraints = false
       contentStack.axis = .vertical
@@ -474,37 +460,6 @@
 
     @objc private func handleClose() {
       onDismiss?()
-    }
-
-    @objc private func handleSingleTap(_ gesture: UITapGestureRecognizer) {
-      let location = gesture.location(in: view)
-      guard view.bounds.width > 0, view.bounds.height > 0 else { return }
-
-      let normalizedX = location.x / view.bounds.width
-      let normalizedY = location.y / view.bounds.height
-      let action = TapZoneHelper.action(
-        normalizedX: normalizedX,
-        normalizedY: normalizedY,
-        tapZoneMode: renderConfig.tapZoneMode,
-        readingDirection: readingDirection,
-        zoneThreshold: renderConfig.tapZoneSize.value
-      )
-
-      switch action {
-      case .previous:
-        onPreviousPage?()
-      case .next:
-        onNextPage?()
-      case .toggleControls:
-        onToggleControls?()
-      }
-    }
-
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-      if let touchedView = touch.view, touchedView is UIControl {
-        return false
-      }
-      return true
     }
 
   }
