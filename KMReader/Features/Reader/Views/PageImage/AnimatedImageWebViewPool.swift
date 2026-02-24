@@ -51,24 +51,26 @@
         <!doctype html>
         <html>
         <head>
-        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+        <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
         <style>
         html, body {
           margin: 0;
           width: 100%;
           height: 100%;
-          background: #000;
+          background: transparent;
           overflow: hidden;
         }
         body {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          position: relative;
         }
         img {
+          position: absolute;
+          inset: 0;
+          display: block;
           width: 100%;
           height: 100%;
           object-fit: contain;
+          object-position: center center;
           image-rendering: auto;
         }
         </style>
@@ -131,8 +133,9 @@
         webView.scrollView.showsVerticalScrollIndicator = false
         webView.scrollView.showsHorizontalScrollIndicator = false
         webView.scrollView.isScrollEnabled = false
-        webView.backgroundColor = .black
-        webView.scrollView.backgroundColor = .black
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.backgroundColor = .clear
+        webView.scrollView.backgroundColor = .clear
         webView.scrollView.bounces = false
       #elseif os(macOS)
         webView.setValue(false, forKey: "drawsBackground")

@@ -44,6 +44,8 @@
     private var loadError: String?
     private var isMenuVisible = false
     private var isLongPressing = false
+    private var isVisibleForAnimatedInlinePlayback = false
+    private var inlineReadyProbeToken: UInt64 = 0
     private var lastZoomOutTime: Date = .distantPast
     private var lastLongPressEndTime: Date = .distantPast
     private var lastTouchStartTime: Date = .distantPast
@@ -94,6 +96,20 @@
       applyConfiguration()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+      super.viewDidAppear(animated)
+      guard !isVisibleForAnimatedInlinePlayback else { return }
+      isVisibleForAnimatedInlinePlayback = true
+      updateAnimatedInlinePlayback()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+      super.viewDidDisappear(animated)
+      guard isVisibleForAnimatedInlinePlayback else { return }
+      isVisibleForAnimatedInlinePlayback = false
+      hideAnimatedInlinePlayback()
+    }
+
     deinit {
       loadTask?.cancel()
     }
@@ -140,7 +156,7 @@
       view.addSubview(playButton)
 
       animatedInlineContainer.translatesAutoresizingMaskIntoConstraints = false
-      animatedInlineContainer.backgroundColor = .black
+      animatedInlineContainer.backgroundColor = .clear
       animatedInlineContainer.isHidden = true
       animatedInlineContainer.isUserInteractionEnabled = false
       view.addSubview(animatedInlineContainer)
@@ -257,6 +273,10 @@
     }
 
     private func updateAnimatedInlinePlayback() {
+      guard isVisibleForAnimatedInlinePlayback else {
+        hideAnimatedInlinePlayback()
+        return
+      }
       guard renderConfig.autoPlayAnimatedImages else {
         hideAnimatedInlinePlayback()
         return
@@ -286,13 +306,18 @@
       }
 
       let didStartLoad = AnimatedImageWebViewPool.shared.loadFileIfNeeded(fileURL, slot: slot)
-      animatedInlineContainer.isHidden = didStartLoad
-      if !didStartLoad {
+      if didStartLoad {
+        inlineReadyProbeToken &+= 1
+        webView.alpha = 0
+        animatedInlineContainer.isHidden = true
+      } else {
+        webView.alpha = 1
         animatedInlineContainer.isHidden = false
       }
     }
 
     private func hideAnimatedInlinePlayback() {
+      inlineReadyProbeToken &+= 1
       animatedInlineContainer.isHidden = true
       for subview in animatedInlineContainer.subviews {
         subview.removeFromSuperview()
@@ -301,7 +326,16 @@
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
       guard webView.superview === animatedInlineContainer else { return }
-      animatedInlineContainer.isHidden = false
+      let token = inlineReadyProbeToken
+      AnimatedImageReadiness.waitUntilReady(
+        in: webView,
+        token: token,
+        currentToken: { [weak self] in self?.inlineReadyProbeToken ?? 0 }
+      ) { [weak self, weak webView] in
+        guard let self, let webView else { return }
+        webView.alpha = 1
+        self.animatedInlineContainer.isHidden = false
+      }
     }
 
     func webView(
@@ -310,6 +344,7 @@
       withError error: Error
     ) {
       guard webView.superview === animatedInlineContainer else { return }
+      webView.alpha = 1
       animatedInlineContainer.isHidden = false
     }
 
@@ -319,6 +354,7 @@
       withError error: Error
     ) {
       guard webView.superview === animatedInlineContainer else { return }
+      webView.alpha = 1
       animatedInlineContainer.isHidden = false
     }
 
