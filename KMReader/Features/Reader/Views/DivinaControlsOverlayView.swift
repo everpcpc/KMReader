@@ -221,7 +221,7 @@ struct DivinaControlsOverlayView: View {
             }
           }
           .padding(.vertical, 2)
-          .padding(.horizontal, 4)
+          .padding(.horizontal)
         }
         .optimizedControlSize()
         .contentShape(Capsule())

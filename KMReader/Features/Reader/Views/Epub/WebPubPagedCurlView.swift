@@ -77,10 +77,10 @@
         navigationOrientation: .horizontal,
         options: options
       )
-      pageVC.isDoubleSided = false
+      PageCurlControllerPlanner.configure(pageViewController: pageVC)
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
-      pageVC.view.backgroundColor = .clear
+      PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
       context.coordinator.pageViewController = pageVC
 
       // Allow simultaneous gesture recognition for zoom transition return gesture
@@ -122,8 +122,16 @@
           in: pageVC
         )
       {
-        pageVC.setViewControllers(
-          [initialVC],
+        let controllers = pageCurlControllers(
+          primary: initialVC,
+          targetChapterIndex: initialChapterIndex,
+          targetSubPageIndex: initialPageIndex,
+          animated: false,
+          in: pageVC
+        )
+        PageCurlControllerPlanner.safeSetViewControllers(
+          controllers,
+          on: pageVC,
           direction: .forward,
           animated: false
         )
@@ -137,6 +145,9 @@
 
     func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
       context.coordinator.parent = self
+      defer { context.coordinator.hasCompletedInitialUpdate = true }
+      PageCurlControllerPlanner.configure(pageViewController: uiViewController)
+      PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: uiViewController)
 
       let initialChapterIndex = viewModel.currentChapterIndex
       let initialPageCount = viewModel.chapterPageCount(at: initialChapterIndex) ?? 1
@@ -151,7 +162,19 @@
           in: uiViewController
         )
       {
-        uiViewController.setViewControllers([initialVC], direction: .forward, animated: false)
+        let controllers = pageCurlControllers(
+          primary: initialVC,
+          targetChapterIndex: initialChapterIndex,
+          targetSubPageIndex: initialPageIndex,
+          animated: false,
+          in: uiViewController
+        )
+        PageCurlControllerPlanner.safeSetViewControllers(
+          controllers,
+          on: uiViewController,
+          direction: .forward,
+          animated: false
+        )
         context.coordinator.currentChapterIndex = initialChapterIndex
         context.coordinator.currentPageIndex = initialPageIndex
         if let initialVC = initialVC as? EpubPageViewController {
@@ -179,7 +202,7 @@
             subPageIndex: normalizedPageIndex,
             in: uiViewController,
             preferLastPageOnReady: isLastPageRequest
-          )
+          ) as? EpubPageViewController
         else { return }
 
         let isForward =
@@ -189,18 +212,38 @@
         let direction: UIPageViewController.NavigationDirection = isForward ? .forward : .reverse
 
         context.coordinator.isAnimating = true
-        uiViewController.setViewControllers(
-          [targetVC],
+        let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate
+        let transitionControllers = pageCurlControllers(
+          primary: targetVC,
+          targetChapterIndex: targetChapterIndex,
+          targetSubPageIndex: normalizedPageIndex,
+          animated: shouldAnimateTransition,
+          in: uiViewController
+        )
+        PageCurlControllerPlanner.safeSetViewControllers(
+          transitionControllers,
+          on: uiViewController,
           direction: direction,
-          animated: true
+          animated: shouldAnimateTransition
         ) { completed in
           context.coordinator.isAnimating = false
-          if completed {
+          if completed || !shouldAnimateTransition {
             context.coordinator.currentChapterIndex = targetChapterIndex
             context.coordinator.currentPageIndex = normalizedPageIndex
-            if let currentVC = uiViewController.viewControllers?.first as? EpubPageViewController {
-              context.coordinator.preloadAdjacentPages(for: currentVC, in: uiViewController)
-            }
+            let committedControllers = pageCurlControllers(
+              primary: targetVC,
+              targetChapterIndex: targetChapterIndex,
+              targetSubPageIndex: normalizedPageIndex,
+              animated: false,
+              in: uiViewController
+            )
+            PageCurlControllerPlanner.safeSetViewControllers(
+              committedControllers,
+              on: uiViewController,
+              direction: direction,
+              animated: false
+            )
+            context.coordinator.preloadAdjacentPages(for: targetVC, in: uiViewController)
             Task { @MainActor in
               viewModel.currentChapterIndex = targetChapterIndex
               viewModel.currentPageIndex = normalizedPageIndex
@@ -269,6 +312,53 @@
       }
     }
 
+    private func pageCurlBacksideStyle() -> PageCurlBacksideViewController.Style {
+      PageCurlBacksideViewController.Style(
+        baseColor: preferences.resolvedTheme(for: colorScheme).uiColorBackground
+      )
+    }
+
+    private func pageCurlBacksideToken(chapterIndex: Int, subPageIndex: Int) -> String {
+      "\(chapterIndex):\(subPageIndex)"
+    }
+
+    private func pageCurlBacksideTarget(from token: String) -> (chapterIndex: Int, subPageIndex: Int)? {
+      let parts = token.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+      guard parts.count == 2 else { return nil }
+      guard let chapterIndex = Int(parts[0]), let subPageIndex = Int(parts[1]) else { return nil }
+      return (chapterIndex, subPageIndex)
+    }
+
+    private func pageCurlBacksideController(
+      chapterIndex: Int,
+      subPageIndex: Int
+    ) -> PageCurlBacksideViewController {
+      PageCurlBacksideViewController(
+        destinationToken: pageCurlBacksideToken(chapterIndex: chapterIndex, subPageIndex: subPageIndex),
+        style: pageCurlBacksideStyle()
+      )
+    }
+
+    private func pageCurlControllers(
+      primary: UIViewController,
+      targetChapterIndex: Int,
+      targetSubPageIndex: Int,
+      animated: Bool,
+      in pageVC: UIPageViewController
+    ) -> [UIViewController] {
+      PageCurlControllerPlanner.controllers(
+        primary: primary,
+        animated: animated,
+        in: pageVC,
+        makeBackside: {
+          pageCurlBacksideController(
+            chapterIndex: targetChapterIndex,
+            subPageIndex: targetSubPageIndex
+          )
+        }
+      )
+    }
+
     class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
       UIGestureRecognizerDelegate
     {
@@ -282,6 +372,7 @@
       private var isLongPressing = false
       private var lastLongPressEndTime: Date = .distantPast
       private var lastTouchStartTime: Date = .distantPast
+      var hasCompletedInitialUpdate = false
       private let maxCachedControllers = 5  // Increased from 3 to 5 to reduce eviction during transitions
       private var cachedControllers: [String: EpubPageViewController] = [:]
       private var controllerKeys: [ObjectIdentifier: String] = [:]
@@ -478,110 +569,116 @@
         _ pageViewController: UIPageViewController,
         viewControllerBefore viewController: UIViewController
       ) -> UIViewController? {
+        if let backsideController = viewController as? PageCurlBacksideViewController {
+          guard
+            let target = parent.pageCurlBacksideTarget(from: backsideController.destinationToken)
+          else { return nil }
+          let controller = self.pageViewController(
+            chapterIndex: target.chapterIndex,
+            subPageIndex: target.subPageIndex,
+            in: pageViewController
+          )
+          return reserveController(controller)
+        }
+
         guard let current = viewController as? EpubPageViewController else { return nil }
 
-        // If we're on the first chapter and first page, there's no previous page
-        // Return nil to indicate no previous page exists
         if current.chapterIndex == 0 && current.currentSubPageIndex <= 0 {
           return nil
         }
 
-        // If we're on the first chapter but not the first page
         if current.chapterIndex == 0 && current.currentSubPageIndex > 0 {
-          let controller = self.pageViewController(
-            chapterIndex: current.chapterIndex,
-            subPageIndex: current.currentSubPageIndex - 1,
-            in: pageViewController
+          return reserveController(
+            parent.pageCurlBacksideController(
+              chapterIndex: current.chapterIndex,
+              subPageIndex: current.currentSubPageIndex - 1
+            )
           )
-          // If we can't create the controller, return nil to prevent crash
-          return reserveController(controller)
         }
 
-        // If we're not on the first page of current chapter, go to previous page
         if current.currentSubPageIndex > 0 {
-          let controller = self.pageViewController(
-            chapterIndex: current.chapterIndex,
-            subPageIndex: current.currentSubPageIndex - 1,
-            in: pageViewController
+          return reserveController(
+            parent.pageCurlBacksideController(
+              chapterIndex: current.chapterIndex,
+              subPageIndex: current.currentSubPageIndex - 1
+            )
           )
-          return reserveController(controller)
         }
 
-        // We're on the first page of a non-first chapter, go to previous chapter
         let previousChapter = current.chapterIndex - 1
         guard previousChapter >= 0 else { return nil }
         let previousCount = parent.viewModel.chapterPageCount(at: previousChapter) ?? 1
 
-        // Go to last page of previous chapter
-        let controller = self.pageViewController(
-          chapterIndex: previousChapter,
-          subPageIndex: max(0, previousCount - 1),
-          in: pageViewController,
-          preferLastPageOnReady: true
+        return reserveController(
+          parent.pageCurlBacksideController(
+            chapterIndex: previousChapter,
+            subPageIndex: max(0, previousCount - 1)
+          )
         )
-        return reserveController(controller)
       }
 
       func pageViewController(
         _ pageViewController: UIPageViewController,
         viewControllerAfter viewController: UIViewController
       ) -> UIViewController? {
-        guard let current = viewController as? EpubPageViewController else { return nil }
-
-        let storedCount = parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? 1
-        let chapterPageCount = max(storedCount, current.totalPagesInChapter)
-        if current.currentSubPageIndex < chapterPageCount - 1 {
+        if let backsideController = viewController as? PageCurlBacksideViewController {
+          guard
+            let target = parent.pageCurlBacksideTarget(from: backsideController.destinationToken)
+          else { return nil }
           let controller = self.pageViewController(
-            chapterIndex: current.chapterIndex,
-            subPageIndex: current.currentSubPageIndex + 1,
+            chapterIndex: target.chapterIndex,
+            subPageIndex: target.subPageIndex,
             in: pageViewController
           )
           return reserveController(controller)
         }
 
+        guard let current = viewController as? EpubPageViewController else { return nil }
+
+        let storedCount = parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? 1
+        let chapterPageCount = max(storedCount, current.totalPagesInChapter)
+        if current.currentSubPageIndex < chapterPageCount - 1 {
+          return reserveController(
+            parent.pageCurlBacksideController(
+              chapterIndex: current.chapterIndex,
+              subPageIndex: current.currentSubPageIndex + 1
+            )
+          )
+        }
+
         let nextChapter = current.chapterIndex + 1
         guard nextChapter < parent.viewModel.chapterCount else { return nil }
 
-        let controller = self.pageViewController(
-          chapterIndex: nextChapter,
-          subPageIndex: 0,
-          in: pageViewController
+        return reserveController(
+          parent.pageCurlBacksideController(
+            chapterIndex: nextChapter,
+            subPageIndex: 0
+          )
         )
-        return reserveController(controller)
       }
 
       func pageViewController(
         _ pageViewController: UIPageViewController,
         willTransitionTo pendingViewControllers: [UIViewController]
       ) {
-        // Guard against empty array which can cause crashes
         guard !pendingViewControllers.isEmpty else { return }
         clearReservedControllers()
 
-        // Track pending controllers to prevent them from being evicted during transition
         for controller in pendingViewControllers {
           pendingControllers.insert(ObjectIdentifier(controller))
           if let pending = controller as? EpubPageViewController {
             pending.loadViewIfNeeded()
             pending.forceEnsureContentLoaded()
+          } else if let backside = controller as? PageCurlBacksideViewController {
+            backside.updateStyle(parent.pageCurlBacksideStyle())
           }
         }
       }
 
-      func pageViewController(
-        _ pageViewController: UIPageViewController,
-        didFinishAnimating finished: Bool,
-        previousViewControllers: [UIViewController],
-        transitionCompleted completed: Bool
+      private func commitCurrentController(
+        _ currentVC: EpubPageViewController,
+        in pageViewController: UIPageViewController
       ) {
-        // Clear pending controllers tracking
-        pendingControllers.removeAll()
-        clearReservedControllers()
-
-        guard completed,
-          let currentVC = pageViewController.viewControllers?.first as? EpubPageViewController
-        else { return }
-
         let chapterIndex = currentVC.chapterIndex
         let storedCount = parent.viewModel.chapterPageCount(at: chapterIndex) ?? 1
         let effectiveCount = max(storedCount, currentVC.totalPagesInChapter)
@@ -597,6 +694,58 @@
           parent.viewModel.currentPageIndex = normalizedPageIndex
           parent.viewModel.pageDidChange()
         }
+      }
+
+      func pageViewController(
+        _ pageViewController: UIPageViewController,
+        didFinishAnimating finished: Bool,
+        previousViewControllers: [UIViewController],
+        transitionCompleted completed: Bool
+      ) {
+        pendingControllers.removeAll()
+        clearReservedControllers()
+
+        guard completed,
+          let visibleController = pageViewController.viewControllers?.first
+        else { return }
+
+        if let backsideController = visibleController as? PageCurlBacksideViewController {
+          guard
+            let target = parent.pageCurlBacksideTarget(from: backsideController.destinationToken),
+            let targetController = self.pageViewController(
+              chapterIndex: target.chapterIndex,
+              subPageIndex: target.subPageIndex,
+              in: pageViewController
+            ) as? EpubPageViewController
+          else { return }
+
+          let committedControllers = parent.pageCurlControllers(
+            primary: targetController,
+            targetChapterIndex: target.chapterIndex,
+            targetSubPageIndex: target.subPageIndex,
+            animated: false,
+            in: pageViewController
+          )
+          PageCurlControllerPlanner.safeSetViewControllers(
+            committedControllers,
+            on: pageViewController,
+            direction: .forward,
+            animated: false
+          )
+          commitCurrentController(targetController, in: pageViewController)
+          return
+        }
+
+        guard let currentVC = visibleController as? EpubPageViewController else { return }
+        commitCurrentController(currentVC, in: pageViewController)
+      }
+
+      func pageViewController(
+        _ pageViewController: UIPageViewController,
+        spineLocationFor orientation: UIInterfaceOrientation
+      ) -> UIPageViewController.SpineLocation {
+        PageCurlControllerPlanner.configure(pageViewController: pageViewController)
+        return .min
       }
 
       @objc func handleTap(_ recognizer: UITapGestureRecognizer) {

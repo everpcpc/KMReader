@@ -41,8 +41,11 @@
         }
       }
 
-      pageVC.isDoubleSided = false
-      pageVC.view.semanticContentAttribute = mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+      PageCurlControllerPlanner.configure(
+        pageViewController: pageVC,
+        semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+      )
+      PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
 
       let initialIndex = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
       context.coordinator.currentPageIndex = initialIndex
@@ -52,8 +55,15 @@
       }
 
       if let initialVC = context.coordinator.pageViewController(for: initialIndex) {
-        pageVC.setViewControllers(
-          [initialVC],
+        let controllers = pageCurlControllers(
+          primary: initialVC,
+          targetIndex: initialIndex,
+          animated: false,
+          in: pageVC
+        )
+        PageCurlControllerPlanner.safeSetViewControllers(
+          controllers,
+          on: pageVC,
           direction: .forward,
           animated: false
         )
@@ -65,6 +75,12 @@
     func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
       context.coordinator.parent = self
       context.coordinator.pageViewController = pageVC
+      defer { context.coordinator.hasCompletedInitialUpdate = true }
+      PageCurlControllerPlanner.configure(
+        pageViewController: pageVC,
+        semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+      )
+      PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
       context.coordinator.syncCurrentPageIndexWithVisibleController()
       let didViewItemsChange = context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
       context.coordinator.refreshVisibleControllerConfiguration()
@@ -111,21 +127,68 @@
       }
 
       context.coordinator.isTransitioning = true
-      pageVC.setViewControllers(
-        [targetVC],
+      let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate
+      let transitionControllers = pageCurlControllers(
+        primary: targetVC,
+        targetIndex: targetViewItemIndex,
+        animated: shouldAnimateTransition,
+        in: pageVC
+      )
+      PageCurlControllerPlanner.safeSetViewControllers(
+        transitionControllers,
+        on: pageVC,
         direction: direction,
-        animated: true
+        animated: shouldAnimateTransition
       ) { completed in
         Task { @MainActor in
           context.coordinator.isTransitioning = false
-          context.coordinator.syncCurrentPageIndexWithVisibleController()
-          if completed {
+          if completed || !shouldAnimateTransition {
+            let committedControllers = pageCurlControllers(
+              primary: targetVC,
+              targetIndex: targetViewItemIndex,
+              animated: false,
+              in: pageVC
+            )
+            PageCurlControllerPlanner.safeSetViewControllers(
+              committedControllers,
+              on: pageVC,
+              direction: direction,
+              animated: false
+            )
+            context.coordinator.currentPageIndex = targetViewItemIndex
             viewModel.updateCurrentPosition(viewItemIndex: context.coordinator.currentPageIndex)
           }
           viewModel.targetViewItemIndex = nil
           viewModel.targetPageIndex = nil
         }
       }
+    }
+
+    private func pageCurlBacksideStyle() -> PageCurlBacksideViewController.Style {
+      PageCurlBacksideViewController.Style(
+        baseColor: UIColor(renderConfig.readerBackground.color)
+      )
+    }
+
+    private func pageCurlBacksideController(for targetIndex: Int) -> PageCurlBacksideViewController {
+      PageCurlBacksideViewController(
+        destinationToken: String(targetIndex),
+        style: pageCurlBacksideStyle()
+      )
+    }
+
+    private func pageCurlControllers(
+      primary: UIViewController,
+      targetIndex: Int,
+      animated: Bool,
+      in pageVC: UIPageViewController
+    ) -> [UIViewController] {
+      PageCurlControllerPlanner.controllers(
+        primary: primary,
+        animated: animated,
+        in: pageVC,
+        makeBackside: { pageCurlBacksideController(for: targetIndex) }
+      )
     }
 
     // MARK: - Coordinator
@@ -137,6 +200,7 @@
       var currentPageIndex: Int
       weak var pageViewController: UIPageViewController?
       var isTransitioning = false
+      var hasCompletedInitialUpdate = false
       private var lastViewItemsCount: Int = 0
       private var lastFirstViewItem: ReaderViewItem?
       private var lastLastViewItem: ReaderViewItem?
@@ -227,7 +291,7 @@
       func refreshVisibleControllerConfiguration() {
         guard let pageViewController else { return }
         guard let visibleController = pageViewController.viewControllers?.first else { return }
-        let index = visibleController.view.tag
+        guard let index = resolvedIndex(for: visibleController) else { return }
         guard let item = parent.viewModel.viewItem(at: index) else { return }
 
         switch item {
@@ -235,13 +299,35 @@
           if let endController = visibleController as? NativeEndPageViewController {
             configureEndController(endController, segmentBookId: segmentBookId)
           } else if let replacement = self.pageViewController(for: index) {
-            pageViewController.setViewControllers([replacement], direction: .forward, animated: false)
+            let controllers = parent.pageCurlControllers(
+              primary: replacement,
+              targetIndex: index,
+              animated: false,
+              in: pageViewController
+            )
+            PageCurlControllerPlanner.safeSetViewControllers(
+              controllers,
+              on: pageViewController,
+              direction: .forward,
+              animated: false
+            )
           }
         case .page, .dual, .split:
           if let imageController = visibleController as? NativeImagePageViewController {
             configureImageController(imageController, with: item)
           } else if let replacement = self.pageViewController(for: index) {
-            pageViewController.setViewControllers([replacement], direction: .forward, animated: false)
+            let controllers = parent.pageCurlControllers(
+              primary: replacement,
+              targetIndex: index,
+              animated: false,
+              in: pageViewController
+            )
+            PageCurlControllerPlanner.safeSetViewControllers(
+              controllers,
+              on: pageViewController,
+              direction: .forward,
+              animated: false
+            )
           }
         }
       }
@@ -274,20 +360,32 @@
         _ pageViewController: UIPageViewController,
         viewControllerBefore viewController: UIViewController
       ) -> UIViewController? {
+        if let backsideController = viewController as? PageCurlBacksideViewController {
+          guard let targetIndex = Int(backsideController.destinationToken), isValidIndex(targetIndex) else {
+            return nil
+          }
+          return self.pageViewController(for: targetIndex)
+        }
         let index = viewController.view.tag
         let targetIndex = parent.mode.isRTL ? index + 1 : index - 1
         if !isValidIndex(targetIndex) { return nil }
-        return self.pageViewController(for: targetIndex)
+        return parent.pageCurlBacksideController(for: targetIndex)
       }
 
       func pageViewController(
         _ pageViewController: UIPageViewController,
         viewControllerAfter viewController: UIViewController
       ) -> UIViewController? {
+        if let backsideController = viewController as? PageCurlBacksideViewController {
+          guard let targetIndex = Int(backsideController.destinationToken), isValidIndex(targetIndex) else {
+            return nil
+          }
+          return self.pageViewController(for: targetIndex)
+        }
         let index = viewController.view.tag
         let targetIndex = parent.mode.isRTL ? index - 1 : index + 1
         if !isValidIndex(targetIndex) { return nil }
-        return self.pageViewController(for: targetIndex)
+        return parent.pageCurlBacksideController(for: targetIndex)
       }
 
       // MARK: - UIPageViewControllerDelegate
@@ -308,10 +406,37 @@
         isTransitioning = false
         syncCurrentPageIndexWithVisibleController()
         guard completed,
-          let currentVC = pageViewController.viewControllers?.first
+          let visibleController = pageViewController.viewControllers?.first
         else { return }
 
-        let newIndex = currentVC.view.tag
+        let newIndex: Int
+        if let backsideController = visibleController as? PageCurlBacksideViewController {
+          guard
+            let targetIndex = Int(backsideController.destinationToken),
+            isValidIndex(targetIndex),
+            let targetVC = self.pageViewController(for: targetIndex)
+          else {
+            return
+          }
+          let controllers = parent.pageCurlControllers(
+            primary: targetVC,
+            targetIndex: targetIndex,
+            animated: false,
+            in: pageViewController
+          )
+          PageCurlControllerPlanner.safeSetViewControllers(
+            controllers,
+            on: pageViewController,
+            direction: .forward,
+            animated: false
+          )
+          newIndex = targetIndex
+        } else {
+          let resolvedIndex = visibleController.view.tag
+          guard isValidIndex(resolvedIndex) else { return }
+          newIndex = resolvedIndex
+        }
+
         currentPageIndex = newIndex
 
         Task { @MainActor in
@@ -321,16 +446,38 @@
         }
       }
 
+      func pageViewController(
+        _ pageViewController: UIPageViewController,
+        spineLocationFor orientation: UIInterfaceOrientation
+      ) -> UIPageViewController.SpineLocation {
+        PageCurlControllerPlanner.configure(
+          pageViewController: pageViewController,
+          semanticContentAttribute: parent.mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+        )
+        return parent.mode.isRTL ? .max : .min
+      }
+
       // MARK: - UIGestureRecognizerDelegate
 
       private func isValidIndex(_ index: Int) -> Bool {
         index >= 0 && index < totalPages
       }
 
-      private func visiblePageIndex() -> Int? {
-        guard let index = pageViewController?.viewControllers?.first?.view.tag else { return nil }
+      private func resolvedIndex(for viewController: UIViewController) -> Int? {
+        if let backsideController = viewController as? PageCurlBacksideViewController {
+          guard let targetIndex = Int(backsideController.destinationToken) else { return nil }
+          guard isValidIndex(targetIndex) else { return nil }
+          return targetIndex
+        }
+
+        let index = viewController.view.tag
         guard isValidIndex(index) else { return nil }
         return index
+      }
+
+      private func visiblePageIndex() -> Int? {
+        guard let visibleController = pageViewController?.viewControllers?.first else { return nil }
+        return resolvedIndex(for: visibleController)
       }
 
       func syncCurrentPageIndexWithVisibleController() {
