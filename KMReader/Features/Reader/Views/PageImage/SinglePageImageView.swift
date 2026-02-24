@@ -9,6 +9,7 @@ import SwiftUI
 struct SinglePageImageView: View {
   var viewModel: ReaderViewModel
   let pageIndex: Int
+  let isPlaybackActive: Bool
   let screenSize: CGSize
   let renderConfig: ReaderRenderConfig
 
@@ -36,8 +37,7 @@ struct SinglePageImageView: View {
         NativePageData(
           bookId: viewModel.resolvedBookId(forPageIndex: pageIndex),
           pageNumber: pageIndex,
-          isLoading: viewModel.isLoading && readerPage != nil
-            && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
+          isLoading: readerPage != nil && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
           error: nil,
           alignment: .center
         )
@@ -46,11 +46,10 @@ struct SinglePageImageView: View {
     .frame(width: screenSize.width, height: screenSize.height)
     .overlay {
       if let animatedFileURL = autoPlayAnimatedFileURL {
-        ReusableAnimatedImageWebView(
+        InlineAnimatedImageView(
           fileURL: animatedFileURL,
           poolSlot: animatedPoolSlot
         )
-        .allowsHitTesting(false)
       } else if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
         AnimatedImagePlayButton {
           onPlayAnimatedPage?(pageIndex)
@@ -63,6 +62,7 @@ struct SinglePageImageView: View {
     #if os(tvOS)
       return nil
     #else
+      guard isPlaybackActive else { return nil }
       guard renderConfig.autoPlayAnimatedImages else { return nil }
       return viewModel.animatedPlaybackFileURL(for: pageIndex)
     #endif

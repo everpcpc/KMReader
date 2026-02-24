@@ -21,7 +21,7 @@ import SwiftUI
 
     var body: some View {
       PlatformWebView(fileURL: fileURL, poolSlot: poolSlot, onLoadStateChange: onLoadStateChange)
-        .background(Color.black)
+        .background(Color.clear)
     }
 
     @MainActor
@@ -47,7 +47,7 @@ import SwiftUI
         @MainActor
         func makeUIView(context: Context) -> UIView {
           let container = UIView()
-          container.backgroundColor = .black
+          container.backgroundColor = .clear
           attachSharedWebView(to: container, coordinator: context.coordinator)
           return container
         }
@@ -78,33 +78,50 @@ import SwiftUI
             fileURL: fileURL,
             slot: poolSlot
           ) {
+            webView.alpha = 0
             coordinator.markLoading()
           } else {
+            webView.alpha = 1
             coordinator.markLoaded()
           }
         }
 
         final class Coordinator: NSObject, WKNavigationDelegate {
           var onLoadStateChange: ((Bool) -> Void)?
+          private var readinessToken: UInt64 = 0
 
           init(onLoadStateChange: ((Bool) -> Void)?) {
             self.onLoadStateChange = onLoadStateChange
           }
 
           func markLoading() {
-            Task { @MainActor in
-              self.onLoadStateChange?(false)
-            }
+            readinessToken &+= 1
+            emitLoadState(false, token: readinessToken)
           }
 
           func markLoaded() {
+            readinessToken &+= 1
+            emitLoadState(true, token: readinessToken)
+          }
+
+          private func emitLoadState(_ isReady: Bool, token: UInt64) {
             Task { @MainActor in
-              self.onLoadStateChange?(true)
+              guard self.readinessToken == token else { return }
+              self.onLoadStateChange?(isReady)
             }
           }
 
           func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            markLoaded()
+            let token = readinessToken
+            AnimatedImageReadiness.waitUntilReady(
+              in: webView,
+              token: token,
+              currentToken: { [weak self] in self?.readinessToken ?? 0 }
+            ) { [weak self, weak webView] in
+              guard let self, let webView else { return }
+              webView.alpha = 1
+              self.emitLoadState(true, token: token)
+            }
           }
 
           func webView(
@@ -112,6 +129,7 @@ import SwiftUI
             didFail navigation: WKNavigation!,
             withError error: Error
           ) {
+            webView.alpha = 1
             markLoaded()
           }
 
@@ -120,6 +138,7 @@ import SwiftUI
             didFailProvisionalNavigation navigation: WKNavigation!,
             withError error: Error
           ) {
+            webView.alpha = 1
             markLoaded()
           }
         }
@@ -138,7 +157,7 @@ import SwiftUI
         func makeNSView(context: Context) -> NSView {
           let container = NSView()
           container.wantsLayer = true
-          container.layer?.backgroundColor = NSColor.black.cgColor
+          container.layer?.backgroundColor = NSColor.clear.cgColor
           attachSharedWebView(to: container, coordinator: context.coordinator)
           return container
         }
@@ -169,33 +188,50 @@ import SwiftUI
             fileURL: fileURL,
             slot: poolSlot
           ) {
+            webView.alphaValue = 0
             coordinator.markLoading()
           } else {
+            webView.alphaValue = 1
             coordinator.markLoaded()
           }
         }
 
         final class Coordinator: NSObject, WKNavigationDelegate {
           var onLoadStateChange: ((Bool) -> Void)?
+          private var readinessToken: UInt64 = 0
 
           init(onLoadStateChange: ((Bool) -> Void)?) {
             self.onLoadStateChange = onLoadStateChange
           }
 
           func markLoading() {
-            Task { @MainActor in
-              self.onLoadStateChange?(false)
-            }
+            readinessToken &+= 1
+            emitLoadState(false, token: readinessToken)
           }
 
           func markLoaded() {
+            readinessToken &+= 1
+            emitLoadState(true, token: readinessToken)
+          }
+
+          private func emitLoadState(_ isReady: Bool, token: UInt64) {
             Task { @MainActor in
-              self.onLoadStateChange?(true)
+              guard self.readinessToken == token else { return }
+              self.onLoadStateChange?(isReady)
             }
           }
 
           func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            markLoaded()
+            let token = readinessToken
+            AnimatedImageReadiness.waitUntilReady(
+              in: webView,
+              token: token,
+              currentToken: { [weak self] in self?.readinessToken ?? 0 }
+            ) { [weak self, weak webView] in
+              guard let self, let webView else { return }
+              webView.alphaValue = 1
+              self.emitLoadState(true, token: token)
+            }
           }
 
           func webView(
@@ -203,6 +239,7 @@ import SwiftUI
             didFail navigation: WKNavigation!,
             withError error: Error
           ) {
+            webView.alphaValue = 1
             markLoaded()
           }
 
@@ -211,6 +248,7 @@ import SwiftUI
             didFailProvisionalNavigation navigation: WKNavigation!,
             withError error: Error
           ) {
+            webView.alphaValue = 1
             markLoaded()
           }
         }

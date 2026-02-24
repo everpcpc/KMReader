@@ -10,6 +10,7 @@ struct DualPageImageView: View {
   var viewModel: ReaderViewModel
   let firstPageIndex: Int
   let secondPageIndex: Int
+  let isPlaybackActive: Bool
   let screenSize: CGSize
   let renderConfig: ReaderRenderConfig
 
@@ -42,7 +43,7 @@ struct DualPageImageView: View {
         NativePageData(
           bookId: viewModel.resolvedBookId(forPageIndex: firstPageIndex),
           pageNumber: firstPageIndex,
-          isLoading: viewModel.isLoading && firstReaderPage != nil
+          isLoading: firstReaderPage != nil
             && viewModel.preloadedImage(forPageIndex: firstPageIndex) == nil,
           error: nil,
           // Page 1 is always the first subview. In Dual Mode, the first subview always hugs the center spine (Trailing).
@@ -52,7 +53,7 @@ struct DualPageImageView: View {
         NativePageData(
           bookId: viewModel.resolvedBookId(forPageIndex: secondPageIndex),
           pageNumber: secondPageIndex,
-          isLoading: viewModel.isLoading && secondReaderPage != nil
+          isLoading: secondReaderPage != nil
             && viewModel.preloadedImage(forPageIndex: secondPageIndex) == nil,
           error: nil,
           // Page 2 is the second subview, it hugs the center spine (Leading).
@@ -73,11 +74,10 @@ struct DualPageImageView: View {
   private func pagePlayButton(for pageIndex: Int) -> some View {
     ZStack {
       if let animatedFileURL = autoPlayAnimatedFileURL(for: pageIndex) {
-        ReusableAnimatedImageWebView(
+        InlineAnimatedImageView(
           fileURL: animatedFileURL,
           poolSlot: animatedPoolSlot(for: pageIndex)
         )
-        .allowsHitTesting(false)
       } else if viewModel.shouldShowAnimatedPlayButton(for: pageIndex) {
         AnimatedImagePlayButton {
           onPlayAnimatedPage?(pageIndex)
@@ -91,6 +91,7 @@ struct DualPageImageView: View {
     #if os(tvOS)
       return nil
     #else
+      guard isPlaybackActive else { return nil }
       guard renderConfig.autoPlayAnimatedImages else { return nil }
       return viewModel.animatedPlaybackFileURL(for: pageIndex)
     #endif

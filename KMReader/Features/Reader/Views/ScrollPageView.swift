@@ -215,6 +215,7 @@ struct ScrollPageView: View {
               viewModel: viewModel,
               firstPageIndex: firstPageIndex,
               secondPageIndex: secondPageIndex,
+              isPlaybackActive: offset == viewModel.currentViewItemIndex,
               screenSize: geometry.size,
               renderConfig: renderConfig,
               readingDirection: readingDirection,
@@ -229,6 +230,7 @@ struct ScrollPageView: View {
             SinglePageImageView(
               viewModel: viewModel,
               pageIndex: pageIndex,
+              isPlaybackActive: offset == viewModel.currentViewItemIndex,
               screenSize: geometry.size,
               renderConfig: renderConfig,
               readingDirection: readingDirection,
@@ -249,6 +251,7 @@ struct ScrollPageView: View {
               viewModel: viewModel,
               pageIndex: pageIndex,
               isLeftHalf: isLeftHalf,
+              isPlaybackActive: offset == viewModel.currentViewItemIndex,
               screenSize: geometry.size,
               renderConfig: renderConfig,
               readingDirection: readingDirection,
