@@ -52,7 +52,6 @@ struct DivinaReaderView: View {
   @State private var seriesId: String?
   @State private var nextBook: Book?
   @State private var previousBook: Book?
-  @State private var isAtBottom = false
   @State private var showTapZoneOverlay = false
   @State private var tapZoneOverlayTimer: Timer?
 
@@ -67,8 +66,10 @@ struct DivinaReaderView: View {
   @State private var showingDetailSheet = false
   @State private var animatedPlaybackURL: URL?
   @State private var animatedPlaybackLoading = false
-  @State private var boundaryDragOffset: CGFloat = 0
-  private let boundarySwipeThreshold: CGFloat = 120
+  @State private var requestedNextSegmentPreloads: Set<String> = []
+  @State private var requestedPreviousSegmentPreloads: Set<String> = []
+  @State private var inFlightNextSegmentPreloads: Set<String> = []
+  @State private var inFlightPreviousSegmentPreloads: Set<String> = []
 
   #if os(tvOS)
     @State private var lastTVRemoteMoveSignature: String = ""
@@ -104,16 +105,7 @@ struct DivinaReaderView: View {
   }
 
   var shouldShowControls: Bool {
-    // Always show controls when no pages are loaded or when explicitly shown
-    #if os(tvOS)
-      // On tvOS, don't force controls at endpage to allow navigation back
-      !viewModel.isZoomed
-        && (viewModel.pages.isEmpty || showingControls || (readingDirection == .webtoon && isAtBottom))
-    #else
-      !viewModel.isZoomed
-        && (viewModel.pages.isEmpty || showingControls || isShowingEndPage
-          || (readingDirection == .webtoon && isAtBottom))
-    #endif
+    !viewModel.isZoomed && (!viewModel.hasPages || showingControls)
   }
 
   private var renderConfig: ReaderRenderConfig {
@@ -129,88 +121,49 @@ struct DivinaReaderView: View {
     )
   }
 
-  #if os(iOS)
-    private enum BoundaryArcTarget {
-      case previous
-      case next
-    }
+  private var currentSegmentContext:
+    (
+      bookId: String, currentBook: Book?, previousBook: Book?, nextBook: Book?
+    )
+  {
+    viewModel.activeSegmentContext(
+      fallbackBookId: currentBookId,
+      fallbackCurrentBook: currentBook,
+      fallbackPreviousBook: previousBook,
+      fallbackNextBook: nextBook
+    )
+  }
 
-    private var boundaryArcColor: Color {
-      switch readerBackground {
-      case .black:
-        return .white
-      case .white:
-        return .black
-      case .gray:
-        return .white
-      case .system:
-        return .primary
-      }
-    }
+  private var currentSegmentBookId: String {
+    currentSegmentContext.bookId
+  }
 
-    private var boundaryArcTarget: BoundaryArcTarget? {
-      guard boundaryDragOffset != 0 else { return nil }
+  private var currentSegmentBook: Book? {
+    currentSegmentContext.currentBook
+  }
 
-      if readingDirection == .webtoon {
-        guard isAtBottom, nextBook != nil else { return nil }
-        return readingDirection.isForwardSwipe(boundaryDragOffset) ? .next : nil
-      }
+  private var currentSegmentNextBook: Book? {
+    currentSegmentContext.nextBook
+  }
 
-      let isAtFirstBoundary = viewModel.currentViewItemIndex == 0
-      let isAtEndBoundary =
-        !viewModel.viewItems.isEmpty
-        && viewModel.currentViewItemIndex == viewModel.viewItems.count - 1
-
-      if isAtFirstBoundary, previousBook != nil, readingDirection.isBackwardSwipe(boundaryDragOffset) {
-        return .previous
-      }
-      if isAtEndBoundary, nextBook != nil, readingDirection.isForwardSwipe(boundaryDragOffset) {
-        return .next
-      }
-      return nil
-    }
-
-    private var boundaryArcReadingDirection: ReadingDirection {
-      switch boundaryArcTarget {
-      case .previous:
-        switch readingDirection {
-        case .ltr:
-          return .rtl
-        case .rtl:
-          return .ltr
-        case .vertical:
-          return .vertical
-        case .webtoon:
-          return .webtoon
-        }
-      case .next:
-        return readingDirection
-      case .none:
-        return readingDirection
-      }
-    }
-
-    private var boundaryArcProgress: CGFloat {
-      guard boundaryArcTarget != nil else { return 0 }
-      return min(abs(boundaryDragOffset) / boundarySwipeThreshold, 1.0)
-    }
-  #endif
+  private var currentSegmentPreviousBook: Book? {
+    currentSegmentContext.previousBook
+  }
 
   private var handoffBookId: String {
-    currentBook?.id ?? book.id
+    currentSegmentBook?.id ?? currentBook?.id ?? book.id
   }
 
   private var handoffTitle: String {
-    currentBook?.metadata.title ?? book.metadata.title
+    currentSegmentBook?.metadata.title ?? currentBook?.metadata.title ?? book.metadata.title
   }
 
   private var handoffPageNumber: Int? {
-    viewModel.currentPage?.number
+    viewModel.currentReaderPage?.pageNumber
   }
 
   private var isShowingEndPage: Bool {
-    guard !viewModel.pages.isEmpty else { return false }
-    return viewModel.currentPageIndex >= viewModel.pages.count
+    viewModel.currentViewItem()?.isEnd == true
   }
 
   private func shouldUseDualPage(screenSize: CGSize) -> Bool {
@@ -231,7 +184,7 @@ struct DivinaReaderView: View {
 
   private func closeReader() {
     logger.debug(
-      "🚪 Closing DIVINA reader for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pages.count)"
+      "🚪 Closing DIVINA reader for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pageCount)"
     )
     if let onClose {
       onClose()
@@ -294,7 +247,7 @@ struct DivinaReaderView: View {
         && !showingTOCSheet
         && !showingReaderSettingsSheet
         && !showingDetailSheet
-        && !viewModel.pages.isEmpty
+        && viewModel.hasPages
     }
 
     private func isBackwardTVMove(_ direction: MoveCommandDirection) -> Bool {
@@ -333,14 +286,14 @@ struct DivinaReaderView: View {
 
     private func handleTVMoveCommand(_ direction: MoveCommandDirection, source: String) -> Bool {
       logger.debug(
-        "📺 \(source) move direction=\(String(describing: direction)), showingControls=\(showingControls), currentPageIndex=\(viewModel.currentPageIndex), totalPages=\(viewModel.pages.count)"
+        "📺 \(source) move direction=\(String(describing: direction)), showingControls=\(showingControls), currentPageIndex=\(viewModel.currentPageIndex), totalPages=\(viewModel.pageCount)"
       )
 
       if showingControls {
         logger.debug("📺 \(source) move ignored: controls are visible")
         return false
       }
-      if viewModel.pages.isEmpty {
+      if !viewModel.hasPages {
         logger.debug("📺 \(source) move ignored: pages are empty")
         return false
       }
@@ -350,7 +303,7 @@ struct DivinaReaderView: View {
         return true
       }
 
-      if viewModel.currentPageIndex >= viewModel.pages.count {
+      if isShowingEndPage {
         if isBackwardTVMove(direction) {
           logger.debug("📺 \(source) move on end page: go to previous page")
           goToPreviousPage()
@@ -408,7 +361,7 @@ struct DivinaReaderView: View {
 
     private func handleTVSelectCommand(source: String) -> Bool {
       logger.debug(
-        "📺 \(source) select, showingControls=\(showingControls), totalPages=\(viewModel.pages.count), currentPageIndex=\(viewModel.currentPageIndex)"
+        "📺 \(source) select, showingControls=\(showingControls), totalPages=\(viewModel.pageCount), currentPageIndex=\(viewModel.currentPageIndex)"
       )
 
       if shouldIgnoreDuplicateTVSelectCommand() {
@@ -420,11 +373,11 @@ struct DivinaReaderView: View {
         logger.debug("📺 \(source) select ignored: controls are visible")
         return false
       }
-      if viewModel.pages.isEmpty {
+      if !viewModel.hasPages {
         logger.debug("📺 \(source) select ignored: pages are empty")
         return false
       }
-      if viewModel.currentPageIndex >= viewModel.pages.count {
+      if isShowingEndPage {
         logger.debug("📺 \(source) select on end page: toggle controls")
         toggleControls(autoHide: false)
         return true
@@ -454,18 +407,6 @@ struct DivinaReaderView: View {
         #endif
 
         helperOverlay(screenKey: screenKey)
-
-        #if os(iOS)
-          if boundaryArcProgress > 0.01 {
-            ArcEffectView(
-              color: boundaryArcColor,
-              progress: boundaryArcProgress,
-              readingDirection: boundaryArcReadingDirection
-            )
-            .environment(\.layoutDirection, .leftToRight)
-            .allowsHitTesting(false)
-          }
-        #endif
 
         controlsOverlay(useDualPage: useDualPage)
 
@@ -527,9 +468,7 @@ struct DivinaReaderView: View {
     #endif
     .sheet(isPresented: $showingPageJumpSheet) {
       PageJumpSheetView(
-        bookId: currentBookId,
-        totalPages: viewModel.pages.count,
-        currentPage: min(viewModel.currentPageIndex + 1, viewModel.pages.count),
+        currentPage: viewModel.currentPageNumberInCurrentSegment(),
         readingDirection: readingDirection,
         viewModel: viewModel,
         onJump: jumpToPage
@@ -538,7 +477,7 @@ struct DivinaReaderView: View {
     .sheet(isPresented: $showingTOCSheet) {
       DivinaTOCSheetView(
         entries: viewModel.tableOfContents,
-        currentPageIndex: viewModel.currentPageIndex,
+        currentPageIndex: viewModel.currentPageIndexInCurrentSegment(),
         onSelect: { entry in
           showingTOCSheet = false
           jumpToTOCEntry(entry)
@@ -550,7 +489,7 @@ struct DivinaReaderView: View {
     }
     .readerDetailSheet(
       isPresented: $showingDetailSheet,
-      book: currentBook,
+      book: currentSegmentBook,
       series: currentSeries
     )
     .onAppear {
@@ -570,6 +509,8 @@ struct DivinaReaderView: View {
       readerPresentation.setReaderFlushHandler {
         viewModel.flushProgress()
       }
+      requestedNextSegmentPreloads.removeAll()
+      requestedPreviousSegmentPreloads.removeAll()
       if !preserveReaderOptions {
         resetReaderPreferencesForCurrentBook()
       }
@@ -579,7 +520,7 @@ struct DivinaReaderView: View {
     .onChange(of: currentBook?.id) { _, _ in
       updateHandoff()
     }
-    .onChange(of: viewModel.pages.count) { oldCount, newCount in
+    .onChange(of: viewModel.pageCount) { oldCount, newCount in
       // Show helper overlay when pages are first loaded (iOS and macOS)
       if oldCount == 0 && newCount > 0 {
         triggerTapZoneOverlay(timeout: 1)
@@ -589,7 +530,7 @@ struct DivinaReaderView: View {
     }
     .onDisappear {
       logger.debug(
-        "👋 DIVINA reader disappeared for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pages.count)"
+        "👋 DIVINA reader disappeared for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pageCount)"
       )
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
@@ -671,23 +612,17 @@ struct DivinaReaderView: View {
     let _ = viewModel.updateActualDualPageMode(useDualPage)
 
     Group {
-      if !viewModel.pages.isEmpty {
+      if viewModel.hasPages {
         Group {
           if readingDirection == .webtoon {
             #if os(iOS) || os(macOS)
               WebtoonPageView(
                 viewModel: viewModel,
-                isAtBottom: $isAtBottom,
-                nextBook: nextBook,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                onNextBook: { openNextBook(nextBookId: $0) },
                 toggleControls: { toggleControls() },
                 pageWidthPercentage: webtoonPageWidthPercentage,
-                renderConfig: renderConfig,
-                onBoundaryPanUpdate: { translation in
-                  boundaryDragOffset = translation
-                }
+                renderConfig: renderConfig
               )
             #else
               ScrollPageView(
@@ -697,12 +632,8 @@ struct DivinaReaderView: View {
                 renderConfig: renderConfig,
                 showingControls: showingControls,
                 viewModel: viewModel,
-                previousBook: previousBook,
-                nextBook: nextBook,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                onPreviousBook: { openPreviousBook(previousBookId: $0) },
-                onNextBook: { openNextBook(nextBookId: $0) },
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
@@ -713,9 +644,6 @@ struct DivinaReaderView: View {
                   if isScrolling {
                     resetControlsTimer(timeout: 1.5)
                   }
-                },
-                onBoundaryPanUpdate: { translation in
-                  boundaryDragOffset = translation
                 }
               )
             #endif
@@ -728,20 +656,13 @@ struct DivinaReaderView: View {
                   readingDirection: readingDirection,
                   splitWidePageMode: splitWidePageMode,
                   renderConfig: renderConfig,
-                  previousBook: previousBook,
-                  nextBook: nextBook,
                   readListContext: readListContext,
                   onDismiss: { closeReader() },
-                  onPreviousBook: { openPreviousBook(previousBookId: $0) },
-                  onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
                   onPlayAnimatedPage: { pageIndex in
                     requestAnimatedPlayback(for: pageIndex)
-                  },
-                  onBoundaryPanUpdate: { translation in
-                    boundaryDragOffset = translation
                   }
                 )
               } else {
@@ -752,12 +673,8 @@ struct DivinaReaderView: View {
                   renderConfig: renderConfig,
                   showingControls: showingControls,
                   viewModel: viewModel,
-                  previousBook: previousBook,
-                  nextBook: nextBook,
                   readListContext: readListContext,
                   onDismiss: { closeReader() },
-                  onPreviousBook: { openPreviousBook(previousBookId: $0) },
-                  onNextBook: { openNextBook(nextBookId: $0) },
                   goToNextPage: { goToNextPage() },
                   goToPreviousPage: { goToPreviousPage() },
                   toggleControls: { toggleControls() },
@@ -768,9 +685,6 @@ struct DivinaReaderView: View {
                     if isScrolling {
                       resetControlsTimer(timeout: 1.5)
                     }
-                  },
-                  onBoundaryPanUpdate: { translation in
-                    boundaryDragOffset = translation
                   }
                 )
               }
@@ -782,12 +696,8 @@ struct DivinaReaderView: View {
                 renderConfig: renderConfig,
                 showingControls: showingControls,
                 viewModel: viewModel,
-                previousBook: previousBook,
-                nextBook: nextBook,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                onPreviousBook: { openPreviousBook(previousBookId: $0) },
-                onNextBook: { openNextBook(nextBookId: $0) },
                 goToNextPage: { goToNextPage() },
                 goToPreviousPage: { goToPreviousPage() },
                 toggleControls: { toggleControls() },
@@ -798,9 +708,6 @@ struct DivinaReaderView: View {
                   if isScrolling {
                     resetControlsTimer(timeout: 1.5)
                   }
-                },
-                onBoundaryPanUpdate: { translation in
-                  boundaryDragOffset = translation
                 }
               )
             #endif
@@ -809,20 +716,19 @@ struct DivinaReaderView: View {
         .readerIgnoresSafeArea()
         .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
         .onChange(of: viewModel.currentPageIndex) { oldIndex, newIndex in
-          #if os(iOS)
-            boundaryDragOffset = 0
-          #endif
           #if os(tvOS)
-            if oldIndex >= viewModel.pages.count && newIndex < viewModel.pages.count {
+            if oldIndex >= viewModel.pageCount && newIndex < viewModel.pageCount {
               tvRemoteCaptureGeneration += 1
               logger.debug("📺 left end page, restart UIKit capture generation=\(tvRemoteCaptureGeneration)")
             }
           #endif
           updateHandoff()
           // Update progress and preload pages in background without blocking UI
-          Task(priority: .userInitiated) {
+          Task(priority: .utility) {
             await viewModel.updateProgress()
             await viewModel.preloadPages()
+            await preloadAdjacentSegmentsForCurrentPositionIfNeeded()
+            await viewModel.ensureTableOfContentsForCurrentSegment()
           }
         }
       } else if viewModel.isLoading {
@@ -883,12 +789,12 @@ struct DivinaReaderView: View {
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
       showingDetailSheet: $showingDetailSheet,
       viewModel: viewModel,
-      currentBook: currentBook,
+      currentBook: currentSegmentBook,
       dualPage: useDualPage,
       incognito: incognito,
       onDismiss: { closeReader() },
-      previousBook: previousBook,
-      nextBook: nextBook,
+      previousBook: currentSegmentPreviousBook,
+      nextBook: currentSegmentNextBook,
       onPreviousBook: { openPreviousBook(previousBookId: $0) },
       onNextBook: { openNextBook(nextBookId: $0) },
       controlsVisible: shouldShowControls,
@@ -901,7 +807,7 @@ struct DivinaReaderView: View {
       KeyboardHelpOverlay(
         readingDirection: readingDirection,
         hasTOC: !viewModel.tableOfContents.isEmpty,
-        hasNextBook: nextBook != nil,
+        hasNextBook: currentSegmentNextBook != nil,
         onDismiss: {
           hideKeyboardHelp()
         }
@@ -978,7 +884,7 @@ struct DivinaReaderView: View {
 
       // Handle J key for jump to page
       if keyCode == 38 {  // J key
-        if !viewModel.pages.isEmpty {
+        if viewModel.hasPages {
           showingPageJumpSheet = true
         }
         return
@@ -986,13 +892,13 @@ struct DivinaReaderView: View {
 
       // Handle N key for next book
       if keyCode == 45 {  // N key
-        if let nextBook = nextBook {
+        if let nextBook = currentSegmentNextBook {
           openNextBook(nextBookId: nextBook.id)
         }
         return
       }
 
-      guard !viewModel.pages.isEmpty else { return }
+      guard viewModel.hasPages else { return }
 
       switch readingDirection {
       case .ltr:
@@ -1035,9 +941,6 @@ struct DivinaReaderView: View {
 
     // Set incognito mode
     viewModel.incognitoMode = incognito
-
-    // Reset isAtBottom when switching to a new book
-    isAtBottom = false
 
     // Load book info to get read progress page and series reading direction
     var initialPageNumber: Int? = nil
@@ -1113,28 +1016,10 @@ struct DivinaReaderView: View {
         }
       }
 
-      // 4. Try to get next/previous books from DB
-      self.nextBook = await DatabaseOperator.shared.getNextBook(
-        instanceId: AppConfig.current.instanceId,
-        bookId: bookId,
-        readListId: readListContext?.id
-      )
-      if self.nextBook == nil && !AppConfig.isOffline {
-        self.nextBook = await SyncService.shared.syncNextBook(
-          bookId: bookId, readListId: readListContext?.id)
-      }
-
-      self.previousBook = await DatabaseOperator.shared.getPreviousBook(
-        instanceId: AppConfig.current.instanceId,
-        bookId: bookId,
-        readListId: readListContext?.id
-      )
-      if self.previousBook == nil && !AppConfig.isOffline {
-        self.previousBook = await SyncService.shared.syncPreviousBook(
-          bookId: bookId,
-          readListId: readListContext?.id
-        )
-      }
+      // 4. Resolve adjacent books for current segment context
+      let adjacentBooks = await resolveAdjacentBooks(for: bookId)
+      self.previousBook = adjacentBooks.previous
+      self.nextBook = adjacentBooks.next
     }
 
     let resumePageNumber = viewModel.currentPage?.number ?? initialPageNumber
@@ -1146,19 +1031,162 @@ struct DivinaReaderView: View {
 
     await viewModel.loadPages(
       book: activeBook,
-      initialPageNumber: resumePageNumber
+      initialPageNumber: resumePageNumber,
+      previousBook: previousBook,
+      nextBook: nextBook
     )
 
     // Only preload pages if pages are available
-    if viewModel.pages.isEmpty {
+    if !viewModel.hasPages {
       return
     }
     await viewModel.preloadPages()
+    await preloadAdjacentSegmentsForCurrentPositionIfNeeded()
+  }
+
+  private func resolveAdjacentBooks(for bookId: String) async -> (previous: Book?, next: Book?) {
+    let readListId = readListContext?.id
+    let instanceId = AppConfig.current.instanceId
+
+    var resolvedNextBook = await DatabaseOperator.shared.getNextBook(
+      instanceId: instanceId,
+      bookId: bookId,
+      readListId: readListId
+    )
+    if resolvedNextBook == nil && !AppConfig.isOffline {
+      resolvedNextBook = await SyncService.shared.syncNextBook(
+        bookId: bookId,
+        readListId: readListId
+      )
+    }
+
+    var resolvedPreviousBook = await DatabaseOperator.shared.getPreviousBook(
+      instanceId: instanceId,
+      bookId: bookId,
+      readListId: readListId
+    )
+    if resolvedPreviousBook == nil && !AppConfig.isOffline {
+      resolvedPreviousBook = await SyncService.shared.syncPreviousBook(
+        bookId: bookId,
+        readListId: readListId
+      )
+    }
+
+    return (resolvedPreviousBook, resolvedNextBook)
+  }
+
+  private var segmentPreloadTriggerDistance: Int {
+    2
+  }
+
+  private func resolveSegmentPreloadContext(for segmentBookId: String) async -> (
+    currentBook: Book, previousBook: Book?, nextBook: Book?
+  )? {
+    guard let segmentBook = viewModel.currentBook(forSegmentBookId: segmentBookId) else { return nil }
+
+    var resolvedPreviousBook = viewModel.previousBook(forSegmentBookId: segmentBookId)
+    var resolvedNextBook = viewModel.nextBook(forSegmentBookId: segmentBookId)
+
+    if resolvedPreviousBook == nil || resolvedNextBook == nil {
+      let adjacentBooks = await resolveAdjacentBooks(for: segmentBookId)
+      resolvedPreviousBook = resolvedPreviousBook ?? adjacentBooks.previous
+      resolvedNextBook = resolvedNextBook ?? adjacentBooks.next
+    }
+
+    return (
+      currentBook: segmentBook,
+      previousBook: resolvedPreviousBook,
+      nextBook: resolvedNextBook
+    )
+  }
+
+  private func resolveBookBefore(_ book: Book) async -> Book? {
+    if let cachedPreviousBook = viewModel.previousBook(forSegmentBookId: book.id) {
+      return cachedPreviousBook
+    }
+    let previousAdjacentBooks = await resolveAdjacentBooks(for: book.id)
+    return previousAdjacentBooks.previous
+  }
+
+  private func preloadAdjacentSegmentsForCurrentPositionIfNeeded() async {
+    await preloadPreviousSegmentForCurrentPositionIfNeeded()
+    await preloadNextSegmentForCurrentPositionIfNeeded()
+  }
+
+  private func preloadPreviousSegmentForCurrentPositionIfNeeded() async {
+    guard let currentReaderPage = viewModel.currentReaderPage else { return }
+    let segmentBookId = currentReaderPage.bookId
+
+    guard !requestedPreviousSegmentPreloads.contains(segmentBookId) else { return }
+    guard !inFlightPreviousSegmentPreloads.contains(segmentBookId) else { return }
+    guard let segmentRange = viewModel.pageRange(forSegmentBookId: segmentBookId) else { return }
+    guard segmentRange.contains(viewModel.currentPageIndex) else { return }
+
+    let pagesFromSegmentStart = viewModel.currentPageIndex - segmentRange.lowerBound
+    guard pagesFromSegmentStart <= segmentPreloadTriggerDistance else { return }
+
+    guard
+      let preloadContext = await resolveSegmentPreloadContext(for: segmentBookId),
+      let resolvedPreviousBook = preloadContext.previousBook
+    else {
+      requestedPreviousSegmentPreloads.insert(segmentBookId)
+      return
+    }
+
+    inFlightPreviousSegmentPreloads.insert(segmentBookId)
+    defer { inFlightPreviousSegmentPreloads.remove(segmentBookId) }
+
+    let resolvedPreviousPreviousBook = await resolveBookBefore(resolvedPreviousBook)
+
+    await viewModel.preloadPreviousSegmentIfNeeded(
+      currentBook: preloadContext.currentBook,
+      previousBook: resolvedPreviousBook,
+      nextBook: preloadContext.nextBook,
+      previousPreviousBook: resolvedPreviousPreviousBook
+    )
+
+    if viewModel.currentBook(forSegmentBookId: resolvedPreviousBook.id) != nil {
+      requestedPreviousSegmentPreloads.insert(segmentBookId)
+    }
+  }
+
+  private func preloadNextSegmentForCurrentPositionIfNeeded() async {
+    guard let currentReaderPage = viewModel.currentReaderPage else { return }
+    let segmentBookId = currentReaderPage.bookId
+
+    guard !requestedNextSegmentPreloads.contains(segmentBookId) else { return }
+    guard !inFlightNextSegmentPreloads.contains(segmentBookId) else { return }
+    guard let segmentRange = viewModel.pageRange(forSegmentBookId: segmentBookId) else { return }
+    guard segmentRange.contains(viewModel.currentPageIndex) else { return }
+
+    let remainingPagesInSegment = segmentRange.upperBound - viewModel.currentPageIndex - 1
+    guard remainingPagesInSegment <= segmentPreloadTriggerDistance else { return }
+
+    guard
+      let preloadContext = await resolveSegmentPreloadContext(for: segmentBookId),
+      let resolvedNextBook = preloadContext.nextBook
+    else {
+      requestedNextSegmentPreloads.insert(segmentBookId)
+      return
+    }
+
+    inFlightNextSegmentPreloads.insert(segmentBookId)
+    defer { inFlightNextSegmentPreloads.remove(segmentBookId) }
+
+    await viewModel.preloadNextSegmentIfNeeded(
+      currentBook: preloadContext.currentBook,
+      previousBook: preloadContext.previousBook,
+      nextBook: resolvedNextBook
+    )
+
+    if viewModel.currentBook(forSegmentBookId: resolvedNextBook.id) != nil {
+      requestedNextSegmentPreloads.insert(segmentBookId)
+    }
   }
 
   private func jumpToPage(page: Int) {
-    guard !viewModel.pages.isEmpty else { return }
-    let clampedPage = min(max(page, 1), viewModel.pages.count)
+    guard viewModel.hasPages else { return }
+    let clampedPage = min(max(page, 1), viewModel.pageCount)
     let targetIndex = clampedPage - 1
     if targetIndex != viewModel.currentPageIndex {
       viewModel.targetPageIndex = targetIndex
@@ -1166,13 +1194,19 @@ struct DivinaReaderView: View {
   }
 
   private func jumpToTOCEntry(_ entry: ReaderTOCEntry) {
-    jumpToPage(page: entry.pageIndex + 1)
+    guard let segmentRange = viewModel.pageRange(forSegmentBookId: currentSegmentBookId) else {
+      jumpToPage(page: entry.pageIndex + 1)
+      return
+    }
+
+    let globalPage = segmentRange.lowerBound + entry.pageIndex + 1
+    jumpToPage(page: globalPage)
   }
 
   private func goToNextPage() {
-    guard !viewModel.pages.isEmpty else { return }
+    guard viewModel.hasPages else { return }
     switch readingDirection {
-    case .ltr, .rtl, .vertical:
+    case .ltr, .rtl, .vertical, .webtoon:
       let currentIndex =
         viewModel.currentViewItemIndex < viewModel.viewItems.count
         ? viewModel.currentViewItemIndex
@@ -1180,19 +1214,13 @@ struct DivinaReaderView: View {
       let nextIndex = currentIndex + 1
       guard nextIndex < viewModel.viewItems.count else { return }
       viewModel.targetViewItemIndex = nextIndex
-    case .webtoon:
-      // webtoon do not have an end page
-      let next = min(viewModel.currentPageIndex + 1, viewModel.pages.count - 1)
-      withAnimation {
-        viewModel.currentPageIndex = next
-      }
     }
   }
 
   private func goToPreviousPage() {
-    guard !viewModel.pages.isEmpty else { return }
+    guard viewModel.hasPages else { return }
     switch readingDirection {
-    case .ltr, .rtl, .vertical:
+    case .ltr, .rtl, .vertical, .webtoon:
       let currentIndex =
         viewModel.currentViewItemIndex < viewModel.viewItems.count
         ? viewModel.currentViewItemIndex
@@ -1200,21 +1228,12 @@ struct DivinaReaderView: View {
       let previousIndex = currentIndex - 1
       guard previousIndex >= 0 else { return }
       viewModel.targetViewItemIndex = previousIndex
-    case .webtoon:
-      guard viewModel.currentPageIndex > 0 else { return }
-      withAnimation {
-        viewModel.currentPageIndex -= 1
-      }
     }
   }
 
   #if os(tvOS)
     private func toggleControls(autoHide: Bool = true) {
       // On tvOS, allow toggling controls even at endpage to enable navigation back
-      // Only prevent hiding for webtoon at bottom
-      if readingDirection == .webtoon && isAtBottom {
-        return
-      }
       withAnimation {
         showingControls.toggle()
       }
@@ -1226,10 +1245,6 @@ struct DivinaReaderView: View {
     }
   #else
     private func toggleControls(autoHide: Bool = true) {
-      // Don't hide controls when at end page or webtoon at bottom
-      if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
-        return
-      }
       withAnimation {
         showingControls.toggle()
       }
@@ -1249,11 +1264,6 @@ struct DivinaReaderView: View {
   private func resetControlsTimer(timeout: TimeInterval) {
     // Don't start timer if auto-hide is disabled
     if !autoHideControls {
-      return
-    }
-
-    // Don't start timer when at end page or webtoon at bottom
-    if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
       return
     }
 
@@ -1278,7 +1288,7 @@ struct DivinaReaderView: View {
   /// Show reader helper overlay (Tap zones on iOS, keyboard help on macOS)
   private func triggerTapZoneOverlay(timeout: TimeInterval) {
     // Respect user preference and ensure we have content
-    guard showTapZoneHints, !viewModel.pages.isEmpty else { return }
+    guard showTapZoneHints, viewModel.hasPages else { return }
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
       withAnimation {
@@ -1309,7 +1319,7 @@ struct DivinaReaderView: View {
   /// Show keyboard help overlay
   private func triggerKeyboardHelp(timeout: TimeInterval) {
     // Respect user preference and ensure we have content
-    guard showKeyboardHelpOverlay, !viewModel.pages.isEmpty else { return }
+    guard showKeyboardHelpOverlay, viewModel.hasPages else { return }
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
       withAnimation {
@@ -1345,8 +1355,6 @@ struct DivinaReaderView: View {
       splitWidePageMode: splitWidePageMode,
       incognitoMode: incognito
     )
-    // Reset isAtBottom so buttons hide until user scrolls to bottom
-    isAtBottom = false
     // Reset overlay state
     hideTapZoneOverlay()
     hideKeyboardHelp()
@@ -1368,8 +1376,6 @@ struct DivinaReaderView: View {
       splitWidePageMode: splitWidePageMode,
       incognitoMode: incognito
     )
-    // Reset isAtBottom so buttons hide until user scrolls to bottom
-    isAtBottom = false
     // Reset overlay state
     hideTapZoneOverlay()
     hideKeyboardHelp()

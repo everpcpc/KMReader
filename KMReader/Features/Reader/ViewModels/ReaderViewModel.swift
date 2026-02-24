@@ -13,9 +13,10 @@ import UniformTypeIdentifiers
 @MainActor
 @Observable
 class ReaderViewModel {
-  var pages: [BookPage] = []
   var readerPages: [ReaderPage] = []
+  private(set) var segments: [ReaderSegment] = []
   var isolatePages: [Int] = []
+  private var isolatePagesByBookId: [String: Set<Int>] = [:]
   var currentPageIndex = 0
   var currentViewItemIndex = 0  // Index in viewItems array
   var targetPageIndex: Int? = nil
@@ -29,6 +30,8 @@ class ReaderViewModel {
   var viewItems: [ReaderViewItem] = []
   var viewItemIndexByPage: [ReaderPageID: Int] = [:]
   var tableOfContents: [ReaderTOCEntry] = []
+  private var tableOfContentsByBookId: [String: [ReaderTOCEntry]] = [:]
+  private var tableOfContentsBookId: String?
   /// Cache of preloaded images keyed by reader page ID.
   private var preloadedImagesByID: [ReaderPageID: PlatformImage] = [:]
   /// Page index with Live Text mode active (nil = no Live Text active)
@@ -43,8 +46,6 @@ class ReaderViewModel {
   private var isActuallyUsingDualPageMode: Bool = false
 
   private let logger = AppLogger(.reader)
-  /// Current book ID for API calls and cache access
-  var bookId: String = ""
   private var bookMediaProfile: MediaProfile = .unknown
 
   /// Track ongoing download tasks to prevent duplicate downloads for the same page.
@@ -53,25 +54,48 @@ class ReaderViewModel {
     private var upscalingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
   #endif
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
+  private var segmentPageRangeByBookId: [String: Range<Int>] = [:]
+  private var segmentIndexByPageID: [ReaderPageID: Int] = [:]
+  private(set) var readerPagesVersion: Int = 0
   private var lastPreloadRequestTime: Date?
   private var preloadTask: Task<Void, Never>?
+  private var clampedCurrentPageIndex: Int? {
+    guard currentPageIndex >= 0 else { return nil }
+    guard !readerPages.isEmpty else { return nil }
+    return min(currentPageIndex, readerPages.count - 1)
+  }
 
   var currentPage: BookPage? {
-    guard currentPageIndex >= 0 else { return nil }
-    guard !pages.isEmpty else { return nil }
-    let clampedIndex = min(currentPageIndex, pages.count - 1)
-    return pages[clampedIndex]
+    guard let clampedCurrentPageIndex else { return nil }
+    return readerPages[clampedCurrentPageIndex].page
+  }
+
+  var pageCount: Int {
+    readerPages.count
+  }
+
+  var hasPages: Bool {
+    !readerPages.isEmpty
+  }
+
+  var activeBookId: String? {
+    currentReaderPage?.bookId ?? segments.first?.currentBook.id
   }
 
   var currentReaderPage: ReaderPage? {
-    guard currentPageIndex >= 0 else { return nil }
-    guard !readerPages.isEmpty else { return nil }
-    let clampedIndex = min(currentPageIndex, readerPages.count - 1)
-    return readerPages[clampedIndex]
+    guard let clampedCurrentPageIndex else { return nil }
+    return readerPages[clampedCurrentPageIndex]
   }
 
   var isCurrentPageIsolated: Bool {
-    isolatePages.contains(currentPageIndex)
+    guard let currentReaderPage,
+      let range = segmentPageRangeByBookId[currentReaderPage.bookId],
+      range.contains(currentPageIndex)
+    else {
+      return false
+    }
+    let localPageIndex = currentPageIndex - range.lowerBound
+    return isolatePagesByBookId[currentReaderPage.bookId]?.contains(localPageIndex) == true
   }
 
   convenience init() {
@@ -98,21 +122,72 @@ class ReaderViewModel {
   }
 
   private func rebuildReaderPages() {
-    readerPages = pages.map { ReaderPage(bookId: bookId, page: $0) }
-    readerPageIndexByID = Dictionary(
-      uniqueKeysWithValues: readerPages.enumerated().map { index, readerPage in
-        (readerPage.id, index)
+    var flattenedReaderPages: [ReaderPage] = []
+    var indexMap: [ReaderPageID: Int] = [:]
+    var rangeByBookId: [String: Range<Int>] = [:]
+    var segmentMap: [ReaderPageID: Int] = [:]
+
+    flattenedReaderPages.reserveCapacity(segments.reduce(0) { $0 + $1.pages.count })
+
+    var globalIndex = 0
+    for (segmentIndex, segment) in segments.enumerated() {
+      let segmentStart = globalIndex
+      for page in segment.pages {
+        let readerPage = ReaderPage(bookId: segment.currentBook.id, page: page)
+        flattenedReaderPages.append(readerPage)
+        indexMap[readerPage.id] = globalIndex
+        segmentMap[readerPage.id] = segmentIndex
+        globalIndex += 1
       }
-    )
+      rangeByBookId[segment.currentBook.id] = segmentStart..<globalIndex
+    }
+
+    readerPages = flattenedReaderPages
+    readerPageIndexByID = indexMap
+    segmentPageRangeByBookId = rangeByBookId
+    segmentIndexByPageID = segmentMap
+    readerPagesVersion &+= 1
+    rebuildIsolatePageIndices()
   }
 
-  private func readerPageID(for page: BookPage) -> ReaderPageID {
-    ReaderPageID(bookId: bookId, pageNumber: page.number)
+  private func rebuildIsolatePageIndices() {
+    var flattenedIndices: [Int] = []
+    flattenedIndices.reserveCapacity(isolatePagesByBookId.values.reduce(0) { $0 + $1.count })
+
+    for (globalIndex, readerPage) in readerPages.enumerated() {
+      guard let range = segmentPageRangeByBookId[readerPage.bookId], range.contains(globalIndex) else {
+        continue
+      }
+      let localIndex = globalIndex - range.lowerBound
+      if isolatePagesByBookId[readerPage.bookId]?.contains(localIndex) == true {
+        flattenedIndices.append(globalIndex)
+      }
+    }
+
+    isolatePages = flattenedIndices
+  }
+
+  private func isolatePosition(forGlobalPageIndex pageIndex: Int) -> (bookId: String, localIndex: Int)? {
+    guard let readerPage = readerPage(at: pageIndex),
+      let range = segmentPageRangeByBookId[readerPage.bookId],
+      range.contains(pageIndex)
+    else {
+      return nil
+    }
+    return (readerPage.bookId, pageIndex - range.lowerBound)
   }
 
   private func readerPageID(forPageIndex pageIndex: Int) -> ReaderPageID? {
     guard pageIndex >= 0, pageIndex < readerPages.count else { return nil }
     return readerPages[pageIndex].id
+  }
+
+  func bookId(forPageIndex pageIndex: Int) -> String? {
+    readerPage(at: pageIndex)?.bookId
+  }
+
+  func resolvedBookId(forPageIndex pageIndex: Int) -> String {
+    bookId(forPageIndex: pageIndex) ?? activeBookId ?? ""
   }
 
   func preloadedImage(forPageIndex pageIndex: Int) -> PlatformImage? {
@@ -130,16 +205,256 @@ class ReaderViewModel {
     return readerPages[pageIndex]
   }
 
+  func page(at pageIndex: Int) -> BookPage? {
+    readerPage(at: pageIndex)?.page
+  }
+
   func pageIndex(for readerPageID: ReaderPageID) -> Int? {
     readerPageIndexByID[readerPageID]
   }
 
-  func loadPages(book: Book, initialPageNumber: Int? = nil) async {
-    self.bookId = book.id
-    self.bookMediaProfile = book.media.mediaProfileValue ?? .unknown
-    isLoading = true
+  func segmentIndex(for readerPageID: ReaderPageID) -> Int? {
+    segmentIndexByPageID[readerPageID]
+  }
 
-    // Cancel all ongoing download tasks when loading a new book
+  private func segmentIndex(forSegmentBookId bookId: String) -> Int? {
+    segments.firstIndex(where: { $0.currentBook.id == bookId })
+  }
+
+  func nextBook(forSegmentBookId bookId: String) -> Book? {
+    guard let segmentIndex = segmentIndex(forSegmentBookId: bookId) else { return nil }
+    return segments[segmentIndex].nextBook
+  }
+
+  func currentBook(forSegmentBookId bookId: String) -> Book? {
+    guard let segmentIndex = segmentIndex(forSegmentBookId: bookId) else { return nil }
+    return segments[segmentIndex].currentBook
+  }
+
+  func previousBook(forSegmentBookId bookId: String) -> Book? {
+    guard let segmentIndex = segmentIndex(forSegmentBookId: bookId) else { return nil }
+    return segments[segmentIndex].previousBook
+  }
+
+  func pageRange(forSegmentBookId bookId: String) -> Range<Int>? {
+    segmentPageRangeByBookId[bookId]
+  }
+
+  func pageCount(forSegmentBookId bookId: String) -> Int {
+    pageRange(forSegmentBookId: bookId)?.count ?? 0
+  }
+
+  func displayPageNumber(forPageIndex pageIndex: Int) -> Int? {
+    guard let readerPage = readerPage(at: pageIndex) else { return nil }
+    let offset = displayPageNumberOffset(forBookId: readerPage.bookId)
+    return readerPage.page.number + offset
+  }
+
+  private func displayPageNumberOffset(forBookId bookId: String) -> Int {
+    guard let range = segmentPageRangeByBookId[bookId],
+      let firstPageNumber = readerPage(at: range.lowerBound)?.page.number
+    else {
+      return 1
+    }
+    return firstPageNumber == 0 ? 1 : 0
+  }
+
+  func activeSegmentContext(
+    fallbackBookId: String,
+    fallbackCurrentBook: Book?,
+    fallbackPreviousBook: Book?,
+    fallbackNextBook: Book?
+  ) -> (bookId: String, currentBook: Book?, previousBook: Book?, nextBook: Book?) {
+    let segmentBookId = currentReaderPage?.bookId ?? fallbackBookId
+    let shouldUseFallback = segmentBookId == fallbackBookId
+
+    let segmentCurrentBook = currentBook(forSegmentBookId: segmentBookId)
+    let segmentPreviousBook = previousBook(forSegmentBookId: segmentBookId)
+    let segmentNextBook = nextBook(forSegmentBookId: segmentBookId)
+
+    return (
+      bookId: segmentBookId,
+      currentBook: segmentCurrentBook ?? (shouldUseFallback ? fallbackCurrentBook : nil),
+      previousBook: segmentPreviousBook ?? (shouldUseFallback ? fallbackPreviousBook : nil),
+      nextBook: segmentNextBook ?? (shouldUseFallback ? fallbackNextBook : nil)
+    )
+  }
+
+  func currentPageNumberInCurrentSegment() -> Int {
+    guard let currentReaderPage,
+      let range = segmentPageRangeByBookId[currentReaderPage.bookId],
+      let resolvedIndex = clampedCurrentPageIndex
+    else {
+      return 1
+    }
+    guard range.contains(resolvedIndex) else { return 1 }
+    return resolvedIndex - range.lowerBound + 1
+  }
+
+  func currentPageIndexInCurrentSegment() -> Int {
+    guard let currentReaderPage,
+      let range = segmentPageRangeByBookId[currentReaderPage.bookId],
+      let resolvedIndex = clampedCurrentPageIndex
+    else {
+      return 0
+    }
+    guard range.contains(resolvedIndex) else { return 0 }
+    return max(resolvedIndex - range.lowerBound, 0)
+  }
+
+  private func setTableOfContents(_ toc: [ReaderTOCEntry], for bookId: String) {
+    tableOfContentsByBookId[bookId] = toc
+    tableOfContents = toc
+    tableOfContentsBookId = bookId
+  }
+
+  private func loadTableOfContentsFromStorageOrNetwork(for book: Book) async -> [ReaderTOCEntry] {
+    let mediaProfile = book.media.mediaProfileValue ?? .unknown
+
+    if mediaProfile == .epub {
+      if let localTOC = await DatabaseOperator.shared.fetchTOC(id: book.id) {
+        return localTOC
+      }
+      if !AppConfig.isOffline {
+        do {
+          let manifest = try await BookService.shared.getBookManifest(id: book.id)
+          let toc = await ReaderManifestService(bookId: book.id).parseTOC(manifest: manifest)
+          await DatabaseOperator.shared.updateBookTOC(bookId: book.id, toc: toc)
+          return toc
+        } catch {
+          logger.error("❌ Failed to load TOC from manifest for book \(book.id): \(error)")
+          return []
+        }
+      }
+      return []
+    }
+
+    if mediaProfile == .pdf {
+      return await DatabaseOperator.shared.fetchTOC(id: book.id) ?? []
+    }
+
+    return []
+  }
+
+  func ensureTableOfContentsLoaded(for book: Book) async {
+    if let cachedTOC = tableOfContentsByBookId[book.id] {
+      setTableOfContents(cachedTOC, for: book.id)
+      return
+    }
+
+    let toc = await loadTableOfContentsFromStorageOrNetwork(for: book)
+    setTableOfContents(toc, for: book.id)
+  }
+
+  func ensureTableOfContentsForCurrentSegment() async {
+    guard let currentReaderPage else { return }
+    let segmentBookId = currentReaderPage.bookId
+
+    guard tableOfContentsBookId != segmentBookId else { return }
+    guard let segmentBook = currentBook(forSegmentBookId: segmentBookId) else {
+      tableOfContents = []
+      tableOfContentsBookId = segmentBookId
+      return
+    }
+
+    await ensureTableOfContentsLoaded(for: segmentBook)
+  }
+
+  private func setSegments(_ segments: [ReaderSegment]) {
+    self.segments = segments
+    rebuildReaderPages()
+  }
+
+  private func updateSegmentContext(
+    forCurrentBookId currentBookId: String,
+    previousBook: Book?,
+    nextBook: Book?
+  ) {
+    guard let segmentIndex = segmentIndex(forSegmentBookId: currentBookId) else {
+      return
+    }
+    let segment = segments[segmentIndex]
+    segments[segmentIndex] = ReaderSegment(
+      previousBook: previousBook,
+      currentBook: segment.currentBook,
+      nextBook: nextBook,
+      pages: segment.pages
+    )
+  }
+
+  private func appendSegment(
+    currentBook: Book,
+    previousBook: Book?,
+    nextBook: Book?,
+    pages: [BookPage]
+  ) {
+    segments.append(
+      ReaderSegment(
+        previousBook: previousBook,
+        currentBook: currentBook,
+        nextBook: nextBook,
+        pages: pages
+      ))
+    rebuildReaderPages()
+  }
+
+  private func prependSegment(
+    currentBook: Book,
+    previousBook: Book?,
+    nextBook: Book?,
+    pages: [BookPage]
+  ) {
+    segments.insert(
+      ReaderSegment(
+        previousBook: previousBook,
+        currentBook: currentBook,
+        nextBook: nextBook,
+        pages: pages
+      ),
+      at: 0
+    )
+    rebuildReaderPages()
+  }
+
+  private func fetchSegmentPages(for book: Book) async -> [BookPage]? {
+    if let cachedPages = await DatabaseOperator.shared.fetchPages(id: book.id) {
+      return cachedPages
+    }
+
+    guard !AppConfig.isOffline else {
+      return nil
+    }
+
+    do {
+      let fetchedPages = try await BookService.shared.getBookPages(id: book.id)
+      await DatabaseOperator.shared.updateBookPages(bookId: book.id, pages: fetchedPages)
+      return fetchedPages
+    } catch {
+      logger.error("❌ Failed to preload segment pages for book \(book.id): \(error)")
+      return nil
+    }
+  }
+
+  private func hydrateIsolatePages(for bookId: String) async {
+    let isolatePagesForBook = await DatabaseOperator.shared.fetchIsolatePages(id: bookId) ?? []
+    isolatePagesByBookId[bookId] = Set(isolatePagesForBook)
+  }
+
+  private func restoreCurrentPosition(using currentPageID: ReaderPageID?) {
+    guard let currentPageID,
+      let restoredIndex = pageIndex(for: currentPageID)
+    else {
+      return
+    }
+    currentPageIndex = restoredIndex
+    currentViewItemIndex = viewItemIndex(forPageIndex: restoredIndex)
+  }
+
+  private func resetStateForBookLoad() {
+    preloadTask?.cancel()
+    preloadTask = nil
+    lastPreloadRequestTime = nil
+
     for (_, task) in downloadingTasks {
       task.cancel()
     }
@@ -150,11 +465,123 @@ class ReaderViewModel {
       }
       upscalingTasks.removeAll()
     #endif
+
     preloadedImagesByID.removeAll()
+    isolatePages.removeAll()
+    isolatePagesByBookId.removeAll()
+    tableOfContents.removeAll()
+    tableOfContentsByBookId.removeAll()
+    tableOfContentsBookId = nil
+    segments.removeAll()
     readerPages.removeAll()
     readerPageIndexByID.removeAll()
+    segmentPageRangeByBookId.removeAll()
+    segmentIndexByPageID.removeAll()
     animatedPageStates.removeAll()
     animatedPageFileURLs.removeAll()
+    liveTextActivePageIndex = nil
+    readerPagesVersion &+= 1
+  }
+
+  func preloadNextSegmentIfNeeded(
+    currentBook: Book,
+    previousBook: Book?,
+    nextBook: Book?
+  ) async {
+    updateSegmentContext(
+      forCurrentBookId: currentBook.id,
+      previousBook: previousBook,
+      nextBook: nextBook
+    )
+
+    guard let nextBook else {
+      regenerateViewState()
+      return
+    }
+    guard !segments.contains(where: { $0.currentBook.id == nextBook.id }) else {
+      regenerateViewState()
+      return
+    }
+
+    let currentPageID = currentReaderPage?.id
+
+    guard let fetchedPages = await fetchSegmentPages(for: nextBook) else {
+      regenerateViewState()
+      return
+    }
+
+    guard !fetchedPages.isEmpty else {
+      regenerateViewState()
+      return
+    }
+
+    await hydrateIsolatePages(for: nextBook.id)
+
+    appendSegment(
+      currentBook: nextBook,
+      previousBook: currentBook,
+      nextBook: nil,
+      pages: fetchedPages
+    )
+    regenerateViewState()
+    restoreCurrentPosition(using: currentPageID)
+  }
+
+  func preloadPreviousSegmentIfNeeded(
+    currentBook: Book,
+    previousBook: Book?,
+    nextBook: Book?,
+    previousPreviousBook: Book?
+  ) async {
+    updateSegmentContext(
+      forCurrentBookId: currentBook.id,
+      previousBook: previousBook,
+      nextBook: nextBook
+    )
+
+    guard let previousBook else {
+      regenerateViewState()
+      return
+    }
+    guard !segments.contains(where: { $0.currentBook.id == previousBook.id }) else {
+      regenerateViewState()
+      return
+    }
+
+    let currentPageID = currentReaderPage?.id
+
+    guard let fetchedPages = await fetchSegmentPages(for: previousBook) else {
+      regenerateViewState()
+      return
+    }
+
+    guard !fetchedPages.isEmpty else {
+      regenerateViewState()
+      return
+    }
+
+    await hydrateIsolatePages(for: previousBook.id)
+
+    prependSegment(
+      currentBook: previousBook,
+      previousBook: previousPreviousBook,
+      nextBook: currentBook,
+      pages: fetchedPages
+    )
+    regenerateViewState()
+    restoreCurrentPosition(using: currentPageID)
+  }
+
+  func loadPages(
+    book: Book,
+    initialPageNumber: Int? = nil,
+    previousBook: Book? = nil,
+    nextBook: Book? = nil
+  ) async {
+    self.bookMediaProfile = book.media.mediaProfileValue ?? .unknown
+    isLoading = true
+
+    resetStateForBookLoad()
 
     do {
       await prepareOfflinePDFForDivina(book: book)
@@ -169,49 +596,35 @@ class ReaderViewModel {
         throw APIError.offline
       }
 
-      if let localIsolatePages = await DatabaseOperator.shared.fetchIsolatePages(id: book.id) {
-        isolatePages = localIsolatePages
-      }
+      let localIsolatePages = await DatabaseOperator.shared.fetchIsolatePages(id: book.id) ?? []
+      isolatePagesByBookId[book.id] = Set(localIsolatePages)
 
       currentPageIndex = 0
       currentViewItemIndex = 0
       targetPageIndex = nil
       targetViewItemIndex = nil
 
-      // Set initial page index BEFORE assigning pages to ensure proper scroll synchronization
-      // This prevents race condition where pages.count changes but currentPageIndex is still 0
+      // Set initial page index BEFORE assigning reader pages to ensure proper scroll synchronization
+      // This prevents race condition where pageCount changes but currentPageIndex is still 0
       if let initialPageNumber = initialPageNumber,
         let pageIndex = fetchedPages.firstIndex(where: { $0.number == initialPageNumber })
       {
         currentPageIndex = pageIndex
       }
 
-      // Now assign pages, which will trigger View's onChange(of: pages.count)
-      pages = fetchedPages
-      rebuildReaderPages()
+      setSegments([
+        ReaderSegment(
+          previousBook: previousBook,
+          currentBook: book,
+          nextBook: nextBook,
+          pages: fetchedPages,
+        )
+      ])
 
       // Update page pairs and dual page indices after loading pages
       regenerateViewState()
 
-      // For EPUB, fetch manifest and parse TOC
-      if book.media.mediaProfileValue == .epub {
-        if let localTOC = await DatabaseOperator.shared.fetchTOC(id: book.id) {
-          tableOfContents = localTOC
-        } else if !AppConfig.isOffline {
-          let manifest = try await BookService.shared.getBookManifest(id: book.id)
-          let toc = await ReaderManifestService(
-            bookId: book.id
-          ).parseTOC(manifest: manifest)
-          tableOfContents = toc
-          await DatabaseOperator.shared.updateBookTOC(bookId: book.id, toc: toc)
-        } else {
-          tableOfContents = []
-        }
-      } else if book.media.mediaProfileValue == .pdf {
-        tableOfContents = await DatabaseOperator.shared.fetchTOC(id: book.id) ?? []
-      } else {
-        tableOfContents = []
-      }
+      await ensureTableOfContentsLoaded(for: book)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -220,24 +633,27 @@ class ReaderViewModel {
   }
 
   /// Get page image file URL from disk cache, or download and cache if not available
-  /// - Parameter page: `BookPage` metadata for the requested page
+  /// - Parameter pageIndex: Reader page index in the flattened segment stream
   /// - Returns: Local file URL if available, nil if download failed
   /// - Note: Prevents duplicate downloads by tracking ongoing tasks
-  func getPageImageFileURL(page: BookPage) async -> URL? {
-    guard !bookId.isEmpty else {
-      logger.warning("⚠️ Book ID is empty, cannot load page image")
+  func getPageImageFileURL(pageIndex: Int) async -> URL? {
+    guard let readerPage = readerPage(at: pageIndex) else {
+      logger.warning("⚠️ Invalid page index \(pageIndex), cannot load page image")
       return nil
     }
-    let pageID = readerPageID(for: page)
+
+    let pageID = readerPage.id
+    let page = readerPage.page
+    let currentBookId = readerPage.bookId
 
     if let existingTask = downloadingTasks[pageID] {
       logger.debug(
-        "⏳ Waiting for existing download task for page \(page.number) for book \(self.bookId)"
+        "⏳ Waiting for existing download task for page \(page.number) for book \(currentBookId)"
       )
       if let result = await existingTask.value {
         return result
       }
-      if let cachedFileURL = await getCachedImageFileURL(page: page) {
+      if let cachedFileURL = await getCachedImageFileURL(for: readerPage) {
         return cachedFileURL
       }
       return nil
@@ -246,34 +662,34 @@ class ReaderViewModel {
     let loadTask = Task<URL?, Never> {
       let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
       if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
-        instanceId: AppConfig.current.instanceId, bookId: self.bookId, pageNumber: page.number,
+        instanceId: AppConfig.current.instanceId,
+        bookId: currentBookId,
+        pageNumber: page.number,
         fileExtension: ext
       ) {
         self.logger.debug(
-          "✅ Using offline downloaded image for page \(page.number) for book \(self.bookId)")
+          "✅ Using offline downloaded image for page \(page.number) for book \(currentBookId)")
         return offlineURL
       }
 
-      if let cachedFileURL = await self.getCachedImageFileURL(page: page) {
-        self.logger.debug("✅ Using cached image for page \(page.number) for book \(self.bookId)")
+      if let cachedFileURL = await self.getCachedImageFileURL(for: readerPage) {
+        self.logger.debug("✅ Using cached image for page \(page.number) for book \(currentBookId)")
         return cachedFileURL
       }
 
       if AppConfig.isOffline {
-        self.logger.error("❌ Missing offline page \(page.number) for book \(self.bookId)")
+        self.logger.error("❌ Missing offline page \(page.number) for book \(currentBookId)")
         return nil
       }
 
-      self.logger.info("📥 Downloading page \(page.number) for book \(self.bookId)")
+      self.logger.info("📥 Downloading page \(page.number) for book \(currentBookId)")
 
       do {
-        guard let remoteURL = self.resolvedDownloadURL(for: page) else {
+        guard let remoteURL = self.resolvedDownloadURL(for: page, bookId: currentBookId) else {
           self.logger.error(
-            "❌ Unable to resolve download URL for page \(page.number) in book \(self.bookId)")
+            "❌ Unable to resolve download URL for page \(page.number) in book \(currentBookId)")
           return nil
         }
-
-        let activePage = self.pages.first(where: { $0.number == page.number }) ?? page
 
         let result = try await BookService.shared.downloadImageResource(at: remoteURL)
         let data = result.data
@@ -281,26 +697,26 @@ class ReaderViewModel {
         let dataSize = ByteCountFormatter.string(
           fromByteCount: Int64(data.count), countStyle: .binary)
         logger.info(
-          "✅ Downloaded page \(page.number) successfully (\(dataSize)) for book \(self.bookId)")
+          "✅ Downloaded page \(page.number) successfully (\(dataSize)) for book \(currentBookId)")
 
         await pageImageCache.storeImageData(
           data,
-          bookId: self.bookId,
-          page: activePage
+          bookId: currentBookId,
+          page: page
         )
 
-        if let fileURL = await getCachedImageFileURL(page: activePage) {
-          logger.debug("💾 Saved page \(page.number) to disk cache for book \(self.bookId)")
+        if let fileURL = await getCachedImageFileURL(for: readerPage) {
+          logger.debug("💾 Saved page \(page.number) to disk cache for book \(currentBookId)")
           return fileURL
         } else {
           logger.error(
-            "❌ Failed to get file URL after saving page \(page.number) to cache for book \(self.bookId)"
+            "❌ Failed to get file URL after saving page \(page.number) to cache for book \(currentBookId)"
           )
           return nil
         }
       } catch {
         logger.error(
-          "❌ Failed to download page \(page.number) for book \(self.bookId): \(error)"
+          "❌ Failed to download page \(page.number) for book \(currentBookId): \(error)"
         )
         return nil
       }
@@ -312,17 +728,10 @@ class ReaderViewModel {
     return result
   }
 
-  /// Get cached image file URL from disk cache for a specific page
-  /// - Parameter page: Book page metadata
-  /// - Returns: Local file URL if the cached file exists, nil otherwise
-  func getCachedImageFileURL(page: BookPage) async -> URL? {
-    guard !bookId.isEmpty else {
-      return nil
-    }
-
-    // Use async check to avoid blocking main thread
-    if await pageImageCache.hasImage(bookId: bookId, page: page) {
-      return pageImageCache.imageFileURL(bookId: bookId, page: page)
+  /// Get cached image file URL from disk cache for a specific reader page.
+  private func getCachedImageFileURL(for readerPage: ReaderPage) async -> URL? {
+    if await pageImageCache.hasImage(bookId: readerPage.bookId, page: readerPage.page) {
+      return pageImageCache.imageFileURL(bookId: readerPage.bookId, page: readerPage.page)
     }
     return nil
   }
@@ -403,24 +812,23 @@ class ReaderViewModel {
       return
     }
     lastPreloadRequestTime = now
-    guard !bookId.isEmpty else { return }
+    guard !readerPages.isEmpty else { return }
 
     // Cancel any previous preloading task
     preloadTask?.cancel()
 
     let preloadBefore = max(0, currentPageIndex - ReaderConstants.preloadBefore)
-    let preloadAfter = min(currentPageIndex + ReaderConstants.preloadAfter, pages.count)
+    let preloadAfter = min(currentPageIndex + ReaderConstants.preloadAfter, pageCount)
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
     preloadTask = Task { [weak self] in
       guard let self = self else { return }
 
       // Load pages concurrently and collect decoded images
-      let results = await withTaskGroup(of: (Int, ReaderPageID, PlatformImage?, Bool, URL?).self)
-      { group -> [(Int, ReaderPageID, PlatformImage?, Bool, URL?)] in
+      let results = await withTaskGroup(of: (Int, ReaderPageID, PlatformImage?, Bool, URL?).self) {
+        group -> [(Int, ReaderPageID, PlatformImage?, Bool, URL?)] in
         for index in pagesToPreload {
           if Task.isCancelled { break }
-          let page = self.pages[index]
           guard let pageID = self.readerPageID(forPageIndex: index) else { continue }
           // Skip if already preloaded
           if self.preloadedImage(forPageIndex: index) != nil {
@@ -428,7 +836,9 @@ class ReaderViewModel {
           }
           group.addTask {
             if Task.isCancelled { return (index, pageID, nil, false, nil) }
-            let (image, isAnimated, animatedFileURL) = await self.preloadDecodedPageImage(page: page)
+            let (image, isAnimated, animatedFileURL) = await self.preloadDecodedPageImage(
+              pageIndex: index
+            )
             return (index, pageID, image, isAnimated, animatedFileURL)
           }
         }
@@ -463,9 +873,9 @@ class ReaderViewModel {
 
   /// Remove preloaded images that are too far from current page to release memory
   func cleanupDistantImagesAroundCurrentPage() {
-    guard !pages.isEmpty else { return }
+    guard hasPages else { return }
     let keepRangeStart = max(0, currentPageIndex - ReaderConstants.keepRangeBefore)
-    let keepRangeEnd = min(currentPageIndex + ReaderConstants.keepRangeAfter, pages.count)
+    let keepRangeEnd = min(currentPageIndex + ReaderConstants.keepRangeAfter, pageCount)
     let keepRange = keepRangeStart...keepRangeEnd
 
     let keepPageIDs = Set(keepRange.compactMap { readerPageID(forPageIndex: $0) })
@@ -539,8 +949,13 @@ class ReaderViewModel {
     return await ImageDecodeHelper.decodeForDisplay(image)
   }
 
-  private func preloadDecodedPageImage(page: BookPage) async -> (PlatformImage?, Bool, URL?) {
-    guard let sourceFileURL = await getPageImageFileURL(page: page) else {
+  private func preloadDecodedPageImage(pageIndex: Int) async -> (PlatformImage?, Bool, URL?) {
+    guard let readerPage = readerPage(at: pageIndex) else {
+      return (nil, false, nil)
+    }
+    let page = readerPage.page
+
+    guard let sourceFileURL = await getPageImageFileURL(pageIndex: pageIndex) else {
       return (nil, false, nil)
     }
 
@@ -548,6 +963,7 @@ class ReaderViewModel {
     let animatedFileURL = isAnimated ? sourceFileURL : nil
     let preferredFileURL = await preferredDisplayImageFileURL(
       page: page,
+      pageID: readerPage.id,
       sourceFileURL: sourceFileURL,
       isAnimated: isAnimated
     )
@@ -568,6 +984,7 @@ class ReaderViewModel {
 
   private func preferredDisplayImageFileURL(
     page: BookPage,
+    pageID: ReaderPageID,
     sourceFileURL: URL,
     isAnimated: Bool
   ) async -> URL {
@@ -620,7 +1037,6 @@ class ReaderViewModel {
         return cachedUpscaledURL
       }
 
-      let pageID = readerPageID(for: page)
       if let existingTask = upscalingTasks[pageID] {
         logger.debug("⏳ [Upscale] Await running upscale task for page \(page.number + 1)")
         if let cachedURL = await existingTask.value {
@@ -857,15 +1273,15 @@ class ReaderViewModel {
 
   /// Resolve local file URL for animated playback. Returns nil when this page is not animated.
   func prepareAnimatedPagePlaybackURL(pageIndex: Int) async -> URL? {
-    guard pageIndex >= 0 && pageIndex < pages.count else { return nil }
+    guard pageIndex >= 0 && pageIndex < readerPages.count else { return nil }
     guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
-    let page = pages[pageIndex]
+    let page = readerPages[pageIndex].page
     guard page.isAnimatedImageCandidate else {
       animatedPageStates[pageID] = false
       return nil
     }
 
-    guard let fileURL = await getPageImageFileURL(page: page) else { return nil }
+    guard let fileURL = await getPageImageFileURL(pageIndex: pageIndex) else { return nil }
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
     animatedPageStates[pageID] = isAnimated
     if isAnimated {
@@ -877,13 +1293,12 @@ class ReaderViewModel {
   }
 
   /// Preload a single page image into memory for instant display.
-  func preloadImageForPage(_ page: BookPage) async -> PlatformImage? {
-    guard let index = pages.firstIndex(where: { $0.number == page.number }) else { return nil }
-    guard let pageID = readerPageID(forPageIndex: index) else { return nil }
+  func preloadImageForPage(at pageIndex: Int) async -> PlatformImage? {
+    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
     if let cached = preloadedImagesByID[pageID] {
       return cached
     }
-    let (image, isAnimated, animatedFileURL) = await preloadDecodedPageImage(page: page)
+    let (image, isAnimated, animatedFileURL) = await preloadDecodedPageImage(pageIndex: pageIndex)
     animatedPageStates[pageID] = isAnimated
     if let animatedFileURL {
       animatedPageFileURLs[pageID] = animatedFileURL
@@ -922,23 +1337,20 @@ class ReaderViewModel {
       logger.debug("⏭️ [Progress/Page] Skip capture: incognito mode enabled")
       return
     }
-    guard !bookId.isEmpty else {
-      logger.warning("⚠️ [Progress/Page] Skip capture: missing book ID")
-      return
-    }
-    guard let currentPage = currentPage else {
+    guard let currentReaderPage else {
       logger.debug("⏭️ [Progress/Page] Skip capture: current page unavailable")
       return
     }
+    let currentBookId = currentReaderPage.bookId
 
-    let completed = currentPageIndex >= pages.count - 1
+    let completed = isBookCompleted(for: currentReaderPage)
     logger.debug(
-      "📝 [Progress/Page] Captured from reader state: book=\(bookId), page=\(currentPage.number), completed=\(completed)"
+      "📝 [Progress/Page] Captured from reader state: book=\(currentBookId), page=\(currentReaderPage.pageNumber), completed=\(completed)"
     )
 
     await ReaderProgressDispatchService.shared.submitPageProgress(
-      bookId: bookId,
-      page: currentPage.number,
+      bookId: currentBookId,
+      page: currentReaderPage.pageNumber,
       completed: completed
     )
   }
@@ -949,26 +1361,35 @@ class ReaderViewModel {
       return
     }
 
-    let snapshotPage = currentPage?.number
-    let snapshotCompleted =
-      currentPage != nil
-      ? (currentPageIndex >= pages.count - 1)
-      : nil
+    let snapshotBookId = currentReaderPage?.bookId
+    let snapshotPage = currentReaderPage?.pageNumber
+    let snapshotCompleted = currentReaderPage.map { isBookCompleted(for: $0) }
 
     logger.debug(
-      "🚿 [Progress/Page] Flush requested from reader: book=\(bookId), hasCurrentPage=\(snapshotPage != nil)"
+      "🚿 [Progress/Page] Flush requested from reader: book=\(snapshotBookId ?? "unknown"), hasCurrentPage=\(snapshotPage != nil)"
     )
 
     Task {
+      guard let flushBookId = snapshotBookId else {
+        logger.debug("⏭️ [Progress/Page] Skip flush: no active book ID")
+        return
+      }
       await ReaderProgressDispatchService.shared.flushPageProgress(
-        bookId: bookId,
+        bookId: flushBookId,
         snapshotPage: snapshotPage,
         snapshotCompleted: snapshotCompleted
       )
     }
   }
 
-  private func resolvedDownloadURL(for page: BookPage) -> URL? {
+  private func isBookCompleted(for readerPage: ReaderPage) -> Bool {
+    guard let range = segmentPageRangeByBookId[readerPage.bookId], !range.isEmpty else {
+      return false
+    }
+    return currentPageIndex >= range.upperBound - 1
+  }
+
+  private func resolvedDownloadURL(for page: BookPage, bookId: String) -> URL? {
     if let url = page.downloadURL {
       return url
     }
@@ -994,7 +1415,7 @@ class ReaderViewModel {
     guard splitWidePageMode != mode else { return }
 
     // currentPageIndex stores the actual page number in split mode
-    let actualPageNumber = min(currentPageIndex, pages.count - 1)
+    let actualPageNumber = min(currentPageIndex, pageCount - 1)
 
     splitWidePageMode = mode
     regenerateViewState()
@@ -1011,14 +1432,24 @@ class ReaderViewModel {
   }
 
   func toggleIsolatePage(_ pageIndex: Int) {
-    if let index = isolatePages.firstIndex(of: pageIndex) {
-      isolatePages.remove(at: index)
+    guard let isolatePosition = isolatePosition(forGlobalPageIndex: pageIndex) else { return }
+
+    var localIsolatePages = isolatePagesByBookId[isolatePosition.bookId] ?? []
+    if localIsolatePages.contains(isolatePosition.localIndex) {
+      localIsolatePages.remove(isolatePosition.localIndex)
     } else {
-      isolatePages.append(pageIndex)
+      localIsolatePages.insert(isolatePosition.localIndex)
     }
+    isolatePagesByBookId[isolatePosition.bookId] = localIsolatePages
+    rebuildIsolatePageIndices()
     regenerateViewState()
+
+    let sortedLocalPages = localIsolatePages.sorted()
     Task {
-      await DatabaseOperator.shared.updateIsolatePages(bookId: bookId, pages: isolatePages)
+      await DatabaseOperator.shared.updateIsolatePages(
+        bookId: isolatePosition.bookId,
+        pages: sortedLocalPages
+      )
       await DatabaseOperator.shared.commit()
     }
   }
@@ -1032,8 +1463,8 @@ class ReaderViewModel {
     let shouldIsolateCover = isolateCoverPageEnabled && (forceDualPagePairs || isActuallyUsingDualPageMode)
 
     viewItems = generateViewItems(
+      segments: segments,
       readerPages: readerPages,
-      pages: pages,
       noCover: !shouldIsolateCover,
       allowDualPairs: isActuallyUsingDualPageMode,
       forceDualPairs: forceDualPagePairs,
@@ -1055,7 +1486,7 @@ class ReaderViewModel {
 
   func viewItemIndex(forPageIndex pageIndex: Int) -> Int {
     guard !viewItems.isEmpty else { return 0 }
-    if pageIndex >= pages.count {
+    if pageIndex >= pageCount {
       return viewItems.count - 1
     }
     if pageIndex < 0 {
@@ -1071,7 +1502,7 @@ class ReaderViewModel {
 
   func pageIndex(forViewItemIndex viewItemIndex: Int) -> Int {
     guard let item = viewItem(at: viewItemIndex) else {
-      return max(0, min(viewItemIndex, pages.count))
+      return max(0, min(viewItemIndex, pageCount))
     }
     switch item {
     case .page(let id):
@@ -1080,8 +1511,12 @@ class ReaderViewModel {
       return pageIndex(for: id) ?? 0
     case .dual(let first, _):
       return pageIndex(for: first) ?? 0
-    case .end:
-      return pages.count
+    case .end(let bookId):
+      guard let range = segmentPageRangeByBookId[bookId] else { return pageCount }
+      if range.isEmpty {
+        return pageCount
+      }
+      return max(range.upperBound - 1, 0)
     }
   }
 
@@ -1129,89 +1564,103 @@ class ReaderViewModel {
 }
 
 private func generateViewItems(
+  segments: [ReaderSegment],
   readerPages: [ReaderPage],
-  pages: [BookPage],
   noCover: Bool,
   allowDualPairs: Bool,
   forceDualPairs: Bool,
   splitWidePages: Bool,
   isolatePages: Set<Int> = []
 ) -> [ReaderViewItem] {
-  guard pages.count > 0, pages.count == readerPages.count else { return [] }
+  guard !segments.isEmpty, !readerPages.isEmpty else { return [] }
 
   var items: [ReaderViewItem] = []
   let shouldForceDualPairs = allowDualPairs && forceDualPairs
 
-  var index = 0
-  while index < pages.count {
-    if shouldForceDualPairs {
-      let shouldShowSingle =
-        (!noCover && index == 0) || index == pages.count - 1
-        || isolatePages.contains(index) || isolatePages.contains(index + 1)
-      if shouldShowSingle {
-        items.append(.page(id: readerPages[index].id))
-        index += 1
-      } else {
-        let nextIndex = index + 1
-        items.append(.dual(first: readerPages[index].id, second: readerPages[nextIndex].id))
-        index += 2
-      }
+  var segmentStartIndex = 0
+  for segment in segments {
+    let segmentPageCount = segment.pages.count
+    guard segmentPageCount > 0 else {
+      items.append(.end(bookId: segment.currentBook.id))
       continue
     }
 
-    let currentPage = pages[index]
+    let segmentEndExclusive = segmentStartIndex + segmentPageCount
+    var index = segmentStartIndex
 
-    var useSinglePage = false
-    var shouldSplitPage = false
+    while index < segmentEndExclusive {
+      if shouldForceDualPairs {
+        let shouldShowSingle =
+          (!noCover && index == segmentStartIndex) || index == segmentEndExclusive - 1
+          || isolatePages.contains(index) || isolatePages.contains(index + 1)
+        if shouldShowSingle {
+          items.append(.page(id: readerPages[index].id))
+          index += 1
+        } else {
+          let nextIndex = index + 1
+          items.append(.dual(first: readerPages[index].id, second: readerPages[nextIndex].id))
+          index += 2
+        }
+        continue
+      }
 
-    // Check if wide page should be split (only if not already isolated or cover)
-    let isWidePageEligibleForSplit =
-      !currentPage.isPortrait
-      && splitWidePages
-      && !isolatePages.contains(index)
-      && (noCover || index != 0)  // Don't split cover page
+      let currentPage = readerPages[index].page
 
-    if isWidePageEligibleForSplit {
-      shouldSplitPage = true
-    }
+      var useSinglePage = false
+      var shouldSplitPage = false
 
-    // Determine if page should be shown as single (without splitting)
-    if !currentPage.isPortrait && !shouldSplitPage {
-      useSinglePage = true
-    }
-    if !noCover && index == 0 {
-      useSinglePage = true
-      shouldSplitPage = false  // Ensure cover page is not split
-    }
-    if isolatePages.contains(index) {
-      useSinglePage = true
-      shouldSplitPage = false  // Ensure isolated pages are not split
-    }
-    if index == pages.count - 1 {
-      useSinglePage = true
-    }
+      // Check if wide page should be split (only if not already isolated or cover)
+      let isWidePageEligibleForSplit =
+        !currentPage.isPortrait
+        && splitWidePages
+        && !isolatePages.contains(index)
+        && (noCover || index != segmentStartIndex)
 
-    if shouldSplitPage {
-      // Split the wide page into two items
-      items.append(.split(id: readerPages[index].id, isFirstHalf: true))
-      items.append(.split(id: readerPages[index].id, isFirstHalf: false))
-      index += 1
-    } else if useSinglePage {
-      items.append(.page(id: readerPages[index].id))
-      index += 1
-    } else {
-      let nextPage = pages[index + 1]
-      if allowDualPairs && nextPage.isPortrait && !isolatePages.contains(index + 1) {
-        items.append(.dual(first: readerPages[index].id, second: readerPages[index + 1].id))
-        index += 2
-      } else {
+      if isWidePageEligibleForSplit {
+        shouldSplitPage = true
+      }
+
+      // Determine if page should be shown as single (without splitting)
+      if !currentPage.isPortrait && !shouldSplitPage {
+        useSinglePage = true
+      }
+      if !noCover && index == segmentStartIndex {
+        useSinglePage = true
+        shouldSplitPage = false
+      }
+      if isolatePages.contains(index) {
+        useSinglePage = true
+        shouldSplitPage = false
+      }
+      if index == segmentEndExclusive - 1 {
+        useSinglePage = true
+      }
+
+      if shouldSplitPage {
+        items.append(.split(id: readerPages[index].id, isFirstHalf: true))
+        items.append(.split(id: readerPages[index].id, isFirstHalf: false))
+        index += 1
+      } else if useSinglePage {
         items.append(.page(id: readerPages[index].id))
         index += 1
+      } else {
+        let nextPage = readerPages[index + 1].page
+        if allowDualPairs && index + 1 < segmentEndExclusive
+          && nextPage.isPortrait
+          && !isolatePages.contains(index + 1)
+        {
+          items.append(.dual(first: readerPages[index].id, second: readerPages[index + 1].id))
+          index += 2
+        } else {
+          items.append(.page(id: readerPages[index].id))
+          index += 1
+        }
       }
     }
+
+    items.append(.end(bookId: segment.currentBook.id))
+    segmentStartIndex = segmentEndExclusive
   }
-  // insert end page item at the end
-  items.append(.end)
 
   return items
 }

@@ -8,8 +8,8 @@ import SwiftUI
 // Simple page preview card for native scroll
 private struct PagePreviewCard: View {
 
-  let bookId: String
-  let page: Int
+  let readerPage: ReaderPage
+  let displayPage: Int
   let isSelected: Bool
   let imageHeight: CGFloat
 
@@ -47,16 +47,18 @@ private struct PagePreviewCard: View {
       .scaleEffect(isSelected ? 1.0 : 0.9)
       .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
 
-      Text("\(page)")
+      Text("\(displayPage)")
         .font(.caption)
         .fontWeight(isSelected ? .semibold : .regular)
         .foregroundStyle(isSelected ? Color.accentColor : .secondary)
     }
-    .task(id: "\(bookId)-\(page)-\(Int(imageHeight))") {
+    .task(id: "\(readerPage.id.description)-\(Int(imageHeight))") {
       loadedImage = nil
       if let url = try? await ThumbnailCache.shared.ensureThumbnail(
-        id: bookId, type: .page, page: page)
-      {
+        id: readerPage.bookId,
+        type: .page,
+        page: readerPage.pageNumber
+      ) {
         loadedImage = PlatformImage(contentsOfFile: url.path)
       }
     }
@@ -64,8 +66,6 @@ private struct PagePreviewCard: View {
 }
 
 struct PageJumpSheetView: View {
-  let bookId: String
-  let totalPages: Int
   let currentPage: Int
   let readingDirection: ReadingDirection
   let viewModel: ReaderViewModel
@@ -75,6 +75,34 @@ struct PageJumpSheetView: View {
 
   @State private var pageValue: Int
   @State private var scrollPosition: Int?
+
+  private var currentBookId: String? {
+    viewModel.activeBookId
+  }
+
+  private var currentSegmentRange: Range<Int> {
+    guard let currentBookId,
+      let range = viewModel.pageRange(forSegmentBookId: currentBookId)
+    else {
+      return 0..<0
+    }
+    return range
+  }
+
+  private var totalPages: Int {
+    pagePreviews.count
+  }
+
+  private var pagePreviews: [PagePreview] {
+    currentSegmentRange.enumerated().compactMap { localIndex, globalIndex in
+      guard let readerPage = viewModel.readerPage(at: globalIndex) else { return nil }
+      return PagePreview(
+        id: localIndex + 1,
+        globalPageIndex: globalIndex,
+        readerPage: readerPage
+      )
+    }
+  }
 
   private var maxPage: Int {
     max(totalPages, 1)
@@ -97,19 +125,18 @@ struct PageJumpSheetView: View {
   }
 
   init(
-    bookId: String, totalPages: Int, currentPage: Int,
+    currentPage: Int,
     readingDirection: ReadingDirection = .ltr,
     viewModel: ReaderViewModel,
     onJump: @escaping (Int) -> Void
   ) {
-    self.bookId = bookId
-    self.totalPages = totalPages
     self.currentPage = currentPage
     self.readingDirection = readingDirection
     self.viewModel = viewModel
     self.onJump = onJump
 
-    let safeInitialPage = max(1, min(currentPage, max(totalPages, 1)))
+    let totalReaderPages = viewModel.pageCount
+    let safeInitialPage = max(1, min(currentPage, max(totalReaderPages, 1)))
     _pageValue = State(initialValue: safeInitialPage)
     _scrollPosition = State(initialValue: safeInitialPage)
   }
@@ -126,10 +153,15 @@ struct PageJumpSheetView: View {
     }
   }
 
+  private func pagePreview(localPage: Int) -> PagePreview? {
+    pagePreviews.first(where: { $0.id == localPage })
+  }
+
   private func jumpToPage() {
     guard canJump else { return }
     let clampedValue = min(max(pageValue, 1), totalPages)
-    onJump(clampedValue)
+    guard let preview = pagePreview(localPage: clampedValue) else { return }
+    onJump(preview.globalPageIndex + 1)
     dismiss()
   }
 
@@ -144,15 +176,15 @@ struct PageJumpSheetView: View {
     private func sharePage() async {
       let pageNumber = pageValue
       guard pageNumber > 0 && pageNumber <= totalPages else { return }
-      guard let pageIndex = viewModel.pages.firstIndex(where: { $0.number == pageNumber }) else { return }
-
-      let page = viewModel.pages[pageIndex]
+      guard let preview = pagePreview(localPage: pageNumber) else { return }
+      let pageIndex = preview.globalPageIndex
+      let readerPage = preview.readerPage
 
       // Use viewModel's method to get page image (checks cache, offline, downloads if needed)
-      guard let fileURL = await viewModel.getPageImageFileURL(page: page) else { return }
+      guard let fileURL = await viewModel.getPageImageFileURL(pageIndex: pageIndex) else { return }
       guard let image = PlatformImage(contentsOfFile: fileURL.path) else { return }
 
-      ImageShareHelper.shareMultiple(images: [image], fileNames: [page.fileName])
+      ImageShareHelper.shareMultiple(images: [image], fileNames: [readerPage.page.fileName])
     }
   #endif
 
@@ -173,14 +205,14 @@ struct PageJumpSheetView: View {
               ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                   LazyHStack(spacing: 8) {
-                    ForEach(1...maxPage, id: \.self) { page in
+                    ForEach(pagePreviews) { preview in
                       PagePreviewCard(
-                        bookId: bookId,
-                        page: page,
-                        isSelected: page == pageValue,
+                        readerPage: preview.readerPage,
+                        displayPage: preview.id,
+                        isSelected: preview.id == pageValue,
                         imageHeight: imageHeight
                       )
-                      .id(page)
+                      .id(preview.id)
                     }
                   }
                   .scrollTargetLayout()
@@ -305,4 +337,10 @@ struct PageJumpSheetView: View {
     }
     .presentationDragIndicator(.visible)
   }
+}
+
+private struct PagePreview: Identifiable {
+  let id: Int
+  let globalPageIndex: Int
+  let readerPage: ReaderPage
 }

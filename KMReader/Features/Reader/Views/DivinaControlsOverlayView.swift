@@ -48,31 +48,55 @@ struct DivinaControlsOverlayView: View {
     .bouncy(duration: 0.25)
   }
 
+  private var currentSegmentBookId: String? {
+    currentBook?.id
+  }
+
+  private var currentSegmentPageCount: Int {
+    guard let currentSegmentBookId else {
+      return viewModel.pageCount
+    }
+    return viewModel.pageCount(forSegmentBookId: currentSegmentBookId)
+  }
+
+  private var currentSegmentProgressPage: Int {
+    guard currentSegmentPageCount > 0 else { return 0 }
+    if viewModel.currentViewItem()?.isEnd == true {
+      return currentSegmentPageCount
+    }
+    return min(max(viewModel.currentPageNumberInCurrentSegment(), 1), currentSegmentPageCount)
+  }
+
   private var progress: Double {
-    guard viewModel.pages.count > 0 else { return 0 }
-    return Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count))
-      / Double(viewModel.pages.count)
+    guard currentSegmentPageCount > 0 else { return 0 }
+    return Double(currentSegmentProgressPage) / Double(currentSegmentPageCount)
   }
 
   private var displayedCurrentPage: String {
-    guard viewModel.pages.count > 0 else { return "0" }
-    if viewModel.currentPageIndex >= viewModel.pages.count {
+    guard currentSegmentPageCount > 0 else { return "0" }
+    if viewModel.currentViewItem()?.isEnd == true || viewModel.currentPageIndex >= viewModel.pageCount {
       return String(localized: "reader.page.end")
     } else {
       if dualPage, let pair = viewModel.currentPagePair() {
         return displayPagePair(first: pair.first, second: pair.second)
       } else {
-        return String(viewModel.currentPageIndex + 1)
+        return String(displayPageNumber(forPageIndex: viewModel.currentPageIndex))
       }
     }
   }
 
   private func displayPagePair(first: Int, second: Int?) -> String {
-    guard let second else { return "\(first + 1)" }
+    let firstPageNumber = displayPageNumber(forPageIndex: first)
+    guard let second else { return "\(firstPageNumber)" }
+    let secondPageNumber = displayPageNumber(forPageIndex: second)
     if readingDirection == .rtl {
-      return "\(second + 1),\(first + 1)"
+      return "\(secondPageNumber),\(firstPageNumber)"
     }
-    return "\(first + 1),\(second + 1)"
+    return "\(firstPageNumber),\(secondPageNumber)"
+  }
+
+  private func displayPageNumber(forPageIndex pageIndex: Int) -> Int {
+    viewModel.displayPageNumber(forPageIndex: pageIndex) ?? pageIndex + 1
   }
 
   private var enableDualPageOptions: Bool {
@@ -80,7 +104,7 @@ struct DivinaControlsOverlayView: View {
   }
 
   private var isCurrentPageValid: Bool {
-    return viewModel.currentPageIndex >= 0 && viewModel.currentPageIndex < viewModel.pages.count
+    return viewModel.currentPageIndex >= 0 && viewModel.currentPageIndex < viewModel.pageCount
   }
 
   #if os(iOS) || os(macOS)
@@ -89,12 +113,11 @@ struct DivinaControlsOverlayView: View {
       var names: [String] = []
 
       for index in indices {
-        if index >= 0 && index < viewModel.pages.count {
-          let page = viewModel.pages[index]
-          if let image = viewModel.preloadedImage(forPageIndex: index) {
-            images.append(image)
-            names.append(page.fileName)
-          }
+        guard index >= 0 && index < viewModel.pageCount else { continue }
+        guard let page = viewModel.page(at: index) else { continue }
+        if let image = viewModel.preloadedImage(forPageIndex: index) {
+          images.append(image)
+          names.append(page.fileName)
         }
       }
 
@@ -243,12 +266,12 @@ struct DivinaControlsOverlayView: View {
         Spacer(minLength: 0)
 
         Button {
-          guard !viewModel.pages.isEmpty else { return }
+          guard viewModel.hasPages else { return }
           showingPageJumpSheet = true
         } label: {
           HStack(spacing: 6) {
             Image(systemName: "bookmark")
-            Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
+            Text("\(displayedCurrentPage) / \(currentSegmentPageCount)")
               .monospacedDigit()
           }
         }
@@ -344,7 +367,7 @@ struct DivinaControlsOverlayView: View {
     }
 
     #if os(iOS) || os(macOS)
-      if viewModel.currentPageIndex < viewModel.pages.count {
+      if viewModel.currentPageIndex < viewModel.pageCount {
         Section {
           if dualPage, let pair = viewModel.currentPagePair() {
             share(firstPage: pair.first, secondPage: pair.second)
@@ -394,24 +417,26 @@ struct DivinaControlsOverlayView: View {
         }
       } else if dualPage, let pair = viewModel.currentPagePair(),
         let secondPage = pair.second,
-        pair.first < viewModel.pages.count,
-        secondPage < viewModel.pages.count
+        pair.first < viewModel.pageCount,
+        secondPage < viewModel.pageCount
       {
         let leftPage = readingDirection == .rtl ? secondPage : pair.first
         let rightPage = readingDirection == .rtl ? pair.first : secondPage
         Button {
           viewModel.toggleIsolatePage(leftPage)
         } label: {
+          let displayedPageNumber = displayPageNumber(forPageIndex: leftPage)
           Label(
-            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), leftPage + 1),
+            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
             systemImage: "rectangle.lefthalf.inset.filled"
           )
         }
         Button {
           viewModel.toggleIsolatePage(rightPage)
         } label: {
+          let displayedPageNumber = displayPageNumber(forPageIndex: rightPage)
           Label(
-            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), rightPage + 1),
+            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
             systemImage: "rectangle.righthalf.inset.filled"
           )
         }
@@ -429,12 +454,12 @@ struct DivinaControlsOverlayView: View {
       }
     }
     Button {
-      guard !viewModel.pages.isEmpty else { return }
+      guard viewModel.hasPages else { return }
       showingPageJumpSheet = true
     } label: {
       Label(String(localized: "Jump to Page"), systemImage: "bookmark")
     }
-    .disabled(viewModel.pages.isEmpty)
+    .disabled(!viewModel.hasPages)
   }
 
   @ViewBuilder
@@ -476,8 +501,9 @@ struct DivinaControlsOverlayView: View {
       Button {
         sharePage(index: firstPage)
       } label: {
+        let displayedPageNumber = displayPageNumber(forPageIndex: firstPage)
         Label(
-          String.localizedStringWithFormat(sharePageFormat, firstPage + 1),
+          String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
           systemImage: "square.and.arrow.up"
         )
       }
@@ -485,8 +511,9 @@ struct DivinaControlsOverlayView: View {
         Button {
           sharePage(index: secondPage)
         } label: {
+          let displayedPageNumber = displayPageNumber(forPageIndex: secondPage)
           Label(
-            String.localizedStringWithFormat(sharePageFormat, secondPage + 1),
+            String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
             systemImage: "square.and.arrow.up.on.square"
           )
         }

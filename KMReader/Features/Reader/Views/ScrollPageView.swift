@@ -5,10 +5,6 @@
 
 import SwiftUI
 
-#if os(iOS)
-  import UIKit
-#endif
-
 struct ScrollPageView: View {
   let mode: PageViewMode
   let readingDirection: ReadingDirection
@@ -16,18 +12,13 @@ struct ScrollPageView: View {
   let renderConfig: ReaderRenderConfig
   let showingControls: Bool
   @Bindable var viewModel: ReaderViewModel
-  let previousBook: Book?
-  let nextBook: Book?
   let readListContext: ReaderReadListContext?
   let onDismiss: () -> Void
-  let onPreviousBook: (String) -> Void
-  let onNextBook: (String) -> Void
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
   let onPlayAnimatedPage: ((Int) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
-  let onBoundaryPanUpdate: ((CGFloat) -> Void)?
 
   private let logger = AppLogger(.reader)
 
@@ -35,11 +26,6 @@ struct ScrollPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
-  #if os(iOS)
-    @State private var boundaryDragOffset: CGFloat = 0
-    @State private var hasTriggeredBoundaryHaptic = false
-    private let boundarySwipeThreshold: CGFloat = 120
-  #endif
   #if os(tvOS)
     @FocusState private var isContentAnchorFocused: Bool
   #endif
@@ -59,18 +45,13 @@ struct ScrollPageView: View {
     renderConfig: ReaderRenderConfig,
     showingControls: Bool,
     viewModel: ReaderViewModel,
-    previousBook: Book?,
-    nextBook: Book?,
     readListContext: ReaderReadListContext?,
     onDismiss: @escaping () -> Void,
-    onPreviousBook: @escaping (String) -> Void,
-    onNextBook: @escaping (String) -> Void,
     goToNextPage: @escaping () -> Void,
     goToPreviousPage: @escaping () -> Void,
     toggleControls: @escaping () -> Void,
     onPlayAnimatedPage: ((Int) -> Void)? = nil,
-    onScrollActivityChange: ((Bool) -> Void)? = nil,
-    onBoundaryPanUpdate: ((CGFloat) -> Void)? = nil
+    onScrollActivityChange: ((Bool) -> Void)? = nil
   ) {
     self.mode = mode
     self.readingDirection = readingDirection
@@ -78,18 +59,13 @@ struct ScrollPageView: View {
     self.renderConfig = renderConfig
     self.showingControls = showingControls
     self.viewModel = viewModel
-    self.previousBook = previousBook
-    self.nextBook = nextBook
     self.readListContext = readListContext
     self.onDismiss = onDismiss
-    self.onPreviousBook = onPreviousBook
-    self.onNextBook = onNextBook
     self.goToNextPage = goToNextPage
     self.goToPreviousPage = goToPreviousPage
     self.toggleControls = toggleControls
     self.onPlayAnimatedPage = onPlayAnimatedPage
     self.onScrollActivityChange = onScrollActivityChange
-    self.onBoundaryPanUpdate = onBoundaryPanUpdate
   }
 
   var body: some View {
@@ -105,9 +81,6 @@ struct ScrollPageView: View {
         .overlay(alignment: .topLeading) {
           contentAnchor
         }
-        #if os(iOS)
-          .simultaneousGesture(boundarySwipeGesture)
-        #endif
         #if os(tvOS)
           .focusable(false)
         #endif
@@ -142,6 +115,7 @@ struct ScrollPageView: View {
             scrollPosition = target
             proxy.scrollTo(target, anchor: .center)
           }
+          preloadVisiblePages(forViewItemIndex: target)
           #if os(tvOS)
             updateContentAnchorFocus()
           #endif
@@ -149,6 +123,7 @@ struct ScrollPageView: View {
         .onChange(of: scrollPosition) { _, newPosition in
           if let newPosition, newPosition < viewModel.viewItems.count {
             viewModel.updateCurrentPosition(viewItemIndex: newPosition)
+            preloadVisiblePages(forViewItemIndex: newPosition)
 
             // Clear targetPageIndex if the user manually scrolled
             if viewModel.targetPageIndex != nil {
@@ -174,9 +149,6 @@ struct ScrollPageView: View {
           #endif
         }
         .onChange(of: viewModel.currentViewItemIndex) { _, _ in
-          #if os(iOS)
-            resetBoundarySwipeState(animated: false)
-          #endif
           #if os(tvOS)
             logger.debug("📺 currentViewItemIndex changed: \(viewModel.currentViewItemIndex)")
             updateContentAnchorFocus()
@@ -197,100 +169,6 @@ struct ScrollPageView: View {
       }
     }
   }
-
-  #if os(iOS)
-    private enum BoundaryNavigationAction {
-      case openPrevious(String)
-      case openNext(String)
-    }
-
-    private var supportsBoundarySwipe: Bool {
-      readingDirection != .webtoon
-    }
-
-    private var isAtFirstBoundary: Bool {
-      viewModel.currentViewItemIndex == 0
-    }
-
-    private var isAtEndBoundary: Bool {
-      guard !viewModel.viewItems.isEmpty else { return false }
-      return viewModel.currentViewItemIndex == viewModel.viewItems.count - 1
-    }
-
-    private var hasBoundarySwipeContext: Bool {
-      (isAtFirstBoundary && previousBook != nil) || (isAtEndBoundary && nextBook != nil)
-    }
-
-    private var shouldEnableBoundarySwipe: Bool {
-      supportsBoundarySwipe
-        && hasBoundarySwipeContext
-        && !showingControls
-        && !viewModel.isZoomed
-        && viewModel.liveTextActivePageIndex == nil
-    }
-
-    private func boundaryAction(for translation: CGFloat) -> BoundaryNavigationAction? {
-      if isAtFirstBoundary, let previousBook, readingDirection.isBackwardSwipe(translation) {
-        return .openPrevious(previousBook.id)
-      }
-      if isAtEndBoundary, let nextBook, readingDirection.isForwardSwipe(translation) {
-        return .openNext(nextBook.id)
-      }
-      return nil
-    }
-
-    private var boundarySwipeGesture: some Gesture {
-      DragGesture(minimumDistance: 6, coordinateSpace: .local)
-        .onChanged { value in
-          guard shouldEnableBoundarySwipe else {
-            resetBoundarySwipeState(animated: false)
-            return
-          }
-
-          boundaryDragOffset = mode.isVertical ? value.translation.height : value.translation.width
-
-          let currentAction = boundaryAction(for: boundaryDragOffset)
-          onBoundaryPanUpdate?(currentAction != nil ? boundaryDragOffset : 0)
-          if currentAction != nil
-            && abs(boundaryDragOffset) >= boundarySwipeThreshold
-            && !hasTriggeredBoundaryHaptic
-          {
-            let impact = UIImpactFeedbackGenerator(style: .medium)
-            impact.impactOccurred()
-            hasTriggeredBoundaryHaptic = true
-          } else if currentAction == nil {
-            hasTriggeredBoundaryHaptic = false
-          }
-        }
-        .onEnded { value in
-          defer { resetBoundarySwipeState(animated: true) }
-          guard shouldEnableBoundarySwipe else { return }
-
-          let finalOffset = mode.isVertical ? value.translation.height : value.translation.width
-          guard let action = boundaryAction(for: finalOffset) else { return }
-          guard abs(finalOffset) >= boundarySwipeThreshold else { return }
-          switch action {
-          case .openPrevious(let previousBookId):
-            onPreviousBook(previousBookId)
-          case .openNext(let nextBookId):
-            onNextBook(nextBookId)
-          }
-        }
-    }
-
-    private func resetBoundarySwipeState(animated: Bool) {
-      onBoundaryPanUpdate?(0)
-      if animated {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-          boundaryDragOffset = 0
-          hasTriggeredBoundaryHaptic = false
-        }
-      } else {
-        boundaryDragOffset = 0
-        hasTriggeredBoundaryHaptic = false
-      }
-    }
-  #endif
 
   @ViewBuilder
   private func scrollViewContent(geometry: GeometryProxy, isScrollDisabled: Bool) -> some View {
@@ -317,13 +195,17 @@ struct ScrollPageView: View {
     ForEach(Array(viewModel.viewItems.enumerated()), id: \.offset) { offset, item in
       Group {
         switch item {
-        case .end:
+        case .end(let bookId):
           EndPageView(
-            viewModel: viewModel,
-            nextBook: nextBook,
+            previousBook: viewModel.currentBook(forSegmentBookId: bookId),
+            nextBook: viewModel.nextBook(forSegmentBookId: bookId),
             readListContext: readListContext,
+            onDismiss: onDismiss,
             readingDirection: readingDirection,
-            showImage: true
+            renderConfig: renderConfig,
+            onNextPage: goToNextPage,
+            onPreviousPage: goToPreviousPage,
+            onToggleControls: toggleControls
           )
         case .dual(let first, let second):
           if let firstPageIndex = viewModel.pageIndex(for: first),
@@ -421,7 +303,7 @@ struct ScrollPageView: View {
   private func synchronizeInitialScrollIfNeeded(proxy: ScrollViewProxy) {
     guard !hasSyncedInitialScroll else { return }
     guard viewModel.currentPageIndex >= 0 else { return }
-    guard !viewModel.pages.isEmpty else { return }
+    guard viewModel.hasPages else { return }
 
     let target = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
 
@@ -430,6 +312,7 @@ struct ScrollPageView: View {
       proxy.scrollTo(target, anchor: .center)
       viewModel.updateCurrentPosition(viewItemIndex: target)
       hasSyncedInitialScroll = true
+      preloadVisiblePages(forViewItemIndex: target)
     }
   }
 
@@ -445,7 +328,7 @@ struct ScrollPageView: View {
     guard let newTarget = newTarget else { return }
     guard hasSyncedInitialScroll else { return }
     guard newTarget >= 0 else { return }
-    guard !viewModel.pages.isEmpty else { return }
+    guard viewModel.hasPages else { return }
 
     let targetScrollPosition = viewModel.viewItemIndex(forPageIndex: newTarget)
 
@@ -459,6 +342,7 @@ struct ScrollPageView: View {
     }
 
     syncCurrentPositionIfNeeded(target: targetScrollPosition)
+    preloadVisiblePages(forViewItemIndex: targetScrollPosition)
 
     // Explicitly update progress
     Task {
@@ -470,7 +354,7 @@ struct ScrollPageView: View {
   private func handleTargetViewItemChange(_ newTarget: Int, proxy: ScrollViewProxy) {
     guard hasSyncedInitialScroll else { return }
     guard newTarget >= 0 else { return }
-    guard !viewModel.pages.isEmpty else { return }
+    guard viewModel.hasPages else { return }
     guard newTarget < viewModel.viewItems.count else { return }
 
     let targetScrollPosition = newTarget
@@ -485,11 +369,36 @@ struct ScrollPageView: View {
     }
 
     syncCurrentPositionIfNeeded(target: targetScrollPosition)
+    preloadVisiblePages(forViewItemIndex: targetScrollPosition)
 
     // Explicitly update progress
     Task {
       await viewModel.updateProgress()
       await viewModel.preloadPages()
+    }
+  }
+
+  private func preloadVisiblePages(forViewItemIndex viewItemIndex: Int) {
+    guard let item = viewModel.viewItem(at: viewItemIndex) else { return }
+
+    let visiblePageIndices: [Int]
+    switch item {
+    case .page(let id):
+      visiblePageIndices = [viewModel.pageIndex(for: id)].compactMap { $0 }
+    case .split(let id, _):
+      visiblePageIndices = [viewModel.pageIndex(for: id)].compactMap { $0 }
+    case .dual(let first, let second):
+      visiblePageIndices = [viewModel.pageIndex(for: first), viewModel.pageIndex(for: second)].compactMap { $0 }
+    case .end:
+      visiblePageIndices = []
+    }
+
+    guard !visiblePageIndices.isEmpty else { return }
+
+    Task(priority: .userInitiated) {
+      for pageIndex in visiblePageIndices {
+        _ = await viewModel.preloadImageForPage(at: pageIndex)
+      }
     }
   }
 

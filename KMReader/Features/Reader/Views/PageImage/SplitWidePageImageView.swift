@@ -20,7 +20,7 @@ struct SplitWidePageImageView: View {
   let onPlayAnimatedPage: ((Int) -> Void)?
 
   var body: some View {
-    let page = pageIndex >= 0 && pageIndex < viewModel.pages.count ? viewModel.pages[pageIndex] : nil
+    let readerPage = viewModel.readerPage(at: pageIndex)
 
     PageScrollView(
       viewModel: viewModel,
@@ -35,9 +35,10 @@ struct SplitWidePageImageView: View {
       onToggleControls: onToggleControls,
       pages: [
         NativePageData(
-          bookId: viewModel.bookId,
+          bookId: viewModel.resolvedBookId(forPageIndex: pageIndex),
           pageNumber: pageIndex,
-          isLoading: viewModel.isLoading && page != nil && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
+          isLoading: viewModel.isLoading && readerPage != nil
+            && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
           error: nil,
           alignment: .center,
           splitMode: isLeftHalf ? .leftHalf : .rightHalf

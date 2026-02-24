@@ -87,11 +87,15 @@
     }
 
     func configure(
-      pageIndex: Int, image: UIImage?, showPageNumber: Bool, loadImage: @escaping (Int) async -> Void
+      pageIndex: Int,
+      displayPageNumber: Int?,
+      image: UIImage?,
+      showPageNumber: Bool,
+      loadImage: @escaping (Int) async -> Void
     ) {
       self.pageIndex = pageIndex
       self.loadImage = loadImage
-      pageMarkerLabel.text = "\(pageIndex + 1)"
+      pageMarkerLabel.text = displayPageNumber.map(String.init) ?? "\(pageIndex + 1)"
       pageMarkerLabel.isHidden = !showPageNumber
 
       if let image = image {

@@ -185,16 +185,16 @@
     private func refreshPageItem() {
       guard let viewModel else { return }
 
-      let page = pageIndex >= 0 && pageIndex < viewModel.pages.count ? viewModel.pages[pageIndex] : nil
+      let readerPage = viewModel.readerPage(at: pageIndex)
       let image = viewModel.preloadedImage(forPageIndex: pageIndex)
 
       if image != nil {
         loadError = nil
       }
 
-      let isLoading = loadTask != nil || (image == nil && page != nil && loadError == nil)
+      let isLoading = loadTask != nil || (image == nil && readerPage != nil && loadError == nil)
       let data = NativePageData(
-        bookId: viewModel.bookId,
+        bookId: viewModel.resolvedBookId(forPageIndex: pageIndex),
         pageNumber: pageIndex,
         isLoading: isLoading,
         error: loadError,
@@ -216,12 +216,12 @@
       updateAnimatedInlinePlayback()
       updatePlayButtonVisibility()
 
-      if image == nil, let page, loadError == nil {
-        startLoadingImageIfNeeded(page: page)
+      if image == nil, readerPage != nil, loadError == nil {
+        startLoadingImageIfNeeded()
       }
     }
 
-    private func startLoadingImageIfNeeded(page: BookPage) {
+    private func startLoadingImageIfNeeded() {
       guard loadTask == nil else { return }
       guard let viewModel else { return }
 
@@ -229,7 +229,7 @@
 
       loadTask = Task { [weak self] in
         guard let self else { return }
-        let image = await viewModel.preloadImageForPage(page)
+        let image = await viewModel.preloadImageForPage(at: requestedPageIndex)
         guard !Task.isCancelled else { return }
         guard self.pageIndex == requestedPageIndex else { return }
 

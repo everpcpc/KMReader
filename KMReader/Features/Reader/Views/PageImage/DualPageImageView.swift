@@ -24,8 +24,8 @@ struct DualPageImageView: View {
   }
 
   var body: some View {
-    let page1 = firstPageIndex >= 0 && firstPageIndex < viewModel.pages.count ? viewModel.pages[firstPageIndex] : nil
-    let page2 = secondPageIndex >= 0 && secondPageIndex < viewModel.pages.count ? viewModel.pages[secondPageIndex] : nil
+    let firstReaderPage = viewModel.readerPage(at: firstPageIndex)
+    let secondReaderPage = viewModel.readerPage(at: secondPageIndex)
 
     PageScrollView(
       viewModel: viewModel,
@@ -40,18 +40,20 @@ struct DualPageImageView: View {
       onToggleControls: onToggleControls,
       pages: [
         NativePageData(
-          bookId: viewModel.bookId,
+          bookId: viewModel.resolvedBookId(forPageIndex: firstPageIndex),
           pageNumber: firstPageIndex,
-          isLoading: viewModel.isLoading && page1 != nil && viewModel.preloadedImage(forPageIndex: firstPageIndex) == nil,
+          isLoading: viewModel.isLoading && firstReaderPage != nil
+            && viewModel.preloadedImage(forPageIndex: firstPageIndex) == nil,
           error: nil,
           // Page 1 is always the first subview. In Dual Mode, the first subview always hugs the center spine (Trailing).
           // UIKit's Trailing automatically means Right in LTR and Left in RTL. Perfect.
           alignment: .trailing
         ),
         NativePageData(
-          bookId: viewModel.bookId,
+          bookId: viewModel.resolvedBookId(forPageIndex: secondPageIndex),
           pageNumber: secondPageIndex,
-          isLoading: viewModel.isLoading && page2 != nil && viewModel.preloadedImage(forPageIndex: secondPageIndex) == nil,
+          isLoading: viewModel.isLoading && secondReaderPage != nil
+            && viewModel.preloadedImage(forPageIndex: secondPageIndex) == nil,
           error: nil,
           // Page 2 is the second subview, it hugs the center spine (Leading).
           alignment: .leading

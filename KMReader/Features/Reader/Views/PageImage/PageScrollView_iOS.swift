@@ -283,7 +283,7 @@
           }
         }
 
-        if let page = parent.viewModel.pages.first(where: { $0.number == data.pageNumber }),
+        if let page = parent.viewModel.readerPage(at: data.pageNumber)?.page,
           let pageWidth = page.width,
           let pageHeight = page.height,
           pageWidth > 0,
