@@ -13,6 +13,7 @@ class SyncService {
 
   private let api = APIClient.shared
   private let logger = AppLogger(.sync)
+  private let syncPageSize = 1000
 
   private init() {}
 
@@ -48,7 +49,7 @@ class SyncService {
       var remoteCollectionIds = Set<String>()
       while hasMore {
         let result: Page<SeriesCollection> = try await CollectionService.shared.getCollections(
-          page: page, size: 500)
+          page: page, size: syncPageSize)
         remoteCollectionIds.formUnion(result.content.map(\.id))
         await db.upsertCollections(result.content, instanceId: instanceId)
         hasMore = !result.last
@@ -72,7 +73,7 @@ class SyncService {
       var remoteReadListIds = Set<String>()
       while hasMore {
         let result: Page<ReadList> = try await ReadListService.shared.getReadLists(
-          page: page, size: 500)
+          page: page, size: syncPageSize)
         remoteReadListIds.formUnion(result.content.map(\.id))
         await db.upsertReadLists(result.content, instanceId: instanceId)
         hasMore = !result.last
@@ -98,7 +99,7 @@ class SyncService {
       let search = SeriesSearch(condition: condition)
       while hasMore {
         let result = try await SeriesService.shared.getSeriesList(
-          search: search, page: page, size: 100)
+          search: search, page: page, size: syncPageSize)
         await db.upsertSeriesList(result.content, instanceId: instanceId)
         hasMore = !result.last
         page += 1
@@ -248,7 +249,7 @@ class SyncService {
     guard !instanceId.isEmpty else { return }
 
     let marker = AppConfig.recentlyReadRecordTime(instanceId: instanceId)
-    let pageSize = 20
+    let pageSize = syncPageSize
     var page = 0
     var shouldContinue = true
     var latestServerReadDate = marker
@@ -343,7 +344,7 @@ class SyncService {
       let result = try await BookService.shared.getBooks(
         seriesId: seriesId,
         page: page,
-        size: 100,
+        size: syncPageSize,
         browseOpts: BookBrowseOptions()
       )
       await db.upsertBooks(result.content, instanceId: instanceId)
@@ -364,7 +365,7 @@ class SyncService {
       let result = try await ReadListService.shared.getReadListBooks(
         readListId: readListId,
         page: page,
-        size: 100,
+        size: syncPageSize,
         browseOpts: ReadListBookBrowseOptions(),
         libraryIds: nil
       )

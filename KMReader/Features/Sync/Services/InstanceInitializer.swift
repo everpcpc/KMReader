@@ -43,6 +43,10 @@ enum SyncPhase: String, CaseIterable {
     allCases.reduce(0) { $0 + $1.weight }
   }
 
+  static var initialProgress: [SyncPhase: Double] {
+    Dictionary(uniqueKeysWithValues: allCases.map { ($0, 0.0) })
+  }
+
   var progressOffset: Double {
     var offset = 0.0
     for phase in SyncPhase.allCases {
@@ -50,6 +54,65 @@ enum SyncPhase: String, CaseIterable {
       offset += phase.weight
     }
     return offset / SyncPhase.totalWeight
+  }
+}
+
+enum SyncStage: String, CaseIterable {
+  case libraries
+  case collections
+  case seriesIncremental
+  case seriesReconcile
+  case readLists
+  case booksIncremental
+  case booksReconcile
+
+  static func visibleStages(includeReconcile: Bool) -> [SyncStage] {
+    if includeReconcile {
+      [
+        .libraries,
+        .collections,
+        .seriesIncremental,
+        .seriesReconcile,
+        .readLists,
+        .booksIncremental,
+        .booksReconcile,
+      ]
+    } else {
+      [
+        .libraries,
+        .collections,
+        .seriesIncremental,
+        .readLists,
+        .booksIncremental,
+      ]
+    }
+  }
+
+  static var initialProgress: [SyncStage: Double] {
+    Dictionary(uniqueKeysWithValues: allCases.map { ($0, 0.0) })
+  }
+
+  func localizedName(includeReconcile: Bool) -> String {
+    switch self {
+    case .libraries:
+      return String(localized: "initialization.phase.libraries")
+    case .collections:
+      return String(localized: "initialization.phase.collections")
+    case .seriesIncremental:
+      let base = String(localized: "initialization.phase.series")
+      return includeReconcile ? "\(base) (1/2)" : base
+    case .seriesReconcile:
+      let base = String(localized: "initialization.phase.series")
+      return "\(base) (2/2)"
+    case .readLists:
+      return String(localized: "initialization.phase.readlists")
+    case .booksIncremental:
+      let base = String(localized: "initialization.phase.books")
+      return includeReconcile ? "\(base) (1/2)" : base
+    case .booksReconcile:
+      let base = String(localized: "initialization.phase.books")
+      return "\(base) (2/2)"
+    }
   }
 }
 
@@ -61,16 +124,29 @@ final class InstanceInitializer {
   private(set) var isSyncing = false
   private(set) var progress: Double = 0.0
   private(set) var currentPhase: SyncPhase = .libraries
+  private(set) var phaseProgress: [SyncPhase: Double] = SyncPhase.initialProgress
+  private(set) var stageProgress: [SyncStage: Double] = SyncStage.initialProgress
+  private(set) var visibleStages: [SyncStage] = SyncStage.visibleStages(includeReconcile: false)
+  private(set) var includesReconcileStages = false
 
   private let logger = AppLogger(.sync)
   private let api = APIClient.shared
   private let deletionReconcileInterval: TimeInterval = 24 * 60 * 60
   private let reconcileProgressSplit: Double = 0.7
+  private let syncPageSize = 1000
 
   private init() {}
 
   var currentPhaseName: String {
     currentPhase.localizedName
+  }
+
+  func progress(for phase: SyncPhase) -> Double {
+    phaseProgress[phase] ?? 0.0
+  }
+
+  func progress(for stage: SyncStage) -> Double {
+    stageProgress[stage] ?? 0.0
   }
 
   private var db: DatabaseOperator {
@@ -106,6 +182,8 @@ final class InstanceInitializer {
   private func performSync(instanceId: String, forceFullSync: Bool) async -> Bool {
     isSyncing = true
     progress = 0.0
+    phaseProgress = SyncPhase.initialProgress
+    stageProgress = SyncStage.initialProgress
     var hasFailures = false
 
     let storedLastSyncedAt = await db.getLastSyncedAt(instanceId: instanceId)
@@ -116,6 +194,8 @@ final class InstanceInitializer {
     let syncStartTime = Date()
     let shouldReconcileDeletions =
       forceFullSync || shouldRunDeletionReconciliation(instanceId: instanceId)
+    includesReconcileStages = shouldReconcileDeletions
+    visibleStages = SyncStage.visibleStages(includeReconcile: shouldReconcileDeletions)
 
     logger.info(
       "🔄 Starting sync for instance: \(instanceId), forceFullSync: \(forceFullSync), seriesLastSynced: \(storedLastSyncedAt.series), booksLastSynced: \(storedLastSyncedAt.books)"
@@ -240,7 +320,7 @@ final class InstanceInitializer {
 
       while hasMore {
         let result: Page<SeriesCollection> = try await CollectionService.shared.getCollections(
-          page: page, size: 100)
+          page: page, size: syncPageSize)
         remoteCollectionIds.formUnion(result.content.map(\.id))
         await db.upsertCollections(result.content, instanceId: instanceId)
         await db.commit()
@@ -278,7 +358,7 @@ final class InstanceInitializer {
       while shouldContinue {
         let search = SeriesSearch(condition: nil)
         let result = try await SeriesService.shared.getSeriesList(
-          search: search, page: page, size: 100, sort: "lastModified,desc")
+          search: search, page: page, size: syncPageSize, sort: "lastModified,desc")
 
         var itemsToSync: [Series] = []
         for series in result.content {
@@ -322,6 +402,22 @@ final class InstanceInitializer {
   ) async -> Bool {
     updateProgress(phase: .series, progressRange: progressRange, unitProgress: 0.0)
     do {
+      let localCount = await db.fetchTotalSeriesCount(instanceId: instanceId)
+      do {
+        let remoteCount = try await fetchRemoteSeriesCountForDeletionReconcile()
+        if localCount <= remoteCount {
+          logger.debug(
+            "⏭️ Skipped series reconcile: localCount=\(localCount), remoteCount=\(remoteCount)"
+          )
+          updateProgress(phase: .series, progressRange: progressRange, unitProgress: 1.0)
+          return true
+        }
+      } catch {
+        logger.warning(
+          "⚠️ Failed to preflight series reconcile counts, fallback to full scan: \(error)"
+        )
+      }
+
       let remoteSeriesIds = try await fetchAllSeriesIdsForDeletionReconcile { progress in
         self.updateProgress(phase: .series, progressRange: progressRange, unitProgress: progress)
       }
@@ -348,7 +444,7 @@ final class InstanceInitializer {
 
       while hasMore {
         let result: Page<ReadList> = try await ReadListService.shared.getReadLists(
-          page: page, size: 100)
+          page: page, size: syncPageSize)
         remoteReadListIds.formUnion(result.content.map(\.id))
         await db.upsertReadLists(result.content, instanceId: instanceId)
         await db.commit()
@@ -386,7 +482,7 @@ final class InstanceInitializer {
       while shouldContinue {
         let search = BookSearch(condition: nil)
         let result = try await BookService.shared.getBooksList(
-          search: search, page: page, size: 100, sort: "lastModified,desc")
+          search: search, page: page, size: syncPageSize, sort: "lastModified,desc")
 
         var itemsToSync: [Book] = []
         for book in result.content {
@@ -430,6 +526,22 @@ final class InstanceInitializer {
   ) async -> Bool {
     updateProgress(phase: .books, progressRange: progressRange, unitProgress: 0.0)
     do {
+      let localCount = await db.fetchTotalBooksCount(instanceId: instanceId)
+      do {
+        let remoteCount = try await fetchRemoteBookCountForDeletionReconcile()
+        if localCount <= remoteCount {
+          logger.debug(
+            "⏭️ Skipped book reconcile: localCount=\(localCount), remoteCount=\(remoteCount)"
+          )
+          updateProgress(phase: .books, progressRange: progressRange, unitProgress: 1.0)
+          return true
+        }
+      } catch {
+        logger.warning(
+          "⚠️ Failed to preflight book reconcile counts, fallback to full scan: \(error)"
+        )
+      }
+
       let remoteBookIds = try await fetchAllBookIdsForDeletionReconcile { progress in
         self.updateProgress(phase: .books, progressRange: progressRange, unitProgress: progress)
       }
@@ -449,6 +561,26 @@ final class InstanceInitializer {
       logger.error("❌ Failed to reconcile stale books: \(error)")
       return false
     }
+  }
+
+  private func fetchRemoteSeriesCountForDeletionReconcile() async throws -> Int {
+    let result = try await SeriesService.shared.getSeriesList(
+      search: SeriesSearch(condition: nil),
+      page: 0,
+      size: 1,
+      sort: "lastModified,desc"
+    )
+    return result.totalElements
+  }
+
+  private func fetchRemoteBookCountForDeletionReconcile() async throws -> Int {
+    let result = try await BookService.shared.getBooksList(
+      search: BookSearch(condition: nil),
+      page: 0,
+      size: 1,
+      sort: "lastModified,desc"
+    )
+    return result.totalElements
   }
 
   private func fetchAllSeriesIdsForDeletionReconcile(
@@ -475,7 +607,7 @@ final class InstanceInitializer {
       let result = try await SeriesService.shared.getSeriesList(
         search: search,
         page: page,
-        size: 500,
+        size: syncPageSize,
         sort: "lastModified,desc"
       )
       ids.formUnion(result.content.map(\.id))
@@ -511,7 +643,7 @@ final class InstanceInitializer {
       let result = try await BookService.shared.getBooksList(
         search: search,
         page: page,
-        size: 500,
+        size: syncPageSize,
         sort: "lastModified,desc"
       )
       ids.formUnion(result.content.map(\.id))
@@ -550,8 +682,54 @@ final class InstanceInitializer {
   }
 
   private func updateProgress(phase: SyncPhase, phaseProgress: Double) {
+    let clampedPhaseProgress = min(max(phaseProgress, 0.0), 1.0)
+    self.phaseProgress[phase] = clampedPhaseProgress
+    updateStageProgress(phase: phase, phaseProgress: clampedPhaseProgress)
     let phaseOffset = phase.progressOffset
-    let phaseContribution = (phase.weight / SyncPhase.totalWeight) * phaseProgress
+    let phaseContribution = (phase.weight / SyncPhase.totalWeight) * clampedPhaseProgress
     progress = phaseOffset + phaseContribution
+  }
+
+  private func updateStageProgress(phase: SyncPhase, phaseProgress: Double) {
+    switch phase {
+    case .libraries:
+      stageProgress[.libraries] = phaseProgress
+    case .collections:
+      stageProgress[.collections] = phaseProgress
+    case .readLists:
+      stageProgress[.readLists] = phaseProgress
+    case .series:
+      updateSplitStageProgress(
+        incrementalStage: .seriesIncremental,
+        reconcileStage: .seriesReconcile,
+        phaseProgress: phaseProgress
+      )
+    case .books:
+      updateSplitStageProgress(
+        incrementalStage: .booksIncremental,
+        reconcileStage: .booksReconcile,
+        phaseProgress: phaseProgress
+      )
+    }
+  }
+
+  private func updateSplitStageProgress(
+    incrementalStage: SyncStage,
+    reconcileStage: SyncStage,
+    phaseProgress: Double
+  ) {
+    guard includesReconcileStages else {
+      stageProgress[incrementalStage] = phaseProgress
+      stageProgress[reconcileStage] = 0.0
+      return
+    }
+
+    let incrementalProgress = min(phaseProgress / reconcileProgressSplit, 1.0)
+    let reconcileDenominator = max(1.0 - reconcileProgressSplit, 0.0001)
+    let rawReconcileProgress = (phaseProgress - reconcileProgressSplit) / reconcileDenominator
+    let reconcileProgress = min(max(rawReconcileProgress, 0.0), 1.0)
+
+    stageProgress[incrementalStage] = incrementalProgress
+    stageProgress[reconcileStage] = reconcileProgress
   }
 }
