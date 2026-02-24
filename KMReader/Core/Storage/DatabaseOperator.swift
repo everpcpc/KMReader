@@ -40,6 +40,7 @@ actor DatabaseOperator {
 
   private let logger = AppLogger(.database)
   private var pendingCommitTask: Task<Void, Never>?
+  private let reconcileDeleteBatchSize = 1000
 
   /// Commits changes with a 2-second debounce to avoid frequent UI updates
   func commit() {
@@ -150,18 +151,44 @@ actor DatabaseOperator {
   }
 
   func deleteBooksNotIn(_ bookIds: Set<String>, instanceId: String) -> Int {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    guard let existingBooks = try? modelContext.fetch(descriptor), !existingBooks.isEmpty else {
-      return 0
+    if bookIds.isEmpty {
+      let descriptor = FetchDescriptor<KomgaBook>(
+        predicate: #Predicate { $0.instanceId == instanceId }
+      )
+      let count = (try? modelContext.fetchCount(descriptor)) ?? 0
+      guard count > 0 else { return 0 }
+      try? modelContext.delete(
+        model: KomgaBook.self,
+        where: #Predicate { $0.instanceId == instanceId }
+      )
+      return count
     }
 
     var deletedCount = 0
-    for book in existingBooks where !bookIds.contains(book.bookId) {
-      modelContext.delete(book)
-      deletedCount += 1
+    var lastCompositeId = ""
+
+    while true {
+      var descriptor = FetchDescriptor<KomgaBook>(
+        predicate: #Predicate {
+          $0.instanceId == instanceId && $0.id > lastCompositeId
+        }
+      )
+      descriptor.sortBy = [SortDescriptor(\KomgaBook.id, order: .forward)]
+      descriptor.fetchLimit = reconcileDeleteBatchSize
+
+      guard let page = try? modelContext.fetch(descriptor), !page.isEmpty else {
+        break
+      }
+
+      for book in page where !bookIds.contains(book.bookId) {
+        modelContext.delete(book)
+        deletedCount += 1
+      }
+
+      guard let tail = page.last?.id else { break }
+      lastCompositeId = tail
     }
+
     return deletedCount
   }
 
@@ -414,18 +441,44 @@ actor DatabaseOperator {
   }
 
   func deleteSeriesNotIn(_ seriesIds: Set<String>, instanceId: String) -> Int {
-    let descriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
-    guard let existingSeries = try? modelContext.fetch(descriptor), !existingSeries.isEmpty else {
-      return 0
+    if seriesIds.isEmpty {
+      let descriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { $0.instanceId == instanceId }
+      )
+      let count = (try? modelContext.fetchCount(descriptor)) ?? 0
+      guard count > 0 else { return 0 }
+      try? modelContext.delete(
+        model: KomgaSeries.self,
+        where: #Predicate { $0.instanceId == instanceId }
+      )
+      return count
     }
 
     var deletedCount = 0
-    for series in existingSeries where !seriesIds.contains(series.seriesId) {
-      modelContext.delete(series)
-      deletedCount += 1
+    var lastCompositeId = ""
+
+    while true {
+      var descriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate {
+          $0.instanceId == instanceId && $0.id > lastCompositeId
+        }
+      )
+      descriptor.sortBy = [SortDescriptor(\KomgaSeries.id, order: .forward)]
+      descriptor.fetchLimit = reconcileDeleteBatchSize
+
+      guard let page = try? modelContext.fetch(descriptor), !page.isEmpty else {
+        break
+      }
+
+      for series in page where !seriesIds.contains(series.seriesId) {
+        modelContext.delete(series)
+        deletedCount += 1
+      }
+
+      guard let tail = page.last?.id else { break }
+      lastCompositeId = tail
     }
+
     return deletedCount
   }
 
@@ -2093,6 +2146,20 @@ actor DatabaseOperator {
   func fetchFailedBooksCount(instanceId: String) -> Int {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
+    )
+    return (try? modelContext.fetchCount(descriptor)) ?? 0
+  }
+
+  func fetchTotalBooksCount(instanceId: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    return (try? modelContext.fetchCount(descriptor)) ?? 0
+  }
+
+  func fetchTotalSeriesCount(instanceId: String) -> Int {
+    let descriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { $0.instanceId == instanceId }
     )
     return (try? modelContext.fetchCount(descriptor)) ?? 0
   }

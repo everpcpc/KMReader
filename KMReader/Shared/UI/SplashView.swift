@@ -50,12 +50,21 @@ struct SplashView: View {
     initializer?.isSyncing ?? false
   }
 
-  private var initializationProgress: Double {
-    initializer?.progress ?? 0.0
+  private var syncStages: [SyncStage] {
+    initializer?.visibleStages ?? SyncStage.visibleStages(includeReconcile: false)
   }
 
-  private var currentPhaseName: String {
-    initializer?.currentPhaseName ?? ""
+  private var includesReconcileStages: Bool {
+    initializer?.includesReconcileStages ?? false
+  }
+
+  private func stageProgress(for stage: SyncStage) -> Double {
+    initializer?.progress(for: stage) ?? 0.0
+  }
+
+  private func stageTextStyle(for stage: SyncStage) -> AnyShapeStyle {
+    let progress = stageProgress(for: stage)
+    return AnyShapeStyle((progress > 0.0 && progress < 1.0) ? .primary : .secondary)
   }
 
   var body: some View {
@@ -92,23 +101,28 @@ struct SplashView: View {
 
       VStack(spacing: 16) {
         if isSyncing {
-          // Determinate progress bar during initialization
-          VStack(spacing: 8) {
-            ProgressView(value: initializationProgress)
-              .progressViewStyle(.linear)
-              .frame(maxWidth: 280)
-              .opacity(isVisible ? 1.0 : 0.0)
+          // Stage-based progress bars during initialization
+          VStack(alignment: .leading, spacing: 10) {
+            ForEach(syncStages, id: \.self) { stage in
+              VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                  Text(stage.localizedName(includeReconcile: includesReconcileStages))
+                    .font(.caption)
+                    .foregroundStyle(stageTextStyle(for: stage))
+                  Spacer()
+                  Text("\(Int(stageProgress(for: stage) * 100))%")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .monospacedDigit()
+                }
 
-            Text(currentPhaseName)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .monospacedDigit()
-
-            Text("\(Int(initializationProgress * 100))%")
-              .font(.caption2)
-              .foregroundStyle(.tertiary)
-              .monospacedDigit()
+                ProgressView(value: stageProgress(for: stage))
+                  .progressViewStyle(.linear)
+              }
+            }
           }
+          .frame(maxWidth: 320)
+          .opacity(isVisible ? 1.0 : 0.0)
         } else {
           // Indeterminate spinner when not initializing
           ProgressView()
