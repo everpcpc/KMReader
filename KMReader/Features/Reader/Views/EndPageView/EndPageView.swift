@@ -11,10 +11,6 @@ struct EndPageView: View {
   let readListContext: ReaderReadListContext?
   let onDismiss: () -> Void
   let readingDirection: ReadingDirection
-  let renderConfig: ReaderRenderConfig?
-  let onNextPage: (() -> Void)?
-  let onPreviousPage: (() -> Void)?
-  let onToggleControls: (() -> Void)?
 
   @Environment(\.readerBackgroundPreference) private var readerBackground
 
@@ -23,21 +19,13 @@ struct EndPageView: View {
     nextBook: Book?,
     readListContext: ReaderReadListContext?,
     onDismiss: @escaping () -> Void,
-    readingDirection: ReadingDirection,
-    renderConfig: ReaderRenderConfig? = nil,
-    onNextPage: (() -> Void)? = nil,
-    onPreviousPage: (() -> Void)? = nil,
-    onToggleControls: (() -> Void)? = nil
+    readingDirection: ReadingDirection
   ) {
     self.previousBook = previousBook
     self.nextBook = nextBook
     self.readListContext = readListContext
     self.onDismiss = onDismiss
     self.readingDirection = readingDirection
-    self.renderConfig = renderConfig
-    self.onNextPage = onNextPage
-    self.onPreviousPage = onPreviousPage
-    self.onToggleControls = onToggleControls
   }
 
   private var textColor: Color {
@@ -94,38 +82,6 @@ struct EndPageView: View {
       .padding(40)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .contentShape(Rectangle())
-      #if !os(tvOS)
-        .simultaneousGesture(
-          SpatialTapGesture().onEnded { value in
-            handleTap(at: value.location, size: geometry.size)
-          },
-          including: .gesture
-        )
-      #endif
-    }
-  }
-
-  private func handleTap(at location: CGPoint, size: CGSize) {
-    guard let renderConfig else { return }
-    guard size.width > 0, size.height > 0 else { return }
-
-    let normalizedX = location.x / size.width
-    let normalizedY = location.y / size.height
-    let action = TapZoneHelper.action(
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      tapZoneMode: renderConfig.tapZoneMode,
-      readingDirection: readingDirection,
-      zoneThreshold: renderConfig.tapZoneSize.value
-    )
-
-    switch action {
-    case .previous:
-      onPreviousPage?()
-    case .next:
-      onNextPage?()
-    case .toggleControls:
-      onToggleControls?()
     }
   }
 

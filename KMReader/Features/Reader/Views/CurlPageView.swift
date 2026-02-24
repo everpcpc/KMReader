@@ -14,9 +14,6 @@
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let goToNextPage: () -> Void
-    let goToPreviousPage: () -> Void
-    let toggleControls: () -> Void
     let onPlayAnimatedPage: ((Int) -> Void)?
 
     func makeCoordinator() -> Coordinator {
@@ -264,9 +261,6 @@
           splitMode: splitMode,
           readingDirection: parent.readingDirection,
           renderConfig: parent.renderConfig,
-          onNextPage: parent.goToNextPage,
-          onPreviousPage: parent.goToPreviousPage,
-          onToggleControls: parent.toggleControls,
           onPlayAnimatedPage: parent.onPlayAnimatedPage
         )
       }
@@ -281,9 +275,6 @@
           readListContext: parent.readListContext,
           readingDirection: parent.readingDirection,
           renderConfig: parent.renderConfig,
-          onNextPage: parent.goToNextPage,
-          onPreviousPage: parent.goToPreviousPage,
-          onToggleControls: parent.toggleControls,
           onDismiss: parent.onDismiss
         )
       }

@@ -45,9 +45,6 @@
           initialZoomScale: initialScale,
           initialZoomAnchor: zoomAnchor,
           initialZoomID: zoomRequestID,
-          onNextPage: {},
-          onPreviousPage: {},
-          onToggleControls: {},
           pages: [
             NativePageData(
               bookId: viewModel.resolvedBookId(forPageIndex: pageIndex),

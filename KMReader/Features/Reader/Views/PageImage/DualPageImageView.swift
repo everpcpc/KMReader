@@ -15,9 +15,6 @@ struct DualPageImageView: View {
   let renderConfig: ReaderRenderConfig
 
   let readingDirection: ReadingDirection
-  let onNextPage: () -> Void
-  let onPreviousPage: () -> Void
-  let onToggleControls: () -> Void
   let onPlayAnimatedPage: ((Int) -> Void)?
 
   var resetID: String {
@@ -36,9 +33,6 @@ struct DualPageImageView: View {
       maxScale: 8.0,
       readingDirection: readingDirection,
       renderConfig: renderConfig,
-      onNextPage: onNextPage,
-      onPreviousPage: onPreviousPage,
-      onToggleControls: onToggleControls,
       pages: [
         NativePageData(
           bookId: viewModel.resolvedBookId(forPageIndex: firstPageIndex),

@@ -14,8 +14,6 @@ struct ScrollPageView: View {
   @Bindable var viewModel: ReaderViewModel
   let readListContext: ReaderReadListContext?
   let onDismiss: () -> Void
-  let goToNextPage: () -> Void
-  let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
   let onPlayAnimatedPage: ((Int) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
@@ -47,8 +45,6 @@ struct ScrollPageView: View {
     viewModel: ReaderViewModel,
     readListContext: ReaderReadListContext?,
     onDismiss: @escaping () -> Void,
-    goToNextPage: @escaping () -> Void,
-    goToPreviousPage: @escaping () -> Void,
     toggleControls: @escaping () -> Void,
     onPlayAnimatedPage: ((Int) -> Void)? = nil,
     onScrollActivityChange: ((Bool) -> Void)? = nil
@@ -61,8 +57,6 @@ struct ScrollPageView: View {
     self.viewModel = viewModel
     self.readListContext = readListContext
     self.onDismiss = onDismiss
-    self.goToNextPage = goToNextPage
-    self.goToPreviousPage = goToPreviousPage
     self.toggleControls = toggleControls
     self.onPlayAnimatedPage = onPlayAnimatedPage
     self.onScrollActivityChange = onScrollActivityChange
@@ -201,11 +195,7 @@ struct ScrollPageView: View {
             nextBook: viewModel.nextBook(forSegmentBookId: bookId),
             readListContext: readListContext,
             onDismiss: onDismiss,
-            readingDirection: readingDirection,
-            renderConfig: renderConfig,
-            onNextPage: goToNextPage,
-            onPreviousPage: goToPreviousPage,
-            onToggleControls: toggleControls
+            readingDirection: readingDirection
           )
         case .dual(let first, let second):
           if let firstPageIndex = viewModel.pageIndex(for: first),
@@ -219,9 +209,6 @@ struct ScrollPageView: View {
               screenSize: geometry.size,
               renderConfig: renderConfig,
               readingDirection: readingDirection,
-              onNextPage: goToNextPage,
-              onPreviousPage: goToPreviousPage,
-              onToggleControls: toggleControls,
               onPlayAnimatedPage: onPlayAnimatedPage
             )
           }
@@ -234,9 +221,6 @@ struct ScrollPageView: View {
               screenSize: geometry.size,
               renderConfig: renderConfig,
               readingDirection: readingDirection,
-              onNextPage: goToNextPage,
-              onPreviousPage: goToPreviousPage,
-              onToggleControls: toggleControls,
               onPlayAnimatedPage: onPlayAnimatedPage
             )
           }
@@ -255,9 +239,6 @@ struct ScrollPageView: View {
               screenSize: geometry.size,
               renderConfig: renderConfig,
               readingDirection: readingDirection,
-              onNextPage: goToNextPage,
-              onPreviousPage: goToPreviousPage,
-              onToggleControls: toggleControls,
               onPlayAnimatedPage: onPlayAnimatedPage
             )
           }
