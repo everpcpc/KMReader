@@ -142,8 +142,12 @@
       updateHeightConstraint(targetHeight)
 
       if displayImage != nil, showPageNumber {
-        pageNumberLabel.text = "\(data.pageNumber + 1)"
-        pageNumberLabel.isHidden = false
+        if let displayedPageNumber = viewModel.displayPageNumber(forPageIndex: data.pageNumber) {
+          pageNumberLabel.text = "\(displayedPageNumber)"
+          pageNumberLabel.isHidden = false
+        } else {
+          pageNumberLabel.isHidden = true
+        }
       } else {
         pageNumberLabel.isHidden = true
       }

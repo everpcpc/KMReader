@@ -50,7 +50,7 @@
           onToggleControls: {},
           pages: [
             NativePageData(
-              bookId: viewModel.bookId,
+              bookId: viewModel.resolvedBookId(forPageIndex: pageIndex),
               pageNumber: pageIndex,
               isLoading: viewModel.isLoading && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
               error: nil,

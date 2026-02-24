@@ -190,8 +190,12 @@
       updateHeightConstraint(targetHeight)
 
       if displayImage != nil, showPageNumber {
-        pageNumberLabel.stringValue = "\(data.pageNumber + 1)"
-        pageNumberContainer.isHidden = false
+        if let displayedPageNumber = viewModel.displayPageNumber(forPageIndex: data.pageNumber) {
+          pageNumberLabel.stringValue = "\(displayedPageNumber)"
+          pageNumberContainer.isHidden = false
+        } else {
+          pageNumberContainer.isHidden = true
+        }
       } else {
         pageNumberContainer.isHidden = true
       }

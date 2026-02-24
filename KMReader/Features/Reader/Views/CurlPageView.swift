@@ -12,17 +12,12 @@
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
     let renderConfig: ReaderRenderConfig
-    let previousBook: Book?
-    let nextBook: Book?
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onPreviousBook: (String) -> Void
-    let onNextBook: (String) -> Void
     let goToNextPage: () -> Void
     let goToPreviousPage: () -> Void
     let toggleControls: () -> Void
     let onPlayAnimatedPage: ((Int) -> Void)?
-    let onBoundaryPanUpdate: ((CGFloat) -> Void)?
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -46,20 +41,12 @@
         }
       }
 
-      let boundaryPanRecognizer = UIPanGestureRecognizer(
-        target: context.coordinator,
-        action: #selector(Coordinator.handleBoundaryPan(_:))
-      )
-      boundaryPanRecognizer.cancelsTouchesInView = false
-      boundaryPanRecognizer.delegate = context.coordinator
-      pageVC.view.addGestureRecognizer(boundaryPanRecognizer)
-      context.coordinator.boundaryPanRecognizer = boundaryPanRecognizer
-
       pageVC.isDoubleSided = false
       pageVC.view.semanticContentAttribute = mode.isRTL ? .forceRightToLeft : .forceLeftToRight
 
       let initialIndex = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
       context.coordinator.currentPageIndex = initialIndex
+      context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
       Task { @MainActor in
         viewModel.updateCurrentPosition(viewItemIndex: initialIndex)
       }
@@ -79,6 +66,7 @@
       context.coordinator.parent = self
       context.coordinator.pageViewController = pageVC
       context.coordinator.syncCurrentPageIndexWithVisibleController()
+      let didViewItemsChange = context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
       context.coordinator.refreshVisibleControllerConfiguration()
 
       let targetViewItemIndex: Int? = {
@@ -87,6 +75,9 @@
         }
         if let targetPageIndex = viewModel.targetPageIndex {
           return viewModel.viewItemIndex(forPageIndex: targetPageIndex)
+        }
+        if didViewItemsChange {
+          return viewModel.currentViewItemIndex
         }
         return nil
       }()
@@ -145,10 +136,10 @@
       var parent: CurlPageView
       var currentPageIndex: Int
       weak var pageViewController: UIPageViewController?
-      weak var boundaryPanRecognizer: UIPanGestureRecognizer?
       var isTransitioning = false
-      private let boundarySwipeThreshold: CGFloat = 120
-      private var hasTriggeredBoundaryHaptic = false
+      private var lastViewItemsCount: Int = 0
+      private var lastFirstViewItem: ReaderViewItem?
+      private var lastLastViewItem: ReaderViewItem?
 
       init(_ parent: CurlPageView) {
         self.parent = parent
@@ -157,6 +148,21 @@
 
       var totalPages: Int {
         parent.viewModel.viewItems.count
+      }
+
+      @discardableResult
+      func updateViewItemsSnapshot(_ items: [ReaderViewItem]) -> Bool {
+        let firstItem = items.first
+        let lastItem = items.last
+        let didChange =
+          items.count != lastViewItemsCount
+          || firstItem != lastFirstViewItem
+          || lastItem != lastLastViewItem
+
+        lastViewItemsCount = items.count
+        lastFirstViewItem = firstItem
+        lastLastViewItem = lastItem
+        return didChange
       }
 
       private func configureImageController(
@@ -201,13 +207,20 @@
         )
       }
 
-      private func configureEndController(_ controller: NativeEndPageViewController) {
+      private func configureEndController(
+        _ controller: NativeEndPageViewController,
+        segmentBookId: String
+      ) {
         controller.configure(
-          nextBook: parent.nextBook,
+          previousBook: parent.viewModel.currentBook(forSegmentBookId: segmentBookId),
+          nextBook: parent.viewModel.nextBook(forSegmentBookId: segmentBookId),
           readListContext: parent.readListContext,
           readingDirection: parent.readingDirection,
           renderConfig: parent.renderConfig,
-          showImage: true
+          onNextPage: parent.goToNextPage,
+          onPreviousPage: parent.goToPreviousPage,
+          onToggleControls: parent.toggleControls,
+          onDismiss: parent.onDismiss
         )
       }
 
@@ -218,9 +231,9 @@
         guard let item = parent.viewModel.viewItem(at: index) else { return }
 
         switch item {
-        case .end:
+        case .end(let segmentBookId):
           if let endController = visibleController as? NativeEndPageViewController {
-            configureEndController(endController)
+            configureEndController(endController, segmentBookId: segmentBookId)
           } else if let replacement = self.pageViewController(for: index) {
             pageViewController.setViewControllers([replacement], direction: .forward, animated: false)
           }
@@ -235,15 +248,15 @@
 
       func pageViewController(for index: Int) -> UIViewController? {
         guard index >= 0 && index < totalPages else { return nil }
-        guard !parent.viewModel.pages.isEmpty else { return nil }
+        guard parent.viewModel.hasPages else { return nil }
         guard let item = parent.viewModel.viewItem(at: index) else { return nil }
 
         let controller: UIViewController
 
         switch item {
-        case .end:
+        case .end(let segmentBookId):
           let endController = NativeEndPageViewController()
-          configureEndController(endController)
+          configureEndController(endController, segmentBookId: segmentBookId)
           controller = endController
         case .page, .dual, .split:
           let imageController = NativeImagePageViewController()
@@ -344,43 +357,6 @@
         return parent.mode.isVertical ? velocity.y : velocity.x
       }
 
-      private func isBackwardSignal(_ signal: CGFloat) -> Bool {
-        parent.readingDirection.isBackwardSwipe(signal)
-      }
-
-      private func isForwardSignal(_ signal: CGFloat) -> Bool {
-        parent.readingDirection.isForwardSwipe(signal)
-      }
-
-      private enum BoundaryNavigationAction {
-        case openPrevious(String)
-        case openNext(String)
-      }
-
-      private var isAtFirstBoundary: Bool {
-        currentPageIndex == 0
-      }
-
-      private var isAtEndBoundary: Bool {
-        guard totalPages > 0 else { return false }
-        return currentPageIndex == totalPages - 1
-      }
-
-      private var hasBoundarySwipeContext: Bool {
-        (isAtFirstBoundary && parent.previousBook != nil) || (isAtEndBoundary && parent.nextBook != nil)
-      }
-
-      private func boundaryAction(for signal: CGFloat) -> BoundaryNavigationAction? {
-        guard signal != 0 else { return nil }
-        if isAtFirstBoundary, let previousBook = parent.previousBook, isBackwardSignal(signal) {
-          return .openPrevious(previousBook.id)
-        }
-        if isAtEndBoundary, let nextBook = parent.nextBook, isForwardSignal(signal) {
-          return .openNext(nextBook.id)
-        }
-        return nil
-      }
-
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard !isTransitioning else { return false }
         guard !parent.viewModel.isZoomed else { return false }
@@ -388,15 +364,6 @@
 
         syncCurrentPageIndexWithVisibleController()
         guard isValidIndex(currentPageIndex) else { return false }
-
-        if let pan = gestureRecognizer as? UIPanGestureRecognizer,
-          gestureRecognizer === boundaryPanRecognizer
-        {
-          guard hasBoundarySwipeContext else { return false }
-          let velocitySignal = primaryVelocity(for: pan)
-          if velocitySignal == 0 { return true }
-          return boundaryAction(for: velocitySignal) != nil
-        }
 
         let beforeExists = isValidIndex(beforeIndex(from: currentPageIndex))
         let afterExists = isValidIndex(afterIndex(from: currentPageIndex))
@@ -452,55 +419,6 @@
         }
 
         return true
-      }
-
-      @objc func handleBoundaryPan(_ gesture: UIPanGestureRecognizer) {
-        syncCurrentPageIndexWithVisibleController()
-        guard isValidIndex(currentPageIndex) else {
-          parent.onBoundaryPanUpdate?(0)
-          hasTriggeredBoundaryHaptic = false
-          return
-        }
-
-        guard hasBoundarySwipeContext else {
-          parent.onBoundaryPanUpdate?(0)
-          hasTriggeredBoundaryHaptic = false
-          return
-        }
-
-        let translation = primaryTranslation(for: gesture)
-        let currentAction = boundaryAction(for: translation)
-
-        switch gesture.state {
-        case .began:
-          hasTriggeredBoundaryHaptic = false
-          parent.onBoundaryPanUpdate?(0)
-        case .changed:
-          guard currentAction != nil else {
-            parent.onBoundaryPanUpdate?(0)
-            hasTriggeredBoundaryHaptic = false
-            return
-          }
-          parent.onBoundaryPanUpdate?(translation)
-          if abs(translation) >= boundarySwipeThreshold && !hasTriggeredBoundaryHaptic {
-            let impact = UIImpactFeedbackGenerator(style: .medium)
-            impact.impactOccurred()
-            hasTriggeredBoundaryHaptic = true
-          }
-        case .ended, .cancelled:
-          parent.onBoundaryPanUpdate?(0)
-          defer { hasTriggeredBoundaryHaptic = false }
-          guard let finalAction = currentAction else { return }
-          guard abs(translation) >= boundarySwipeThreshold else { return }
-          switch finalAction {
-          case .openPrevious(let previousBookId):
-            parent.onPreviousBook(previousBookId)
-          case .openNext(let nextBookId):
-            parent.onNextBook(nextBookId)
-          }
-        default:
-          break
-        }
       }
 
       func gestureRecognizer(

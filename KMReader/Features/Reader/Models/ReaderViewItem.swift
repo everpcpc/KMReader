@@ -9,14 +9,12 @@ enum ReaderViewItem: Hashable {
   case page(id: ReaderPageID)
   case split(id: ReaderPageID, isFirstHalf: Bool)
   case dual(first: ReaderPageID, second: ReaderPageID)
-  case end
+  case end(bookId: String)
 }
 
 extension ReaderViewItem {
   var isEnd: Bool {
-    if case .end = self {
-      return true
-    }
+    if case .end = self { return true }
     return false
   }
 
@@ -31,21 +29,5 @@ extension ReaderViewItem {
     case .end:
       return nil
     }
-  }
-
-  var secondaryPageID: ReaderPageID? {
-    switch self {
-    case .dual(_, let second):
-      return second
-    default:
-      return nil
-    }
-  }
-
-  var isFirstHalf: Bool? {
-    if case .split(_, let isFirstHalf) = self {
-      return isFirstHalf
-    }
-    return nil
   }
 }
