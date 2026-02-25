@@ -2468,6 +2468,52 @@
         }
       }
     },
+    "Add or connect to a Komga server to get started." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fügen Sie einen Komga-Server hinzu oder verbinden Sie sich, um zu beginnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add or connect to a Komga server to get started."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez ou connectez-vous à un serveur Komga pour commencer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始するには、Komga サーバーを追加または接続してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시작하려면 Komga 서버를 추가하거나 연결하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加或连接到 Komga 服务器以开始使用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增或連線到 Komga 伺服器以開始使用。"
+          }
+        }
+      }
+    },
     "Add to Collection" : {
       "localizations" : {
         "de" : {
@@ -23720,52 +23766,6 @@
         }
       }
     },
-    "Login to a Komga server to see it listed here." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Melden Sie sich an einem Komga-Server an, um ihn hier zu sehen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Login to a Komga server to see it listed here."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connectez-vous à un serveur Komga pour le voir apparaître ici."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Komga サーバーにログインするとここに表示されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Komga 서버에 로그인하면 여기에 표시됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录 Komga 服务器即可在此列出。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登入 Komga 伺服器即可在此列出。"
-          }
-        }
-      }
-    },
     "Logout" : {
       "localizations" : {
         "de" : {
@@ -26066,48 +26066,48 @@
         }
       }
     },
-    "No servers found" : {
+    "No servers added yet" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Server gefunden"
+            "value" : "Noch keine Server hinzugefügt"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No servers found"
+            "value" : "No servers added yet"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucune série trouvée"
+            "value" : "Aucun serveur ajouté pour le moment"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "シリーズが見つかりません"
+            "value" : "追加されたサーバーはまだありません"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "서버를 찾을 수 없음"
+            "value" : "추가된 서버가 아직 없습니다"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未找到服务器"
+            "value" : "还没有添加服务器"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未找到伺服器"
+            "value" : "還沒有新增伺服器"
           }
         }
       }
