@@ -14,6 +14,12 @@
     private var coverImageBookID: String?
     private var failedCoverImageBookID: String?
 
+    var useLightShadow: Bool = false {
+      didSet {
+        updateShadowAppearance()
+      }
+    }
+
     var cornerRadius: CGFloat = 12 {
       didSet {
         updateCoverImageDecoration()
@@ -43,7 +49,6 @@
 
       coverContainerView.translatesAutoresizingMaskIntoConstraints = false
       coverContainerView.backgroundColor = .clear
-      coverContainerView.layer.shadowColor = UIColor.black.cgColor
       coverContainerView.layer.shadowOpacity = 0
       coverContainerView.layer.shadowOffset = CGSize(width: 0, height: 3)
       coverContainerView.layer.shadowRadius = 6
@@ -65,6 +70,8 @@
         coverImageView.topAnchor.constraint(equalTo: coverContainerView.topAnchor),
         coverImageView.bottomAnchor.constraint(equalTo: coverContainerView.bottomAnchor),
       ])
+
+      updateShadowAppearance()
     }
 
     private func updateCoverImage(for bookID: String?) {
@@ -147,6 +154,17 @@
       let x = (viewSize.width - width) / 2
       let y = (viewSize.height - height) / 2
       return CGRect(x: x, y: y, width: width, height: height)
+    }
+
+    private func updateShadowAppearance() {
+      coverContainerView.layer.shadowColor = effectiveShadowColor.cgColor
+    }
+
+    private var effectiveShadowColor: UIColor {
+      if useLightShadow {
+        return UIColor.white.withAlphaComponent(0.4)
+      }
+      return UIColor.black.withAlphaComponent(0.35)
     }
 
     nonisolated private static func loadCoverImage(for bookID: String) async -> UIImage? {
