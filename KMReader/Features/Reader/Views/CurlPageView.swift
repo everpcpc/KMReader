@@ -430,10 +430,12 @@
 
         currentPageIndex = newIndex
 
+        let viewModel = parent.viewModel
         Task { @MainActor in
-          parent.viewModel.updateCurrentPosition(viewItemIndex: newIndex)
-          await parent.viewModel.updateProgress()
-          await parent.viewModel.preloadPages()
+          viewModel.updateCurrentPosition(viewItemIndex: newIndex)
+        }
+        Task(priority: .utility) { @MainActor in
+          await viewModel.preloadPages()
         }
       }
 

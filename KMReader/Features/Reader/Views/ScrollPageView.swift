@@ -328,9 +328,8 @@ struct ScrollPageView: View {
     syncCurrentPositionIfNeeded(target: targetScrollPosition)
     preloadVisiblePages(forViewItemIndex: targetScrollPosition)
 
-    // Explicitly update progress
-    Task {
-      await viewModel.updateProgress()
+    // Progress update is handled by parent on currentPageIndex change.
+    Task(priority: .utility) {
       await viewModel.preloadPages()
     }
   }
@@ -355,9 +354,8 @@ struct ScrollPageView: View {
     syncCurrentPositionIfNeeded(target: targetScrollPosition)
     preloadVisiblePages(forViewItemIndex: targetScrollPosition)
 
-    // Explicitly update progress
-    Task {
-      await viewModel.updateProgress()
+    // Progress update is handled by parent on currentPageIndex change.
+    Task(priority: .utility) {
       await viewModel.preloadPages()
     }
   }

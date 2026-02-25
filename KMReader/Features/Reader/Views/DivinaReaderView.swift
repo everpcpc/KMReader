@@ -727,9 +727,11 @@ struct DivinaReaderView: View {
             }
           #endif
           updateHandoff()
-          // Update progress and preload pages in background without blocking UI
-          Task(priority: .utility) {
+          // Keep progress sync responsive, but leave preload work as utility.
+          Task(priority: .userInitiated) {
             await viewModel.updateProgress()
+          }
+          Task(priority: .utility) {
             await viewModel.preloadPages()
             await preloadAdjacentSegmentsForCurrentPositionIfNeeded()
             await viewModel.ensureTableOfContentsForCurrentSegment()
