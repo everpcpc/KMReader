@@ -68,7 +68,7 @@
         func updateUIViewController(_ uiViewController: BridgeViewController, context: Context) {
           context.coordinator.update(configuration: configuration, onAction: onAction)
           uiViewController.coordinator = context.coordinator
-          context.coordinator.attachIfNeeded(window: uiViewController.view.window)
+          context.coordinator.attachIfNeeded(anchorView: uiViewController.view)
         }
 
         static func dismantleUIViewController(
@@ -84,12 +84,12 @@
 
           override func viewDidAppear(_ animated: Bool) {
             super.viewDidAppear(animated)
-            coordinator?.attachIfNeeded(window: view.window)
+            coordinator?.attachIfNeeded(anchorView: view)
           }
 
           override func viewDidLayoutSubviews() {
             super.viewDidLayoutSubviews()
-            coordinator?.attachIfNeeded(window: view.window)
+            coordinator?.attachIfNeeded(anchorView: view)
           }
 
           override func viewWillDisappear(_ animated: Bool) {
@@ -125,15 +125,15 @@
             applyRecognizerState()
           }
 
-          func attachIfNeeded(window: UIWindow?) {
-            guard let window else { return }
-            if attachedView === window {
+          func attachIfNeeded(anchorView: UIView?) {
+            guard let targetView = gestureContainer(from: anchorView) else { return }
+            if attachedView === targetView {
               applyRecognizerState()
               return
             }
 
             detach()
-            installRecognizers(on: window)
+            installRecognizers(on: targetView)
             applyRecognizerState()
           }
 
@@ -280,6 +280,9 @@
                 || className.contains("Segmented")
                 || className.contains("NavigationBar")
                 || className.contains("Toolbar")
+                || className.contains("Menu")
+                || className.contains("ContextMenu")
+                || className.contains("Popover")
               {
                 return true
               }
@@ -288,6 +291,17 @@
             }
 
             return false
+          }
+
+          private func gestureContainer(from anchorView: UIView?) -> UIView? {
+            var current = anchorView
+            while let candidate = current {
+              if candidate.bounds.width > 1, candidate.bounds.height > 1 {
+                return candidate
+              }
+              current = candidate.superview
+            }
+            return anchorView?.window
           }
         }
       }
@@ -309,7 +323,7 @@
         func updateNSView(_ nsView: BridgeNSView, context: Context) {
           context.coordinator.update(configuration: configuration, onAction: onAction)
           nsView.coordinator = context.coordinator
-          context.coordinator.attachIfNeeded(window: nsView.window)
+          context.coordinator.attachIfNeeded(anchorView: nsView)
         }
 
         @MainActor
@@ -323,7 +337,7 @@
 
           override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            coordinator?.attachIfNeeded(window: window)
+            coordinator?.attachIfNeeded(anchorView: self)
           }
 
           override func viewWillMove(toWindow newWindow: NSWindow?) {
@@ -361,15 +375,15 @@
             applyRecognizerState()
           }
 
-          func attachIfNeeded(window: NSWindow?) {
-            guard let contentView = window?.contentView else { return }
-            if attachedView === contentView {
+          func attachIfNeeded(anchorView: NSView?) {
+            guard let targetView = gestureContainer(from: anchorView) else { return }
+            if attachedView === targetView {
               applyRecognizerState()
               return
             }
 
             detach()
-            installRecognizers(on: contentView)
+            installRecognizers(on: targetView)
             applyRecognizerState()
           }
 
@@ -539,6 +553,17 @@
             }
 
             return false
+          }
+
+          private func gestureContainer(from anchorView: NSView?) -> NSView? {
+            var current = anchorView
+            while let candidate = current {
+              if candidate.bounds.width > 1, candidate.bounds.height > 1 {
+                return candidate
+              }
+              current = candidate.superview
+            }
+            return anchorView?.window?.contentView
           }
         }
       }
