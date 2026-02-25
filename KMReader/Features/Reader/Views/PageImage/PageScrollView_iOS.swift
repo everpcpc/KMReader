@@ -157,6 +157,7 @@
             image: image,
             showPageNumber: parent.renderConfig.showPageNumber,
             enableLiveText: parent.renderConfig.enableLiveText,
+            background: parent.renderConfig.readerBackground,
             readingDirection: parent.readingDirection,
             displayMode: parent.displayMode,
             targetHeight: targetHeight

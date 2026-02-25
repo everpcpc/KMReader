@@ -17,9 +17,14 @@
     private var currentData: NativePageData?
     private var readingDirection: ReadingDirection = .ltr
     private var displayMode: PageDisplayMode = .fit
+    private var readerBackground: ReaderBackground = .system
     private var enableLiveText = false
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
+    private var analysisSourceImage: NSImage?
+    private var renderedSourceImage: NSImage?
+    private var renderedBackground: ReaderBackground = .system
+    private var renderedImage: NSImage?
     private var heightConstraint: NSLayoutConstraint?
 
     init() {
@@ -45,6 +50,8 @@
       clearAnalysis()
       imageView.image = nil
       analyzedImage = nil
+      analysisSourceImage = nil
+      clearRenderedImageCache()
     }
 
     override func viewDidMoveToWindow() {
@@ -53,12 +60,21 @@
         clearAnalysis()
         imageView.image = nil
         analyzedImage = nil
+        analysisSourceImage = nil
+        clearRenderedImageCache()
       } else {
         if imageView.image == nil, let data = currentData {
-          imageView.image = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber)
+          let sourceImage: NSImage?
+          if let image = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber), data.splitMode != .none {
+            sourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
+          } else {
+            sourceImage = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber)
+          }
+          analysisSourceImage = sourceImage
+          imageView.image = renderDisplayImage(from: sourceImage, background: readerBackground)
         }
         if enableLiveText {
-          if let image = imageView.image {
+          if let image = analysisSourceImage {
             analyzeImage(image)
           }
         }
@@ -166,7 +182,7 @@
       image: PlatformImage?,
       showPageNumber: Bool,
       enableLiveText: Bool,
-      background _: ReaderBackground,
+      background: ReaderBackground,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
       targetHeight: CGFloat
@@ -175,21 +191,24 @@
       self.readerViewModel = viewModel
       self.readingDirection = readingDirection
       self.displayMode = displayMode
+      self.readerBackground = background
       self.enableLiveText = enableLiveText
 
-      let displayImage: PlatformImage?
+      let sourceImage: PlatformImage?
       if let image = image, data.splitMode != .none {
-        displayImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
+        sourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
       } else {
-        displayImage = image
+        sourceImage = image
       }
 
+      analysisSourceImage = sourceImage
+      let displayImage = renderDisplayImage(from: sourceImage, background: background)
       imageView.image = displayImage
-      imageView.layer?.shadowOpacity = displayImage == nil ? 0 : 0.25
+      imageView.layer?.shadowOpacity = sourceImage == nil ? 0 : 0.25
 
       updateHeightConstraint(targetHeight)
 
-      if displayImage != nil, showPageNumber {
+      if sourceImage != nil, showPageNumber {
         if let displayedPageNumber = viewModel.displayPageNumber(forPageIndex: data.pageNumber) {
           pageNumberLabel.stringValue = "\(displayedPageNumber)"
           pageNumberContainer.isHidden = false
@@ -204,7 +223,7 @@
         progressIndicator.stopAnimation(nil)
         errorLabel.stringValue = error
         errorLabel.isHidden = false
-      } else if displayImage == nil || data.isLoading {
+      } else if sourceImage == nil || data.isLoading {
         errorLabel.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {
@@ -212,7 +231,7 @@
         progressIndicator.stopAnimation(nil)
       }
 
-      if enableLiveText, let img = displayImage, !visibleRect.isEmpty {
+      if enableLiveText, let img = sourceImage, !visibleRect.isEmpty {
         analyzeImage(img)
       } else if !enableLiveText {
         clearAnalysis()
@@ -241,6 +260,81 @@
       }
 
       return NSImage(cgImage: croppedCGImage, size: NSSize(width: cropRect.width, height: cropRect.height))
+    }
+
+    private func renderDisplayImage(from image: NSImage?, background: ReaderBackground) -> NSImage? {
+      guard let image else {
+        clearRenderedImageCache()
+        return nil
+      }
+
+      guard background.appliesImageMultiplyBlend else {
+        renderedSourceImage = image
+        renderedBackground = background
+        renderedImage = image
+        return image
+      }
+
+      if let cachedSource = renderedSourceImage, cachedSource === image, renderedBackground == background {
+        return renderedImage
+      }
+
+      guard let blended = multiplyBlend(image: image, tintColor: NSColor(background.color)) else {
+        renderedSourceImage = image
+        renderedBackground = background
+        renderedImage = image
+        return image
+      }
+
+      renderedSourceImage = image
+      renderedBackground = background
+      renderedImage = blended
+      return blended
+    }
+
+    private func multiplyBlend(image: NSImage, tintColor: NSColor) -> NSImage? {
+      guard
+        let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+      else {
+        return image
+      }
+
+      let width = cgImage.width
+      let height = cgImage.height
+      guard width > 0, height > 0 else { return image }
+
+      let colorSpace = CGColorSpaceCreateDeviceRGB()
+      guard
+        let context = CGContext(
+          data: nil,
+          width: width,
+          height: height,
+          bitsPerComponent: 8,
+          bytesPerRow: 0,
+          space: colorSpace,
+          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+      else {
+        return image
+      }
+
+      let rect = CGRect(x: 0, y: 0, width: width, height: height)
+      context.draw(cgImage, in: rect)
+      context.setBlendMode(.multiply)
+      context.setFillColor(tintColor.cgColor)
+      context.fill(rect)
+
+      guard let blendedCGImage = context.makeImage() else {
+        return image
+      }
+
+      return NSImage(cgImage: blendedCGImage, size: image.size)
+    }
+
+    private func clearRenderedImageCache() {
+      renderedSourceImage = nil
+      renderedImage = nil
+      renderedBackground = .system
     }
 
     private func updateHeightConstraint(_ targetHeight: CGFloat) {
@@ -397,7 +491,7 @@
       imageView.layer?.shadowPath = CGPath(rect: shadowRect, transform: nil)
 
       if enableLiveText, currentData != nil,
-        let image = imageView.image,
+        let image = analysisSourceImage,
         !visibleRect.isEmpty, overlayView.analysis == nil, analysisTask == nil
       {
         analyzeImage(image)

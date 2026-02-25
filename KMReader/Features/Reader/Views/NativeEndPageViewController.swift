@@ -324,6 +324,12 @@
       verticalDivider.backgroundColor = textColor.withAlphaComponent(0.3)
       previousCoverViewController.useLightShadow = shouldUseLightCoverShadow
       nextCoverViewController.useLightShadow = shouldUseLightCoverShadow
+      let coverBlendTintColor =
+        renderConfig.readerBackground.appliesImageMultiplyBlend
+        ? UIColor(renderConfig.readerBackground.color)
+        : nil
+      previousCoverViewController.imageBlendTintColor = coverBlendTintColor
+      nextCoverViewController.imageBlendTintColor = coverBlendTintColor
 
       previousBadgeLabel.text = String(localized: "reader.previousBook").uppercased()
       nextBadgeLabel.text = String(localized: "reader.nextBook").uppercased()
@@ -524,6 +530,8 @@
         return .white
       case .white:
         return .black
+      case .sepia:
+        return UIColor(renderConfig.readerBackground.contentColor)
       case .system:
         return .label
       }
@@ -534,6 +542,8 @@
       case .black, .gray:
         return true
       case .white:
+        return false
+      case .sepia:
         return false
       case .system:
         return traitCollection.userInterfaceStyle == .dark

@@ -13,8 +13,8 @@
 
       init(
         baseColor: UIColor,
-        fillOpacity: CGFloat = 0.55,
-        dimOpacity: CGFloat = 0.12
+        fillOpacity: CGFloat = 0.95,
+        dimOpacity: CGFloat = 0
       ) {
         self.baseColor = baseColor
         self.fillOpacity = Self.clamp(fillOpacity)

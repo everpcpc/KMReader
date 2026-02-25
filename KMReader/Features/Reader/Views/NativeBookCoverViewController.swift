@@ -13,10 +13,17 @@
     private var coverImageTask: Task<Void, Never>?
     private var coverImageBookID: String?
     private var failedCoverImageBookID: String?
+    private var sourceCoverImage: UIImage?
 
     var useLightShadow: Bool = false {
       didSet {
         updateShadowAppearance()
+      }
+    }
+
+    var imageBlendTintColor: UIColor? {
+      didSet {
+        updateRenderedCoverImage()
       }
     }
 
@@ -90,6 +97,7 @@
       coverImageBookID = bookID
 
       guard let bookID else {
+        sourceCoverImage = nil
         coverImageView.image = nil
         coverImageView.layer.mask = nil
         coverImageView.layer.cornerRadius = cornerRadius
@@ -100,6 +108,7 @@
         return
       }
 
+      sourceCoverImage = nil
       coverImageView.image = nil
       coverImageView.backgroundColor = .clear
       coverImageView.layer.cornerRadius = 0
@@ -112,11 +121,46 @@
         guard let self else { return }
         guard self.coverImageBookID == bookID else { return }
         self.coverImageTask = nil
-        self.coverImageView.image = image
-        self.updateCoverImageDecoration()
+        self.sourceCoverImage = image
+        self.updateRenderedCoverImage()
         self.failedCoverImageBookID = image == nil ? bookID : nil
         self.coverImageView.layer.cornerRadius = image == nil ? self.cornerRadius : 0
         self.coverImageView.backgroundColor = image == nil ? .secondarySystemFill : .clear
+      }
+    }
+
+    private func updateRenderedCoverImage() {
+      guard let sourceCoverImage else {
+        coverImageView.image = nil
+        updateCoverImageDecoration()
+        return
+      }
+
+      if let tintColor = imageBlendTintColor,
+        let blendedImage = multiplyBlend(image: sourceCoverImage, tintColor: tintColor)
+      {
+        coverImageView.image = blendedImage
+      } else {
+        coverImageView.image = sourceCoverImage
+      }
+      updateCoverImageDecoration()
+    }
+
+    private func multiplyBlend(image: UIImage, tintColor: UIColor) -> UIImage? {
+      let size = image.size
+      guard size.width > 0, size.height > 0 else { return image }
+
+      let format = UIGraphicsImageRendererFormat.preferred()
+      format.scale = image.scale
+      format.opaque = false
+      let renderer = UIGraphicsImageRenderer(size: size, format: format)
+
+      return renderer.image { context in
+        let rect = CGRect(origin: .zero, size: size)
+        image.draw(in: rect)
+        context.cgContext.setBlendMode(.multiply)
+        context.cgContext.setFillColor(tintColor.cgColor)
+        context.cgContext.fill(rect)
       }
     }
 
