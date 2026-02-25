@@ -56,6 +56,16 @@
     private let buttonStack = UIStackView()
     private let closeButton = UIButton(type: .system)
     private var sectionsEqualWidthConstraint: NSLayoutConstraint?
+    private var contentLeadingConstraint: NSLayoutConstraint?
+    private var contentTrailingConstraint: NSLayoutConstraint?
+    private var contentTopConstraint: NSLayoutConstraint?
+    private var contentBottomConstraint: NSLayoutConstraint?
+    private var contentMaxWidthConstraint: NSLayoutConstraint?
+    private var previousCoverWidthConstraint: NSLayoutConstraint?
+    private var previousCoverHeightConstraint: NSLayoutConstraint?
+    private var nextCoverWidthConstraint: NSLayoutConstraint?
+    private var nextCoverHeightConstraint: NSLayoutConstraint?
+    private var verticalDividerHeightConstraint: NSLayoutConstraint?
 
     func configure(
       previousBook: Book?,
@@ -85,6 +95,7 @@
 
     override func viewDidLayoutSubviews() {
       super.viewDidLayoutSubviews()
+      applyDynamicMetrics()
       applyLayoutModeIfNeeded()
     }
 
@@ -204,7 +215,8 @@
 
       verticalDivider.translatesAutoresizingMaskIntoConstraints = false
       verticalDivider.widthAnchor.constraint(equalToConstant: 1).isActive = true
-      verticalDivider.heightAnchor.constraint(equalToConstant: 220).isActive = true
+      verticalDividerHeightConstraint = verticalDivider.heightAnchor.constraint(equalToConstant: 220)
+      verticalDividerHeightConstraint?.isActive = true
 
       buttonStack.axis = .horizontal
       buttonStack.alignment = .center
@@ -214,14 +226,51 @@
       closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
       buttonStack.addArrangedSubview(closeButton)
 
+      let contentLeading = contentStack.leadingAnchor.constraint(
+        greaterThanOrEqualTo: view.leadingAnchor,
+        constant: 40
+      )
+      let contentTrailing = contentStack.trailingAnchor.constraint(
+        lessThanOrEqualTo: view.trailingAnchor,
+        constant: -40
+      )
+      let contentTop = contentStack.topAnchor.constraint(
+        greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor,
+        constant: 40
+      )
+      let contentBottom = contentStack.bottomAnchor.constraint(
+        lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor,
+        constant: -40
+      )
+      let contentMaxWidth = contentStack.widthAnchor.constraint(
+        lessThanOrEqualTo: view.widthAnchor,
+        constant: -80
+      )
+      contentLeadingConstraint = contentLeading
+      contentTrailingConstraint = contentTrailing
+      contentTopConstraint = contentTop
+      contentBottomConstraint = contentBottom
+      contentMaxWidthConstraint = contentMaxWidth
+
+      let previousCoverWidth = previousCoverViewController.view.widthAnchor.constraint(equalToConstant: 120)
+      let previousCoverHeight = previousCoverViewController.view.heightAnchor.constraint(
+        equalToConstant: 160
+      )
+      let nextCoverWidth = nextCoverViewController.view.widthAnchor.constraint(equalToConstant: 120)
+      let nextCoverHeight = nextCoverViewController.view.heightAnchor.constraint(equalToConstant: 160)
+      previousCoverWidthConstraint = previousCoverWidth
+      previousCoverHeightConstraint = previousCoverHeight
+      nextCoverWidthConstraint = nextCoverWidth
+      nextCoverHeightConstraint = nextCoverHeight
+
       NSLayoutConstraint.activate([
-        contentStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 40),
-        contentStack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -40),
-        contentStack.topAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
-        contentStack.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+        contentLeading,
+        contentTrailing,
+        contentTop,
+        contentBottom,
         contentStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         contentStack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-        contentStack.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -80),
+        contentMaxWidth,
 
         previousStack.leadingAnchor.constraint(equalTo: previousContainer.leadingAnchor),
         previousStack.trailingAnchor.constraint(equalTo: previousContainer.trailingAnchor),
@@ -233,10 +282,10 @@
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
 
-        previousCoverViewController.view.widthAnchor.constraint(equalToConstant: 120),
-        previousCoverViewController.view.heightAnchor.constraint(equalToConstant: 160),
-        nextCoverViewController.view.widthAnchor.constraint(equalToConstant: 120),
-        nextCoverViewController.view.heightAnchor.constraint(equalToConstant: 160),
+        previousCoverWidth,
+        previousCoverHeight,
+        nextCoverWidth,
+        nextCoverHeight,
       ])
     }
 
@@ -273,6 +322,8 @@
       leadingDivider.backgroundColor = textColor.withAlphaComponent(0.3)
       trailingDivider.backgroundColor = textColor.withAlphaComponent(0.3)
       verticalDivider.backgroundColor = textColor.withAlphaComponent(0.3)
+      previousCoverViewController.useLightShadow = shouldUseLightCoverShadow
+      nextCoverViewController.useLightShadow = shouldUseLightCoverShadow
 
       previousBadgeLabel.text = String(localized: "reader.previousBook").uppercased()
       nextBadgeLabel.text = String(localized: "reader.nextBook").uppercased()
@@ -319,6 +370,7 @@
       closeButton.tintColor = textColor
       closeButton.isHidden = nextBook != nil
 
+      applyDynamicMetrics()
       applyLayoutModeIfNeeded(force: true)
     }
 
@@ -416,6 +468,42 @@
       sectionsEqualWidthConstraint?.isActive = true
     }
 
+    private func applyDynamicMetrics() {
+      guard view.bounds.width > 0, view.bounds.height > 0 else { return }
+
+      let isPortrait = view.bounds.height >= view.bounds.width
+      let minDimension = min(view.bounds.width, view.bounds.height)
+      let maxDimension = max(view.bounds.width, view.bounds.height)
+      let outerPadding = clamped(minDimension * 0.08, lower: 20, upper: 56)
+      let innerPadding = clamped(minDimension * 0.045, lower: 16, upper: 32)
+      let stackSpacing = clamped(minDimension * 0.034, lower: 12, upper: 22)
+      let portraitSectionSpacing = stackSpacing + clamped(stackSpacing * 0.5, lower: 6, upper: 12)
+      let coverWidth = clamped(minDimension * 0.24, lower: 96, upper: 190)
+      let coverHeight = coverWidth / CoverAspectRatio.widthToHeight
+      let dividerHeight = clamped(maxDimension * 0.32, lower: 140, upper: 320)
+
+      contentStack.spacing = stackSpacing
+      sectionsStack.spacing = isPortrait ? portraitSectionSpacing : stackSpacing
+      contentStack.layoutMargins = UIEdgeInsets(
+        top: innerPadding,
+        left: innerPadding,
+        bottom: innerPadding,
+        right: innerPadding
+      )
+
+      contentLeadingConstraint?.constant = outerPadding
+      contentTrailingConstraint?.constant = -outerPadding
+      contentTopConstraint?.constant = outerPadding
+      contentBottomConstraint?.constant = -outerPadding
+      contentMaxWidthConstraint?.constant = -outerPadding * 2
+
+      previousCoverWidthConstraint?.constant = coverWidth
+      previousCoverHeightConstraint?.constant = coverHeight
+      nextCoverWidthConstraint?.constant = coverWidth
+      nextCoverHeightConstraint?.constant = coverHeight
+      verticalDividerHeightConstraint?.constant = dividerHeight
+    }
+
     private func borderedButtonConfiguration() -> UIButton.Configuration {
       if #available(iOS 26.0, *) {
         return .glass()
@@ -425,7 +513,7 @@
 
     private var buttonSymbolConfiguration: UIImage.SymbolConfiguration {
       UIImage.SymbolConfiguration(
-        textStyle: .body,
+        textStyle: .subheadline,
         scale: .small
       )
     }
@@ -439,6 +527,21 @@
       case .system:
         return .label
       }
+    }
+
+    private var shouldUseLightCoverShadow: Bool {
+      switch renderConfig.readerBackground {
+      case .black, .gray:
+        return true
+      case .white:
+        return false
+      case .system:
+        return traitCollection.userInterfaceStyle == .dark
+      }
+    }
+
+    private func clamped(_ value: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {
+      Swift.min(Swift.max(value, lower), upper)
     }
 
     private func preferredFont(
