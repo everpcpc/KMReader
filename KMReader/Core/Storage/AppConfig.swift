@@ -826,6 +826,47 @@ enum AppConfig {
     recentlyReadRecordTimeByInstance = store
   }
 
+  private static nonisolated var readingProgressSyncTimeByInstance: [String: TimeInterval] {
+    get {
+      guard
+        let stored = UserDefaults.standard.string(forKey: "readingProgressSyncTimeByInstance"),
+        let data = stored.data(using: .utf8),
+        let dict = try? JSONSerialization.jsonObject(with: data) as? [String: TimeInterval]
+      else {
+        return [:]
+      }
+      return dict
+    }
+    set {
+      if newValue.isEmpty {
+        UserDefaults.standard.removeObject(forKey: "readingProgressSyncTimeByInstance")
+        return
+      }
+
+      guard
+        let data = try? JSONSerialization.data(withJSONObject: newValue, options: [.sortedKeys]),
+        let encoded = String(data: data, encoding: .utf8)
+      else {
+        return
+      }
+      UserDefaults.standard.set(encoded, forKey: "readingProgressSyncTimeByInstance")
+    }
+  }
+
+  static nonisolated func readingProgressSyncTime(instanceId: String) -> Date? {
+    guard !instanceId.isEmpty, let timestamp = readingProgressSyncTimeByInstance[instanceId] else {
+      return nil
+    }
+    return Date(timeIntervalSince1970: timestamp)
+  }
+
+  static nonisolated func setReadingProgressSyncTime(_ date: Date, instanceId: String) {
+    guard !instanceId.isEmpty else { return }
+    var store = readingProgressSyncTimeByInstance
+    store[instanceId] = date.timeIntervalSince1970
+    readingProgressSyncTimeByInstance = store
+  }
+
   private static nonisolated var deletionReconcileTimeByInstance: [String: TimeInterval] {
     get {
       guard

@@ -237,7 +237,7 @@ struct OfflineView: View {
       latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
       triggerReadingProgressSync()
     }
-    .task(id: resolvedLibraryIdsKey) {
+    .onChange(of: resolvedLibraryIdsKey) { _, _ in
       guard !authViewModel.isSwitching else { return }
       refreshBrowse()
     }
@@ -294,7 +294,7 @@ struct OfflineView: View {
       Divider()
 
       Button {
-        triggerReadingProgressSync()
+        triggerReadingProgressSync(force: true)
       } label: {
         HStack {
           Image(systemName: "book.circle")
@@ -364,11 +364,11 @@ struct OfflineView: View {
     refreshTrigger = UUID()
   }
 
-  private func triggerReadingProgressSync() {
+  private func triggerReadingProgressSync(force: Bool = false) {
     guard !isOffline, !current.instanceId.isEmpty else { return }
 
     Task(priority: .utility) {
-      await instanceInitializer.syncReadingProgressOnly()
+      await instanceInitializer.syncReadingProgressOnly(force: force)
       await MainActor.run {
         latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
       }
