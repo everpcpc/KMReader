@@ -50,7 +50,7 @@ struct LoginView: View {
 
   private func login() {
     Task {
-      loginErrorMessage = nil
+      setLoginErrorMessage(nil)
       let trimmedName = instanceName.trimmingCharacters(in: .whitespacesAndNewlines)
       let displayName = trimmedName.isEmpty ? nil : trimmedName
 
@@ -72,7 +72,7 @@ struct LoginView: View {
         }
         dismiss()
       } catch {
-        loginErrorMessage = formattedErrorMessage(from: error)
+        setLoginErrorMessage(formattedErrorMessage(from: error))
       }
     }
   }
@@ -111,7 +111,7 @@ struct LoginView: View {
           #endif
           .autocorrectionDisabled()
           .onChange(of: serverURLText) { _, _ in
-            loginErrorMessage = nil
+            setLoginErrorMessage(nil)
           }
       }
 
@@ -131,7 +131,7 @@ struct LoginView: View {
       }
       .pickerStyle(.segmented)
       .onChange(of: authMethod) { _, _ in
-        loginErrorMessage = nil
+        setLoginErrorMessage(nil)
       }
 
       // Conditional fields based on auth method
@@ -149,7 +149,7 @@ struct LoginView: View {
             #endif
             .autocorrectionDisabled()
             .onChange(of: usernameText) { _, _ in
-              loginErrorMessage = nil
+              setLoginErrorMessage(nil)
             }
         }
 
@@ -161,7 +161,7 @@ struct LoginView: View {
           SecureField(String(localized: "Enter your password"), text: $password)
             .textContentType(.password)
             .onChange(of: password) { _, _ in
-              loginErrorMessage = nil
+              setLoginErrorMessage(nil)
             }
         }
 
@@ -178,27 +178,10 @@ struct LoginView: View {
             #endif
             .autocorrectionDisabled()
             .onChange(of: apiKey) { _, _ in
-              loginErrorMessage = nil
+              setLoginErrorMessage(nil)
             }
         }
       }
-
-      Button(action: login) {
-        HStack(spacing: 8) {
-          Spacer()
-          if authViewModel.isLoading {
-            LoadingIcon()
-          } else {
-            Text(String(localized: "Login"))
-            Image(systemName: "arrow.right.circle.fill")
-          }
-          Spacer()
-        }
-        .padding(.vertical, 12)
-      }
-      .adaptiveButtonStyle(.borderedProminent)
-      .disabled(!isFormValid || authViewModel.isLoading)
-      .padding(.top, 8)
 
       if let loginErrorMessage {
         HStack(alignment: .top, spacing: 8) {
@@ -211,9 +194,38 @@ struct LoginView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 4)
+        .transition(.opacity.combined(with: .move(edge: .top)))
       }
+
+      Button(action: login) {
+        HStack(spacing: 8) {
+          if authViewModel.isLoading {
+            LoadingIcon()
+          } else {
+            Text(String(localized: "Login"))
+            Image(systemName: "arrow.right.circle.fill")
+          }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+      }
+      #if !os(tvOS)
+        .frame(maxWidth: 360)
+      #endif
+      .frame(maxWidth: .infinity, alignment: .center)
+      .adaptiveButtonStyle(.borderedProminent)
+      .disabled(!isFormValid || authViewModel.isLoading)
+      .padding(.top, 8)
     }
     .animation(.default, value: authMethod)
+    .animation(.easeInOut(duration: 0.2), value: loginErrorMessage)
+  }
+
+  private func setLoginErrorMessage(_ message: String?) {
+    guard loginErrorMessage != message else { return }
+    withAnimation(.easeInOut(duration: 0.2)) {
+      loginErrorMessage = message
+    }
   }
 
   private var fieldBackgroundColor: Color {

@@ -45,15 +45,19 @@ struct ServerListView: View {
             Image(systemName: "list.bullet.rectangle")
               .font(.largeTitle)
               .foregroundStyle(.secondary)
-            Text(String(localized: "No servers found"))
+            Text(String(localized: "No servers added yet"))
               .font(.headline)
-            Text(String(localized: "Login to a Komga server to see it listed here."))
+            Text(String(localized: "Add or connect to a Komga server to get started."))
               .font(.caption)
               .foregroundStyle(.secondary)
               .multilineTextAlignment(.center)
-            Button(String(localized: "Retry")) {
+            Button {
               showLogin = true
+            } label: {
+              Label(String(localized: "Connect to a Server"), systemImage: "plus.circle")
+                .labelStyle(.titleAndIcon)
             }
+            .adaptiveButtonStyle(.borderedProminent)
           }
           .frame(maxWidth: .infinity)
           .padding(.vertical)
@@ -82,14 +86,17 @@ struct ServerListView: View {
       }
       .listRowBackground(Color.clear)
 
-      Section {
-        Button {
-          showLogin = true
-        } label: {
-          HStack {
-            Spacer()
-            Label(addButtonTitle, systemImage: "plus.circle")
-            Spacer()
+      if !instances.isEmpty {
+        Section {
+          Button {
+            showLogin = true
+          } label: {
+            HStack {
+              Spacer()
+              Label(addButtonTitle, systemImage: "plus.circle")
+                .labelStyle(.titleAndIcon)
+              Spacer()
+            }
           }
         }
       }

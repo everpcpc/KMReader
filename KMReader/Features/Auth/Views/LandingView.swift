@@ -37,17 +37,18 @@ struct LandingView: View {
       Button(action: {
         showGetStarted = true
       }) {
-        HStack {
+        HStack(spacing: 8) {
           Text("Get Started")
             .fontWeight(.semibold)
           Image(systemName: "arrow.right")
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 56)
+        .frame(height: 48)
       }
       .adaptiveButtonStyle(.borderedProminent)
-      .padding(.horizontal, 40)
-      .padding(.bottom, 60)
+      .padding(.horizontal, 24)
+      .frame(maxWidth: 360)
+      .padding(.bottom, 40)
     }
     #if os(iOS)
       .fullScreenCover(isPresented: $showGetStarted) {
