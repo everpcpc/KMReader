@@ -244,9 +244,9 @@ class SyncService {
     return result
   }
 
-  func syncLatestRecentlyReadProgress() async {
+  func syncLatestRecentlyReadProgress() async -> Bool {
     let instanceId = AppConfig.current.instanceId
-    guard !instanceId.isEmpty else { return }
+    guard !instanceId.isEmpty else { return false }
 
     let marker = AppConfig.recentlyReadRecordTime(instanceId: instanceId)
     let pageSize = syncPageSize
@@ -307,8 +307,10 @@ class SyncService {
       logger.debug(
         "📘 Synced latest recently-read progress: count=\(syncedCount), marker=\(String(describing: latestServerReadDate))"
       )
+      return true
     } catch {
       logger.warning("⚠️ Failed to sync latest recently-read progress: \(error)")
+      return false
     }
   }
 

@@ -172,11 +172,25 @@ final class InstanceInitializer {
     }
   }
 
-  func syncReadingProgressOnly() async {
+  func syncReadingProgressOnly(force: Bool = false) async {
     guard !isSyncing else { return }
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
-    await SyncService.shared.syncLatestRecentlyReadProgress()
+
+    if !force, shouldSkipReadingProgressSync(instanceId: instanceId) {
+      return
+    }
+
+    let syncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
+    guard syncSucceeded else { return }
+
+    AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
+    ErrorManager.shared.notify(
+      message: String(
+        localized: "notification.offline.readHistorySyncCompleted",
+        defaultValue: "Reading history sync completed"
+      )
+    )
   }
 
   private func performSync(instanceId: String, forceFullSync: Bool) async -> Bool {
@@ -274,7 +288,10 @@ final class InstanceInitializer {
     }
 
     // Keep reading progress aligned across all libraries (no dashboard library filter).
-    await SyncService.shared.syncLatestRecentlyReadProgress()
+    let readProgressSyncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
+    if readProgressSyncSucceeded {
+      AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
+    }
 
     if shouldReconcileDeletions && seriesSyncSucceeded && booksSyncSucceeded {
       AppConfig.setDeletionReconcileTime(syncStartTime, instanceId: instanceId)
@@ -289,6 +306,14 @@ final class InstanceInitializer {
 
     isSyncing = false
     return hasFailures
+  }
+
+  private func shouldSkipReadingProgressSync(instanceId: String) -> Bool {
+    let interval: TimeInterval = 24 * 60 * 60
+    guard let lastSyncTime = AppConfig.readingProgressSyncTime(instanceId: instanceId) else {
+      return false
+    }
+    return Date().timeIntervalSince(lastSyncTime) < interval
   }
 
   // MARK: - Sync Methods

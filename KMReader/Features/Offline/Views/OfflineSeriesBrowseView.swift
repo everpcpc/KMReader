@@ -54,10 +54,13 @@ struct OfflineSeriesBrowseView: View {
       )
     }
     .task {
-      if !hasInitialized {
+      guard !hasInitialized else { return }
+      if browseOpts != storedBrowseOpts {
         browseOpts = storedBrowseOpts
         hasInitialized = true
+        return
       }
+      hasInitialized = true
       await loadSeries(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in

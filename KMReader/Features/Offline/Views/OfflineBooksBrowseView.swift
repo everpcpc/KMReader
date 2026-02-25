@@ -54,10 +54,13 @@ struct OfflineBooksBrowseView: View {
       )
     }
     .task {
-      if !hasInitialized {
+      guard !hasInitialized else { return }
+      if browseOpts != storedBrowseOpts {
         browseOpts = storedBrowseOpts
         hasInitialized = true
+        return
       }
+      hasInitialized = true
       await loadBooks(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in
