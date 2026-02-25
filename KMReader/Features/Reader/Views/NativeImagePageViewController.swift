@@ -196,6 +196,7 @@
         image: image,
         showPageNumber: renderConfig.showPageNumber,
         enableLiveText: renderConfig.enableLiveText,
+        background: renderConfig.readerBackground,
         readingDirection: readingDirection,
         displayMode: .fit,
         targetHeight: view.bounds.height

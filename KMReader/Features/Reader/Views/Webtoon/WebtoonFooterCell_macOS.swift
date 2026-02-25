@@ -149,15 +149,7 @@
 
     private func applyBackground() {
       view.layer?.backgroundColor = NSColor(readerBackground.color).cgColor
-      let textColor: NSColor =
-        switch readerBackground {
-        case .black, .gray:
-          .white
-        case .white:
-          .black
-        case .system:
-          .labelColor
-        }
+      let textColor = NSColor(readerBackground.contentColor)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
       previousDetailLabel.textColor = textColor.withAlphaComponent(0.6)

@@ -30,16 +30,7 @@ struct EndPageView: View {
   }
 
   private var textColor: Color {
-    switch readerBackground {
-    case .black:
-      return .white
-    case .white:
-      return .black
-    case .gray:
-      return .white
-    case .system:
-      return .primary
-    }
+    readerBackground.contentColor
   }
 
   private var relationTitle: String {
@@ -273,6 +264,7 @@ struct EndPageView: View {
             width: coverWidth,
             cornerRadius: coverCornerRadius(for: coverWidth)
           )
+          .colorMultiply(readerBackground.appliesImageMultiplyBlend ? readerBackground.color : .white)
           .frame(width: coverWidth, height: coverHeight)
           .shadow(
             color: coverShadowColor,
@@ -341,6 +333,8 @@ struct EndPageView: View {
       return .white.opacity(0.16)
     case .white:
       return .black.opacity(0.18)
+    case .sepia:
+      return .black.opacity(0.14)
     case .system:
       return colorScheme == .dark ? .white.opacity(0.14) : .black.opacity(0.18)
     }

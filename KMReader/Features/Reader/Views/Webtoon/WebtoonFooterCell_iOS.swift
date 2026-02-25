@@ -149,15 +149,7 @@
 
     private func applyBackground() {
       contentView.backgroundColor = UIColor(readerBackground.color)
-      let textColor: UIColor =
-        switch readerBackground {
-        case .black, .gray:
-          .white
-        case .white:
-          .black
-        case .system:
-          .label
-        }
+      let textColor = UIColor(readerBackground.contentColor)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
       previousDetailLabel.textColor = textColor.withAlphaComponent(0.6)
