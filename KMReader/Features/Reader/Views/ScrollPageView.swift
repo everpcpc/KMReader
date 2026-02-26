@@ -224,10 +224,10 @@ struct ScrollPageView: View {
               onPlayAnimatedPage: onPlayAnimatedPage
             )
           }
-        case .split(let id, let isFirstHalf):
+        case .split(let id, let part):
           if let pageIndex = viewModel.pageIndex(for: id) {
             let isLeftHalf = viewModel.isLeftSplitHalf(
-              isFirstHalf: isFirstHalf,
+              part: part,
               readingDirection: readingDirection,
               splitWidePageMode: splitWidePageMode
             )

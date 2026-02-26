@@ -9,6 +9,7 @@ import OSLog
 import Photos
 import SwiftUI
 import UniformTypeIdentifiers
+
 #if os(macOS)
   import AppKit
 #endif
@@ -46,6 +47,7 @@ class ReaderViewModel {
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
+  private var combineSplitWidePagePairInDualMode: Bool
   private var isActuallyUsingDualPageMode: Bool = false
 
   private let logger = AppLogger(.reader)
@@ -118,6 +120,7 @@ class ReaderViewModel {
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
+    self.combineSplitWidePagePairInDualMode = false
     self.incognitoMode = incognitoMode
     regenerateViewState()
   }
@@ -1431,6 +1434,12 @@ class ReaderViewModel {
     regenerateViewState()
   }
 
+  func updateCombineSplitWidePagePairInDualMode(_ isEnabled: Bool) {
+    guard combineSplitWidePagePairInDualMode != isEnabled else { return }
+    combineSplitWidePagePairInDualMode = isEnabled
+    regenerateViewState()
+  }
+
   func toggleIsolatePage(_ pageIndex: Int) {
     guard let isolatePosition = isolatePosition(forGlobalPageIndex: pageIndex) else { return }
 
@@ -1455,8 +1464,8 @@ class ReaderViewModel {
   }
 
   private func regenerateViewState() {
-    // In actual dual page mode, disable split wide pages
-    let effectiveSplitWidePages = splitWidePageMode.isEnabled && !isActuallyUsingDualPageMode
+    // Keep split-wide behavior available in dual mode as well.
+    let effectiveSplitWidePages = splitWidePageMode.isEnabled
 
     // Cover page isolation only applies when NOT in single page mode
     // In single page mode, every page is already isolated
@@ -1468,6 +1477,7 @@ class ReaderViewModel {
       noCover: !shouldIsolateCover,
       allowDualPairs: isActuallyUsingDualPageMode,
       forceDualPairs: forceDualPagePairs,
+      combineSplitWidePagePairInDualMode: combineSplitWidePagePairInDualMode,
       splitWidePages: effectiveSplitWidePages,
       isolatePages: Set(isolatePages)
     )
@@ -1553,10 +1563,19 @@ class ReaderViewModel {
   }
 
   func isLeftSplitHalf(
-    isFirstHalf: Bool,
+    part: ReaderSplitPart,
     readingDirection: ReadingDirection,
     splitWidePageMode: SplitWidePageMode
   ) -> Bool {
+    let isFirstHalf: Bool
+    switch part {
+    case .first:
+      isFirstHalf = true
+    case .second:
+      isFirstHalf = false
+    case .both:
+      return true
+    }
     let effectiveDirection = splitWidePageMode.effectiveReadingDirection(for: readingDirection)
     let shouldShowLeftFirst = effectiveDirection != .rtl
     return shouldShowLeftFirst ? isFirstHalf : !isFirstHalf
@@ -1569,6 +1588,7 @@ private func generateViewItems(
   noCover: Bool,
   allowDualPairs: Bool,
   forceDualPairs: Bool,
+  combineSplitWidePagePairInDualMode: Bool,
   splitWidePages: Bool,
   isolatePages: Set<Int> = []
 ) -> [ReaderViewItem] {
@@ -1590,6 +1610,25 @@ private func generateViewItems(
 
     while index < segmentEndExclusive {
       if shouldForceDualPairs {
+        let currentPage = readerPages[index].page
+        let isWidePageEligibleForSplit =
+          !currentPage.isPortrait
+          && splitWidePages
+          && !isolatePages.contains(index)
+          && (noCover || index != segmentStartIndex)
+          && index != segmentEndExclusive - 1
+
+        if isWidePageEligibleForSplit {
+          if combineSplitWidePagePairInDualMode {
+            items.append(.split(id: readerPages[index].id, part: .both))
+          } else {
+            items.append(.split(id: readerPages[index].id, part: .first))
+            items.append(.split(id: readerPages[index].id, part: .second))
+          }
+          index += 1
+          continue
+        }
+
         let shouldShowSingle =
           (!noCover && index == segmentStartIndex) || index == segmentEndExclusive - 1
           || isolatePages.contains(index) || isolatePages.contains(index + 1)
@@ -1637,8 +1676,12 @@ private func generateViewItems(
       }
 
       if shouldSplitPage {
-        items.append(.split(id: readerPages[index].id, isFirstHalf: true))
-        items.append(.split(id: readerPages[index].id, isFirstHalf: false))
+        if combineSplitWidePagePairInDualMode && allowDualPairs {
+          items.append(.split(id: readerPages[index].id, part: .both))
+        } else {
+          items.append(.split(id: readerPages[index].id, part: .first))
+          items.append(.split(id: readerPages[index].id, part: .second))
+        }
         index += 1
       } else if useSinglePage {
         items.append(.page(id: readerPages[index].id))

@@ -581,6 +581,12 @@ struct DivinaReaderView: View {
     useDualPage: Bool,
     screenKey: String
   ) -> some View {
+    #if os(iOS)
+      let useSplitPairInDualMode = pageTransitionStyle == .pageCurl && useDualPage
+    #else
+      let useSplitPairInDualMode = false
+    #endif
+    let _ = viewModel.updateCombineSplitWidePagePairInDualMode(useSplitPairInDualMode)
     let _ = viewModel.updateActualDualPageMode(useDualPage)
 
     Group {
@@ -615,19 +621,34 @@ struct DivinaReaderView: View {
             #endif
           } else {
             #if os(iOS)
-              if pageTransitionStyle == .pageCurl && !useDualPage {
-                CurlPageView(
-                  viewModel: viewModel,
-                  mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-                  readingDirection: readingDirection,
-                  splitWidePageMode: splitWidePageMode,
-                  renderConfig: renderConfig,
-                  readListContext: readListContext,
-                  onDismiss: { closeReader() },
-                  onPlayAnimatedPage: { pageIndex in
-                    requestAnimatedPlayback(for: pageIndex)
-                  }
-                )
+              if pageTransitionStyle == .pageCurl {
+                if useDualPage {
+                  CurlDualPageView(
+                    viewModel: viewModel,
+                    mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                    readingDirection: readingDirection,
+                    splitWidePageMode: splitWidePageMode,
+                    renderConfig: renderConfig,
+                    readListContext: readListContext,
+                    onDismiss: { closeReader() },
+                    onPlayAnimatedPage: { pageIndex in
+                      requestAnimatedPlayback(for: pageIndex)
+                    }
+                  )
+                } else {
+                  CurlPageView(
+                    viewModel: viewModel,
+                    mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                    readingDirection: readingDirection,
+                    splitWidePageMode: splitWidePageMode,
+                    renderConfig: renderConfig,
+                    readListContext: readListContext,
+                    onDismiss: { closeReader() },
+                    onPlayAnimatedPage: { pageIndex in
+                      requestAnimatedPlayback(for: pageIndex)
+                    }
+                  )
+                }
               } else {
                 ScrollPageView(
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),

@@ -259,11 +259,11 @@
           guard let resolvedIndex = parent.viewModel.pageIndex(for: first) else { return }
           pageIndex = resolvedIndex
           splitMode = .none
-        case .split(let id, let isFirstHalf):
+        case .split(let id, let part):
           guard let resolvedIndex = parent.viewModel.pageIndex(for: id) else { return }
           pageIndex = resolvedIndex
           let isLeftHalf = parent.viewModel.isLeftSplitHalf(
-            isFirstHalf: isFirstHalf,
+            part: part,
             readingDirection: parent.readingDirection,
             splitWidePageMode: parent.splitWidePageMode
           )
