@@ -22,9 +22,6 @@ import SwiftUI
           )
         ) {
           ReaderContentView(readerPresentation: readerPresentation)
-            #if os(iOS)
-              .readerDismissGesture(readingDirection: readerPresentation.readingDirection)
-            #endif
             .navigationTransitionZoomIfAvailable(
               sourceID: readerPresentation.sourceBookId,
               in: namespace
@@ -65,9 +62,6 @@ import SwiftUI
         url: readerPresentation.handoffURL,
         scope: .reader
       )
-      #if os(iOS)
-        .statusBarHidden(readerPresentation.hideStatusBar)
-      #endif
     }
   }
 

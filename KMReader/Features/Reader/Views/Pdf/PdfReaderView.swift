@@ -108,16 +108,7 @@
         await loadBook()
       }
       .onAppear {
-        if readerPresentation.readingDirection != readingDirection {
-          readerPresentation.readingDirection = readingDirection
-        }
-        readerPresentation.hideStatusBar = false
         updateHandoff()
-      }
-      .onChange(of: readingDirection) { _, newDirection in
-        if readerPresentation.readingDirection != newDirection {
-          readerPresentation.readingDirection = newDirection
-        }
       }
       .onChange(of: defaultReadingDirection) { _, newDirection in
         if newDirection == .webtoon {
@@ -150,18 +141,16 @@
           forcePageNavigation(to: targetPage)
         }
       }
-      .onChange(of: shouldShowControls) { _, newValue in
-        withAnimation {
-          readerPresentation.hideStatusBar = !newValue
-        }
-      }
       .onDisappear {
         logger.debug(
           "👋 PDF reader disappeared for book \(book.id), page=\(viewModel.currentPageNumber)/\(viewModel.pageCount)"
         )
         showingControls = false
-        readerPresentation.hideStatusBar = false
       }
+      #if os(iOS)
+        .statusBarHidden(!shouldShowControls)
+        .readerDismissGesture(readingDirection: readingDirection)
+      #endif
     }
 
     private var shouldShowControls: Bool {

@@ -96,13 +96,6 @@
       }
     }
 
-    private func updateDismissGestureReadingDirection() {
-      let direction = dismissGestureReadingDirection
-      if direction != readerPresentation.readingDirection {
-        readerPresentation.readingDirection = direction
-      }
-    }
-
     private func updateHandoff() {
       let url = KomgaWebLinkBuilder.epubReader(
         serverURL: current.serverURL,
@@ -124,21 +117,16 @@
         .onAppear {
           updateHandoff()
           viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
-          updateDismissGestureReadingDirection()
         }
         .onChange(of: currentBook?.id) { _, _ in
           updateHandoff()
         }
         .onChange(of: activePreferences) { _, newPrefs in
           viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)
-          updateDismissGestureReadingDirection()
         }
         .onChange(of: globalPreferences) { _, newPrefs in
           guard !isUsingBookPreferences else { return }
           activePreferences = newPrefs
-        }
-        .onChange(of: viewModel.publicationReadingProgression) { _, _ in
-          updateDismissGestureReadingDirection()
         }
         .onChange(of: colorScheme) { _, newScheme in
           viewModel.applyPreferences(activePreferences, colorScheme: newScheme)
@@ -152,15 +140,9 @@
           logger.debug(
             "👋 EPUB reader disappeared for book \(handoffBookId), chapter=\(viewModel.currentChapterIndex), page=\(viewModel.currentPageIndex), hasLocation=\(viewModel.currentLocation != nil)"
           )
-          withAnimation {
-            readerPresentation.hideStatusBar = false
-          }
         }
-        .onChange(of: shouldShowControls) { _, newValue in
-          withAnimation {
-            readerPresentation.hideStatusBar = !newValue
-          }
-        }
+        .statusBarHidden(!shouldShowControls)
+        .readerDismissGesture(readingDirection: dismissGestureReadingDirection)
     }
 
     private func loadBook() async {
@@ -227,7 +209,6 @@
         }
         .onAppear {
           viewModel.updateViewport(size: geometry.size)
-          updateDismissGestureReadingDirection()
         }
         .onChange(of: geometry.size) { _, newSize in
           viewModel.updateViewport(size: newSize)
