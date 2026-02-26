@@ -137,6 +137,7 @@
         )
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: pageVC)
+          context.coordinator.storeBacksideSnapshotIfReady(from: initialVC)
         }
       }
 
@@ -179,6 +180,7 @@
         context.coordinator.currentPageIndex = initialPageIndex
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: uiViewController)
+          context.coordinator.storeBacksideSnapshotIfReady(from: initialVC)
         }
       }
 
@@ -244,6 +246,7 @@
               animated: false
             )
             context.coordinator.preloadAdjacentPages(for: targetVC, in: uiViewController)
+            context.coordinator.storeBacksideSnapshotIfReady(from: targetVC)
             Task { @MainActor in
               viewModel.currentChapterIndex = targetChapterIndex
               viewModel.currentPageIndex = normalizedPageIndex
@@ -331,11 +334,13 @@
 
     private func pageCurlBacksideController(
       chapterIndex: Int,
-      subPageIndex: Int
+      subPageIndex: Int,
+      mirroredSnapshot: PageCurlBacksideViewController.MirroredSnapshot? = nil
     ) -> PageCurlBacksideViewController {
       PageCurlBacksideViewController(
         destinationToken: pageCurlBacksideToken(chapterIndex: chapterIndex, subPageIndex: subPageIndex),
-        style: pageCurlBacksideStyle()
+        style: pageCurlBacksideStyle(),
+        mirroredSnapshot: mirroredSnapshot
       )
     }
 
@@ -351,9 +356,14 @@
         animated: animated,
         in: pageVC,
         makeBackside: {
-          pageCurlBacksideController(
+          let mirroredSnapshot = PageCurlBacksideViewController.makeMirroredSnapshot(
+            from: primary,
+            axis: .horizontal
+          )
+          return pageCurlBacksideController(
             chapterIndex: targetChapterIndex,
-            subPageIndex: targetSubPageIndex
+            subPageIndex: targetSubPageIndex,
+            mirroredSnapshot: mirroredSnapshot
           )
         }
       )
@@ -379,6 +389,9 @@
       private var pendingControllers: Set<ObjectIdentifier> = []  // Track controllers in transition
       private var reservedControllers: Set<ObjectIdentifier> = []
       private var reserveCleanupTask: DispatchWorkItem?
+      private let maxCachedBacksideSnapshots = 16
+      private var cachedBacksideImages: [String: UIImage] = [:]
+      private var cachedBacksideImageOrder: [String] = []
 
       init(_ parent: WebPubPagedCurlView) {
         self.parent = parent
@@ -388,6 +401,30 @@
 
       private func cacheKey(chapterIndex: Int, pageIndex: Int) -> String {
         "\(chapterIndex)-\(pageIndex)"
+      }
+
+      func storeBacksideSnapshotIfReady(from controller: EpubPageViewController) {
+        guard let image = controller.makeBacksideSnapshotImage() else { return }
+        let key = cacheKey(chapterIndex: controller.chapterIndex, pageIndex: controller.currentSubPageIndex)
+        cachedBacksideImages[key] = image
+        cachedBacksideImageOrder.removeAll { $0 == key }
+        cachedBacksideImageOrder.append(key)
+
+        while cachedBacksideImageOrder.count > maxCachedBacksideSnapshots {
+          let removedKey = cachedBacksideImageOrder.removeFirst()
+          cachedBacksideImages.removeValue(forKey: removedKey)
+        }
+      }
+
+      private func cachedBacksideMirroredSnapshot(
+        chapterIndex: Int,
+        subPageIndex: Int
+      ) -> PageCurlBacksideViewController.MirroredSnapshot? {
+        let key = cacheKey(chapterIndex: chapterIndex, pageIndex: subPageIndex)
+        guard let image = cachedBacksideImages[key] else { return nil }
+        cachedBacksideImageOrder.removeAll { $0 == key }
+        cachedBacksideImageOrder.append(key)
+        return PageCurlBacksideViewController.makeMirroredSnapshot(from: image, axis: .horizontal)
       }
 
       private func configureController(
@@ -583,36 +620,30 @@
 
         guard let current = viewController as? EpubPageViewController else { return nil }
 
+        let target: (chapterIndex: Int, subPageIndex: Int)?
         if current.chapterIndex == 0 && current.currentSubPageIndex <= 0 {
-          return nil
+          target = nil
+        } else if current.currentSubPageIndex > 0 {
+          target = (current.chapterIndex, current.currentSubPageIndex - 1)
+        } else {
+          let previousChapter = current.chapterIndex - 1
+          guard previousChapter >= 0 else { return nil }
+          let previousCount = parent.viewModel.chapterPageCount(at: previousChapter) ?? 1
+          target = (previousChapter, max(0, previousCount - 1))
         }
 
-        if current.chapterIndex == 0 && current.currentSubPageIndex > 0 {
-          return reserveController(
-            parent.pageCurlBacksideController(
-              chapterIndex: current.chapterIndex,
-              subPageIndex: current.currentSubPageIndex - 1
-            )
-          )
-        }
-
-        if current.currentSubPageIndex > 0 {
-          return reserveController(
-            parent.pageCurlBacksideController(
-              chapterIndex: current.chapterIndex,
-              subPageIndex: current.currentSubPageIndex - 1
-            )
-          )
-        }
-
-        let previousChapter = current.chapterIndex - 1
-        guard previousChapter >= 0 else { return nil }
-        let previousCount = parent.viewModel.chapterPageCount(at: previousChapter) ?? 1
-
+        guard let target else { return nil }
+        let mirroredSnapshot = mirroredSnapshotForBackside(
+          from: current,
+          targetChapterIndex: target.chapterIndex,
+          targetSubPageIndex: target.subPageIndex,
+          in: pageViewController
+        )
         return reserveController(
           parent.pageCurlBacksideController(
-            chapterIndex: previousChapter,
-            subPageIndex: max(0, previousCount - 1)
+            chapterIndex: target.chapterIndex,
+            subPageIndex: target.subPageIndex,
+            mirroredSnapshot: mirroredSnapshot
           )
         )
       }
@@ -635,24 +666,32 @@
 
         guard let current = viewController as? EpubPageViewController else { return nil }
 
+        let target: (chapterIndex: Int, subPageIndex: Int)?
         let storedCount = parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? 1
         let chapterPageCount = max(storedCount, current.totalPagesInChapter)
         if current.currentSubPageIndex < chapterPageCount - 1 {
-          return reserveController(
-            parent.pageCurlBacksideController(
-              chapterIndex: current.chapterIndex,
-              subPageIndex: current.currentSubPageIndex + 1
-            )
-          )
+          target = (current.chapterIndex, current.currentSubPageIndex + 1)
+        } else {
+          let nextChapter = current.chapterIndex + 1
+          if nextChapter < parent.viewModel.chapterCount {
+            target = (nextChapter, 0)
+          } else {
+            target = nil
+          }
         }
 
-        let nextChapter = current.chapterIndex + 1
-        guard nextChapter < parent.viewModel.chapterCount else { return nil }
-
+        guard let target else { return nil }
+        let mirroredSnapshot = mirroredSnapshotForBackside(
+          from: current,
+          targetChapterIndex: target.chapterIndex,
+          targetSubPageIndex: target.subPageIndex,
+          in: pageViewController
+        )
         return reserveController(
           parent.pageCurlBacksideController(
-            chapterIndex: nextChapter,
-            subPageIndex: 0
+            chapterIndex: target.chapterIndex,
+            subPageIndex: target.subPageIndex,
+            mirroredSnapshot: mirroredSnapshot
           )
         )
       }
@@ -688,6 +727,7 @@
         }
         currentChapterIndex = chapterIndex
         currentPageIndex = normalizedPageIndex
+        storeBacksideSnapshotIfReady(from: currentVC)
         preloadAdjacentPages(for: currentVC, in: pageViewController)
         Task { @MainActor in
           parent.viewModel.currentChapterIndex = chapterIndex
@@ -815,6 +855,64 @@
         reserveCleanupTask?.cancel()
         reserveCleanupTask = nil
         reservedControllers.removeAll()
+      }
+
+      private func isForwardNavigation(
+        from currentChapterIndex: Int,
+        currentSubPageIndex: Int,
+        to targetChapterIndex: Int,
+        targetSubPageIndex: Int
+      ) -> Bool {
+        if targetChapterIndex != currentChapterIndex {
+          return targetChapterIndex > currentChapterIndex
+        }
+        return targetSubPageIndex > currentSubPageIndex
+      }
+
+      private func mirroredSnapshotForBackside(
+        from currentController: EpubPageViewController,
+        targetChapterIndex: Int,
+        targetSubPageIndex: Int,
+        in pageViewController: UIPageViewController
+      ) -> PageCurlBacksideViewController.MirroredSnapshot? {
+        let isForward = isForwardNavigation(
+          from: currentController.chapterIndex,
+          currentSubPageIndex: currentController.currentSubPageIndex,
+          to: targetChapterIndex,
+          targetSubPageIndex: targetSubPageIndex
+        )
+
+        if !isForward,
+          let cachedSnapshot = cachedBacksideMirroredSnapshot(
+            chapterIndex: targetChapterIndex,
+            subPageIndex: targetSubPageIndex
+          )
+        {
+          return cachedSnapshot
+        }
+
+        let sourceController: UIViewController
+        if isForward {
+          sourceController = currentController
+        } else if let targetController = self.pageViewController(
+          chapterIndex: targetChapterIndex,
+          subPageIndex: targetSubPageIndex,
+          in: pageViewController
+        ) {
+          if let epubController = targetController as? EpubPageViewController,
+            let image = epubController.makeBacksideSnapshotImage()
+          {
+            return PageCurlBacksideViewController.makeMirroredSnapshot(from: image, axis: .horizontal)
+          }
+          sourceController = targetController
+        } else {
+          sourceController = currentController
+        }
+
+        return PageCurlBacksideViewController.makeMirroredSnapshot(
+          from: sourceController,
+          axis: .horizontal
+        )
       }
 
       private func tapReadingDirection() -> ReadingDirection {
@@ -1406,6 +1504,22 @@
 
     func forceEnsureContentLoaded() {
       loadContentIfNeeded(force: true)
+    }
+
+    func makeBacksideSnapshotImage() -> UIImage? {
+      guard isViewLoaded else { return nil }
+      guard isContentLoaded else { return nil }
+      view.layoutIfNeeded()
+      let bounds = view.bounds
+      guard bounds.width > 1, bounds.height > 1 else { return nil }
+
+      let format = UIGraphicsImageRendererFormat.preferred()
+      format.opaque = false
+      format.scale = view.window?.screen.scale ?? UIScreen.main.scale
+      let renderer = UIGraphicsImageRenderer(bounds: bounds, format: format)
+      return renderer.image { context in
+        view.layer.render(in: context.cgContext)
+      }
     }
 
     private var containerView: UIView?
