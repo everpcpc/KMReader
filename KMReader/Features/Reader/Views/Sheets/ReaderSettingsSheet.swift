@@ -133,7 +133,7 @@ struct ReaderSettingsSheet: View {
           }
         #endif
 
-        #if os(iOS)
+        #if os(iOS) || os(macOS)
           Section(header: Text("Image Upscaling")) {
             VStack(alignment: .leading, spacing: 8) {
               Picker("Waifu2x Mode", selection: $imageUpscalingMode) {

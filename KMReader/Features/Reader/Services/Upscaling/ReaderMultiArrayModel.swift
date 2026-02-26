@@ -1,4 +1,3 @@
-#if os(iOS) || os(tvOS)
   import Accelerate
   import CoreGraphics
   @preconcurrency import CoreML
@@ -413,4 +412,3 @@
       return arr
     }
   }
-#endif

@@ -1,6 +1,9 @@
-#if os(iOS) || os(tvOS)
   import CoreGraphics
-  import UIKit
+  #if os(iOS) || os(tvOS)
+    import UIKit
+  #elseif os(macOS)
+    import AppKit
+  #endif
 
   nonisolated struct ReaderUpscaleDecision {
     nonisolated enum SkipReason {
@@ -79,14 +82,25 @@
       )
     }
 
-    @MainActor
-    static func screenPixelSize(for screen: UIScreen) -> CGSize {
-      let size = screen.bounds.size
-      let scale = screen.scale
-      return CGSize(
-        width: max(size.width * scale, 1),
-        height: max(size.height * scale, 1)
-      )
-    }
+    #if os(iOS) || os(tvOS)
+      @MainActor
+      static func screenPixelSize(for screen: UIScreen) -> CGSize {
+        let size = screen.bounds.size
+        let scale = screen.scale
+        return CGSize(
+          width: max(size.width * scale, 1),
+          height: max(size.height * scale, 1)
+        )
+      }
+    #elseif os(macOS)
+      @MainActor
+      static func screenPixelSize(for screen: NSScreen) -> CGSize {
+        let frame = screen.frame
+        let scale = screen.backingScaleFactor
+        return CGSize(
+          width: max(frame.width * scale, 1),
+          height: max(frame.height * scale, 1)
+        )
+      }
+    #endif
   }
-#endif
