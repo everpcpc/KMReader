@@ -8,10 +8,17 @@
 
   @MainActor
   final class NativeEndPageViewController: UIViewController {
+    enum SectionDisplayMode {
+      case both
+      case previousOnly
+      case nextOnly
+    }
+
     private var previousBook: Book?
     private var nextBook: Book?
     private var readListContext: ReaderReadListContext?
     private var readingDirection: ReadingDirection = .ltr
+    private var sectionDisplayMode: SectionDisplayMode = .both
     private var renderConfig = ReaderRenderConfig(
       tapZoneSize: .large,
       tapZoneMode: .auto,
@@ -72,6 +79,7 @@
       nextBook: Book?,
       readListContext: ReaderReadListContext?,
       readingDirection: ReadingDirection,
+      sectionDisplayMode: SectionDisplayMode = .both,
       renderConfig: ReaderRenderConfig,
       onDismiss: @escaping () -> Void
     ) {
@@ -79,6 +87,7 @@
       self.nextBook = nextBook
       self.readListContext = readListContext
       self.readingDirection = readingDirection
+      self.sectionDisplayMode = sectionDisplayMode
       self.renderConfig = renderConfig
       self.onDismiss = onDismiss
 
@@ -292,12 +301,16 @@
     private func applyConfiguration() {
       let textColor = contentColor
       let relationTitle = readListContext?.name ?? previousBook?.seriesTitle ?? nextBook?.seriesTitle ?? ""
+      let showsBothSections = sectionDisplayMode == .both
+      let showsPreviousSection = sectionDisplayMode != .nextOnly
+      let showsNextSection = sectionDisplayMode != .previousOnly
+      let visibleRelationTitle = showsBothSections ? relationTitle : ""
 
       view.backgroundColor = UIColor(renderConfig.readerBackground.color)
 
-      relationHeaderLabel.text = relationTitle
-      dividerTitleLabel.text = relationTitle
-      dividerTitleLabel.isHidden = relationTitle.isEmpty
+      relationHeaderLabel.text = visibleRelationTitle
+      dividerTitleLabel.text = visibleRelationTitle
+      dividerTitleLabel.isHidden = visibleRelationTitle.isEmpty
 
       relationHeaderLabel.font = preferredFont(textStyle: .headline, design: .rounded, weight: .semibold)
       previousBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
@@ -334,7 +347,7 @@
       previousBadgeLabel.text = String(localized: "reader.previousBook").uppercased()
       nextBadgeLabel.text = String(localized: "reader.nextBook").uppercased()
 
-      if let previousBook {
+      if showsPreviousSection, let previousBook {
         previousContainer.isHidden = false
         previousCoverViewController.configure(bookID: previousBook.id)
         previousTitleLabel.text = previousBook.readerChapterTitle
@@ -346,19 +359,32 @@
         previousDetailLabel.text = nil
       }
 
-      if let nextBook {
-        nextBadgeLabel.isHidden = false
-        nextMetadataStack.isHidden = false
-        caughtUpStack.isHidden = true
-        nextCoverViewController.view.isHidden = false
-        nextCoverViewController.configure(bookID: nextBook.id)
-        nextTitleLabel.text = nextBook.readerChapterTitle
-        nextDetailLabel.text = nextBook.readerChapterDetail
+      if showsNextSection {
+        nextContainer.isHidden = false
+        if let nextBook {
+          nextBadgeLabel.isHidden = false
+          nextMetadataStack.isHidden = false
+          caughtUpStack.isHidden = true
+          nextCoverViewController.view.isHidden = false
+          nextCoverViewController.configure(bookID: nextBook.id)
+          nextTitleLabel.text = nextBook.readerChapterTitle
+          nextDetailLabel.text = nextBook.readerChapterDetail
+        } else {
+          nextBadgeLabel.isHidden = true
+          nextMetadataStack.isHidden = true
+          caughtUpStack.isHidden = false
+          caughtUpLabel.text = String(localized: "You're all caught up!")
+          nextCoverViewController.view.isHidden = true
+          nextCoverViewController.configure(bookID: nil)
+          nextTitleLabel.text = nil
+          nextDetailLabel.text = nil
+        }
       } else {
+        nextContainer.isHidden = true
         nextBadgeLabel.isHidden = true
         nextMetadataStack.isHidden = true
-        caughtUpStack.isHidden = false
-        caughtUpLabel.text = String(localized: "You're all caught up!")
+        caughtUpStack.isHidden = true
+        caughtUpLabel.text = nil
         nextCoverViewController.view.isHidden = true
         nextCoverViewController.configure(bookID: nil)
         nextTitleLabel.text = nil
@@ -374,7 +400,7 @@
       closeConfig.cornerStyle = .capsule
       closeButton.configuration = closeConfig
       closeButton.tintColor = textColor
-      closeButton.isHidden = nextBook != nil
+      closeButton.isHidden = !showsNextSection || nextBook != nil
 
       applyDynamicMetrics()
       applyLayoutModeIfNeeded(force: true)
@@ -388,54 +414,70 @@
 
       let relationTitle = readListContext?.name ?? previousBook?.seriesTitle ?? nextBook?.seriesTitle ?? ""
       let isForwardOnLeadingSide = readingDirection == .rtl
+      let showsBothSections = sectionDisplayMode == .both
 
-      if isPortrait {
-        sectionsStack.axis = .vertical
-        relationHeaderLabel.isHidden = true
-        previousStack.alignment = .center
-        nextStack.alignment = .center
-        previousTitleLabel.textAlignment = .center
-        previousDetailLabel.textAlignment = .center
-        nextTitleLabel.textAlignment = .center
-        nextDetailLabel.textAlignment = .center
-        caughtUpLabel.textAlignment = .center
-        previousCoverViewController.view.isHidden = true
-        setArrangedSubviews(
-          of: sectionsStack,
-          with: [
-            previousContainer.isHidden ? nil : previousContainer,
-            horizontalDividerStack,
-            nextContainer,
-          ]
-        )
-      } else {
-        sectionsStack.axis = .horizontal
-        relationHeaderLabel.isHidden = relationTitle.isEmpty
-        previousStack.alignment = .center
-        nextStack.alignment = .center
-        previousTitleLabel.textAlignment = .center
-        previousDetailLabel.textAlignment = .center
-        nextTitleLabel.textAlignment = .center
-        nextDetailLabel.textAlignment = .center
-        caughtUpLabel.textAlignment = .center
-        previousCoverViewController.view.isHidden = previousBook == nil
+      previousStack.alignment = .center
+      nextStack.alignment = .center
+      previousTitleLabel.textAlignment = .center
+      previousDetailLabel.textAlignment = .center
+      nextTitleLabel.textAlignment = .center
+      nextDetailLabel.textAlignment = .center
+      caughtUpLabel.textAlignment = .center
 
-        if isForwardOnLeadingSide {
+      if showsBothSections {
+        if isPortrait {
+          sectionsStack.axis = .vertical
+          relationHeaderLabel.isHidden = true
+          previousCoverViewController.view.isHidden = true
           setArrangedSubviews(
             of: sectionsStack,
             with: [
-              nextContainer,
-              verticalDivider,
               previousContainer.isHidden ? nil : previousContainer,
+              horizontalDividerStack,
+              nextContainer,
+            ]
+          )
+        } else {
+          sectionsStack.axis = .horizontal
+          relationHeaderLabel.isHidden = relationTitle.isEmpty
+          previousCoverViewController.view.isHidden = previousBook == nil
+
+          if isForwardOnLeadingSide {
+            setArrangedSubviews(
+              of: sectionsStack,
+              with: [
+                nextContainer,
+                verticalDivider,
+                previousContainer.isHidden ? nil : previousContainer,
+              ]
+            )
+          } else {
+            setArrangedSubviews(
+              of: sectionsStack,
+              with: [
+                previousContainer.isHidden ? nil : previousContainer,
+                verticalDivider,
+                nextContainer,
+              ]
+            )
+          }
+        }
+      } else {
+        sectionsStack.axis = .vertical
+        relationHeaderLabel.isHidden = true
+        previousCoverViewController.view.isHidden = previousBook == nil
+        if sectionDisplayMode == .previousOnly {
+          setArrangedSubviews(
+            of: sectionsStack,
+            with: [
+              previousContainer.isHidden ? nil : previousContainer
             ]
           )
         } else {
           setArrangedSubviews(
             of: sectionsStack,
             with: [
-              previousContainer.isHidden ? nil : previousContainer,
-              verticalDivider,
-              nextContainer,
+              nextContainer.isHidden ? nil : nextContainer
             ]
           )
         }

@@ -7,7 +7,7 @@ import Foundation
 
 enum ReaderViewItem: Hashable {
   case page(id: ReaderPageID)
-  case split(id: ReaderPageID, isFirstHalf: Bool)
+  case split(id: ReaderPageID, part: ReaderSplitPart)
   case dual(first: ReaderPageID, second: ReaderPageID)
   case end(bookId: String)
 }

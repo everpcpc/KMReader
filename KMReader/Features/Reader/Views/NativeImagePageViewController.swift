@@ -15,6 +15,7 @@
 
     private var pageIndex: Int = 0
     private var splitMode: PageSplitMode = .none
+    private var alignment: HorizontalAlignment = .center
     private var readingDirection: ReadingDirection = .ltr
     private var renderConfig = ReaderRenderConfig(
       tapZoneSize: .large,
@@ -45,6 +46,7 @@
       viewModel: ReaderViewModel,
       pageIndex: Int,
       splitMode: PageSplitMode,
+      alignment: HorizontalAlignment = .center,
       readingDirection: ReadingDirection,
       renderConfig: ReaderRenderConfig,
       onPlayAnimatedPage: ((Int) -> Void)?
@@ -54,6 +56,7 @@
       self.viewModel = viewModel
       self.pageIndex = pageIndex
       self.splitMode = splitMode
+      self.alignment = alignment
       self.readingDirection = readingDirection
       self.renderConfig = renderConfig
       self.onPlayAnimatedPage = onPlayAnimatedPage
@@ -186,7 +189,7 @@
         pageNumber: pageIndex,
         isLoading: isLoading,
         error: loadError,
-        alignment: .center,
+        alignment: alignment,
         splitMode: splitMode
       )
 
