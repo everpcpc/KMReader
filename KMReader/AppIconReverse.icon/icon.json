@@ -7,8 +7,8 @@
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "icon.svg",
-          "name" : "icon",
+          "image-name" : "icon-reverse.svg",
+          "name" : "icon-reverse",
           "position" : {
             "scale" : 0.5,
             "translation-in-points" : [

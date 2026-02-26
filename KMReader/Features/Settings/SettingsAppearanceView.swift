@@ -11,6 +11,10 @@ struct SettingsAppearanceView: View {
   @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
   @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
+  #if os(iOS)
+    @State private var selectedAppIcon: AppIconOption = .primary
+    @State private var isUpdatingAppIcon: Bool = false
+  #endif
 
   private var themeColorBinding: Binding<Color> {
     Binding(
@@ -24,6 +28,14 @@ struct SettingsAppearanceView: View {
   #if os(tvOS)
     @FocusState private var colorFocusedButton: ThemeColor?
   #endif
+
+  init() {
+    #if os(iOS)
+      _selectedAppIcon = State(
+        initialValue: AppIconOption.from(alternateIconName: UIApplication.shared.alternateIconName)
+      )
+    #endif
+  }
 
   var body: some View {
     Form {
@@ -44,6 +56,26 @@ struct SettingsAppearanceView: View {
               Spacer()
               Image(systemName: "arrow.up.forward.app")
                 .foregroundColor(.secondary)
+            }
+          }
+        }
+
+        if UIApplication.shared.supportsAlternateIcons {
+          Section(header: Text(String(localized: "App Icon"))) {
+            if isKnownSimulatorAlternateIconIssue {
+              Text(String(localized: "settings.appearance.appIcon.simulatorIssue"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            } else {
+              Picker(String(localized: "App Icon"), selection: $selectedAppIcon) {
+                ForEach(AppIconOption.allCases) { option in
+                  Text(option.title).tag(option)
+                }
+              }
+              .disabled(isUpdatingAppIcon)
+              .onChange(of: selectedAppIcon) { _, newValue in
+                updateAppIcon(to: newValue)
+              }
             }
           }
         }
@@ -89,5 +121,73 @@ struct SettingsAppearanceView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.appearance.title)
+    #if os(iOS)
+      .onAppear {
+        selectedAppIcon = AppIconOption.from(alternateIconName: UIApplication.shared.alternateIconName)
+      }
+    #endif
   }
+
+  #if os(iOS)
+    private func updateAppIcon(to option: AppIconOption) {
+      guard UIApplication.shared.supportsAlternateIcons else {
+        return
+      }
+      guard !isUpdatingAppIcon else {
+        return
+      }
+      guard UIApplication.shared.alternateIconName != option.alternateIconName else {
+        return
+      }
+
+      isUpdatingAppIcon = true
+      UIApplication.shared.setAlternateIconName(option.alternateIconName) { error in
+        Task { @MainActor in
+          isUpdatingAppIcon = false
+          guard let error else {
+            return
+          }
+
+          let nsError = error as NSError
+          if isKnownSimulatorAlternateIconError(nsError) {
+            selectedAppIcon = AppIconOption.from(
+              alternateIconName: UIApplication.shared.alternateIconName
+            )
+            ErrorManager.shared.notify(message: String(localized: "settings.appearance.appIcon.simulatorIssue"))
+            return
+          }
+
+          AppLogger(.app).error(
+            "Failed to set app icon to \(option.rawValue): \(nsError.domain) (\(nsError.code)) \(nsError.localizedDescription)"
+          )
+          if nsError.domain == "UIApplicationErrorDomain", nsError.code == 3072 {
+            selectedAppIcon = AppIconOption.from(
+              alternateIconName: UIApplication.shared.alternateIconName
+            )
+            return
+          }
+
+          selectedAppIcon = AppIconOption.from(
+            alternateIconName: UIApplication.shared.alternateIconName
+          )
+          ErrorManager.shared.alert(error: error)
+        }
+      }
+    }
+
+    private var isKnownSimulatorAlternateIconIssue: Bool {
+      #if targetEnvironment(simulator)
+        if #available(iOS 26.1, *) {
+          return true
+        }
+      #endif
+      return false
+    }
+
+    private func isKnownSimulatorAlternateIconError(_ error: NSError) -> Bool {
+      isKnownSimulatorAlternateIconIssue
+        && error.domain == NSPOSIXErrorDomain
+        && error.code == POSIXErrorCode.EAGAIN.rawValue
+    }
+  #endif
 }
