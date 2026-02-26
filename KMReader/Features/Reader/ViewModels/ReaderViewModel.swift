@@ -9,6 +9,9 @@ import OSLog
 import Photos
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(macOS)
+  import AppKit
+#endif
 
 @MainActor
 @Observable
@@ -50,9 +53,7 @@ class ReaderViewModel {
 
   /// Track ongoing download tasks to prevent duplicate downloads for the same page.
   private var downloadingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
-  #if os(iOS) || os(tvOS)
-    private var upscalingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
-  #endif
+  private var upscalingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
   private var segmentPageRangeByBookId: [String: Range<Int>] = [:]
   private var segmentIndexByPageID: [ReaderPageID: Int] = [:]
@@ -459,12 +460,10 @@ class ReaderViewModel {
       task.cancel()
     }
     downloadingTasks.removeAll()
-    #if os(iOS) || os(tvOS)
-      for (_, task) in upscalingTasks {
-        task.cancel()
-      }
-      upscalingTasks.removeAll()
-    #endif
+    for (_, task) in upscalingTasks {
+      task.cancel()
+    }
+    upscalingTasks.removeAll()
 
     preloadedImagesByID.removeAll()
     isolatePages.removeAll()
@@ -988,135 +987,140 @@ class ReaderViewModel {
     sourceFileURL: URL,
     isAnimated: Bool
   ) async -> URL {
+    guard !isAnimated else { return sourceFileURL }
+
+    let mode = AppConfig.imageUpscalingMode
+    guard mode != .disabled else { return sourceFileURL }
+
+    guard let sourcePixelSize = Self.sourcePixelSize(page: page, fileURL: sourceFileURL) else {
+      logger.debug("⏭️ [Upscale] Skip page \(page.number + 1): unable to resolve source size")
+      return sourceFileURL
+    }
+
+    let autoTriggerScale = CGFloat(AppConfig.imageUpscaleAutoTriggerScale)
+    let alwaysMaxScreenScale = CGFloat(AppConfig.imageUpscaleAlwaysMaxScreenScale)
+    let screenPixelSize: CGSize
     #if os(iOS) || os(tvOS)
-      guard !isAnimated else { return sourceFileURL }
-
-      let mode = AppConfig.imageUpscalingMode
-      guard mode != .disabled else { return sourceFileURL }
-
-      guard let sourcePixelSize = Self.sourcePixelSize(page: page, fileURL: sourceFileURL) else {
-        logger.debug("⏭️ [Upscale] Skip page \(page.number + 1): unable to resolve source size")
+      screenPixelSize = ReaderUpscaleDecision.screenPixelSize(for: UIScreen.main)
+    #elseif os(macOS)
+      guard let mainScreen = NSScreen.main else {
+        logger.debug("⏭️ [Upscale] Skip page \(page.number + 1): unable to resolve current screen")
         return sourceFileURL
       }
-
-      let autoTriggerScale = CGFloat(AppConfig.imageUpscaleAutoTriggerScale)
-      let alwaysMaxScreenScale = CGFloat(AppConfig.imageUpscaleAlwaysMaxScreenScale)
-      let screenPixelSize = ReaderUpscaleDecision.screenPixelSize(for: UIScreen.main)
-      let decision = ReaderUpscaleDecision.evaluate(
-        mode: mode,
-        sourcePixelSize: sourcePixelSize,
-        screenPixelSize: screenPixelSize,
-        autoTriggerScale: autoTriggerScale,
-        alwaysMaxScreenScale: alwaysMaxScreenScale
-      )
-      guard decision.shouldUpscale else {
-        let skipReasonText = Self.upscaleSkipReasonText(decision.reason)
-        logger.debug(
-          String(
-            format:
-              "⏭️ [Upscale] Skip page %d: reason=%@ mode=%@ requiredScale=%.2f source=%dx%d screen=%dx%d auto=%.2f always=%.2f",
-            page.number + 1,
-            skipReasonText,
-            mode.rawValue,
-            decision.requiredScale,
-            Int(sourcePixelSize.width),
-            Int(sourcePixelSize.height),
-            Int(screenPixelSize.width),
-            Int(screenPixelSize.height),
-            autoTriggerScale,
-            alwaysMaxScreenScale
-          )
-        )
-        return sourceFileURL
-      }
-
-      let upscaledFileURLs = Self.upscaledImageFileURLs(from: sourceFileURL)
-      if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
-        logger.debug(
-          "✅ [Upscale] Use cached @2x page \(page.number + 1): \(cachedUpscaledURL.lastPathComponent)")
-        return cachedUpscaledURL
-      }
-
-      if let existingTask = upscalingTasks[pageID] {
-        logger.debug("⏳ [Upscale] Await running upscale task for page \(page.number + 1)")
-        if let cachedURL = await existingTask.value {
-          logger.debug("✅ [Upscale] Reuse task result for page \(page.number + 1): \(cachedURL.lastPathComponent)")
-          return cachedURL
-        }
-        logger.debug("⏭️ [Upscale] Running task failed for page \(page.number + 1), use source")
-        return sourceFileURL
-      }
-
-      let pageNumber = page.number
+      screenPixelSize = ReaderUpscaleDecision.screenPixelSize(for: mainScreen)
+    #endif
+    let decision = ReaderUpscaleDecision.evaluate(
+      mode: mode,
+      sourcePixelSize: sourcePixelSize,
+      screenPixelSize: screenPixelSize,
+      autoTriggerScale: autoTriggerScale,
+      alwaysMaxScreenScale: alwaysMaxScreenScale
+    )
+    guard decision.shouldUpscale else {
+      let skipReasonText = Self.upscaleSkipReasonText(decision.reason)
       logger.debug(
         String(
-          format: "🚀 [Upscale] Queue page %d: mode=%@ requiredScale=%.2f source=%dx%d",
-          pageNumber + 1,
+          format:
+            "⏭️ [Upscale] Skip page %d: reason=%@ mode=%@ requiredScale=%.2f source=%dx%d screen=%dx%d auto=%.2f always=%.2f",
+          page.number + 1,
+          skipReasonText,
           mode.rawValue,
           decision.requiredScale,
           Int(sourcePixelSize.width),
-          Int(sourcePixelSize.height)
+          Int(sourcePixelSize.height),
+          Int(screenPixelSize.width),
+          Int(screenPixelSize.height),
+          autoTriggerScale,
+          alwaysMaxScreenScale
         )
       )
-      let upscaleTask = Task<URL?, Never>.detached(priority: .userInitiated) {
-        [sourceFileURL, upscaledFileURLs, pageNumber] in
-        let logger = AppLogger(.reader)
-
-        if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
-          logger.debug(
-            "✅ [Upscale] Use cached @2x page \(pageNumber + 1): \(cachedUpscaledURL.lastPathComponent)")
-          return cachedUpscaledURL
-        }
-
-        guard let sourceCGImage = Self.readCGImage(from: sourceFileURL) else {
-          logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): failed to decode source CGImage")
-          return nil
-        }
-
-        let startedAt = Date()
-        guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
-          logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): model processing returned nil")
-          return nil
-        }
-
-        guard
-          let persistedURL = Self.persistUpscaledCGImage(
-            output,
-            sourceFileURL: sourceFileURL,
-            targetFileURLs: upscaledFileURLs,
-            logger: logger
-          )
-        else {
-          logger.error(
-            "❌ [Upscale] Failed to save @2x page \(pageNumber + 1): source=\(sourceFileURL.lastPathComponent)"
-          )
-          return nil
-        }
-
-        let duration = Date().timeIntervalSince(startedAt)
-        logger.debug(
-          String(
-            format: "💾 [Upscale] Saved page %d @2x in %.2fs -> %@",
-            pageNumber + 1,
-            duration,
-            persistedURL.lastPathComponent
-          )
-        )
-        return persistedURL
-      }
-
-      upscalingTasks[pageID] = upscaleTask
-      let result = await upscaleTask.value
-      upscalingTasks.removeValue(forKey: pageID)
-      if let result {
-        logger.debug("✅ [Upscale] Ready page \(pageNumber + 1): \(result.lastPathComponent)")
-      } else {
-        logger.debug("⏭️ [Upscale] Use source for page \(pageNumber + 1): @2x generation unavailable")
-      }
-      return result ?? sourceFileURL
-    #else
       return sourceFileURL
-    #endif
+    }
+
+    let upscaledFileURLs = Self.upscaledImageFileURLs(from: sourceFileURL)
+    if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+      logger.debug(
+        "✅ [Upscale] Use cached @2x page \(page.number + 1): \(cachedUpscaledURL.lastPathComponent)")
+      return cachedUpscaledURL
+    }
+
+    if let existingTask = upscalingTasks[pageID] {
+      logger.debug("⏳ [Upscale] Await running upscale task for page \(page.number + 1)")
+      if let cachedURL = await existingTask.value {
+        logger.debug("✅ [Upscale] Reuse task result for page \(page.number + 1): \(cachedURL.lastPathComponent)")
+        return cachedURL
+      }
+      logger.debug("⏭️ [Upscale] Running task failed for page \(page.number + 1), use source")
+      return sourceFileURL
+    }
+
+    let pageNumber = page.number
+    logger.debug(
+      String(
+        format: "🚀 [Upscale] Queue page %d: mode=%@ requiredScale=%.2f source=%dx%d",
+        pageNumber + 1,
+        mode.rawValue,
+        decision.requiredScale,
+        Int(sourcePixelSize.width),
+        Int(sourcePixelSize.height)
+      )
+    )
+    let upscaleTask = Task<URL?, Never>.detached(priority: .userInitiated) {
+      [sourceFileURL, upscaledFileURLs, pageNumber] in
+      let logger = AppLogger(.reader)
+
+      if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+        logger.debug(
+          "✅ [Upscale] Use cached @2x page \(pageNumber + 1): \(cachedUpscaledURL.lastPathComponent)")
+        return cachedUpscaledURL
+      }
+
+      guard let sourceCGImage = Self.readCGImage(from: sourceFileURL) else {
+        logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): failed to decode source CGImage")
+        return nil
+      }
+
+      let startedAt = Date()
+      guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
+        logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): model processing returned nil")
+        return nil
+      }
+
+      guard
+        let persistedURL = Self.persistUpscaledCGImage(
+          output,
+          sourceFileURL: sourceFileURL,
+          targetFileURLs: upscaledFileURLs,
+          logger: logger
+        )
+      else {
+        logger.error(
+          "❌ [Upscale] Failed to save @2x page \(pageNumber + 1): source=\(sourceFileURL.lastPathComponent)"
+        )
+        return nil
+      }
+
+      let duration = Date().timeIntervalSince(startedAt)
+      logger.debug(
+        String(
+          format: "💾 [Upscale] Saved page %d @2x in %.2fs -> %@",
+          pageNumber + 1,
+          duration,
+          persistedURL.lastPathComponent
+        )
+      )
+      return persistedURL
+    }
+
+    upscalingTasks[pageID] = upscaleTask
+    let result = await upscaleTask.value
+    upscalingTasks.removeValue(forKey: pageID)
+    if let result {
+      logger.debug("✅ [Upscale] Ready page \(pageNumber + 1): \(result.lastPathComponent)")
+    } else {
+      logger.debug("⏭️ [Upscale] Use source for page \(pageNumber + 1): @2x generation unavailable")
+    }
+    return result ?? sourceFileURL
   }
 
   nonisolated private static func sourcePixelSize(page: BookPage, fileURL: URL) -> CGSize? {
@@ -1188,22 +1192,20 @@ class ReaderViewModel {
     return type
   }
 
-  #if os(iOS) || os(tvOS)
-    nonisolated private static func upscaleSkipReasonText(_ reason: ReaderUpscaleDecision.SkipReason?) -> String {
-      switch reason {
-      case .disabled:
-        return "disabled"
-      case .belowAutoTriggerScale:
-        return "below-auto-trigger-threshold"
-      case .exceedsAlwaysMaxScreenScale:
-        return "exceeds-always-max-source-size"
-      case .invalidSourceSize:
-        return "invalid-source-size"
-      case nil:
-        return "unknown"
-      }
+  nonisolated private static func upscaleSkipReasonText(_ reason: ReaderUpscaleDecision.SkipReason?) -> String {
+    switch reason {
+    case .disabled:
+      return "disabled"
+    case .belowAutoTriggerScale:
+      return "below-auto-trigger-threshold"
+    case .exceedsAlwaysMaxScreenScale:
+      return "exceeds-always-max-source-size"
+    case .invalidSourceSize:
+      return "invalid-source-size"
+    case nil:
+      return "unknown"
     }
-  #endif
+  }
 
   nonisolated private static func persistUpscaledCGImage(
     _ image: CGImage,
@@ -1316,12 +1318,10 @@ class ReaderViewModel {
   func clearPreloadedImages() {
     preloadTask?.cancel()
     preloadTask = nil
-    #if os(iOS) || os(tvOS)
-      for (_, task) in upscalingTasks {
-        task.cancel()
-      }
-      upscalingTasks.removeAll()
-    #endif
+    for (_, task) in upscalingTasks {
+      task.cancel()
+    }
+    upscalingTasks.removeAll()
     preloadedImagesByID.removeAll()
     animatedPageStates.removeAll()
     animatedPageFileURLs.removeAll()
