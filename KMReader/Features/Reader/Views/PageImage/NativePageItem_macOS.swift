@@ -22,7 +22,7 @@
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
     private var analysisSourceImage: NSImage?
-    private var renderedSourceImage: NSImage?
+    private var sourceImage: NSImage?
     private var renderedBackground: ReaderBackground = .system
     private var renderedImage: NSImage?
     private var heightConstraint: NSLayoutConstraint?
@@ -64,14 +64,14 @@
         clearRenderedImageCache()
       } else {
         if imageView.image == nil, let data = currentData {
-          let sourceImage: NSImage?
+          let pageSourceImage: NSImage?
           if let image = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber), data.splitMode != .none {
-            sourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
+            pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
           } else {
-            sourceImage = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber)
+            pageSourceImage = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber)
           }
-          analysisSourceImage = sourceImage
-          imageView.image = renderDisplayImage(from: sourceImage, background: readerBackground)
+          analysisSourceImage = pageSourceImage
+          imageView.image = renderDisplayImage(from: pageSourceImage, background: readerBackground)
         }
         if enableLiveText {
           if let image = analysisSourceImage {
@@ -194,21 +194,21 @@
       self.readerBackground = background
       self.enableLiveText = enableLiveText
 
-      let sourceImage: PlatformImage?
+      let pageSourceImage: PlatformImage?
       if let image = image, data.splitMode != .none {
-        sourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
+        pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
       } else {
-        sourceImage = image
+        pageSourceImage = image
       }
 
-      analysisSourceImage = sourceImage
-      let displayImage = renderDisplayImage(from: sourceImage, background: background)
+      analysisSourceImage = pageSourceImage
+      let displayImage = renderDisplayImage(from: pageSourceImage, background: background)
       imageView.image = displayImage
-      imageView.layer?.shadowOpacity = sourceImage == nil ? 0 : 0.25
+      imageView.layer?.shadowOpacity = pageSourceImage == nil ? 0 : 0.25
 
       updateHeightConstraint(targetHeight)
 
-      if sourceImage != nil, showPageNumber {
+      if pageSourceImage != nil, showPageNumber {
         if let displayedPageNumber = viewModel.displayPageNumber(forPageIndex: data.pageNumber) {
           pageNumberLabel.stringValue = "\(displayedPageNumber)"
           pageNumberContainer.isHidden = false
@@ -223,7 +223,7 @@
         progressIndicator.stopAnimation(nil)
         errorLabel.stringValue = error
         errorLabel.isHidden = false
-      } else if sourceImage == nil || data.isLoading {
+      } else if pageSourceImage == nil || data.isLoading {
         errorLabel.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {
@@ -231,7 +231,7 @@
         progressIndicator.stopAnimation(nil)
       }
 
-      if enableLiveText, let img = sourceImage, !visibleRect.isEmpty {
+      if enableLiveText, let img = pageSourceImage, !visibleRect.isEmpty {
         analyzeImage(img)
       } else if !enableLiveText {
         clearAnalysis()
@@ -269,70 +269,31 @@
       }
 
       guard background.appliesImageMultiplyBlend else {
-        renderedSourceImage = image
+        sourceImage = image
         renderedBackground = background
         renderedImage = image
         return image
       }
 
-      if let cachedSource = renderedSourceImage, cachedSource === image, renderedBackground == background {
-        return renderedImage
+      if let cachedSource = sourceImage, cachedSource === image, renderedBackground == background {
+        return renderedImage ?? image
       }
 
-      guard let blended = multiplyBlend(image: image, tintColor: NSColor(background.color)) else {
-        renderedSourceImage = image
+      guard let blended = ReaderImageBlendHelper.multiply(image: image, tintColor: NSColor(background.color)) else {
+        sourceImage = image
         renderedBackground = background
         renderedImage = image
         return image
       }
 
-      renderedSourceImage = image
+      sourceImage = image
       renderedBackground = background
       renderedImage = blended
       return blended
     }
 
-    private func multiplyBlend(image: NSImage, tintColor: NSColor) -> NSImage? {
-      guard
-        let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
-      else {
-        return image
-      }
-
-      let width = cgImage.width
-      let height = cgImage.height
-      guard width > 0, height > 0 else { return image }
-
-      let colorSpace = CGColorSpaceCreateDeviceRGB()
-      guard
-        let context = CGContext(
-          data: nil,
-          width: width,
-          height: height,
-          bitsPerComponent: 8,
-          bytesPerRow: 0,
-          space: colorSpace,
-          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )
-      else {
-        return image
-      }
-
-      let rect = CGRect(x: 0, y: 0, width: width, height: height)
-      context.draw(cgImage, in: rect)
-      context.setBlendMode(.multiply)
-      context.setFillColor(tintColor.cgColor)
-      context.fill(rect)
-
-      guard let blendedCGImage = context.makeImage() else {
-        return image
-      }
-
-      return NSImage(cgImage: blendedCGImage, size: image.size)
-    }
-
     private func clearRenderedImageCache() {
-      renderedSourceImage = nil
+      sourceImage = nil
       renderedImage = nil
       renderedBackground = .system
     }
