@@ -167,10 +167,18 @@
       )
     }
 
-    private func pageCurlBacksideController(for targetIndex: Int) -> PageCurlBacksideViewController {
+    private func pageCurlBacksideMirrorAxis() -> PageCurlBacksideViewController.MirrorAxis {
+      mode.isVertical ? .vertical : .horizontal
+    }
+
+    private func pageCurlBacksideController(
+      for targetIndex: Int,
+      mirroredSnapshot: PageCurlBacksideViewController.MirroredSnapshot? = nil
+    ) -> PageCurlBacksideViewController {
       PageCurlBacksideViewController(
         destinationToken: String(targetIndex),
-        style: pageCurlBacksideStyle()
+        style: pageCurlBacksideStyle(),
+        mirroredSnapshot: mirroredSnapshot
       )
     }
 
@@ -184,7 +192,16 @@
         primary: primary,
         animated: animated,
         in: pageVC,
-        makeBackside: { pageCurlBacksideController(for: targetIndex) }
+        makeBackside: {
+          let mirroredSnapshot = PageCurlBacksideViewController.makeMirroredSnapshot(
+            from: primary,
+            axis: pageCurlBacksideMirrorAxis()
+          )
+          return pageCurlBacksideController(
+            for: targetIndex,
+            mirroredSnapshot: mirroredSnapshot
+          )
+        }
       )
     }
 
@@ -360,7 +377,14 @@
         let index = viewController.view.tag
         let targetIndex = parent.mode.isRTL ? index + 1 : index - 1
         if !isValidIndex(targetIndex) { return nil }
-        return parent.pageCurlBacksideController(for: targetIndex)
+        let mirroredSnapshot = mirroredSnapshotForBackside(
+          targetIndex: targetIndex,
+          currentController: viewController
+        )
+        return parent.pageCurlBacksideController(
+          for: targetIndex,
+          mirroredSnapshot: mirroredSnapshot
+        )
       }
 
       func pageViewController(
@@ -376,7 +400,14 @@
         let index = viewController.view.tag
         let targetIndex = parent.mode.isRTL ? index - 1 : index + 1
         if !isValidIndex(targetIndex) { return nil }
-        return parent.pageCurlBacksideController(for: targetIndex)
+        let mirroredSnapshot = mirroredSnapshotForBackside(
+          targetIndex: targetIndex,
+          currentController: viewController
+        )
+        return parent.pageCurlBacksideController(
+          for: targetIndex,
+          mirroredSnapshot: mirroredSnapshot
+        )
       }
 
       // MARK: - UIPageViewControllerDelegate
@@ -495,6 +526,34 @@
       private func primaryVelocity(for pan: UIPanGestureRecognizer) -> CGFloat {
         let velocity = pan.velocity(in: pan.view)
         return parent.mode.isVertical ? velocity.y : velocity.x
+      }
+
+      private func isForwardNavigation(from currentIndex: Int, to targetIndex: Int) -> Bool {
+        if parent.mode.isRTL {
+          return targetIndex > currentIndex
+        }
+        return targetIndex > currentIndex
+      }
+
+      private func mirroredSnapshotForBackside(
+        targetIndex: Int,
+        currentController: UIViewController
+      ) -> PageCurlBacksideViewController.MirroredSnapshot? {
+        let currentIndex = currentController.view.tag
+        let sourceController: UIViewController
+
+        if isForwardNavigation(from: currentIndex, to: targetIndex) {
+          sourceController = currentController
+        } else if let targetController = pageViewController(for: targetIndex) {
+          sourceController = targetController
+        } else {
+          sourceController = currentController
+        }
+
+        return PageCurlBacksideViewController.makeMirroredSnapshot(
+          from: sourceController,
+          axis: parent.pageCurlBacksideMirrorAxis()
+        )
       }
 
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
