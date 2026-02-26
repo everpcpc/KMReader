@@ -4860,52 +4860,6 @@
         }
       }
     },
-    "Auto Hide Controls" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bedienelemente automatisch ausblenden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto Hide Controls"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Masquage automatique des contrôles"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コントロールを自動的に非表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "컨트롤 자동 숨김"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动隐藏控件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動隱藏控制項"
-          }
-        }
-      }
-    },
     "Auto Play Animated Images" : {
       "localizations" : {
         "de" : {
@@ -5224,52 +5178,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟閱讀器時自動進入全螢幕模式"
-          }
-        }
-      }
-    },
-    "Automatically hide reader controls after a short delay" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reader-Bedienelemente nach einer kurzen Verzögerung automatisch ausblenden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatically hide reader controls after a short delay"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Masquer automatiquement les contrôles du lecteur après un court délai"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "短い待ち時間の後にリーダーのコントロールを自動的に非表示にします"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "짧은 지연 후 리더 컨트롤을 자동으로 숨깁니다"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "短暂延迟后自动隐藏阅读器控件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "短暫延遲後自動隱藏閱讀器控制項"
           }
         }
       }

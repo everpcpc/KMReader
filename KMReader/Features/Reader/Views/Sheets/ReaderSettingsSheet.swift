@@ -25,7 +25,6 @@ struct ReaderSettingsSheet: View {
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
-  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("imageUpscalingMode") private var imageUpscalingMode: ReaderImageUpscalingMode =
     AppConfig.imageUpscalingMode
@@ -101,10 +100,6 @@ struct ReaderSettingsSheet: View {
           #endif
 
           #if os(iOS)
-            Toggle(isOn: $autoHideControls) {
-              Text("Auto Hide Controls")
-            }
-
             Toggle(isOn: $readerControlsGradientBackground) {
               Text("Controls Gradient Background")
             }
