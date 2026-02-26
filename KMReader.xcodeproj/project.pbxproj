@@ -415,8 +415,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES[sdk=iphoneos*]" = "AppIconClassic AppIconReverse AppIconGlass";
+				"ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES[sdk=iphonesimulator*]" = "AppIconClassic AppIconReverse AppIconGlass";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = KMReader/KMReader.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "KMReader/KMReader-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -471,8 +473,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES[sdk=iphoneos*]" = "AppIconClassic AppIconReverse AppIconGlass";
+				"ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES[sdk=iphonesimulator*]" = "AppIconClassic AppIconReverse AppIconGlass";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = KMReader/KMReader.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "KMReader/KMReader-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Distribution";
