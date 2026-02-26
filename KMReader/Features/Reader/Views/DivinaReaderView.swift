@@ -30,11 +30,6 @@ struct DivinaReaderView: View {
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
-  #if os(iOS)
-    @AppStorage("autoHideControls") private var autoHideControls: Bool = false
-  #else
-    private let autoHideControls: Bool = false
-  #endif
 
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
@@ -46,7 +41,6 @@ struct DivinaReaderView: View {
   @State private var currentBookId: String
   @State private var viewModel: ReaderViewModel
   @State private var showingControls = false
-  @State private var controlsTimer: Timer?
   @State private var currentSeries: Series?
   @State private var currentBook: Book?
   @State private var seriesId: String?
@@ -227,7 +221,6 @@ struct DivinaReaderView: View {
         logger.debug("⚠️ Animated playback unavailable for pageIndex=\(pageIndex)")
         return
       }
-      controlsTimer?.invalidate()
       showingControls = false
       withAnimation(.easeInOut(duration: 0.22)) {
         animatedPlaybackURL = fileURL
@@ -379,11 +372,11 @@ struct DivinaReaderView: View {
       }
       if isShowingEndPage {
         logger.debug("📺 \(source) select on end page: toggle controls")
-        toggleControls(autoHide: false)
+        toggleControls()
         return true
       }
 
-      toggleControls(autoHide: false)
+      toggleControls()
       return true
     }
   #endif
@@ -434,12 +427,12 @@ struct DivinaReaderView: View {
       #if os(tvOS)
         .onPlayPauseCommand {
           logger.debug("📺 onPlayPauseCommand: toggling controls, showingControls=\(showingControls)")
-          toggleControls(autoHide: false)
+          toggleControls()
         }
         .onExitCommand {
           logger.debug("📺 onExitCommand: showingControls=\(showingControls)")
           if showingControls {
-            toggleControls(autoHide: false)
+            toggleControls()
           } else {
             closeReader()
           }
@@ -532,7 +525,6 @@ struct DivinaReaderView: View {
       logger.debug(
         "👋 DIVINA reader disappeared for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pageCount)"
       )
-      controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
       animatedPlaybackLoading = false
@@ -548,15 +540,6 @@ struct DivinaReaderView: View {
       }
     }
     #if os(iOS)
-      .onChange(of: autoHideControls) { _, newValue in
-        if newValue {
-          resetControlsTimer(timeout: 3)
-        } else {
-          controlsTimer?.invalidate()
-        }
-      }
-    #endif
-    #if os(iOS)
       .onAppear {
         if readingDirection != readerPresentation.readingDirection {
           readerPresentation.readingDirection = readingDirection
@@ -570,17 +553,6 @@ struct DivinaReaderView: View {
         triggerKeyboardHelp(timeout: 2)
         if readingDirection != readerPresentation.readingDirection {
           readerPresentation.readingDirection = newDirection
-        }
-      }
-    #endif
-    #if os(macOS) || os(tvOS)
-      .onChange(of: showingControls) { oldValue, newValue in
-        // On macOS and tvOS, if controls are manually shown (from false to true),
-        // cancel auto-hide timer to prevent auto-hiding
-        if newValue && !oldValue {
-          // User manually opened controls (via C key on macOS or play/pause on tvOS),
-          // cancel any existing auto-hide timer
-          controlsTimer?.invalidate()
         }
       }
     #endif
@@ -638,11 +610,7 @@ struct DivinaReaderView: View {
                 onPlayAnimatedPage: { pageIndex in
                   requestAnimatedPlayback(for: pageIndex)
                 },
-                onScrollActivityChange: { isScrolling in
-                  if isScrolling {
-                    resetControlsTimer(timeout: 1.5)
-                  }
-                }
+                onScrollActivityChange: { _ in }
               )
             #endif
           } else {
@@ -674,11 +642,7 @@ struct DivinaReaderView: View {
                   onPlayAnimatedPage: { pageIndex in
                     requestAnimatedPlayback(for: pageIndex)
                   },
-                  onScrollActivityChange: { isScrolling in
-                    if isScrolling {
-                      resetControlsTimer(timeout: 1.5)
-                    }
-                  }
+                  onScrollActivityChange: { _ in }
                 )
               }
             #else
@@ -695,11 +659,7 @@ struct DivinaReaderView: View {
                 onPlayAnimatedPage: { pageIndex in
                   requestAnimatedPlayback(for: pageIndex)
                 },
-                onScrollActivityChange: { isScrolling in
-                  if isScrolling {
-                    resetControlsTimer(timeout: 1.5)
-                  }
-                }
+                onScrollActivityChange: { _ in }
               )
             #endif
           }
@@ -1257,50 +1217,19 @@ struct DivinaReaderView: View {
   }
 
   #if os(tvOS)
-    private func toggleControls(autoHide: Bool = true) {
+    private func toggleControls() {
       // On tvOS, allow toggling controls even at endpage to enable navigation back
       withAnimation {
         showingControls.toggle()
       }
-      if showingControls {
-        // On tvOS, manual toggle should not auto-hide
-        // Cancel any existing timer when manually opened
-        controlsTimer?.invalidate()
-      }
     }
   #else
-    private func toggleControls(autoHide: Bool = true) {
+    private func toggleControls() {
       withAnimation {
         showingControls.toggle()
       }
-      if showingControls {
-        // Only auto-hide if autoHide is true
-        // On macOS, manual toggle should not auto-hide
-        if autoHide {
-          resetControlsTimer(timeout: 3)
-        } else {
-          // Cancel any existing timer when manually opened
-          controlsTimer?.invalidate()
-        }
-      }
     }
   #endif
-
-  private func resetControlsTimer(timeout: TimeInterval) {
-    // Don't start timer if auto-hide is disabled
-    if !autoHideControls {
-      return
-    }
-
-    controlsTimer?.invalidate()
-    controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
-      Task { @MainActor in
-        withAnimation {
-          showingControls = false
-        }
-      }
-    }
-  }
 
   /// Hide helper overlay and cancel timer
   private func hideTapZoneOverlay() {

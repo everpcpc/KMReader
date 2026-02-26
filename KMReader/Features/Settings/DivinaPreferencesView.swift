@@ -21,7 +21,6 @@ struct DivinaPreferencesView: View {
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("autoPlayAnimatedImages") private var autoPlayAnimatedImages: Bool = false
-  @AppStorage("autoHideControls") private var autoHideControls: Bool = false
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
@@ -170,15 +169,6 @@ struct DivinaPreferencesView: View {
         }
 
         #if os(iOS)
-          Toggle(isOn: $autoHideControls) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Auto Hide Controls")
-              Text("Automatically hide reader controls after a short delay")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-
           Toggle(isOn: $readerControlsGradientBackground) {
             VStack(alignment: .leading, spacing: 4) {
               Text("Controls Gradient Background")
