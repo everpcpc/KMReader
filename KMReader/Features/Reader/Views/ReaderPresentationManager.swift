@@ -12,8 +12,6 @@ final class ReaderPresentationManager {
   private(set) var readerState: BookReaderState?
   private let logger = AppLogger(.reader)
 
-  var hideStatusBar: Bool = false
-  var readingDirection: ReadingDirection = .ltr
   var handoffTitle: String = ""
   var handoffURL: URL?
 
@@ -96,7 +94,6 @@ final class ReaderPresentationManager {
     readerFlushHandler?()
     readerFlushHandler = nil
 
-    hideStatusBar = false
     clearHandoff()
 
     #if os(macOS)

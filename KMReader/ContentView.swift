@@ -129,9 +129,7 @@ struct ContentView: View {
         ReaderOverlay(namespace: zoomNamespace)
       }
     #endif
-    #if os(iOS)
-      .setupNotificationWindow()
-    #elseif os(tvOS)
+    #if os(iOS) || os(tvOS)
       .overlay(alignment: .bottom) {
         NotificationOverlay()
       }

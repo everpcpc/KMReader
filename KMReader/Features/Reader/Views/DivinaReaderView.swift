@@ -187,12 +187,6 @@ struct DivinaReaderView: View {
     }
   }
 
-  private func applyStatusBarVisibility(controlsHidden: Bool) {
-    withAnimation {
-      readerPresentation.hideStatusBar = controlsHidden
-    }
-  }
-
   private func resetReaderPreferencesForCurrentBook() {
     pageLayout = AppConfig.pageLayout
     viewModel.updatePageLayout(pageLayout)
@@ -518,7 +512,6 @@ struct DivinaReaderView: View {
       if oldCount == 0 && newCount > 0 {
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 1.5)
-        applyStatusBarVisibility(controlsHidden: !shouldShowControls)
       }
     }
     .onDisappear {
@@ -531,29 +524,16 @@ struct DivinaReaderView: View {
       animatedPlaybackURL = nil
       viewModel.clearPreloadedImages()
     }
-    .onChange(of: showingControls) { _, newValue in
-      applyStatusBarVisibility(controlsHidden: !newValue)
-    }
     .onChange(of: viewModel.isZoomed) { _, newValue in
       if newValue {
         showingControls = false
       }
     }
-    #if os(iOS)
-      .onAppear {
-        if readingDirection != readerPresentation.readingDirection {
-          readerPresentation.readingDirection = readingDirection
-        }
-      }
-    #endif
     #if os(iOS) || os(macOS)
-      .onChange(of: readingDirection) { _, newDirection in
+      .onChange(of: readingDirection) { _, _ in
         // When switching read mode via settings, briefly show overlays again
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 2)
-        if readingDirection != readerPresentation.readingDirection {
-          readerPresentation.readingDirection = newDirection
-        }
       }
     #endif
     #if os(tvOS)
@@ -572,6 +552,10 @@ struct DivinaReaderView: View {
             book: book, incognito: incognito, readListContext: readListContext)
         }
       }
+    #endif
+    #if os(iOS)
+      .statusBarHidden(!shouldShowControls)
+      .readerDismissGesture(readingDirection: readingDirection)
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)
   }
