@@ -137,31 +137,13 @@
       }
 
       if let tintColor = imageBlendTintColor,
-        let blendedImage = multiplyBlend(image: sourceCoverImage, tintColor: tintColor)
+        let blendedImage = ReaderImageBlendHelper.multiply(image: sourceCoverImage, tintColor: tintColor)
       {
         coverImageView.image = blendedImage
       } else {
         coverImageView.image = sourceCoverImage
       }
       updateCoverImageDecoration()
-    }
-
-    private func multiplyBlend(image: UIImage, tintColor: UIColor) -> UIImage? {
-      let size = image.size
-      guard size.width > 0, size.height > 0 else { return image }
-
-      let format = UIGraphicsImageRendererFormat.preferred()
-      format.scale = image.scale
-      format.opaque = false
-      let renderer = UIGraphicsImageRenderer(size: size, format: format)
-
-      return renderer.image { context in
-        let rect = CGRect(origin: .zero, size: size)
-        image.draw(in: rect)
-        context.cgContext.setBlendMode(.multiply)
-        context.cgContext.setFillColor(tintColor.cgColor)
-        context.cgContext.fill(rect)
-      }
     }
 
     private func updateCoverImageDecoration() {

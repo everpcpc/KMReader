@@ -15,9 +15,15 @@
     private let errorLabel = UILabel()
     private var pageIndex: Int = -1
     private var loadImage: ((Int) async -> Void)?
+    private var sourceImage: UIImage?
+    private var renderedBackground: ReaderBackground = .system
+    private var renderedImage: UIImage?
 
     var readerBackground: ReaderBackground = .system {
-      didSet { applyBackground() }
+      didSet {
+        applyBackground()
+        updateDisplayedImage()
+      }
     }
 
     var showPageNumber: Bool = true {
@@ -100,12 +106,10 @@
 
       if let image = image {
         // Instant display if image is provided
-        imageView.image = image
-        imageView.alpha = 1.0
-        loadingIndicator.stopAnimating()
-        loadingIndicator.isHidden = true
-        errorLabel.isHidden = true
+        setImage(image)
       } else {
+        sourceImage = nil
+        clearRenderedImageCache()
         imageView.image = nil
         imageView.alpha = 0.0
         errorLabel.isHidden = true
@@ -117,7 +121,9 @@
     /// Set image directly from preloaded cache
     func setImage(_ image: UIImage) {
       loadingIndicator.stopAnimating()
-      imageView.image = image
+      loadingIndicator.isHidden = true
+      errorLabel.isHidden = true
+      imageView.image = renderDisplayImage(from: image, background: readerBackground)
       imageView.alpha = 1.0
     }
 
@@ -138,6 +144,8 @@
     }
 
     func showError() {
+      sourceImage = nil
+      clearRenderedImageCache()
       imageView.image = nil
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
@@ -146,6 +154,8 @@
 
     override func prepareForReuse() {
       super.prepareForReuse()
+      sourceImage = nil
+      clearRenderedImageCache()
       imageView.image = nil
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
@@ -154,6 +164,45 @@
       pageIndex = -1
       loadImage = nil
       pageMarkerLabel.isHidden = true
+    }
+
+    private func updateDisplayedImage() {
+      guard let sourceImage else { return }
+      imageView.image = renderDisplayImage(from: sourceImage, background: readerBackground)
+    }
+
+    private func renderDisplayImage(from image: UIImage, background: ReaderBackground) -> UIImage {
+      guard background.appliesImageMultiplyBlend else {
+        sourceImage = image
+        renderedBackground = background
+        renderedImage = image
+        return image
+      }
+
+      if let cachedSource = sourceImage, cachedSource === image, renderedBackground == background {
+        return renderedImage ?? image
+      }
+
+      guard
+        let blended = ReaderImageBlendHelper.multiply(
+          image: image, tintColor: UIColor(background.color))
+      else {
+        sourceImage = image
+        renderedBackground = background
+        renderedImage = image
+        return image
+      }
+
+      sourceImage = image
+      renderedBackground = background
+      renderedImage = blended
+      return blended
+    }
+
+    private func clearRenderedImageCache() {
+      sourceImage = nil
+      renderedImage = nil
+      renderedBackground = .system
     }
   }
 #endif
