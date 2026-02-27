@@ -16,7 +16,8 @@ final class ReadingStatsViewModel {
   var isUsingCachedData = false
   var errorMessage: String?
 
-  private let cacheTTL: TimeInterval = 15 * 60
+  // Cached stats are immediately displayed; if last refresh is older than this interval, refresh in background.
+  private let autoRefreshInterval: TimeInterval = 24 * 60 * 60
   private let service = ReadingStatsService.shared
   private let cacheStore = ReadingStatsCacheStore.shared
 
@@ -35,19 +36,9 @@ final class ReadingStatsViewModel {
       apply(snapshot: cachedSnapshot, usingCache: true)
 
       let cacheAge = Date().timeIntervalSince(cachedSnapshot.cachedAt)
-      if forceRefresh == false && cacheAge <= cacheTTL {
+      if forceRefresh == false && cacheAge <= autoRefreshInterval {
         return
       }
-
-      if AppConfig.isOffline {
-        errorMessage = String(localized: "Offline mode is enabled. Showing cached reading stats.")
-        return
-      }
-    } else if AppConfig.isOffline {
-      payload = nil
-      lastUpdatedAt = nil
-      errorMessage = String(localized: "Offline mode is enabled and no cached reading stats are available.")
-      return
     }
 
     errorMessage = nil
