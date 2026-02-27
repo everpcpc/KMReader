@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 
-from localize_sort import sort_entries
+from localize_sort import sort_entries, sort_keys
 
 
 def eprint(message: str) -> None:
@@ -84,6 +84,20 @@ def load_stringsdata_entries(paths: list[Path]) -> dict:
         "tables": tables,
         "version": version or 1,
     }
+
+
+def sort_xcstrings_keys(path: Path) -> None:
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    strings = data.get("strings")
+    if not isinstance(strings, dict):
+        return
+
+    data["strings"] = {key: strings[key] for key in sort_keys(strings.keys())}
+
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False, separators=(",", " : "))
 
 
 def main() -> int:
@@ -176,8 +190,10 @@ def main() -> int:
             str(tmp_path),
             "--skip-marking-strings-stale",
         ]
-
-        return os.spawnvp(os.P_WAIT, args[0], args)
+        code = os.spawnvp(os.P_WAIT, args[0], args)
+        if code == 0:
+            sort_xcstrings_keys(xcstrings_path)
+        return code
     finally:
         try:
             tmp_path.unlink()

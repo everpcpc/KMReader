@@ -1,0 +1,82 @@
+---
+name: localization
+description: Use when updating KMReader translations in Localizable.xcstrings after code changes. Covers build/localize refresh, missing key discovery, context lookup, and deterministic updates through misc/translate.py.
+---
+
+# KMReader Localization
+
+Maintain and complete KMReader translations in `KMReader/Localizable.xcstrings`.
+
+## When To Use
+
+- The user asks to fill missing translations.
+- New localized strings were introduced and need all supported languages.
+- The user mentions `misc/translate.py`, `make localize`, or missing localization entries.
+
+## Standard Workflow
+
+Default order:
+
+1. Build once to refresh extracted strings data.
+2. Sync extracted strings data into `Localizable.xcstrings`.
+3. Fill missing translations.
+
+If the user explicitly says build is already done, do not build again. Run `make localize` directly, then continue from the missing-check step.
+
+```bash
+make build
+make localize
+```
+
+## Missing Translation Check
+
+```bash
+./misc/translate.py list
+```
+
+- This lists keys with missing languages.
+- If output is `No missing translations found.`, no translation update is needed.
+
+## Per-Key Process
+
+1. Understand key meaning and UI context.
+2. Locate usage in code when needed to avoid semantic drift.
+3. Prepare all target languages first, then write once.
+
+```bash
+rg -n "String\\(localized: \"<KEY>\"\\)|\"<KEY>\"" KMReader Shared KMReaderWidgets
+```
+
+Optional terminology alignment source (if present):
+
+- `../komga/komga-webui/src/locales/`
+
+## Deterministic Update Command
+
+Always write all target languages in one command to avoid partial updates.
+
+```bash
+./misc/translate.py update "<KEY>" \
+  --de "<German>" \
+  --en "<English>" \
+  --fr "<French>" \
+  --ja "<Japanese>" \
+  --ko "<Korean>" \
+  --zh-hans "<Simplified Chinese>" \
+  --zh-hant "<Traditional Chinese>"
+```
+
+## Quality Rules
+
+- Preserve placeholders and format markers exactly: `%@`, `%d`, `%lld`, `%f`, `%1$@`, `\\n`.
+- Keep tone consistent with product domains (Reader, Series, Read List, Offline Sync).
+- Do not modify entries where `shouldTranslate == false`.
+- Do not rewrite unrelated keys; only update requested or missing ones.
+
+## Final Verification
+
+```bash
+./misc/translate.py list
+```
+
+If missing items remain, continue until the list is empty.

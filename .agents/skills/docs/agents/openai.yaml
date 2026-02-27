@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMReader Docs"
+  short_description: "Regenerate README, App Store description, and landing page docs"
+  default_prompt: "Regenerate README.md, APP_STORE_DESCRIPTION.txt, and static/index.html from current important product features in the codebase."

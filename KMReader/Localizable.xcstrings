@@ -23674,6 +23674,52 @@
         }
       }
     },
+    "Local data has not been synced yet. Run offline sync first to generate reading stats." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokale Daten wurden noch nicht synchronisiert. Führen Sie zuerst eine Offline-Synchronisierung aus, um Lesestatistiken zu erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local data has not been synced yet. Run offline sync first to generate reading stats."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les données locales n'ont pas encore été synchronisées. Exécutez d'abord une synchronisation hors ligne pour générer les statistiques de lecture."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルデータはまだ同期されていません。読書統計を生成するには、先にオフライン同期を実行してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 데이터가 아직 동기화되지 않았습니다. 독서 통계를 생성하려면 먼저 오프라인 동기화를 실행하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地数据尚未同步。请先执行离线同步以生成阅读统计。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地資料尚未同步。請先執行離線同步以產生閱讀統計。"
+          }
+        }
+      }
+    },
     "Logged in successfully" : {
       "localizations" : {
         "de" : {
@@ -29747,6 +29793,7 @@
       }
     },
     "Offline mode is enabled and no cached reading stats are available." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -29793,6 +29840,7 @@
       }
     },
     "Offline mode is enabled. Showing cached reading stats." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -32923,6 +32971,7 @@
       }
     },
     "Pull to refresh or tap refresh after your server finishes aggregation." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -32964,6 +33013,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下拉重新整理，或在伺服器完成彙總後點擊重新整理。"
+          }
+        }
+      }
+    },
+    "Pull to refresh to recalculate reading stats from local data." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Aktualisieren nach unten ziehen, um Lesestatistiken aus lokalen Daten neu zu berechnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull to refresh to recalculate reading stats from local data."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tirez pour actualiser afin de recalculer les statistiques de lecture à partir des données locales."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下に引いて更新すると、ローカルデータから読書統計を再計算します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아래로 당겨 새로 고치면 로컬 데이터에서 독서 통계를 다시 계산합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下拉刷新以根据本地数据重新计算阅读统计。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下拉重新整理以根據本地資料重新計算閱讀統計。"
           }
         }
       }

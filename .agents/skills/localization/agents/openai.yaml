@@ -1,0 +1,4 @@
+interface:
+  display_name: "Localization"
+  short_description: "Handle Localizable.xcstrings translation workflow"
+  default_prompt: "Complete KMReader localization updates by refreshing extracted strings and filling missing translate.py entries safely."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMReader Changelog"
+  short_description: "Generate App Store changelog from commits"
+  default_prompt: "Generate a user-facing App Store changelog from latest-tag-to-HEAD commits using commit details, plain text sections, and no technical details."

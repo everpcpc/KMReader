@@ -8,92 +8,46 @@ import Foundation
 class ReadingStatsService {
   static let shared = ReadingStatsService()
 
-  private let bookService = BookService.shared
-  private let seriesService = SeriesService.shared
-
   private init() {}
 
   func fetchReadingStats(libraryId: String?) async throws -> ReadingStatsPayload {
     let normalizedLibraryId = normalizeLibraryId(libraryId)
-
-    async let readBooksTask = fetchReadBooks()
-    async let readSeriesTask = fetchReadSeries()
-    async let totalBooksTask = fetchTotalBooks(libraryId: normalizedLibraryId)
-
-    let readBooks = try await readBooksTask
-    let readSeries = try await readSeriesTask
-    let totalBooks = try await totalBooksTask
-
-    let filteredBooks: [Book]
-    if let normalizedLibraryId {
-      filteredBooks = readBooks.filter { $0.libraryId == normalizedLibraryId }
-    } else {
-      filteredBooks = readBooks
+    let instanceId = AppConfig.current.instanceId
+    guard !instanceId.isEmpty else {
+      return .empty
+    }
+    guard let database = await MainActor.run(body: { DatabaseOperator.shared }) else {
+      return .empty
     }
 
+    async let readBooksTask = database.fetchBooksWithReadProgressForStats(
+      instanceId: instanceId,
+      libraryId: normalizedLibraryId
+    )
+    async let totalBooksTask = database.fetchTotalBooksCount(
+      instanceId: instanceId,
+      libraryId: normalizedLibraryId
+    )
+
+    let readBooks = await readBooksTask
+    let totalBooks = await totalBooksTask
+
+    let completedSeriesIds = Set(
+      readBooks
+        .lazy
+        .filter { $0.readProgress?.completed == true }
+        .map { $0.seriesId }
+    )
+    let readSeries = await database.fetchSeriesByIdsForStats(
+      instanceId: instanceId,
+      seriesIds: Array(completedSeriesIds)
+    )
+
     return buildPayload(
-      filteredBooks: filteredBooks,
+      filteredBooks: readBooks,
       readSeries: readSeries,
       totalBooks: totalBooks
     )
-  }
-
-  // MARK: - Data loading (aligned with ReadingStatsView.vue)
-
-  private func fetchReadBooks() async throws -> [Book] {
-    let condition: [String: Any] = [
-      "readStatus": [
-        "operator": "isNot",
-        "value": ReadStatus.unread.rawValue,
-      ]
-    ]
-
-    let page = try await bookService.getBooksList(
-      search: BookSearch(condition: condition),
-      unpaged: true
-    )
-
-    return page.content
-  }
-
-  private func fetchReadSeries() async throws -> [Series] {
-    let condition: [String: Any] = [
-      "readStatus": [
-        "operator": "isNot",
-        "value": ReadStatus.unread.rawValue,
-      ]
-    ]
-
-    let page = try await seriesService.getSeriesList(
-      search: SeriesSearch(condition: condition),
-      unpaged: true
-    )
-
-    return page.content
-  }
-
-  private func fetchTotalBooks(libraryId: String?) async throws -> Int {
-    let search: BookSearch
-
-    if let libraryId {
-      let condition: [String: Any] = [
-        "libraryId": [
-          "operator": "is",
-          "value": libraryId,
-        ]
-      ]
-      search = BookSearch(condition: condition)
-    } else {
-      search = BookSearch()
-    }
-
-    let page = try await bookService.getBooksList(
-      search: search,
-      page: 0,
-      size: 1
-    )
-
-    return page.totalElements
   }
 
   // MARK: - Aggregation

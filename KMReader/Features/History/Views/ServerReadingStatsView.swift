@@ -10,6 +10,7 @@ import SwiftUI
 struct ServerReadingStatsView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
+  @Query private var instances: [KomgaInstance]
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
 
   @State private var selectedLibraryId: String = ""
@@ -23,6 +24,21 @@ struct ServerReadingStatsView: View {
     }
   }
 
+  private var currentInstance: KomgaInstance? {
+    guard let uuid = UUID(uuidString: current.instanceId) else { return nil }
+    return instances.first { $0.id == uuid }
+  }
+
+  private var shouldShowInitialSyncHint: Bool {
+    guard let currentInstance else { return false }
+    let neverSyncedAt = Date(timeIntervalSince1970: 0)
+    let hasNeverSynced =
+      currentInstance.seriesLastSyncedAt == neverSyncedAt
+      && currentInstance.booksLastSyncedAt == neverSyncedAt
+    let hasAnyLocalBook = (viewModel.payload?.summary.totalBooks ?? 0) > 0
+    return hasNeverSynced && !hasAnyLocalBook
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 16) {
@@ -32,6 +48,16 @@ struct ServerReadingStatsView: View {
           Text(errorMessage)
             .font(.footnote)
             .foregroundStyle(.orange)
+        }
+
+        if shouldShowInitialSyncHint {
+          Text(
+            String(
+              localized: "Local data has not been synced yet. Run offline sync first to generate reading stats."
+            )
+          )
+          .font(.footnote)
+          .foregroundStyle(.orange)
         }
 
         if viewModel.isLoading && viewModel.payload == nil {
@@ -144,7 +170,13 @@ struct ServerReadingStatsView: View {
         .foregroundStyle(.secondary)
       Text(String(localized: "No reading stats available"))
         .font(.headline)
-      Text(String(localized: "Pull to refresh or tap refresh after your server finishes aggregation."))
+      Text(
+        shouldShowInitialSyncHint
+          ? String(
+            localized: "Local data has not been synced yet. Run offline sync first to generate reading stats."
+          )
+          : String(localized: "Pull to refresh to recalculate reading stats from local data.")
+      )
         .font(.footnote)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)

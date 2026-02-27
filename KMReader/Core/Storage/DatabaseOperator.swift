@@ -2143,6 +2143,48 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchBooksWithReadProgressForStats(instanceId: String, libraryId: String?) -> [Book] {
+    var descriptor = FetchDescriptor<KomgaBook>()
+
+    if let libraryId {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+          && book.libraryId == libraryId
+          && (book.progressPage != nil || book.progressCompleted != nil || book.progressReadDate != nil)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaBook> { book in
+        book.instanceId == instanceId
+          && (book.progressPage != nil || book.progressCompleted != nil || book.progressReadDate != nil)
+      }
+    }
+
+    do {
+      let results = try modelContext.fetch(descriptor)
+      return results.map { $0.toBook() }
+    } catch {
+      return []
+    }
+  }
+
+  func fetchSeriesByIdsForStats(instanceId: String, seriesIds: [String]) -> [Series] {
+    guard !seriesIds.isEmpty else { return [] }
+
+    let ids = seriesIds
+    let descriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate<KomgaSeries> { series in
+        series.instanceId == instanceId && ids.contains(series.seriesId)
+      }
+    )
+
+    do {
+      let results = try modelContext.fetch(descriptor)
+      return results.map { $0.toSeries() }
+    } catch {
+      return []
+    }
+  }
+
   func fetchFailedBooksCount(instanceId: String) -> Int {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "failed" }
@@ -2150,10 +2192,23 @@ actor DatabaseOperator {
     return (try? modelContext.fetchCount(descriptor)) ?? 0
   }
 
-  func fetchTotalBooksCount(instanceId: String) -> Int {
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId }
-    )
+  func fetchTotalBooksCount(instanceId: String, libraryId: String? = nil) -> Int {
+    let descriptor: FetchDescriptor<KomgaBook>
+
+    if let libraryId {
+      descriptor = FetchDescriptor<KomgaBook>(
+        predicate: #Predicate<KomgaBook> { book in
+          book.instanceId == instanceId && book.libraryId == libraryId
+        }
+      )
+    } else {
+      descriptor = FetchDescriptor<KomgaBook>(
+        predicate: #Predicate<KomgaBook> { book in
+          book.instanceId == instanceId
+        }
+      )
+    }
+
     return (try? modelContext.fetchCount(descriptor)) ?? 0
   }
 
