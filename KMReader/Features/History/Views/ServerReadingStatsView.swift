@@ -177,9 +177,9 @@ struct ServerReadingStatsView: View {
           )
           : String(localized: "Pull to refresh to recalculate reading stats from local data.")
       )
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-        .multilineTextAlignment(.center)
+      .font(.footnote)
+      .foregroundStyle(.secondary)
+      .multilineTextAlignment(.center)
       Button {
         Task {
           await reload(forceRefresh: true)
