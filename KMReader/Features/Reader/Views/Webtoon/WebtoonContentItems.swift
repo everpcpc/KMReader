@@ -7,15 +7,15 @@ import Foundation
 
 struct WebtoonContentItems {
   enum Item: Equatable {
-    case page(Int)
+    case page(ReaderPageID)
     case end(String)
   }
 
   let items: [Item]
-  let itemIndexByPageIndex: [Int: Int]
+  let itemIndexByPageID: [ReaderPageID: Int]
 
   static var empty: WebtoonContentItems {
-    WebtoonContentItems(items: [], itemIndexByPageIndex: [:])
+    WebtoonContentItems(items: [], itemIndexByPageID: [:])
   }
 
   static func build(from viewModel: ReaderViewModel?) -> WebtoonContentItems {
@@ -24,21 +24,20 @@ struct WebtoonContentItems {
     }
 
     var items: [Item] = []
-    var itemIndexByPageIndex: [Int: Int] = [:]
-    var globalPageIndex = 0
+    var itemIndexByPageID: [ReaderPageID: Int] = [:]
 
     for segment in viewModel.segments {
       if !segment.pages.isEmpty {
-        for _ in segment.pages {
-          itemIndexByPageIndex[globalPageIndex] = items.count
-          items.append(.page(globalPageIndex))
-          globalPageIndex += 1
+        for page in segment.pages {
+          let pageID = ReaderPageID(bookId: segment.currentBook.id, pageNumber: page.number)
+          itemIndexByPageID[pageID] = items.count
+          items.append(.page(pageID))
         }
       }
       items.append(.end(segment.currentBook.id))
     }
 
-    return WebtoonContentItems(items: items, itemIndexByPageIndex: itemIndexByPageIndex)
+    return WebtoonContentItems(items: items, itemIndexByPageID: itemIndexByPageID)
   }
 
   static func resolvedPageIndex(
@@ -48,8 +47,8 @@ struct WebtoonContentItems {
   ) -> Int? {
     guard itemIndex >= 0, itemIndex < items.count else { return nil }
     switch items[itemIndex] {
-    case .page(let pageIndex):
-      return pageIndex
+    case .page(let pageID):
+      return viewModel?.pageIndex(for: pageID)
     case .end(let segmentBookId):
       guard let range = viewModel?.pageRange(forSegmentBookId: segmentBookId), !range.isEmpty else {
         return nil

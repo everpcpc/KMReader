@@ -130,7 +130,7 @@
     {
       var collectionView: NSCollectionView?
       var scrollView: NSScrollView?
-      var currentPage: Int = 0
+      private var scrollEngine: WebtoonScrollEngine
       weak var viewModel: ReaderViewModel?
       var readListContext: ReaderReadListContext?
       var onDismiss: (() -> Void)?
@@ -140,11 +140,6 @@
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
       var isProgrammaticScrolling: Bool = false
-      var pendingReloadCurrentPage: Int?
-      var hasScrolledToInitialPage: Bool = false
-      var initialScrollRetrier = InitialScrollRetrier(
-        maxRetries: WebtoonConstants.initialScrollMaxRetries
-      )
       var pageWidth: CGFloat = 0
       var readerBackground: ReaderBackground = .system
       var tapZoneMode: TapZoneMode = .auto
@@ -155,12 +150,12 @@
       var keyMonitor: Any?
       var lastScrollTime: TimeInterval = 0
       var hasTriggeredZoomGesture: Bool = false
-      private var contentItems: [WebtoonContentItems.Item] = []
-      private var itemIndexByPageIndex: [Int: Int] = [:]
-      private var contentItemsVersion: Int = -1
 
       init(_ parent: WebtoonReaderView) {
-        self.currentPage = parent.viewModel.currentPageIndex
+        self.scrollEngine = WebtoonScrollEngine(
+          initialPage: parent.viewModel.currentPageIndex,
+          initialPageID: parent.viewModel.currentReaderPage?.id
+        )
         self.viewModel = parent.viewModel
         self.readListContext = parent.readListContext
         self.onDismiss = parent.onDismiss
@@ -175,15 +170,11 @@
         self.tapZoneSize = parent.renderConfig.tapZoneSize
         self.showPageNumber = parent.renderConfig.showPageNumber
         super.init()
-        _ = rebuildContentItemsIfNeeded()
+        _ = scrollEngine.rebuildContentItemsIfNeeded(viewModel: viewModel)
       }
 
       private var pageCount: Int {
         viewModel?.pageCount ?? 0
-      }
-
-      private var itemCount: Int {
-        contentItems.count
       }
 
       func teardown() {
@@ -221,54 +212,45 @@
         index >= 0 && index < pageCount
       }
 
-      @discardableResult
-      private func rebuildContentItemsIfNeeded() -> Bool {
-        guard let viewModel else {
-          let didChange = !contentItems.isEmpty || !itemIndexByPageIndex.isEmpty
-          contentItems = []
-          itemIndexByPageIndex = [:]
-          contentItemsVersion = -1
-          return didChange
+      private func pageIndex(forPageID pageID: ReaderPageID?) -> Int? {
+        guard let index = scrollEngine.pageIndex(forPageID: pageID, viewModel: viewModel) else {
+          return nil
         }
-
-        let version = viewModel.readerPagesVersion
-        guard version != contentItemsVersion else { return false }
-
-        let snapshot = WebtoonContentItems.build(from: viewModel)
-        let didChange = snapshot.items != contentItems
-        contentItems = snapshot.items
-        itemIndexByPageIndex = snapshot.itemIndexByPageIndex
-        contentItemsVersion = version
-        return didChange
+        return isValidPageIndex(index) ? index : nil
       }
 
       private func itemIndex(forPageIndex pageIndex: Int) -> Int? {
-        itemIndexByPageIndex[pageIndex]
-      }
-
-      private func resolvedPageIndex(forItemIndex itemIndex: Int) -> Int? {
-        WebtoonContentItems.resolvedPageIndex(
-          for: itemIndex,
-          in: contentItems,
-          viewModel: viewModel
-        )
+        guard let pageID = scrollEngine.pageID(forPageIndex: pageIndex, viewModel: viewModel) else {
+          return nil
+        }
+        return scrollEngine.itemIndex(forPageID: pageID)
       }
 
       func scheduleInitialScroll() {
-        initialScrollRetrier.reset()
-        requestInitialScroll(currentPage, delay: WebtoonConstants.initialScrollDelay)
+        scrollEngine.scheduleInitialScroll(
+          currentPageID: scrollEngine.currentPageID,
+          schedule: scheduleOnMain,
+          canScrollToPageID: { [weak self] pageID in
+            guard let self else { return false }
+            guard self.pageCount > 0 else { return false }
+            return self.pageIndex(forPageID: pageID) != nil
+          },
+          perform: { [weak self] pageID in self?.scrollToInitialPage(pageID) }
+        )
       }
 
-      func requestInitialScroll(_ pageIndex: Int, delay: TimeInterval) {
-        initialScrollRetrier.schedule(
-          after: delay,
-          using: scheduleOnMain
-        ) { [weak self] in
-          guard let self = self, !self.hasScrolledToInitialPage,
-            self.pageCount > 0, self.isValidPageIndex(pageIndex)
-          else { return }
-          self.scrollToInitialPage(pageIndex)
-        }
+      func requestInitialScroll(_ pageID: ReaderPageID?, delay: TimeInterval) {
+        scrollEngine.requestInitialScroll(
+          pageID,
+          delay: delay,
+          schedule: scheduleOnMain,
+          canScrollToPageID: { [weak self] targetPageID in
+            guard let self else { return false }
+            guard self.pageCount > 0 else { return false }
+            return self.pageIndex(forPageID: targetPageID) != nil
+          },
+          perform: { [weak self] targetPageID in self?.scrollToInitialPage(targetPageID) }
+        )
       }
 
       func update(
@@ -295,30 +277,32 @@
         self.showPageNumber = renderConfig.showPageNumber
 
         let currentPage = viewModel.currentPageIndex
+        let currentPageID = viewModel.currentReaderPage?.id
+        scrollEngine.currentPageID = currentPageID
         let pageCount = viewModel.pageCount
-        let didContentItemsChange = rebuildContentItemsIfNeeded()
+        let didContentItemsChange = scrollEngine.rebuildContentItemsIfNeeded(viewModel: viewModel)
 
         if lastPagesCount != pageCount
           || didContentItemsChange
           || abs(heightCache.lastPageWidth - pageWidth) > 0.1
         {
           if isProgrammaticScrolling {
-            pendingReloadCurrentPage = currentPage
+            scrollEngine.pendingReloadCurrentPageID = currentPageID
           } else {
-            handleDataReload(collectionView: collectionView, currentPage: currentPage)
+            handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
           }
         }
 
         for ip in collectionView.indexPathsForVisibleItems() {
-          if ip.item < contentItems.count,
-            case .page = contentItems[ip.item],
+          if ip.item < scrollEngine.contentItems.count,
+            case .page = scrollEngine.contentItems[ip.item],
             let cell = collectionView.item(at: ip) as? WebtoonPageCell
           {
             cell.readerBackground = renderConfig.readerBackground
             cell.showPageNumber = renderConfig.showPageNumber
           } else if let cell = collectionView.item(at: ip) as? WebtoonFooterCell,
-            ip.item < contentItems.count,
-            case .end(let segmentBookId) = contentItems[ip.item]
+            ip.item < scrollEngine.contentItems.count,
+            case .end(let segmentBookId) = scrollEngine.contentItems[ip.item]
           {
             cell.readerBackground = renderConfig.readerBackground
             cell.configure(
@@ -330,8 +314,8 @@
           }
         }
 
-        if !hasScrolledToInitialPage && itemCount > 0 && isValidPageIndex(currentPage) {
-          scrollToInitialPage(currentPage)
+        if !scrollEngine.hasScrolledToInitialPage && scrollEngine.itemCount > 0 && currentPageID != nil {
+          scrollToInitialPage(currentPageID)
         }
 
         if let target = viewModel.targetPageIndex,
@@ -339,20 +323,27 @@
         {
           scrollToPage(target, animated: true)
           viewModel.targetPageIndex = nil
-          if self.currentPage != target {
-            self.currentPage = target
+          if self.scrollEngine.currentPage != target {
+            self.scrollEngine.currentPage = target
+            self.scrollEngine.currentPageID = scrollEngine.pageID(
+              forPageIndex: target,
+              viewModel: viewModel
+            )
             onPageChange?(target)
           }
-        } else if self.currentPage != currentPage, isValidPageIndex(currentPage) {
-          self.currentPage = currentPage
+        } else if self.scrollEngine.currentPage != currentPage, isValidPageIndex(currentPage) {
+          self.scrollEngine.currentPage = currentPage
+          self.scrollEngine.currentPageID = currentPageID
         }
       }
 
-      private func handleDataReload(collectionView: NSCollectionView, currentPage: Int) {
+      private func handleDataReload(collectionView: NSCollectionView, currentPageID: ReaderPageID?) {
         let pageCount = self.pageCount
         let pagesChanged = lastPagesCount != pageCount
+        let currentPageIndex = pageIndex(forPageID: currentPageID)
         let offsetWithinCurrentPage =
-          hasScrolledToInitialPage ? captureOffsetWithinPage(currentPage) : nil
+          scrollEngine.hasScrolledToInitialPage && currentPageIndex != nil
+          ? captureOffsetWithinPage(currentPageIndex ?? 0) : nil
 
         if pagesChanged {
           heightCache.reset()
@@ -364,14 +355,18 @@
         collectionView.layoutSubtreeIfNeeded()
 
         if let offsetWithinCurrentPage,
-          restoreOffsetWithinPage(offsetWithinCurrentPage, for: currentPage)
+          let currentPageIndex,
+          restoreOffsetWithinPage(offsetWithinCurrentPage, for: currentPageIndex)
         {
-          hasScrolledToInitialPage = true
+          scrollEngine.hasScrolledToInitialPage = true
           return
         }
 
-        hasScrolledToInitialPage = false
-        initialScrollRetrier.reset()
+        scrollEngine.hasScrolledToInitialPage = false
+        scrollEngine.resetInitialScrollRetrier()
+        if currentPageID != nil {
+          requestInitialScroll(currentPageID, delay: WebtoonConstants.layoutReadyDelay)
+        }
       }
 
       private func captureOffsetWithinPage(_ pageIndex: Int) -> CGFloat? {
@@ -420,12 +415,12 @@
       }
 
       private func applyPendingReloadIfNeeded() {
-        guard let pendingPage = pendingReloadCurrentPage else { return }
+        guard let pendingPageID = scrollEngine.pendingReloadCurrentPageID else { return }
         guard let collectionView = collectionView else { return }
-        pendingReloadCurrentPage = nil
+        scrollEngine.pendingReloadCurrentPageID = nil
 
-        let currentPage = viewModel?.currentPageIndex ?? pendingPage
-        handleDataReload(collectionView: collectionView, currentPage: currentPage)
+        let currentPageID = viewModel?.currentReaderPage?.id ?? pendingPageID
+        handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
       }
 
       private func finalizeProgrammaticScroll() {
@@ -467,41 +462,46 @@
         }
       }
 
-      func scrollToInitialPage(_ pageIndex: Int) {
-        guard !hasScrolledToInitialPage,
+      func scrollToInitialPage(_ pageID: ReaderPageID?) {
+        guard !scrollEngine.hasScrolledToInitialPage,
+          let pageIndex = pageIndex(forPageID: pageID),
           let cv = collectionView, isValidPageIndex(pageIndex),
           cv.bounds.width > 0
         else {
-          requestInitialScroll(pageIndex, delay: WebtoonConstants.initialScrollRetryDelay)
+          if !scrollEngine.hasScrolledToInitialPage {
+            requestInitialScroll(pageID, delay: WebtoonConstants.initialScrollRetryDelay)
+          }
           return
         }
         guard let itemIndex = itemIndex(forPageIndex: pageIndex) else { return }
         let ip = IndexPath(item: itemIndex, section: 0)
         if let attr = cv.layoutAttributesForItem(at: ip) {
+          scrollEngine.hasScrolledToInitialPage = true
           isProgrammaticScrolling = true
           cv.scroll(attr.frame.origin)
           // Reset flag after immediate scroll
           Task { @MainActor [weak self] in
             self?.finalizeProgrammaticScroll()
           }
+        } else {
+          requestInitialScroll(pageID, delay: WebtoonConstants.initialScrollRetryDelay)
         }
-        hasScrolledToInitialPage = true
       }
 
       // MARK: - DataSource
 
       func collectionView(_ collectionView: NSCollectionView, numberOfItemsInSection section: Int)
         -> Int
-      { itemCount }
+      { scrollEngine.itemCount }
 
       func collectionView(
         _ collectionView: NSCollectionView, itemForRepresentedObjectAt indexPath: IndexPath
       ) -> NSCollectionViewItem {
-        guard indexPath.item < contentItems.count else {
+        guard indexPath.item < scrollEngine.contentItems.count else {
           return NSCollectionViewItem()
         }
 
-        switch contentItems[indexPath.item] {
+        switch scrollEngine.contentItems[indexPath.item] {
         case .end(let segmentBookId):
           let item = collectionView.makeItem(
             withIdentifier: NSUserInterfaceItemIdentifier("WebtoonFooterCell"),
@@ -519,7 +519,10 @@
             onDismiss: onDismiss
           )
           return cell
-        case .page(let pageIndex):
+        case .page(let pageID):
+          guard let pageIndex = pageIndex(forPageID: pageID) else {
+            return NSCollectionViewItem()
+          }
 
           let item = collectionView.makeItem(
             withIdentifier: NSUserInterfaceItemIdentifier("WebtoonPageCell"),
@@ -566,14 +569,17 @@
         _ collectionView: NSCollectionView, layout: NSCollectionViewLayout,
         sizeForItemAt indexPath: IndexPath
       ) -> NSSize {
-        guard indexPath.item < contentItems.count else {
+        guard indexPath.item < scrollEngine.contentItems.count else {
           return NSSize(width: pageWidth, height: 0)
         }
 
-        switch contentItems[indexPath.item] {
+        switch scrollEngine.contentItems[indexPath.item] {
         case .end:
           return NSSize(width: pageWidth, height: WebtoonConstants.footerHeight)
-        case .page(let pageIndex):
+        case .page(let pageID):
+          guard let pageIndex = pageIndex(forPageID: pageID) else {
+            return NSSize(width: pageWidth, height: pageWidth * 3)
+          }
           guard let page = viewModel?.page(at: pageIndex) else {
             return NSSize(width: pageWidth, height: pageWidth * 3)
           }
@@ -600,7 +606,7 @@
 
       private func updateCurrentPage() {
         guard let cv = collectionView, let sv = scrollView else { return }
-        let totalItems = itemCount
+        let totalItems = scrollEngine.itemCount
         guard totalItems > 0 else { return }
 
         let offset = sv.contentView.bounds.origin.y
@@ -617,12 +623,21 @@
           cv.layoutAttributesForItem(at: IndexPath(item: itemIndex, section: 0))?.frame
         }
 
-        guard let resolvedPageIndex = resolvedPageIndex(forItemIndex: newCurrentItemIndex) else {
+        guard
+          let resolvedPageIndex = scrollEngine.resolvedPageIndex(
+            forItemIndex: newCurrentItemIndex,
+            viewModel: viewModel
+          )
+        else {
           return
         }
 
-        if currentPage != resolvedPageIndex {
-          currentPage = resolvedPageIndex
+        if scrollEngine.currentPage != resolvedPageIndex {
+          scrollEngine.currentPage = resolvedPageIndex
+          scrollEngine.currentPageID = scrollEngine.pageID(
+            forPageIndex: resolvedPageIndex,
+            viewModel: viewModel
+          )
           onPageChange?(resolvedPageIndex)
         }
       }
@@ -676,8 +691,8 @@
 
         let locationInCollection = gesture.location(in: cv)
         if let indexPath = cv.indexPathForItem(at: locationInCollection),
-          indexPath.item < contentItems.count,
-          case .end = contentItems[indexPath.item],
+          indexPath.item < scrollEngine.contentItems.count,
+          case .end = scrollEngine.contentItems[indexPath.item],
           let footerCell = cv.item(at: indexPath) as? WebtoonFooterCell,
           footerCell.isInteractingWithCloseButton(at: locationInCollection, in: cv)
         {
@@ -780,7 +795,10 @@
         let centerY = targetOffset + sv.contentView.bounds.height / 2
         let centerPoint = NSPoint(x: cv.bounds.width / 2, y: centerY)
         guard let indexPath = cv.indexPathForItem(at: centerPoint),
-          let targetIndex = resolvedPageIndex(forItemIndex: indexPath.item),
+          let targetIndex = scrollEngine.resolvedPageIndex(
+            forItemIndex: indexPath.item,
+            viewModel: viewModel
+          ),
           isValidPageIndex(targetIndex)
         else { return }
         let indices = WebtoonContentItems.preheatPageIndices(around: targetIndex)
@@ -808,7 +826,10 @@
         let totalPages = self.pageCount
 
         if let indexPath = cv.indexPathForItem(at: location),
-          let pageIndex = resolvedPageIndex(forItemIndex: indexPath.item),
+          let pageIndex = scrollEngine.resolvedPageIndex(
+            forItemIndex: indexPath.item,
+            viewModel: viewModel
+          ),
           isValidPageIndex(pageIndex)
         {
           if let item = cv.item(at: indexPath) {
@@ -827,7 +848,7 @@
         }
 
         guard totalPages > 0 else { return nil }
-        let fallback = min(max(currentPage, 0), totalPages - 1)
+        let fallback = min(max(scrollEngine.currentPage, 0), totalPages - 1)
         guard isValidPageIndex(fallback) else { return nil }
         guard let itemIndex = itemIndex(forPageIndex: fallback) else { return nil }
         let fallbackIndexPath = IndexPath(item: itemIndex, section: 0)
