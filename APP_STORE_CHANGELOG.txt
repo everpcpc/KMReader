@@ -1,28 +1,21 @@
 KMReader - What's New (from v3.5 to current)
 
-Reading Insights
-- Added a new Reading Stats page so you can quickly see your reading activity trends.
-- Added pinned Collections and Read Lists, including dedicated pinned sections on the Dashboard.
-
 Reader Experience
-- Added inline autoplay for animated pages, so motion content plays without interrupting navigation.
-- Added a new EPUB scrolled reading mode with adjustable tap-scroll distance.
-- Improved EPUB progress handling when switching chapters or closing the reader.
-- Finished books now reopen from the beginning, making re-reads easier.
-- Improved navigation flow when opening books from Read Lists.
-- Simplified reader settings so options are shown only when relevant to your current reading mode.
+- Added seamless chapter-to-chapter reading for DIVINA and Webtoon, with smoother end pages and more natural navigation.
+- Added inline autoplay for animated pages and a new EPUB scrolled reading mode with adjustable tap-scroll distance.
+- Added a sepia reading style, improved page-curl behavior, and refined dual-page handling for more reliable page turns.
+- Added macOS image upscaling support and configurable PDF DIVINA render quality for sharper offline reading.
+
+Library and Personalization
+- Added Reading Stats with faster local data loading, plus pinned Collections and Read Lists on the Dashboard.
+- Added alternate app icons on iOS and simplified reader settings so options appear only when they are relevant.
+- Improved onboarding, login feedback, and overall reading polish across iPhone, iPad, Mac, and Apple TV.
 
 Offline and Sync
-- Improved offline reading history sync and made recent reading updates clearer.
-- Added clearer completion notifications for offline sync and download tasks.
-- Added a full re-sync action to help recover quickly if local data gets out of sync.
-- Added metadata-based filters in Offline mode, so finding downloaded books is faster and easier.
-- Improved sync behavior for deleted or changed items to keep your library cleaner and more accurate.
+- Improved offline reading history sync, local progress updates, and completion notifications for sync and downloads.
+- Added a full re-sync recovery action and better cleanup for deleted or changed library items.
+- Reduced refresh delays and background stutter so dashboards, offline views, and reading progress stay more responsive.
 
-Performance and Polish
-- Improved progress update speed and overall refresh responsiveness.
-- Improved cache cleanup behavior for smoother performance, especially with larger libraries.
-- Fixed a rare page-curl reader crash for more stable reading sessions.
-- Fixed stale thumbnail and preview issues when switching content.
-- Improved book grid alignment and several visual polish details across cards and badges.
-- Improved update and loading messaging so long migrations are clearer and less confusing.
+Reliability and Polish
+- Improved migration handling with clearer startup progress, lower memory pressure on large libraries, and a retry path if startup recovery is needed.
+- Fixed stale thumbnails, card alignment, tap-zone interactions, and multiple reader stability issues across iOS and macOS.
