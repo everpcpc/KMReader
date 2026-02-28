@@ -5366,6 +5366,52 @@
         }
       }
     },
+    "Balanced (3072 px)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewogen (3072 px)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balanced (3072 px)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Équilibré (3072 px)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バランス (3072 px)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "균형형 (3072 px)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "均衡（3072 px）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "均衡（3072 px）"
+          }
+        }
+      }
+    },
     "Basic Information" : {
       "localizations" : {
         "de" : {
@@ -9042,6 +9088,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提交時間"
+          }
+        }
+      }
+    },
+    "Compact (2048 px)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kompakt (2048 px)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact (2048 px)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact (2048 px)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンパクト (2048 px)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컴팩트 (2048 px)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紧凑（2048 px）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "緊湊（2048 px）"
           }
         }
       }
@@ -17786,6 +17878,52 @@
         }
       }
     },
+    "High (4096 px)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoch (4096 px)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High (4096 px)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Élevé (4096 px)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高品質 (4096 px)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "고화질 (4096 px)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高（4096 px）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高（4096 px）"
+          }
+        }
+      }
+    },
     "History" : {
       "localizations" : {
         "de" : {
@@ -19714,6 +19852,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "語言"
+          }
+        }
+      }
+    },
+    "Largest offline files. Best for heavy zooming and large screens." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die größten Offline-Dateien. Am besten für starkes Zoomen und große Bildschirme."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largest offline files. Best for heavy zooming and large screens."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les fichiers hors ligne les plus volumineux. Idéal pour un zoom important et les grands écrans."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインファイルは最大になります。大きく拡大する場合や大画面に最適です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오프라인 파일 크기가 가장 커집니다. 큰 화면이나 강한 확대에 가장 적합합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线文件最大，最适合大幅缩放和大屏设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "離線檔案最大，最適合大幅縮放和大螢幕裝置。"
           }
         }
       }
@@ -24824,48 +25008,48 @@
         }
       }
     },
-    "Native PDF Reader is disabled. PDF books use DIVINA Reader settings." : {
+    "Native PDF Reader uses the system PDF engine and works best for text-heavy PDF books." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der native PDF-Reader ist deaktiviert. PDF-Bücher verwenden die Einstellungen des DIVINA-Readers."
+            "value" : "Der native PDF-Reader verwendet die systemeigene PDF-Engine und eignet sich am besten für textlastige PDF-Bücher."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Native PDF Reader is disabled. PDF books use DIVINA Reader settings."
+            "value" : "Native PDF Reader uses the system PDF engine and works best for text-heavy PDF books."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le lecteur PDF natif est désactivé. Les livres PDF utilisent les paramètres du lecteur DIVINA."
+            "value" : "Le lecteur PDF natif utilise le moteur PDF du système et convient le mieux aux livres PDF principalement textuels."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ネイティブPDFリーダーは無効です。PDF書籍にはDIVINAリーダーの設定が使用されます。"
+            "value" : "ネイティブPDFリーダーはシステムのPDFエンジンを使用し、文字中心のPDF書籍に最適です。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "네이티브 PDF 리더가 비활성화되어 있습니다. PDF 도서는 DIVINA 리더 설정을 사용합니다."
+            "value" : "기본 PDF 리더는 시스템 PDF 엔진을 사용하며 텍스트 위주의 PDF 책에 가장 적합합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "原生 PDF 阅读器已关闭。PDF 书籍将使用 DIVINA 阅读器设置。"
+            "value" : "原生 PDF 阅读器使用系统 PDF 引擎，更适合以文字为主的 PDF 书籍。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "原生 PDF 閱讀器已關閉。PDF 書籍將使用 DIVINA 閱讀器設定。"
+            "value" : "原生 PDF 閱讀器使用系統 PDF 引擎，更適合以文字為主的 PDF 書籍。"
           }
         }
       }
@@ -29792,6 +29976,52 @@
         }
       }
     },
+    "Offline DIVINA Rendering" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline-DIVINA-Rendering"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline DIVINA Rendering"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendu DIVINA hors ligne"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインDIVINAレンダリング"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오프라인 DIVINA 렌더링"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线 DIVINA 渲染"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "離線 DIVINA 渲染"
+          }
+        }
+      }
+    },
     "Offline PDF file is missing. Please try downloading again." : {
       "localizations" : {
         "de" : {
@@ -31676,6 +31906,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PDF"
+          }
+        }
+      }
+    },
+    "PDF books open with DIVINA Reader. Recommended for comic and manga PDFs, especially when offline-downloaded pages are rendered as images." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF-Bücher werden mit dem DIVINA-Reader geöffnet. Empfohlen für Comic- und Manga-PDFs, besonders wenn offline heruntergeladene Seiten als Bilder gerendert werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF books open with DIVINA Reader. Recommended for comic and manga PDFs, especially when offline-downloaded pages are rendered as images."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les livres PDF s'ouvrent avec le lecteur DIVINA. Recommandé pour les PDF de bandes dessinées et de mangas, surtout lorsque les pages téléchargées hors ligne sont rendues sous forme d'images."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF書籍はDIVINA Readerで開きます。特にオフラインでダウンロードしたページを画像としてレンダリングする場合、コミックやマンガのPDFに適しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF 책은 DIVINA Reader로 열립니다. 특히 오프라인 다운로드 페이지를 이미지로 렌더링하는 경우 만화와 망가 PDF에 권장됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF 书籍会使用 DIVINA Reader 打开，推荐用于 PDF 漫画，尤其适合将离线下载页面渲染为图片的场景。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF 書籍會使用 DIVINA Reader 開啟，推薦用於 PDF 漫畫，尤其適合將離線下載頁面渲染為圖片的場景。"
           }
         }
       }
@@ -36506,6 +36782,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新命名預設"
+          }
+        }
+      }
+    },
+    "Render Quality" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renderqualität"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render Quality"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qualité de rendu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レンダリング品質"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "렌더링 품질"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "渲染质量"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "渲染品質"
           }
         }
       }
@@ -44146,6 +44468,52 @@
         }
       }
     },
+    "Sharper text and line art. Recommended for iPad and Mac." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schärferer Text und klarere Linien. Empfohlen für iPad und Mac."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sharper text and line art. Recommended for iPad and Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte et tracés plus nets. Recommandé pour iPad et Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字や線画がより鮮明になります。iPad と Mac におすすめです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "텍스트와 선화가 더 선명해집니다. iPad와 Mac에 권장됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字和线稿更清晰，推荐用于 iPad 和 Mac。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字和線稿更清晰，推薦用於 iPad 和 Mac。"
+          }
+        }
+      }
+    },
     "Show connection status and task completion notifications" : {
       "localizations" : {
         "de" : {
@@ -44740,6 +45108,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "慢速"
+          }
+        }
+      }
+    },
+    "Smaller offline files with good quality on most phones." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kleinere Offline-Dateien bei guter Qualität auf den meisten Telefonen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smaller offline files with good quality on most phones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Des fichiers hors ligne plus petits avec une bonne qualité sur la plupart des téléphones."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほとんどのスマートフォンで、容量を抑えつつ十分な画質を確保します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대부분의 휴대폰에서 좋은 화질을 유지하면서 오프라인 파일 크기를 줄입니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线文件更小，在大多数手机上也有不错的质量。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "離線檔案更小，在大多數手機上也有不錯的品質。"
+          }
+        }
+      }
+    },
+    "Smallest offline files. Best for phones and limited storage." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die kleinsten Offline-Dateien. Ideal für Telefone und wenig Speicherplatz."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smallest offline files. Best for phones and limited storage."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les plus petits fichiers hors ligne. Idéal pour les téléphones et le stockage limité."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインファイルを最小限に抑えます。スマートフォンや容量が限られる環境に最適です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오프라인 파일 크기를 가장 작게 유지합니다. 휴대폰이나 저장 공간이 제한된 환경에 적합합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线文件最小，适合手机和存储空间有限的场景。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "離線檔案最小，適合手機和儲存空間有限的場景。"
           }
         }
       }
@@ -49022,6 +49482,52 @@
         }
       }
     },
+    "Ultra (5120 px)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultra (5120 px)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultra (5120 px)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultra (5120 px)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最高品質 (5120 px)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "울트라 (5120 px)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超高（5120 px）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超高（5120 px）"
+          }
+        }
+      }
+    },
     "Unable to encode credentials" : {
       "localizations" : {
         "de" : {
@@ -49432,6 +49938,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用原生 PDF 閱讀器"
+          }
+        }
+      }
+    },
+    "Used for offline-downloaded PDF books rendered by DIVINA Reader." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird für offline heruntergeladene PDF-Bücher verwendet, die vom DIVINA-Reader gerendert werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used for offline-downloaded PDF books rendered by DIVINA Reader."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisé pour les livres PDF téléchargés hors ligne et rendus par le lecteur DIVINA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIVINA Reader でレンダリングされるオフラインダウンロード済み PDF 書籍に使用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIVINA Reader로 렌더링되는 오프라인 다운로드 PDF 도서에 사용됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于由 DIVINA Reader 渲染的离线下载 PDF 书籍。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用於由 DIVINA Reader 渲染的離線下載 PDF 書籍。"
           }
         }
       }
