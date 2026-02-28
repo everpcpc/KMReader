@@ -45710,6 +45710,98 @@
         }
       }
     },
+    "startup.storageFailure.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader konnte die lokalen Daten nicht öffnen oder migrieren. Versuchen Sie es noch einmal. Wenn das Problem weiterhin auftritt, installieren Sie KMReader neu, um die lokalen Daten zurückzusetzen, und melden Sie sich dann erneut an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader failed to open or upgrade its local data. Try again once. If this keeps happening, reinstall KMReader to reset local data, then sign in again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader n'a pas pu ouvrir ou migrer ses données locales. Réessayez une fois. Si le problème persiste, réinstallez KMReader pour réinitialiser les données locales, puis reconnectez-vous."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader はローカルデータを開くことも移行することもできませんでした。もう一度お試しください。問題が続く場合は、KMReader を再インストールしてローカルデータをリセットしてから、再度サインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader가 로컬 데이터를 열거나 마이그레이션하지 못했습니다. 한 번 다시 시도해 보세요. 문제가 계속되면 KMReader를 다시 설치해 로컬 데이터를 재설정한 후 다시 로그인하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader 无法打开或迁移本地数据。请先重试一次。如果问题仍然存在，请重新安装 KMReader 以重置本地数据，然后重新登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader 無法開啟或移轉本機資料。請先再試一次。如果問題仍然存在，請重新安裝 KMReader 以重設本機資料，然後重新登入。"
+          }
+        }
+      }
+    },
+    "startup.storageFailure.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokale Daten konnten nicht geöffnet werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local data couldn't be opened"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'ouvrir les données locales"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルデータを開けませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 데이터를 열 수 없습니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开本地数据"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法開啟本機資料"
+          }
+        }
+      }
+    },
     "Status" : {
       "localizations" : {
         "de" : {

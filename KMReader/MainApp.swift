@@ -63,6 +63,7 @@ struct MainApp: App {
 
   @State private var modelContainer: ModelContainer?
   @State private var isPreparingModelContainer = false
+  @State private var modelContainerFailureDetails: String?
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
   @State private var dashboardSectionCacheStore = DashboardSectionCacheStore.shared
@@ -89,10 +90,13 @@ struct MainApp: App {
   }
 
   @MainActor
-  private func prepareModelContainerIfNeeded() async {
+  private func prepareModelContainerIfNeeded(forceRetry: Bool = false) async {
     guard modelContainer == nil, !isPreparingModelContainer else { return }
     isPreparingModelContainer = true
     defer { isPreparingModelContainer = false }
+    if forceRetry {
+      modelContainerFailureDetails = nil
+    }
 
     do {
       let container = try makeModelContainer()
@@ -100,10 +104,34 @@ struct MainApp: App {
       DatabaseOperator.shared = DatabaseOperator(modelContainer: container)
       _ = OfflineManager.shared
       modelContainer = container
+      modelContainerFailureDetails = nil
     } catch {
       let errorMessage = String(describing: error)
       AppLogger(.database).error("Failed to create ModelContainer: \(errorMessage)")
-      fatalError("Failed to create ModelContainer: \(errorMessage)")
+      modelContainerFailureDetails = errorMessage
+    }
+  }
+
+  @ViewBuilder
+  private func modelContainerGate<Content: View>(
+    @ViewBuilder content: (ModelContainer) -> Content
+  ) -> some View {
+    if let modelContainer {
+      content(modelContainer)
+    } else if let modelContainerFailureDetails {
+      StartupFailureView(
+        details: modelContainerFailureDetails,
+        onRetry: {
+          Task {
+            await prepareModelContainerIfNeeded(forceRetry: true)
+          }
+        }
+      )
+    } else {
+      SplashView(isMigration: true)
+        .task {
+          await prepareModelContainerIfNeeded()
+        }
     }
   }
 
@@ -125,15 +153,8 @@ struct MainApp: App {
 
   var body: some Scene {
     WindowGroup {
-      Group {
-        if let modelContainer {
-          mainWindowContent(modelContainer: modelContainer)
-        } else {
-          SplashView(isMigration: true)
-            .task {
-              await prepareModelContainerIfNeeded()
-            }
-        }
+      modelContainerGate { modelContainer in
+        mainWindowContent(modelContainer: modelContainer)
       }
       .onOpenURL { url in
         deepLinkRouter.handle(url: url)
@@ -159,18 +180,11 @@ struct MainApp: App {
     }
     #if os(macOS)
       WindowGroup(id: "reader") {
-        Group {
-          if let modelContainer {
-            ReaderWindowView()
-              .environment(authViewModel)
-              .environment(readerPresentation)
-              .modelContainer(modelContainer)
-          } else {
-            SplashView(isMigration: true)
-              .task {
-                await prepareModelContainerIfNeeded()
-              }
-          }
+        modelContainerGate { modelContainer in
+          ReaderWindowView()
+            .environment(authViewModel)
+            .environment(readerPresentation)
+            .modelContainer(modelContainer)
         }
         .preferredColorScheme(appColorScheme.colorScheme)
       }
@@ -178,17 +192,10 @@ struct MainApp: App {
       .defaultSize(width: 1200, height: 800)
 
       Settings {
-        Group {
-          if let modelContainer {
-            SettingsView_macOS()
-              .environment(authViewModel)
-              .modelContainer(modelContainer)
-          } else {
-            SplashView(isMigration: true)
-              .task {
-                await prepareModelContainerIfNeeded()
-              }
-          }
+        modelContainerGate { modelContainer in
+          SettingsView_macOS()
+            .environment(authViewModel)
+            .modelContainer(modelContainer)
         }
         .preferredColorScheme(appColorScheme.colorScheme)
       }
