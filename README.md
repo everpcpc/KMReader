@@ -20,40 +20,42 @@
 
 ## Important Features
 
-### Reading Experience
+### Native Reading Experience
 
-- DIVINA reader on iOS/macOS/tvOS with LTR, RTL, vertical, spreads, zoom, and page curl transitions.
-- Webtoon reading mode on iOS/macOS.
-- EPUB reader on iOS/macOS with paged and scrolled flow, custom fonts (`.ttf`/`.otf`), and per-book preferences.
-- PDF reading on iOS/macOS with native PDF mode, search, table of contents, and page jump.
-- Per-book reading preferences and Incognito mode.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, and page curl transitions.
+- EPUB reader on iOS/macOS with paged, scrolled, and curl layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
+- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, and offline preparation controls.
+- Per-book preferences save reading direction, page layout, and theme settings.
+- Incognito mode and iOS Live Text support, including optional shake-to-toggle.
 
 ### Dashboard and Discovery
 
-- Dashboard sections for Keep Reading, On Deck, recently added/updated content, and pinned sections.
-- Pin collections and read lists to keep favorites at the top.
-- Reading Stats page for daily, weekly, and monthly reading insights.
-- Browse Series, Books, Collections, and Read Lists with metadata filters (publisher, author, genre, tag, language).
+- Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists.
+- Browse Series, Books, Collections, and Read Lists with metadata filters for publishers, authors, genres, tags, and languages using all/any logic.
+- Save and reuse filters across browse surfaces.
+- Reading history and stats help surface recent activity from synced local data.
+- Spotlight integration for downloaded content on iOS/macOS, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 
 ### Offline and Sync
 
-- Download books for full offline reading.
+- Download books for full offline reading across DIVINA, EPUB, and PDF workflows.
 - iOS background downloads with Live Activities.
 - Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
-- Offline mode supports metadata-based filtering to quickly find downloaded books.
+- Offline mode includes dedicated downloaded-library browsing and metadata filters.
 - Progress and offline data sync automatically when reconnecting.
+- Cache controls cover pages, book files, and thumbnails.
 
 ### Multi-Server and Management
 
 - Save multiple Komga servers and switch instantly.
-- Sign in with username/password or API key.
-- Admin tools for metadata editing, library management, task management, and logs.
+- Sign in with username/password or API key, and manage Komga API keys inside the app.
+- Admin tools for metadata editing, library management, task monitoring, and log viewing/export.
 
 ### Platform Highlights
 
-- iOS/iPadOS: widgets, quick actions, background downloads, Live Activities.
-- macOS: dedicated reader windows and keyboard-first controls.
-- tvOS: remote-first DIVINA reading.
+- iOS/iPadOS: widgets, quick actions, Spotlight search, Live Activities, background downloads, Live Text, and page curl transitions.
+- macOS: dedicated reader windows, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
+- tvOS: remote-first DIVINA reading with a TV-optimized browsing experience.
 
 ## Getting Started
 
