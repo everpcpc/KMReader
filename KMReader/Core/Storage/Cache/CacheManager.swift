@@ -10,11 +10,7 @@ enum CacheManager {
   /// Clear all caches for a specific book
   /// - Parameter bookId: The book ID to clear cache for
   static func clearCache(forBookId bookId: String) async {
-    // Clear ImageCache (KomgaImageCache)
     await ImageCache.clearDiskCache(forBookId: bookId)
-
-    // Clear BookFileCache (KomgaBookFileCache)
-    await BookFileCache.clearDiskCache(forBookId: bookId)
   }
 
   /// Clear thumbnail cache
@@ -25,6 +21,7 @@ enum CacheManager {
   /// Remove all cached data for a specific Komga instance.
   static func clearCaches(instanceId: String) {
     CacheNamespace.removeNamespace(for: "KomgaImageCache", instanceId: instanceId)
+    // Remove historical leftovers from the deprecated book file cache namespace.
     CacheNamespace.removeNamespace(for: "KomgaBookFileCache", instanceId: instanceId)
     CacheNamespace.removeNamespace(for: "KomgaThumbnailCache", instanceId: instanceId)
   }

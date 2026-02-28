@@ -18,7 +18,7 @@ This file provides guidance to coding agents working with code in this repositor
 - **Background Downloads**: URLSession-based downloads with Live Activities on iOS.
 - **Series Policies**: Manual, unread-only, unread+cleanup, or all books per series.
 - **Offline Mode**: Full reader functionality with downloaded content. Progress syncs when reconnected.
-- **Three-Tier Caching**: Pages, book files, and thumbnails with adjustable limits and auto-cleanup.
+- **Two-Tier Caching**: Pages and thumbnails with adjustable limits and auto-cleanup.
 
 ### Browse & Dashboards
 
@@ -191,7 +191,7 @@ KMReader/
 │       ├── DatabaseOperator.swift
 │       ├── LogStore.swift     # Log persistence
 │       ├── ManagementService.swift
-│       ├── Cache/             # CacheManager, ImageCache, BookFileCache, ThumbnailCache
+│       ├── Cache/             # CacheManager, ImageCache, ThumbnailCache
 │       └── Errors/            # AppErrorType, ErrorManager
 ├── Features/
 │   ├── Auth/

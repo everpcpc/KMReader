@@ -5550,52 +5550,6 @@
         }
       }
     },
-    "Book File (Deprecated)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buchdatei (Veraltet)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Book File (Deprecated)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fichier du livre (Obsolète)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書籍ファイル (非推奨)"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "도서 파일 (권장되지 않음)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "书籍文件 (已弃用)"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書籍檔案 (已棄用)"
-          }
-        }
-      }
-    },
     "Book Finished" : {
       "localizations" : {
         "de" : {
@@ -7390,52 +7344,6 @@
         }
       }
     },
-    "Cached Files" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gecachte Dateien"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cached Files"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fichiers en cache"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "キャッシュされたファイル"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "캐시된 파일"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已缓存文件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已快取檔案"
-          }
-        }
-      }
-    },
     "Cached Images" : {
       "localizations" : {
         "de" : {
@@ -8260,98 +8168,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部清除"
-          }
-        }
-      }
-    },
-    "Clear Book File (All Servers)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buchdatei löschen (alle Server)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Book File (All Servers)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effacer le fichier du livre (tous les serveurs)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブックファイルを消去 (すべてのサーバー)"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "도서 파일 지우기 (모든 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除图书文件（所有服务器）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除圖書文件（所有服務器）"
-          }
-        }
-      }
-    },
-    "Clear Book File (Current Server)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buchdatei löschen (aktueller Server)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Book File (Current Server)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effacer le fichier du livre (serveur actuel)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブックファイルを消去 (現在のサーバー)"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "도서 파일 지우기 (현재 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除图书文件（当前服务器）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除圖書文件（當前服務器）"
           }
         }
       }
@@ -27212,98 +27028,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已更新書籍"
-          }
-        }
-      }
-    },
-    "notification.cache.bookFileClearedAll" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Buchdateien im Cache gelöscht"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Book file cache cleared (all servers)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache des fichiers de livres effacé (tous les serveurs)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書籍ファイルのキャッシュを削除しました（すべてのサーバー）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "책 파일 캐시 삭제됨(모든 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除书籍文件缓存（所有服务器）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除書籍檔案快取（所有伺服器）"
-          }
-        }
-      }
-    },
-    "notification.cache.bookFileClearedCurrent" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktuelle Buchdatei im Cache gelöscht"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Book file cache cleared (current server)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache des fichiers de livres effacé (serveur actuel)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書籍ファイルのキャッシュを削除しました（現在のサーバー）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "책 파일 캐시 삭제됨(현재 서버)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除书籍文件缓存（当前服务器）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已清除書籍檔案快取（目前伺服器）"
           }
         }
       }
@@ -47826,52 +47550,6 @@
         }
       }
     },
-    "This cache is deprecated. EPUB now reads from offline downloads." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieser Cache ist veraltet. EPUB liest jetzt aus Offline-Downloads."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This cache is deprecated. EPUB now reads from offline downloads."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ce cache est obsolète. L'EPUB est désormais lu à partir des téléchargements hors ligne."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このキャッシュは非推奨です。EPUB はオフラインダウンロードから読み込まれます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 캐시는 더 이상 사용되지 않습니다. EPUB는 이제 오프라인 다운로드에서 읽습니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此缓存已弃用。EPUB 现在从离线下载中读取。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此快取已棄用。EPUB 現在從離線下載中讀取。"
-          }
-        }
-      }
-    },
     "This feature is only available to administrators" : {
       "localizations" : {
         "de" : {
@@ -48102,52 +47780,6 @@
         }
       }
     },
-    "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dadurch werden alle zwischengespeicherten EPUB-Dateien für alle Server entfernt. Dateien werden bei Bedarf erneut heruntergeladen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cela supprimera tous les fichiers EPUB mis en cache pour tous les serveurs. Les fichiers seront de nouveau téléchargés si nécessaire."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すべてのサーバーのキャッシュされた EPUB ファイルが削除されます。必要に応じて再ダウンロードされます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "모든 서버의 캐시된 EPUB 파일이 삭제됩니다. 필요시 다시 다운로드됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这将删除所有服务器上缓存的 EPUB 文件。需要时将重新下载文件。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "這將刪除所有服務器上緩存的 EPUB 文件。需要時將重新下載文件。"
-          }
-        }
-      }
-    },
     "This will remove all cached page images for all servers. Images will be re-downloaded when needed." : {
       "localizations" : {
         "de" : {
@@ -48236,52 +47868,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "將移除當前伺服器的快取封面，需要時會重新下載。"
-          }
-        }
-      }
-    },
-    "This will remove cached EPUB files for the current server. Files will be re-downloaded when needed." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dadurch werden die zwischengespeicherten EPUB-Dateien für den aktuellen Server entfernt. Dateien werden bei Bedarf erneut heruntergeladen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will remove cached EPUB files for the current server. Files will be re-downloaded when needed."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cela supprimera les fichiers EPUB mis en cache pour le serveur actuel. Les fichiers seront de nouveau téléchargés si nécessaire."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在のサーバーのキャッシュされた EPUB ファイルが削除されます。必要に応じて再ダウンロードされます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "현재 서버의 캐시된 EPUB 파일이 삭제됩니다. 필요시 다시 다운로드됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这将删除当前服务器上缓存的 EPUB 文件。需要时将重新下载文件。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "這將刪除當前服務器上緩存的 EPUB 文件。需要時將重新下載文件。"
           }
         }
       }

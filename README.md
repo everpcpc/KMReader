@@ -43,7 +43,7 @@
 - Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
 - Offline mode includes dedicated downloaded-library browsing and metadata filters.
 - Progress and offline data sync automatically when reconnecting.
-- Cache controls cover pages, book files, and thumbnails.
+- Cache controls cover pages and thumbnails.
 
 ### Multi-Server and Management
 
