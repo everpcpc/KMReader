@@ -99,6 +99,18 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue.rawValue, forKey: "splitWidePageMode") }
   }
 
+  static nonisolated var pdfOfflineRenderQuality: PdfOfflineRenderQuality {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "pdfOfflineRenderQuality"),
+        let quality = PdfOfflineRenderQuality(rawValue: stored)
+      {
+        return quality
+      }
+      return .high
+    }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfOfflineRenderQuality") }
+  }
+
   static nonisolated var isOffline: Bool {
     get { UserDefaults.standard.bool(forKey: "isOffline") }
     set { UserDefaults.standard.set(newValue, forKey: "isOffline") }

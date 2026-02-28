@@ -15,13 +15,18 @@ Maintain and complete KMReader translations in `KMReader/Localizable.xcstrings`.
 
 ## Standard Workflow
 
+Hard requirement:
+
+- `make localize` must be preceded by a full `make build` for the current code state.
+- Without that build, extracted localized strings data may be stale, and `Localizable.xcstrings` will not be updated correctly.
+
 Default order:
 
-1. Build once to refresh extracted strings data.
+1. Run a full `make build` once to refresh extracted strings data.
 2. Sync extracted strings data into `Localizable.xcstrings`.
 3. Fill missing translations.
 
-If the user explicitly says build is already done, do not build again. Run `make localize` directly, then continue from the missing-check step.
+Only skip the build step when it is already confirmed that the current code changes have been through a full `make build`. If that is not explicitly confirmed, run `make build` before `make localize`.
 
 ```bash
 make build

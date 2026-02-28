@@ -93,7 +93,13 @@ actor OfflineManager {
   private static let epubFileName = "book.epub"
   private static let pdfFileName = "book.pdf"
   private static let pdfPreparationStampFileName = ".pdf-prepared.stamp"
-  nonisolated static let pdfPreparationCompletionFlag = "prepared-v1"
+  private nonisolated static let pdfPreparationStampVersion = "prepared-v3"
+
+  nonisolated static func pdfPreparationCompletionFlag(
+    renderQuality: PdfOfflineRenderQuality
+  ) -> String {
+    "\(pdfPreparationStampVersion)-\(renderQuality.rawValue)"
+  }
 
   // MARK: - Paths
 
@@ -921,6 +927,29 @@ actor OfflineManager {
       logger.error(
         "❌ Failed to store offline page image for book \(bookId) page \(pageNumber): \(error)")
       return nil
+    }
+  }
+
+  func clearOfflinePageImages(instanceId: String, bookId: String) async {
+    guard await isBookDownloaded(bookId: bookId) else { return }
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
+
+    guard
+      let fileURLs = try? FileManager.default.contentsOfDirectory(
+        at: dir,
+        includingPropertiesForKeys: nil,
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return
+    }
+
+    for fileURL in fileURLs where fileURL.lastPathComponent.hasPrefix("page-") {
+      do {
+        try FileManager.default.removeItem(at: fileURL)
+      } catch {
+        logger.error("❌ Failed to remove offline page asset \(fileURL.lastPathComponent): \(error)")
+      }
     }
   }
 

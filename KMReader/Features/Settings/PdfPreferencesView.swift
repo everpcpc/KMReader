@@ -16,6 +16,8 @@
     private var pageLayout: PageLayout = .auto
     @AppStorage("pdfIsolateCoverPage")
     private var isolateCoverPage: Bool = true
+    @AppStorage("pdfOfflineRenderQuality")
+    private var pdfOfflineRenderQuality: PdfOfflineRenderQuality = AppConfig.pdfOfflineRenderQuality
 
     init(inSheet: Bool = false) {
       self.inSheet = inSheet
@@ -43,6 +45,7 @@
           defaultReadingDirection = .vertical
         }
       }
+      .animation(.easeInOut(duration: 0.2), value: useNativePdfReader)
     }
 
     private var preferencesForm: some View {
@@ -51,6 +54,14 @@
           Toggle(isOn: $useNativePdfReader) {
             Text("Use Native PDF Reader")
           }
+
+          Text(
+            useNativePdfReader
+              ? "Native PDF Reader uses the system PDF engine and works best for text-heavy PDF books."
+              : "PDF books open with DIVINA Reader. Recommended for comic and manga PDFs, especially when offline-downloaded pages are rendered as images."
+          )
+          .font(.caption)
+          .foregroundColor(.secondary)
         }
 
         if useNativePdfReader {
@@ -116,12 +127,28 @@
               Text("Controls Gradient Background")
             }
           }
-        } else {
-          Section {
-            Text("Native PDF Reader is disabled. PDF books use DIVINA Reader settings.")
-              .font(.caption)
-              .foregroundColor(.secondary)
+        }
+
+        if !useNativePdfReader {
+          Section(header: Text("Offline DIVINA Rendering")) {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Render Quality", selection: $pdfOfflineRenderQuality) {
+                ForEach(PdfOfflineRenderQuality.allCases, id: \.self) { quality in
+                  Text(quality.displayName).tag(quality)
+                }
+              }
+              .pickerStyle(.menu)
+
+              Text("Used for offline-downloaded PDF books rendered by DIVINA Reader.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+              Text(pdfOfflineRenderQuality.detailText)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
+
         }
       }
     }
