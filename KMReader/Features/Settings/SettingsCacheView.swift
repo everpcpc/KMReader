@@ -10,14 +10,10 @@ struct SettingsCacheView: View {
   @AppStorage("maxCoverCacheSize") private var maxCoverCacheSize: Int = 512
   @State private var showClearImageCacheConfirmation = false
   @State private var showClearAllImageCacheConfirmation = false
-  @State private var showClearBookFileCacheConfirmation = false
-  @State private var showClearAllBookFileCacheConfirmation = false
   @State private var showClearCoverCacheConfirmation = false
   @State private var showClearAllCoverCacheConfirmation = false
   @State private var imageCacheSize: Int64 = 0
   @State private var imageCacheCount: Int = 0
-  @State private var bookFileCacheSize: Int64 = 0
-  @State private var bookFileCacheCount: Int = 0
   @State private var thumbnailCacheSize: Int64 = 0
   @State private var thumbnailCacheCount: Int = 0
   @State private var isLoadingCacheSize = false
@@ -234,51 +230,6 @@ struct SettingsCacheView: View {
         .buttonStyle(.bordered)
       }
 
-      Section(header: Text("Book File (Deprecated)")) {
-        Text("This cache is deprecated. EPUB now reads from offline downloads.")
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-        HStack {
-          Text("Cached Size")
-          Spacer()
-          if isLoadingCacheSize {
-            LoadingIcon()
-          } else {
-            Text(formatCacheSize(bookFileCacheSize))
-              .foregroundColor(.secondary)
-          }
-        }
-        .tvFocusableHighlight()
-
-        HStack {
-          Text("Cached Files")
-          Spacer()
-          if isLoadingCacheSize {
-            LoadingIcon()
-          } else {
-            Text(formatCacheCount(bookFileCacheCount))
-              .foregroundColor(.secondary)
-          }
-        }
-        .tvFocusableHighlight()
-
-        HStack {
-          Button(role: .destructive) {
-            showClearAllBookFileCacheConfirmation = true
-          } label: {
-            Text("Clear All")
-              .frame(maxWidth: .infinity)
-          }
-          Button(role: .destructive) {
-            showClearBookFileCacheConfirmation = true
-          } label: {
-            Text("Clear Current")
-              .frame(maxWidth: .infinity)
-          }
-        }
-        .buttonStyle(.bordered)
-      }
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.cache.title)
@@ -312,38 +263,6 @@ struct SettingsCacheView: View {
     } message: {
       Text(
         "This will remove all cached page images for all servers. Images will be re-downloaded when needed."
-      )
-    }
-    .alert("Clear Book File (Current Server)", isPresented: $showClearBookFileCacheConfirmation) {
-      Button("Clear", role: .destructive) {
-        Task {
-          await BookFileCache.clearCurrentInstanceDiskCache()
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.cache.bookFileClearedCurrent")
-          )
-          await loadCacheSize()
-        }
-      }
-      Button("Cancel", role: .cancel) {}
-    } message: {
-      Text(
-        "This will remove cached EPUB files for the current server. Files will be re-downloaded when needed."
-      )
-    }
-    .alert("Clear Book File (All Servers)", isPresented: $showClearAllBookFileCacheConfirmation) {
-      Button("Clear", role: .destructive) {
-        Task {
-          await BookFileCache.clearAllDiskCache()
-          ErrorManager.shared.notify(
-            message: String(localized: "notification.cache.bookFileClearedAll")
-          )
-          await loadCacheSize()
-        }
-      }
-      Button("Cancel", role: .cancel) {}
-    } message: {
-      Text(
-        "This will remove all cached EPUB files for all servers. Files will be re-downloaded when needed."
       )
     }
     .alert(
@@ -413,15 +332,11 @@ struct SettingsCacheView: View {
     isLoadingCacheSize = true
     async let imageSize = ImageCache.getDiskCacheSize()
     async let imageCount = ImageCache.getDiskCacheCount()
-    async let bookFileSize = BookFileCache.getDiskCacheSize()
-    async let bookFileCount = BookFileCache.getDiskCacheCount()
     async let thumbnailSize = ThumbnailCache.getDiskCacheSize()
     async let thumbnailCount = ThumbnailCache.getDiskCacheCount()
 
     imageCacheSize = await imageSize
     imageCacheCount = await imageCount
-    bookFileCacheSize = await bookFileSize
-    bookFileCacheCount = await bookFileCount
     thumbnailCacheSize = await thumbnailSize
     thumbnailCacheCount = await thumbnailCount
     isLoadingCacheSize = false
