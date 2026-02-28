@@ -1,4 +1,4 @@
-KMReader - What's New (from v3.5 to current)
+KMReader - What's New (from v3.6 to current)
 
 Reader Experience
 - Added seamless chapter-to-chapter reading for DIVINA and Webtoon, with smoother end pages and more natural navigation.
@@ -8,7 +8,7 @@ Reader Experience
 
 Library and Personalization
 - Added Reading Stats with faster local data loading, plus pinned Collections and Read Lists on the Dashboard.
-- Added alternate app icons on iOS and simplified reader settings so options appear only when they are relevant.
+- Added alternate app icons on iOS.
 - Improved onboarding, login feedback, and overall reading polish across iPhone, iPad, Mac, and Apple TV.
 
 Offline and Sync
