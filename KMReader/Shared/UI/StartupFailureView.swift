@@ -26,7 +26,7 @@ struct StartupFailureView: View {
               String(
                 localized: "startup.storageFailure.message",
                 defaultValue:
-                  "KMReader failed to open or upgrade its local data. Try again once. If this keeps happening, reinstall KMReader to reset local data, then sign in again."
+                  "KMReader couldn't open or upgrade its local data. This can happen when upgrading from a much older version, or when the local database is already corrupted. Try again once. If it still fails, reinstall KMReader to reset local data, then sign in again."
               )
             )
 

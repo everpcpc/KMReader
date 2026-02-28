@@ -45715,43 +45715,43 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader konnte die lokalen Daten nicht öffnen oder migrieren. Versuchen Sie es noch einmal. Wenn das Problem weiterhin auftritt, installieren Sie KMReader neu, um die lokalen Daten zurückzusetzen, und melden Sie sich dann erneut an."
+            "value" : "KMReader konnte die lokalen Daten nicht öffnen oder aktualisieren. Das kann passieren, wenn Sie von einer deutlich älteren Version aktualisieren oder wenn die lokale Datenbank bereits beschädigt ist. Versuchen Sie es noch einmal. Wenn es weiterhin fehlschlägt, installieren Sie KMReader neu, um die lokalen Daten zurückzusetzen, und melden Sie sich dann erneut an."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader failed to open or upgrade its local data. Try again once. If this keeps happening, reinstall KMReader to reset local data, then sign in again."
+            "value" : "KMReader couldn't open or upgrade its local data. This can happen when upgrading from a much older version, or when the local database is already corrupted. Try again once. If it still fails, reinstall KMReader to reset local data, then sign in again."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader n'a pas pu ouvrir ou migrer ses données locales. Réessayez une fois. Si le problème persiste, réinstallez KMReader pour réinitialiser les données locales, puis reconnectez-vous."
+            "value" : "KMReader n'a pas pu ouvrir ou mettre à niveau ses données locales. Cela peut arriver lors d'une mise à niveau depuis une version beaucoup plus ancienne, ou si la base de données locale est déjà corrompue. Réessayez une fois. Si cela échoue encore, réinstallez KMReader pour réinitialiser les données locales, puis reconnectez-vous."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader はローカルデータを開くことも移行することもできませんでした。もう一度お試しください。問題が続く場合は、KMReader を再インストールしてローカルデータをリセットしてから、再度サインインしてください。"
+            "value" : "KMReader はローカルデータを開くこともアップグレードすることもできませんでした。かなり古いバージョンからアップグレードした場合や、ローカルデータベースがすでに破損している場合に発生することがあります。一度だけ再試行してください。それでも失敗する場合は、KMReader を再インストールしてローカルデータをリセットしてから、再度サインインしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader가 로컬 데이터를 열거나 마이그레이션하지 못했습니다. 한 번 다시 시도해 보세요. 문제가 계속되면 KMReader를 다시 설치해 로컬 데이터를 재설정한 후 다시 로그인하세요."
+            "value" : "KMReader가 로컬 데이터를 열거나 업그레이드하지 못했습니다. 아주 오래된 버전에서 업그레이드하는 경우나 로컬 데이터베이스가 이미 손상된 경우 이런 문제가 발생할 수 있습니다. 한 번 다시 시도해 보세요. 계속 실패하면 KMReader를 다시 설치해 로컬 데이터를 재설정한 후 다시 로그인하세요."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader 无法打开或迁移本地数据。请先重试一次。如果问题仍然存在，请重新安装 KMReader 以重置本地数据，然后重新登录。"
+            "value" : "KMReader 无法打开或升级本地数据。这可能发生在从很旧的版本升级时，或本地数据库已经损坏时。请先重试一次。如果仍然失败，请重新安装 KMReader 以重置本地数据，然后重新登录。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader 無法開啟或移轉本機資料。請先再試一次。如果問題仍然存在，請重新安裝 KMReader 以重設本機資料，然後重新登入。"
+            "value" : "KMReader 無法開啟或升級本機資料。這可能發生在從很舊的版本升級時，或本機資料庫已經損壞時。請先再試一次。如果仍然失敗，請重新安裝 KMReader 以重設本機資料，然後重新登入。"
           }
         }
       }
