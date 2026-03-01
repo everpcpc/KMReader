@@ -70,11 +70,6 @@ struct MainApp: App {
   @State private var deepLinkRouter = DeepLinkRouter.shared
 
   init() {
-    #if os(iOS)
-      Task { @MainActor in
-        QuickActionService.handlePendingShortcutIfNeeded()
-      }
-    #endif
     PlatformHelper.setup()
     _authViewModel = State(initialValue: AuthViewModel())
   }
@@ -104,6 +99,9 @@ struct MainApp: App {
       DatabaseOperator.shared = DatabaseOperator(modelContainer: container)
       _ = OfflineManager.shared
       modelContainer = container
+      #if os(iOS)
+        QuickActionService.handlePendingShortcutIfNeeded()
+      #endif
       modelContainerFailureDetails = nil
     } catch {
       let errorMessage = String(describing: error)
