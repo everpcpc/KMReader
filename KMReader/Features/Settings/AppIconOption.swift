@@ -37,6 +37,19 @@
       }
     }
 
+    var logoAssetName: String {
+      switch self {
+      case .primary:
+        return "logo"
+      case .classic:
+        return "logoClassic"
+      case .reverse:
+        return "logoReverse"
+      case .glass:
+        return "logoGlass"
+      }
+    }
+
     static func from(alternateIconName: String?) -> AppIconOption {
       guard let alternateIconName else {
         return .primary

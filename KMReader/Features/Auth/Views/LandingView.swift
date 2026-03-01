@@ -14,7 +14,7 @@ struct LandingView: View {
       Spacer()
 
       // Logo
-      Image("logo")
+      Image(AppIconLogoAsset.current)
         .resizable()
         .aspectRatio(contentMode: .fit)
         .frame(height: 120)
