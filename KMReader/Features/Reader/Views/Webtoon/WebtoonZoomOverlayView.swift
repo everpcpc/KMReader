@@ -8,7 +8,7 @@
 
   struct WebtoonZoomOverlayView: View {
     @Bindable var viewModel: ReaderViewModel
-    let pageIndex: Int
+    let pageID: ReaderPageID
     let zoomAnchor: CGPoint?
     let zoomRequestID: UUID
     let renderConfig: ReaderRenderConfig
@@ -33,28 +33,29 @@
       GeometryReader { geometry in
         let initialScale = CGFloat(zoomRenderConfig.doubleTapZoomScale)
 
-        PageScrollView(
-          viewModel: viewModel,
-          screenSize: geometry.size,
-          resetID: zoomRequestID,
-          minScale: 1.0,
-          maxScale: 8.0,
-          displayMode: .fillWidth,
-          readingDirection: .webtoon,
-          renderConfig: zoomRenderConfig,
-          initialZoomScale: initialScale,
-          initialZoomAnchor: zoomAnchor,
-          initialZoomID: zoomRequestID,
-          pages: [
-            NativePageData(
-              bookId: viewModel.resolvedBookId(forPageIndex: pageIndex),
-              pageNumber: pageIndex,
-              isLoading: viewModel.isLoading && viewModel.preloadedImage(forPageIndex: pageIndex) == nil,
-              error: nil,
-              alignment: .center
-            )
-          ]
-        )
+        if viewModel.page(for: pageID) != nil {
+          PageScrollView(
+            viewModel: viewModel,
+            screenSize: geometry.size,
+            resetID: zoomRequestID,
+            minScale: 1.0,
+            maxScale: 8.0,
+            displayMode: .fillWidth,
+            readingDirection: .webtoon,
+            renderConfig: zoomRenderConfig,
+            initialZoomScale: initialScale,
+            initialZoomAnchor: zoomAnchor,
+            initialZoomID: zoomRequestID,
+            pages: [
+              NativePageData(
+                pageID: pageID,
+                isLoading: viewModel.isLoading && viewModel.preloadedImage(for: pageID) == nil,
+                error: nil,
+                alignment: .center
+              )
+            ]
+          )
+        }
       }
       .background(renderConfig.readerBackground.color.readerIgnoresSafeArea())
       .readerIgnoresSafeArea()

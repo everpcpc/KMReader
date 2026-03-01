@@ -6,7 +6,6 @@ import Foundation
 
 @MainActor
 final class WebtoonScrollEngine {
-  var currentPage: Int
   var currentPageID: ReaderPageID?
   var pendingReloadCurrentPageID: ReaderPageID?
   var hasScrolledToInitialPage: Bool = false
@@ -19,11 +18,9 @@ final class WebtoonScrollEngine {
   private var initialScrollGeneration: Int = 0
 
   init(
-    initialPage: Int,
     initialPageID: ReaderPageID?,
     maxInitialScrollRetries: Int = WebtoonConstants.initialScrollMaxRetries
   ) {
-    currentPage = initialPage
     currentPageID = initialPageID
     initialScrollRetrier = InitialScrollRetrier(maxRetries: maxInitialScrollRetries)
   }
@@ -53,26 +50,19 @@ final class WebtoonScrollEngine {
     return didChange
   }
 
-  func pageID(forPageIndex pageIndex: Int, viewModel: ReaderViewModel?) -> ReaderPageID? {
-    viewModel?.readerPage(at: pageIndex)?.id
-  }
-
-  func pageIndex(forPageID pageID: ReaderPageID?, viewModel: ReaderViewModel?) -> Int? {
-    guard let pageID else { return nil }
-    return viewModel?.pageIndex(for: pageID)
-  }
-
   func itemIndex(forPageID pageID: ReaderPageID?) -> Int? {
     guard let pageID else { return nil }
     return itemIndexByPageID[pageID]
   }
 
-  func resolvedPageIndex(forItemIndex itemIndex: Int, viewModel: ReaderViewModel?) -> Int? {
-    WebtoonContentItems.resolvedPageIndex(
-      for: itemIndex,
-      in: contentItems,
-      viewModel: viewModel
-    )
+  func resolvedPageID(forItemIndex itemIndex: Int, viewModel: ReaderViewModel?) -> ReaderPageID? {
+    guard itemIndex >= 0, itemIndex < contentItems.count else { return nil }
+    switch contentItems[itemIndex] {
+    case .page(let pageID):
+      return pageID
+    case .end(let segmentBookId):
+      return viewModel?.lastPageID(forSegmentBookId: segmentBookId)
+    }
   }
 
   func resetInitialScrollRetrier() {

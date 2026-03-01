@@ -14,7 +14,7 @@
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onPlayAnimatedPage: ((Int) -> Void)?
+    let onPlayAnimatedPage: ((ReaderPageID) -> Void)?
 
     private enum SpreadSlot: Int {
       case first = 0
@@ -22,7 +22,7 @@
     }
 
     private enum SlotContent {
-      case page(pageIndex: Int, splitMode: PageSplitMode)
+      case page(pageID: ReaderPageID, splitMode: PageSplitMode)
       case end(segmentBookId: String)
       case placeholder
     }
@@ -58,11 +58,11 @@
         semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
       )
 
-      let initialSpreadIndex = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
-      context.coordinator.currentSpreadIndex = initialSpreadIndex
+      let initialSpreadIndex = viewModel.currentViewItem().flatMap { viewModel.viewItemIndex(for: $0) } ?? 0
+      context.coordinator.currentItem = viewModel.viewItem(at: initialSpreadIndex)
       context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
       Task { @MainActor in
-        viewModel.updateCurrentPosition(viewItemIndex: initialSpreadIndex)
+        viewModel.updateCurrentPosition(viewItem: viewModel.viewItem(at: initialSpreadIndex))
       }
 
       if let initialPair = context.coordinator.pageControllerPair(for: initialSpreadIndex) {
@@ -87,33 +87,30 @@
         semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
       )
 
-      context.coordinator.syncCurrentSpreadIndexWithVisibleController()
+      context.coordinator.syncCurrentItemWithVisibleController()
       let didViewItemsChange = context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
       context.coordinator.refreshVisibleControllerConfiguration()
 
       let targetSpreadIndex: Int? = {
-        if let explicitTarget = viewModel.targetViewItemIndex {
-          return explicitTarget
+        if let explicitTarget = viewModel.navigationTarget.flatMap({ viewModel.resolvedViewItem(for: $0) }) {
+          return viewModel.viewItemIndex(for: explicitTarget)
         }
-        if let targetPageIndex = viewModel.targetPageIndex {
-          return viewModel.viewItemIndex(forPageIndex: targetPageIndex)
-        }
-        if didViewItemsChange {
-          return viewModel.currentViewItemIndex
+        if didViewItemsChange, let currentItem = viewModel.currentViewItem() {
+          return viewModel.viewItemIndex(for: currentItem)
         }
         return nil
       }()
 
       guard let targetSpreadIndex else { return }
+      let currentSpreadIndex = context.coordinator.currentResolvedSpreadIndex() ?? targetSpreadIndex
 
       let clearTargets: () -> Void = {
         _ = Task { @MainActor in
-          viewModel.targetViewItemIndex = nil
-          viewModel.targetPageIndex = nil
+          viewModel.clearNavigationTarget()
         }
       }
 
-      guard targetSpreadIndex != context.coordinator.currentSpreadIndex else {
+      guard targetSpreadIndex != currentSpreadIndex else {
         clearTargets()
         return
       }
@@ -127,9 +124,9 @@
 
       let direction: UIPageViewController.NavigationDirection
       if mode.isRTL {
-        direction = targetSpreadIndex > context.coordinator.currentSpreadIndex ? .reverse : .forward
+        direction = targetSpreadIndex > currentSpreadIndex ? .reverse : .forward
       } else {
-        direction = targetSpreadIndex > context.coordinator.currentSpreadIndex ? .forward : .reverse
+        direction = targetSpreadIndex > currentSpreadIndex ? .forward : .reverse
       }
 
       context.coordinator.isTransitioning = true
@@ -151,11 +148,10 @@
                 animated: false
               )
             }
-            context.coordinator.currentSpreadIndex = targetSpreadIndex
-            viewModel.updateCurrentPosition(viewItemIndex: targetSpreadIndex)
+            context.coordinator.currentItem = viewModel.viewItem(at: targetSpreadIndex)
+            viewModel.updateCurrentPosition(viewItem: context.coordinator.currentItem)
           }
-          viewModel.targetViewItemIndex = nil
-          viewModel.targetPageIndex = nil
+          viewModel.clearNavigationTarget()
         }
       }
     }
@@ -189,18 +185,18 @@
       UIGestureRecognizerDelegate
     {
       var parent: CurlDualPageView
-      var currentSpreadIndex: Int
+      var currentItem: ReaderViewItem?
       weak var pageViewController: UIPageViewController?
       var isTransitioning = false
       var hasCompletedInitialUpdate = false
-      private var transitionTargetSpreadIndex: Int?
+      private var transitionTargetItem: ReaderViewItem?
       private var lastViewItemsCount: Int = 0
       private var lastFirstViewItem: ReaderViewItem?
       private var lastLastViewItem: ReaderViewItem?
 
       init(_ parent: CurlDualPageView) {
         self.parent = parent
-        self.currentSpreadIndex = parent.viewModel.currentViewItemIndex
+        self.currentItem = parent.viewModel.currentViewItem()
       }
 
       private var totalSpreads: Int {
@@ -292,23 +288,13 @@
           } else {
             targetPageID = slot == .first ? firstID : secondID
           }
-          guard let pageIndex = parent.viewModel.pageIndex(for: targetPageID) else {
-            return .placeholder
-          }
-          return .page(pageIndex: pageIndex, splitMode: .none)
+          return .page(pageID: targetPageID, splitMode: .none)
         case .page(let id):
           guard preferredSlotForSingleSpread(at: spreadIndex) == slot else {
             return .placeholder
           }
-          guard let pageIndex = parent.viewModel.pageIndex(for: id) else {
-            return .placeholder
-          }
-          return .page(pageIndex: pageIndex, splitMode: .none)
+          return .page(pageID: id, splitMode: .none)
         case .split(let id, let part):
-          guard let pageIndex = parent.viewModel.pageIndex(for: id) else {
-            return .placeholder
-          }
-
           if part == .both {
             let firstIsLeftHalf = parent.viewModel.isLeftSplitHalf(
               part: .first,
@@ -330,7 +316,7 @@
 
             let isLeftHalf = slotUsesFirstLogicalPart ? firstIsLeftHalf : secondIsLeftHalf
             let splitMode: PageSplitMode = isLeftHalf ? .leftHalf : .rightHalf
-            return .page(pageIndex: pageIndex, splitMode: splitMode)
+            return .page(pageID: id, splitMode: splitMode)
           }
 
           guard preferredSlotForSingleSpread(at: spreadIndex) == slot else {
@@ -342,9 +328,9 @@
             splitWidePageMode: parent.splitWidePageMode
           )
           let splitMode: PageSplitMode = isLeftHalf ? .leftHalf : .rightHalf
-          return .page(pageIndex: pageIndex, splitMode: splitMode)
-        case .end(let segmentBookId):
-          return .end(segmentBookId: segmentBookId)
+          return .page(pageID: id, splitMode: splitMode)
+        case .end(let id):
+          return .end(segmentBookId: id.bookId)
         }
       }
 
@@ -356,13 +342,13 @@
 
       private func configureImageController(
         _ controller: NativeImagePageViewController,
-        pageIndex: Int,
+        pageID: ReaderPageID,
         splitMode: PageSplitMode,
         alignment: HorizontalAlignment
       ) {
         controller.configure(
           viewModel: parent.viewModel,
-          pageIndex: pageIndex,
+          pageID: pageID,
           splitMode: splitMode,
           alignment: alignment,
           readingDirection: parent.readingDirection,
@@ -401,11 +387,11 @@
         guard let content = slotContent(for: spreadIndex, slot: slot) else { return false }
 
         switch content {
-        case .page(let pageIndex, let splitMode):
+        case .page(let pageID, let splitMode):
           guard let imageController = controller as? NativeImagePageViewController else { return false }
           configureImageController(
             imageController,
-            pageIndex: pageIndex,
+            pageID: pageID,
             splitMode: splitMode,
             alignment: spineAlignment(for: slot)
           )
@@ -426,11 +412,11 @@
 
         let controller: UIViewController
         switch content {
-        case .page(let pageIndex, let splitMode):
+        case .page(let pageID, let splitMode):
           let imageController = NativeImagePageViewController()
           configureImageController(
             imageController,
-            pageIndex: pageIndex,
+            pageID: pageID,
             splitMode: splitMode,
             alignment: spineAlignment(for: slot)
           )
@@ -462,6 +448,15 @@
         controllers.compactMap { parent.decodedMetadata(for: $0)?.spreadIndex }
       }
 
+      private func resolvedSpreadIndex(for item: ReaderViewItem?) -> Int? {
+        guard let item = parent.viewModel.resolvedViewItem(for: item) else { return nil }
+        return parent.viewModel.viewItemIndex(for: item)
+      }
+
+      func currentResolvedSpreadIndex() -> Int? {
+        resolvedSpreadIndex(for: currentItem)
+      }
+
       private func resolvedVisibleSpreadIndex() -> Int? {
         guard let visibleControllers = pageViewController?.viewControllers else { return nil }
         let uniqueIndices = Array(Set(spreadIndices(from: visibleControllers))).sorted()
@@ -469,18 +464,22 @@
         if uniqueIndices.count == 1 {
           return uniqueIndices[0]
         }
-        if let transitionTargetSpreadIndex, uniqueIndices.contains(transitionTargetSpreadIndex) {
+        if let transitionTargetSpreadIndex = resolvedSpreadIndex(for: transitionTargetItem),
+          uniqueIndices.contains(transitionTargetSpreadIndex)
+        {
           return transitionTargetSpreadIndex
         }
-        if uniqueIndices.contains(currentSpreadIndex) {
+        if let currentSpreadIndex = currentResolvedSpreadIndex(),
+          uniqueIndices.contains(currentSpreadIndex)
+        {
           return currentSpreadIndex
         }
         return uniqueIndices[0]
       }
 
-      func syncCurrentSpreadIndexWithVisibleController() {
+      func syncCurrentItemWithVisibleController() {
         if let visibleSpreadIndex = resolvedVisibleSpreadIndex() {
-          currentSpreadIndex = visibleSpreadIndex
+          currentItem = parent.viewModel.viewItem(at: visibleSpreadIndex)
         }
       }
 
@@ -559,10 +558,11 @@
       ) {
         isTransitioning = true
         let pendingIndices = Array(Set(spreadIndices(from: pendingViewControllers))).sorted()
+        let currentSpreadIndex = currentResolvedSpreadIndex()
         if let explicitTarget = pendingIndices.first(where: { $0 != currentSpreadIndex }) {
-          transitionTargetSpreadIndex = explicitTarget
+          transitionTargetItem = parent.viewModel.viewItem(at: explicitTarget)
         } else {
-          transitionTargetSpreadIndex = pendingIndices.first
+          transitionTargetItem = pendingIndices.first.flatMap { parent.viewModel.viewItem(at: $0) }
         }
       }
 
@@ -573,15 +573,23 @@
         transitionCompleted completed: Bool
       ) {
         isTransitioning = false
-        syncCurrentSpreadIndexWithVisibleController()
+        syncCurrentItemWithVisibleController()
 
         guard completed else {
-          transitionTargetSpreadIndex = nil
+          transitionTargetItem = nil
           return
         }
 
-        let committedSpreadIndex = transitionTargetSpreadIndex ?? resolvedVisibleSpreadIndex() ?? currentSpreadIndex
-        transitionTargetSpreadIndex = nil
+        guard
+          let committedSpreadIndex =
+            resolvedSpreadIndex(for: transitionTargetItem)
+            ?? resolvedVisibleSpreadIndex()
+            ?? currentResolvedSpreadIndex()
+        else {
+          transitionTargetItem = nil
+          return
+        }
+        transitionTargetItem = nil
         guard isValidSpreadIndex(committedSpreadIndex) else { return }
 
         if let committedPair = pageControllerPair(for: committedSpreadIndex) {
@@ -593,10 +601,10 @@
           )
         }
 
-        currentSpreadIndex = committedSpreadIndex
+        currentItem = parent.viewModel.viewItem(at: committedSpreadIndex)
         let viewModel = parent.viewModel
         Task { @MainActor in
-          viewModel.updateCurrentPosition(viewItemIndex: committedSpreadIndex)
+          viewModel.updateCurrentPosition(viewItem: currentItem)
         }
         Task(priority: .utility) { @MainActor in
           await viewModel.preloadPages()
@@ -629,8 +637,10 @@
         guard !parent.viewModel.isZoomed else { return false }
         guard parent.viewModel.liveTextActivePageIndex == nil else { return false }
 
-        syncCurrentSpreadIndexWithVisibleController()
-        guard isValidSpreadIndex(currentSpreadIndex) else { return false }
+        syncCurrentItemWithVisibleController()
+        guard let currentSpreadIndex = currentResolvedSpreadIndex(),
+          isValidSpreadIndex(currentSpreadIndex)
+        else { return false }
 
         let beforeExists = isValidSpreadIndex(beforeSpreadIndex(from: currentSpreadIndex))
         let afterExists = isValidSpreadIndex(afterSpreadIndex(from: currentSpreadIndex))

@@ -14,23 +14,20 @@ enum PageSplitMode {
 
 /// Data structure for a single page to be rendered natively
 struct NativePageData {
-  let bookId: String
-  let pageNumber: Int
+  let pageID: ReaderPageID
   let isLoading: Bool
   let error: String?
   let alignment: HorizontalAlignment
   let splitMode: PageSplitMode
 
   init(
-    bookId: String,
-    pageNumber: Int,
+    pageID: ReaderPageID,
     isLoading: Bool,
     error: String?,
     alignment: HorizontalAlignment,
     splitMode: PageSplitMode = .none
   ) {
-    self.bookId = bookId
-    self.pageNumber = pageNumber
+    self.pageID = pageID
     self.isLoading = isLoading
     self.error = error
     self.alignment = alignment

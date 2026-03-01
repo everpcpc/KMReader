@@ -13,7 +13,7 @@
   {
     private weak var viewModel: ReaderViewModel?
 
-    private var pageIndex: Int = 0
+    private var pageID = ReaderPageID(bookId: "", pageNumber: 0)
     private var splitMode: PageSplitMode = .none
     private var alignment: HorizontalAlignment = .center
     private var readingDirection: ReadingDirection = .ltr
@@ -28,7 +28,7 @@
       doubleTapZoomMode: .fast
     )
 
-    private var onPlayAnimatedPage: ((Int) -> Void)?
+    private var onPlayAnimatedPage: ((ReaderPageID) -> Void)?
 
     private let scrollView = UIScrollView()
     private let pageItem = NativePageItem()
@@ -37,24 +37,24 @@
 
     private var loadTask: Task<Void, Never>?
 
-    private var lastConfiguredPageIndex: Int?
+    private var lastConfiguredPageID: ReaderPageID?
     private var loadError: String?
     private var isVisibleForAnimatedInlinePlayback = false
     private var inlineReadyProbeToken: UInt64 = 0
 
     func configure(
       viewModel: ReaderViewModel,
-      pageIndex: Int,
+      pageID: ReaderPageID,
       splitMode: PageSplitMode,
       alignment: HorizontalAlignment = .center,
       readingDirection: ReadingDirection,
       renderConfig: ReaderRenderConfig,
-      onPlayAnimatedPage: ((Int) -> Void)?
+      onPlayAnimatedPage: ((ReaderPageID) -> Void)?
     ) {
-      let isPageChanged = lastConfiguredPageIndex != pageIndex
+      let isPageChanged = lastConfiguredPageID != pageID
 
       self.viewModel = viewModel
-      self.pageIndex = pageIndex
+      self.pageID = pageID
       self.splitMode = splitMode
       self.alignment = alignment
       self.readingDirection = readingDirection
@@ -69,7 +69,7 @@
         viewModel.isZoomed = false
         hideAnimatedInlinePlayback()
       }
-      lastConfiguredPageIndex = pageIndex
+      lastConfiguredPageID = pageID
 
       if isViewLoaded {
         applyConfiguration()
@@ -176,8 +176,8 @@
     private func refreshPageItem() {
       guard let viewModel else { return }
 
-      let readerPage = viewModel.readerPage(at: pageIndex)
-      let image = viewModel.preloadedImage(forPageIndex: pageIndex)
+      let readerPage = viewModel.readerPage(for: pageID)
+      let image = viewModel.preloadedImage(for: pageID)
 
       if image != nil {
         loadError = nil
@@ -185,8 +185,7 @@
 
       let isLoading = loadTask != nil || (image == nil && readerPage != nil && loadError == nil)
       let data = NativePageData(
-        bookId: viewModel.resolvedBookId(forPageIndex: pageIndex),
-        pageNumber: pageIndex,
+        pageID: pageID,
         isLoading: isLoading,
         error: loadError,
         alignment: alignment,
@@ -216,17 +215,18 @@
     private func startLoadingImageIfNeeded() {
       guard loadTask == nil else { return }
       guard let viewModel else { return }
+      guard let requestedPageIndex = viewModel.pageIndex(for: pageID) else { return }
 
-      let requestedPageIndex = pageIndex
+      let requestedPageID = pageID
 
       loadTask = Task { [weak self] in
         guard let self else { return }
         let image = await viewModel.preloadImageForPage(at: requestedPageIndex)
         guard !Task.isCancelled else { return }
-        guard self.pageIndex == requestedPageIndex else { return }
+        guard self.pageID == requestedPageID else { return }
 
         self.loadTask = nil
-        if image == nil && viewModel.preloadedImage(forPageIndex: requestedPageIndex) == nil {
+        if image == nil && viewModel.preloadedImage(for: requestedPageID) == nil {
           self.loadError = "Failed to load page"
         } else {
           self.loadError = nil
@@ -244,7 +244,7 @@
       let shouldShow =
         !renderConfig.autoPlayAnimatedImages
         && onPlayAnimatedPage != nil
-        && viewModel.shouldShowAnimatedPlayButton(for: pageIndex)
+        && viewModel.shouldShowAnimatedPlayButton(for: pageID)
       playButton.isHidden = !shouldShow
     }
 
@@ -261,12 +261,12 @@
         hideAnimatedInlinePlayback()
         return
       }
-      guard let fileURL = viewModel.animatedPlaybackFileURL(for: pageIndex) else {
+      guard let fileURL = viewModel.animatedPlaybackFileURL(for: pageID) else {
         hideAnimatedInlinePlayback()
         return
       }
 
-      let slot = max(pageIndex, 0) % 4
+      let slot = max(viewModel.pageIndex(for: pageID) ?? pageID.pageNumber, 0) % 4
       let webView = AnimatedImageWebViewPool.shared.webView(for: slot)
       webView.navigationDelegate = self
       if webView.superview !== animatedInlineContainer {
@@ -335,7 +335,7 @@
     }
 
     @objc private func handlePlayButtonTap() {
-      onPlayAnimatedPage?(pageIndex)
+      onPlayAnimatedPage?(pageID)
     }
 
     @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {

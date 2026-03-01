@@ -14,7 +14,7 @@
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onPlayAnimatedPage: ((Int) -> Void)?
+    let onPlayAnimatedPage: ((ReaderPageID) -> Void)?
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -44,11 +44,11 @@
       )
       PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
 
-      let initialIndex = viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
-      context.coordinator.currentPageIndex = initialIndex
+      let initialIndex = viewModel.currentViewItem().flatMap { viewModel.viewItemIndex(for: $0) } ?? 0
+      context.coordinator.currentItem = viewModel.viewItem(at: initialIndex)
       context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
       Task { @MainActor in
-        viewModel.updateCurrentPosition(viewItemIndex: initialIndex)
+        viewModel.updateCurrentPosition(viewItem: viewModel.viewItem(at: initialIndex))
       }
 
       if let initialVC = context.coordinator.pageViewController(for: initialIndex) {
@@ -78,33 +78,30 @@
         semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
       )
       PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
-      context.coordinator.syncCurrentPageIndexWithVisibleController()
+      context.coordinator.syncCurrentItemWithVisibleController()
       let didViewItemsChange = context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
       context.coordinator.refreshVisibleControllerConfiguration()
 
       let targetViewItemIndex: Int? = {
-        if let explicitTarget = viewModel.targetViewItemIndex {
-          return explicitTarget
+        if let explicitTarget = viewModel.navigationTarget.flatMap({ viewModel.resolvedViewItem(for: $0) }) {
+          return viewModel.viewItemIndex(for: explicitTarget)
         }
-        if let targetPageIndex = viewModel.targetPageIndex {
-          return viewModel.viewItemIndex(forPageIndex: targetPageIndex)
-        }
-        if didViewItemsChange {
-          return viewModel.currentViewItemIndex
+        if didViewItemsChange, let currentItem = viewModel.currentViewItem() {
+          return viewModel.viewItemIndex(for: currentItem)
         }
         return nil
       }()
 
       guard let targetViewItemIndex else { return }
+      let currentPageIndex = context.coordinator.currentResolvedIndex() ?? targetViewItemIndex
 
       let clearTargets: () -> Void = {
         _ = Task { @MainActor in
-          viewModel.targetViewItemIndex = nil
-          viewModel.targetPageIndex = nil
+          viewModel.clearNavigationTarget()
         }
       }
 
-      guard targetViewItemIndex != context.coordinator.currentPageIndex else {
+      guard targetViewItemIndex != currentPageIndex else {
         clearTargets()
         return
       }
@@ -118,9 +115,9 @@
 
       let direction: UIPageViewController.NavigationDirection
       if mode.isRTL {
-        direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .reverse : .forward
+        direction = targetViewItemIndex > currentPageIndex ? .reverse : .forward
       } else {
-        direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .forward : .reverse
+        direction = targetViewItemIndex > currentPageIndex ? .forward : .reverse
       }
 
       context.coordinator.isTransitioning = true
@@ -152,11 +149,12 @@
               direction: direction,
               animated: false
             )
-            context.coordinator.currentPageIndex = targetViewItemIndex
-            viewModel.updateCurrentPosition(viewItemIndex: context.coordinator.currentPageIndex)
+            context.coordinator.currentItem = viewModel.viewItem(at: targetViewItemIndex)
+            viewModel.updateCurrentPosition(
+              viewItem: context.coordinator.currentItem
+            )
           }
-          viewModel.targetViewItemIndex = nil
-          viewModel.targetPageIndex = nil
+          viewModel.clearNavigationTarget()
         }
       }
     }
@@ -211,7 +209,7 @@
       UIGestureRecognizerDelegate
     {
       var parent: CurlPageView
-      var currentPageIndex: Int
+      var currentItem: ReaderViewItem?
       weak var pageViewController: UIPageViewController?
       var isTransitioning = false
       var hasCompletedInitialUpdate = false
@@ -221,7 +219,7 @@
 
       init(_ parent: CurlPageView) {
         self.parent = parent
-        self.currentPageIndex = parent.viewModel.currentViewItemIndex
+        self.currentItem = parent.viewModel.currentViewItem()
       }
 
       var totalPages: Int {
@@ -247,21 +245,13 @@
         _ controller: NativeImagePageViewController,
         with item: ReaderViewItem
       ) {
-        let pageIndex: Int
         let splitMode: PageSplitMode
+        let pageID = item.pageID
 
         switch item {
-        case .page(let id):
-          guard let resolvedIndex = parent.viewModel.pageIndex(for: id) else { return }
-          pageIndex = resolvedIndex
+        case .page, .dual:
           splitMode = .none
-        case .dual(let first, _):
-          guard let resolvedIndex = parent.viewModel.pageIndex(for: first) else { return }
-          pageIndex = resolvedIndex
-          splitMode = .none
-        case .split(let id, let part):
-          guard let resolvedIndex = parent.viewModel.pageIndex(for: id) else { return }
-          pageIndex = resolvedIndex
+        case .split(_, let part):
           let isLeftHalf = parent.viewModel.isLeftSplitHalf(
             part: part,
             readingDirection: parent.readingDirection,
@@ -274,7 +264,7 @@
 
         controller.configure(
           viewModel: parent.viewModel,
-          pageIndex: pageIndex,
+          pageID: pageID,
           splitMode: splitMode,
           readingDirection: parent.readingDirection,
           renderConfig: parent.renderConfig,
@@ -303,9 +293,9 @@
         guard let item = parent.viewModel.viewItem(at: index) else { return }
 
         switch item {
-        case .end(let segmentBookId):
+        case .end(let id):
           if let endController = visibleController as? NativeEndPageViewController {
-            configureEndController(endController, segmentBookId: segmentBookId)
+            configureEndController(endController, segmentBookId: id.bookId)
           } else if let replacement = self.pageViewController(for: index) {
             let controllers = parent.pageCurlControllers(
               primary: replacement,
@@ -348,9 +338,9 @@
         let controller: UIViewController
 
         switch item {
-        case .end(let segmentBookId):
+        case .end(let id):
           let endController = NativeEndPageViewController()
-          configureEndController(endController, segmentBookId: segmentBookId)
+          configureEndController(endController, segmentBookId: id.bookId)
           controller = endController
         case .page, .dual, .split:
           let imageController = NativeImagePageViewController()
@@ -426,7 +416,7 @@
         transitionCompleted completed: Bool
       ) {
         isTransitioning = false
-        syncCurrentPageIndexWithVisibleController()
+        syncCurrentItemWithVisibleController()
         guard completed,
           let visibleController = pageViewController.viewControllers?.first
         else { return }
@@ -459,11 +449,11 @@
           newIndex = resolvedIndex
         }
 
-        currentPageIndex = newIndex
+        currentItem = parent.viewModel.viewItem(at: newIndex)
 
         let viewModel = parent.viewModel
         Task { @MainActor in
-          viewModel.updateCurrentPosition(viewItemIndex: newIndex)
+          viewModel.updateCurrentPosition(viewItem: currentItem)
         }
         Task(priority: .utility) { @MainActor in
           await viewModel.preloadPages()
@@ -504,9 +494,14 @@
         return resolvedIndex(for: visibleController)
       }
 
-      func syncCurrentPageIndexWithVisibleController() {
+      func currentResolvedIndex() -> Int? {
+        guard let currentItem = parent.viewModel.resolvedViewItem(for: currentItem) else { return nil }
+        return parent.viewModel.viewItemIndex(for: currentItem)
+      }
+
+      func syncCurrentItemWithVisibleController() {
         if let visibleIndex = visiblePageIndex() {
-          currentPageIndex = visibleIndex
+          currentItem = parent.viewModel.viewItem(at: visibleIndex)
         }
       }
 
@@ -561,8 +556,10 @@
         guard !parent.viewModel.isZoomed else { return false }
         guard parent.viewModel.liveTextActivePageIndex == nil else { return false }
 
-        syncCurrentPageIndexWithVisibleController()
-        guard isValidIndex(currentPageIndex) else { return false }
+        syncCurrentItemWithVisibleController()
+        guard let currentPageIndex = currentResolvedIndex(), isValidIndex(currentPageIndex) else {
+          return false
+        }
 
         let beforeExists = isValidIndex(beforeIndex(from: currentPageIndex))
         let afterExists = isValidIndex(afterIndex(from: currentPageIndex))

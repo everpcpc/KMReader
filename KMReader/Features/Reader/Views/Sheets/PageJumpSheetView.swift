@@ -66,27 +66,19 @@ private struct PagePreviewCard: View {
 }
 
 struct PageJumpSheetView: View {
-  let currentPage: Int
+  let segmentBookId: String
+  let currentPageID: ReaderPageID?
   let readingDirection: ReadingDirection
   let viewModel: ReaderViewModel
-  let onJump: (Int) -> Void
+  let onJump: (ReaderPageID) -> Void
 
   @Environment(\.dismiss) private var dismiss
 
   @State private var pageValue: Int
   @State private var scrollPosition: Int?
 
-  private var currentBookId: String? {
-    viewModel.activeBookId
-  }
-
-  private var currentSegmentRange: Range<Int> {
-    guard let currentBookId,
-      let range = viewModel.pageRange(forSegmentBookId: currentBookId)
-    else {
-      return 0..<0
-    }
-    return range
+  private var currentSegmentPages: [ReaderPage] {
+    viewModel.segmentReaderPages(forSegmentBookId: segmentBookId)
   }
 
   private var totalPages: Int {
@@ -94,11 +86,10 @@ struct PageJumpSheetView: View {
   }
 
   private var pagePreviews: [PagePreview] {
-    currentSegmentRange.enumerated().compactMap { localIndex, globalIndex in
-      guard let readerPage = viewModel.readerPage(at: globalIndex) else { return nil }
+    currentSegmentPages.enumerated().map { localIndex, readerPage in
       return PagePreview(
         id: localIndex + 1,
-        globalPageIndex: globalIndex,
+        pageID: readerPage.id,
         readerPage: readerPage
       )
     }
@@ -110,6 +101,16 @@ struct PageJumpSheetView: View {
 
   private var canJump: Bool {
     totalPages > 0
+  }
+
+  private var currentPageNumber: Int {
+    guard canJump else { return 0 }
+    if let currentPageID,
+      let currentIndex = currentSegmentPages.firstIndex(where: { $0.id == currentPageID })
+    {
+      return currentIndex + 1
+    }
+    return min(max(pageValue, 1), totalPages)
   }
 
   private var sliderBinding: Binding<Double> {
@@ -125,18 +126,24 @@ struct PageJumpSheetView: View {
   }
 
   init(
-    currentPage: Int,
+    segmentBookId: String,
+    currentPageID: ReaderPageID?,
     readingDirection: ReadingDirection = .ltr,
     viewModel: ReaderViewModel,
-    onJump: @escaping (Int) -> Void
+    onJump: @escaping (ReaderPageID) -> Void
   ) {
-    self.currentPage = currentPage
+    self.segmentBookId = segmentBookId
+    self.currentPageID = currentPageID
     self.readingDirection = readingDirection
     self.viewModel = viewModel
     self.onJump = onJump
 
-    let totalReaderPages = viewModel.pageCount
-    let safeInitialPage = max(1, min(currentPage, max(totalReaderPages, 1)))
+    let segmentPages = viewModel.segmentReaderPages(forSegmentBookId: segmentBookId)
+    let initialPage =
+      currentPageID.flatMap { pageID in
+        segmentPages.firstIndex(where: { $0.id == pageID }).map { $0 + 1 }
+      } ?? 1
+    let safeInitialPage = max(1, min(initialPage, max(segmentPages.count, 1)))
     _pageValue = State(initialValue: safeInitialPage)
     _scrollPosition = State(initialValue: safeInitialPage)
   }
@@ -161,7 +168,7 @@ struct PageJumpSheetView: View {
     guard canJump else { return }
     let clampedValue = min(max(pageValue, 1), totalPages)
     guard let preview = pagePreview(localPage: clampedValue) else { return }
-    onJump(preview.globalPageIndex + 1)
+    onJump(preview.pageID)
     dismiss()
   }
 
@@ -177,11 +184,10 @@ struct PageJumpSheetView: View {
       let pageNumber = pageValue
       guard pageNumber > 0 && pageNumber <= totalPages else { return }
       guard let preview = pagePreview(localPage: pageNumber) else { return }
-      let pageIndex = preview.globalPageIndex
       let readerPage = preview.readerPage
 
       // Use viewModel's method to get page image (checks cache, offline, downloads if needed)
-      guard let fileURL = await viewModel.getPageImageFileURL(pageIndex: pageIndex) else { return }
+      guard let fileURL = await viewModel.getPageImageFileURL(pageID: preview.pageID) else { return }
       guard let image = PlatformImage(contentsOfFile: fileURL.path) else { return }
 
       ImageShareHelper.shareMultiple(images: [image], fileNames: [readerPage.page.fileName])
@@ -192,7 +198,7 @@ struct PageJumpSheetView: View {
     SheetView(title: String(localized: "Go to Page"), size: .medium) {
       VStack(spacing: 16) {
         if canJump {
-          Text("Current page: \(currentPage)")
+          Text("Current page: \(currentPageNumber)")
             .foregroundStyle(.secondary)
         }
 
@@ -286,7 +292,7 @@ struct PageJumpSheetView: View {
                   }
                 }
                 .adaptiveButtonStyle(.borderedProminent)
-                .disabled(!canJump || pageValue == currentPage)
+                .disabled(!canJump || pageValue == currentPageNumber)
               }
               .focusSection()
             #else
@@ -315,7 +321,7 @@ struct PageJumpSheetView: View {
                   }
                 }
                 .adaptiveButtonStyle(.borderedProminent)
-                .disabled(!canJump || pageValue == currentPage)
+                .disabled(!canJump || pageValue == currentPageNumber)
               }
             #endif
           }
@@ -341,6 +347,6 @@ struct PageJumpSheetView: View {
 
 private struct PagePreview: Identifiable {
   let id: Int
-  let globalPageIndex: Int
+  let pageID: ReaderPageID
   let readerPage: ReaderPage
 }
