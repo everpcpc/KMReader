@@ -9,18 +9,15 @@
 
   class WebtoonPageCell: NSCollectionViewItem {
     private let pageImageView = NSImageView()
+    private let sepiaOverlayView = NSView()
     private let loadingIndicator = NSProgressIndicator()
     private let pageMarkerLabel = NSTextField(labelWithString: "")
     private let pageMarkerContainer = NSView()
     private let errorLabel = NSTextField(labelWithString: "⚠")
-    private var sourceImage: NSImage?
-    private var renderedBackground: ReaderBackground = .system
-    private var renderedImage: NSImage?
 
     var readerBackground: ReaderBackground = .system {
       didSet {
         applyBackground()
-        updateDisplayedImage()
       }
     }
 
@@ -43,6 +40,12 @@
       pageImageView.autoresizingMask = [.width, .height]
       pageImageView.frame = view.bounds
       view.addSubview(pageImageView)
+
+      sepiaOverlayView.wantsLayer = true
+      sepiaOverlayView.isHidden = true
+      sepiaOverlayView.autoresizingMask = [.width, .height]
+      sepiaOverlayView.frame = view.bounds
+      view.addSubview(sepiaOverlayView)
 
       pageMarkerContainer.wantsLayer = true
       pageMarkerContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.6).cgColor
@@ -95,6 +98,7 @@
     override func viewDidLayout() {
       super.viewDidLayout()
       pageImageView.frame = view.bounds
+      sepiaOverlayView.frame = view.bounds
     }
 
     private class FlippedView: NSView {
@@ -104,6 +108,19 @@
     private func applyBackground() {
       view.layer?.backgroundColor = NSColor(readerBackground.color).cgColor
       pageImageView.layer?.backgroundColor = NSColor(readerBackground.color).cgColor
+      updateSepiaOverlay()
+    }
+
+    private func updateSepiaOverlay() {
+      guard readerBackground.appliesImageMultiplyBlend else {
+        sepiaOverlayView.isHidden = true
+        sepiaOverlayView.layer?.compositingFilter = nil
+        sepiaOverlayView.layer?.backgroundColor = NSColor.clear.cgColor
+        return
+      }
+      sepiaOverlayView.isHidden = false
+      sepiaOverlayView.layer?.backgroundColor = NSColor(readerBackground.color).cgColor
+      sepiaOverlayView.layer?.compositingFilter = "multiplyBlendMode"
     }
 
     func configure(
@@ -118,8 +135,6 @@
         // Instant display if image is provided
         setImage(image)
       } else {
-        sourceImage = nil
-        clearRenderedImageCache()
         pageImageView.image = nil
         pageImageView.alphaValue = 0.0
         errorLabel.isHidden = true
@@ -131,7 +146,7 @@
     func setImage(_ image: NSImage) {
       loadingIndicator.stopAnimation(nil)
       errorLabel.isHidden = true
-      pageImageView.image = renderDisplayImage(from: image, background: readerBackground)
+      pageImageView.image = image
       pageImageView.alphaValue = 1.0
     }
 
@@ -156,8 +171,6 @@
     }
 
     func showError() {
-      sourceImage = nil
-      clearRenderedImageCache()
       pageImageView.image = nil
       pageImageView.alphaValue = 0.0
       loadingIndicator.stopAnimation(nil)
@@ -166,52 +179,11 @@
 
     override func prepareForReuse() {
       super.prepareForReuse()
-      sourceImage = nil
-      clearRenderedImageCache()
       pageImageView.image = nil
       pageImageView.alphaValue = 0.0
       loadingIndicator.stopAnimation(nil)
       errorLabel.isHidden = true
       pageMarkerContainer.isHidden = true
-    }
-
-    private func updateDisplayedImage() {
-      guard let sourceImage else { return }
-      pageImageView.image = renderDisplayImage(from: sourceImage, background: readerBackground)
-    }
-
-    private func renderDisplayImage(from image: NSImage, background: ReaderBackground) -> NSImage {
-      guard background.appliesImageMultiplyBlend else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      if let cachedSource = sourceImage, cachedSource === image, renderedBackground == background {
-        return renderedImage ?? image
-      }
-
-      guard
-        let blended = ReaderImageBlendHelper.multiply(
-          image: image, tintColor: NSColor(background.color))
-      else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      sourceImage = image
-      renderedBackground = background
-      renderedImage = blended
-      return blended
-    }
-
-    private func clearRenderedImageCache() {
-      sourceImage = nil
-      renderedImage = nil
-      renderedBackground = .system
     }
   }
 #endif

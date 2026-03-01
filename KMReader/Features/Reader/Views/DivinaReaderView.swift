@@ -64,6 +64,7 @@ struct DivinaReaderView: View {
   @State private var requestedPreviousSegmentPreloads: Set<String> = []
   @State private var inFlightNextSegmentPreloads: Set<String> = []
   @State private var inFlightPreviousSegmentPreloads: Set<String> = []
+  @State private var deferredPageMaintenanceTask: Task<Void, Never>?
 
   #if os(tvOS)
     @State private var lastTVRemoteMoveSignature: String = ""
@@ -191,6 +192,22 @@ struct DivinaReaderView: View {
       onClose()
     } else {
       dismiss()
+    }
+  }
+
+  private func schedulePageMaintenanceAfterPageChange() {
+    deferredPageMaintenanceTask?.cancel()
+    let delay: TimeInterval =
+      readingDirection == .webtoon
+      ? WebtoonConstants.postScrollCleanupDelay : 0
+    deferredPageMaintenanceTask = Task(priority: .utility) {
+      if delay > 0 {
+        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+      }
+      guard !Task.isCancelled else { return }
+      await viewModel.preloadPages()
+      await preloadAdjacentSegmentsForCurrentPositionIfNeeded()
+      await viewModel.ensureTableOfContentsForCurrentSegment()
     }
   }
 
@@ -505,6 +522,8 @@ struct DivinaReaderView: View {
       readerPresentation.setReaderFlushHandler {
         viewModel.flushProgress()
       }
+      deferredPageMaintenanceTask?.cancel()
+      deferredPageMaintenanceTask = nil
       requestedNextSegmentPreloads.removeAll()
       requestedPreviousSegmentPreloads.removeAll()
       if !preserveReaderOptions {
@@ -531,6 +550,8 @@ struct DivinaReaderView: View {
       keyboardHelpTimer?.invalidate()
       animatedPlaybackLoading = false
       animatedPlaybackURL = nil
+      deferredPageMaintenanceTask?.cancel()
+      deferredPageMaintenanceTask = nil
       viewModel.clearPreloadedImages()
     }
     .onChange(of: viewModel.isZoomed) { _, newValue in
@@ -538,13 +559,13 @@ struct DivinaReaderView: View {
         showingControls = false
       }
     }
-    #if os(iOS) || os(macOS)
-      .onChange(of: readingDirection) { _, _ in
+    .onChange(of: readingDirection) { _, _ in
+      #if os(iOS) || os(macOS)
         // When switching read mode via settings, briefly show overlays again
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 2)
-      }
-    #endif
+      #endif
+    }
     #if os(tvOS)
       .onChange(of: shouldEnableUIKitRemoteCapture) { oldValue, newValue in
         if newValue && !oldValue {
@@ -695,15 +716,11 @@ struct DivinaReaderView: View {
         #endif
         .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
           updateHandoff()
-          // Keep progress sync responsive, but leave preload work as utility.
+          // Keep progress sync responsive.
           Task(priority: .userInitiated) {
             await viewModel.updateProgress()
           }
-          Task(priority: .utility) {
-            await viewModel.preloadPages()
-            await preloadAdjacentSegmentsForCurrentPositionIfNeeded()
-            await viewModel.ensureTableOfContentsForCurrentSegment()
-          }
+          schedulePageMaintenanceAfterPageChange()
         }
         #if os(tvOS)
           .onChange(of: isShowingEndPage) { oldValue, newValue in

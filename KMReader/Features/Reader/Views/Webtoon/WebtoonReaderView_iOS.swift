@@ -105,6 +105,11 @@
       )
     }
 
+    @MainActor
+    static func dismantleUIView(_ uiView: UICollectionView, coordinator: Coordinator) {
+      coordinator.teardown()
+    }
+
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
     }
@@ -132,6 +137,8 @@
       var isLongPress: Bool = false
       var hasTriggeredZoomGesture: Bool = false
       private var singleTapWorkItem: DispatchWorkItem?
+      private var deferredReloadWorkItem: DispatchWorkItem?
+      private var deferredCleanupWorkItem: DispatchWorkItem?
 
       var heightCache = WebtoonPageHeightCache()
 
@@ -160,6 +167,17 @@
 
       private var pageCount: Int {
         viewModel?.pageCount ?? 0
+      }
+
+      private var isScrollInteractionActive: Bool {
+        guard let collectionView else {
+          return isUserScrolling || isProgrammaticAnimatedScroll
+        }
+        return isUserScrolling
+          || isProgrammaticAnimatedScroll
+          || collectionView.isDragging
+          || collectionView.isDecelerating
+          || collectionView.isTracking
       }
 
       private func itemIndex(forPageID pageID: ReaderPageID?) -> Int? {
@@ -230,8 +248,8 @@
           || didContentItemsChange
           || abs(heightCache.lastPageWidth - pageWidth) > 0.1
         {
-          if isProgrammaticAnimatedScroll {
-            scrollEngine.pendingReloadCurrentPageID = currentPageID
+          if isScrollInteractionActive {
+            scrollEngine.pendingReloadCurrentPageID = currentPageID ?? scrollEngine.currentPageID
           } else {
             handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
           }
@@ -391,6 +409,51 @@
 
         let currentPageID = viewModel?.currentReaderPage?.id ?? pendingPageID
         handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
+        updateCurrentPage()
+      }
+
+      private func cancelDeferredMaintenance() {
+        deferredReloadWorkItem?.cancel()
+        deferredReloadWorkItem = nil
+        deferredCleanupWorkItem?.cancel()
+        deferredCleanupWorkItem = nil
+      }
+
+      func teardown() {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+        cancelDeferredMaintenance()
+      }
+
+      private func scheduleDeferredPendingReloadIfNeeded() {
+        guard scrollEngine.pendingReloadCurrentPageID != nil else { return }
+        deferredReloadWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+          guard let self else { return }
+          self.deferredReloadWorkItem = nil
+          guard !self.isScrollInteractionActive else { return }
+          self.applyPendingReloadIfNeeded()
+        }
+        deferredReloadWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + WebtoonConstants.postScrollReloadDelay,
+          execute: workItem
+        )
+      }
+
+      private func scheduleDeferredCleanupIfNeeded() {
+        deferredCleanupWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+          guard let self else { return }
+          self.deferredCleanupWorkItem = nil
+          guard !self.isScrollInteractionActive else { return }
+          self.viewModel?.cleanupDistantImagesAroundCurrentPage()
+        }
+        deferredCleanupWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + WebtoonConstants.postScrollCleanupDelay,
+          execute: workItem
+        )
       }
 
       func scrollToPage(_ pageID: ReaderPageID, animated: Bool) {
@@ -543,6 +606,7 @@
       // MARK: - UICollectionViewDelegate
 
       func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        cancelDeferredMaintenance()
         isUserScrolling = true
         isProgrammaticAnimatedScroll = false
       }
@@ -571,9 +635,8 @@
       private func finalizeScrollInteraction() {
         isUserScrolling = false
         updateCurrentPage()
-        applyPendingReloadIfNeeded()
-        updateCurrentPage()
-        viewModel?.cleanupDistantImagesAroundCurrentPage()
+        scheduleDeferredPendingReloadIfNeeded()
+        scheduleDeferredCleanupIfNeeded()
       }
 
       private func updateCurrentPage() {
@@ -826,8 +889,8 @@
           isProgrammaticAnimatedScroll = false
           return
         }
+        cancelDeferredMaintenance()
         preheatPages(at: targetOffset, in: collectionView)
-        collectionView.layoutIfNeeded()
         isProgrammaticAnimatedScroll = true
         collectionView.setContentOffset(CGPoint(x: 0, y: targetOffset), animated: true)
       }
@@ -846,9 +909,10 @@
           ),
           !pageIDs.isEmpty
         else { return }
-        Task { @MainActor [weak self] in
+        Task(priority: .utility) { @MainActor [weak self] in
+          guard let viewModel = self?.viewModel else { return }
           for pageID in pageIDs {
-            await self?.loadImage(for: pageID)
+            _ = await viewModel.preloadImage(for: pageID)
           }
         }
       }

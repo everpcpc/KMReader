@@ -145,6 +145,8 @@
       var keyMonitor: Any?
       var lastScrollTime: TimeInterval = 0
       var hasTriggeredZoomGesture: Bool = false
+      private var deferredReloadWorkItem: DispatchWorkItem?
+      private var deferredCleanupWorkItem: DispatchWorkItem?
 
       init(_ parent: WebtoonReaderView) {
         self.scrollEngine = WebtoonScrollEngine(
@@ -170,7 +172,12 @@
         viewModel?.pageCount ?? 0
       }
 
+      private var isScrollInteractionActive: Bool {
+        isUserScrolling || isProgrammaticScrolling
+      }
+
       func teardown() {
+        cancelDeferredMaintenance()
         NotificationCenter.default.removeObserver(self)
         if let monitor = keyMonitor {
           NSEvent.removeMonitor(monitor)
@@ -262,8 +269,8 @@
           || didContentItemsChange
           || abs(heightCache.lastPageWidth - pageWidth) > 0.1
         {
-          if isProgrammaticScrolling {
-            scrollEngine.pendingReloadCurrentPageID = currentPageID
+          if isScrollInteractionActive {
+            scrollEngine.pendingReloadCurrentPageID = currentPageID ?? scrollEngine.currentPageID
           } else {
             handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
           }
@@ -394,20 +401,58 @@
 
         let currentPageID = viewModel?.currentReaderPage?.id ?? pendingPageID
         handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
+        updateCurrentPage()
+      }
+
+      private func cancelDeferredMaintenance() {
+        deferredReloadWorkItem?.cancel()
+        deferredReloadWorkItem = nil
+        deferredCleanupWorkItem?.cancel()
+        deferredCleanupWorkItem = nil
+      }
+
+      private func scheduleDeferredPendingReloadIfNeeded() {
+        guard scrollEngine.pendingReloadCurrentPageID != nil else { return }
+        deferredReloadWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+          guard let self else { return }
+          self.deferredReloadWorkItem = nil
+          guard !self.isScrollInteractionActive else { return }
+          self.applyPendingReloadIfNeeded()
+        }
+        deferredReloadWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + WebtoonConstants.postScrollReloadDelay,
+          execute: workItem
+        )
+      }
+
+      private func scheduleDeferredCleanupIfNeeded() {
+        deferredCleanupWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+          guard let self else { return }
+          self.deferredCleanupWorkItem = nil
+          guard !self.isScrollInteractionActive else { return }
+          self.viewModel?.cleanupDistantImagesAroundCurrentPage()
+        }
+        deferredCleanupWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + WebtoonConstants.postScrollCleanupDelay,
+          execute: workItem
+        )
       }
 
       private func finalizeProgrammaticScroll() {
         isProgrammaticScrolling = false
-        applyPendingReloadIfNeeded()
-        updateCurrentPage()
+        scheduleDeferredPendingReloadIfNeeded()
+        scheduleDeferredCleanupIfNeeded()
       }
 
       private func finalizeScrollInteraction() {
         isUserScrolling = false
         updateCurrentPage()
-        applyPendingReloadIfNeeded()
-        updateCurrentPage()
-        viewModel?.cleanupDistantImagesAroundCurrentPage()
+        scheduleDeferredPendingReloadIfNeeded()
+        scheduleDeferredCleanupIfNeeded()
       }
 
       func scrollToPage(_ pageID: ReaderPageID, animated: Bool) {
@@ -548,6 +593,9 @@
 
       @objc func scrollViewDidScroll(_ notification: Notification) {
         if !isProgrammaticScrolling {
+          if !isUserScrolling {
+            cancelDeferredMaintenance()
+          }
           isUserScrolling = true
         }
         lastScrollTime = Date().timeIntervalSinceReferenceDate
@@ -722,6 +770,7 @@
           return
         }
 
+        cancelDeferredMaintenance()
         preheatPages(at: targetY)
 
         isProgrammaticScrolling = true
@@ -754,9 +803,10 @@
           ),
           !pageIDs.isEmpty
         else { return }
-        Task { @MainActor [weak self] in
+        Task(priority: .utility) { @MainActor [weak self] in
+          guard let viewModel = self?.viewModel else { return }
           for pageID in pageIDs {
-            await self?.loadImage(for: pageID)
+            _ = await viewModel.preloadImage(for: pageID)
           }
         }
       }

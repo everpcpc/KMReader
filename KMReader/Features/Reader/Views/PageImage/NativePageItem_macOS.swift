@@ -5,6 +5,7 @@
 
   final class NativePageItem: NSView {
     private let imageView = NSImageView()
+    private let sepiaOverlayView = NSView()
     private let pageNumberContainer = NSView()
     private let pageNumberLabel = NSTextField()
     private let progressIndicator = NSProgressIndicator()
@@ -22,9 +23,6 @@
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
     private var analysisSourceImage: NSImage?
-    private var sourceImage: NSImage?
-    private var renderedBackground: ReaderBackground = .system
-    private var renderedImage: NSImage?
     private var heightConstraint: NSLayoutConstraint?
 
     init() {
@@ -51,7 +49,7 @@
       imageView.image = nil
       analyzedImage = nil
       analysisSourceImage = nil
-      clearRenderedImageCache()
+      updateSepiaOverlay()
     }
 
     override func viewDidMoveToWindow() {
@@ -61,7 +59,7 @@
         imageView.image = nil
         analyzedImage = nil
         analysisSourceImage = nil
-        clearRenderedImageCache()
+        updateSepiaOverlay()
       } else {
         if imageView.image == nil, let data = currentData {
           let pageSourceImage: NSImage?
@@ -71,7 +69,8 @@
             pageSourceImage = readerViewModel?.preloadedImage(for: data.pageID)
           }
           analysisSourceImage = pageSourceImage
-          imageView.image = renderDisplayImage(from: pageSourceImage, background: readerBackground)
+          imageView.image = pageSourceImage
+          updateSepiaOverlay()
         }
         if enableLiveText {
           if let image = analysisSourceImage {
@@ -118,6 +117,10 @@
       imageView.layer?.shadowRadius = 2
 
       addSubview(imageView)
+      sepiaOverlayView.wantsLayer = true
+      sepiaOverlayView.isHidden = true
+      sepiaOverlayView.translatesAutoresizingMaskIntoConstraints = true
+      addSubview(sepiaOverlayView)
 
       overlayView.isHidden = true
       overlayView.wantsLayer = true
@@ -202,8 +205,8 @@
       }
 
       analysisSourceImage = pageSourceImage
-      let displayImage = renderDisplayImage(from: pageSourceImage, background: background)
-      imageView.image = displayImage
+      imageView.image = pageSourceImage
+      updateSepiaOverlay()
       imageView.layer?.shadowOpacity = pageSourceImage == nil ? 0 : 0.25
 
       updateHeightConstraint(targetHeight)
@@ -262,40 +265,16 @@
       return NSImage(cgImage: croppedCGImage, size: NSSize(width: cropRect.width, height: cropRect.height))
     }
 
-    private func renderDisplayImage(from image: NSImage?, background: ReaderBackground) -> NSImage? {
-      guard let image else {
-        clearRenderedImageCache()
-        return nil
+    private func updateSepiaOverlay() {
+      guard readerBackground.appliesImageMultiplyBlend, imageView.image != nil else {
+        sepiaOverlayView.isHidden = true
+        sepiaOverlayView.layer?.compositingFilter = nil
+        sepiaOverlayView.layer?.backgroundColor = NSColor.clear.cgColor
+        return
       }
-
-      guard background.appliesImageMultiplyBlend else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      if let cachedSource = sourceImage, cachedSource === image, renderedBackground == background {
-        return renderedImage ?? image
-      }
-
-      guard let blended = ReaderImageBlendHelper.multiply(image: image, tintColor: NSColor(background.color)) else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      sourceImage = image
-      renderedBackground = background
-      renderedImage = blended
-      return blended
-    }
-
-    private func clearRenderedImageCache() {
-      sourceImage = nil
-      renderedImage = nil
-      renderedBackground = .system
+      sepiaOverlayView.isHidden = false
+      sepiaOverlayView.layer?.backgroundColor = NSColor(readerBackground.color).cgColor
+      sepiaOverlayView.layer?.compositingFilter = "multiplyBlendMode"
     }
 
     private func updateHeightConstraint(_ targetHeight: CGFloat) {
@@ -410,6 +389,7 @@
 
       let imgFrame = NSRect(x: xOffset, y: yOffset, width: actualImageWidth, height: actualImageHeight)
       imageView.frame = imgFrame
+      sepiaOverlayView.frame = imgFrame
       overlayView.frame = imgFrame
 
       let topY = yOffset + actualImageHeight - 36

@@ -9,6 +9,7 @@
   final class NativeBookCoverViewController: UIViewController {
     private let coverContainerView = UIView()
     private let coverImageView = UIImageView()
+    private let sepiaOverlayView = UIView()
 
     private var coverImageTask: Task<Void, Never>?
     private var coverImageBookID: String?
@@ -66,6 +67,10 @@
       coverImageView.clipsToBounds = true
       coverImageView.layer.cornerRadius = 0
       coverContainerView.addSubview(coverImageView)
+      sepiaOverlayView.isUserInteractionEnabled = false
+      sepiaOverlayView.isHidden = true
+      sepiaOverlayView.translatesAutoresizingMaskIntoConstraints = false
+      coverImageView.addSubview(sepiaOverlayView)
 
       NSLayoutConstraint.activate([
         coverContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -76,6 +81,10 @@
         coverImageView.trailingAnchor.constraint(equalTo: coverContainerView.trailingAnchor),
         coverImageView.topAnchor.constraint(equalTo: coverContainerView.topAnchor),
         coverImageView.bottomAnchor.constraint(equalTo: coverContainerView.bottomAnchor),
+        sepiaOverlayView.leadingAnchor.constraint(equalTo: coverImageView.leadingAnchor),
+        sepiaOverlayView.trailingAnchor.constraint(equalTo: coverImageView.trailingAnchor),
+        sepiaOverlayView.topAnchor.constraint(equalTo: coverImageView.topAnchor),
+        sepiaOverlayView.bottomAnchor.constraint(equalTo: coverImageView.bottomAnchor),
       ])
 
       updateShadowAppearance()
@@ -102,6 +111,9 @@
         coverImageView.layer.mask = nil
         coverImageView.layer.cornerRadius = cornerRadius
         coverImageView.backgroundColor = .clear
+        sepiaOverlayView.isHidden = true
+        sepiaOverlayView.layer.compositingFilter = nil
+        sepiaOverlayView.backgroundColor = .clear
         coverContainerView.layer.shadowOpacity = 0
         coverContainerView.layer.shadowPath = nil
         failedCoverImageBookID = nil
@@ -112,6 +124,9 @@
       coverImageView.image = nil
       coverImageView.backgroundColor = .clear
       coverImageView.layer.cornerRadius = 0
+      sepiaOverlayView.isHidden = true
+      sepiaOverlayView.layer.compositingFilter = nil
+      sepiaOverlayView.backgroundColor = .clear
       coverContainerView.layer.shadowOpacity = 0
       coverContainerView.layer.shadowPath = nil
 
@@ -132,17 +147,12 @@
     private func updateRenderedCoverImage() {
       guard let sourceCoverImage else {
         coverImageView.image = nil
+        updateSepiaOverlay()
         updateCoverImageDecoration()
         return
       }
-
-      if let tintColor = imageBlendTintColor,
-        let blendedImage = ReaderImageBlendHelper.multiply(image: sourceCoverImage, tintColor: tintColor)
-      {
-        coverImageView.image = blendedImage
-      } else {
-        coverImageView.image = sourceCoverImage
-      }
+      coverImageView.image = sourceCoverImage
+      updateSepiaOverlay()
       updateCoverImageDecoration()
     }
 
@@ -165,6 +175,18 @@
 
       coverContainerView.layer.shadowOpacity = 0.22
       coverContainerView.layer.shadowPath = maskPath.cgPath
+    }
+
+    private func updateSepiaOverlay() {
+      guard sourceCoverImage != nil, let tintColor = imageBlendTintColor else {
+        sepiaOverlayView.isHidden = true
+        sepiaOverlayView.layer.compositingFilter = nil
+        sepiaOverlayView.backgroundColor = .clear
+        return
+      }
+      sepiaOverlayView.isHidden = false
+      sepiaOverlayView.backgroundColor = tintColor
+      sepiaOverlayView.layer.compositingFilter = "multiplyBlendMode"
     }
 
     private func imageContentRect(for image: UIImage, in imageView: UIImageView) -> CGRect {
