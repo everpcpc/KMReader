@@ -14,7 +14,6 @@
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onPlayAnimatedPage: ((ReaderPageID) -> Void)?
 
     private enum SpreadSlot: Int {
       case first = 0
@@ -352,8 +351,7 @@
           splitMode: splitMode,
           alignment: alignment,
           readingDirection: parent.readingDirection,
-          renderConfig: parent.renderConfig,
-          onPlayAnimatedPage: parent.onPlayAnimatedPage
+          renderConfig: parent.renderConfig
         )
       }
 

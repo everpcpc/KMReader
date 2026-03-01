@@ -13,7 +13,6 @@ struct ReaderViewItemImageView: View {
   let renderConfig: ReaderRenderConfig
   let readingDirection: ReadingDirection
   let splitWidePageMode: SplitWidePageMode
-  let onPlayAnimatedPage: ((ReaderPageID) -> Void)?
 
   var body: some View {
     let pages = pageData
@@ -89,32 +88,37 @@ struct ReaderViewItemImageView: View {
 
   @ViewBuilder
   private func pagePlaybackOverlay(for pageID: ReaderPageID) -> some View {
+    let isLoading = shouldShowAnimatedLoading(for: pageID)
+
     ZStack {
-      if let animatedFileURL = autoPlayAnimatedFileURL(for: pageID) {
+      if let animatedFileURL = animatedPlaybackFileURL(for: pageID) {
         InlineAnimatedImageView(
-          fileURL: animatedFileURL,
-          poolSlot: animatedPoolSlot(for: pageID)
+          fileURL: animatedFileURL
         )
-      } else if viewModel.shouldShowAnimatedPlayButton(for: pageID) {
-        AnimatedImagePlayButton {
-          onPlayAnimatedPage?(pageID)
-        }
+      }
+
+      if isLoading {
+        ProgressView()
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private func autoPlayAnimatedFileURL(for pageID: ReaderPageID) -> URL? {
+  private func animatedPlaybackFileURL(for pageID: ReaderPageID) -> URL? {
     #if os(tvOS)
       return nil
     #else
       guard isPlaybackActive else { return nil }
-      guard renderConfig.autoPlayAnimatedImages else { return nil }
       return viewModel.animatedPlaybackFileURL(for: pageID)
     #endif
   }
 
-  private func animatedPoolSlot(for pageID: ReaderPageID) -> Int {
-    max(viewModel.pageIndex(for: pageID) ?? 0, 0) % 4
+  private func shouldShowAnimatedLoading(for pageID: ReaderPageID) -> Bool {
+    #if os(tvOS)
+      return false
+    #else
+      guard isPlaybackActive else { return false }
+      return viewModel.isAnimatedPlaybackLoading(for: pageID)
+    #endif
   }
 }

@@ -679,18 +679,6 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var autoPlayAnimatedImages: Bool {
-    get {
-      if UserDefaults.standard.object(forKey: "autoPlayAnimatedImages") != nil {
-        return UserDefaults.standard.bool(forKey: "autoPlayAnimatedImages")
-      }
-      return false
-    }
-    set {
-      UserDefaults.standard.set(newValue, forKey: "autoPlayAnimatedImages")
-    }
-  }
-
   static nonisolated var imageUpscalingMode: ReaderImageUpscalingMode {
     get {
       if let stored = UserDefaults.standard.string(forKey: "imageUpscalingMode"),

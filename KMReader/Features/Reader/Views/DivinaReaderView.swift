@@ -26,7 +26,6 @@ struct DivinaReaderView: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
-  @AppStorage("autoPlayAnimatedImages") private var autoPlayAnimatedImages: Bool = false
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
@@ -58,8 +57,6 @@ struct DivinaReaderView: View {
   @State private var showingTOCSheet = false
   @State private var showingReaderSettingsSheet = false
   @State private var showingDetailSheet = false
-  @State private var animatedPlaybackURL: URL?
-  @State private var animatedPlaybackLoading = false
   @State private var requestedNextSegmentPreloads: Set<String> = []
   @State private var requestedPreviousSegmentPreloads: Set<String> = []
   @State private var inFlightNextSegmentPreloads: Set<String> = []
@@ -108,7 +105,6 @@ struct DivinaReaderView: View {
       tapZoneSize: tapZoneSize,
       tapZoneMode: tapZoneMode,
       showPageNumber: showPageNumber,
-      autoPlayAnimatedImages: autoPlayAnimatedImages,
       readerBackground: readerBackground,
       enableLiveText: enableLiveText,
       doubleTapZoomScale: doubleTapZoomScale,
@@ -222,34 +218,6 @@ struct DivinaReaderView: View {
 
   private func screenKey(screenSize: CGSize) -> String {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
-  }
-
-  private func requestAnimatedPlayback(for pageID: ReaderPageID) {
-    guard !animatedPlaybackLoading else { return }
-    withAnimation(.easeInOut(duration: 0.18)) {
-      animatedPlaybackLoading = true
-    }
-
-    Task {
-      let fileURL = await viewModel.prepareAnimatedPagePlaybackURL(pageID: pageID)
-      withAnimation(.easeInOut(duration: 0.18)) {
-        animatedPlaybackLoading = false
-      }
-      guard let fileURL else {
-        logger.debug("⚠️ Animated playback unavailable for pageID=\(pageID)")
-        return
-      }
-      showingControls = false
-      withAnimation(.easeInOut(duration: 0.22)) {
-        animatedPlaybackURL = fileURL
-      }
-    }
-  }
-
-  private func dismissAnimatedPlayback() {
-    withAnimation(.easeInOut(duration: 0.2)) {
-      animatedPlaybackURL = nil
-    }
   }
 
   #if os(tvOS)
@@ -421,23 +389,6 @@ struct DivinaReaderView: View {
 
         controlsOverlay(useDualPage: useDualPage)
 
-        if animatedPlaybackLoading {
-          ProgressView()
-            .padding(16)
-            .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 10))
-            .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            .zIndex(20)
-        }
-
-        if let animatedPlaybackURL {
-          AnimatedImagePlaybackOverlay(
-            fileURL: animatedPlaybackURL,
-            onClose: dismissAnimatedPlayback
-          )
-          .transition(.opacity)
-          .zIndex(30)
-        }
-
         #if os(macOS)
           keyboardHelpOverlay
         #endif
@@ -548,8 +499,6 @@ struct DivinaReaderView: View {
       )
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
-      animatedPlaybackLoading = false
-      animatedPlaybackURL = nil
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
       viewModel.clearPreloadedImages()
@@ -627,9 +576,6 @@ struct DivinaReaderView: View {
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
                 toggleControls: { toggleControls() },
-                onPlayAnimatedPage: { pageID in
-                  requestAnimatedPlayback(for: pageID)
-                },
                 onScrollActivityChange: { _ in }
               )
             #endif
@@ -644,10 +590,7 @@ struct DivinaReaderView: View {
                     splitWidePageMode: splitWidePageMode,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
-                    onDismiss: { closeReader() },
-                    onPlayAnimatedPage: { pageID in
-                      requestAnimatedPlayback(for: pageID)
-                    }
+                    onDismiss: { closeReader() }
                   )
                 } else {
                   CurlPageView(
@@ -657,10 +600,7 @@ struct DivinaReaderView: View {
                     splitWidePageMode: splitWidePageMode,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
-                    onDismiss: { closeReader() },
-                    onPlayAnimatedPage: { pageID in
-                      requestAnimatedPlayback(for: pageID)
-                    }
+                    onDismiss: { closeReader() }
                   )
                 }
               } else {
@@ -674,9 +614,6 @@ struct DivinaReaderView: View {
                   readListContext: readListContext,
                   onDismiss: { closeReader() },
                   toggleControls: { toggleControls() },
-                  onPlayAnimatedPage: { pageID in
-                    requestAnimatedPlayback(for: pageID)
-                  },
                   onScrollActivityChange: { _ in }
                 )
               }
@@ -691,9 +628,6 @@ struct DivinaReaderView: View {
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
                 toggleControls: { toggleControls() },
-                onPlayAnimatedPage: { pageID in
-                  requestAnimatedPlayback(for: pageID)
-                },
                 onScrollActivityChange: { _ in }
               )
             #endif

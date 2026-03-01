@@ -23,7 +23,6 @@
       tapZoneSize: .large,
       tapZoneMode: .auto,
       showPageNumber: true,
-      autoPlayAnimatedImages: false,
       readerBackground: .system,
       enableLiveText: false,
       doubleTapZoomScale: 3.0,

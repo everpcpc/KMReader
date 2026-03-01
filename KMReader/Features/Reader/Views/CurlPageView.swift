@@ -14,7 +14,6 @@
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onPlayAnimatedPage: ((ReaderPageID) -> Void)?
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -267,8 +266,7 @@
           pageID: pageID,
           splitMode: splitMode,
           readingDirection: parent.readingDirection,
-          renderConfig: parent.renderConfig,
-          onPlayAnimatedPage: parent.onPlayAnimatedPage
+          renderConfig: parent.renderConfig
         )
       }
 

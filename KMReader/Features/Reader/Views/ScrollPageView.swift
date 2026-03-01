@@ -15,7 +15,6 @@ struct ScrollPageView: View {
   let readListContext: ReaderReadListContext?
   let onDismiss: () -> Void
   let toggleControls: () -> Void
-  let onPlayAnimatedPage: ((ReaderPageID) -> Void)?
   let onScrollActivityChange: ((Bool) -> Void)?
 
   private let logger = AppLogger(.reader)
@@ -46,7 +45,6 @@ struct ScrollPageView: View {
     readListContext: ReaderReadListContext?,
     onDismiss: @escaping () -> Void,
     toggleControls: @escaping () -> Void,
-    onPlayAnimatedPage: ((ReaderPageID) -> Void)? = nil,
     onScrollActivityChange: ((Bool) -> Void)? = nil
   ) {
     self.mode = mode
@@ -58,7 +56,6 @@ struct ScrollPageView: View {
     self.readListContext = readListContext
     self.onDismiss = onDismiss
     self.toggleControls = toggleControls
-    self.onPlayAnimatedPage = onPlayAnimatedPage
     self.onScrollActivityChange = onScrollActivityChange
   }
 
@@ -185,8 +182,7 @@ struct ScrollPageView: View {
             screenSize: geometry.size,
             renderConfig: renderConfig,
             readingDirection: readingDirection,
-            splitWidePageMode: splitWidePageMode,
-            onPlayAnimatedPage: onPlayAnimatedPage
+            splitWidePageMode: splitWidePageMode
           )
         }
       }

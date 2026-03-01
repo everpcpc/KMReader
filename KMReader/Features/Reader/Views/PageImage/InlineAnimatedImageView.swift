@@ -7,25 +7,23 @@ import SwiftUI
 
 struct InlineAnimatedImageView: View {
   let fileURL: URL
-  let poolSlot: Int
 
-  @State private var webContentReady = false
+  @State private var videoReady = false
 
   var body: some View {
-    ReusableAnimatedImageWebView(
-      fileURL: fileURL,
-      poolSlot: poolSlot,
+    LoopingVideoPlayerView(
+      videoURL: fileURL,
       onLoadStateChange: handleLoadState
     )
-    .opacity(webContentReady ? 1 : 0)
+    .opacity(videoReady ? 1 : 0)
     .allowsHitTesting(false)
     .onChange(of: fileURL) { _, _ in
-      webContentReady = false
+      videoReady = false
     }
   }
 
   private func handleLoadState(_ isReady: Bool) {
-    guard webContentReady != isReady else { return }
-    webContentReady = isReady
+    guard videoReady != isReady else { return }
+    videoReady = isReady
   }
 }
