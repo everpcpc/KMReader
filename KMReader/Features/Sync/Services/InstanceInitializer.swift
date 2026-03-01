@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import OSLog
 import SwiftUI
 
 enum SyncPhase: String, CaseIterable {
@@ -130,9 +129,6 @@ final class InstanceInitializer {
   private(set) var includesReconcileStages = false
 
   private let logger = AppLogger(.sync)
-  private let api = APIClient.shared
-  private let deletionReconcileInterval: TimeInterval = 24 * 60 * 60
-  private let reconcileProgressSplit: Double = 0.7
   private let syncPageSize = 1000
 
   private init() {}
@@ -206,8 +202,7 @@ final class InstanceInitializer {
       ? (Date(timeIntervalSince1970: 0), Date(timeIntervalSince1970: 0))
       : storedLastSyncedAt
     let syncStartTime = Date()
-    let shouldReconcileDeletions =
-      forceFullSync || shouldRunDeletionReconciliation(instanceId: instanceId)
+    let shouldReconcileDeletions = forceFullSync
     includesReconcileStages = shouldReconcileDeletions
     visibleStages = SyncStage.visibleStages(includeReconcile: shouldReconcileDeletions)
 
@@ -229,16 +224,13 @@ final class InstanceInitializer {
 
     // Phase 3: Series (incremental sync by lastModified)
     currentPhase = .series
-    let seriesIncrementalEnd = shouldReconcileDeletions ? reconcileProgressSplit : 1.0
     var seriesSyncSucceeded = await syncSeriesIncremental(
       instanceId: instanceId,
-      since: lastSyncedAt.series,
-      progressRange: 0.0...seriesIncrementalEnd
+      since: lastSyncedAt.series
     )
     if seriesSyncSucceeded && shouldReconcileDeletions {
       seriesSyncSucceeded = await reconcileSeriesDeletions(
-        instanceId: instanceId,
-        progressRange: seriesIncrementalEnd...1.0
+        instanceId: instanceId
       )
     }
     if !seriesSyncSucceeded {
@@ -262,16 +254,13 @@ final class InstanceInitializer {
 
     // Phase 5: Books (incremental sync by lastModified)
     currentPhase = .books
-    let booksIncrementalEnd = shouldReconcileDeletions ? reconcileProgressSplit : 1.0
     var booksSyncSucceeded = await syncBooksIncremental(
       instanceId: instanceId,
-      since: lastSyncedAt.books,
-      progressRange: 0.0...booksIncrementalEnd
+      since: lastSyncedAt.books
     )
     if booksSyncSucceeded && shouldReconcileDeletions {
       booksSyncSucceeded = await reconcileBookDeletions(
-        instanceId: instanceId,
-        progressRange: booksIncrementalEnd...1.0
+        instanceId: instanceId
       )
     }
     if !booksSyncSucceeded {
@@ -291,10 +280,6 @@ final class InstanceInitializer {
     let readProgressSyncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
     if readProgressSyncSucceeded {
       AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
-    }
-
-    if shouldReconcileDeletions && seriesSyncSucceeded && booksSyncSucceeded {
-      AppConfig.setDeletionReconcileTime(syncStartTime, instanceId: instanceId)
     }
 
     progress = 1.0
@@ -372,10 +357,9 @@ final class InstanceInitializer {
 
   private func syncSeriesIncremental(
     instanceId: String,
-    since: Date,
-    progressRange: ClosedRange<Double>
+    since: Date
   ) async -> Bool {
-    updateProgress(phase: .series, progressRange: progressRange, unitProgress: 0.0)
+    updateProgress(phase: .series, phaseProgress: 0.0, stage: .seriesIncremental)
     do {
       var page = 0
       var shouldContinue = true
@@ -410,22 +394,19 @@ final class InstanceInitializer {
           shouldContinue
           ? estimatedIncrementalProgress(processedPages: page)
           : 1.0
-        updateProgress(phase: .series, progressRange: progressRange, unitProgress: unitProgress)
+        updateProgress(phase: .series, phaseProgress: unitProgress, stage: .seriesIncremental)
       }
       logger.info("📚 Synced series incrementally")
       return true
     } catch {
       logger.error("❌ Failed to sync series: \(error)")
-      updateProgress(phase: .series, progressRange: progressRange, unitProgress: 1.0)
+      updateProgress(phase: .series, phaseProgress: 1.0, stage: .seriesIncremental)
       return false
     }
   }
 
-  private func reconcileSeriesDeletions(
-    instanceId: String,
-    progressRange: ClosedRange<Double>
-  ) async -> Bool {
-    updateProgress(phase: .series, progressRange: progressRange, unitProgress: 0.0)
+  private func reconcileSeriesDeletions(instanceId: String) async -> Bool {
+    updateProgress(phase: .series, phaseProgress: 0.0, stage: .seriesReconcile)
     do {
       let localCount = await db.fetchTotalSeriesCount(instanceId: instanceId)
       do {
@@ -434,7 +415,7 @@ final class InstanceInitializer {
           logger.debug(
             "⏭️ Skipped series reconcile: localCount=\(localCount), remoteCount=\(remoteCount)"
           )
-          updateProgress(phase: .series, progressRange: progressRange, unitProgress: 1.0)
+          updateProgress(phase: .series, phaseProgress: 1.0, stage: .seriesReconcile)
           return true
         }
       } catch {
@@ -444,7 +425,7 @@ final class InstanceInitializer {
       }
 
       let remoteSeriesIds = try await fetchAllSeriesIdsForDeletionReconcile { progress in
-        self.updateProgress(phase: .series, progressRange: progressRange, unitProgress: progress)
+        self.updateProgress(phase: .series, phaseProgress: progress, stage: .seriesReconcile)
       }
 
       let deletedCount = await db.deleteSeriesNotIn(remoteSeriesIds, instanceId: instanceId)
@@ -496,10 +477,9 @@ final class InstanceInitializer {
 
   private func syncBooksIncremental(
     instanceId: String,
-    since: Date,
-    progressRange: ClosedRange<Double>
+    since: Date
   ) async -> Bool {
-    updateProgress(phase: .books, progressRange: progressRange, unitProgress: 0.0)
+    updateProgress(phase: .books, phaseProgress: 0.0, stage: .booksIncremental)
     do {
       var page = 0
       var shouldContinue = true
@@ -534,22 +514,19 @@ final class InstanceInitializer {
           shouldContinue
           ? estimatedIncrementalProgress(processedPages: page)
           : 1.0
-        updateProgress(phase: .books, progressRange: progressRange, unitProgress: unitProgress)
+        updateProgress(phase: .books, phaseProgress: unitProgress, stage: .booksIncremental)
       }
       logger.info("📖 Synced books incrementally")
       return true
     } catch {
       logger.error("❌ Failed to sync books: \(error)")
-      updateProgress(phase: .books, progressRange: progressRange, unitProgress: 1.0)
+      updateProgress(phase: .books, phaseProgress: 1.0, stage: .booksIncremental)
       return false
     }
   }
 
-  private func reconcileBookDeletions(
-    instanceId: String,
-    progressRange: ClosedRange<Double>
-  ) async -> Bool {
-    updateProgress(phase: .books, progressRange: progressRange, unitProgress: 0.0)
+  private func reconcileBookDeletions(instanceId: String) async -> Bool {
+    updateProgress(phase: .books, phaseProgress: 0.0, stage: .booksReconcile)
     do {
       let localCount = await db.fetchTotalBooksCount(instanceId: instanceId)
       do {
@@ -558,7 +535,7 @@ final class InstanceInitializer {
           logger.debug(
             "⏭️ Skipped book reconcile: localCount=\(localCount), remoteCount=\(remoteCount)"
           )
-          updateProgress(phase: .books, progressRange: progressRange, unitProgress: 1.0)
+          updateProgress(phase: .books, phaseProgress: 1.0, stage: .booksReconcile)
           return true
         }
       } catch {
@@ -568,7 +545,7 @@ final class InstanceInitializer {
       }
 
       let remoteBookIds = try await fetchAllBookIdsForDeletionReconcile { progress in
-        self.updateProgress(phase: .books, progressRange: progressRange, unitProgress: progress)
+        self.updateProgress(phase: .books, phaseProgress: progress, stage: .booksReconcile)
       }
 
       let deletedCount = await db.deleteBooksNotIn(remoteBookIds, instanceId: instanceId)
@@ -682,13 +659,6 @@ final class InstanceInitializer {
 
   // MARK: - Progress Helpers
 
-  private func shouldRunDeletionReconciliation(instanceId: String) -> Bool {
-    guard let lastRun = AppConfig.deletionReconcileTime(instanceId: instanceId) else {
-      return true
-    }
-    return Date().timeIntervalSince(lastRun) >= deletionReconcileInterval
-  }
-
   private func estimatedIncrementalProgress(processedPages: Int) -> Double {
     guard processedPages > 0 else { return 0.0 }
     return min(Double(processedPages) / Double(processedPages + 2), 0.9)
@@ -696,44 +666,49 @@ final class InstanceInitializer {
 
   private func updateProgress(
     phase: SyncPhase,
-    progressRange: ClosedRange<Double>,
-    unitProgress: Double
+    phaseProgress: Double,
+    stage: SyncStage? = nil
   ) {
-    let clampedUnit = min(max(unitProgress, 0.0), 1.0)
-    let mapped =
-      progressRange.lowerBound
-      + (progressRange.upperBound - progressRange.lowerBound) * clampedUnit
-    updateProgress(phase: phase, phaseProgress: mapped)
-  }
-
-  private func updateProgress(phase: SyncPhase, phaseProgress: Double) {
     let clampedPhaseProgress = min(max(phaseProgress, 0.0), 1.0)
-    self.phaseProgress[phase] = clampedPhaseProgress
-    updateStageProgress(phase: phase, phaseProgress: clampedPhaseProgress)
+    let effectivePhaseProgress = updateStageProgress(
+      phase: phase,
+      phaseProgress: clampedPhaseProgress,
+      stage: stage
+    )
+    self.phaseProgress[phase] = effectivePhaseProgress
     let phaseOffset = phase.progressOffset
-    let phaseContribution = (phase.weight / SyncPhase.totalWeight) * clampedPhaseProgress
+    let phaseContribution = (phase.weight / SyncPhase.totalWeight) * effectivePhaseProgress
     progress = phaseOffset + phaseContribution
   }
 
-  private func updateStageProgress(phase: SyncPhase, phaseProgress: Double) {
+  private func updateStageProgress(
+    phase: SyncPhase,
+    phaseProgress: Double,
+    stage: SyncStage?
+  ) -> Double {
     switch phase {
     case .libraries:
       stageProgress[.libraries] = phaseProgress
+      return phaseProgress
     case .collections:
       stageProgress[.collections] = phaseProgress
+      return phaseProgress
     case .readLists:
       stageProgress[.readLists] = phaseProgress
+      return phaseProgress
     case .series:
-      updateSplitStageProgress(
+      return updateSplitStageProgress(
         incrementalStage: .seriesIncremental,
         reconcileStage: .seriesReconcile,
-        phaseProgress: phaseProgress
+        phaseProgress: phaseProgress,
+        stage: stage
       )
     case .books:
-      updateSplitStageProgress(
+      return updateSplitStageProgress(
         incrementalStage: .booksIncremental,
         reconcileStage: .booksReconcile,
-        phaseProgress: phaseProgress
+        phaseProgress: phaseProgress,
+        stage: stage
       )
     }
   }
@@ -741,20 +716,23 @@ final class InstanceInitializer {
   private func updateSplitStageProgress(
     incrementalStage: SyncStage,
     reconcileStage: SyncStage,
-    phaseProgress: Double
-  ) {
+    phaseProgress: Double,
+    stage: SyncStage?
+  ) -> Double {
     guard includesReconcileStages else {
       stageProgress[incrementalStage] = phaseProgress
       stageProgress[reconcileStage] = 0.0
-      return
+      return phaseProgress
     }
 
-    let incrementalProgress = min(phaseProgress / reconcileProgressSplit, 1.0)
-    let reconcileDenominator = max(1.0 - reconcileProgressSplit, 0.0001)
-    let rawReconcileProgress = (phaseProgress - reconcileProgressSplit) / reconcileDenominator
-    let reconcileProgress = min(max(rawReconcileProgress, 0.0), 1.0)
+    if stage == incrementalStage {
+      stageProgress[incrementalStage] = phaseProgress
+    } else if stage == reconcileStage {
+      stageProgress[reconcileStage] = phaseProgress
+    }
 
-    stageProgress[incrementalStage] = incrementalProgress
-    stageProgress[reconcileStage] = reconcileProgress
+    let incrementalProgress = stageProgress[incrementalStage] ?? 0.0
+    let reconcileProgress = stageProgress[reconcileStage] ?? 0.0
+    return (incrementalProgress + reconcileProgress) / 2.0
   }
 }
