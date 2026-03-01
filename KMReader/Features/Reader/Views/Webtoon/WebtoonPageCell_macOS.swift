@@ -13,8 +13,6 @@
     private let pageMarkerLabel = NSTextField(labelWithString: "")
     private let pageMarkerContainer = NSView()
     private let errorLabel = NSTextField(labelWithString: "⚠")
-    private var pageIndex: Int = -1
-    private var loadImage: ((Int) async -> Void)?
     private var sourceImage: NSImage?
     private var renderedBackground: ReaderBackground = .system
     private var renderedImage: NSImage?
@@ -109,15 +107,11 @@
     }
 
     func configure(
-      pageIndex: Int,
-      displayPageNumber: Int?,
+      pageLabel: String,
       image: NSImage?,
-      showPageNumber: Bool,
-      loadImage: @escaping (Int) async -> Void
+      showPageNumber: Bool
     ) {
-      self.pageIndex = pageIndex
-      self.loadImage = loadImage
-      pageMarkerLabel.stringValue = displayPageNumber.map(String.init) ?? "\(pageIndex + 1)"
+      pageMarkerLabel.stringValue = pageLabel
       pageMarkerContainer.isHidden = !showPageNumber
 
       if let image = image {
@@ -178,8 +172,6 @@
       pageImageView.alphaValue = 0.0
       loadingIndicator.stopAnimation(nil)
       errorLabel.isHidden = true
-      pageIndex = -1
-      loadImage = nil
       pageMarkerContainer.isHidden = true
     }
 

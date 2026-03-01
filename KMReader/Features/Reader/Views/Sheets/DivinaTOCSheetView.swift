@@ -7,34 +7,9 @@ import SwiftUI
 
 struct DivinaTOCSheetView: View {
   let entries: [ReaderTOCEntry]
-  let currentPageIndex: Int
+  let currentEntryIDs: Set<UUID>
+  let scrollTargetID: UUID?
   let onSelect: (ReaderTOCEntry) -> Void
-
-  private var currentEntryIds: Set<UUID> {
-    var result: Set<UUID> = []
-    var currentEntries = entries
-
-    while true {
-      var found = false
-      for (index, entry) in currentEntries.enumerated() {
-        let nextPageIndex = index + 1 < currentEntries.count ? currentEntries[index + 1].pageIndex : Int.max
-        if currentPageIndex >= entry.pageIndex && currentPageIndex < nextPageIndex {
-          result.insert(entry.id)
-          if let children = entry.children, !children.isEmpty {
-            currentEntries = children
-            found = true
-            break
-          }
-          return result
-        }
-      }
-      if !found {
-        break
-      }
-    }
-
-    return result
-  }
 
   var body: some View {
     SheetView(title: String(localized: "Table of Contents"), size: .large, applyFormStyle: true) {
@@ -43,7 +18,7 @@ struct DivinaTOCSheetView: View {
           ForEach(entries) { entry in
             TOCEntryRow(
               entry: entry,
-              currentEntryIds: currentEntryIds,
+              currentEntryIds: currentEntryIDs,
               onSelect: onSelect
             )
           }
@@ -52,7 +27,8 @@ struct DivinaTOCSheetView: View {
         .optimizedListStyle()
         .onAppear {
           DispatchQueue.main.async {
-            proxy.scrollTo(currentPageIndex, anchor: .center)
+            guard let scrollTargetID else { return }
+            proxy.scrollTo(scrollTargetID, anchor: .center)
           }
         }
       }
@@ -94,7 +70,7 @@ private struct TOCEntryRow: View {
         }
         .contentShape(Rectangle())
         .listRowInsets(EdgeInsets(top: 24, leading: 48 + CGFloat(level * 20), bottom: 24, trailing: 48))
-        .id(entry.pageIndex)
+        .id(entry.id)
 
         if let children = entry.children, !children.isEmpty {
           ForEach(children) { child in
@@ -125,7 +101,7 @@ private struct TOCEntryRow: View {
             TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
           }
         }
-        .id(entry.pageIndex)
+        .id(entry.id)
         .onAppear {
           if shouldExpand(entry: entry, children: children) {
             isExpanded = true
@@ -138,7 +114,7 @@ private struct TOCEntryRow: View {
           TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
         }
         .contentShape(Rectangle())
-        .id(entry.pageIndex)
+        .id(entry.id)
       }
     #endif
   }

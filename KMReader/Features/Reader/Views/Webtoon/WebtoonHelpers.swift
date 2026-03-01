@@ -37,7 +37,7 @@ struct InitialScrollRetrier {
 }
 
 struct WebtoonPageHeightCache {
-  var heights: [Int: CGFloat] = [:]
+  var heights: [ReaderPageID: CGFloat] = [:]
   var lastPageWidth: CGFloat = 0
 
   mutating func reset() {
@@ -57,19 +57,19 @@ struct WebtoonPageHeightCache {
   }
 
   mutating func height(
-    for index: Int,
+    for pageID: ReaderPageID,
     page: BookPage,
     pageWidth: CGFloat
   ) -> CGFloat {
     guard pageWidth > 0 else { return 0 }
-    if let cached = heights[index] {
+    if let cached = heights[pageID] {
       return cached
     }
     if let width = page.width, let height = page.height, width > 0 {
       let ratio = CGFloat(height) / CGFloat(width)
       if ratio.isFinite && ratio > 0 {
         let targetHeight = pageWidth * ratio
-        heights[index] = targetHeight
+        heights[pageID] = targetHeight
         return targetHeight
       }
     }

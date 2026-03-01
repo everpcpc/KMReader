@@ -52,6 +52,10 @@ struct DivinaControlsOverlayView: View {
     currentBook?.id
   }
 
+  private var currentPageID: ReaderPageID? {
+    viewModel.currentReaderPage?.id
+  }
+
   private var currentSegmentPageCount: Int {
     guard let currentSegmentBookId else {
       return viewModel.pageCount
@@ -60,11 +64,13 @@ struct DivinaControlsOverlayView: View {
   }
 
   private var currentSegmentProgressPage: Int {
+    guard let currentSegmentBookId else { return 0 }
     guard currentSegmentPageCount > 0 else { return 0 }
     if viewModel.currentViewItem()?.isEnd == true {
       return currentSegmentPageCount
     }
-    return min(max(viewModel.currentPageNumberInCurrentSegment(), 1), currentSegmentPageCount)
+    let currentPageNumber = viewModel.currentPageNumber(inSegmentBookId: currentSegmentBookId) ?? 1
+    return min(max(currentPageNumber, 1), currentSegmentPageCount)
   }
 
   private var progress: Double {
@@ -74,29 +80,28 @@ struct DivinaControlsOverlayView: View {
 
   private var displayedCurrentPage: String {
     guard currentSegmentPageCount > 0 else { return "0" }
-    if viewModel.currentViewItem()?.isEnd == true || viewModel.currentPageIndex >= viewModel.pageCount {
+    if viewModel.isShowingEndPage {
       return String(localized: "reader.page.end")
-    } else {
-      if dualPage, let pair = viewModel.currentPagePair() {
-        return displayPagePair(first: pair.first, second: pair.second)
-      } else {
-        return String(displayPageNumber(forPageIndex: viewModel.currentPageIndex))
-      }
     }
+    if dualPage, let pair = viewModel.currentViewItem()?.pagePairIDs {
+      return displayPagePair(first: pair.first, second: pair.second)
+    }
+    guard let currentPageID else { return "0" }
+    return String(displayPageNumber(for: currentPageID))
   }
 
-  private func displayPagePair(first: Int, second: Int?) -> String {
-    let firstPageNumber = displayPageNumber(forPageIndex: first)
+  private func displayPagePair(first: ReaderPageID, second: ReaderPageID?) -> String {
+    let firstPageNumber = displayPageNumber(for: first)
     guard let second else { return "\(firstPageNumber)" }
-    let secondPageNumber = displayPageNumber(forPageIndex: second)
+    let secondPageNumber = displayPageNumber(for: second)
     if readingDirection == .rtl {
       return "\(secondPageNumber),\(firstPageNumber)"
     }
     return "\(firstPageNumber),\(secondPageNumber)"
   }
 
-  private func displayPageNumber(forPageIndex pageIndex: Int) -> Int {
-    viewModel.displayPageNumber(forPageIndex: pageIndex) ?? pageIndex + 1
+  private func displayPageNumber(for pageID: ReaderPageID) -> Int {
+    viewModel.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
   }
 
   private var enableDualPageOptions: Bool {
@@ -104,18 +109,17 @@ struct DivinaControlsOverlayView: View {
   }
 
   private var isCurrentPageValid: Bool {
-    return viewModel.currentPageIndex >= 0 && viewModel.currentPageIndex < viewModel.pageCount
+    currentPageID != nil
   }
 
   #if os(iOS) || os(macOS)
-    private func sharePages(indices: [Int]) {
+    private func sharePages(ids: [ReaderPageID]) {
       var images: [PlatformImage] = []
       var names: [String] = []
 
-      for index in indices {
-        guard index >= 0 && index < viewModel.pageCount else { continue }
-        guard let page = viewModel.page(at: index) else { continue }
-        if let image = viewModel.preloadedImage(forPageIndex: index) {
+      for pageID in ids {
+        guard let page = viewModel.page(for: pageID) else { continue }
+        if let image = viewModel.preloadedImage(for: pageID) {
           images.append(image)
           names.append(page.fileName)
         }
@@ -125,8 +129,8 @@ struct DivinaControlsOverlayView: View {
       ImageShareHelper.shareMultiple(images: images, fileNames: names)
     }
 
-    private func sharePage(index: Int) {
-      sharePages(indices: [index])
+    private func sharePage(id: ReaderPageID) {
+      sharePages(ids: [id])
     }
 
     private var sharePageFormat: String {
@@ -367,12 +371,14 @@ struct DivinaControlsOverlayView: View {
     }
 
     #if os(iOS) || os(macOS)
-      if viewModel.currentPageIndex < viewModel.pageCount {
+      if currentPageID != nil {
         Section {
-          if dualPage, let pair = viewModel.currentPagePair() {
+          if dualPage, let pair = viewModel.currentViewItem()?.pagePairIDs {
             share(firstPage: pair.first, secondPage: pair.second)
+          } else if let currentPageID {
+            share(firstPage: currentPageID, secondPage: nil)
           } else {
-            share(firstPage: viewModel.currentPageIndex, secondPage: nil)
+            EmptyView()
           }
         } header: {
           Text(String(localized: "Share"))
@@ -409,32 +415,30 @@ struct DivinaControlsOverlayView: View {
     }
 
     if isCurrentPageValid {
-      if viewModel.isCurrentPageIsolated {
+      if viewModel.isCurrentPageIsolated, let currentPageID {
         Button {
-          viewModel.toggleIsolatePage(viewModel.currentPageIndex)
+          viewModel.toggleIsolatePage(currentPageID)
         } label: {
           Label(String(localized: "Cancel Isolation"), systemImage: "rectangle.portrait.slash")
         }
-      } else if dualPage, let pair = viewModel.currentPagePair(),
-        let secondPage = pair.second,
-        pair.first < viewModel.pageCount,
-        secondPage < viewModel.pageCount
+      } else if dualPage, let pair = viewModel.currentViewItem()?.pagePairIDs,
+        let secondPage = pair.second
       {
-        let leftPage = readingDirection == .rtl ? secondPage : pair.first
-        let rightPage = readingDirection == .rtl ? pair.first : secondPage
+        let leftPageID = readingDirection == .rtl ? secondPage : pair.first
+        let rightPageID = readingDirection == .rtl ? pair.first : secondPage
         Button {
-          viewModel.toggleIsolatePage(leftPage)
+          viewModel.toggleIsolatePage(leftPageID)
         } label: {
-          let displayedPageNumber = displayPageNumber(forPageIndex: leftPage)
+          let displayedPageNumber = displayPageNumber(for: leftPageID)
           Label(
             String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
             systemImage: "rectangle.lefthalf.inset.filled"
           )
         }
         Button {
-          viewModel.toggleIsolatePage(rightPage)
+          viewModel.toggleIsolatePage(rightPageID)
         } label: {
-          let displayedPageNumber = displayPageNumber(forPageIndex: rightPage)
+          let displayedPageNumber = displayPageNumber(for: rightPageID)
           Label(
             String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
             systemImage: "rectangle.righthalf.inset.filled"
@@ -497,11 +501,11 @@ struct DivinaControlsOverlayView: View {
 
   #if os(iOS) || os(macOS)
     @ViewBuilder
-    private func share(firstPage: Int, secondPage: Int?) -> some View {
+    private func share(firstPage: ReaderPageID, secondPage: ReaderPageID?) -> some View {
       Button {
-        sharePage(index: firstPage)
+        sharePage(id: firstPage)
       } label: {
-        let displayedPageNumber = displayPageNumber(forPageIndex: firstPage)
+        let displayedPageNumber = displayPageNumber(for: firstPage)
         Label(
           String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
           systemImage: "square.and.arrow.up"
@@ -509,9 +513,9 @@ struct DivinaControlsOverlayView: View {
       }
       if let secondPage {
         Button {
-          sharePage(index: secondPage)
+          sharePage(id: secondPage)
         } label: {
-          let displayedPageNumber = displayPageNumber(forPageIndex: secondPage)
+          let displayedPageNumber = displayPageNumber(for: secondPage)
           Label(
             String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
             systemImage: "square.and.arrow.up.on.square"

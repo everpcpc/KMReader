@@ -132,6 +132,13 @@ struct DivinaReaderView: View {
     currentSegmentContext.bookId
   }
 
+  private var currentTOCSelection: ReaderTOCSelection {
+    viewModel.currentTOCSelection(
+      in: viewModel.tableOfContents,
+      for: currentSegmentBookId
+    )
+  }
+
   private var currentSegmentBook: Book? {
     currentSegmentContext.currentBook
   }
@@ -200,19 +207,19 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
-  private func requestAnimatedPlayback(for pageIndex: Int) {
+  private func requestAnimatedPlayback(for pageID: ReaderPageID) {
     guard !animatedPlaybackLoading else { return }
     withAnimation(.easeInOut(duration: 0.18)) {
       animatedPlaybackLoading = true
     }
 
     Task {
-      let fileURL = await viewModel.prepareAnimatedPagePlaybackURL(pageIndex: pageIndex)
+      let fileURL = await viewModel.prepareAnimatedPagePlaybackURL(pageID: pageID)
       withAnimation(.easeInOut(duration: 0.18)) {
         animatedPlaybackLoading = false
       }
       guard let fileURL else {
-        logger.debug("⚠️ Animated playback unavailable for pageIndex=\(pageIndex)")
+        logger.debug("⚠️ Animated playback unavailable for pageID=\(pageID)")
         return
       }
       showingControls = false
@@ -273,7 +280,7 @@ struct DivinaReaderView: View {
 
     private func handleTVMoveCommand(_ direction: MoveCommandDirection, source: String) -> Bool {
       logger.debug(
-        "📺 \(source) move direction=\(String(describing: direction)), showingControls=\(showingControls), currentPageIndex=\(viewModel.currentPageIndex), totalPages=\(viewModel.pageCount)"
+        "📺 \(source) move direction=\(String(describing: direction)), showingControls=\(showingControls), currentPageID=\(String(describing: viewModel.currentReaderPage?.id)), totalPages=\(viewModel.pageCount)"
       )
 
       if showingControls {
@@ -348,7 +355,7 @@ struct DivinaReaderView: View {
 
     private func handleTVSelectCommand(source: String) -> Bool {
       logger.debug(
-        "📺 \(source) select, showingControls=\(showingControls), totalPages=\(viewModel.pageCount), currentPageIndex=\(viewModel.currentPageIndex)"
+        "📺 \(source) select, showingControls=\(showingControls), totalPages=\(viewModel.pageCount), currentPageID=\(String(describing: viewModel.currentReaderPage?.id))"
       )
 
       if shouldIgnoreDuplicateTVSelectCommand() {
@@ -455,16 +462,18 @@ struct DivinaReaderView: View {
     #endif
     .sheet(isPresented: $showingPageJumpSheet) {
       PageJumpSheetView(
-        currentPage: viewModel.currentPageNumberInCurrentSegment(),
+        segmentBookId: currentSegmentBookId,
+        currentPageID: viewModel.currentReaderPage?.id,
         readingDirection: readingDirection,
         viewModel: viewModel,
-        onJump: jumpToPage
+        onJump: jumpToPageID
       )
     }
     .sheet(isPresented: $showingTOCSheet) {
       DivinaTOCSheetView(
         entries: viewModel.tableOfContents,
-        currentPageIndex: viewModel.currentPageIndexInCurrentSegment(),
+        currentEntryIDs: currentTOCSelection.entryIDs,
+        scrollTargetID: currentTOCSelection.scrollTargetID,
         onSelect: { entry in
           showingTOCSheet = false
           jumpToTOCEntry(entry)
@@ -597,8 +606,8 @@ struct DivinaReaderView: View {
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
                 toggleControls: { toggleControls() },
-                onPlayAnimatedPage: { pageIndex in
-                  requestAnimatedPlayback(for: pageIndex)
+                onPlayAnimatedPage: { pageID in
+                  requestAnimatedPlayback(for: pageID)
                 },
                 onScrollActivityChange: { _ in }
               )
@@ -615,8 +624,8 @@ struct DivinaReaderView: View {
                     renderConfig: renderConfig,
                     readListContext: readListContext,
                     onDismiss: { closeReader() },
-                    onPlayAnimatedPage: { pageIndex in
-                      requestAnimatedPlayback(for: pageIndex)
+                    onPlayAnimatedPage: { pageID in
+                      requestAnimatedPlayback(for: pageID)
                     }
                   )
                 } else {
@@ -628,8 +637,8 @@ struct DivinaReaderView: View {
                     renderConfig: renderConfig,
                     readListContext: readListContext,
                     onDismiss: { closeReader() },
-                    onPlayAnimatedPage: { pageIndex in
-                      requestAnimatedPlayback(for: pageIndex)
+                    onPlayAnimatedPage: { pageID in
+                      requestAnimatedPlayback(for: pageID)
                     }
                   )
                 }
@@ -644,8 +653,8 @@ struct DivinaReaderView: View {
                   readListContext: readListContext,
                   onDismiss: { closeReader() },
                   toggleControls: { toggleControls() },
-                  onPlayAnimatedPage: { pageIndex in
-                    requestAnimatedPlayback(for: pageIndex)
+                  onPlayAnimatedPage: { pageID in
+                    requestAnimatedPlayback(for: pageID)
                   },
                   onScrollActivityChange: { _ in }
                 )
@@ -661,8 +670,8 @@ struct DivinaReaderView: View {
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
                 toggleControls: { toggleControls() },
-                onPlayAnimatedPage: { pageIndex in
-                  requestAnimatedPlayback(for: pageIndex)
+                onPlayAnimatedPage: { pageID in
+                  requestAnimatedPlayback(for: pageID)
                 },
                 onScrollActivityChange: { _ in }
               )
@@ -684,13 +693,7 @@ struct DivinaReaderView: View {
             )
           )
         #endif
-        .onChange(of: viewModel.currentPageIndex) { oldIndex, newIndex in
-          #if os(tvOS)
-            if oldIndex >= viewModel.pageCount && newIndex < viewModel.pageCount {
-              tvRemoteCaptureGeneration += 1
-              logger.debug("📺 left end page, restart UIKit capture generation=\(tvRemoteCaptureGeneration)")
-            }
-          #endif
+        .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
           updateHandoff()
           // Keep progress sync responsive, but leave preload work as utility.
           Task(priority: .userInitiated) {
@@ -702,6 +705,14 @@ struct DivinaReaderView: View {
             await viewModel.ensureTableOfContentsForCurrentSegment()
           }
         }
+        #if os(tvOS)
+          .onChange(of: isShowingEndPage) { oldValue, newValue in
+            if oldValue && !newValue {
+              tvRemoteCaptureGeneration += 1
+              logger.debug("📺 left end page, restart UIKit capture generation=\(tvRemoteCaptureGeneration)")
+            }
+          }
+        #endif
       } else if viewModel.isLoading {
         ReaderLoadingView(
           title: String(localized: "Loading book..."),
@@ -1090,10 +1101,9 @@ struct DivinaReaderView: View {
 
     guard !requestedPreviousSegmentPreloads.contains(segmentBookId) else { return }
     guard !inFlightPreviousSegmentPreloads.contains(segmentBookId) else { return }
-    guard let segmentRange = viewModel.pageRange(forSegmentBookId: segmentBookId) else { return }
-    guard segmentRange.contains(viewModel.currentPageIndex) else { return }
-
-    let pagesFromSegmentStart = viewModel.currentPageIndex - segmentRange.lowerBound
+    guard let pagesFromSegmentStart = viewModel.currentPageOffsetInSegment(for: segmentBookId) else {
+      return
+    }
     guard pagesFromSegmentStart <= segmentPreloadTriggerDistance else { return }
 
     guard
@@ -1127,10 +1137,9 @@ struct DivinaReaderView: View {
 
     guard !requestedNextSegmentPreloads.contains(segmentBookId) else { return }
     guard !inFlightNextSegmentPreloads.contains(segmentBookId) else { return }
-    guard let segmentRange = viewModel.pageRange(forSegmentBookId: segmentBookId) else { return }
-    guard segmentRange.contains(viewModel.currentPageIndex) else { return }
-
-    let remainingPagesInSegment = segmentRange.upperBound - viewModel.currentPageIndex - 1
+    guard let remainingPagesInSegment = viewModel.remainingPagesInSegment(for: segmentBookId) else {
+      return
+    }
     guard remainingPagesInSegment <= segmentPreloadTriggerDistance else { return }
 
     guard
@@ -1155,23 +1164,21 @@ struct DivinaReaderView: View {
     }
   }
 
-  private func jumpToPage(page: Int) {
-    guard viewModel.hasPages else { return }
-    let clampedPage = min(max(page, 1), viewModel.pageCount)
-    let targetIndex = clampedPage - 1
-    if targetIndex != viewModel.currentPageIndex {
-      viewModel.targetPageIndex = targetIndex
-    }
+  private func jumpToPageID(_ pageID: ReaderPageID) {
+    guard pageID != viewModel.currentReaderPage?.id else { return }
+    viewModel.requestNavigation(toPageID: pageID)
   }
 
   private func jumpToTOCEntry(_ entry: ReaderTOCEntry) {
-    guard let segmentRange = viewModel.pageRange(forSegmentBookId: currentSegmentBookId) else {
-      jumpToPage(page: entry.pageIndex + 1)
+    guard
+      let targetPageID = viewModel.pageID(
+        forSegmentBookId: currentSegmentBookId,
+        pageNumberInSegment: entry.pageIndex + 1
+      )
+    else {
       return
     }
-
-    let globalPage = segmentRange.lowerBound + entry.pageIndex + 1
-    jumpToPage(page: globalPage)
+    jumpToPageID(targetPageID)
   }
 
   #if os(iOS) || os(macOS)
@@ -1197,13 +1204,8 @@ struct DivinaReaderView: View {
     guard viewModel.hasPages else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical, .webtoon:
-      let currentIndex =
-        viewModel.currentViewItemIndex < viewModel.viewItems.count
-        ? viewModel.currentViewItemIndex
-        : viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
-      let nextIndex = currentIndex + 1
-      guard nextIndex < viewModel.viewItems.count else { return }
-      viewModel.targetViewItemIndex = nextIndex
+      guard let nextItem = viewModel.adjacentViewItem(offset: 1) else { return }
+      viewModel.requestNavigation(toViewItem: nextItem)
     }
   }
 
@@ -1211,13 +1213,8 @@ struct DivinaReaderView: View {
     guard viewModel.hasPages else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical, .webtoon:
-      let currentIndex =
-        viewModel.currentViewItemIndex < viewModel.viewItems.count
-        ? viewModel.currentViewItemIndex
-        : viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
-      let previousIndex = currentIndex - 1
-      guard previousIndex >= 0 else { return }
-      viewModel.targetViewItemIndex = previousIndex
+      guard let previousItem = viewModel.adjacentViewItem(offset: -1) else { return }
+      viewModel.requestNavigation(toViewItem: previousItem)
     }
   }
 

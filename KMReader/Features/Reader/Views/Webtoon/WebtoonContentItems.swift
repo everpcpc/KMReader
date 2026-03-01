@@ -40,23 +40,6 @@ struct WebtoonContentItems {
     return WebtoonContentItems(items: items, itemIndexByPageID: itemIndexByPageID)
   }
 
-  static func resolvedPageIndex(
-    for itemIndex: Int,
-    in items: [Item],
-    viewModel: ReaderViewModel?
-  ) -> Int? {
-    guard itemIndex >= 0, itemIndex < items.count else { return nil }
-    switch items[itemIndex] {
-    case .page(let pageID):
-      return viewModel?.pageIndex(for: pageID)
-    case .end(let segmentBookId):
-      guard let range = viewModel?.pageRange(forSegmentBookId: segmentBookId), !range.isEmpty else {
-        return nil
-      }
-      return range.upperBound - 1
-    }
-  }
-
   static func lastVisibleItemIndex(
     itemCount: Int,
     viewportBottom: CGFloat,
@@ -113,10 +96,4 @@ struct WebtoonContentItems {
     return visibleIndex
   }
 
-  static func preheatPageIndices(around pageIndex: Int, radius: Int = WebtoonConstants.preheatRadius)
-    -> [Int]
-  {
-    let safeRadius = max(radius, 0)
-    return Array((pageIndex - safeRadius)...(pageIndex + safeRadius))
-  }
 }

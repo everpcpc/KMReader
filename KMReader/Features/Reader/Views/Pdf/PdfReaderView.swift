@@ -85,7 +85,8 @@
       .sheet(isPresented: $showingTOCSheet) {
         DivinaTOCSheetView(
           entries: viewModel.tableOfContents,
-          currentPageIndex: max(0, viewModel.currentPageNumber - 1),
+          currentEntryIDs: currentTOCSelection.entryIDs,
+          scrollTargetID: currentTOCSelection.scrollTargetID,
           onSelect: { entry in
             showingTOCSheet = false
             requestPageNavigation(to: entry.pageIndex + 1)
@@ -172,6 +173,13 @@
         return max(1, min(viewModel.currentPageNumber, viewModel.pageCount))
       }
       return max(1, viewModel.initialPageNumber)
+    }
+
+    private var currentTOCSelection: ReaderTOCSelection {
+      ReaderTOCSelection.resolve(
+        in: viewModel.tableOfContents,
+        currentPageIndex: max(0, viewModel.currentPageNumber - 1)
+      )
     }
 
     @ViewBuilder

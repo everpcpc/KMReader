@@ -65,10 +65,10 @@
       } else {
         if imageView.image == nil, let data = currentData {
           let pageSourceImage: NSImage?
-          if let image = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber), data.splitMode != .none {
+          if let image = readerViewModel?.preloadedImage(for: data.pageID), data.splitMode != .none {
             pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
           } else {
-            pageSourceImage = readerViewModel?.preloadedImage(forPageIndex: data.pageNumber)
+            pageSourceImage = readerViewModel?.preloadedImage(for: data.pageID)
           }
           analysisSourceImage = pageSourceImage
           imageView.image = renderDisplayImage(from: pageSourceImage, background: readerBackground)
@@ -209,7 +209,7 @@
       updateHeightConstraint(targetHeight)
 
       if pageSourceImage != nil, showPageNumber {
-        if let displayedPageNumber = viewModel.displayPageNumber(forPageIndex: data.pageNumber) {
+        if let displayedPageNumber = viewModel.displayPageNumber(for: data.pageID) {
           pageNumberLabel.stringValue = "\(displayedPageNumber)"
           pageNumberContainer.isHidden = false
         } else {
@@ -323,8 +323,8 @@
         return
       }
 
-      let pageNum = currentData?.pageNumber ?? -1
-      let bookId = currentData?.bookId ?? "unknown"
+      let pageNum = currentData?.pageID.pageNumber ?? -1
+      let bookId = currentData?.pageID.bookId ?? "unknown"
       let startTime = Date()
       let requestID = nextAnalysisRequestID()
 

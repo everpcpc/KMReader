@@ -149,7 +149,7 @@
         }
 
         for (index, data) in pages.enumerated() {
-          let image = parent.viewModel.preloadedImage(forPageIndex: data.pageNumber)
+          let image = parent.viewModel.preloadedImage(for: data.pageID)
           let targetHeight = targetHeight(for: data, image: image)
           pageViews[index].update(
             with: data,
@@ -254,7 +254,7 @@
           }
         }
 
-        if let page = parent.viewModel.readerPage(at: data.pageNumber)?.page,
+        if let page = parent.viewModel.readerPage(for: data.pageID)?.page,
           let pageWidth = page.width,
           let pageHeight = page.height,
           pageWidth > 0,
@@ -318,7 +318,7 @@
       private func adjustedAnchorForFillWidth(_ anchor: CGPoint, contentSize: CGSize) -> CGPoint {
         guard parent.displayMode == .fillWidth else { return anchor }
         guard let data = parent.pages.first else { return anchor }
-        let image = parent.viewModel.preloadedImage(forPageIndex: data.pageNumber)
+        let image = parent.viewModel.preloadedImage(for: data.pageID)
         let imageHeight = targetHeight(for: data, image: image)
         guard imageHeight > 0, contentSize.height > 0, imageHeight < contentSize.height else { return anchor }
         let adjustedY = anchor.y * (imageHeight / contentSize.height)

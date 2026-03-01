@@ -6,27 +6,23 @@ import CoreGraphics
 
 enum WebtoonScrollOffset {
   static func captureOffsetWithinPage(
-    pageIndex: Int,
+    pageID: ReaderPageID,
     currentTopY: CGFloat,
-    isValidPage: (Int) -> Bool,
-    itemIndexForPage: (Int) -> Int?,
+    itemIndexForPage: (ReaderPageID) -> Int?,
     frameForItemIndex: (Int) -> CGRect?
   ) -> CGFloat? {
-    guard isValidPage(pageIndex) else { return nil }
-    guard let itemIndex = itemIndexForPage(pageIndex) else { return nil }
+    guard let itemIndex = itemIndexForPage(pageID) else { return nil }
     guard let frame = frameForItemIndex(itemIndex) else { return nil }
     return offsetWithinItem(currentTopY: currentTopY, itemMinY: frame.minY)
   }
 
   static func targetTopYForPage(
-    pageIndex: Int,
+    pageID: ReaderPageID,
     offsetWithinPage: CGFloat,
-    isValidPage: (Int) -> Bool,
-    itemIndexForPage: (Int) -> Int?,
+    itemIndexForPage: (ReaderPageID) -> Int?,
     frameForItemIndex: (Int) -> CGRect?
   ) -> CGFloat? {
-    guard isValidPage(pageIndex) else { return nil }
-    guard let itemIndex = itemIndexForPage(pageIndex) else { return nil }
+    guard let itemIndex = itemIndexForPage(pageID) else { return nil }
     guard let frame = frameForItemIndex(itemIndex) else { return nil }
     return targetTopY(itemMinY: frame.minY, offsetWithinItem: offsetWithinPage)
   }

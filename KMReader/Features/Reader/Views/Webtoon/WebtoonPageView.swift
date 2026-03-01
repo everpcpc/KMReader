@@ -13,7 +13,7 @@
     let toggleControls: () -> Void
     let pageWidthPercentage: Double
     let renderConfig: ReaderRenderConfig
-    @State private var zoomTargetPageIndex: Int?
+    @State private var zoomTargetPageID: ReaderPageID?
     @State private var zoomAnchor: CGPoint?
     @State private var zoomRequestID: UUID?
 
@@ -30,29 +30,25 @@
             renderConfig: renderConfig,
             readListContext: readListContext,
             onDismiss: onDismiss,
-            onPageChange: { pageIndex in
-              viewModel.currentPageIndex = pageIndex
-              viewModel.currentViewItemIndex = viewModel.viewItemIndex(forPageIndex: pageIndex)
-            },
             onCenterTap: {
               toggleControls()
             },
-            onZoomRequest: { pageIndex, anchor in
-              openZoomOverlay(pageIndex: pageIndex, anchor: anchor)
+            onZoomRequest: { pageID, anchor in
+              openZoomOverlay(pageID: pageID, anchor: anchor)
             }
           )
 
-          if let zoomTargetPageIndex, let zoomRequestID {
+          if let zoomTargetPageID, let zoomRequestID {
             WebtoonZoomOverlayView(
               viewModel: viewModel,
-              pageIndex: zoomTargetPageIndex,
+              pageID: zoomTargetPageID,
               zoomAnchor: zoomAnchor,
               zoomRequestID: zoomRequestID,
               renderConfig: renderConfig,
               onClose: {
                 viewModel.isZoomed = false
                 withAnimation(.easeInOut(duration: 0.2)) {
-                  self.zoomTargetPageIndex = nil
+                  self.zoomTargetPageID = nil
                   self.zoomAnchor = nil
                   self.zoomRequestID = nil
                 }
@@ -65,18 +61,18 @@
       }
     }
 
-    private func openZoomOverlay(pageIndex: Int, anchor: CGPoint) {
-      guard zoomTargetPageIndex == nil else { return }
-      guard pageIndex >= 0, pageIndex < viewModel.pageCount else { return }
+    private func openZoomOverlay(pageID: ReaderPageID, anchor: CGPoint) {
+      guard zoomTargetPageID == nil else { return }
+      guard viewModel.page(for: pageID) != nil else { return }
 
       withAnimation(.easeInOut(duration: 0.2)) {
-        zoomTargetPageIndex = pageIndex
+        zoomTargetPageID = pageID
         zoomAnchor = anchor
         zoomRequestID = UUID()
       }
-      if viewModel.preloadedImage(forPageIndex: pageIndex) == nil {
+      if viewModel.preloadedImage(for: pageID) == nil {
         Task {
-          await viewModel.preloadImageForPage(at: pageIndex)
+          await viewModel.preloadImage(for: pageID)
         }
       }
     }
