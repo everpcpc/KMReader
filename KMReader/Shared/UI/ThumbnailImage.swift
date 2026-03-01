@@ -66,7 +66,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
           menu()
         }
       }
-      .transition(.opacity)
+      .transition(.opacity.combined(with: .scale(scale: 0.98)))
   }
 
   init(
@@ -149,7 +149,8 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
         }
       }
     }
-    .animation(.easeInOut(duration: 0.18), value: refreshTrigger)
+    .animation(.easeInOut(duration: 0.18), value: image != nil)
+    .animation(.easeInOut(duration: 0.18), value: shouldShowPlaceholder)
     .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
     .frame(width: width)
     .overlay {
