@@ -73,7 +73,7 @@ struct SplashView: View {
 
       VStack(spacing: 16) {
         // Logo with animation
-        Image("logo")
+        Image(AppIconLogoAsset.current)
           .resizable()
           .aspectRatio(contentMode: .fit)
           .frame(height: 140)
