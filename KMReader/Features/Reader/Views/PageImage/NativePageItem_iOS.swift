@@ -8,6 +8,7 @@
 
   final class NativePageItem: UIView {
     private let imageView = UIImageView()
+    private let sepiaOverlayView = UIView()
     private let pageNumberLabel = UILabel()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let errorLabel = UILabel()
@@ -18,9 +19,6 @@
     private var readerBackground: ReaderBackground = .system
     private var enableLiveText = false
     private let logger = AppLogger(.reader)
-    private var sourceImage: UIImage?
-    private var renderedBackground: ReaderBackground = .system
-    private var renderedImage: UIImage?
 
     #if !os(tvOS)
       private let interaction = ImageAnalysisInteraction()
@@ -54,8 +52,8 @@
         analyzedImage = nil
         analysisSourceImage = nil
       #endif
-      clearRenderedImageCache()
       imageView.image = nil
+      updateSepiaOverlay()
     }
 
     override func didMoveToWindow() {
@@ -73,7 +71,8 @@
           #if !os(tvOS)
             analysisSourceImage = pageSourceImage
           #endif
-          imageView.image = renderDisplayImage(from: pageSourceImage, background: readerBackground)
+          imageView.image = pageSourceImage
+          updateSepiaOverlay()
         }
         #if !os(tvOS)
           if enableLiveText {
@@ -96,6 +95,9 @@
       imageView.layer.masksToBounds = false
 
       addSubview(imageView)
+      sepiaOverlayView.isUserInteractionEnabled = false
+      sepiaOverlayView.isHidden = true
+      addSubview(sepiaOverlayView)
 
       loadingIndicator.hidesWhenStopped = true
       loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -158,8 +160,8 @@
         analysisSourceImage = pageSourceImage
       #endif
 
-      let displayImage = renderDisplayImage(from: pageSourceImage, background: background)
-      imageView.image = displayImage
+      imageView.image = pageSourceImage
+      updateSepiaOverlay()
       imageView.layer.shadowOpacity = pageSourceImage == nil ? 0 : 0.25
 
       updateHeightConstraint(targetHeight)
@@ -234,40 +236,16 @@
       return UIImage(cgImage: cgImage, scale: scale, orientation: image.imageOrientation)
     }
 
-    private func renderDisplayImage(from image: UIImage?, background: ReaderBackground) -> UIImage? {
-      guard let image else {
-        clearRenderedImageCache()
-        return nil
+    private func updateSepiaOverlay() {
+      guard readerBackground.appliesImageMultiplyBlend, imageView.image != nil else {
+        sepiaOverlayView.isHidden = true
+        sepiaOverlayView.layer.compositingFilter = nil
+        sepiaOverlayView.backgroundColor = .clear
+        return
       }
-
-      guard background.appliesImageMultiplyBlend else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      if let cachedSource = sourceImage, cachedSource === image, renderedBackground == background {
-        return renderedImage ?? image
-      }
-
-      guard let blended = ReaderImageBlendHelper.multiply(image: image, tintColor: UIColor(background.color)) else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      sourceImage = image
-      renderedBackground = background
-      renderedImage = blended
-      return blended
-    }
-
-    private func clearRenderedImageCache() {
-      sourceImage = nil
-      renderedImage = nil
-      renderedBackground = .system
+      sepiaOverlayView.isHidden = false
+      sepiaOverlayView.backgroundColor = UIColor(readerBackground.color)
+      sepiaOverlayView.layer.compositingFilter = "multiplyBlendMode"
     }
 
     private func updateHeightConstraint(_ targetHeight: CGFloat) {
@@ -405,6 +383,7 @@
       }
 
       imageView.frame = CGRect(x: xOffset, y: yOffset, width: actualImageWidth, height: actualImageHeight)
+      sepiaOverlayView.frame = imageView.frame
 
       let topY = yOffset
       let pageLabelWidth = max(30, pageNumberLabel.intrinsicContentSize.width + 16)

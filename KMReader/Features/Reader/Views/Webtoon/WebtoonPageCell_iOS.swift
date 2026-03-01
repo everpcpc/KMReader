@@ -9,18 +9,15 @@
 
   class WebtoonPageCell: UICollectionViewCell {
     private let imageView = UIImageView()
+    private let sepiaOverlayView = UIView()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let pageMarkerContainer = UIView()
     private let pageMarkerLabel = UILabel()
     private let errorLabel = UILabel()
-    private var sourceImage: UIImage?
-    private var renderedBackground: ReaderBackground = .system
-    private var renderedImage: UIImage?
 
     var readerBackground: ReaderBackground = .system {
       didSet {
         applyBackground()
-        updateDisplayedImage()
       }
     }
 
@@ -43,6 +40,11 @@
       imageView.clipsToBounds = true
       imageView.translatesAutoresizingMaskIntoConstraints = false
       contentView.addSubview(imageView)
+
+      sepiaOverlayView.isUserInteractionEnabled = false
+      sepiaOverlayView.isHidden = true
+      sepiaOverlayView.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(sepiaOverlayView)
 
       pageMarkerLabel.font = .systemFont(ofSize: PlatformHelper.pageNumberFontSize, weight: .semibold)
       pageMarkerLabel.textColor = .white
@@ -72,6 +74,11 @@
         imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
+        sepiaOverlayView.topAnchor.constraint(equalTo: imageView.topAnchor),
+        sepiaOverlayView.leadingAnchor.constraint(equalTo: imageView.leadingAnchor),
+        sepiaOverlayView.trailingAnchor.constraint(equalTo: imageView.trailingAnchor),
+        sepiaOverlayView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor),
+
         pageMarkerLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
         pageMarkerLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
         pageMarkerLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
@@ -88,6 +95,19 @@
     private func applyBackground() {
       contentView.backgroundColor = UIColor(readerBackground.color)
       imageView.backgroundColor = UIColor(readerBackground.color)
+      updateSepiaOverlay()
+    }
+
+    private func updateSepiaOverlay() {
+      guard readerBackground.appliesImageMultiplyBlend else {
+        sepiaOverlayView.isHidden = true
+        sepiaOverlayView.layer.compositingFilter = nil
+        sepiaOverlayView.backgroundColor = .clear
+        return
+      }
+      sepiaOverlayView.isHidden = false
+      sepiaOverlayView.backgroundColor = UIColor(readerBackground.color)
+      sepiaOverlayView.layer.compositingFilter = "multiplyBlendMode"
     }
 
     func configure(
@@ -102,8 +122,6 @@
         // Instant display if image is provided
         setImage(image)
       } else {
-        sourceImage = nil
-        clearRenderedImageCache()
         imageView.image = nil
         imageView.alpha = 0.0
         errorLabel.isHidden = true
@@ -117,7 +135,7 @@
       loadingIndicator.stopAnimating()
       loadingIndicator.isHidden = true
       errorLabel.isHidden = true
-      imageView.image = renderDisplayImage(from: image, background: readerBackground)
+      imageView.image = image
       imageView.alpha = 1.0
     }
 
@@ -138,8 +156,6 @@
     }
 
     func showError() {
-      sourceImage = nil
-      clearRenderedImageCache()
       imageView.image = nil
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
@@ -148,53 +164,12 @@
 
     override func prepareForReuse() {
       super.prepareForReuse()
-      sourceImage = nil
-      clearRenderedImageCache()
       imageView.image = nil
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
       loadingIndicator.isHidden = true
       errorLabel.isHidden = true
       pageMarkerLabel.isHidden = true
-    }
-
-    private func updateDisplayedImage() {
-      guard let sourceImage else { return }
-      imageView.image = renderDisplayImage(from: sourceImage, background: readerBackground)
-    }
-
-    private func renderDisplayImage(from image: UIImage, background: ReaderBackground) -> UIImage {
-      guard background.appliesImageMultiplyBlend else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      if let cachedSource = sourceImage, cachedSource === image, renderedBackground == background {
-        return renderedImage ?? image
-      }
-
-      guard
-        let blended = ReaderImageBlendHelper.multiply(
-          image: image, tintColor: UIColor(background.color))
-      else {
-        sourceImage = image
-        renderedBackground = background
-        renderedImage = image
-        return image
-      }
-
-      sourceImage = image
-      renderedBackground = background
-      renderedImage = blended
-      return blended
-    }
-
-    private func clearRenderedImageCache() {
-      sourceImage = nil
-      renderedImage = nil
-      renderedBackground = .system
     }
   }
 #endif

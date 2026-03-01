@@ -55,6 +55,7 @@ class ReaderViewModel {
   /// Track ongoing download tasks to prevent duplicate downloads for the same page.
   private var downloadingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
   private var upscalingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
+  private var preloadingImageTasks: [ReaderPageID: Task<PlatformImage?, Never>] = [:]
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
   private var segmentPageRangeByBookId: [String: Range<Int>] = [:]
   private(set) var readerPagesVersion: Int = 0
@@ -536,6 +537,10 @@ class ReaderViewModel {
       task.cancel()
     }
     upscalingTasks.removeAll()
+    for (_, task) in preloadingImageTasks {
+      task.cancel()
+    }
+    preloadingImageTasks.removeAll()
 
     preloadedImagesByID.removeAll()
     isolatePages.removeAll()
@@ -977,18 +982,7 @@ class ReaderViewModel {
       }
     }
 
-    // Log current memory usage
-    let count = preloadedImagesByID.count
-    var totalBytes: Int64 = 0
-    for image in preloadedImagesByID.values {
-      let size = image.size
-      // Rough estimation: width * height * 4 bytes per pixel (RGBA)
-      totalBytes += Int64(size.width * size.height * 4)
-    }
-    let mb = Double(totalBytes) / 1024 / 1024
-    logger.debug(
-      String(format: "🖼️ Memory Cache: %d images, approx. %.2f MB", count, mb)
-    )
+    logger.debug("🖼️ Memory Cache: \(preloadedImagesByID.count) images")
   }
 
   nonisolated private static func detectAnimatedState(for page: BookPage, fileURL: URL) -> Bool {
@@ -1008,15 +1002,16 @@ class ReaderViewModel {
 
   /// Load and decode image from file URL
   private func loadImageFromFile(fileURL: URL, decodeForDisplay: Bool = true) async -> PlatformImage? {
-    #if os(macOS)
-      guard let image = NSImage(contentsOf: fileURL) else {
-        return nil
-      }
-    #else
-      guard let image = UIImage(contentsOfFile: fileURL.path) else {
-        return nil
-      }
-    #endif
+    let image = await Task.detached(priority: .userInitiated) {
+      #if os(macOS)
+        return NSImage(contentsOf: fileURL)
+      #else
+        return UIImage(contentsOfFile: fileURL.path)
+      #endif
+    }.value
+    guard let image else {
+      return nil
+    }
 
     guard decodeForDisplay else {
       return image
@@ -1379,17 +1374,30 @@ class ReaderViewModel {
     if let cached = preloadedImagesByID[pageID] {
       return cached
     }
-    let (image, isAnimated, animatedFileURL) = await preloadDecodedPageImage(pageIndex: pageIndex)
-    animatedPageStates[pageID] = isAnimated
-    if let animatedFileURL {
-      animatedPageFileURLs[pageID] = animatedFileURL
-    } else {
-      animatedPageFileURLs.removeValue(forKey: pageID)
+
+    if let existingTask = preloadingImageTasks[pageID] {
+      return await existingTask.value
     }
-    guard let image else {
-      return nil
+
+    let preloadTask = Task<PlatformImage?, Never> { [weak self] in
+      guard let self else { return nil }
+      let (image, isAnimated, animatedFileURL) = await self.preloadDecodedPageImage(pageIndex: pageIndex)
+      self.animatedPageStates[pageID] = isAnimated
+      if let animatedFileURL {
+        self.animatedPageFileURLs[pageID] = animatedFileURL
+      } else {
+        self.animatedPageFileURLs.removeValue(forKey: pageID)
+      }
+      guard let image else {
+        return nil
+      }
+      self.preloadedImagesByID[pageID] = image
+      return image
     }
-    preloadedImagesByID[pageID] = image
+
+    preloadingImageTasks[pageID] = preloadTask
+    let image = await preloadTask.value
+    preloadingImageTasks.removeValue(forKey: pageID)
     return image
   }
 
@@ -1408,6 +1416,10 @@ class ReaderViewModel {
       task.cancel()
     }
     upscalingTasks.removeAll()
+    for (_, task) in preloadingImageTasks {
+      task.cancel()
+    }
+    preloadingImageTasks.removeAll()
     preloadedImagesByID.removeAll()
     animatedPageStates.removeAll()
     animatedPageFileURLs.removeAll()
