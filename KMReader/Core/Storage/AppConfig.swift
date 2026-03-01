@@ -879,47 +879,6 @@ enum AppConfig {
     readingProgressSyncTimeByInstance = store
   }
 
-  private static nonisolated var deletionReconcileTimeByInstance: [String: TimeInterval] {
-    get {
-      guard
-        let stored = UserDefaults.standard.string(forKey: "deletionReconcileTimeByInstance"),
-        let data = stored.data(using: .utf8),
-        let dict = try? JSONSerialization.jsonObject(with: data) as? [String: TimeInterval]
-      else {
-        return [:]
-      }
-      return dict
-    }
-    set {
-      if newValue.isEmpty {
-        UserDefaults.standard.removeObject(forKey: "deletionReconcileTimeByInstance")
-        return
-      }
-
-      guard
-        let data = try? JSONSerialization.data(withJSONObject: newValue, options: [.sortedKeys]),
-        let encoded = String(data: data, encoding: .utf8)
-      else {
-        return
-      }
-      UserDefaults.standard.set(encoded, forKey: "deletionReconcileTimeByInstance")
-    }
-  }
-
-  static nonisolated func deletionReconcileTime(instanceId: String) -> Date? {
-    guard !instanceId.isEmpty, let timestamp = deletionReconcileTimeByInstance[instanceId] else {
-      return nil
-    }
-    return Date(timeIntervalSince1970: timestamp)
-  }
-
-  static nonisolated func setDeletionReconcileTime(_ date: Date, instanceId: String) {
-    guard !instanceId.isEmpty else { return }
-    var store = deletionReconcileTimeByInstance
-    store[instanceId] = date.timeIntervalSince1970
-    deletionReconcileTimeByInstance = store
-  }
-
   // MARK: - Spotlight
   static nonisolated var enableSpotlightIndexing: Bool {
     get {
