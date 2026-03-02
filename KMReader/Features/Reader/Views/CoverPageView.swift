@@ -64,7 +64,7 @@
         ZStack {
           if let currentItem {
             if transitionOffset == 1, let nextItem {
-              pageView(for: nextItem, isActive: true)
+              pageView(for: nextItem)
                 .zIndex(0)
               pageView(for: currentItem, isActive: true)
                 .offset(
@@ -75,7 +75,7 @@
             } else if transitionOffset == -1, let pendingTargetItem {
               pageView(for: currentItem)
                 .zIndex(0)
-              pageView(for: pendingTargetItem, isActive: true)
+              pageView(for: pendingTargetItem)
                 .offset(
                   x: mode.isVertical ? 0 : dragOffset,
                   y: mode.isVertical ? dragOffset : 0

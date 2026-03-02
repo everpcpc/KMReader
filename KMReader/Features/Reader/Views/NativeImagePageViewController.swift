@@ -248,6 +248,10 @@
         hideAnimatedInlinePlayback()
         return
       }
+      guard isCurrentAnimatedInlineTarget(viewModel: viewModel) else {
+        hideAnimatedInlinePlayback()
+        return
+      }
       guard let fileURL = viewModel.animatedPlaybackFileURL(for: pageID) else {
         hideAnimatedInlinePlayback()
         return
@@ -259,6 +263,11 @@
     private func prepareAnimatedInlinePlaybackIfNeeded() {
       guard isVisibleForAnimatedInlinePlayback else { return }
       guard let viewModel else { return }
+      guard isCurrentAnimatedInlineTarget(viewModel: viewModel) else {
+        cancelAnimatedInlinePreparation()
+        hideAnimatedInlinePlayback()
+        return
+      }
       guard let readerPage = viewModel.readerPage(for: pageID) else { return }
       guard readerPage.page.isAnimatedImageCandidate else { return }
       guard viewModel.shouldPrepareAnimatedPlayback(for: pageID) else { return }
@@ -268,6 +277,13 @@
       let requestedPageID = pageID
       animatedInlinePreparationTask = Task { [weak self] in
         guard let self else { return }
+        if let currentViewItem = viewModel.currentViewItem() {
+          await viewModel.focusAnimatedPlayback(for: currentViewItem)
+        } else {
+          await viewModel.focusAnimatedPlayback(on: requestedPageID)
+        }
+        guard !Task.isCancelled else { return }
+        guard self.pageID == requestedPageID else { return }
         _ = await viewModel.prepareAnimatedPagePlaybackURL(pageID: requestedPageID)
         guard !Task.isCancelled else { return }
         guard self.pageID == requestedPageID else { return }
@@ -281,6 +297,7 @@
       readerPage: ReaderPage?
     ) -> Bool {
       guard isVisibleForAnimatedInlinePlayback else { return false }
+      guard isCurrentAnimatedInlineTarget(viewModel: viewModel) else { return false }
       guard viewModel.animatedPlaybackFileURL(for: pageID) == nil else { return false }
 
       if viewModel.isAnimatedPlaybackLoading(for: pageID) {
@@ -290,6 +307,15 @@
         return animatedInlinePreparationTask != nil
       }
       return false
+    }
+
+    private func isCurrentAnimatedInlineTarget(viewModel: ReaderViewModel) -> Bool {
+      guard let currentViewItem = viewModel.currentViewItem(),
+        let pagePairIDs = currentViewItem.pagePairIDs
+      else {
+        return false
+      }
+      return pagePairIDs.first == pageID || pagePairIDs.second == pageID
     }
 
     private func cancelAnimatedInlinePreparation() {
