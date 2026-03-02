@@ -14,6 +14,7 @@ Incognito mode and iOS Live Text support let you read your way.
 Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists keep important items close.
 Browse Series, Books, Collections, and Read Lists with advanced metadata filters and saved filters.
 Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions, help you jump back into reading faster.
+KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
 - Offline that actually works
 Download books for offline reading.

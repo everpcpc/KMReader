@@ -50,6 +50,24 @@
             "state" : "translated",
             "value" : "從上次中斷的地方繼續"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continúa donde lo dejaste"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua da dove avevi interrotto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжайте с того места, где остановились"
+          }
         }
       }
     },
@@ -95,6 +113,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "繼續閱讀"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguir leyendo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua a leggere"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить чтение"
           }
         }
       }
@@ -142,6 +178,24 @@
             "state" : "translated",
             "value" : "暫無書籍"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay libros disponibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun libro disponibile"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет доступных книг"
+          }
         }
       }
     },
@@ -187,6 +241,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫無系列"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay series disponibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna serie disponibile"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет доступных серий"
           }
         }
       }
@@ -234,6 +306,24 @@
             "state" : "translated",
             "value" : "查看最近新增的書籍"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver libros añadidos recientemente"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi i libri aggiunti di recente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посмотреть недавно добавленные книги"
+          }
         }
       }
     },
@@ -279,6 +369,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近新增"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadidos recientemente"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiunti di recente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недавно добавленные"
           }
         }
       }
@@ -326,6 +434,24 @@
             "state" : "translated",
             "value" : "查看最近更新的系列"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver series actualizadas recientemente"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi le serie aggiornate di recente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посмотреть недавно обновленные серии"
+          }
         }
       }
     },
@@ -371,6 +497,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近更新的系列"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series actualizadas recientemente"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serie aggiornate di recente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недавно обновленные серии"
           }
         }
       }

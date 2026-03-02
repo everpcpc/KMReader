@@ -56,6 +56,10 @@ Optional terminology alignment source (if present):
 
 - `../komga/komga-webui/src/locales/`
 
+Current supported target languages:
+
+- `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `ru`, `zh-Hans`, `zh-Hant`
+
 ## Deterministic Update Command
 
 Always write all target languages in one command to avoid partial updates.
@@ -64,9 +68,12 @@ Always write all target languages in one command to avoid partial updates.
 ./misc/translate.py update "<KEY>" \
   --de "<German>" \
   --en "<English>" \
+  --es "<Spanish>" \
   --fr "<French>" \
+  --it "<Italian>" \
   --ja "<Japanese>" \
   --ko "<Korean>" \
+  --ru "<Russian>" \
   --zh-hans "<Simplified Chinese>" \
   --zh-hant "<Traditional Chinese>"
 ```

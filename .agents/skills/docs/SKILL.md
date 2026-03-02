@@ -25,6 +25,7 @@ Regenerate key project docs from current product capabilities.
 - Keep product-facing language clear and concise.
 - Avoid low-level technical implementation details.
 - Keep messaging consistent across all three files.
+- Keep any supported-language claims aligned with the current app localization set.
 
 ## Inputs To Read First
 

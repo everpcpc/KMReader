@@ -35,6 +35,7 @@
 - Save and reuse filters across browse surfaces.
 - Reading history and stats help surface recent activity from synced local data.
 - Spotlight integration for downloaded content on iOS/macOS, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
+- UI localization includes English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
 ### Offline and Sync
 

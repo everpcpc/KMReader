@@ -140,7 +140,7 @@ make localize           # Update localizations
 ./misc/translate.py list
 
 # Update translations for a key
-./misc/translate.py update <key>  --zh-hans <zh-hans> --zh-hant <zh-hant> --de <de> --en <en> --fr <fr> --ja <ja> --ko <ko>
+./misc/translate.py update <key>  --zh-hans <zh-hans> --zh-hant <zh-hant> --de <de> --en <en> --es <es> --fr <fr> --it <it> --ja <ja> --ko <ko> --ru <ru>
 ```
 
 ## Testing & Validation

@@ -10,7 +10,18 @@ from localize_sort import sort_keys
 
 # Path to the xcstrings file relative to the project root
 XISTRINGS_PATH = "KMReader/Localizable.xcstrings"
-REQUIRED_LANGUAGES = ["de", "en", "fr", "ja", "ko", "zh-Hans", "zh-Hant"]
+REQUIRED_LANGUAGES = [
+    "de",
+    "en",
+    "es",
+    "fr",
+    "it",
+    "ja",
+    "ko",
+    "ru",
+    "zh-Hans",
+    "zh-Hant",
+]
 
 
 def eprint(*args, **kwargs):
@@ -86,9 +97,12 @@ def main():
     update_parser.add_argument("key", help="The key to update")
     update_parser.add_argument("--de", help="German translation")
     update_parser.add_argument("--en", help="English translation")
+    update_parser.add_argument("--es", help="Spanish translation")
     update_parser.add_argument("--fr", help="French translation")
+    update_parser.add_argument("--it", help="Italian translation")
     update_parser.add_argument("--ja", help="Japanese translation")
     update_parser.add_argument("--ko", help="Korean translation")
+    update_parser.add_argument("--ru", help="Russian translation")
     update_parser.add_argument("--zh-hans", help="Simplified Chinese translation")
     update_parser.add_argument("--zh-hant", help="Traditional Chinese translation")
 
@@ -130,9 +144,12 @@ def main():
         translations = {
             "de": args.de,
             "en": args.en,
+            "es": args.es,
             "fr": args.fr,
+            "it": args.it,
             "ja": args.ja,
             "ko": args.ko,
+            "ru": args.ru,
             "zh-Hans": args.zh_hans,
             "zh-Hant": args.zh_hant,
         }

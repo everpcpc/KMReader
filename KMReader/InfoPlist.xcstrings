@@ -10,6 +10,24 @@
             "state" : "new",
             "value" : "KMReader"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader"
+          }
         }
       },
       "shouldTranslate" : false
@@ -21,6 +39,24 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
+            "value" : "KMReader"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KMReader"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "KMReader"
           }
         }
@@ -72,6 +108,24 @@
             "state" : "translated",
             "value" : "將書中的圖片儲存到相簿"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guarda imágenes de libros en tu fototeca"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva immagini dei libri nella libreria foto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраняйте изображения из книг в Фотопленку"
+          }
         }
       }
     },
@@ -117,6 +171,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "繼續閱讀"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar leyendo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua a leggere"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить чтение"
           }
         }
       }
@@ -164,6 +236,24 @@
             "state" : "translated",
             "value" : "下載"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargas"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузки"
+          }
         }
       }
     },
@@ -209,6 +299,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜尋"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск"
           }
         }
       }
