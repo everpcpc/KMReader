@@ -618,7 +618,7 @@ enum AppConfig {
       if UserDefaults.standard.object(forKey: "tapPageTransitionDuration") != nil {
         return UserDefaults.standard.double(forKey: "tapPageTransitionDuration")
       }
-      return 0.2
+      return 0.3
     }
     set {
       UserDefaults.standard.set(newValue, forKey: "tapPageTransitionDuration")

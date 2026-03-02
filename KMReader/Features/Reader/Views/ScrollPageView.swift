@@ -19,7 +19,7 @@ struct ScrollPageView: View {
 
   private let logger = AppLogger(.reader)
 
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: ReaderViewItem?

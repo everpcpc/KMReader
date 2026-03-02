@@ -53,10 +53,13 @@
         let recognizerType = String(describing: type(of: gestureRecognizer))
 
         switch recognizerType {
-        case let type
-        where type.contains("Parallax") || type.contains("ZoomTransition")
-          || type.contains("FullPageSwipe") || type.contains("ScreenEdgePan"):
-          // Navigation/Edge/Zoom swipe - allow only for vertical reading
+        case let type where isZoomNavigationGesture(type):
+          // Navigation/zoom swipe - allow only for vertical reading.
+          // In horizontal reading, this must be blocked to avoid gesture conflicts.
+          return isVerticalReading
+
+        case let type where type.contains("FullPageSwipe") || type.contains("ScreenEdgePan"):
+          // Edge-style dismiss remains vertical-reading only to avoid conflicts with horizontal page turns.
           return isVerticalReading
 
         case "_UIContentSwipeDismissGestureRecognizer":
@@ -84,9 +87,12 @@
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
-        // Don't allow dismiss gestures to work alongside other gestures (like scrolling or curling)
-        // to avoid conflicting animations/actions.
+        // Don't allow dismiss/navigation gestures to run with other gestures.
         return false
+      }
+
+      private func isZoomNavigationGesture(_ recognizerType: String) -> Bool {
+        recognizerType.contains("Parallax") || recognizerType.contains("ZoomTransition")
       }
 
       func restoreOriginalDelegates() {

@@ -21,7 +21,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
@@ -46,6 +46,14 @@ struct ReaderSettingsSheet: View {
   private var shouldShowScrollTransitionStyle: Bool {
     #if os(iOS)
       shouldShowPagedTurnSettings && pageTransitionStyle == .scroll
+    #else
+      shouldShowPagedTurnSettings
+    #endif
+  }
+
+  private var shouldShowTapTransitionDuration: Bool {
+    #if os(iOS)
+      shouldShowPagedTurnSettings && pageTransitionStyle != .pageCurl
     #else
       shouldShowPagedTurnSettings
     #endif
@@ -288,7 +296,7 @@ struct ReaderSettingsSheet: View {
                 .frame(height: 60)
               }
 
-              if shouldShowScrollTransitionStyle {
+              if shouldShowTapTransitionDuration {
                 VStack(alignment: .leading, spacing: 8) {
                   HStack {
                     Text("Tap Page Scroll Duration")

@@ -581,7 +581,8 @@ struct DivinaReaderView: View {
             #endif
           } else {
             #if os(iOS)
-              if pageTransitionStyle == .pageCurl {
+              switch pageTransitionStyle {
+              case .pageCurl:
                 if useDualPage {
                   CurlDualPageView(
                     viewModel: viewModel,
@@ -603,7 +604,7 @@ struct DivinaReaderView: View {
                     onDismiss: { closeReader() }
                   )
                 }
-              } else {
+              case .scroll:
                 ScrollPageView(
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
@@ -615,6 +616,16 @@ struct DivinaReaderView: View {
                   onDismiss: { closeReader() },
                   toggleControls: { toggleControls() },
                   onScrollActivityChange: { _ in }
+                )
+              case .cover:
+                CoverPageView(
+                  mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                  readingDirection: readingDirection,
+                  splitWidePageMode: splitWidePageMode,
+                  renderConfig: renderConfig,
+                  viewModel: viewModel,
+                  readListContext: readListContext,
+                  onDismiss: { closeReader() }
                 )
               }
             #else

@@ -20,7 +20,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
@@ -53,6 +53,14 @@ struct DivinaPreferencesView: View {
   private var shouldShowScrollTransitionStyle: Bool {
     #if os(iOS)
       shouldShowPagedSpecificSettings && pageTransitionStyle == .scroll
+    #else
+      shouldShowPagedSpecificSettings
+    #endif
+  }
+
+  private var shouldShowTapTransitionDuration: Bool {
+    #if os(iOS)
+      shouldShowPagedSpecificSettings && pageTransitionStyle != .pageCurl
     #else
       shouldShowPagedSpecificSettings
     #endif
@@ -411,7 +419,7 @@ struct DivinaPreferencesView: View {
                 .foregroundColor(.secondary)
             }
 
-            if shouldShowScrollTransitionStyle {
+            if shouldShowTapTransitionDuration {
               VStack(alignment: .leading, spacing: 8) {
                 HStack {
                   Text("Tap Page Scroll Duration")

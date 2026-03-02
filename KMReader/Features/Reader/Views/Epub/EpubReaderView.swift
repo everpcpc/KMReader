@@ -282,6 +282,23 @@
                 }
               }
             ).readerIgnoresSafeArea()
+          case .cover:
+            WebPubPagedScrollView(
+              viewModel: viewModel,
+              preferences: activePreferences,
+              colorScheme: colorScheme,
+              showingControls: shouldShowControls,
+              bookTitle: currentBook?.metadata.title,
+              onCenterTap: {
+                toggleControls()
+              },
+              onEndReached: {
+                if !showingEndPage {
+                  viewModel.syncEndProgression()
+                  showingEndPage = true
+                }
+              }
+            ).readerIgnoresSafeArea()
           case .pageCurl:
             WebPubPagedCurlView(
               viewModel: viewModel,
