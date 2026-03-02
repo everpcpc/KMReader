@@ -261,6 +261,7 @@
       guard let viewModel else { return }
       guard let readerPage = viewModel.readerPage(for: pageID) else { return }
       guard readerPage.page.isAnimatedImageCandidate else { return }
+      guard viewModel.shouldPrepareAnimatedPlayback(for: pageID) else { return }
       guard viewModel.animatedPlaybackFileURL(for: pageID) == nil else { return }
       guard animatedInlinePreparationTask == nil else { return }
 

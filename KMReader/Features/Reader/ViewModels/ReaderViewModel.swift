@@ -1356,6 +1356,16 @@ class ReaderViewModel {
     return animatedPlaybackPreparationTasks[pageID] != nil
   }
 
+  func shouldPrepareAnimatedPlayback(for pageID: ReaderPageID) -> Bool {
+    if animatedPageStates[pageID] == false {
+      return false
+    }
+    guard let sourceFileURL = animatedPageSourceFileURLs[pageID] else {
+      return true
+    }
+    return animatedPlaybackFailedSourceFileURLs[pageID] != sourceFileURL
+  }
+
   private func setAnimatedSourceFileURL(_ sourceFileURL: URL, for pageID: ReaderPageID) {
     if animatedPageSourceFileURLs[pageID] != sourceFileURL {
       animatedPlaybackFailedSourceFileURLs.removeValue(forKey: pageID)
