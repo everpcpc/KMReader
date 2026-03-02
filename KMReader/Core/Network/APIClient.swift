@@ -753,7 +753,7 @@ class APIClient {
       throw error
     } catch let appError as AppErrorType {
       logger.error("❌ Network error for \(urlString): \(appError.description)")
-      let shouldHandleOffline = !isTemporary
+      let shouldHandleOffline = !isTemporary && requestCategory != .download
       if shouldHandleOffline {
         await handleNetworkError(appError, requestCategory: requestCategory)
       }
@@ -761,7 +761,7 @@ class APIClient {
     } catch let nsError as NSError where nsError.domain == NSURLErrorDomain {
       let appError = AppErrorType.from(nsError)
       logger.error("❌ Network error for \(urlString): \(appError.description)")
-      let shouldHandleOffline = !isTemporary
+      let shouldHandleOffline = !isTemporary && requestCategory != .download
       if shouldHandleOffline {
         await handleNetworkError(nsError, requestCategory: requestCategory)
       }
@@ -784,7 +784,7 @@ class APIClient {
       }
 
       logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")
-      let shouldHandleOffline = !isTemporary
+      let shouldHandleOffline = !isTemporary && requestCategory != .download
       if shouldHandleOffline {
         await handleNetworkError(error, requestCategory: requestCategory)
       }

@@ -668,19 +668,8 @@ actor OfflineManager {
     let bookDir = bookDirectory(instanceId: instanceId, bookId: info.bookId)
 
     #if os(iOS)
-      let shouldUseForegroundDownload: Bool =
-        switch info.kind {
-        case .epubWebPub, .pdf:
-          true
-        case .pages, .epubDivina:
-          false
-        }
-      if shouldUseForegroundDownload {
-        await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
-      } else {
-        // Use background downloads on iOS
-        await startBackgroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
-      }
+      // Use background downloads on iOS for all content kinds.
+      await startBackgroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
     #else
       // Use in-process downloads on macOS/tvOS
       await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
@@ -721,100 +710,42 @@ actor OfflineManager {
         }
 
         switch info.kind {
-        case .epubWebPub, .pdf:
-          await startForegroundDownload(instanceId: instanceId, info: info, bookDir: bookDir)
-          return
-        case .pages, .epubDivina:
-          break
-        }
-
-        // Store download info for completion handling
-        backgroundDownloadInfo[info.bookId] = (
-          instanceId: instanceId,
-          seriesTitle: info.seriesTitle,
-          bookInfo: info.bookInfo,
-          totalPages: pages.count
-        )
-
-        let serverURL = await MainActor.run { AppConfig.current.serverURL }
-
-        // Pages: multiple downloads, skip already downloaded pages
-        var pagesToDownload: [BookPage] = []
-
-        for page in pages {
-          let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-          let destination = bookDir.appendingPathComponent("page-\(page.number).\(ext)")
-
-          // Skip if page already exists
-          if FileManager.default.fileExists(atPath: destination.path) {
-            continue
-          }
-          if await copyCachedPageIfAvailable(
+        case .epubWebPub:
+          let webPubManifest = try await BookService.shared.getBookWebPubManifest(bookId: info.bookId)
+          await DatabaseOperator.shared.updateBookWebPubManifest(
             bookId: info.bookId,
-            page: page,
-            destination: destination
-          ) {
-            continue
-          }
-          pagesToDownload.append(page)
-        }
-
-        let completedCount = pages.count - pagesToDownload.count
-        if pages.count > 0, completedCount > 0 {
-          let progress = Double(completedCount) / Double(pages.count)
-          await MainActor.run {
-            DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: progress)
-          }
-          await LiveActivityManager.shared.updateActivity(
-            seriesTitle: info.seriesTitle,
-            bookInfo: info.bookInfo,
-            progress: progress,
+            manifest: webPubManifest
+          )
+          await DatabaseOperator.shared.commit()
+          try await scheduleBackgroundWebPubResourceDownloads(
+            instanceId: instanceId,
+            info: info,
+            bookDir: bookDir,
+            manifest: webPubManifest,
+            pendingCount: pendingBooks.count,
+            failedCount: failedCount
+          )
+        case .pdf:
+          try await scheduleBackgroundPdfDownload(
+            instanceId: instanceId,
+            info: info,
+            bookDir: bookDir
+          )
+        case .pages, .epubDivina:
+          try await scheduleBackgroundPageDownloads(
+            instanceId: instanceId,
+            info: info,
+            bookDir: bookDir,
+            pages: pages,
             pendingCount: pendingBooks.count,
             failedCount: failedCount
           )
         }
-
-        // If all pages already exist, mark as complete
-        if pagesToDownload.isEmpty {
-          logger.info("✅ All pages already downloaded for book: \(info.bookId)")
-          await finalizeDownload(
-            instanceId: instanceId,
-            bookId: info.bookId,
-            bookDir: bookDir
-          )
-          backgroundDownloadInfo.removeValue(forKey: info.bookId)
-          await syncDownloadQueue(instanceId: instanceId)
-          return
-        }
-
-        pendingBackgroundPages[info.bookId] = Set(pagesToDownload.map { $0.number })
-
-        activeTasks[info.bookId] = Task {
-          // Wait indefinitely until explicitly cancelled via removeActiveTask
-          try? await Task.sleep(nanoseconds: UInt64.max)
-        }
-
-        for page in pagesToDownload {
-          guard
-            let downloadURL = URL(
-              string: serverURL + "/api/v1/books/\(info.bookId)/pages/\(page.number)")
-          else { continue }
-
-          let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-          let destPath = bookDir.appendingPathComponent("page-\(page.number).\(ext)").path
-
-          await MainActor.run {
-            BackgroundDownloadManager.shared.downloadPage(
-              bookId: info.bookId,
-              instanceId: instanceId,
-              pageNumber: page.number,
-              url: downloadURL,
-              destinationPath: destPath
-            )
-          }
-        }
       } catch {
         logger.error("❌ Failed to start background download for \(info.bookId): \(error)")
+        await BackgroundDownloadManager.shared.cancelDownloads(forBookId: info.bookId)
+        clearBackgroundDownloadContext(bookId: info.bookId)
+        removeActiveTask(info.bookId)
         await DatabaseOperator.shared.updateBookDownloadStatus(
           bookId: info.bookId,
           instanceId: instanceId,
@@ -824,6 +755,256 @@ actor OfflineManager {
         await refreshQueueStatus(instanceId: instanceId)
         await syncDownloadQueue(instanceId: instanceId)
       }
+    }
+
+    private func scheduleBackgroundPageDownloads(
+      instanceId: String,
+      info: DownloadInfo,
+      bookDir: URL,
+      pages: [BookPage],
+      pendingCount: Int,
+      failedCount: Int
+    ) async throws {
+      let totalTaskCount = pages.count
+      guard totalTaskCount > 0 else {
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
+        }
+        await finalizeDownload(instanceId: instanceId, bookId: info.bookId, bookDir: bookDir)
+        await syncDownloadQueue(instanceId: instanceId)
+        return
+      }
+
+      let serverURL = await MainActor.run { AppConfig.current.serverURL }
+      var pagesToDownload: [BookPage] = []
+
+      for page in pages {
+        let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
+        let destination = bookDir.appendingPathComponent("page-\(page.number).\(ext)")
+
+        if FileManager.default.fileExists(atPath: destination.path) {
+          continue
+        }
+        if await copyCachedPageIfAvailable(
+          bookId: info.bookId,
+          page: page,
+          destination: destination
+        ) {
+          continue
+        }
+        pagesToDownload.append(page)
+      }
+
+      let completedTaskCount = totalTaskCount - pagesToDownload.count
+      if pagesToDownload.isEmpty {
+        logger.info("✅ All pages already downloaded for book: \(info.bookId)")
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
+        }
+        await finalizeDownload(instanceId: instanceId, bookId: info.bookId, bookDir: bookDir)
+        await syncDownloadQueue(instanceId: instanceId)
+        return
+      }
+
+      registerBackgroundDownloadContext(
+        bookId: info.bookId,
+        instanceId: instanceId,
+        seriesTitle: info.seriesTitle,
+        bookInfo: info.bookInfo,
+        totalTasks: totalTaskCount,
+        completedTasks: completedTaskCount
+      )
+
+      if completedTaskCount > 0 {
+        let initialProgress = Double(completedTaskCount) / Double(totalTaskCount)
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: initialProgress)
+        }
+        await LiveActivityManager.shared.updateActivity(
+          seriesTitle: info.seriesTitle,
+          bookInfo: info.bookInfo,
+          progress: initialProgress,
+          pendingCount: pendingCount,
+          failedCount: failedCount
+        )
+      }
+
+      for page in pagesToDownload {
+        guard
+          let downloadURL = URL(
+            string: serverURL + "/api/v1/books/\(info.bookId)/pages/\(page.number)")
+        else {
+          throw AppErrorType.invalidFileURL(url: "/api/v1/books/\(info.bookId)/pages/\(page.number)")
+        }
+
+        let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
+        let destinationPath = bookDir.appendingPathComponent("page-\(page.number).\(ext)").path
+
+        await MainActor.run {
+          BackgroundDownloadManager.shared.downloadPage(
+            bookId: info.bookId,
+            instanceId: instanceId,
+            pageNumber: page.number,
+            url: downloadURL,
+            destinationPath: destinationPath
+          )
+        }
+      }
+    }
+
+    private func scheduleBackgroundPdfDownload(
+      instanceId: String,
+      info: DownloadInfo,
+      bookDir: URL
+    ) async throws {
+      let destinationURL = bookDir.appendingPathComponent(Self.pdfFileName)
+      if FileManager.default.fileExists(atPath: destinationURL.path) {
+        logger.info("✅ Background PDF already exists for book: \(info.bookId)")
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
+        }
+        await finalizeDownload(instanceId: instanceId, bookId: info.bookId, bookDir: bookDir)
+        await syncDownloadQueue(instanceId: instanceId)
+        return
+      }
+
+      let serverURL = await MainActor.run { AppConfig.current.serverURL }
+      guard let downloadURL = URL(string: serverURL + "/api/v1/books/\(info.bookId)/file") else {
+        throw AppErrorType.invalidFileURL(url: "/api/v1/books/\(info.bookId)/file")
+      }
+
+      registerBackgroundDownloadContext(
+        bookId: info.bookId,
+        instanceId: instanceId,
+        seriesTitle: info.seriesTitle,
+        bookInfo: info.bookInfo,
+        totalTasks: 1,
+        completedTasks: 0
+      )
+
+      await MainActor.run {
+        BackgroundDownloadManager.shared.downloadFile(
+          bookId: info.bookId,
+          instanceId: instanceId,
+          url: downloadURL,
+          destinationPath: destinationURL.path,
+          reportByteProgress: true
+        )
+      }
+    }
+
+    private func scheduleBackgroundWebPubResourceDownloads(
+      instanceId: String,
+      info: DownloadInfo,
+      bookDir: URL,
+      manifest: WebPubPublication,
+      pendingCount: Int,
+      failedCount: Int
+    ) async throws {
+      let root = webPubRootURL(bookDir: bookDir)
+      let baseURLString = await MainActor.run { AppConfig.current.serverURL }
+      let hrefs = Array(Set(collectWebPubResourceLinks(from: manifest)))
+
+      guard !hrefs.isEmpty else {
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
+        }
+        await finalizeDownload(instanceId: instanceId, bookId: info.bookId, bookDir: bookDir)
+        await syncDownloadQueue(instanceId: instanceId)
+        return
+      }
+
+      var downloads: [(url: URL, destinationPath: String)] = []
+      var completedTaskCount = 0
+
+      for href in hrefs {
+        guard let resourceURL = Self.resolveResourceURL(href: href, baseURLString: baseURLString) else {
+          throw AppErrorType.invalidFileURL(url: href)
+        }
+        let destination = Self.webPubResourceURL(root: root, href: href)
+        if FileManager.default.fileExists(atPath: destination.path) {
+          completedTaskCount += 1
+          continue
+        }
+        let directory = destination.deletingLastPathComponent()
+        Self.ensureDirectoryExists(at: directory)
+        Self.excludeFromBackupIfNeeded(at: directory)
+        downloads.append((url: resourceURL, destinationPath: destination.path))
+      }
+
+      if downloads.isEmpty {
+        logger.info("✅ All WebPub resources already downloaded for book: \(info.bookId)")
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
+        }
+        await finalizeDownload(instanceId: instanceId, bookId: info.bookId, bookDir: bookDir)
+        await syncDownloadQueue(instanceId: instanceId)
+        return
+      }
+
+      let totalTaskCount = hrefs.count
+      registerBackgroundDownloadContext(
+        bookId: info.bookId,
+        instanceId: instanceId,
+        seriesTitle: info.seriesTitle,
+        bookInfo: info.bookInfo,
+        totalTasks: totalTaskCount,
+        completedTasks: completedTaskCount
+      )
+
+      if completedTaskCount > 0 {
+        let initialProgress = Double(completedTaskCount) / Double(totalTaskCount)
+        await MainActor.run {
+          DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: initialProgress)
+        }
+        await LiveActivityManager.shared.updateActivity(
+          seriesTitle: info.seriesTitle,
+          bookInfo: info.bookInfo,
+          progress: initialProgress,
+          pendingCount: pendingCount,
+          failedCount: failedCount
+        )
+      }
+
+      for download in downloads {
+        await MainActor.run {
+          BackgroundDownloadManager.shared.downloadFile(
+            bookId: info.bookId,
+            instanceId: instanceId,
+            url: download.url,
+            destinationPath: download.destinationPath,
+            reportByteProgress: false
+          )
+        }
+      }
+    }
+
+    private func registerBackgroundDownloadContext(
+      bookId: String,
+      instanceId: String,
+      seriesTitle: String,
+      bookInfo: String,
+      totalTasks: Int,
+      completedTasks: Int
+    ) {
+      backgroundDownloadInfo[bookId] = (
+        instanceId: instanceId,
+        seriesTitle: seriesTitle,
+        bookInfo: bookInfo
+      )
+      backgroundDownloadTotalTasks[bookId] = totalTasks
+      backgroundDownloadCompletedTasks[bookId] = min(max(completedTasks, 0), totalTasks)
+
+      activeTasks[bookId] = Task {
+        // Keep a placeholder task so queue state remains "active" until background callbacks finish.
+        try? await Task.sleep(nanoseconds: UInt64.max)
+      }
+    }
+
+    private func clearBackgroundDownloadContext(bookId: String) {
+      backgroundDownloadInfo.removeValue(forKey: bookId)
+      backgroundDownloadTotalTasks.removeValue(forKey: bookId)
+      backgroundDownloadCompletedTasks.removeValue(forKey: bookId)
     }
   #endif
 
@@ -874,16 +1055,16 @@ actor OfflineManager {
       } catch {
         // Cleanup on failure
         try? FileManager.default.removeItem(at: bookDir)
+        var shouldTriggerNextDownload = true
 
         if Task.isCancelled {
           logger.info("⛔ Download cancelled for book: \(info.bookId)")
         } else {
-          // Check if this is a network error while we're now offline
-          let isNetworkError = self.isNetworkRelatedError(error)
-          if isNetworkError && AppConfig.isOffline {
-            // Network error caused offline mode switch - don't mark as failed.
-            // Keep status as pending so it retries when online.
-            logger.info("⚠️ Download paused due to network error: \(info.bookId)")
+          let shouldKeepPending = await self.shouldKeepPendingAfterNetworkFailure(error)
+          if shouldKeepPending {
+            // Keep status as pending so foreground retry can continue later.
+            logger.info("⚠️ Download paused due to transient network issue: \(info.bookId)")
+            shouldTriggerNextDownload = AppConfig.isOffline
           } else {
             logger.error("❌ Download failed for book \(info.bookId): \(error)")
             await DatabaseOperator.shared.updateBookDownloadStatus(
@@ -901,7 +1082,9 @@ actor OfflineManager {
         #endif
 
         // Trigger next download even on failure or cancellation
-        await syncDownloadQueue(instanceId: instanceId)
+        if shouldTriggerNextDownload {
+          await syncDownloadQueue(instanceId: instanceId)
+        }
       }
     }
   }
@@ -1170,15 +1353,31 @@ actor OfflineManager {
     return false
   }
 
+  private func shouldKeepPendingAfterNetworkFailure(_ error: Error) async -> Bool {
+    guard isNetworkRelatedError(error) else { return false }
+    if AppConfig.isOffline {
+      return true
+    }
+
+    #if os(iOS)
+      return await MainActor.run {
+        UIApplication.shared.applicationState == .background
+      }
+    #else
+      return false
+    #endif
+  }
+
   // MARK: - Background Download Handlers (iOS only)
 
   #if os(iOS)
-    /// Track pending background downloads per book
-    private var pendingBackgroundPages: [String: Set<Int>] = [:]  // bookId -> pending page numbers
+    /// Track background download context per book
     private var backgroundDownloadInfo:
       [String: (
-        instanceId: String, seriesTitle: String, bookInfo: String, totalPages: Int
+        instanceId: String, seriesTitle: String, bookInfo: String
       )] = [:]
+    private var backgroundDownloadTotalTasks: [String: Int] = [:]
+    private var backgroundDownloadCompletedTasks: [String: Int] = [:]
     private func handleBackgroundDownloadComplete(
       bookId: String, pageNumber: Int?, fileURL: URL
     ) async {
@@ -1188,33 +1387,43 @@ actor OfflineManager {
           await endBackgroundTask(backgroundTaskId)
         }
       }
+      _ = pageNumber
+      _ = fileURL
 
-      guard let info = backgroundDownloadInfo[bookId] else { return }
-      if let pageNumber = pageNumber {
-        // Page download complete
-        pendingBackgroundPages[bookId]?.remove(pageNumber)
-
-        // Update progress
-        let completed = info.totalPages - (pendingBackgroundPages[bookId]?.count ?? 0)
-        let progress = Double(completed) / Double(info.totalPages)
-        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
-          instanceId: info.instanceId
-        )
-        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-          instanceId: info.instanceId)
-
-        await MainActor.run {
-          DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: progress)
+      guard let info = backgroundDownloadInfo[bookId],
+        let totalTasks = backgroundDownloadTotalTasks[bookId],
+        totalTasks > 0
+      else {
+        if case .downloaded = await DatabaseOperator.shared.getDownloadStatus(bookId: bookId) {
+          return
         }
+        logger.debug("⏭️ Ignore completion callback without active context for book: \(bookId)")
+        return
+      }
 
-        // Update Live Activity
-        await LiveActivityManager.shared.updateActivity(
-          seriesTitle: info.seriesTitle,
-          bookInfo: info.bookInfo,
-          progress: progress,
-          pendingCount: pendingBooks.count,
-          failedCount: failedCount
-        )
+      let completedTasks = min((backgroundDownloadCompletedTasks[bookId] ?? 0) + 1, totalTasks)
+      backgroundDownloadCompletedTasks[bookId] = completedTasks
+      let progress = Double(completedTasks) / Double(totalTasks)
+      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
+        instanceId: info.instanceId
+      )
+      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+        instanceId: info.instanceId)
+
+      await MainActor.run {
+        DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: progress)
+      }
+
+      await LiveActivityManager.shared.updateActivity(
+        seriesTitle: info.seriesTitle,
+        bookInfo: info.bookInfo,
+        progress: progress,
+        pendingCount: pendingBooks.count,
+        failedCount: failedCount
+      )
+
+      if completedTasks >= totalTasks {
+        await finalizeBackgroundBookDownload(bookId: bookId, info: info)
       }
     }
 
@@ -1227,8 +1436,22 @@ actor OfflineManager {
           await endBackgroundTask(backgroundTaskId)
         }
       }
+      _ = pageNumber
 
-      guard let info = backgroundDownloadInfo[bookId] else { return }
+      guard let info = backgroundDownloadInfo[bookId] else {
+        if case .downloaded = await DatabaseOperator.shared.getDownloadStatus(bookId: bookId) {
+          return
+        }
+        logger.warning(
+          "⚠️ Missing background download context for failed task: \(bookId), recover queue from persisted state"
+        )
+        clearBackgroundDownloadContext(bookId: bookId)
+        removeActiveTask(bookId)
+        let instanceId = AppConfig.current.instanceId
+        await refreshQueueStatus(instanceId: instanceId)
+        await syncDownloadQueue(instanceId: instanceId)
+        return
+      }
 
       // Check if this is a network error while we're now offline
       let isNetworkError = isNetworkRelatedError(error)
@@ -1250,8 +1473,7 @@ actor OfflineManager {
 
       // Cancel remaining downloads for this book
       await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
-      pendingBackgroundPages.removeValue(forKey: bookId)
-      backgroundDownloadInfo.removeValue(forKey: bookId)
+      clearBackgroundDownloadContext(bookId: bookId)
       removeActiveTask(bookId)
 
       // Update Live Activity or end if no more pending
@@ -1289,8 +1511,37 @@ actor OfflineManager {
     }
 
     private func handleAllBackgroundDownloadsComplete(bookId: String) async {
-      guard let info = backgroundDownloadInfo[bookId] else { return }
+      let backgroundTaskId = await startBackgroundTask()
+      defer {
+        Task {
+          await endBackgroundTask(backgroundTaskId)
+        }
+      }
 
+      guard let info = backgroundDownloadInfo[bookId] else {
+        if case .downloaded = await DatabaseOperator.shared.getDownloadStatus(bookId: bookId) {
+          return
+        }
+        logger.debug("⏭️ Ignore all-complete callback without active context for book: \(bookId)")
+        return
+      }
+
+      let totalTasks = backgroundDownloadTotalTasks[bookId] ?? 0
+      let completedTasks = backgroundDownloadCompletedTasks[bookId] ?? 0
+      if totalTasks > 0, completedTasks < totalTasks {
+        logger.debug(
+          "⏳ Defer all-complete callback: waiting per-file callbacks for book \(bookId), \(completedTasks)/\(totalTasks)"
+        )
+        return
+      }
+
+      await finalizeBackgroundBookDownload(bookId: bookId, info: info)
+    }
+
+    private func finalizeBackgroundBookDownload(
+      bookId: String,
+      info: (instanceId: String, seriesTitle: String, bookInfo: String)
+    ) async {
       logger.info("✅ Background downloads finished for book: \(bookId)")
       let bookDir = bookDirectory(instanceId: info.instanceId, bookId: bookId)
 
@@ -1301,10 +1552,8 @@ actor OfflineManager {
       )
       logger.info("✅ All background downloads complete for book: \(bookId)")
 
-      // Cleanup tracking
-      pendingBackgroundPages.removeValue(forKey: bookId)
-      backgroundDownloadInfo.removeValue(forKey: bookId)
-      // Clear progress notification if no more pending downloads
+      clearBackgroundDownloadContext(bookId: bookId)
+
       let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
         instanceId: info.instanceId
       )
@@ -1312,7 +1561,6 @@ actor OfflineManager {
         let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
           instanceId: info.instanceId)
         if failedCount > 0 {
-          // Keep showing if there are failures, update info to show summary
           await LiveActivityManager.shared.updateActivity(
             seriesTitle: String(localized: "Offline"),
             bookInfo: String(localized: "Download finished with failures"),
@@ -1321,12 +1569,10 @@ actor OfflineManager {
             failedCount: failedCount
           )
         } else {
-          // End Live Activity when all downloads complete successfully
           await LiveActivityManager.shared.endActivity()
         }
       }
 
-      // Trigger next download
       await syncDownloadQueue(instanceId: info.instanceId)
     }
   #endif

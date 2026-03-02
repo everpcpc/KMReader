@@ -12,7 +12,7 @@ import OSLog
   struct BackgroundDownloadTaskInfo: Codable {
     let bookId: String
     let instanceId: String
-    let pageNumber: Int?  // nil for EPUB downloads
+    let pageNumber: Int?  // nil for file/resource downloads
     let isEpub: Bool
     let destinationPath: String
   }
@@ -76,24 +76,32 @@ import OSLog
       url: URL,
       destinationPath: String
     ) {
-      var request = URLRequest(url: url)
-      addAuthHeaders(to: &request)
+      downloadFile(
+        bookId: bookId,
+        instanceId: instanceId,
+        url: url,
+        destinationPath: destinationPath,
+        reportByteProgress: true
+      )
+    }
 
-      let task = backgroundSession.downloadTask(with: request)
-      task.taskDescription = destinationPath
-      let taskInfo = BackgroundDownloadTaskInfo(
+    /// Start a background download for any single file resource
+    func downloadFile(
+      bookId: String,
+      instanceId: String,
+      url: URL,
+      destinationPath: String,
+      reportByteProgress: Bool
+    ) {
+      startDownload(
         bookId: bookId,
         instanceId: instanceId,
         pageNumber: nil,
-        isEpub: true,
-        destinationPath: destinationPath
+        url: url,
+        destinationPath: destinationPath,
+        reportByteProgress: reportByteProgress,
+        logAsInfo: reportByteProgress
       )
-
-      activeTasks[task.taskIdentifier] = taskInfo
-      saveTaskInfo()
-
-      logger.info("⬇️ Starting background EPUB download for book: \(bookId)")
-      task.resume()
     }
 
     /// Start a background download for a page image
@@ -104,6 +112,26 @@ import OSLog
       url: URL,
       destinationPath: String
     ) {
+      startDownload(
+        bookId: bookId,
+        instanceId: instanceId,
+        pageNumber: pageNumber,
+        url: url,
+        destinationPath: destinationPath,
+        reportByteProgress: false,
+        logAsInfo: false
+      )
+    }
+
+    private func startDownload(
+      bookId: String,
+      instanceId: String,
+      pageNumber: Int?,
+      url: URL,
+      destinationPath: String,
+      reportByteProgress: Bool,
+      logAsInfo: Bool
+    ) {
       var request = URLRequest(url: url)
       addAuthHeaders(to: &request)
 
@@ -113,14 +141,20 @@ import OSLog
         bookId: bookId,
         instanceId: instanceId,
         pageNumber: pageNumber,
-        isEpub: false,
+        isEpub: reportByteProgress,
         destinationPath: destinationPath
       )
 
       activeTasks[task.taskIdentifier] = taskInfo
       saveTaskInfo()
 
-      logger.debug("⬇️ Starting background page download: \(bookId) page \(pageNumber)")
+      if logAsInfo {
+        logger.info("⬇️ Starting background file download for book: \(bookId)")
+      } else if let pageNumber {
+        logger.debug("⬇️ Starting background page download: \(bookId) page \(pageNumber)")
+      } else {
+        logger.debug("⬇️ Starting background resource download for book: \(bookId)")
+      }
       task.resume()
     }
 
@@ -241,8 +275,13 @@ import OSLog
           "❌ Failed to move downloaded file: \(moveError.localizedDescription)")
         onDownloadFailed?(taskInfo.bookId, taskInfo.pageNumber, moveError)
       } else {
-        logger.info(
-          "✅ Background download complete: \(taskInfo.bookId) page \(taskInfo.pageNumber ?? -1)")
+        if let pageNumber = taskInfo.pageNumber {
+          logger.debug("✅ Background page download complete: \(taskInfo.bookId) page \(pageNumber)")
+        } else if taskInfo.isEpub {
+          logger.info("✅ Background file download complete: \(taskInfo.bookId)")
+        } else {
+          logger.debug("✅ Background resource download complete: \(taskInfo.bookId)")
+        }
         onDownloadComplete?(taskInfo.bookId, taskInfo.pageNumber, destinationURL)
       }
 
@@ -316,13 +355,6 @@ import OSLog
         if let error = error {
           self.handleDownloadError(taskIdentifier: task.taskIdentifier, error: error)
         }
-
-        // Call the background completion handler if all tasks are done
-        if self.activeTasks.isEmpty, let handler = self.backgroundCompletionHandler {
-          handler()
-          self.backgroundCompletionHandler = nil
-          self.logger.info("✅ Background session events processed")
-        }
       }
     }
 
@@ -336,8 +368,8 @@ import OSLog
       Task { @MainActor in
         guard let taskInfo = self.activeTasks[downloadTask.taskIdentifier] else { return }
 
-        // Only update progress for EPUB downloads (single file)
-        // Page downloads are tracked by completed count in OfflineManager
+        // Only update byte progress for single-file downloads.
+        // Multi-file downloads are tracked by completed count in OfflineManager.
         if taskInfo.isEpub, totalBytesExpectedToWrite > 0 {
           let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
           DownloadProgressTracker.shared.updateProgress(bookId: taskInfo.bookId, value: progress)

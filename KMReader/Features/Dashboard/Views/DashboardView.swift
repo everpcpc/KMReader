@@ -374,6 +374,14 @@ struct DashboardView: View {
               } label: {
                 Label(String(localized: "Refresh Dashboard"), systemImage: "arrow.clockwise")
               }
+
+              Divider()
+
+              Button {
+                enterOfflineMode()
+              } label: {
+                Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
+              }
             } label: {
               Image(systemName: "ellipsis")
             }
@@ -400,6 +408,21 @@ struct DashboardView: View {
       await sseService.connect()
       ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
       refreshDashboard(reason: "Reconnected")
+    }
+  }
+
+  private func enterOfflineMode() {
+    guard !isOffline else { return }
+
+    pendingRefreshTask?.cancel()
+    pendingRefreshTask = nil
+    readerCloseRefreshTask?.cancel()
+    readerCloseRefreshTask = nil
+    shouldRefreshAfterReading = false
+    isOffline = true
+
+    Task {
+      await sseService.disconnect(notify: false)
     }
   }
 }
