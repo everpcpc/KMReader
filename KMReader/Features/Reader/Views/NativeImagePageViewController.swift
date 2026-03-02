@@ -88,6 +88,7 @@
       guard !isVisibleForAnimatedInlinePlayback else { return }
       isVisibleForAnimatedInlinePlayback = true
       refreshPageItem()
+      prepareAnimatedInlinePlaybackIfNeeded()
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -169,6 +170,7 @@
       scrollView.backgroundColor = UIColor(renderConfig.readerBackground.color)
       animatedInlineContainer.backgroundColor = .clear
       refreshPageItem()
+      prepareAnimatedInlinePlaybackIfNeeded()
     }
 
     private func refreshPageItem() {
@@ -180,8 +182,6 @@
       if image != nil {
         loadError = nil
       }
-
-      prepareAnimatedInlinePlaybackIfNeeded(viewModel: viewModel, readerPage: readerPage)
 
       let isAnimatedLoading = shouldShowAnimatedLoading(viewModel: viewModel, readerPage: readerPage)
       let isLoading =
@@ -235,6 +235,7 @@
           self.loadError = nil
         }
         self.refreshPageItem()
+        self.prepareAnimatedInlinePlaybackIfNeeded()
       }
     }
 
@@ -255,12 +256,11 @@
       startAnimatedInlinePlayback(fileURL: fileURL)
     }
 
-    private func prepareAnimatedInlinePlaybackIfNeeded(
-      viewModel: ReaderViewModel,
-      readerPage: ReaderPage?
-    ) {
+    private func prepareAnimatedInlinePlaybackIfNeeded() {
       guard isVisibleForAnimatedInlinePlayback else { return }
-      guard readerPage?.page.isAnimatedImageCandidate == true else { return }
+      guard let viewModel else { return }
+      guard let readerPage = viewModel.readerPage(for: pageID) else { return }
+      guard readerPage.page.isAnimatedImageCandidate else { return }
       guard viewModel.animatedPlaybackFileURL(for: pageID) == nil else { return }
       guard animatedInlinePreparationTask == nil else { return }
 
