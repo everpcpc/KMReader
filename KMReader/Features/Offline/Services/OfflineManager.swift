@@ -45,6 +45,9 @@ actor OfflineManager {
   private var syncTaskID: UUID?
   private var isProcessingQueue = false
   private var completedDownloadsSinceLastNotification = 0
+  #if os(iOS)
+    private var foregroundDownloadInfoByBookId: [String: (instanceId: String, info: DownloadInfo)] = [:]
+  #endif
 
   private let logger = AppLogger(.offline)
   private let pageImageCache = ImageCache()
@@ -827,6 +830,19 @@ actor OfflineManager {
   private func startForegroundDownload(
     instanceId: String, info: DownloadInfo, bookDir: URL
   ) async {
+    #if os(iOS)
+      foregroundDownloadInfoByBookId[info.bookId] = (instanceId: instanceId, info: info)
+      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
+      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(instanceId: instanceId)
+      await LiveActivityManager.shared.startActivity(
+        seriesTitle: info.seriesTitle,
+        bookInfo: info.bookInfo,
+        totalBooks: pendingBooks.count + 1,
+        pendingCount: pendingBooks.count,
+        failedCount: failedCount
+      )
+    #endif
+
     activeTasks[info.bookId] = Task { [weak self, logger] in
       guard let self else { return }
       do {
@@ -847,6 +863,9 @@ actor OfflineManager {
           bookId: info.bookId,
           bookDir: bookDir
         )
+        #if os(iOS)
+          await self.finishForegroundLiveActivity(bookId: info.bookId, instanceId: instanceId)
+        #endif
         logger.info("✅ Download complete for book: \(info.bookId)")
 
         // Trigger next download
@@ -877,6 +896,9 @@ actor OfflineManager {
           }
         }
         await removeActiveTask(info.bookId)
+        #if os(iOS)
+          await self.finishForegroundLiveActivity(bookId: info.bookId, instanceId: instanceId)
+        #endif
 
         // Trigger next download even on failure or cancellation
         await syncDownloadQueue(instanceId: instanceId)
@@ -1076,6 +1098,56 @@ actor OfflineManager {
       }
     }
   }
+
+  #if os(iOS)
+    private func updateForegroundLiveActivityProgress(bookId: String, progress: Double) async {
+      guard let entry = foregroundDownloadInfoByBookId[bookId] else { return }
+      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: entry.instanceId)
+      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
+        instanceId: entry.instanceId
+      )
+      await LiveActivityManager.shared.updateActivity(
+        seriesTitle: entry.info.seriesTitle,
+        bookInfo: entry.info.bookInfo,
+        progress: progress,
+        pendingCount: pendingBooks.count,
+        failedCount: failedCount
+      )
+    }
+
+    private func finishForegroundLiveActivity(bookId: String, instanceId: String) async {
+      foregroundDownloadInfoByBookId.removeValue(forKey: bookId)
+
+      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
+      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(instanceId: instanceId)
+
+      if pendingBooks.isEmpty {
+        if failedCount > 0 {
+          await LiveActivityManager.shared.updateActivity(
+            seriesTitle: String(localized: "Offline"),
+            bookInfo: String(localized: "Download finished with failures"),
+            progress: 1.0,
+            pendingCount: 0,
+            failedCount: failedCount
+          )
+        } else {
+          await LiveActivityManager.shared.endActivity()
+        }
+        return
+      }
+
+      let candidate = foregroundDownloadInfoByBookId.values.first?.info
+      let seriesTitle = candidate?.seriesTitle ?? String(localized: "Offline")
+      let bookInfo = candidate?.bookInfo ?? String(localized: "Downloading")
+      await LiveActivityManager.shared.updateActivity(
+        seriesTitle: seriesTitle,
+        bookInfo: bookInfo,
+        progress: 1.0,
+        pendingCount: pendingBooks.count,
+        failedCount: failedCount
+      )
+    }
+  #endif
 
   private nonisolated func isNetworkRelatedError(_ error: Error) -> Bool {
     if let apiError = error as? APIError {
@@ -1289,6 +1361,9 @@ actor OfflineManager {
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
+    #if os(iOS)
+      await updateForegroundLiveActivityProgress(bookId: bookId, progress: 1.0)
+    #endif
   }
 
   private func downloadWebPubResources(

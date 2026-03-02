@@ -522,6 +522,18 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var useNativePdfReader: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "useNativePdfReader") != nil {
+        return UserDefaults.standard.bool(forKey: "useNativePdfReader")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "useNativePdfReader")
+    }
+  }
+
   static nonisolated var pageLayout: PageLayout {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pageLayout") {

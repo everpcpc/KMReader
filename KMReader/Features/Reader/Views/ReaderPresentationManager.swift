@@ -62,6 +62,10 @@ final class ReaderPresentationManager {
     )
     readerState = state
 
+    #if os(iOS)
+      ReaderLiveActivityManager.shared.readerDidOpen(book: book)
+    #endif
+
     #if os(macOS)
       guard let openWindowHandler else {
         assertionFailure("Reader window opener not configured")
@@ -89,6 +93,7 @@ final class ReaderPresentationManager {
       return
     }
     let isIncognito = readerState?.incognito ?? false
+    let currentBook = readerState?.book
 
     // Flush progress before clearing reader state to avoid race with waitUntilSettled
     readerFlushHandler?()
@@ -136,6 +141,10 @@ final class ReaderPresentationManager {
     } else if syncVisited && isIncognito {
       logger.debug("⏭️ [Progress/Checkpoint] Skip visited sync: incognito mode enabled")
     }
+
+    #if os(iOS)
+      ReaderLiveActivityManager.shared.readerDidClose(book: currentBook)
+    #endif
 
     readerState = nil
     sourceBookId = nil

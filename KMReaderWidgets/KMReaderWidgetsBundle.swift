@@ -13,6 +13,7 @@ struct KMReaderWidgetsBundle: WidgetBundle {
   var body: some Widget {
     #if os(iOS)
       KMReaderWidgetsLiveActivity()
+      KMReaderReaderLiveActivity()
     #endif
     KeepReadingWidget()
     RecentlyAddedWidget()
