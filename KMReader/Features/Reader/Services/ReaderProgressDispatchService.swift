@@ -471,6 +471,13 @@ actor ReaderProgressDispatchService {
         try await Self.performPageProgressServerUpdate(update, timeout: progressRequestTimeout)
         return .serverUpdated
       } catch {
+        if let apiError = error as? APIError, apiError.isConflict {
+          logger.info(
+            "⏭️ [Progress/Page] Ignored conflict (409): book=\(update.bookId), version=\(update.version), page=\(update.page)"
+          )
+          return .serverUpdated
+        }
+
         guard Self.isTimeoutError(error) else {
           logger.error(
             "❌ [Progress/Page] Update failed: book=\(update.bookId), version=\(update.version), page=\(update.page), error=\(error.localizedDescription)"
@@ -523,6 +530,13 @@ actor ReaderProgressDispatchService {
         }
         return .serverUpdated
       } catch {
+        if let apiError = error as? APIError, apiError.isConflict {
+          logger.info(
+            "⏭️ [Progress/Epub] Ignored conflict (409): book=\(update.bookId), version=\(update.version)"
+          )
+          return .serverUpdated
+        }
+
         guard Self.isTimeoutError(error) else {
           logger.error(
             "❌ [Progress/Epub] Update failed: book=\(update.bookId), version=\(update.version), error=\(error.localizedDescription)"

@@ -149,4 +149,29 @@ enum APIError: Error, CustomStringConvertible, LocalizedError {
   var errorDescription: String? {
     description
   }
+
+  var statusCode: Int? {
+    switch self {
+    case .badRequest:
+      return 400
+    case .unauthorized:
+      return 401
+    case .forbidden:
+      return 403
+    case .notFound:
+      return 404
+    case .tooManyRequests:
+      return 429
+    case .httpError(let code, _, _, _, _):
+      return code
+    case .serverError(let code, _, _, _, _):
+      return code
+    case .invalidURL, .invalidResponse, .decodingError, .networkError, .offline:
+      return nil
+    }
+  }
+
+  var isConflict: Bool {
+    statusCode == 409
+  }
 }

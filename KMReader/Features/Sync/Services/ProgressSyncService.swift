@@ -45,6 +45,7 @@ actor ProgressSyncService {
 
     var successCount = 0
     var failureCount = 0
+    var ignoredConflictCount = 0
     var completedBookIds = Set<String>()
 
     for item in pending {
@@ -62,6 +63,18 @@ actor ProgressSyncService {
           completedBookIds.insert(item.bookId)
         }
       } catch {
+        if let apiError = error as? APIError, apiError.isConflict {
+          logger.info(
+            "⏭️ Ignored progress conflict (409) for book \(item.bookId) (pending id=\(item.id))"
+          )
+          await DatabaseOperator.shared.deletePendingProgress(id: item.id)
+          await DatabaseOperator.shared.commit()
+          ignoredConflictCount += 1
+          if item.completed {
+            completedBookIds.insert(item.bookId)
+          }
+          continue
+        }
         logger.error(
           "❌ Failed to sync progress for book \(item.bookId) (pending id=\(item.id)): \(error.localizedDescription)"
         )
@@ -92,6 +105,10 @@ actor ProgressSyncService {
           )
         }
       }
+    }
+
+    if ignoredConflictCount > 0 {
+      logger.info("⏭️ Ignored \(ignoredConflictCount) progress conflicts (409)")
     }
 
     if failureCount > 0 {
