@@ -15,10 +15,13 @@ actor AnimatedImageVideoTranscoder {
   private static let fallbackFrameDuration: Double = 0.1
   private static let minimumFrameDuration: Double = 1.0 / 60.0
   private static let lowDelayFrameThreshold: Double = 0.011
-  private static let transcodeTimeout: TimeInterval = 12
+  private static let transcodeTimeout: TimeInterval = 30
 
   private let logger = AppLogger(.reader)
   private var transcodeTasks: [URL: Task<URL?, Never>] = [:]
+  private var isTranscoding: Bool = false
+  private var queuedTranscodeOrder: [UUID] = []
+  private var queuedTranscodeContinuations: [UUID: CheckedContinuation<Void, Never>] = [:]
 
   func prepareVideoURL(for sourceFileURL: URL) async -> URL? {
     if let runningTask = transcodeTasks[sourceFileURL] {
@@ -44,6 +47,12 @@ actor AnimatedImageVideoTranscoder {
   }
 
   private func transcodeSerially(sourceFileURL: URL) async -> URL? {
+    guard await acquireTranscodeSlot(for: sourceFileURL) else {
+      logger.debug("⏭️ [AnimatedVideo] Skip \(sourceFileURL.lastPathComponent): cancelled while waiting slot")
+      return nil
+    }
+    defer { releaseTranscodeSlot() }
+
     let logger = self.logger
     let timeoutNanoseconds = UInt64(Self.transcodeTimeout * 1_000_000_000)
 
@@ -84,6 +93,53 @@ actor AnimatedImageVideoTranscoder {
       task.cancel()
     }
     transcodeTasks.removeAll()
+  }
+
+  private func acquireTranscodeSlot(for sourceFileURL: URL) async -> Bool {
+    if !isTranscoding {
+      isTranscoding = true
+      return true
+    }
+
+    let ticket = UUID()
+    logger.debug(
+      "⏳ [AnimatedVideo] Wait slot: \(sourceFileURL.lastPathComponent), waiting=\(queuedTranscodeOrder.count + 1)"
+    )
+
+    await withTaskCancellationHandler {
+      await withCheckedContinuation { continuation in
+        queuedTranscodeOrder.append(ticket)
+        queuedTranscodeContinuations[ticket] = continuation
+      }
+    } onCancel: {
+      Task { await self.cancelQueuedTranscodeSlot(ticket: ticket) }
+    }
+
+    guard !Task.isCancelled else {
+      return false
+    }
+
+    isTranscoding = true
+    return true
+  }
+
+  private func releaseTranscodeSlot() {
+    while let nextTicket = queuedTranscodeOrder.first {
+      queuedTranscodeOrder.removeFirst()
+      if let continuation = queuedTranscodeContinuations.removeValue(forKey: nextTicket) {
+        continuation.resume()
+        return
+      }
+    }
+    isTranscoding = false
+  }
+
+  private func cancelQueuedTranscodeSlot(ticket: UUID) {
+    guard let continuation = queuedTranscodeContinuations.removeValue(forKey: ticket) else { return }
+    if let index = queuedTranscodeOrder.firstIndex(of: ticket) {
+      queuedTranscodeOrder.remove(at: index)
+    }
+    continuation.resume()
   }
 
   nonisolated private static func transcodeIfNeeded(
