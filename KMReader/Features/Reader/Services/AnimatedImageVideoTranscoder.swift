@@ -5,11 +5,17 @@ import ImageIO
 actor AnimatedImageVideoTranscoder {
   static let shared = AnimatedImageVideoTranscoder()
 
+  private enum TranscodeResult: Sendable {
+    case completed(URL?)
+    case timeout
+  }
+
   private static let outputExtension = "mp4"
   private static let timeScale: Int32 = 600
   private static let fallbackFrameDuration: Double = 0.1
   private static let minimumFrameDuration: Double = 1.0 / 60.0
   private static let lowDelayFrameThreshold: Double = 0.011
+  private static let transcodeTimeout: TimeInterval = 12
 
   private let logger = AppLogger(.reader)
   private var transcodeTasks: [URL: Task<URL?, Never>] = [:]
@@ -37,8 +43,38 @@ actor AnimatedImageVideoTranscoder {
     return result
   }
 
-  private func transcodeSerially(sourceFileURL: URL) -> URL? {
-    Self.transcodeIfNeeded(sourceFileURL: sourceFileURL, logger: logger)
+  private func transcodeSerially(sourceFileURL: URL) async -> URL? {
+    let logger = self.logger
+    let timeoutNanoseconds = UInt64(Self.transcodeTimeout * 1_000_000_000)
+
+    let result = await withTaskGroup(of: TranscodeResult.self, returning: TranscodeResult.self) {
+      group in
+      group.addTask {
+        .completed(Self.transcodeIfNeeded(sourceFileURL: sourceFileURL, logger: logger))
+      }
+      group.addTask {
+        try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+        return .timeout
+      }
+
+      let firstResult = await group.next() ?? .timeout
+      group.cancelAll()
+      return firstResult
+    }
+
+    switch result {
+    case .completed(let outputURL):
+      return outputURL
+    case .timeout:
+      logger.error(
+        String(
+          format: "❌ [AnimatedVideo] Timeout %@ after %.1fs",
+          sourceFileURL.lastPathComponent,
+          Self.transcodeTimeout
+        )
+      )
+      return nil
+    }
   }
 
   func cancelAll() {
@@ -117,6 +153,10 @@ actor AnimatedImageVideoTranscoder {
     outputURL: URL,
     logger: AppLogger
   ) -> Bool {
+    if Task.isCancelled {
+      return false
+    }
+
     let options = [kCGImageSourceShouldCache: false] as CFDictionary
     guard let source = CGImageSourceCreateWithURL(sourceFileURL as CFURL, options) else {
       logger.debug("⏭️ [AnimatedVideo] Skip \(sourceFileURL.lastPathComponent): create image source failed")
@@ -192,6 +232,12 @@ actor AnimatedImageVideoTranscoder {
       ] as CFDictionary
 
     for frameIndex in 0..<frameCount {
+      if Task.isCancelled {
+        writerInput.markAsFinished()
+        writer.cancelWriting()
+        return false
+      }
+
       guard
         let frameImage = CGImageSourceCreateImageAtIndex(source, frameIndex, frameOptions),
         let pixelBuffer = makePixelBuffer(
@@ -206,7 +252,7 @@ actor AnimatedImageVideoTranscoder {
       }
 
       while !writerInput.isReadyForMoreMediaData {
-        if writer.status == .failed || writer.status == .cancelled {
+        if Task.isCancelled || writer.status == .failed || writer.status == .cancelled {
           writerInput.markAsFinished()
           writer.cancelWriting()
           return false
@@ -230,6 +276,12 @@ actor AnimatedImageVideoTranscoder {
       presentationTime = presentationTime + durationTime
     }
 
+    if Task.isCancelled {
+      writerInput.markAsFinished()
+      writer.cancelWriting()
+      return false
+    }
+
     guard renderedFrameCount > 0 else {
       logger.debug("⏭️ [AnimatedVideo] Skip \(sourceFileURL.lastPathComponent): no renderable frames")
       writerInput.markAsFinished()
@@ -243,7 +295,12 @@ actor AnimatedImageVideoTranscoder {
     writer.finishWriting {
       semaphore.signal()
     }
-    semaphore.wait()
+    while semaphore.wait(timeout: .now() + .milliseconds(20)) == .timedOut {
+      if Task.isCancelled {
+        writer.cancelWriting()
+        return false
+      }
+    }
 
     if writer.status == .completed {
       logger.debug(
