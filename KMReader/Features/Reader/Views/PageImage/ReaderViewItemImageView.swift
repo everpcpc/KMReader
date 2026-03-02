@@ -92,9 +92,7 @@ struct ReaderViewItemImageView: View {
 
     ZStack {
       if let animatedFileURL = animatedPlaybackFileURL(for: pageID) {
-        InlineAnimatedImageView(
-          fileURL: animatedFileURL
-        )
+        LoopingVideoPlayerView(videoURL: animatedFileURL)
       }
 
       if isLoading {
@@ -102,6 +100,9 @@ struct ReaderViewItemImageView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .task(id: playbackTaskID(for: pageID)) {
+      await prepareAnimatedPlaybackIfNeeded(for: pageID)
+    }
   }
 
   private func animatedPlaybackFileURL(for pageID: ReaderPageID) -> URL? {
@@ -119,6 +120,22 @@ struct ReaderViewItemImageView: View {
     #else
       guard isPlaybackActive else { return false }
       return viewModel.isAnimatedPlaybackLoading(for: pageID)
+    #endif
+  }
+
+  private func playbackTaskID(for pageID: ReaderPageID) -> String {
+    "\(pageID.description)|\(isPlaybackActive ? "active" : "inactive")"
+  }
+
+  private func prepareAnimatedPlaybackIfNeeded(for pageID: ReaderPageID) async {
+    #if os(tvOS)
+      return
+    #else
+      guard isPlaybackActive else { return }
+      await viewModel.focusAnimatedPlayback(for: item)
+      guard viewModel.shouldPrepareAnimatedPlayback(for: pageID) else { return }
+      guard viewModel.animatedPlaybackFileURL(for: pageID) == nil else { return }
+      _ = await viewModel.prepareAnimatedPagePlaybackURL(pageID: pageID)
     #endif
   }
 }

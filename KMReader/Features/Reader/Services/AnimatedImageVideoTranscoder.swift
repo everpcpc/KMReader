@@ -5,23 +5,14 @@ import ImageIO
 actor AnimatedImageVideoTranscoder {
   static let shared = AnimatedImageVideoTranscoder()
 
-  private enum TranscodeResult: Sendable {
-    case completed(URL?)
-    case timeout
-  }
-
   private static let outputExtension = "mp4"
   private static let timeScale: Int32 = 600
   private static let fallbackFrameDuration: Double = 0.1
   private static let minimumFrameDuration: Double = 1.0 / 60.0
   private static let lowDelayFrameThreshold: Double = 0.011
-  private static let transcodeTimeout: TimeInterval = 30
 
   private let logger = AppLogger(.reader)
   private var transcodeTasks: [URL: Task<URL?, Never>] = [:]
-  private var isTranscoding: Bool = false
-  private var queuedTranscodeOrder: [UUID] = []
-  private var queuedTranscodeContinuations: [UUID: CheckedContinuation<Void, Never>] = [:]
 
   func prepareVideoURL(for sourceFileURL: URL) async -> URL? {
     if let runningTask = transcodeTasks[sourceFileURL] {
@@ -30,9 +21,10 @@ actor AnimatedImageVideoTranscoder {
     }
 
     logger.debug("🚀 [AnimatedVideo] Queue task: \(sourceFileURL.lastPathComponent), inFlight=\(transcodeTasks.count)")
-    let task = Task<URL?, Never>(priority: .utility) { [weak self, sourceFileURL] in
-      guard let self else { return nil }
-      return await self.transcodeSerially(sourceFileURL: sourceFileURL)
+    let logger = self.logger
+    let task = Task<URL?, Never>(priority: .userInitiated) { [sourceFileURL] in
+      guard !Task.isCancelled else { return nil }
+      return Self.transcodeIfNeeded(sourceFileURL: sourceFileURL, logger: logger)
     }
 
     transcodeTasks[sourceFileURL] = task
@@ -40,50 +32,12 @@ actor AnimatedImageVideoTranscoder {
     transcodeTasks.removeValue(forKey: sourceFileURL)
     if let result {
       self.logger.debug("✅ [AnimatedVideo] Ready: \(result.lastPathComponent)")
+    } else if task.isCancelled {
+      self.logger.debug("⏭️ [AnimatedVideo] Cancelled \(sourceFileURL.lastPathComponent)")
     } else {
       self.logger.debug("⏭️ [AnimatedVideo] Unavailable: \(sourceFileURL.lastPathComponent)")
     }
     return result
-  }
-
-  private func transcodeSerially(sourceFileURL: URL) async -> URL? {
-    guard await acquireTranscodeSlot(for: sourceFileURL) else {
-      logger.debug("⏭️ [AnimatedVideo] Skip \(sourceFileURL.lastPathComponent): cancelled while waiting slot")
-      return nil
-    }
-    defer { releaseTranscodeSlot() }
-
-    let logger = self.logger
-    let timeoutNanoseconds = UInt64(Self.transcodeTimeout * 1_000_000_000)
-
-    let result = await withTaskGroup(of: TranscodeResult.self, returning: TranscodeResult.self) {
-      group in
-      group.addTask {
-        .completed(Self.transcodeIfNeeded(sourceFileURL: sourceFileURL, logger: logger))
-      }
-      group.addTask {
-        try? await Task.sleep(nanoseconds: timeoutNanoseconds)
-        return .timeout
-      }
-
-      let firstResult = await group.next() ?? .timeout
-      group.cancelAll()
-      return firstResult
-    }
-
-    switch result {
-    case .completed(let outputURL):
-      return outputURL
-    case .timeout:
-      logger.error(
-        String(
-          format: "❌ [AnimatedVideo] Timeout %@ after %.1fs",
-          sourceFileURL.lastPathComponent,
-          Self.transcodeTimeout
-        )
-      )
-      return nil
-    }
   }
 
   func cancelAll() {
@@ -95,51 +49,23 @@ actor AnimatedImageVideoTranscoder {
     transcodeTasks.removeAll()
   }
 
-  private func acquireTranscodeSlot(for sourceFileURL: URL) async -> Bool {
-    if !isTranscoding {
-      isTranscoding = true
-      return true
+  func cancelAll(exceptSourceFileURLs keptSourceFileURLs: Set<URL>) {
+    guard !transcodeTasks.isEmpty else { return }
+    guard !keptSourceFileURLs.isEmpty else {
+      cancelAll()
+      return
     }
 
-    let ticket = UUID()
+    let cancelledSourceFileURLs = transcodeTasks.keys.filter { !keptSourceFileURLs.contains($0) }
+    guard !cancelledSourceFileURLs.isEmpty else { return }
+
     logger.debug(
-      "⏳ [AnimatedVideo] Wait slot: \(sourceFileURL.lastPathComponent), waiting=\(queuedTranscodeOrder.count + 1)"
+      "🛑 [AnimatedVideo] Cancel \(cancelledSourceFileURLs.count) task(s), keep=\(keptSourceFileURLs.count)"
     )
-
-    await withTaskCancellationHandler {
-      await withCheckedContinuation { continuation in
-        queuedTranscodeOrder.append(ticket)
-        queuedTranscodeContinuations[ticket] = continuation
-      }
-    } onCancel: {
-      Task { await self.cancelQueuedTranscodeSlot(ticket: ticket) }
+    for sourceFileURL in cancelledSourceFileURLs {
+      transcodeTasks[sourceFileURL]?.cancel()
+      transcodeTasks.removeValue(forKey: sourceFileURL)
     }
-
-    guard !Task.isCancelled else {
-      return false
-    }
-
-    isTranscoding = true
-    return true
-  }
-
-  private func releaseTranscodeSlot() {
-    while let nextTicket = queuedTranscodeOrder.first {
-      queuedTranscodeOrder.removeFirst()
-      if let continuation = queuedTranscodeContinuations.removeValue(forKey: nextTicket) {
-        continuation.resume()
-        return
-      }
-    }
-    isTranscoding = false
-  }
-
-  private func cancelQueuedTranscodeSlot(ticket: UUID) {
-    guard let continuation = queuedTranscodeContinuations.removeValue(forKey: ticket) else { return }
-    if let index = queuedTranscodeOrder.firstIndex(of: ticket) {
-      queuedTranscodeOrder.remove(at: index)
-    }
-    continuation.resume()
   }
 
   nonisolated private static func transcodeIfNeeded(
@@ -281,6 +207,8 @@ actor AnimatedImageVideoTranscoder {
     var presentationTime = CMTime.zero
     var renderedFrameCount = 0
     var skippedFrameCount = 0
+    var waitForWriterDuration: TimeInterval = 0
+    let encodeStartedAt = Date()
     let frameOptions =
       [
         kCGImageSourceShouldCache: false,
@@ -314,6 +242,7 @@ actor AnimatedImageVideoTranscoder {
           return false
         }
         Thread.sleep(forTimeInterval: 0.0015)
+        waitForWriterDuration += 0.0015
       }
 
       let appended = adaptor.append(pixelBuffer, withPresentationTime: presentationTime)
@@ -348,6 +277,8 @@ actor AnimatedImageVideoTranscoder {
     writerInput.markAsFinished()
 
     let semaphore = DispatchSemaphore(value: 0)
+    let finishStartedAt = Date()
+    let encodeLoopDuration = finishStartedAt.timeIntervalSince(encodeStartedAt)
     writer.finishWriting {
       semaphore.signal()
     }
@@ -359,8 +290,18 @@ actor AnimatedImageVideoTranscoder {
     }
 
     if writer.status == .completed {
+      let finishDuration = Date().timeIntervalSince(finishStartedAt)
       logger.debug(
         "✅ [AnimatedVideo] Encoded \(sourceFileURL.lastPathComponent): rendered=\(renderedFrameCount), skipped=\(skippedFrameCount)"
+      )
+      logger.debug(
+        String(
+          format: "⏱️ [AnimatedVideo] Timing %@: encode=%.2fs, wait=%.2fs, finish=%.2fs",
+          sourceFileURL.lastPathComponent,
+          encodeLoopDuration,
+          waitForWriterDuration,
+          finishDuration
+        )
       )
       return true
     }

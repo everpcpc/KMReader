@@ -3,16 +3,10 @@ import SwiftUI
 
 struct LoopingVideoPlayerView: View {
   let videoURL: URL
-  let onLoadStateChange: ((Bool) -> Void)?
-
-  init(videoURL: URL, onLoadStateChange: ((Bool) -> Void)? = nil) {
-    self.videoURL = videoURL
-    self.onLoadStateChange = onLoadStateChange
-  }
 
   var body: some View {
     #if os(iOS) || os(macOS)
-      PlatformVideoView(videoURL: videoURL, onLoadStateChange: onLoadStateChange)
+      PlatformVideoView(videoURL: videoURL)
         .background(Color.clear)
         .allowsHitTesting(false)
     #else
@@ -22,18 +16,9 @@ struct LoopingVideoPlayerView: View {
 
   @MainActor
   private final class Coordinator {
-    var onLoadStateChange: ((Bool) -> Void)?
-
     private var currentURL: URL?
     private var player: AVQueuePlayer?
     private var looper: AVPlayerLooper?
-    private var statusObserver: NSKeyValueObservation?
-    private var lastEmittedLoadState: Bool?
-    private var loadStateEmissionToken: UInt64 = 0
-
-    init(onLoadStateChange: ((Bool) -> Void)?) {
-      self.onLoadStateChange = onLoadStateChange
-    }
 
     func update(videoURL: URL, playerLayer: AVPlayerLayer) {
       if currentURL == videoURL, let player {
@@ -41,12 +26,10 @@ struct LoopingVideoPlayerView: View {
           playerLayer.player = player
         }
         player.play()
-        emitLoadState(true)
         return
       }
 
-      emitLoadState(false)
-      teardown(playerLayer: playerLayer, emitNotReady: false)
+      teardown(playerLayer: playerLayer)
 
       let item = AVPlayerItem(url: videoURL)
       let queuePlayer = AVQueuePlayer()
@@ -54,57 +37,26 @@ struct LoopingVideoPlayerView: View {
       queuePlayer.actionAtItemEnd = .none
       queuePlayer.automaticallyWaitsToMinimizeStalling = false
 
-      let looper = AVPlayerLooper(player: queuePlayer, templateItem: item)
-      statusObserver = item.observe(\.status, options: [.initial, .new]) { [weak self] observedItem, _ in
-        guard let self else { return }
-        Task { @MainActor in
-          switch observedItem.status {
-          case .readyToPlay, .failed:
-            self.emitLoadState(true)
-          default:
-            break
-          }
-        }
-      }
+      looper = AVPlayerLooper(player: queuePlayer, templateItem: item)
 
       playerLayer.videoGravity = .resizeAspect
       playerLayer.player = queuePlayer
 
       currentURL = videoURL
       player = queuePlayer
-      self.looper = looper
       queuePlayer.play()
     }
 
-    func teardown(playerLayer: AVPlayerLayer, emitNotReady: Bool) {
-      statusObserver?.invalidate()
-      statusObserver = nil
+    func teardown(playerLayer: AVPlayerLayer) {
       looper = nil
       player?.pause()
       player?.removeAllItems()
       player = nil
       currentURL = nil
       playerLayer.player = nil
-
-      if emitNotReady {
-        emitLoadState(false)
-      }
-    }
-
-    private func emitLoadState(_ isReady: Bool) {
-      guard lastEmittedLoadState != isReady else { return }
-      lastEmittedLoadState = isReady
-      loadStateEmissionToken &+= 1
-      let token = loadStateEmissionToken
-      DispatchQueue.main.async { [weak self] in
-        guard let self else { return }
-        guard self.loadStateEmissionToken == token else { return }
-        self.onLoadStateChange?(isReady)
-      }
     }
 
     deinit {
-      statusObserver?.invalidate()
       player?.pause()
       player?.removeAllItems()
     }
@@ -113,10 +65,9 @@ struct LoopingVideoPlayerView: View {
   #if os(iOS)
     private struct PlatformVideoView: UIViewRepresentable {
       let videoURL: URL
-      var onLoadStateChange: ((Bool) -> Void)?
 
       func makeCoordinator() -> Coordinator {
-        Coordinator(onLoadStateChange: onLoadStateChange)
+        Coordinator()
       }
 
       func makeUIView(context: Context) -> PlayerContainerView {
@@ -126,12 +77,11 @@ struct LoopingVideoPlayerView: View {
       }
 
       func updateUIView(_ uiView: PlayerContainerView, context: Context) {
-        context.coordinator.onLoadStateChange = onLoadStateChange
         context.coordinator.update(videoURL: videoURL, playerLayer: uiView.playerLayer)
       }
 
       static func dismantleUIView(_ uiView: PlayerContainerView, coordinator: Coordinator) {
-        coordinator.teardown(playerLayer: uiView.playerLayer, emitNotReady: true)
+        coordinator.teardown(playerLayer: uiView.playerLayer)
       }
 
       final class PlayerContainerView: UIView {
@@ -147,10 +97,9 @@ struct LoopingVideoPlayerView: View {
   #elseif os(macOS)
     private struct PlatformVideoView: NSViewRepresentable {
       let videoURL: URL
-      var onLoadStateChange: ((Bool) -> Void)?
 
       func makeCoordinator() -> Coordinator {
-        Coordinator(onLoadStateChange: onLoadStateChange)
+        Coordinator()
       }
 
       func makeNSView(context: Context) -> PlayerContainerView {
@@ -161,12 +110,11 @@ struct LoopingVideoPlayerView: View {
       }
 
       func updateNSView(_ nsView: PlayerContainerView, context: Context) {
-        context.coordinator.onLoadStateChange = onLoadStateChange
         context.coordinator.update(videoURL: videoURL, playerLayer: nsView.playerLayer)
       }
 
       static func dismantleNSView(_ nsView: PlayerContainerView, coordinator: Coordinator) {
-        coordinator.teardown(playerLayer: nsView.playerLayer, emitNotReady: true)
+        coordinator.teardown(playerLayer: nsView.playerLayer)
       }
 
       final class PlayerContainerView: NSView {
