@@ -677,9 +677,9 @@ struct DivinaReaderView: View {
         #endif
       } else if viewModel.isLoading {
         ReaderLoadingView(
-          title: String(localized: "Loading book..."),
-          detail: nil,
-          progress: nil
+          title: viewModel.loadingTitle,
+          detail: viewModel.loadingDetail,
+          progress: viewModel.loadingProgress
         )
       } else {
         NoPagesView(onDismiss: { closeReader() })

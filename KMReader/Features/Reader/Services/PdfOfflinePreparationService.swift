@@ -30,6 +30,21 @@ actor PdfOfflinePreparationService {
     let skippedImageCount: Int
   }
 
+  struct PreparationProgress: Sendable {
+    let completedPages: Int
+    let totalPages: Int
+    let renderedImageCount: Int
+    let reusedImageCount: Int
+    let skippedImageCount: Int
+
+    var fractionCompleted: Double {
+      guard totalPages > 0 else { return 0 }
+      return min(1.0, Double(completedPages) / Double(totalPages))
+    }
+  }
+
+  typealias PreparationProgressHandler = @MainActor @Sendable (PreparationProgress) -> Void
+
   static let shared = PdfOfflinePreparationService()
 
   private let logger = AppLogger(.reader)
@@ -41,7 +56,8 @@ actor PdfOfflinePreparationService {
     instanceId: String,
     bookId: String,
     documentURL: URL,
-    forceRebuildMetadata: Bool = false
+    forceRebuildMetadata: Bool = false,
+    onProgress: PreparationProgressHandler? = nil
   ) async -> PreparationResult? {
     let taskKey = "\(instanceId)|\(bookId)"
     logger.debug("🚧 Start offline PDF preparation for book \(bookId), instance \(instanceId)")
@@ -71,7 +87,8 @@ actor PdfOfflinePreparationService {
         bookId: bookId,
         documentURL: documentURL,
         forceRerenderImages: existingStamp != completionFlag,
-        renderQuality: renderQuality
+        renderQuality: renderQuality,
+        onProgress: onProgress
       )
     }
 
@@ -112,7 +129,8 @@ actor PdfOfflinePreparationService {
       bookId: String,
       documentURL: URL,
       forceRerenderImages: Bool,
-      renderQuality: PdfOfflineRenderQuality
+      renderQuality: PdfOfflineRenderQuality,
+      onProgress: PreparationProgressHandler?
     ) async -> PreparationResult? {
       await Task.detached(priority: .userInitiated) {
         guard let document = PDFDocument(url: documentURL) else {
@@ -135,10 +153,27 @@ actor PdfOfflinePreparationService {
         var renderedImageCount = 0
         var reusedImageCount = 0
         var skippedImageCount = 0
+        let reportProgress:
+          @Sendable (_ completedPages: Int, _ renderedImageCount: Int, _ reusedImageCount: Int,
+                     _ skippedImageCount: Int) async -> Void = {
+            completedPages, renderedImageCount, reusedImageCount, skippedImageCount in
+            guard let onProgress else { return }
+            await onProgress(
+              PreparationProgress(
+                completedPages: completedPages,
+                totalPages: totalPages,
+                renderedImageCount: renderedImageCount,
+                reusedImageCount: reusedImageCount,
+                skippedImageCount: skippedImageCount
+              )
+            )
+          }
 
         if forceRerenderImages {
           await OfflineManager.shared.clearOfflinePageImages(instanceId: instanceId, bookId: bookId)
         }
+
+        await reportProgress(0, renderedImageCount, reusedImageCount, skippedImageCount)
 
         for pageIndex in 0..<totalPages {
           if Task.isCancelled {
@@ -160,6 +195,7 @@ actor PdfOfflinePreparationService {
             )
             pages.append(bookPage)
             skippedImageCount += 1
+            await reportProgress(pageNumber, renderedImageCount, reusedImageCount, skippedImageCount)
             continue
           }
 
@@ -184,6 +220,7 @@ actor PdfOfflinePreparationService {
             )
             pages.append(bookPage)
             reusedImageCount += 1
+            await reportProgress(pageNumber, renderedImageCount, reusedImageCount, skippedImageCount)
             continue
           }
 
@@ -200,6 +237,7 @@ actor PdfOfflinePreparationService {
             )
             pages.append(bookPage)
             skippedImageCount += 1
+            await reportProgress(pageNumber, renderedImageCount, reusedImageCount, skippedImageCount)
             continue
           }
 
@@ -226,6 +264,8 @@ actor PdfOfflinePreparationService {
           } else {
             skippedImageCount += 1
           }
+
+          await reportProgress(pageNumber, renderedImageCount, reusedImageCount, skippedImageCount)
         }
 
         let toc = buildTableOfContents(from: document)
@@ -275,10 +315,11 @@ actor PdfOfflinePreparationService {
 
       let scaleX = CGFloat(pixelWidth) / max(pageBounds.width, 1)
       let scaleY = CGFloat(pixelHeight) / max(pageBounds.height, 1)
-      context.translateBy(x: 0, y: CGFloat(pixelHeight))
-      context.scaleBy(x: scaleX, y: -scaleY)
+      context.saveGState()
+      context.scaleBy(x: scaleX, y: scaleY)
       context.translateBy(x: -pageBounds.minX, y: -pageBounds.minY)
       page.draw(with: .mediaBox, to: context)
+      context.restoreGState()
 
       guard let cgImage = context.makeImage() else {
         return nil
@@ -289,7 +330,7 @@ actor PdfOfflinePreparationService {
       #elseif os(macOS)
         let image = NSImage(
           cgImage: cgImage,
-          size: NSSize(width: pixelWidth, height: pixelHeight)
+          size: NSSize(width: CGFloat(pixelWidth), height: CGFloat(pixelHeight))
         )
       #endif
 
@@ -417,7 +458,8 @@ actor PdfOfflinePreparationService {
       bookId _: String,
       documentURL _: URL,
       forceRerenderImages _: Bool,
-      renderQuality _: PdfOfflineRenderQuality
+      renderQuality _: PdfOfflineRenderQuality,
+      onProgress _: PreparationProgressHandler?
     ) async -> PreparationResult? {
       nil
     }
