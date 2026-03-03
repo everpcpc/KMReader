@@ -8,11 +8,16 @@ actor AnimatedImageVideoTranscoder {
   private static let outputExtension = "mp4"
   private static let timeScale: Int32 = 600
   private static let fallbackFrameDuration: Double = 0.1
-  private static let minimumFrameDuration: Double = 1.0 / 60.0
+  private static let minimumFrameDuration: Double = 1.0 / 30.0
   private static let lowDelayFrameThreshold: Double = 0.011
+  private static let writerBackPressureSleepInterval: TimeInterval = 0.004
+  private static let progressReportStep: Double = 0.01
+  private static let highFrameRateDropThreshold: Double = 1.0 / 45.0
+  private static let maxOutputDimension = 1920
 
   private let logger = AppLogger(.reader)
   private var transcodeTasks: [URL: Task<URL?, Never>] = [:]
+  private var transcodeProgress: [URL: Double] = [:]
 
   func prepareVideoURL(for sourceFileURL: URL) async -> URL? {
     if let runningTask = transcodeTasks[sourceFileURL] {
@@ -22,14 +27,27 @@ actor AnimatedImageVideoTranscoder {
 
     logger.debug("🚀 [AnimatedVideo] Queue task: \(sourceFileURL.lastPathComponent), inFlight=\(transcodeTasks.count)")
     let logger = self.logger
-    let task = Task<URL?, Never>(priority: .userInitiated) { [sourceFileURL] in
+    let transcoder = self
+    transcodeProgress[sourceFileURL] = 0
+    let task: Task<URL?, Never> = Task.detached(priority: .userInitiated) {
+      [sourceFileURL, logger, transcoder] () -> URL? in
       guard !Task.isCancelled else { return nil }
-      return Self.transcodeIfNeeded(sourceFileURL: sourceFileURL, logger: logger)
+      let reportProgress: @Sendable (Double) -> Void = { [sourceFileURL, transcoder] progress in
+        Task {
+          await transcoder.updateProgress(progress, for: sourceFileURL)
+        }
+      }
+      return Self.transcodeIfNeeded(
+        sourceFileURL: sourceFileURL,
+        logger: logger,
+        reportProgress: reportProgress
+      )
     }
 
     transcodeTasks[sourceFileURL] = task
     let result = await task.value
     transcodeTasks.removeValue(forKey: sourceFileURL)
+    transcodeProgress.removeValue(forKey: sourceFileURL)
     if let result {
       self.logger.debug("✅ [AnimatedVideo] Ready: \(result.lastPathComponent)")
     } else if task.isCancelled {
@@ -47,6 +65,7 @@ actor AnimatedImageVideoTranscoder {
       task.cancel()
     }
     transcodeTasks.removeAll()
+    transcodeProgress.removeAll()
   }
 
   func cancelAll(exceptSourceFileURLs keptSourceFileURLs: Set<URL>) {
@@ -65,13 +84,31 @@ actor AnimatedImageVideoTranscoder {
     for sourceFileURL in cancelledSourceFileURLs {
       transcodeTasks[sourceFileURL]?.cancel()
       transcodeTasks.removeValue(forKey: sourceFileURL)
+      transcodeProgress.removeValue(forKey: sourceFileURL)
     }
+  }
+
+  func progress(for sourceFileURL: URL) -> Double? {
+    transcodeProgress[sourceFileURL]
+  }
+
+  private func updateProgress(_ progress: Double, for sourceFileURL: URL) {
+    let clampedProgress = min(max(progress, 0), 1)
+    let previousProgress = transcodeProgress[sourceFileURL] ?? -1
+    guard
+      clampedProgress == 1
+        || previousProgress < 0
+        || clampedProgress - previousProgress >= Self.progressReportStep
+    else { return }
+    transcodeProgress[sourceFileURL] = clampedProgress
   }
 
   nonisolated private static func transcodeIfNeeded(
     sourceFileURL: URL,
-    logger: AppLogger
+    logger: AppLogger,
+    reportProgress: @escaping @Sendable (Double) -> Void
   ) -> URL? {
+    reportProgress(0)
     let fileManager = FileManager.default
     let outputURL = sidecarVideoURL(for: sourceFileURL)
     let outputDirectory = outputURL.deletingLastPathComponent()
@@ -83,6 +120,7 @@ actor AnimatedImageVideoTranscoder {
     }
 
     if fileManager.fileExists(atPath: outputURL.path) {
+      reportProgress(1)
       logger.debug("✅ [AnimatedVideo] Use sidecar cache: \(outputURL.lastPathComponent)")
       return outputURL
     }
@@ -94,12 +132,18 @@ actor AnimatedImageVideoTranscoder {
       .appendingPathExtension(outputExtension)
 
     let startedAt = Date()
-    if transcode(sourceFileURL: sourceFileURL, outputURL: temporaryOutputURL, logger: logger) {
+    if transcode(
+      sourceFileURL: sourceFileURL,
+      outputURL: temporaryOutputURL,
+      logger: logger,
+      reportProgress: reportProgress
+    ) {
       do {
         if fileManager.fileExists(atPath: outputURL.path) {
           try fileManager.removeItem(at: outputURL)
         }
         try fileManager.moveItem(at: temporaryOutputURL, to: outputURL)
+        reportProgress(1)
         let duration = Date().timeIntervalSince(startedAt)
         logger.debug(
           String(
@@ -133,7 +177,8 @@ actor AnimatedImageVideoTranscoder {
   nonisolated private static func transcode(
     sourceFileURL: URL,
     outputURL: URL,
-    logger: AppLogger
+    logger: AppLogger,
+    reportProgress: @escaping @Sendable (Double) -> Void
   ) -> Bool {
     if Task.isCancelled {
       return false
@@ -156,11 +201,13 @@ actor AnimatedImageVideoTranscoder {
       return false
     }
 
-    let outputSize = normalizedOutputSize(from: firstFrame)
+    let outputSize = normalizedOutputSize(from: firstFrame, maxDimension: maxOutputDimension)
     guard outputSize.width > 0, outputSize.height > 0 else {
       logger.debug("⏭️ [AnimatedVideo] Skip \(sourceFileURL.lastPathComponent): invalid output size")
       return false
     }
+    let sourceSize = CGSize(width: firstFrame.width, height: firstFrame.height)
+    let shouldDownsampleFrames = sourceSize.width > outputSize.width || sourceSize.height > outputSize.height
 
     let renderColorSpace = preferredRenderColorSpace(from: firstFrame)
     logger.debug(
@@ -214,6 +261,16 @@ actor AnimatedImageVideoTranscoder {
         kCGImageSourceShouldCache: false,
         kCGImageSourceShouldCacheImmediately: false,
       ] as CFDictionary
+    let thumbnailOptions: CFDictionary? =
+      shouldDownsampleFrames
+      ? [
+        kCGImageSourceShouldCache: false,
+        kCGImageSourceShouldCacheImmediately: false,
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceCreateThumbnailWithTransform: true,
+        kCGImageSourceThumbnailMaxPixelSize: max(Int(outputSize.width), Int(outputSize.height)),
+      ] as CFDictionary : nil
+    var droppedHighFPSFrameCount = 0
 
     for frameIndex in 0..<frameCount {
       if Task.isCancelled {
@@ -221,9 +278,24 @@ actor AnimatedImageVideoTranscoder {
         writer.cancelWriting()
         return false
       }
+      let currentFrameDuration = frameDuration(source: source, frameIndex: frameIndex)
+      let durationTime = CMTime(seconds: currentFrameDuration, preferredTimescale: timeScale)
+      let shouldDropHighFPSFrame =
+        currentFrameDuration < highFrameRateDropThreshold && !frameIndex.isMultiple(of: 2)
+      if shouldDropHighFPSFrame {
+        droppedHighFPSFrameCount += 1
+        presentationTime = presentationTime + durationTime
+        reportProgress(Double(frameIndex + 1) / Double(frameCount))
+        continue
+      }
 
       guard
-        let frameImage = CGImageSourceCreateImageAtIndex(source, frameIndex, frameOptions),
+        let frameImage = frameImageAtIndex(
+          source: source,
+          frameIndex: frameIndex,
+          frameOptions: frameOptions,
+          thumbnailOptions: thumbnailOptions
+        ),
         let pixelBuffer = makePixelBuffer(
           from: frameImage,
           size: outputSize,
@@ -241,8 +313,8 @@ actor AnimatedImageVideoTranscoder {
           writer.cancelWriting()
           return false
         }
-        Thread.sleep(forTimeInterval: 0.0015)
-        waitForWriterDuration += 0.0015
+        Thread.sleep(forTimeInterval: writerBackPressureSleepInterval)
+        waitForWriterDuration += writerBackPressureSleepInterval
       }
 
       let appended = adaptor.append(pixelBuffer, withPresentationTime: presentationTime)
@@ -256,9 +328,8 @@ actor AnimatedImageVideoTranscoder {
       }
       renderedFrameCount += 1
 
-      let frameDuration = frameDuration(source: source, frameIndex: frameIndex)
-      let durationTime = CMTime(seconds: frameDuration, preferredTimescale: timeScale)
       presentationTime = presentationTime + durationTime
+      reportProgress(Double(frameIndex + 1) / Double(frameCount))
     }
 
     if Task.isCancelled {
@@ -292,7 +363,7 @@ actor AnimatedImageVideoTranscoder {
     if writer.status == .completed {
       let finishDuration = Date().timeIntervalSince(finishStartedAt)
       logger.debug(
-        "✅ [AnimatedVideo] Encoded \(sourceFileURL.lastPathComponent): rendered=\(renderedFrameCount), skipped=\(skippedFrameCount)"
+        "✅ [AnimatedVideo] Encoded \(sourceFileURL.lastPathComponent): rendered=\(renderedFrameCount), skipped=\(skippedFrameCount), droppedHighFPS=\(droppedHighFPSFrameCount)"
       )
       logger.debug(
         String(
@@ -303,6 +374,7 @@ actor AnimatedImageVideoTranscoder {
           finishDuration
         )
       )
+      reportProgress(1)
       return true
     }
 
@@ -312,9 +384,17 @@ actor AnimatedImageVideoTranscoder {
     return false
   }
 
-  nonisolated private static func normalizedOutputSize(from image: CGImage) -> CGSize {
-    let width = max((image.width / 2) * 2, 2)
-    let height = max((image.height / 2) * 2, 2)
+  nonisolated private static func normalizedOutputSize(from image: CGImage, maxDimension: Int) -> CGSize {
+    let sourceWidth = CGFloat(image.width)
+    let sourceHeight = CGFloat(image.height)
+    guard sourceWidth > 0, sourceHeight > 0 else {
+      return CGSize(width: 2, height: 2)
+    }
+
+    let longSide = max(sourceWidth, sourceHeight)
+    let scale = min(1, CGFloat(maxDimension) / longSide)
+    let width = max((Int((sourceWidth * scale).rounded()) / 2) * 2, 2)
+    let height = max((Int((sourceHeight * scale).rounded()) / 2) * 2, 2)
     return CGSize(width: width, height: height)
   }
 
@@ -333,7 +413,7 @@ actor AnimatedImageVideoTranscoder {
     let width = Int(size.width)
     let height = Int(size.height)
     let pixels = max(width * height, 1)
-    let bitrate = max(pixels * 4, 1_500_000)
+    let bitrate = min(max(pixels * 2, 1_000_000), 8_000_000)
 
     var settings: [String: Any] = [
       AVVideoCodecKey: AVVideoCodecType.h264,
@@ -342,10 +422,27 @@ actor AnimatedImageVideoTranscoder {
       AVVideoCompressionPropertiesKey: [
         AVVideoAverageBitRateKey: bitrate,
         AVVideoMaxKeyFrameIntervalDurationKey: 1,
+        AVVideoExpectedSourceFrameRateKey: 30,
+        AVVideoAllowFrameReorderingKey: false,
+        AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCAVLC,
       ],
     ]
     settings[AVVideoColorPropertiesKey] = videoColorProperties(for: colorSpace)
     return settings
+  }
+
+  nonisolated private static func frameImageAtIndex(
+    source: CGImageSource,
+    frameIndex: Int,
+    frameOptions: CFDictionary,
+    thumbnailOptions: CFDictionary?
+  ) -> CGImage? {
+    if let thumbnailOptions,
+      let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, frameIndex, thumbnailOptions)
+    {
+      return thumbnail
+    }
+    return CGImageSourceCreateImageAtIndex(source, frameIndex, frameOptions)
   }
 
   nonisolated private static func videoColorProperties(for colorSpace: CGColorSpace) -> [String: String] {
@@ -403,7 +500,7 @@ actor AnimatedImageVideoTranscoder {
     }
 
     context.clear(CGRect(origin: .zero, size: size))
-    context.interpolationQuality = .high
+    context.interpolationQuality = .medium
     context.draw(image, in: CGRect(origin: .zero, size: size))
 
     return pixelBuffer

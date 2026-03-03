@@ -34,6 +34,7 @@
 
     private var loadTask: Task<Void, Never>?
     private var animatedInlinePreparationTask: Task<Void, Never>?
+    private var animatedInlineProgressTask: Task<Void, Never>?
 
     private var lastConfiguredPageID: ReaderPageID?
     private var loadError: String?
@@ -102,6 +103,7 @@
     deinit {
       loadTask?.cancel()
       animatedInlinePreparationTask?.cancel()
+      animatedInlineProgressTask?.cancel()
     }
 
     private func setupUI() {
@@ -155,6 +157,26 @@
         animatedInlinePlayerView.trailingAnchor.constraint(equalTo: animatedInlineContainer.trailingAnchor),
         animatedInlinePlayerView.topAnchor.constraint(equalTo: animatedInlineContainer.topAnchor),
         animatedInlinePlayerView.bottomAnchor.constraint(equalTo: animatedInlineContainer.bottomAnchor),
+      ])
+
+      let progressLabel = UILabel()
+      progressLabel.translatesAutoresizingMaskIntoConstraints = false
+      progressLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+      progressLabel.textColor = .secondaryLabel
+      progressLabel.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.72)
+      progressLabel.textAlignment = .center
+      progressLabel.layer.cornerRadius = 8
+      progressLabel.layer.masksToBounds = true
+      progressLabel.isHidden = true
+      progressLabel.accessibilityIdentifier = "animated-transcode-progress"
+      animatedInlineContainer.addSubview(progressLabel)
+      animatedInlineProgressLabel = progressLabel
+
+      NSLayoutConstraint.activate([
+        progressLabel.centerXAnchor.constraint(equalTo: animatedInlineContainer.centerXAnchor),
+        progressLabel.centerYAnchor.constraint(equalTo: animatedInlineContainer.centerYAnchor),
+        progressLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 56),
+        progressLabel.heightAnchor.constraint(equalToConstant: 26),
       ])
     }
 
@@ -277,6 +299,7 @@
       let requestedPageID = pageID
       animatedInlinePreparationTask = Task { [weak self] in
         guard let self else { return }
+        self.startAnimatedInlineProgressTracking(for: requestedPageID, viewModel: viewModel)
         if let currentViewItem = viewModel.currentViewItem() {
           await viewModel.focusAnimatedPlayback(for: currentViewItem)
         } else {
@@ -288,6 +311,7 @@
         guard !Task.isCancelled else { return }
         guard self.pageID == requestedPageID else { return }
         self.animatedInlinePreparationTask = nil
+        self.stopAnimatedInlineProgressTracking()
         self.refreshPageItem()
       }
     }
@@ -321,10 +345,12 @@
     private func cancelAnimatedInlinePreparation() {
       animatedInlinePreparationTask?.cancel()
       animatedInlinePreparationTask = nil
+      stopAnimatedInlineProgressTracking()
     }
 
     private func hideAnimatedInlinePlayback() {
       animatedInlineContainer.isHidden = true
+      updateAnimatedInlineProgressLabel(nil)
       stopAnimatedInlinePlayback()
     }
 
@@ -381,6 +407,68 @@
       animatedInlinePlayer = nil
       animatedInlineCurrentURL = nil
       animatedInlinePlayerView.playerLayer.player = nil
+      updateAnimatedInlineProgressLabel(nil)
+    }
+
+    private weak var animatedInlineProgressLabel: UILabel?
+
+    private func startAnimatedInlineProgressTracking(
+      for requestedPageID: ReaderPageID,
+      viewModel: ReaderViewModel
+    ) {
+      stopAnimatedInlineProgressTracking()
+      animatedInlineProgressTask = Task { [weak self] in
+        guard let self else { return }
+        var hasEnteredLoadingPhase = false
+        while !Task.isCancelled {
+          guard self.pageID == requestedPageID else { return }
+          if viewModel.animatedPlaybackFileURL(for: requestedPageID) != nil { break }
+
+          let isLoading = viewModel.isAnimatedPlaybackLoading(for: requestedPageID)
+          if isLoading {
+            hasEnteredLoadingPhase = true
+          }
+          let progress = await viewModel.animatedPlaybackProgress(for: requestedPageID)
+          guard !Task.isCancelled else { return }
+          guard self.pageID == requestedPageID else { return }
+
+          if let progress {
+            self.updateAnimatedInlineProgressLabel(progress)
+          } else if isLoading || !hasEnteredLoadingPhase {
+            self.updateAnimatedInlineProgressLabel(0)
+          } else {
+            break
+          }
+
+          try? await Task.sleep(nanoseconds: 120_000_000)
+        }
+        self.updateAnimatedInlineProgressLabel(nil)
+      }
+    }
+
+    private func stopAnimatedInlineProgressTracking() {
+      animatedInlineProgressTask?.cancel()
+      animatedInlineProgressTask = nil
+      updateAnimatedInlineProgressLabel(nil)
+    }
+
+    private func updateAnimatedInlineProgressLabel(_ progress: Double?) {
+      Task { @MainActor [weak self] in
+        self?.applyAnimatedInlineProgressLabel(progress)
+      }
+    }
+
+    @MainActor
+    private func applyAnimatedInlineProgressLabel(_ progress: Double?) {
+      guard let progress else {
+        animatedInlineProgressLabel?.isHidden = true
+        animatedInlineProgressLabel?.text = nil
+        return
+      }
+      let clampedProgress = min(max(progress, 0), 1)
+      let percentage = Int((clampedProgress * 100).rounded())
+      animatedInlineProgressLabel?.text = " \(percentage)% "
+      animatedInlineProgressLabel?.isHidden = false
     }
 
     @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {

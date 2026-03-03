@@ -1350,6 +1350,12 @@ class ReaderViewModel {
     return animatedPlaybackPreparationTasks[pageID] != nil
   }
 
+  func animatedPlaybackProgress(for pageID: ReaderPageID) async -> Double? {
+    guard isAnimatedPlaybackLoading(for: pageID) else { return nil }
+    guard let sourceFileURL = animatedPageSourceFileURLs[pageID] else { return nil }
+    return await AnimatedImageVideoTranscoder.shared.progress(for: sourceFileURL)
+  }
+
   func shouldPrepareAnimatedPlayback(for pageID: ReaderPageID) -> Bool {
     animatedPageStates[pageID] != false
   }
