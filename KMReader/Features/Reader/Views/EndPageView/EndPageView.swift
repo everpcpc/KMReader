@@ -262,7 +262,8 @@ struct EndPageView: View {
             type: .book,
             shadowStyle: .none,
             width: coverWidth,
-            cornerRadius: coverCornerRadius(for: coverWidth)
+            cornerRadius: coverCornerRadius(for: coverWidth),
+            isTransitionSource: false
           )
           .colorMultiply(readerBackground.appliesImageMultiplyBlend ? readerBackground.color : .white)
           .frame(width: coverWidth, height: coverHeight)
