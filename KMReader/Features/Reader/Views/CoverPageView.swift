@@ -7,6 +7,38 @@
   import SwiftUI
 
   struct CoverPageView: View {
+    private struct SlotRenderState {
+      let isVisible: Bool
+      let isMoving: Bool
+      let isElevated: Bool
+      let isActive: Bool
+      let zIndex: Double
+
+      static let hidden = SlotRenderState(
+        isVisible: false,
+        isMoving: false,
+        isElevated: false,
+        isActive: false,
+        zIndex: -1
+      )
+    }
+
+    private enum TransitionMetrics {
+      static let slotCount = 3
+      static let minimumDragDistance: CGFloat = 1
+      static let directionalDragBias: CGFloat = 4
+      static let overscrollResistance: CGFloat = 0.2
+      static let cancelThreshold: CGFloat = 0.5
+      static let commitDistanceRatio: CGFloat = 0.18
+      static let commitVelocityThreshold: CGFloat = 700
+      static let movingShadowOpacity: Double = 0.12
+      static let idleShadowOpacity: Double = 0.05
+      static let movingShadowRadius: CGFloat = 5
+      static let idleShadowRadius: CGFloat = 2
+      static let movingShadowOffset: CGFloat = 3
+      static let idleShadowOffset: CGFloat = 1
+    }
+
     let mode: PageViewMode
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
@@ -17,8 +49,11 @@
 
     @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
 
-    @State private var currentItem: ReaderViewItem?
-    @State private var pendingTargetItem: ReaderViewItem?
+    @State private var slotItems: [ReaderViewItem?] = Array(repeating: nil, count: TransitionMetrics.slotCount)
+    @State private var frontSlotIndex: Int = 0
+    @State private var middleSlotIndex: Int = 1
+    @State private var backSlotIndex: Int = 2
+    @State private var transitionDirection: Int?
     @State private var dragOffset: CGFloat = 0
     @State private var viewportSize: CGSize = .zero
     @State private var isAnimatingTransition = false
@@ -42,53 +77,30 @@
       max(tapPageTransitionDuration, 0)
     }
 
-    private var nextItem: ReaderViewItem? {
-      viewModel.adjacentViewItem(from: currentItem, offset: 1)
+    private var currentItem: ReaderViewItem? {
+      slotItems[frontSlotIndex]
     }
 
-    private var transitionOffset: Int? {
-      guard let currentItem,
-        let pendingTargetItem,
-        let currentIndex = viewModel.viewItemIndex(for: currentItem),
-        let targetIndex = viewModel.viewItemIndex(for: pendingTargetItem)
-      else {
-        return nil
-      }
-      let delta = targetIndex - currentIndex
-      guard abs(delta) == 1 else { return nil }
-      return delta > 0 ? 1 : -1
+    private var nextItem: ReaderViewItem? {
+      slotItems[middleSlotIndex]
+    }
+
+    private var previousItem: ReaderViewItem? {
+      slotItems[backSlotIndex]
+    }
+
+    private var pendingTargetItem: ReaderViewItem? {
+      guard let transitionDirection else { return nil }
+      return transitionDirection == 1 ? nextItem : previousItem
     }
 
     var body: some View {
       GeometryReader { geometry in
         ZStack {
-          if let currentItem {
-            if transitionOffset == 1, let nextItem {
-              pageView(for: nextItem)
-                .zIndex(0)
-              pageView(for: currentItem, isActive: true)
-                .offset(
-                  x: mode.isVertical ? 0 : dragOffset,
-                  y: mode.isVertical ? dragOffset : 0
-                )
-                .zIndex(1)
-            } else if transitionOffset == -1, let pendingTargetItem {
-              pageView(for: currentItem)
-                .zIndex(0)
-              pageView(for: pendingTargetItem)
-                .offset(
-                  x: mode.isVertical ? 0 : dragOffset,
-                  y: mode.isVertical ? dragOffset : 0
-                )
-                .zIndex(1)
-            } else {
-              pageView(for: currentItem, isActive: true)
-                .offset(
-                  x: mode.isVertical ? 0 : dragOffset,
-                  y: mode.isVertical ? dragOffset : 0
-                )
-                .zIndex(1)
-            }
+          renderConfig.readerBackground.color
+
+          ForEach(0..<slotItems.count, id: \.self) { slotIndex in
+            slotLayer(for: slotIndex)
           }
         }
         .frame(width: geometry.size.width, height: geometry.size.height)
@@ -126,13 +138,15 @@
         }
         .onChange(of: viewModel.currentViewItem()) { _, newItem in
           guard !isAnimatingTransition else { return }
-          guard pendingTargetItem == nil else { return }
-          guard !isCurrentItemValid || currentItem == nil else { return }
-          if let resolved = viewModel.resolvedViewItem(for: newItem) ?? newItem ?? viewModel.viewItems.first {
-            currentItem = resolved
-            pendingTargetItem = nil
-            dragOffset = 0
+          guard transitionDirection == nil else { return }
+          let resolved = viewModel.resolvedViewItem(for: newItem) ?? newItem ?? viewModel.viewItems.first
+          guard currentItem != resolved || !isCurrentItemValid else { return }
+          guard let resolved else {
+            resetDeck()
+            return
           }
+          rebuildDeck(around: resolved)
+          applyCurrentItem(resolved)
         }
         .onChange(of: viewModel.navigationTarget) { _, newTarget in
           guard let newTarget else { return }
@@ -165,6 +179,96 @@
         }
       }
       .frame(width: viewportSize.width, height: viewportSize.height)
+      .background(renderConfig.readerBackground.color)
+    }
+
+    @ViewBuilder
+    private func slotLayer(for slotIndex: Int) -> some View {
+      if let item = slotItems[slotIndex] {
+        let renderState = slotRenderState(for: slotIndex)
+        let offset = renderState.isMoving ? dragOffset : 0
+        let shadow = pageShadow(for: offset, isElevated: renderState.isElevated)
+
+        pageView(for: item, isActive: renderState.isActive)
+          .shadow(
+            color: .black.opacity(shadow.opacity),
+            radius: shadow.radius,
+            x: shadow.x,
+            y: shadow.y
+          )
+          .offset(
+            x: mode.isVertical ? 0 : offset,
+            y: mode.isVertical ? offset : 0
+          )
+          .opacity(renderState.isVisible ? 1 : 0)
+          .allowsHitTesting(renderState.isVisible)
+          .zIndex(renderState.zIndex)
+      } else {
+        EmptyView()
+      }
+    }
+
+    private func slotRenderState(for slotIndex: Int) -> SlotRenderState {
+      if let transitionDirection {
+        if transitionDirection == 1 {
+          if slotIndex == frontSlotIndex {
+            return SlotRenderState(isVisible: true, isMoving: true, isElevated: true, isActive: true, zIndex: 1)
+          }
+          if slotIndex == middleSlotIndex {
+            return SlotRenderState(
+              isVisible: true,
+              isMoving: false,
+              isElevated: false,
+              isActive: false,
+              zIndex: 0
+            )
+          }
+          return .hidden
+        }
+
+        if slotIndex == backSlotIndex {
+          return SlotRenderState(isVisible: true, isMoving: true, isElevated: true, isActive: false, zIndex: 1)
+        }
+        if slotIndex == frontSlotIndex {
+          return SlotRenderState(
+            isVisible: true,
+            isMoving: false,
+            isElevated: false,
+            isActive: true,
+            zIndex: 0
+          )
+        }
+        return .hidden
+      }
+
+      if slotIndex == frontSlotIndex {
+        return SlotRenderState(isVisible: true, isMoving: false, isElevated: true, isActive: true, zIndex: 1)
+      }
+      return .hidden
+    }
+
+    private func pageShadow(for offset: CGFloat, isElevated: Bool) -> (
+      opacity: Double, radius: CGFloat, x: CGFloat, y: CGFloat
+    ) {
+      guard isElevated else {
+        return (0, 0, 0, 0)
+      }
+
+      let isMoving = abs(offset) > TransitionMetrics.cancelThreshold
+      let opacity: Double = isMoving ? TransitionMetrics.movingShadowOpacity : TransitionMetrics.idleShadowOpacity
+      let radius: CGFloat = isMoving ? TransitionMetrics.movingShadowRadius : TransitionMetrics.idleShadowRadius
+
+      if mode.isVertical {
+        let y: CGFloat =
+          isMoving
+          ? (offset < 0 ? TransitionMetrics.movingShadowOffset : -TransitionMetrics.movingShadowOffset)
+          : TransitionMetrics.idleShadowOffset
+        return (opacity, radius, 0, y)
+      }
+
+      let x: CGFloat =
+        isMoving ? (offset < 0 ? TransitionMetrics.movingShadowOffset : -TransitionMetrics.movingShadowOffset) : 0
+      return (opacity, radius, x, TransitionMetrics.idleShadowOffset)
     }
 
     private func handlePanChanged(translation: CGSize) {
@@ -174,16 +278,17 @@
       guard isPrimaryDirectionalDrag(translation) else { return }
 
       let primary = primaryTranslation(from: translation)
-      guard abs(primary) > 1 else { return }
+      guard abs(primary) > TransitionMetrics.minimumDragDistance else { return }
 
       let directionOffset = adjacentOffset(for: primary)
       guard let targetItem = viewModel.adjacentViewItem(from: currentItem, offset: directionOffset) else {
-        dragOffset = primary * 0.2
-        pendingTargetItem = nil
+        dragOffset = primary * TransitionMetrics.overscrollResistance
+        transitionDirection = nil
         return
       }
 
-      pendingTargetItem = targetItem
+      transitionDirection = directionOffset
+      prepareTransitionTarget(targetItem, direction: directionOffset)
       if directionOffset == 1 {
         dragOffset = primary
       } else {
@@ -199,7 +304,7 @@
       }
 
       guard pendingTargetItem != nil else {
-        if abs(dragOffset) > 0.5 {
+        if abs(dragOffset) > TransitionMetrics.cancelThreshold {
           cancelDragWithAnimation()
         } else {
           resetDragStateImmediately()
@@ -210,8 +315,8 @@
       let primary = primaryTranslation(from: translation)
       let primaryVelocity = primaryVelocity(from: velocity)
       let shouldCommit =
-        abs(primary) > primaryExtent * 0.18
-        || abs(primaryVelocity) > 700
+        abs(primary) > primaryExtent * TransitionMetrics.commitDistanceRatio
+        || abs(primaryVelocity) > TransitionMetrics.commitVelocityThreshold
 
       if shouldCommit {
         commitCurrentDrag()
@@ -229,7 +334,8 @@
     }
 
     private func isPrimaryDirectionalDrag(_ size: CGSize) -> Bool {
-      abs(primaryTranslation(from: size)) > abs(secondaryTranslation(from: size)) + 4
+      abs(primaryTranslation(from: size))
+        > abs(secondaryTranslation(from: size)) + TransitionMetrics.directionalDragBias
     }
 
     private func primaryVelocity(from size: CGSize) -> CGFloat {
@@ -275,9 +381,24 @@
       if !force && isCurrentItemValid {
         return
       }
-      currentItem = viewModel.currentViewItem() ?? viewModel.viewItems.first
-      pendingTargetItem = nil
-      dragOffset = 0
+      let resolved = viewModel.currentViewItem() ?? viewModel.viewItems.first
+      if let resolved, let currentItem, resolved == currentItem {
+        updateAdjacentSlots(around: resolved)
+        transitionDirection = nil
+        dragOffset = 0
+        if force {
+          applyCurrentItem(resolved)
+        }
+        return
+      }
+      guard let resolved else {
+        resetDeck()
+        postTransitionTask?.cancel()
+        postTransitionTask = nil
+        return
+      }
+      rebuildDeck(around: resolved)
+      applyCurrentItem(resolved)
     }
 
     private func resolveNavigationTarget(_ target: ReaderViewItem) -> ReaderViewItem? {
@@ -294,7 +415,7 @@
       }
 
       guard let currentItem else {
-        self.currentItem = targetItem
+        rebuildDeck(around: targetItem)
         applyCurrentItem(targetItem)
         viewModel.clearNavigationTarget()
         return
@@ -313,13 +434,10 @@
       }
 
       if abs(targetIndex - currentIndex) == 1 {
-        pendingTargetItem = targetItem
         dragOffset = 0
         commitTransition(to: targetItem)
       } else {
-        self.currentItem = targetItem
-        pendingTargetItem = nil
-        dragOffset = 0
+        rebuildDeck(around: targetItem)
         applyCurrentItem(targetItem)
       }
 
@@ -343,6 +461,10 @@
         return
       }
 
+      let direction = targetIndex > currentIndex ? 1 : -1
+      transitionDirection = direction
+      prepareTransitionTarget(targetItem, direction: direction)
+
       let directionSign = transitionDirectionSign(from: currentIndex, to: targetIndex)
       let endOffset = directionSign * primaryExtent
 
@@ -355,7 +477,7 @@
           completeTransition(to: targetItem)
         }
       } else {
-        if abs(dragOffset) < 0.5 {
+        if abs(dragOffset) < TransitionMetrics.cancelThreshold {
           dragOffset = backwardStartOffset(for: directionSign)
         }
         animateDragOffset(to: 0, token: token) {
@@ -368,8 +490,8 @@
       var transaction = Transaction(animation: nil)
       transaction.disablesAnimations = true
       withTransaction(transaction) {
-        currentItem = targetItem
-        pendingTargetItem = nil
+        rotateDeckAfterCommit(to: targetItem)
+        transitionDirection = nil
         dragOffset = 0
         isAnimatingTransition = false
       }
@@ -380,7 +502,7 @@
       transitionToken += 1
       let token = transitionToken
       let cancelTargetOffset: CGFloat = {
-        guard transitionOffset == -1,
+        guard transitionDirection == -1,
           let currentItem,
           let pendingTargetItem,
           let currentIndex = viewModel.viewItemIndex(for: currentItem),
@@ -402,7 +524,7 @@
       var transaction = Transaction(animation: nil)
       transaction.disablesAnimations = true
       withTransaction(transaction) {
-        pendingTargetItem = nil
+        transitionDirection = nil
         dragOffset = 0
         isAnimatingTransition = false
       }
@@ -426,6 +548,71 @@
         guard token == transitionToken else { return }
         completion()
       }
+    }
+
+    private func resetDeck() {
+      slotItems = Array(repeating: nil, count: TransitionMetrics.slotCount)
+      frontSlotIndex = 0
+      middleSlotIndex = 1
+      backSlotIndex = 2
+      transitionDirection = nil
+      dragOffset = 0
+    }
+
+    private func rebuildDeck(around item: ReaderViewItem) {
+      slotItems[frontSlotIndex] = item
+      updateAdjacentSlots(around: item)
+      transitionDirection = nil
+      dragOffset = 0
+    }
+
+    private func updateAdjacentSlots(around item: ReaderViewItem) {
+      slotItems[middleSlotIndex] = viewModel.adjacentViewItem(from: item, offset: 1)
+      slotItems[backSlotIndex] = viewModel.adjacentViewItem(from: item, offset: -1)
+    }
+
+    private func prepareTransitionTarget(_ targetItem: ReaderViewItem, direction: Int) {
+      if direction == 1 {
+        if slotItems[middleSlotIndex] != targetItem {
+          if slotItems[backSlotIndex] == targetItem {
+            swap(&middleSlotIndex, &backSlotIndex)
+          } else {
+            slotItems[middleSlotIndex] = targetItem
+          }
+        }
+      } else {
+        if slotItems[backSlotIndex] != targetItem {
+          if slotItems[middleSlotIndex] == targetItem {
+            swap(&middleSlotIndex, &backSlotIndex)
+          } else {
+            slotItems[backSlotIndex] = targetItem
+          }
+        }
+      }
+    }
+
+    private func rotateDeckAfterCommit(to targetItem: ReaderViewItem) {
+      guard let direction = transitionDirection else {
+        rebuildDeck(around: targetItem)
+        return
+      }
+
+      let oldFront = frontSlotIndex
+      let oldMiddle = middleSlotIndex
+      let oldBack = backSlotIndex
+
+      if direction == 1 {
+        frontSlotIndex = oldMiddle
+        middleSlotIndex = oldBack
+        backSlotIndex = oldFront
+      } else {
+        frontSlotIndex = oldBack
+        middleSlotIndex = oldFront
+        backSlotIndex = oldMiddle
+      }
+
+      slotItems[frontSlotIndex] = targetItem
+      updateAdjacentSlots(around: targetItem)
     }
 
     private func applyCurrentItem(_ item: ReaderViewItem) {
@@ -478,5 +665,6 @@
         }
       }
     }
+
   }
 #endif
