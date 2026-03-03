@@ -31,6 +31,9 @@ class ReaderViewModel {
   private var currentViewItemID: ReaderViewItem?
   var navigationTarget: ReaderViewItem?
   var isLoading = true
+  var loadingTitle = String(localized: "Loading book...")
+  var loadingDetail: String?
+  var loadingProgress: Double?
   var isDismissing = false
   var pageImageCache: ImageCache
   var incognitoMode: Bool = false
@@ -677,6 +680,9 @@ class ReaderViewModel {
   ) async {
     self.bookMediaProfile = book.media.mediaProfileValue ?? .unknown
     isLoading = true
+    loadingTitle = String(localized: "Loading book...")
+    loadingDetail = nil
+    loadingProgress = nil
 
     resetStateForBookLoad()
 
@@ -858,12 +864,27 @@ class ReaderViewModel {
       )
     }
 
+    loadingTitle = String(localized: "Offline DIVINA Rendering")
+    loadingDetail = nil
+    loadingProgress = 0
+    defer {
+      loadingTitle = String(localized: "Loading book...")
+      loadingDetail = nil
+      loadingProgress = nil
+    }
+
     guard
       let result = await PdfOfflinePreparationService.shared.prepare(
         instanceId: AppConfig.current.instanceId,
         bookId: book.id,
         documentURL: offlinePDFURL,
-        forceRebuildMetadata: forceRebuildMetadata
+        forceRebuildMetadata: forceRebuildMetadata,
+        onProgress: { [weak self] progress in
+          guard let self else { return }
+          self.loadingTitle = String(localized: "Offline DIVINA Rendering")
+          self.loadingProgress = progress.fractionCompleted
+          self.loadingDetail = "\(progress.completedPages) / \(progress.totalPages)"
+        }
       )
     else {
       logger.debug("⏭️ Skip offline PDF preparation because assets are already valid for book \(book.id)")

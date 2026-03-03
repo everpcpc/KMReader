@@ -96,7 +96,7 @@ actor OfflineManager {
   private static let epubFileName = "book.epub"
   private static let pdfFileName = "book.pdf"
   private static let pdfPreparationStampFileName = ".pdf-prepared.stamp"
-  private nonisolated static let pdfPreparationStampVersion = "prepared-v3"
+  private nonisolated static let pdfPreparationStampVersion = "prepared-v4"
 
   nonisolated static func pdfPreparationCompletionFlag(
     renderQuality: PdfOfflineRenderQuality
