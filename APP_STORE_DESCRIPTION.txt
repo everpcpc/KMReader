@@ -5,9 +5,10 @@ KMReader helps you read, browse, download, and manage your Komga library with a 
 IMPORTANT FEATURES
 
 - Native readers for every format
-DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, and page curl transitions.
+DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl, and iOS cover-style transitions.
 EPUB on iOS and macOS with paged or scrolled flow, custom fonts, themes, and per-book preferences.
-PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, and page jump.
+Animated pages use native inline playback with smooth progress feedback while media prepares.
+PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, and clearer offline preparation progress.
 Incognito mode and iOS Live Text support let you read your way.
 
 - Dashboard, discovery, and shortcuts
@@ -18,9 +19,10 @@ KMReader UI is localized in English, German, French, Japanese, Korean, Simplifie
 
 - Offline that actually works
 Download books for offline reading.
-Use iOS background downloads with Live Activities.
+Use manual offline mode controls and more reliable iOS background downloads.
+Get Live Activities for both active reading sessions and downloads.
 Set per-series policies: Manual, Unread only, Unread + cleanup, or All books.
-Sync progress and offline changes when you reconnect.
+Sync progress and offline changes when you reconnect, with safer conflict handling.
 
 - Multi-server and admin tools
 Save multiple Komga servers and switch instantly.

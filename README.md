@@ -22,9 +22,10 @@
 
 ### Native Reading Experience
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, and page curl transitions.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl, and iOS cover-style page transitions.
 - EPUB reader on iOS/macOS with paged, scrolled, and curl layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
-- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, and offline preparation controls.
+- Animated pages use native inline playback with visible preparation progress and smoother performance for long reading sessions.
+- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, and clearer offline preparation feedback.
 - Per-book preferences save reading direction, page layout, and theme settings.
 - Incognito mode and iOS Live Text support, including optional shake-to-toggle.
 
@@ -40,10 +41,11 @@
 ### Offline and Sync
 
 - Download books for full offline reading across DIVINA, EPUB, and PDF workflows.
-- iOS background downloads with Live Activities.
+- Manual offline mode controls and resilient iOS background downloads for page files and extra resources.
+- iOS Live Activities for both active reading sessions and downloads.
 - Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
 - Offline mode includes dedicated downloaded-library browsing and metadata filters.
-- Progress and offline data sync automatically when reconnecting.
+- Progress and offline data sync automatically when reconnecting, including safer conflict handling.
 - Cache controls cover pages and thumbnails.
 
 ### Multi-Server and Management
@@ -54,7 +56,7 @@
 
 ### Platform Highlights
 
-- iOS/iPadOS: widgets, quick actions, Spotlight search, Live Activities, background downloads, Live Text, and page curl transitions.
+- iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities for reader/downloads, background downloads, Live Text, and page curl/cover transitions.
 - macOS: dedicated reader windows, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
 - tvOS: remote-first DIVINA reading with a TV-optimized browsing experience.
 
