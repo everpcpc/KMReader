@@ -5,6 +5,10 @@
 
 import SwiftUI
 
+#if os(iOS)
+  import UIKit
+#endif
+
 struct ScrollPageView: View {
   let mode: PageViewMode
   let readingDirection: ReadingDirection
@@ -23,6 +27,10 @@ struct ScrollPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: ReaderViewItem?
+  @State private var renderedViewItems: [ReaderViewItem] = []
+  @State private var pendingRenderedViewItems: [ReaderViewItem]?
+  @State private var deferredAnchorItem: ReaderViewItem?
+  @State private var isUserInteractingWithScroll = false
   #if os(tvOS)
     @FocusState private var isContentAnchorFocused: Bool
   #endif
@@ -33,6 +41,10 @@ struct ScrollPageView: View {
     #else
       viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil
     #endif
+  }
+
+  private var activeRenderedItems: [ReaderViewItem] {
+    renderedViewItems.isEmpty ? viewModel.viewItems : renderedViewItems
   }
 
   init(
@@ -62,85 +74,147 @@ struct ScrollPageView: View {
   var body: some View {
     GeometryReader { geometry in
       ScrollViewReader { proxy in
-        scrollViewContent(
-          geometry: geometry,
-          isScrollDisabled: shouldDisableScrollInteraction
-        )
-        .frame(width: geometry.size.width, height: geometry.size.height)
-        .scrollTargetBehavior(.paging)
-        .scrollPosition(id: $scrollPosition)
-        .overlay(alignment: .topLeading) {
-          contentAnchor
-        }
-        #if os(tvOS)
-          .focusable(false)
-        #endif
-        .onAppear {
-          synchronizeInitialScrollIfNeeded(proxy: proxy)
-          #if os(tvOS)
-            updateContentAnchorFocus()
-          #endif
-        }
-        .onChange(of: viewModel.navigationTarget) { _, newTarget in
-          if let newTarget {
-            handleNavigationChange(newTarget, proxy: proxy)
-            Task { @MainActor in
-              viewModel.clearNavigationTarget()
-            }
-          }
-        }
-        .onChange(of: viewModel.viewItems) { _, _ in
-          guard hasSyncedInitialScroll else { return }
-          guard let currentItem = viewModel.currentViewItem() else { return }
-          syncScrollPosition(to: currentItem, proxy: proxy, animated: false)
-          #if os(tvOS)
-            updateContentAnchorFocus()
-          #endif
-        }
-        .onChange(of: scrollPosition) { _, newPosition in
-          if let newPosition {
-            viewModel.updateCurrentPosition(viewItem: newPosition)
-            preloadVisiblePages(for: newPosition)
-            if viewModel.navigationTarget != nil {
-              viewModel.clearNavigationTarget()
-            }
-          }
-        }
-        .onChange(of: showingControls) { _, _ in
-          #if os(tvOS)
-            logger.debug(
-              "📺 showingControls changed in ScrollPageView: \(showingControls), currentViewItem=\(String(describing: viewModel.currentViewItem()))"
-            )
-            if showingControls {
-              isContentAnchorFocused = false
-            } else {
-              DispatchQueue.main.async {
-                updateContentAnchorFocus()
-              }
-            }
-          #endif
-        }
-        .onChange(of: viewModel.currentViewItem()) { _, _ in
-          #if os(tvOS)
-            logger.debug("📺 currentViewItem changed: \(String(describing: viewModel.currentViewItem()))")
-            updateContentAnchorFocus()
-          #endif
-        }
-        #if os(tvOS)
-          .onChange(of: isContentAnchorFocused) { _, newValue in
-            logger.debug(
-              "📺 contentAnchor focus changed: \(newValue), showingControls=\(showingControls)"
-            )
-            if !newValue && !showingControls {
-              DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                updateContentAnchorFocus()
-              }
-            }
-          }
-        #endif
+        configuredScrollContainer(geometry: geometry, proxy: proxy)
       }
     }
   }
+
+  @ViewBuilder
+  private func configuredScrollContainer(
+    geometry: GeometryProxy,
+    proxy: ScrollViewProxy
+  ) -> some View {
+    scrollViewContent(
+      geometry: geometry,
+      isScrollDisabled: shouldDisableScrollInteraction
+    )
+    .frame(width: geometry.size.width, height: geometry.size.height)
+    .scrollTargetBehavior(.paging)
+    .scrollPosition(id: $scrollPosition)
+    .overlay(alignment: .topLeading) {
+      contentAnchor
+    }
+    #if os(tvOS)
+      .focusable(false)
+    #endif
+    .onAppear {
+      if renderedViewItems.isEmpty {
+        renderedViewItems = viewModel.viewItems
+      }
+      synchronizeInitialScrollIfNeeded(proxy: proxy)
+      #if os(tvOS)
+        updateContentAnchorFocus()
+      #endif
+    }
+    .onDisappear {
+      setScrollInteractionActive(false)
+      pendingRenderedViewItems = nil
+      deferredAnchorItem = nil
+    }
+    .onChange(of: viewModel.navigationTarget) { _, newTarget in
+      guard let newTarget else { return }
+      handleNavigationChange(newTarget, proxy: proxy)
+      Task { @MainActor in
+        viewModel.clearNavigationTarget()
+      }
+    }
+    .onChange(of: viewModel.viewItems) { _, newItems in
+      handleViewItemsChange(newItems, proxy: proxy)
+    }
+    .onChange(of: isUserInteractingWithScroll) { _, isInteracting in
+      guard !isInteracting else { return }
+      applyPendingRenderedItemsIfNeeded(proxy: proxy)
+    }
+    .onChange(of: scrollPosition) { _, newPosition in
+      handleScrollPositionChange(newPosition)
+    }
+    .onChange(of: showingControls) { _, _ in
+      #if os(tvOS)
+        logger.debug(
+          "📺 showingControls changed in ScrollPageView: \(showingControls), currentViewItem=\(String(describing: viewModel.currentViewItem()))"
+        )
+        if showingControls {
+          isContentAnchorFocused = false
+        } else {
+          DispatchQueue.main.async {
+            updateContentAnchorFocus()
+          }
+        }
+      #endif
+    }
+    .onChange(of: viewModel.currentViewItem()) { _, _ in
+      #if os(tvOS)
+        logger.debug("📺 currentViewItem changed: \(String(describing: viewModel.currentViewItem()))")
+        updateContentAnchorFocus()
+      #endif
+    }
+    #if os(tvOS)
+      .onChange(of: isContentAnchorFocused) { _, newValue in
+        logger.debug(
+          "📺 contentAnchor focus changed: \(newValue), showingControls=\(showingControls)"
+        )
+        if !newValue && !showingControls {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            updateContentAnchorFocus()
+          }
+        }
+      }
+    #endif
+  }
+
+  private func handleViewItemsChange(_ newItems: [ReaderViewItem], proxy: ScrollViewProxy) {
+    if renderedViewItems.isEmpty {
+      renderedViewItems = newItems
+    }
+
+    guard hasSyncedInitialScroll else {
+      renderedViewItems = newItems
+      return
+    }
+
+    let anchor = viewModel.currentViewItem() ?? scrollPosition
+    guard let anchor else {
+      renderedViewItems = newItems
+      return
+    }
+
+    if isUserInteractingWithScroll {
+      pendingRenderedViewItems = newItems
+      deferredAnchorItem = anchor
+    } else {
+      applyRenderedItemsSnapshot(newItems, anchor: anchor, proxy: proxy)
+    }
+
+    #if os(tvOS)
+      updateContentAnchorFocus()
+    #endif
+  }
+
+  private func applyPendingRenderedItemsIfNeeded(proxy: ScrollViewProxy) {
+    guard let pendingRenderedViewItems else { return }
+    self.pendingRenderedViewItems = nil
+
+    let anchor = deferredAnchorItem ?? viewModel.currentViewItem() ?? scrollPosition
+    deferredAnchorItem = nil
+
+    guard let anchor else {
+      renderedViewItems = pendingRenderedViewItems
+      return
+    }
+
+    applyRenderedItemsSnapshot(pendingRenderedViewItems, anchor: anchor, proxy: proxy)
+  }
+
+  #if os(iOS)
+    private var scrollActivityBridge: some View {
+      ScrollViewActivityBridge { isActive in
+        setScrollInteractionActive(isActive)
+      }
+      .frame(width: 0, height: 0)
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
+    }
+  #endif
 
   @ViewBuilder
   private func scrollViewContent(geometry: GeometryProxy, isScrollDisabled: Bool) -> some View {
@@ -150,11 +224,17 @@ struct ScrollPageView: View {
           viewItemContent(geometry: geometry)
         }
         .scrollTargetLayout()
+        #if os(iOS)
+          .background(scrollActivityBridge)
+        #endif
       } else {
         LazyHStack(spacing: 0) {
           viewItemContent(geometry: geometry)
         }
         .scrollTargetLayout()
+        #if os(iOS)
+          .background(scrollActivityBridge)
+        #endif
       }
     }
     .scrollIndicators(.never)
@@ -164,7 +244,7 @@ struct ScrollPageView: View {
 
   @ViewBuilder
   private func viewItemContent(geometry: GeometryProxy) -> some View {
-    ForEach(viewModel.viewItems, id: \.self) { item in
+    ForEach(activeRenderedItems, id: \.self) { item in
       Group {
         if case .end(let id) = item {
           EndPageView(
@@ -231,10 +311,18 @@ struct ScrollPageView: View {
     guard viewModel.hasPages else { return }
     guard let currentItem = viewModel.currentViewItem() else { return }
 
+    renderedViewItems = viewModel.viewItems
+
     DispatchQueue.main.async {
       syncScrollPosition(to: currentItem, proxy: proxy, animated: false)
       hasSyncedInitialScroll = true
     }
+  }
+
+  private func setScrollInteractionActive(_ isActive: Bool) {
+    guard isUserInteractingWithScroll != isActive else { return }
+    isUserInteractingWithScroll = isActive
+    onScrollActivityChange?(isActive)
   }
 
   private func syncCurrentPositionIfNeeded(targetItem: ReaderViewItem) {
@@ -248,6 +336,8 @@ struct ScrollPageView: View {
     proxy: ScrollViewProxy,
     animated: Bool
   ) {
+    guard activeRenderedItems.contains(targetItem) else { return }
+
     if scrollPosition != targetItem {
       let animation: Animation? =
         animated && tapPageTransitionDuration > 0
@@ -266,11 +356,62 @@ struct ScrollPageView: View {
     guard hasSyncedInitialScroll else { return }
     guard viewModel.hasPages else { return }
     guard let targetItem = viewModel.resolvedViewItem(for: newTarget) else { return }
-    syncScrollPosition(to: targetItem, proxy: proxy, animated: true)
+
+    pendingRenderedViewItems = nil
+    deferredAnchorItem = nil
+
+    if activeRenderedItems.contains(targetItem) {
+      syncScrollPosition(to: targetItem, proxy: proxy, animated: true)
+    } else {
+      applyRenderedItemsSnapshot(viewModel.viewItems, anchor: targetItem, proxy: proxy)
+    }
 
     Task(priority: .utility) {
       await viewModel.preloadPages()
     }
+  }
+
+  private func handleScrollPositionChange(_ newPosition: ReaderViewItem?) {
+    guard let newPosition else { return }
+    guard activeRenderedItems.contains(newPosition) else {
+      logger.warning("⚠️ Ignored scrollPosition update not present in rendered snapshot")
+      return
+    }
+
+    syncCurrentPositionIfNeeded(targetItem: newPosition)
+    preloadVisiblePages(for: newPosition)
+    if viewModel.navigationTarget != nil {
+      viewModel.clearNavigationTarget()
+    }
+  }
+
+  private func applyRenderedItemsSnapshot(
+    _ snapshot: [ReaderViewItem],
+    anchor: ReaderViewItem,
+    proxy: ScrollViewProxy
+  ) {
+    renderedViewItems = snapshot
+
+    guard let resolvedAnchor = resolveAnchorInSnapshot(anchor, snapshot: snapshot) else {
+      return
+    }
+
+    syncScrollPosition(to: resolvedAnchor, proxy: proxy, animated: false)
+  }
+
+  private func resolveAnchorInSnapshot(
+    _ anchor: ReaderViewItem,
+    snapshot: [ReaderViewItem]
+  ) -> ReaderViewItem? {
+    if snapshot.contains(anchor) {
+      return anchor
+    }
+
+    if let pageMatch = snapshot.first(where: { $0.pageID == anchor.pageID }) {
+      return pageMatch
+    }
+
+    return snapshot.first
   }
 
   private func preloadVisiblePages(for item: ReaderViewItem) {
@@ -294,5 +435,148 @@ struct ScrollPageView: View {
       }
     }
   }
-
 }
+
+#if os(iOS)
+  private struct ScrollViewActivityBridge: UIViewRepresentable {
+    let onActivityChange: (Bool) -> Void
+
+    func makeCoordinator() -> Coordinator {
+      Coordinator(onActivityChange: onActivityChange)
+    }
+
+    func makeUIView(context: Context) -> BridgeView {
+      let view = BridgeView()
+      view.coordinator = context.coordinator
+      return view
+    }
+
+    func updateUIView(_ uiView: BridgeView, context: Context) {
+      context.coordinator.onActivityChange = onActivityChange
+      uiView.coordinator = context.coordinator
+      context.coordinator.attachIfNeeded(from: uiView)
+    }
+
+    static func dismantleUIView(_ uiView: BridgeView, coordinator: Coordinator) {
+      coordinator.detach()
+    }
+
+    final class BridgeView: UIView {
+      weak var coordinator: Coordinator?
+
+      override func didMoveToWindow() {
+        super.didMoveToWindow()
+        coordinator?.attachIfNeeded(from: self)
+      }
+
+      override func layoutSubviews() {
+        super.layoutSubviews()
+        coordinator?.attachIfNeeded(from: self)
+      }
+    }
+
+    final class Coordinator: NSObject {
+      var onActivityChange: (Bool) -> Void
+
+      private weak var scrollView: UIScrollView?
+      private var displayLink: CADisplayLink?
+      private var stableFrameCount = 0
+      private var isActive = false
+
+      init(onActivityChange: @escaping (Bool) -> Void) {
+        self.onActivityChange = onActivityChange
+      }
+
+      func attachIfNeeded(from view: UIView) {
+        guard let targetScrollView = findScrollView(from: view) else { return }
+        guard scrollView !== targetScrollView else { return }
+
+        detach()
+
+        scrollView = targetScrollView
+        targetScrollView.panGestureRecognizer.addTarget(self, action: #selector(handlePanGesture(_:)))
+
+        if targetScrollView.isTracking || targetScrollView.isDragging || targetScrollView.isDecelerating {
+          setActive(true)
+          startDisplayLink()
+        } else {
+          setActive(false)
+        }
+      }
+
+      func detach() {
+        if let scrollView {
+          scrollView.panGestureRecognizer.removeTarget(self, action: #selector(handlePanGesture(_:)))
+        }
+        stopDisplayLink()
+        self.scrollView = nil
+        setActive(false)
+      }
+
+      @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
+        switch gesture.state {
+        case .began, .changed:
+          stableFrameCount = 0
+          setActive(true)
+          startDisplayLink()
+        case .ended, .cancelled, .failed:
+          startDisplayLink()
+        default:
+          break
+        }
+      }
+
+      @objc private func pollScrollState() {
+        guard let scrollView else {
+          stopDisplayLink()
+          setActive(false)
+          return
+        }
+
+        let moving = scrollView.isTracking || scrollView.isDragging || scrollView.isDecelerating
+        if moving {
+          stableFrameCount = 0
+          setActive(true)
+          return
+        }
+
+        stableFrameCount += 1
+        if stableFrameCount >= 2 {
+          stopDisplayLink()
+          setActive(false)
+        }
+      }
+
+      private func startDisplayLink() {
+        guard displayLink == nil else { return }
+        stableFrameCount = 0
+        let link = CADisplayLink(target: self, selector: #selector(pollScrollState))
+        link.add(to: .main, forMode: .common)
+        displayLink = link
+      }
+
+      private func stopDisplayLink() {
+        displayLink?.invalidate()
+        displayLink = nil
+        stableFrameCount = 0
+      }
+
+      private func setActive(_ newValue: Bool) {
+        guard isActive != newValue else { return }
+        isActive = newValue
+        onActivityChange(newValue)
+      }
+
+      private func findScrollView(from view: UIView) -> UIScrollView? {
+        var current: UIView? = view
+        while let candidate = current {
+          if let scrollView = candidate as? UIScrollView {
+            return scrollView
+          }
+          current = candidate.superview
+        }
+        return nil
+      }
+    }
+  }
+#endif
