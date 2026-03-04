@@ -51,19 +51,11 @@ struct DivinaPreferencesView: View {
   }
 
   private var shouldShowScrollTransitionStyle: Bool {
-    #if os(iOS)
-      shouldShowPagedSpecificSettings && pageTransitionStyle == .scroll
-    #else
-      shouldShowPagedSpecificSettings
-    #endif
+    shouldShowPagedSpecificSettings && pageTransitionStyle == .scroll
   }
 
   private var shouldShowTapTransitionDuration: Bool {
-    #if os(iOS)
-      shouldShowPagedSpecificSettings && pageTransitionStyle != .pageCurl
-    #else
-      shouldShowPagedSpecificSettings
-    #endif
+    shouldShowPagedSpecificSettings && pageTransitionStyle != .pageCurl
   }
 
   private var shouldShowWebtoonTapNavigationSettings: Bool {
@@ -321,21 +313,19 @@ struct DivinaPreferencesView: View {
       #endif
 
       Section(header: Text("Page Turn")) {
-        #if os(iOS)
-          if shouldShowPagedSpecificSettings {
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Page Transition Style", selection: $pageTransitionStyle) {
-                ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
-                  Text(style.displayName).tag(style)
-                }
+        if shouldShowPagedSpecificSettings {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Page Transition Style", selection: $pageTransitionStyle) {
+              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
               }
-              .pickerStyle(.menu)
-              Text(pageTransitionStyle.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
             }
+            .pickerStyle(.menu)
+            Text(pageTransitionStyle.description)
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
-        #endif
+        }
 
         if shouldShowScrollTransitionStyle {
           VStack(alignment: .leading, spacing: 8) {

@@ -15,7 +15,7 @@ enum PageTransitionStyle: String, CaseIterable, Hashable {
     #if os(iOS)
       return allCases
     #else
-      return [.scroll]
+      return [.scroll, .cover]
     #endif
   }
 

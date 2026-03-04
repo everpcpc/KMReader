@@ -44,19 +44,11 @@ struct ReaderSettingsSheet: View {
   }
 
   private var shouldShowScrollTransitionStyle: Bool {
-    #if os(iOS)
-      shouldShowPagedTurnSettings && pageTransitionStyle == .scroll
-    #else
-      shouldShowPagedTurnSettings
-    #endif
+    shouldShowPagedTurnSettings && pageTransitionStyle == .scroll
   }
 
   private var shouldShowTapTransitionDuration: Bool {
-    #if os(iOS)
-      shouldShowPagedTurnSettings && pageTransitionStyle != .pageCurl
-    #else
-      shouldShowPagedTurnSettings
-    #endif
+    shouldShowPagedTurnSettings && pageTransitionStyle != .pageCurl
   }
 
   var body: some View {
@@ -220,21 +212,19 @@ struct ReaderSettingsSheet: View {
         // MARK: - Page Turn Section
 
         Section(header: Text("Page Turn")) {
-          #if os(iOS)
-            if shouldShowPagedTurnSettings {
-              VStack(alignment: .leading, spacing: 8) {
-                Picker("Page Transition Style", selection: $pageTransitionStyle) {
-                  ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
-                    Text(style.displayName).tag(style)
-                  }
+          if shouldShowPagedTurnSettings {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Page Transition Style", selection: $pageTransitionStyle) {
+                ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                  Text(style.displayName).tag(style)
                 }
-                .pickerStyle(.menu)
-                Text(pageTransitionStyle.description)
-                  .font(.caption)
-                  .foregroundColor(.secondary)
               }
+              .pickerStyle(.menu)
+              Text(pageTransitionStyle.description)
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
-          #endif
+          }
 
           if shouldShowScrollTransitionStyle {
             VStack(alignment: .leading, spacing: 8) {

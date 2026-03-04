@@ -3,7 +3,7 @@
 //
 //
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
   import SwiftUI
   import UIKit
 
@@ -170,7 +170,9 @@
 
         private func installRecognizer(on view: UIView) {
           let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-          pan.maximumNumberOfTouches = 1
+          #if !os(tvOS)
+            pan.maximumNumberOfTouches = 1
+          #endif
           pan.cancelsTouchesInView = false
           pan.delegate = self
           view.addGestureRecognizer(pan)

@@ -17,9 +17,7 @@ struct DivinaReaderView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
-  #if os(iOS)
-    @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
-  #endif
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -580,9 +578,9 @@ struct DivinaReaderView: View {
               )
             #endif
           } else {
-            #if os(iOS)
-              switch pageTransitionStyle {
-              case .pageCurl:
+            switch pageTransitionStyle {
+            case .pageCurl:
+              #if os(iOS)
                 if useDualPage {
                   CurlDualPageView(
                     viewModel: viewModel,
@@ -604,44 +602,22 @@ struct DivinaReaderView: View {
                     onDismiss: { closeReader() }
                   )
                 }
-              case .scroll:
-                ScrollPageView(
-                  mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-                  readingDirection: readingDirection,
-                  splitWidePageMode: splitWidePageMode,
-                  renderConfig: renderConfig,
-                  showingControls: showingControls,
-                  viewModel: viewModel,
-                  readListContext: readListContext,
-                  onDismiss: { closeReader() },
-                  toggleControls: { toggleControls() },
-                  onScrollActivityChange: { _ in }
-                )
-              case .cover:
-                CoverPageView(
-                  mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-                  readingDirection: readingDirection,
-                  splitWidePageMode: splitWidePageMode,
-                  renderConfig: renderConfig,
-                  viewModel: viewModel,
-                  readListContext: readListContext,
-                  onDismiss: { closeReader() }
-                )
-              }
-            #else
-              ScrollPageView(
+              #else
+                standardScrollPageView(useDualPage: useDualPage)
+              #endif
+            case .scroll:
+              standardScrollPageView(useDualPage: useDualPage)
+            case .cover:
+              CoverPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
                 renderConfig: renderConfig,
-                showingControls: showingControls,
                 viewModel: viewModel,
                 readListContext: readListContext,
-                onDismiss: { closeReader() },
-                toggleControls: { toggleControls() },
-                onScrollActivityChange: { _ in }
+                onDismiss: { closeReader() }
               )
-            #endif
+            }
           }
         }
         .readerIgnoresSafeArea()
@@ -685,6 +661,22 @@ struct DivinaReaderView: View {
         NoPagesView(onDismiss: { closeReader() })
       }
     }
+  }
+
+  @ViewBuilder
+  private func standardScrollPageView(useDualPage: Bool) -> some View {
+    ScrollPageView(
+      mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+      readingDirection: readingDirection,
+      splitWidePageMode: splitWidePageMode,
+      renderConfig: renderConfig,
+      showingControls: showingControls,
+      viewModel: viewModel,
+      readListContext: readListContext,
+      onDismiss: { closeReader() },
+      toggleControls: { toggleControls() },
+      onScrollActivityChange: { _ in }
+    )
   }
 
   @ViewBuilder
