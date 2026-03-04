@@ -185,18 +185,20 @@ struct DivinaControlsOverlayView: View {
 
   private var topBar: some View {
     HStack(alignment: .top) {
-      Button {
-        onDismiss()
-      } label: {
-        Image(systemName: "xmark")
-      }
-      .buttonBorderShape(.circle)
-      .controlSize(.large)
-      .contentShape(Circle())
-      .adaptiveButtonStyle(buttonStyle)
-      #if os(tvOS)
-        .focused($focusedControl, equals: .close)
-        .id("closeButton")
+      #if !os(macOS)
+        Button {
+          onDismiss()
+        } label: {
+          Image(systemName: "xmark")
+        }
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
+        .contentShape(Circle())
+        .adaptiveButtonStyle(buttonStyle)
+        #if os(tvOS)
+          .focused($focusedControl, equals: .close)
+          .id("closeButton")
+        #endif
       #endif
 
       Spacer()
@@ -238,19 +240,20 @@ struct DivinaControlsOverlayView: View {
 
       Spacer()
 
-      Menu {
-        menuContent()
-      } label: {
-        Image(systemName: "ellipsis")
-          .padding(4)
-      }
-      .appMenuStyle()
-      .buttonBorderShape(.circle)
-      .controlSize(.large)
-      .contentShape(Circle())
-      .adaptiveButtonStyle(buttonStyle)
-      #if os(tvOS)
-        .focused($focusedControl, equals: .settings)
+      #if !os(macOS)
+        Menu {
+          menuContent()
+        } label: {
+          Image(systemName: "ellipsis")
+            .padding(4)
+        }
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
+        .contentShape(Circle())
+        .adaptiveButtonStyle(buttonStyle)
+        #if os(tvOS)
+          .focused($focusedControl, equals: .settings)
+        #endif
       #endif
     }
     .allowsHitTesting(true)

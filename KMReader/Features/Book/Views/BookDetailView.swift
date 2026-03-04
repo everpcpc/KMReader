@@ -306,7 +306,6 @@ struct BookDetailView: View {
       } label: {
         Image(systemName: "ellipsis")
       }
-      .appMenuStyle()
       .toolbarButtonStyle()
     }
   }

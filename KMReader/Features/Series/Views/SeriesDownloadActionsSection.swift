@@ -49,7 +49,6 @@ struct SeriesDownloadActionsSection: View {
             Image(systemName: "chevron.down")
           }
         }
-        .appMenuStyle()
         .font(.caption)
         .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
 
@@ -96,7 +95,6 @@ struct SeriesDownloadActionsSection: View {
             Image(systemName: policy.icon)
           }
         }
-        .appMenuStyle()
         .font(.caption)
         .adaptiveButtonStyle(.bordered)
 

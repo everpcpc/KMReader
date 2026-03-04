@@ -27,8 +27,37 @@ final class ReaderPresentationManager {
   private(set) var readerFlushHandler: (@MainActor () -> Void)?
 
   #if os(macOS)
+    struct MacReaderCommandState: Equatable {
+      var isActive: Bool = false
+      var hasPages: Bool = false
+      var hasTableOfContents: Bool = false
+      var canOpenPreviousBook: Bool = false
+      var canOpenNextBook: Bool = false
+      var readingDirection: ReadingDirection = .ltr
+      var pageLayout: PageLayout = .auto
+      var isolateCoverPage: Bool = true
+      var splitWidePageMode: SplitWidePageMode = .none
+      var supportsDualPageOptions: Bool = false
+      var supportsSplitWidePageMode: Bool = false
+    }
+
+    struct MacReaderCommandHandlers {
+      let showReaderSettings: () -> Void
+      let showBookDetails: () -> Void
+      let showTableOfContents: () -> Void
+      let showPageJump: () -> Void
+      let openPreviousBook: () -> Void
+      let openNextBook: () -> Void
+      let setReadingDirection: (ReadingDirection) -> Void
+      let setPageLayout: (PageLayout) -> Void
+      let toggleIsolateCoverPage: () -> Void
+      let setSplitWidePageMode: (SplitWidePageMode) -> Void
+    }
+
     private var openWindowHandler: (() -> Void)?
     private var isWindowDrivenClose = false
+    private(set) var macReaderCommandState = MacReaderCommandState()
+    private var macReaderCommandHandlers: MacReaderCommandHandlers?
   #endif
 
   /// Track a visited book and its series during the current reader session
@@ -105,6 +134,7 @@ final class ReaderPresentationManager {
       if !isWindowDrivenClose {
         ReaderWindowManager.shared.closeReader()
       }
+      clearMacReaderCommands()
     #endif
 
     // Sync all visited books and series concurrently
@@ -163,6 +193,63 @@ final class ReaderPresentationManager {
   #if os(macOS)
     func configureWindowOpener(_ handler: @escaping () -> Void) {
       openWindowHandler = handler
+    }
+
+    func configureMacReaderCommands(
+      state: MacReaderCommandState,
+      handlers: MacReaderCommandHandlers
+    ) {
+      macReaderCommandState = state
+      macReaderCommandHandlers = handlers
+    }
+
+    func updateMacReaderCommandState(_ state: MacReaderCommandState) {
+      macReaderCommandState = state
+    }
+
+    func clearMacReaderCommands() {
+      macReaderCommandState = MacReaderCommandState()
+      macReaderCommandHandlers = nil
+    }
+
+    func showReaderSettingsFromCommand() {
+      macReaderCommandHandlers?.showReaderSettings()
+    }
+
+    func showBookDetailsFromCommand() {
+      macReaderCommandHandlers?.showBookDetails()
+    }
+
+    func showTableOfContentsFromCommand() {
+      macReaderCommandHandlers?.showTableOfContents()
+    }
+
+    func showPageJumpFromCommand() {
+      macReaderCommandHandlers?.showPageJump()
+    }
+
+    func openPreviousBookFromCommand() {
+      macReaderCommandHandlers?.openPreviousBook()
+    }
+
+    func openNextBookFromCommand() {
+      macReaderCommandHandlers?.openNextBook()
+    }
+
+    func setReadingDirectionFromCommand(_ direction: ReadingDirection) {
+      macReaderCommandHandlers?.setReadingDirection(direction)
+    }
+
+    func setPageLayoutFromCommand(_ layout: PageLayout) {
+      macReaderCommandHandlers?.setPageLayout(layout)
+    }
+
+    func toggleIsolateCoverPageFromCommand() {
+      macReaderCommandHandlers?.toggleIsolateCoverPage()
+    }
+
+    func setSplitWidePageModeFromCommand(_ mode: SplitWidePageMode) {
+      macReaderCommandHandlers?.setSplitWidePageMode(mode)
     }
 
     private func handleWindowDismissal() {

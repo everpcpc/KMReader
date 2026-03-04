@@ -78,15 +78,17 @@
 
     private var topBar: some View {
       HStack(alignment: .top) {
-        Button {
-          onDismiss()
-        } label: {
-          Image(systemName: "xmark")
-        }
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
-        .contentShape(Circle())
-        .adaptiveButtonStyle(buttonStyle)
+        #if !os(macOS)
+          Button {
+            onDismiss()
+          } label: {
+            Image(systemName: "xmark")
+          }
+          .buttonBorderShape(.circle)
+          .controlSize(.large)
+          .contentShape(Circle())
+          .adaptiveButtonStyle(buttonStyle)
+        #endif
 
         Spacer()
 
@@ -125,17 +127,18 @@
 
         Spacer()
 
-        Menu {
-          menuContent()
-        } label: {
-          Image(systemName: "ellipsis")
-            .padding(4)
-        }
-        .appMenuStyle()
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
-        .contentShape(Circle())
-        .adaptiveButtonStyle(buttonStyle)
+        #if !os(macOS)
+          Menu {
+            menuContent()
+          } label: {
+            Image(systemName: "ellipsis")
+              .padding(4)
+          }
+          .buttonBorderShape(.circle)
+          .controlSize(.large)
+          .contentShape(Circle())
+          .adaptiveButtonStyle(buttonStyle)
+        #endif
       }
       .allowsHitTesting(true)
       .padding()

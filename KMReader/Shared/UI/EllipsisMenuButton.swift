@@ -20,7 +20,6 @@ struct EllipsisMenuButton<Content: View>: View {
             .frame(width: 40, height: 40)
             .contentShape(Rectangle())
         }
-        .appMenuStyle()
         .adaptiveButtonStyle(.plain)
       )
   }

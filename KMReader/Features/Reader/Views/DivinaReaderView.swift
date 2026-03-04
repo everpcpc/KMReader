@@ -457,6 +457,9 @@ struct DivinaReaderView: View {
     .onAppear {
       viewModel.updateDualPageSettings(noCover: !isolateCoverPage)
       updateHandoff()
+      #if os(macOS)
+        configureMacReaderCommands()
+      #endif
     }
     .onChange(of: isolateCoverPage) { _, newValue in
       viewModel.updateDualPageSettings(noCover: !newValue)
@@ -500,6 +503,9 @@ struct DivinaReaderView: View {
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
       viewModel.clearPreloadedImages()
+      #if os(macOS)
+        readerPresentation.clearMacReaderCommands()
+      #endif
     }
     .onChange(of: viewModel.isZoomed) { _, newValue in
       if newValue {
@@ -522,6 +528,9 @@ struct DivinaReaderView: View {
       }
     #endif
     #if os(macOS)
+      .onChange(of: macReaderCommandState) { _, newState in
+        readerPresentation.updateMacReaderCommandState(newState)
+      }
       .onChange(of: currentBook) { _, newBook in
         // Update window manager state when book changes to refresh window title
         if let book = newBook {
@@ -1134,6 +1143,81 @@ struct DivinaReaderView: View {
     }
     jumpToPageID(targetPageID)
   }
+
+  #if os(macOS)
+    private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
+      let supportsDualPageOptions =
+        readingDirection != .webtoon
+        && readingDirection != .vertical
+        && pageLayout.supportsDualPageOptions
+
+      let supportsSplitWidePageMode =
+        readingDirection != .webtoon
+        && (pageLayout == .single || pageLayout == .auto)
+
+      return ReaderPresentationManager.MacReaderCommandState(
+        isActive: true,
+        hasPages: viewModel.hasPages,
+        hasTableOfContents: !viewModel.tableOfContents.isEmpty,
+        canOpenPreviousBook: currentSegmentPreviousBook != nil,
+        canOpenNextBook: currentSegmentNextBook != nil,
+        readingDirection: readingDirection,
+        pageLayout: pageLayout,
+        isolateCoverPage: isolateCoverPage,
+        splitWidePageMode: splitWidePageMode,
+        supportsDualPageOptions: supportsDualPageOptions,
+        supportsSplitWidePageMode: supportsSplitWidePageMode
+      )
+    }
+
+    private func configureMacReaderCommands() {
+      readerPresentation.configureMacReaderCommands(
+        state: macReaderCommandState,
+        handlers: ReaderPresentationManager.MacReaderCommandHandlers(
+          showReaderSettings: {
+            showingReaderSettingsSheet = true
+          },
+          showBookDetails: {
+            if currentSegmentBook != nil {
+              showingDetailSheet = true
+            }
+          },
+          showTableOfContents: {
+            if !viewModel.tableOfContents.isEmpty {
+              showingTOCSheet = true
+            }
+          },
+          showPageJump: {
+            if viewModel.hasPages {
+              showingPageJumpSheet = true
+            }
+          },
+          openPreviousBook: {
+            if let previousBook = currentSegmentPreviousBook {
+              openPreviousBook(previousBookId: previousBook.id)
+            }
+          },
+          openNextBook: {
+            if let nextBook = currentSegmentNextBook {
+              openNextBook(nextBookId: nextBook.id)
+            }
+          },
+          setReadingDirection: { direction in
+            readingDirection = direction
+          },
+          setPageLayout: { layout in
+            pageLayout = layout
+          },
+          toggleIsolateCoverPage: {
+            isolateCoverPage.toggle()
+          },
+          setSplitWidePageMode: { mode in
+            splitWidePageMode = mode
+          }
+        )
+      )
+    }
+  #endif
 
   #if os(iOS) || os(macOS)
     private var isTapZoneGestureEnabled: Bool {

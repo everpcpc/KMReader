@@ -210,6 +210,5 @@ extension CollectionDetailView {
     } label: {
       Image(systemName: "ellipsis")
     }
-    .appMenuStyle()
   }
 }

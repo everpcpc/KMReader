@@ -507,8 +507,17 @@
             guard configuration.isEnabled else { return false }
             guard let attachedView else { return false }
 
-            let location = attachedView.convert(event.locationInWindow, from: nil)
-            guard let hitView = attachedView.hitTest(location) else { return true }
+            let windowLocation = event.locationInWindow
+            let location = attachedView.convert(windowLocation, from: nil)
+            guard
+              let hitView = resolvedHitView(
+                for: windowLocation,
+                attachedView: attachedView
+              )
+            else {
+              return false
+            }
+            guard isDescendant(hitView, of: attachedView) else { return false }
 
             let className = hitView.className
             if isInteractiveElement(hitView) { return false }
@@ -521,6 +530,29 @@
             }
 
             return true
+          }
+
+          private func resolvedHitView(for windowLocation: NSPoint, attachedView: NSView) -> NSView? {
+            if let contentView = attachedView.window?.contentView {
+              let contentLocation = contentView.convert(windowLocation, from: nil)
+              if let hitView = contentView.hitTest(contentLocation) {
+                return hitView
+              }
+            }
+
+            let attachedLocation = attachedView.convert(windowLocation, from: nil)
+            return attachedView.hitTest(attachedLocation)
+          }
+
+          private func isDescendant(_ candidate: NSView, of ancestor: NSView) -> Bool {
+            var cursor: NSView? = candidate
+            while let current = cursor {
+              if current === ancestor {
+                return true
+              }
+              cursor = current.superview
+            }
+            return false
           }
 
           func gestureRecognizer(

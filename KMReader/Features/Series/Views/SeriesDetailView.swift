@@ -359,7 +359,6 @@ extension SeriesDetailView {
       } label: {
         Image(systemName: "ellipsis")
       }
-      .appMenuStyle()
     }.toolbarButtonStyle()
   }
 }

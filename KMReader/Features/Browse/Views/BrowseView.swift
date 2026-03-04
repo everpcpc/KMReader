@@ -192,7 +192,6 @@ struct BrowseView: View {
             } label: {
               Image(systemName: "ellipsis")
             }
-            .appMenuStyle()
           }
         }
       }
