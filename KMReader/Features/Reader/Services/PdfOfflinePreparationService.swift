@@ -154,8 +154,10 @@ actor PdfOfflinePreparationService {
         var reusedImageCount = 0
         var skippedImageCount = 0
         let reportProgress:
-          @Sendable (_ completedPages: Int, _ renderedImageCount: Int, _ reusedImageCount: Int,
-                     _ skippedImageCount: Int) async -> Void = {
+          @Sendable (
+            _ completedPages: Int, _ renderedImageCount: Int, _ reusedImageCount: Int,
+            _ skippedImageCount: Int
+          ) async -> Void = {
             completedPages, renderedImageCount, reusedImageCount, skippedImageCount in
             guard let onProgress else { return }
             await onProgress(
