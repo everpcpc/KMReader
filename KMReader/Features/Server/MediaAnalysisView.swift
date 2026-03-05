@@ -25,6 +25,7 @@ struct MediaAnalysisView: View {
         AdminRequiredView()
       } else {
         filterSection
+        librarySection
         contentSection
       }
     }
@@ -57,8 +58,13 @@ struct MediaAnalysisView: View {
     Section(String(localized: "Filters")) {
       Toggle(String(localized: "Error"), isOn: $filterError)
       Toggle(String(localized: "Unsupported"), isOn: $filterUnsupported)
+    }
+  }
 
-      if !libraries.isEmpty {
+  @ViewBuilder
+  private var librarySection: some View {
+    if !libraries.isEmpty {
+      Section(String(localized: "Libraries")) {
         Toggle(
           String(localized: "All Libraries"),
           isOn: Binding(
