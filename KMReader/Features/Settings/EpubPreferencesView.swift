@@ -164,7 +164,7 @@
 
           if draft.flowStyle.isPaged {
             Picker(String(localized: "Page Transition Style"), selection: $epubPageTransitionStyle) {
-              ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
+              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
                 Text(style.displayName).tag(style)
               }
             }

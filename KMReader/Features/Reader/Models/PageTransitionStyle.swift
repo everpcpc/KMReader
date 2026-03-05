@@ -19,14 +19,6 @@ enum PageTransitionStyle: String, CaseIterable, Hashable {
     #endif
   }
 
-  static var epubAvailableCases: [PageTransitionStyle] {
-    #if os(iOS)
-      return [.scroll, .pageCurl]
-    #else
-      return [.scroll]
-    #endif
-  }
-
   var displayName: String {
     switch self {
     case .scroll: return String(localized: "reader.page_transition.scroll")

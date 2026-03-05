@@ -283,7 +283,7 @@
               }
             ).readerIgnoresSafeArea()
           case .cover:
-            WebPubPagedScrollView(
+            WebPubPagedCoverView(
               viewModel: viewModel,
               preferences: activePreferences,
               colorScheme: colorScheme,
