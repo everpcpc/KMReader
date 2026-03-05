@@ -22,5 +22,6 @@ struct Book: Codable, Identifiable, Equatable {
   let metadata: BookMetadata
   let readProgress: ReadProgress?
   let deleted: Bool
+  let fileHash: String?
   let oneshot: Bool
 }

@@ -128,6 +128,14 @@ struct ServerView: View {
             )
           }
           .adaptiveButtonStyle(.plain)
+
+          NavigationLink(value: NavDestination.settingsMedia) {
+            ServerActionTile(
+              title: ServerSection.media.title,
+              systemImage: ServerSection.media.icon
+            )
+          }
+          .adaptiveButtonStyle(.plain)
         }
       }
     }
