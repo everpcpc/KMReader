@@ -1,0 +1,358 @@
+//
+// DuplicatePagesKnownView.swift
+//
+//
+
+import SwiftUI
+
+struct DuplicatePagesKnownView: View {
+  @AppStorage("currentAccount") private var current: Current = .init()
+
+  @State private var hasLoaded = false
+  @State private var pagination = PaginationState<PageHashKnown>(pageSize: 10)
+  @State private var isLoading = false
+  @State private var isLoadingMore = false
+  @State private var lastTriggeredItemId: String?
+
+  @State private var filterActions: Set<PageHashAction> = [.deleteAuto, .deleteManual]
+  @State private var selectedMatchHash: String = ""
+  @State private var showingMatchSheet = false
+
+  var body: some View {
+    List {
+      if !current.isAdmin {
+        AdminRequiredView()
+      } else {
+        filterSection
+        contentSection
+      }
+    }
+    .optimizedListStyle()
+    .inlineNavigationBarTitle(String(localized: "Known Duplicates"))
+    .task {
+      if current.isAdmin && !hasLoaded {
+        await loadData(refresh: true)
+        hasLoaded = true
+      }
+    }
+    .refreshable {
+      if current.isAdmin {
+        await loadData(refresh: true)
+      }
+    }
+    .sheet(isPresented: $showingMatchSheet) {
+      SheetView(title: String(localized: "Matches"), size: .large, applyFormStyle: true) {
+        PageHashMatchesView(hash: selectedMatchHash)
+      }
+    }
+  }
+
+  private var filterSection: some View {
+    Section(String(localized: "Filters")) {
+      ForEach(PageHashAction.allCases, id: \.self) { action in
+        Toggle(
+          action.label,
+          isOn: Binding(
+            get: { filterActions.contains(action) },
+            set: { isOn in
+              if isOn {
+                filterActions.insert(action)
+              } else {
+                filterActions.remove(action)
+              }
+              Task { await loadData(refresh: true) }
+            }
+          ))
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var contentSection: some View {
+    if isLoading && pagination.isEmpty {
+      Section {
+        HStack {
+          Spacer()
+          ProgressView()
+          Spacer()
+        }
+      }
+    } else if pagination.isEmpty {
+      Section {
+        HStack {
+          Spacer()
+          VStack(spacing: 8) {
+            Image(systemName: "checkmark.circle")
+              .font(.system(size: 40))
+              .foregroundColor(.green)
+            Text(String(localized: "No known duplicates"))
+              .foregroundColor(.secondary)
+          }
+          Spacer()
+        }
+        .padding(.vertical)
+      }
+    } else {
+      ForEach(pagination.items) { hash in
+        Section {
+          knownHashCard(hash: hash)
+        }
+        .onAppear {
+          guard pagination.hasMorePages,
+            !isLoadingMore,
+            pagination.shouldLoadMore(after: hash, threshold: 3),
+            lastTriggeredItemId != hash.id
+          else { return }
+          lastTriggeredItemId = hash.id
+          Task { await loadMore() }
+        }
+      }
+
+      if isLoadingMore {
+        Section {
+          HStack {
+            Spacer()
+            ProgressView()
+            Spacer()
+          }
+          .padding(.vertical)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func knownHashCard(hash: PageHashKnown) -> some View {
+    VStack(alignment: .leading, spacing: 10) {
+      // Hash + action badge
+      HStack {
+        Text(hash.hash.prefix(16) + "...")
+          .font(.system(.caption, design: .monospaced))
+          .foregroundColor(.secondary)
+
+        Spacer()
+
+        Text(hash.action.label)
+          .font(.caption2)
+          .fontWeight(.semibold)
+          .padding(.horizontal, 8)
+          .padding(.vertical, 3)
+          .background(actionColor(hash.action).opacity(0.15), in: Capsule())
+          .foregroundColor(actionColor(hash.action))
+      }
+
+      // Stats
+      HStack(spacing: 16) {
+        if let size = hash.size, size > 0 {
+          VStack(alignment: .leading, spacing: 2) {
+            Text(String(localized: "Size"))
+              .font(.caption2)
+              .foregroundColor(.secondary)
+            Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .binary))
+              .font(.caption)
+          }
+        }
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(String(localized: "Matches"))
+            .font(.caption2)
+            .foregroundColor(.secondary)
+          Text("\(hash.matchCount)")
+            .font(.caption)
+        }
+
+        if hash.deleteCount > 0 {
+          VStack(alignment: .leading, spacing: 2) {
+            Text(String(localized: "Deleted"))
+              .font(.caption2)
+              .foregroundColor(.secondary)
+            Text("\(hash.deleteCount)")
+              .font(.caption)
+          }
+        }
+      }
+
+      // Space metrics
+      if let size = hash.size, size > 0 {
+        HStack(spacing: 16) {
+          if hash.deleteCount > 0 {
+            Label(
+              String(
+                localized:
+                  "\(ByteCountFormatter.string(fromByteCount: size * Int64(hash.deleteCount), countStyle: .binary)) saved"
+              ),
+              systemImage: "checkmark.circle"
+            )
+            .font(.caption)
+            .foregroundColor(.green)
+          }
+
+          if hash.matchCount > 0 {
+            Label(
+              String(
+                localized:
+                  "Can save \(ByteCountFormatter.string(fromByteCount: size * Int64(hash.matchCount), countStyle: .binary))"
+              ),
+              systemImage: "arrow.down.circle"
+            )
+            .font(.caption)
+            .foregroundColor(.accentColor)
+          }
+        }
+      }
+
+      Divider()
+
+      // Action buttons
+      HStack(spacing: 12) {
+        if hash.matchCount > 0 {
+          Button {
+            selectedMatchHash = hash.hash
+            showingMatchSheet = true
+          } label: {
+            Label(
+              String(localized: "\(hash.matchCount) matches"),
+              systemImage: "doc.on.doc"
+            )
+            .font(.caption)
+          }
+          .adaptiveButtonStyle(.bordered)
+          .controlSize(.small)
+        }
+
+        Spacer()
+
+        if hash.action == .deleteManual, hash.matchCount > 0 {
+          Button {
+            Task { await deleteMatches(hash: hash) }
+          } label: {
+            Label(String(localized: "Delete Matches"), systemImage: "trash")
+              .font(.caption)
+          }
+          .adaptiveButtonStyle(.bordered)
+          .controlSize(.small)
+          .tint(.red)
+        }
+      }
+
+      // Action change buttons
+      HStack(spacing: 8) {
+        if hash.action != .ignore {
+          Button {
+            Task { await updateAction(hash: hash, action: .ignore) }
+          } label: {
+            Text(PageHashAction.ignore.label)
+              .font(.caption)
+          }
+          .adaptiveButtonStyle(.bordered)
+          .controlSize(.small)
+        }
+
+        if hash.action != .deleteManual {
+          Button {
+            Task { await updateAction(hash: hash, action: .deleteManual) }
+          } label: {
+            Text(PageHashAction.deleteManual.label)
+              .font(.caption)
+          }
+          .adaptiveButtonStyle(.bordered)
+          .controlSize(.small)
+        }
+
+        if hash.action != .deleteAuto, hash.size != nil {
+          Button {
+            Task { await updateAction(hash: hash, action: .deleteAuto) }
+          } label: {
+            Text(PageHashAction.deleteAuto.label)
+              .font(.caption)
+          }
+          .adaptiveButtonStyle(.bordered)
+          .controlSize(.small)
+        }
+      }
+    }
+    .padding(.vertical, 4)
+  }
+
+  private func actionColor(_ action: PageHashAction) -> Color {
+    switch action {
+    case .deleteAuto: return .green
+    case .deleteManual: return .orange
+    case .ignore: return .secondary
+    }
+  }
+
+  private func updateAction(hash: PageHashKnown, action: PageHashAction) async {
+    do {
+      try await MediaManagementService.shared.createOrUpdatePageHash(
+        PageHashCreation(hash: hash.hash, size: hash.size, action: action)
+      )
+      await loadData(refresh: true)
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func deleteMatches(hash: PageHashKnown) async {
+    do {
+      try await MediaManagementService.shared.deleteAllMatchesByHash(hash.hash)
+      ErrorManager.shared.notify(
+        message: String(localized: "Matches deleted")
+      )
+      await loadData(refresh: true)
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func loadData(refresh: Bool) async {
+    let actions = Array(filterActions)
+    guard !actions.isEmpty else {
+      pagination.reset()
+      _ = pagination.applyPage([])
+      return
+    }
+
+    if refresh {
+      pagination.reset()
+      lastTriggeredItemId = nil
+    }
+
+    isLoading = true
+    do {
+      let page = try await MediaManagementService.shared.getKnownPageHashes(
+        actions: actions,
+        page: pagination.currentPage,
+        size: pagination.pageSize,
+        sort: "deleteCount,desc"
+      )
+      _ = pagination.applyPage(page.content)
+      pagination.advance(moreAvailable: !page.last)
+      lastTriggeredItemId = nil
+    } catch {
+      lastTriggeredItemId = nil
+      ErrorManager.shared.alert(error: error)
+    }
+    isLoading = false
+  }
+
+  private func loadMore() async {
+    guard pagination.hasMorePages && !isLoadingMore else { return }
+    isLoadingMore = true
+    do {
+      let page = try await MediaManagementService.shared.getKnownPageHashes(
+        actions: Array(filterActions),
+        page: pagination.currentPage,
+        size: pagination.pageSize,
+        sort: "deleteCount,desc"
+      )
+      _ = pagination.applyPage(page.content)
+      pagination.advance(moreAvailable: !page.last)
+      lastTriggeredItemId = nil
+    } catch {
+      lastTriggeredItemId = nil
+      ErrorManager.shared.alert(error: error)
+    }
+    isLoadingMore = false
+  }
+}

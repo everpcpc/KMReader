@@ -59,6 +59,12 @@ enum NavDestination: Hashable {
   case settingsServerInfo
   case settingsTasks
   case settingsHistory
+  case settingsMedia
+  case settingsMediaAnalysis
+  case settingsMediaMissingPosters
+  case settingsMediaDuplicateFiles
+  case settingsMediaDuplicatePagesKnown
+  case settingsMediaDuplicatePagesUnknown
 
   case settingsServers
   case settingsApiKey
@@ -158,6 +164,18 @@ enum NavDestination: Hashable {
       ServerTasksView()
     case .settingsHistory:
       ServerHistoryView()
+    case .settingsMedia:
+      MediaManagementView()
+    case .settingsMediaAnalysis:
+      MediaAnalysisView()
+    case .settingsMediaMissingPosters:
+      MissingPostersView()
+    case .settingsMediaDuplicateFiles:
+      DuplicateFilesView()
+    case .settingsMediaDuplicatePagesKnown:
+      DuplicatePagesKnownView()
+    case .settingsMediaDuplicatePagesUnknown:
+      DuplicatePagesUnknownView()
 
     case .settingsServers:
       ServerListView()

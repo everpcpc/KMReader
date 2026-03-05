@@ -226,6 +226,7 @@ final class KomgaBook {
       metadata: metadata,
       readProgress: readProgress,
       deleted: isUnavailable,
+      fileHash: nil,
       oneshot: oneshot
     )
   }
