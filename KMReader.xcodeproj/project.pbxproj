@@ -11,6 +11,7 @@
 		193F577A2EFA1C1D003362E1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 193F57792EFA1C1D003362E1 /* SwiftUI.framework */; };
 		193F578B2EFA1C1F003362E1 /* KMReaderWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 193F57752EFA1C1D003362E1 /* KMReaderWidgetsExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 196028582ED9F7980066E8A4 /* SwiftSoup */; };
+		19B0A1022F08A00000AB1234 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 19B0A1012F08A00000AB1234 /* ZIPFoundation */; };
 		19AEC07F2EE714150073EB5F /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 19AEC07E2EE714150073EB5F /* Flow */; };
 		19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19AEFE562EFC62E200EC7D3B /* StoreKit.framework */; };
 /* End PBXBuildFile section */
@@ -94,6 +95,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */,
+				19B0A1022F08A00000AB1234 /* ZIPFoundation in Frameworks */,
 				19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */,
 				19AEC07F2EE714150073EB5F /* Flow in Frameworks */,
 			);
@@ -166,6 +168,7 @@
 			packageProductDependencies = (
 				196028582ED9F7980066E8A4 /* SwiftSoup */,
 				19AEC07E2EE714150073EB5F /* Flow */,
+				19B0A1012F08A00000AB1234 /* ZIPFoundation */,
 			);
 			productName = KMReader;
 			productReference = 192E6F7D2EC4B4E20040D165 /* KMReader.app */;
@@ -233,6 +236,7 @@
 			packageReferences = (
 				196028572ED9F7980066E8A4 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
 				19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
+				19B0A1002F08A00000AB1234 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 192E6F7E2EC4B4E20040D165 /* Products */;
@@ -655,6 +659,14 @@
 				minimumVersion = 3.1.1;
 			};
 		};
+		19B0A1002F08A00000AB1234 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -667,6 +679,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
 			productName = Flow;
+		};
+		19B0A1012F08A00000AB1234 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 19B0A1002F08A00000AB1234 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

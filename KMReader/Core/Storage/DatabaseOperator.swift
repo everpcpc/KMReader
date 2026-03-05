@@ -353,6 +353,10 @@ actor DatabaseOperator {
 
   func fetchWebPubManifest(bookId: String) async -> WebPubPublication? {
     let instanceId = AppConfig.current.instanceId
+    return await fetchWebPubManifest(bookId: bookId, instanceId: instanceId)
+  }
+
+  func fetchWebPubManifest(bookId: String, instanceId: String) async -> WebPubPublication? {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     guard let data = try? modelContext.fetch(descriptor).first?.webPubManifestRaw else {
