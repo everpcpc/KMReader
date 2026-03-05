@@ -22,10 +22,10 @@
 
 ### Native Reading Experience
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl, and iOS cover-style page transitions.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), and cover-style page transitions (all platforms).
 - EPUB reader on iOS/macOS with paged, scrolled, and curl layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
 - Animated pages use native inline playback with visible preparation progress and smoother performance for long reading sessions.
-- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, and clearer offline preparation feedback.
+- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, and clearer progress feedback.
 - Per-book preferences save reading direction, page layout, and theme settings.
 - Incognito mode and iOS Live Text support, including optional shake-to-toggle.
 
@@ -52,12 +52,12 @@
 
 - Save multiple Komga servers and switch instantly.
 - Sign in with username/password or API key, and manage Komga API keys inside the app.
-- Admin tools for metadata editing, library management, task monitoring, and log viewing/export.
+- Admin tools for metadata editing, library management, media management (media analysis, missing posters, duplicate files and pages), task monitoring, and log viewing/export.
 
 ### Platform Highlights
 
 - iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities for reader/downloads, background downloads, Live Text, and page curl/cover transitions.
-- macOS: dedicated reader windows, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
+- macOS: dedicated reader windows, reader actions in the system menu bar, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
 - tvOS: remote-first DIVINA reading with a TV-optimized browsing experience.
 
 ## Getting Started
