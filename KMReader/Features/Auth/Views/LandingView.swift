@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct LandingView: View {
+  let authViewModel: AuthViewModel
   @State private var showGetStarted = false
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
@@ -53,7 +54,7 @@ struct LandingView: View {
     #if os(iOS)
       .fullScreenCover(isPresented: $showGetStarted) {
         SheetView(title: "Get Started") {
-          ServerListView(mode: .onboarding)
+          ServerListView(authViewModel: authViewModel, mode: .onboarding)
         }
         .tint(themeColor.color)
         .accentColor(themeColor.color)
@@ -61,7 +62,7 @@ struct LandingView: View {
     #else
       .sheet(isPresented: $showGetStarted) {
         SheetView(title: "Get Started", applyFormStyle: true) {
-          ServerListView(mode: .onboarding)
+          ServerListView(authViewModel: authViewModel, mode: .onboarding)
         }
       }
     #endif
@@ -69,6 +70,5 @@ struct LandingView: View {
 }
 
 #Preview {
-  LandingView()
-    .environment(AuthViewModel())
+  LandingView(authViewModel: AuthViewModel())
 }

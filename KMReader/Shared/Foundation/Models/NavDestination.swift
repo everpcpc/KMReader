@@ -71,41 +71,68 @@ enum NavDestination: Hashable {
   case settingsAuthenticationActivity
 
   @ViewBuilder
-  var content: some View {
+  func content(context: AppViewContext) -> some View {
     switch self {
     case .home:
-      DashboardView()
+      DashboardView(
+        authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation
+      )
     case .browseSeries:
-      BrowseView(fixedContent: .series)
+      BrowseView(authViewModel: context.authViewModel, fixedContent: .series)
     case .browseBooks:
-      BrowseView(fixedContent: .books)
+      BrowseView(authViewModel: context.authViewModel, fixedContent: .books)
     case .browseCollections:
-      BrowseView(fixedContent: .collections)
+      BrowseView(authViewModel: context.authViewModel, fixedContent: .collections)
     case .browseReadLists:
-      BrowseView(fixedContent: .readlists)
+      BrowseView(authViewModel: context.authViewModel, fixedContent: .readlists)
     case .offline:
-      OfflineView()
+      OfflineView(authViewModel: context.authViewModel)
     case .server:
-      ServerView()
+      ServerView(authViewModel: context.authViewModel)
     case .settings:
       SettingsView()
 
     // NOTE: library selection passed via environment
     case .browseLibrary(_):
-      BrowseView()
+      BrowseView(authViewModel: context.authViewModel)
 
     case .browseSeriesWithPublisher(let publisher):
-      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forPublisher(publisher))
+      BrowseView(
+        authViewModel: context.authViewModel,
+        fixedContent: .series,
+        metadataFilter: MetadataFilterConfig.forPublisher(publisher)
+      )
     case .browseSeriesWithAuthor(let author):
-      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forAuthors([author]))
+      BrowseView(
+        authViewModel: context.authViewModel,
+        fixedContent: .series,
+        metadataFilter: MetadataFilterConfig.forAuthors([author])
+      )
     case .browseSeriesWithGenre(let genre):
-      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forGenres([genre]))
+      BrowseView(
+        authViewModel: context.authViewModel,
+        fixedContent: .series,
+        metadataFilter: MetadataFilterConfig.forGenres([genre])
+      )
     case .browseSeriesWithTag(let tag):
-      BrowseView(fixedContent: .series, metadataFilter: MetadataFilterConfig.forTags([tag]))
+      BrowseView(
+        authViewModel: context.authViewModel,
+        fixedContent: .series,
+        metadataFilter: MetadataFilterConfig.forTags([tag])
+      )
     case .browseBooksWithAuthor(let author):
-      BrowseView(fixedContent: .books, metadataFilter: MetadataFilterConfig.forAuthors([author]))
+      BrowseView(
+        authViewModel: context.authViewModel,
+        fixedContent: .books,
+        metadataFilter: MetadataFilterConfig.forAuthors([author])
+      )
     case .browseBooksWithTag(let tag):
-      BrowseView(fixedContent: .books, metadataFilter: MetadataFilterConfig.forTags([tag]))
+      BrowseView(
+        authViewModel: context.authViewModel,
+        fixedContent: .books,
+        metadataFilter: MetadataFilterConfig.forTags([tag])
+      )
 
     case .seriesDetail(let seriesId):
       SeriesDetailView(seriesId: seriesId)
@@ -178,7 +205,7 @@ enum NavDestination: Hashable {
       DuplicatePagesUnknownView()
 
     case .settingsServers:
-      ServerListView()
+      ServerListView(authViewModel: context.authViewModel)
     case .settingsApiKey:
       ApiKeysView()
     case .settingsAuthenticationActivity:

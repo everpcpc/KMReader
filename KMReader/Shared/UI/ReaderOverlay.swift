@@ -9,7 +9,7 @@ import SwiftUI
   /// Reader overlay that handles presentation with fullScreenCover
   struct ReaderOverlay: View {
     let namespace: Namespace.ID
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
+    let readerPresentation: ReaderPresentationManager
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
     var body: some View {
@@ -17,7 +17,7 @@ import SwiftUI
         .frame(width: 0, height: 0)
         .fullScreenCover(
           isPresented: Binding(
-            get: { readerPresentation.readerState != nil },
+            get: { readerPresentation.currentSession != nil },
             set: { if !$0 { readerPresentation.closeReader() } }
           )
         ) {
@@ -26,7 +26,6 @@ import SwiftUI
               sourceID: readerPresentation.sourceBookId,
               in: namespace
             )
-            .environment(readerPresentation)
             #if os(iOS)
               .tint(themeColor.color)
               .accentColor(themeColor.color)
@@ -35,24 +34,23 @@ import SwiftUI
     }
   }
 
-  /// Reader content extracted to be used in fullScreenCover
   private struct ReaderContentView: View {
     let readerPresentation: ReaderPresentationManager
 
     var body: some View {
       Group {
-        if let state = readerPresentation.readerState {
-          if let book = state.book {
-            BookReaderView(
-              book: book,
-              incognito: state.incognito,
-              readListContext: state.readListContext,
-              onClose: { readerPresentation.closeReader() }
-            )
-          } else {
-            ReaderPlaceholderView {
-              readerPresentation.closeReader()
-            }
+        if let session = readerPresentation.currentSession {
+          BookReaderView(
+            sessionID: session.id,
+            book: session.book,
+            incognito: session.incognito,
+            readListContext: session.readListContext,
+            readerPresentation: readerPresentation,
+            onClose: { readerPresentation.closeReader() }
+          )
+        } else {
+          ReaderPlaceholderView {
+            readerPresentation.closeReader()
           }
         }
       }
@@ -92,7 +90,7 @@ import SwiftUI
 
 #elseif os(macOS)
   struct MacReaderWindowConfigurator: View {
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
+    let readerPresentation: ReaderPresentationManager
     let openWindow: () -> Void
 
     var body: some View {

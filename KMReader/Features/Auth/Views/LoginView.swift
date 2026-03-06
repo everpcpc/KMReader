@@ -7,8 +7,8 @@ import Foundation
 import SwiftUI
 
 struct LoginView: View {
+  let authViewModel: AuthViewModel
   @Environment(\.dismiss) private var dismiss
-  @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
   @State private var serverURLText: String = ""

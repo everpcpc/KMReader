@@ -6,8 +6,8 @@
 import SwiftUI
 
 struct UpdatePasswordSheet: View {
+  let authViewModel: AuthViewModel
   @Environment(\.dismiss) private var dismiss
-  @Environment(AuthViewModel.self) private var authViewModel
 
   @State private var newPassword = ""
   @State private var confirmPassword = ""

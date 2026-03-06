@@ -7,9 +7,9 @@ import SwiftData
 import SwiftUI
 
 struct ServerEditView: View {
+  let authViewModel: AuthViewModel
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
-  @Environment(AuthViewModel.self) private var authViewModel
   @Bindable var instance: KomgaInstance
   @AppStorage("currentAccount") private var current: Current = .init()
 
@@ -40,7 +40,8 @@ struct ServerEditView: View {
     }
   }
 
-  init(instance: KomgaInstance) {
+  init(instance: KomgaInstance, authViewModel: AuthViewModel) {
+    self.authViewModel = authViewModel
     _instance = Bindable(instance)
     _name = State(initialValue: instance.name)
     _serverURL = State(initialValue: instance.serverURL)

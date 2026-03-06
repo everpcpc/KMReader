@@ -10,13 +10,22 @@ import SwiftUI
 @MainActor
 @Observable
 class AuthViewModel {
+  enum BootstrapState: Equatable {
+    case requiresValidation
+    case validating
+    case ready
+  }
+
   var isLoading = false
   var isSwitching = false
   var switchingInstanceId: String?
-  var user: User?
-  var credentialsVersion = UUID()
+  private(set) var bootstrapState: BootstrapState
 
   private let authService = AuthService.shared
+
+  init() {
+    bootstrapState = AppConfig.isLoggedIn ? .requiresValidation : .ready
+  }
 
   func login(
     username: String,
@@ -77,8 +86,10 @@ class AuthViewModel {
     }
     // ViewModel-specific cleanup
     AppConfig.isLoggedIn = false
-    user = nil
-    credentialsVersion = UUID()
+    var current = AppConfig.current
+    current.clearUserMetadata()
+    AppConfig.current = current
+    bootstrapState = .requiresValidation
   }
 
   func validate(serverURL: String) async throws {
@@ -97,16 +108,15 @@ class AuthViewModel {
   /// 401 errors trigger logout.
   func loadCurrentUser(timeout: TimeInterval? = nil) async -> Bool {
     isLoading = true
+    bootstrapState = .validating
     defer { isLoading = false }
     do {
       let effectiveTimeout = timeout ?? AppConfig.authTimeout
-      user = try await authService.getCurrentUser(timeout: effectiveTimeout)
-
-      if let user = user {
-        var current = AppConfig.current
-        current.updateMetadata(from: user)
-        AppConfig.current = current
-      }
+      let user = try await authService.getCurrentUser(timeout: effectiveTimeout)
+      var current = AppConfig.current
+      current.updateMetadata(from: user)
+      AppConfig.current = current
+      bootstrapState = .ready
       return true
     } catch {
       if let apiError = error as? APIError {
@@ -117,14 +127,17 @@ class AuthViewModel {
           return true  // Server is reachable, just not authorized
         case .networkError:
           // Server unreachable
+          bootstrapState = .ready
           return false
         default:
           // Other API errors - server is reachable
+          bootstrapState = .ready
           ErrorManager.shared.alert(error: error)
           return true
         }
       }
       // Non-API errors (likely network issues)
+      bootstrapState = .ready
       return false
     }
   }
@@ -191,8 +204,10 @@ class AuthViewModel {
         await SSEService.shared.disconnect()
 
         // We cannot load the user object offline, but isLoggedIn=true allows entry
-        self.user = nil
-        credentialsVersion = UUID()
+        var current = AppConfig.current
+        current.clearUserMetadata()
+        AppConfig.current = current
+        bootstrapState = .ready
 
         ErrorManager.shared.notify(
           message: String(localized: "Server unreachable, switched to offline mode")
@@ -269,11 +284,13 @@ class AuthViewModel {
     await LibraryManager.shared.loadLibraries()
 
     // Update user and credentials version
-    self.user = user
-    credentialsVersion = UUID()
+    var current = AppConfig.current
+    current.updateMetadata(from: user)
+    AppConfig.current = current
 
     // Show success message
     ErrorManager.shared.notify(message: successMessage)
+    bootstrapState = .ready
 
     // Reconnect SSE with new instance if enabled
     await SSEService.shared.disconnect()
@@ -287,7 +304,8 @@ class AuthViewModel {
   }
 
   func updatePassword(password: String) async throws {
-    guard let user = user else { return }
-    try await authService.updatePassword(userId: user.id, password: password)
+    let userId = AppConfig.current.userId
+    guard !userId.isEmpty else { return }
+    try await authService.updatePassword(userId: userId, password: password)
   }
 }

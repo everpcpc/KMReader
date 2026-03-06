@@ -8,7 +8,8 @@ import SwiftUI
 #if os(iOS)
   @available(iOS 18.0, *)
   struct PhoneTabView: View {
-    @Environment(DeepLinkRouter.self) private var deepLinkRouter
+    let context: AppViewContext
+    @State private var deepLinkRouter = DeepLinkRouter.shared
     @State private var selectedTab: TabItem = .home
     @State private var homePath = NavigationPath()
 
@@ -16,29 +17,25 @@ import SwiftUI
       TabView(selection: $selectedTab) {
         Tab(TabItem.home.title, systemImage: TabItem.home.icon, value: TabItem.home) {
           NavigationStack(path: $homePath) {
-            TabItem.home.content
-              .handleNavigation()
+            rootContent(for: .home)
           }
         }
 
         Tab(TabItem.browse.title, systemImage: TabItem.browse.icon, value: TabItem.browse) {
           NavigationStack {
-            TabItem.browse.content
-              .handleNavigation()
+            rootContent(for: .browse)
           }
         }
 
         Tab(TabItem.offline.title, systemImage: TabItem.offline.icon, value: TabItem.offline) {
           NavigationStack {
-            TabItem.offline.content
-              .handleNavigation()
+            rootContent(for: .offline)
           }
         }
 
         Tab(TabItem.server.title, systemImage: TabItem.server.icon, value: TabItem.server) {
           NavigationStack {
-            TabItem.server.content
-              .handleNavigation()
+            rootContent(for: .server)
           }
         }
 
@@ -47,8 +44,7 @@ import SwiftUI
           role: .search
         ) {
           NavigationStack {
-            TabItem.settings.content
-              .handleNavigation()
+            rootContent(for: .settings)
           }
         }
       }
@@ -62,6 +58,13 @@ import SwiftUI
         guard let link else { return }
         handleDeepLink(link)
       }
+    }
+
+    @ViewBuilder
+    private func rootContent(for tab: TabItem) -> some View {
+      tab.content(context: context)
+        .environment(\.readerActions, context.readerActions)
+        .handleNavigation(context: context)
     }
 
     private func handleDeepLink(_ link: DeepLink) {

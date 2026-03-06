@@ -57,16 +57,19 @@ enum TabItem: Hashable, Identifiable {
   }
 
   @ViewBuilder
-  var content: some View {
+  func content(context: AppViewContext) -> some View {
     switch self {
     case .home:
-      DashboardView()
+      DashboardView(
+        authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation
+      )
     case .browse:
-      BrowseView()
+      BrowseView(authViewModel: context.authViewModel)
     case .offline:
-      OfflineView()
+      OfflineView(authViewModel: context.authViewModel)
     case .server:
-      ServerView()
+      ServerView(authViewModel: context.authViewModel)
     case .settings:
       SettingsView()
     }

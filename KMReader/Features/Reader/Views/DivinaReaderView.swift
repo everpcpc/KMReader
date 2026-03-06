@@ -6,13 +6,14 @@
 import SwiftUI
 
 struct DivinaReaderView: View {
+  let sessionID: UUID
   let book: Book
   let incognito: Bool
   let readListContext: ReaderReadListContext?
+  let readerPresentation: ReaderPresentationManager
   let onClose: (() -> Void)?
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
@@ -69,14 +70,18 @@ struct DivinaReaderView: View {
   #endif
 
   init(
+    sessionID: UUID,
     book: Book,
     incognito: Bool = false,
     readListContext: ReaderReadListContext? = nil,
+    readerPresentation: ReaderPresentationManager,
     onClose: (() -> Void)? = nil
   ) {
+    self.sessionID = sessionID
     self.book = book
     self.incognito = incognito
     self.readListContext = readListContext
+    self.readerPresentation = readerPresentation
     self.onClose = onClose
     self._currentBookId = State(initialValue: book.id)
     self._currentBook = State(initialValue: book)
@@ -175,7 +180,7 @@ struct DivinaReaderView: View {
       pageNumber: handoffPageNumber,
       incognito: incognito
     )
-    readerPresentation.updateHandoff(title: handoffTitle, url: url)
+    readerPresentation.updateHandoff(sessionID: sessionID, title: handoffTitle, url: url)
   }
 
   private func closeReader() {
@@ -471,7 +476,7 @@ struct DivinaReaderView: View {
       viewModel.updateSplitWidePageMode(newValue)
     }
     .task(id: currentBookId) {
-      readerPresentation.setReaderFlushHandler {
+      readerPresentation.registerFlushHandler(for: sessionID) {
         viewModel.flushProgress()
       }
       deferredPageMaintenanceTask?.cancel()
@@ -486,6 +491,10 @@ struct DivinaReaderView: View {
     }
     .onChange(of: currentBook?.id) { _, _ in
       updateHandoff()
+    }
+    .onChange(of: currentBook) { _, newBook in
+      guard let newBook else { return }
+      readerPresentation.updatePresentedBook(sessionID: sessionID, book: newBook)
     }
     .onChange(of: viewModel.pageCount) { oldCount, newCount in
       // Show helper overlay when pages are first loaded (iOS and macOS)
@@ -503,6 +512,7 @@ struct DivinaReaderView: View {
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
       viewModel.clearPreloadedImages()
+      readerPresentation.clearFlushHandler(for: sessionID)
       #if os(macOS)
         readerPresentation.clearMacReaderCommands()
       #endif
@@ -530,13 +540,6 @@ struct DivinaReaderView: View {
     #if os(macOS)
       .onChange(of: macReaderCommandState) { _, newState in
         readerPresentation.updateMacReaderCommandState(newState)
-      }
-      .onChange(of: currentBook) { _, newBook in
-        // Update window manager state when book changes to refresh window title
-        if let book = newBook {
-          ReaderWindowManager.shared.currentState = BookReaderState(
-            book: book, incognito: incognito, readListContext: readListContext)
-        }
       }
     #endif
     #if os(iOS)
@@ -905,7 +908,11 @@ struct DivinaReaderView: View {
       currentBook = resolvedBook
       seriesId = resolvedBook.seriesId
       if !incognito {
-        readerPresentation.trackVisitedBook(bookId: resolvedBook.id, seriesId: resolvedBook.seriesId)
+        readerPresentation.trackVisitedBook(
+          sessionID: sessionID,
+          bookId: resolvedBook.id,
+          seriesId: resolvedBook.seriesId
+        )
       }
       if incognito {
         initialPageNumber = nil

@@ -348,10 +348,12 @@ KMReader/
 9. **Computed properties in view bodies**: Avoid stored variables in view bodies
 10. **Platform differences**: Use `PlatformHelper` and `#if os(...)` blocks
 11. **Direction rule (UI bridging)**: Allow `SwiftUI -> UIKit/AppKit`, but do not use `UIKit/AppKit -> SwiftUI` (`UIHostingController`/`NSHostingController`) for feature screens/components, because `UIHostingController`/`NSHostingController` does not inherit required SwiftUI environment values in this project.
+12. **Object environment safety**: Do not use non-optional object-style environment dependencies (`@Environment(SomeType.self)`, `@EnvironmentObject`) in app code. Treat them as banned patterns. Pass object dependencies explicitly via initializers, context structs, or action closures. If environment lookup is still required, use a non-object custom `EnvironmentKey` or an optional lookup with controlled fallback/logging instead of crashing.
 
 Additional patterns:
 
-- Inject view models through SwiftUI environment (register in `MainApp`)
+- Do not register or consume view models/coordinators through non-optional object-style SwiftUI environment dependencies
+- Pass shared object dependencies explicitly at split/tab roots, `NavigationStack` roots, sheets, full-screen covers, scene boundaries, and any `UIHostingController`/`NSHostingController` boundary; do not assume outer environment inheritance is stable during snapshot, rotation, or scene transitions
 - SSE callbacks are single-assignment closures; implement dispatchers if multiple components need the same event
 - Clearing caches/server data must go through `CacheManager` and SwiftData stores
 - New API endpoints belong in appropriate service; keep request-building out of views

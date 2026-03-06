@@ -2,12 +2,13 @@
   import SwiftUI
 
   struct PdfReaderView: View {
+    let sessionID: UUID
     let book: Book
     let incognito: Bool
+    let readerPresentation: ReaderPresentationManager
     let onClose: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("pdfReaderBackground") private var readerBackground: ReaderBackground = .system
@@ -36,12 +37,16 @@
     private let logger = AppLogger(.reader)
 
     init(
+      sessionID: UUID,
       book: Book,
       incognito: Bool = false,
+      readerPresentation: ReaderPresentationManager,
       onClose: (() -> Void)? = nil
     ) {
+      self.sessionID = sessionID
       self.book = book
       self.incognito = incognito
+      self.readerPresentation = readerPresentation
       self.onClose = onClose
       _viewModel = State(initialValue: PdfReaderViewModel(incognito: incognito))
       _readingDirection = State(initialValue: .ltr)
@@ -103,7 +108,7 @@
       )
       .iPadIgnoresSafeArea()
       .task(id: book.id) {
-        readerPresentation.setReaderFlushHandler {
+        readerPresentation.registerFlushHandler(for: sessionID) {
           viewModel.flushProgress()
         }
         await loadBook()
@@ -127,7 +132,10 @@
       .onReceive(NotificationCenter.default.publisher(for: .fileDownloadProgress)) { notification in
         viewModel.updateDownloadProgress(notification: notification)
       }
-      .onChange(of: currentBook?.id) { _, _ in
+      .onChange(of: currentBook) { _, newBook in
+        if let newBook {
+          readerPresentation.updatePresentedBook(sessionID: sessionID, book: newBook)
+        }
         updateHandoff()
       }
       .onChange(of: viewModel.currentPageNumber) { _, _ in
@@ -147,6 +155,7 @@
           "👋 PDF reader disappeared for book \(book.id), page=\(viewModel.currentPageNumber)/\(viewModel.pageCount)"
         )
         showingControls = false
+        readerPresentation.clearFlushHandler(for: sessionID)
       }
       #if os(iOS)
         .statusBarHidden(!shouldShowControls)
@@ -308,6 +317,13 @@
       }
 
       currentBook = resolvedBook
+      if !incognito {
+        readerPresentation.trackVisitedBook(
+          sessionID: sessionID,
+          bookId: resolvedBook.id,
+          seriesId: resolvedBook.seriesId
+        )
+      }
       let resolvedSeries = await fetchSeries(for: resolvedBook)
       currentSeries = resolvedSeries
       readingDirection = resolvePreferredReadingDirection(series: resolvedSeries)
@@ -400,7 +416,11 @@
         pageNumber: viewModel.pageCount > 0 ? viewModel.currentPageNumber : nil,
         incognito: incognito
       )
-      readerPresentation.updateHandoff(title: handoffBook.metadata.title, url: url)
+      readerPresentation.updateHandoff(
+        sessionID: sessionID,
+        title: handoffBook.metadata.title,
+        url: url
+      )
     }
 
     private var readerTitle: String {

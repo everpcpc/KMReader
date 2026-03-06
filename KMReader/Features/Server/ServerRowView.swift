@@ -8,10 +8,10 @@ import SwiftUI
 
 struct ServerRowView: View {
   @Bindable var instance: KomgaInstance
-  @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.colorScheme) private var colorScheme
   @AppStorage("currentAccount") private var current: Current = .init()
 
+  let isGlobalSwitching: Bool
   let isSwitching: Bool
   let isActive: Bool
   let onSelect: () -> Void
@@ -67,7 +67,7 @@ struct ServerRowView: View {
     }
     .animation(.easeInOut(duration: 0.25), value: isActive)
     .adaptiveButtonStyle(.plain)
-    .allowsHitTesting(!(isActive || authViewModel.isSwitching))
+    .allowsHitTesting(!(isActive || isGlobalSwitching))
     #if os(iOS) || os(macOS)
       .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
       .listRowSeparator(.hidden)

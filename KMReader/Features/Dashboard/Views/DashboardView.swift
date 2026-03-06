@@ -8,6 +8,8 @@ import OSLog
 import SwiftUI
 
 struct DashboardView: View {
+  let authViewModel: AuthViewModel
+  let readerPresentation: ReaderPresentationManager
   @State private var refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: .manual)
   @State private var isRefreshing = false
   @State private var pendingRefreshTask: Task<Void, Never>?
@@ -23,15 +25,12 @@ struct DashboardView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
-  @Environment(AuthViewModel.self) private var authViewModel
-
   private let sseService = SSEService.shared
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce
   private let logger = AppLogger(.dashboard)
 
   private var isReaderActive: Bool {
-    readerPresentation.readerState != nil
+    readerPresentation.currentSession != nil
   }
 
   private var gridDensityBinding: Binding<GridDensity> {
@@ -262,8 +261,8 @@ struct DashboardView: View {
         pendingRefreshTask = nil
       }
     }
-    .onChange(of: readerPresentation.readerState) { _, newState in
-      if newState != nil {
+    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
+      if newSession != nil {
         // Reader opened - cancel any pending dashboard refresh
         pendingRefreshTask?.cancel()
         pendingRefreshTask = nil
@@ -272,7 +271,7 @@ struct DashboardView: View {
       } else {
         let needsFullRefresh = shouldRefreshAfterReading
         shouldRefreshAfterReading = false
-        let visitedBookIds = readerPresentation.visitedBookIds
+        let visitedBookIds = oldSession?.visitedBookIds ?? []
 
         readerCloseRefreshTask?.cancel()
         readerCloseRefreshTask = Task {

@@ -31,20 +31,22 @@ extension View {
     #endif
   }
 
-  func handleNavigation() -> some View {
-    self.modifier(NavigationHandlingModifier())
+  func handleNavigation(context: AppViewContext) -> some View {
+    self.modifier(NavigationHandlingModifier(context: context))
   }
 }
 
 private struct NavigationHandlingModifier: ViewModifier {
+  let context: AppViewContext
   @Environment(\.zoomNamespace) private var zoomNamespace
   @Environment(\.browseLibrarySelection) private var browseLibrarySelection
 
   func body(content: Content) -> some View {
     content
       .navigationDestination(for: NavDestination.self) { destination in
-        destination.content
+        destination.content(context: context)
           .environment(\.browseLibrarySelection, browseLibrarySelection)
+          .environment(\.readerActions, context.readerActions)
           .navigationTransitionZoomIfAvailable(sourceID: destination.zoomSourceID, in: zoomNamespace)
       }
   }

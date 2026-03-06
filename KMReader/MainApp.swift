@@ -66,8 +66,7 @@ struct MainApp: App {
   @State private var modelContainerFailureDetails: String?
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
-  @State private var dashboardSectionCacheStore = DashboardSectionCacheStore.shared
-  @State private var deepLinkRouter = DeepLinkRouter.shared
+  private let deepLinkRouter = DeepLinkRouter.shared
 
   init() {
     PlatformHelper.setup()
@@ -135,18 +134,24 @@ struct MainApp: App {
 
   @ViewBuilder
   private func mainWindowContent(modelContainer: ModelContainer) -> some View {
-    ContentView()
-      #if os(macOS)
-        .background(
-          MacReaderWindowConfigurator(openWindow: {
+    ContentView(
+      authViewModel: authViewModel,
+      readerPresentation: readerPresentation
+    )
+    #if os(macOS)
+      .background(
+        MacReaderWindowConfigurator(
+          readerPresentation: readerPresentation,
+          openWindow: {
             openWindow(id: "reader")
-          })
+          }
         )
-        .overlay(alignment: .bottom) {
-          NotificationOverlay()
-        }
-      #endif
-      .modelContainer(modelContainer)
+      )
+      .overlay(alignment: .bottom) {
+        NotificationOverlay()
+      }
+    #endif
+    .modelContainer(modelContainer)
   }
 
   #if os(macOS)
@@ -269,10 +274,6 @@ struct MainApp: App {
         .tint(themeColor.color)
         .accentColor(themeColor.color)
       #endif
-      .environment(authViewModel)
-      .environment(readerPresentation)
-      .environment(dashboardSectionCacheStore)
-      .environment(deepLinkRouter)
       .preferredColorScheme(appColorScheme.colorScheme)
     }
     #if os(macOS)
@@ -283,9 +284,7 @@ struct MainApp: App {
     #if os(macOS)
       WindowGroup(id: "reader") {
         modelContainerGate { modelContainer in
-          ReaderWindowView()
-            .environment(authViewModel)
-            .environment(readerPresentation)
+          ReaderWindowView(readerPresentation: readerPresentation)
             .modelContainer(modelContainer)
         }
         .preferredColorScheme(appColorScheme.colorScheme)
@@ -296,7 +295,6 @@ struct MainApp: App {
       Settings {
         modelContainerGate { modelContainer in
           SettingsView_macOS()
-            .environment(authViewModel)
             .modelContainer(modelContainer)
         }
         .preferredColorScheme(appColorScheme.colorScheme)

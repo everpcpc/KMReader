@@ -6,43 +6,39 @@
 import SwiftUI
 
 struct OldTabView: View {
-  @Environment(DeepLinkRouter.self) private var deepLinkRouter
+  let context: AppViewContext
+  @State private var deepLinkRouter = DeepLinkRouter.shared
   @State private var selectedTab: TabItem = .home
   @State private var homePath = NavigationPath()
 
   var body: some View {
     TabView(selection: $selectedTab) {
       NavigationStack(path: $homePath) {
-        TabItem.home.content
-          .handleNavigation()
+        rootContent(for: .home)
       }
       .tabItem { TabItem.home.label }
       .tag(TabItem.home)
 
       NavigationStack {
-        TabItem.browse.content
-          .handleNavigation()
+        rootContent(for: .browse)
       }
       .tabItem { TabItem.browse.label }
       .tag(TabItem.browse)
 
       NavigationStack {
-        TabItem.offline.content
-          .handleNavigation()
+        rootContent(for: .offline)
       }
       .tabItem { TabItem.offline.label }
       .tag(TabItem.offline)
 
       NavigationStack {
-        TabItem.server.content
-          .handleNavigation()
+        rootContent(for: .server)
       }
       .tabItem { TabItem.server.label }
       .tag(TabItem.server)
 
       NavigationStack {
-        TabItem.settings.content
-          .handleNavigation()
+        rootContent(for: .settings)
       }
       .tabItem { TabItem.settings.label }
       .tag(TabItem.settings)
@@ -56,6 +52,13 @@ struct OldTabView: View {
       guard let link else { return }
       handleDeepLink(link)
     }
+  }
+
+  @ViewBuilder
+  private func rootContent(for tab: TabItem) -> some View {
+    tab.content(context: context)
+      .environment(\.readerActions, context.readerActions)
+      .handleNavigation(context: context)
   }
 
   private func handleDeepLink(_ link: DeepLink) {

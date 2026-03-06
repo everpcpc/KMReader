@@ -23,7 +23,7 @@ struct SeriesContextMenu: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   @Environment(\.modelContext) private var modelContext
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.readerActions) private var readerActions
 
   private var status: SeriesDownloadStatus {
     downloadStatus
@@ -208,7 +208,7 @@ struct SeriesContextMenu: View {
         context: modelContext
       )
       if let book {
-        readerPresentation.present(book: book, incognito: false)
+        readerActions.open(book: book, incognito: false)
       }
     }
   }

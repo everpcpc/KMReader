@@ -7,7 +7,8 @@ import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-  @Environment(AuthViewModel.self) private var authViewModel
+  let authViewModel: AuthViewModel
+  let readerPresentation: ReaderPresentationManager
   @Environment(\.scenePhase) private var scenePhase
 
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
@@ -25,8 +26,15 @@ struct ContentView: View {
     InstanceInitializer.shared
   }
 
+  private var context: AppViewContext {
+    AppViewContext(
+      authViewModel: authViewModel,
+      readerPresentation: readerPresentation
+    )
+  }
+
   private var isReady: Bool {
-    (authViewModel.user != nil || isOffline) && !instanceInitializer.isSyncing
+    (authViewModel.bootstrapState == .ready || isOffline) && !instanceInitializer.isSyncing
   }
 
   var body: some View {
@@ -35,32 +43,41 @@ struct ContentView: View {
         Group {
           if isReady {
             #if os(macOS)
-              MainSplitView()
+              MainSplitView(context: context)
             #elseif os(iOS)
               if PlatformHelper.isPad {
-                MainSplitView()
+                MainSplitView(context: context)
               } else {
                 if #available(iOS 18.0, *) {
-                  PhoneTabView()
+                  PhoneTabView(context: context)
                 } else {
-                  OldTabView()
+                  OldTabView(context: context)
                 }
               }
             #elseif os(tvOS)
               if #available(tvOS 18.0, *) {
-                TVTabView()
+                TVTabView(context: context)
               } else {
-                OldTabView()
+                OldTabView(context: context)
               }
             #endif
           } else {
             SplashView(initializer: instanceInitializer)
           }
         }
-        .task {
-          let serverReachable = await authViewModel.loadCurrentUser()
-          isOffline = !serverReachable
-          await SSEService.shared.connect()
+        .task(id: isLoggedIn) {
+          guard isLoggedIn else { return }
+
+          if authViewModel.bootstrapState == .requiresValidation {
+            let serverReachable = await authViewModel.loadCurrentUser()
+            isOffline = !serverReachable
+          }
+
+          guard isLoggedIn else { return }
+
+          if enableSSE && !isOffline {
+            await SSEService.shared.connect()
+          }
           WidgetDataService.refreshWidgetData()
         }
         .onChange(of: isOffline) { oldValue, newValue in
@@ -115,7 +132,7 @@ struct ContentView: View {
           }
         }
       } else {
-        LandingView()
+        LandingView(authViewModel: authViewModel)
           .onAppear {
             Task {
               await SSEService.shared.disconnect(notify: false)
@@ -126,7 +143,7 @@ struct ContentView: View {
     #if os(iOS) || os(tvOS)
       .environment(\.zoomNamespace, zoomNamespace)
       .overlay {
-        ReaderOverlay(namespace: zoomNamespace)
+        ReaderOverlay(namespace: zoomNamespace, readerPresentation: readerPresentation)
       }
     #endif
     #if os(iOS) || os(tvOS)

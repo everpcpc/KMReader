@@ -14,8 +14,7 @@ struct BookQueryItemView: View {
   var showSeriesNavigation: Bool = true
   var readListContext: ReaderReadListContext? = nil
 
-  @AppStorage("currentAccount") private var current: Current = .init()
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.readerActions) private var readerActions
   @Query private var komgaBooks: [KomgaBook]
 
   init(
@@ -46,7 +45,7 @@ struct BookQueryItemView: View {
         BookCardView(
           komgaBook: book,
           onReadBook: { incognito in
-            readerPresentation.present(
+            readerActions.open(
               book: book.toBook(),
               incognito: incognito,
               readListContext: readListContext
@@ -59,7 +58,7 @@ struct BookQueryItemView: View {
         BookRowView(
           komgaBook: book,
           onReadBook: { incognito in
-            readerPresentation.present(
+            readerActions.open(
               book: book.toBook(),
               incognito: incognito,
               readListContext: readListContext

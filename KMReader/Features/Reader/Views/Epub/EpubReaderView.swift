@@ -7,14 +7,15 @@
   import SwiftUI
 
   struct EpubReaderView: View {
+    private let sessionID: UUID
     private let book: Book
     private let incognito: Bool
     private let readListContext: ReaderReadListContext?
+    private let readerPresentation: ReaderPresentationManager
     private let onClose: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
@@ -35,14 +36,18 @@
     private let logger = AppLogger(.reader)
 
     init(
+      sessionID: UUID,
       book: Book,
       incognito: Bool = false,
       readListContext: ReaderReadListContext? = nil,
+      readerPresentation: ReaderPresentationManager,
       onClose: (() -> Void)? = nil
     ) {
+      self.sessionID = sessionID
       self.book = book
       self.incognito = incognito
       self.readListContext = readListContext
+      self.readerPresentation = readerPresentation
       self.onClose = onClose
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
       _activePreferences = State(initialValue: AppConfig.epubPreferences)
@@ -102,14 +107,14 @@
         bookId: handoffBookId,
         incognito: incognito
       )
-      readerPresentation.updateHandoff(title: handoffTitle, url: url)
+      readerPresentation.updateHandoff(sessionID: sessionID, title: handoffTitle, url: url)
     }
 
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()
         .task(id: book.id) {
-          readerPresentation.setReaderFlushHandler {
+          readerPresentation.registerFlushHandler(for: sessionID) {
             viewModel.flushProgress()
           }
           await loadBook()
@@ -118,7 +123,10 @@
           updateHandoff()
           viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
         }
-        .onChange(of: currentBook?.id) { _, _ in
+        .onChange(of: currentBook) { _, newBook in
+          if let newBook {
+            readerPresentation.updatePresentedBook(sessionID: sessionID, book: newBook)
+          }
           updateHandoff()
         }
         .onChange(of: activePreferences) { _, newPrefs in
@@ -140,6 +148,7 @@
           logger.debug(
             "👋 EPUB reader disappeared for book \(handoffBookId), chapter=\(viewModel.currentChapterIndex), page=\(viewModel.currentPageIndex), hasLocation=\(viewModel.currentLocation != nil)"
           )
+          readerPresentation.clearFlushHandler(for: sessionID)
         }
         .statusBarHidden(!shouldShowControls)
         .readerDismissGesture(readingDirection: dismissGestureReadingDirection)
@@ -169,6 +178,13 @@
       let savedPreferences = await DatabaseOperator.shared.fetchBookEpubPreferences(
         bookId: activeBook.id
       )
+      if !incognito {
+        readerPresentation.trackVisitedBook(
+          sessionID: sessionID,
+          bookId: activeBook.id,
+          seriesId: activeBook.seriesId
+        )
+      }
       bookPreferences = savedPreferences
       activePreferences = savedPreferences ?? globalPreferences
 

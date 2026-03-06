@@ -25,7 +25,6 @@ struct DashboardSectionView: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
-  @Environment(DashboardSectionCacheStore.self) private var sectionCacheStore
   @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
 
@@ -38,6 +37,7 @@ struct DashboardSectionView: View {
   @State private var hasLoadedInitial = false
 
   private let logger = AppLogger(.dashboard)
+  private let sectionCacheStore = DashboardSectionCacheStore.shared
 
   private var backgroundColors: [Color] {
     if colorScheme == .dark {

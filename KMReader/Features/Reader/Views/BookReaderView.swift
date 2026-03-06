@@ -6,9 +6,11 @@
 import SwiftUI
 
 struct BookReaderView: View {
+  let sessionID: UUID
   let book: Book
   let incognito: Bool
   let readListContext: ReaderReadListContext?
+  let readerPresentation: ReaderPresentationManager
   let onClose: (() -> Void)?
 
   @Environment(\.dismiss) private var dismiss
@@ -45,25 +47,31 @@ struct BookReaderView: View {
             switch mediaProfile {
             case .divina, .unknown:
               DivinaReaderView(
+                sessionID: sessionID,
                 book: book,
                 incognito: incognito,
                 readListContext: readListContext,
+                readerPresentation: readerPresentation,
                 onClose: closeReader
               )
             case .epub:
               if book.media.epubDivinaCompatible ?? false {
                 DivinaReaderView(
+                  sessionID: sessionID,
                   book: book,
                   incognito: incognito,
                   readListContext: readListContext,
+                  readerPresentation: readerPresentation,
                   onClose: closeReader
                 )
               } else {
                 #if os(iOS)
                   EpubReaderView(
+                    sessionID: sessionID,
                     book: book,
                     incognito: incognito,
                     readListContext: readListContext,
+                    readerPresentation: readerPresentation,
                     onClose: closeReader
                   )
                 #else
@@ -82,8 +90,10 @@ struct BookReaderView: View {
               if useNativePdfReader {
                 #if os(iOS) || os(macOS)
                   PdfReaderView(
+                    sessionID: sessionID,
                     book: book,
                     incognito: incognito,
+                    readerPresentation: readerPresentation,
                     onClose: closeReader
                   )
                 #else
@@ -99,9 +109,11 @@ struct BookReaderView: View {
                 #endif
               } else {
                 DivinaReaderView(
+                  sessionID: sessionID,
                   book: book,
                   incognito: incognito,
                   readListContext: readListContext,
+                  readerPresentation: readerPresentation,
                   onClose: closeReader
                 )
               }
@@ -117,5 +129,6 @@ struct BookReaderView: View {
         }
       }
     }
+    .environment(\.readerActions, .live(readerPresentation: readerPresentation))
   }
 }

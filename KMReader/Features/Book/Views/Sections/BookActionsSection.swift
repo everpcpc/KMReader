@@ -9,19 +9,19 @@ struct BookActionsSection: View {
   let book: Book
   var seriesLink: Bool
 
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.readerActions) private var readerActions
 
   var body: some View {
     HStack {
       Button {
-        readerPresentation.present(book: book, incognito: false)
+        readerActions.open(book: book, incognito: false)
       } label: {
         Label("Read", systemImage: "book.pages")
       }
       .adaptiveButtonStyle(.borderedProminent)
 
       Button {
-        readerPresentation.present(book: book, incognito: true)
+        readerActions.open(book: book, incognito: true)
       } label: {
         Label("Read Incognito", systemImage: "eye.slash")
       }

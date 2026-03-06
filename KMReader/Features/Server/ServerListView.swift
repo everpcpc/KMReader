@@ -13,12 +13,13 @@ struct ServerListView: View {
   }
 
   private let mode: Mode
+  let authViewModel: AuthViewModel
 
-  init(mode: Mode = .management) {
+  init(authViewModel: AuthViewModel, mode: Mode = .management) {
+    self.authViewModel = authViewModel
     self.mode = mode
   }
 
-  @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
   @Query(sort: [
@@ -66,6 +67,7 @@ struct ServerListView: View {
           ForEach(instances) { instance in
             ServerRowView(
               instance: instance,
+              isGlobalSwitching: authViewModel.isSwitching,
               isSwitching: isSwitching(instance),
               isActive: isActive(instance),
               onSelect: {
@@ -121,7 +123,7 @@ struct ServerListView: View {
     #endif
     .inlineNavigationBarTitle(navigationTitle)
     .sheet(item: $editingInstance) { instance in
-      ServerEditView(instance: instance)
+      ServerEditView(instance: instance, authViewModel: authViewModel)
     }
     .alert(
       String(localized: "Delete Server"),
@@ -158,7 +160,7 @@ struct ServerListView: View {
     }
     .sheet(isPresented: $showLogin) {
       SheetView(title: String(localized: "Connect to a Server"), size: .large) {
-        LoginView()
+        LoginView(authViewModel: authViewModel)
       }
     }
     .onChange(of: isLoggedIn) { _, loggedIn in

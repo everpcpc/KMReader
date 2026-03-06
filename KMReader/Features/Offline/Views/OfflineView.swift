@@ -7,7 +7,7 @@ import SwiftData
 import SwiftUI
 
 struct OfflineView: View {
-  @Environment(AuthViewModel.self) private var authViewModel
+  let authViewModel: AuthViewModel
   @Environment(\.browseLibrarySelection) private var librarySelection
 
   @AppStorage("currentAccount") private var current: Current = .init()

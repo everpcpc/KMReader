@@ -7,7 +7,7 @@ import Flow
 import SwiftUI
 
 struct ServerView: View {
-  @Environment(AuthViewModel.self) private var authViewModel
+  let authViewModel: AuthViewModel
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
   @State private var showingUpdatePassword = false
@@ -176,8 +176,8 @@ struct ServerView: View {
             .font(.caption)
             .foregroundColor(.secondary)
 
-          if let user = authViewModel.user {
-            Text(user.email)
+          if !current.username.isEmpty {
+            Text(current.username)
               .font(.headline)
               .lineLimit(2)
           } else if let accountDisplayValue {
@@ -189,7 +189,7 @@ struct ServerView: View {
 
         Spacer()
 
-        if authViewModel.user != nil {
+        if !current.userId.isEmpty {
           Button {
             showingUpdatePassword = true
           } label: {
@@ -204,23 +204,27 @@ struct ServerView: View {
         }
       }
 
-      if let user = authViewModel.user {
+      if !current.userRoles.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
           Text(String(localized: "Roles"))
             .font(.caption)
             .foregroundColor(.secondary)
 
-          if user.userRoles.isEmpty {
-            Text(String(localized: "user.role.none"))
-              .foregroundColor(.secondary)
-              .italic()
-          } else {
-            HFlow(spacing: 8) {
-              ForEach(user.userRoles, id: \.self) { role in
-                RoleBadge(role: role)
-              }
+          HFlow(spacing: 8) {
+            ForEach(current.userRoles, id: \.self) { role in
+              RoleBadge(role: role)
             }
           }
+        }
+      } else if !current.userId.isEmpty {
+        VStack(alignment: .leading, spacing: 8) {
+          Text(String(localized: "Roles"))
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+          Text(String(localized: "user.role.none"))
+            .foregroundColor(.secondary)
+            .italic()
         }
       }
 
@@ -229,7 +233,7 @@ struct ServerView: View {
     .background(.thinMaterial)
     .clipShape(RoundedRectangle(cornerRadius: 14))
     .sheet(isPresented: $showingUpdatePassword) {
-      UpdatePasswordSheet()
+      UpdatePasswordSheet(authViewModel: authViewModel)
         .presentationDetents([.medium])
     }
   }
@@ -268,9 +272,6 @@ struct ServerView: View {
   }
 
   private var accountDisplayValue: String? {
-    if let user = authViewModel.user, !user.email.isEmpty {
-      return user.email
-    }
     if !current.username.isEmpty {
       return current.username
     }

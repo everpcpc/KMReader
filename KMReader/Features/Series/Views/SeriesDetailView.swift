@@ -16,7 +16,7 @@ struct SeriesDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
-  @Environment(ReaderPresentationManager.self) private var readerPresentation
+  @Environment(\.readerActions) private var readerActions
 
   @Query private var komgaSeriesList: [KomgaSeries]
 
@@ -256,7 +256,7 @@ extension SeriesDetailView {
         context: modelContext
       )
       if let book {
-        readerPresentation.present(book: book, incognito: false)
+        readerActions.open(book: book, incognito: false)
       }
     }
   }

@@ -7,7 +7,8 @@ import SwiftUI
 
 #if os(iOS) || os(macOS)
   struct MainSplitView: View {
-    @Environment(DeepLinkRouter.self) private var deepLinkRouter
+    let context: AppViewContext
+    @State private var deepLinkRouter = DeepLinkRouter.shared
     @State private var nav: NavDestination? = .home
     @State private var detailPath = NavigationPath()
     #if os(macOS)
@@ -32,9 +33,7 @@ import SwiftUI
       } detail: {
         NavigationStack(path: $detailPath) {
           if let nav {
-            nav.content
-              .handleNavigation()
-              .environment(\.browseLibrarySelection, librarySelection)
+            detailContent(for: nav)
           } else {
             ContentUnavailableView {
               Label(String(localized: "Select a Category"), systemImage: "sidebar.left")
@@ -53,6 +52,14 @@ import SwiftUI
         guard let link else { return }
         handleDeepLink(link)
       }
+    }
+
+    @ViewBuilder
+    private func detailContent(for nav: NavDestination) -> some View {
+      nav.content(context: context)
+        .environment(\.browseLibrarySelection, librarySelection)
+        .environment(\.readerActions, context.readerActions)
+        .handleNavigation(context: context)
     }
 
     private func handleDeepLink(_ link: DeepLink) {

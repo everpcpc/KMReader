@@ -6,10 +6,10 @@
 import SwiftUI
 
 struct BrowseView: View {
+  let authViewModel: AuthViewModel
   let fixedContent: BrowseContentType?
   let metadataFilter: MetadataFilterConfig?
 
-  @Environment(AuthViewModel.self) private var authViewModel
   @Environment(\.browseLibrarySelection) private var librarySelection
 
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
@@ -49,9 +49,11 @@ struct BrowseView: View {
   }
 
   init(
+    authViewModel: AuthViewModel,
     fixedContent: BrowseContentType? = nil,
     metadataFilter: MetadataFilterConfig? = nil
   ) {
+    self.authViewModel = authViewModel
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
   }

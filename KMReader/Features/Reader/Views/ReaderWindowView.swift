@@ -4,29 +4,30 @@
 //
 
 #if os(macOS)
-  import SwiftUI
   import AppKit
+  import SwiftUI
 
   struct ReaderWindowView: View {
-    @Environment(ReaderPresentationManager.self) private var readerPresentation
+    let readerPresentation: ReaderPresentationManager
     @Environment(\.dismissWindow) private var dismissWindow
 
     @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
 
-    @State private var readerState: BookReaderState?
     @State private var didRequestFullscreen: Bool = false
 
     var body: some View {
       Group {
-        if let state = readerState, let book = state.book {
+        if let session = readerPresentation.currentSession {
           BookReaderView(
-            book: book,
-            incognito: state.incognito,
-            readListContext: state.readListContext,
-            onClose: { ReaderWindowManager.shared.closeReader() }
+            sessionID: session.id,
+            book: session.book,
+            incognito: session.incognito,
+            readListContext: session.readListContext,
+            readerPresentation: readerPresentation,
+            onClose: { readerPresentation.closeReader() }
           )
-          .id("\(book.id)-\(state.incognito)")
-          .background(WindowTitleUpdater(book: book))
+          .id(session.id)
+          .background(WindowTitleUpdater(book: session.book))
           .background(
             WindowFullscreenUpdater(
               shouldEnterFullScreen: autoFullscreenOnOpen,
@@ -51,71 +52,49 @@
         scope: .reader
       )
       .onAppear {
-        // Get reader state from shared manager when view appears
-        readerState = ReaderWindowManager.shared.currentState
         didRequestFullscreen = false
 
-        // If state is nil (e.g., app restarted and window was restored), close the window immediately
-        if ReaderWindowManager.shared.currentState == nil {
-          ReaderWindowManager.shared.isWindowOpen = false
-          // Close window immediately without delay
+        if readerPresentation.currentSession == nil {
           dismissWindow(id: "reader")
-        } else {
-          // Mark window as open only if we have valid state
-          ReaderWindowManager.shared.isWindowOpen = true
+          return
         }
-      }
-      .onChange(of: ReaderWindowManager.shared.currentState) { oldState, newState in
-        // Update reader state when manager state changes
-        readerState = newState
 
-        // If state is set to nil, dismiss the window
-        if newState == nil {
-          // Delay dismissal slightly to allow window to respond
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            dismissWindow(id: "reader")
-          }
+        readerPresentation.handleReaderWindowAppear()
+      }
+      .onChange(of: readerPresentation.currentSession) { _, newSession in
+        guard newSession == nil else { return }
+        DispatchQueue.main.async {
+          dismissWindow(id: "reader")
         }
       }
       .onDisappear {
-        // Mark window as closed
-        ReaderWindowManager.shared.isWindowOpen = false
-        // Always clean up state when window disappears
-        // This ensures the window can be reopened even if it was manually closed
-        ReaderWindowManager.shared.closeReader()
+        readerPresentation.handleReaderWindowDisappear()
       }
     }
   }
 
-  // Helper view to update window title
   private struct WindowTitleUpdater: NSViewRepresentable {
     let book: Book?
 
     func makeNSView(context: Context) -> NSView {
-      let view = NSView()
-      return view
+      NSView()
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-      // Update title when view is updated
       updateWindowTitle(nsView: nsView)
     }
 
     private func updateWindowTitle(nsView: NSView) {
-      // Wait for window to be available
       DispatchQueue.main.async {
         guard let window = nsView.window else {
-          // If window is not available yet, try again after a short delay
           DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             updateWindowTitle(nsView: nsView)
           }
           return
         }
 
-        if let book = book {
-          let title = "\(book.seriesTitle) - \(book.metadata.title)"
-          window.title = title
-          // Also set representedURL to nil to prevent system from overriding title
+        if let book {
+          window.title = "\(book.seriesTitle) - \(book.metadata.title)"
           window.representedURL = nil
         } else {
           window.title = "Reader"
