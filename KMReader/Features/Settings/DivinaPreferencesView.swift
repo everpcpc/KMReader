@@ -21,7 +21,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
-  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast

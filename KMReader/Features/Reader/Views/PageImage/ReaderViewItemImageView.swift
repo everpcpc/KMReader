@@ -48,6 +48,9 @@ struct ReaderViewItemImageView: View {
     case .page(let id):
       return [makePageData(for: id, alignment: .center)]
     case .split(let id, let part):
+      if part == .both {
+        return splitPairPageData(for: id)
+      }
       return [
         makePageData(
           for: id,
@@ -77,6 +80,32 @@ struct ReaderViewItemImageView: View {
       alignment: alignment,
       splitMode: splitMode
     )
+  }
+
+  private func splitPairPageData(for pageID: ReaderPageID) -> [NativePageData] {
+    let firstIsLeftHalf = viewModel.isLeftSplitHalf(
+      part: .first,
+      readingDirection: readingDirection,
+      splitWidePageMode: splitWidePageMode
+    )
+    let secondIsLeftHalf = viewModel.isLeftSplitHalf(
+      part: .second,
+      readingDirection: readingDirection,
+      splitWidePageMode: splitWidePageMode
+    )
+
+    return [
+      makePageData(
+        for: pageID,
+        alignment: .trailing,
+        splitMode: firstIsLeftHalf ? .leftHalf : .rightHalf
+      ),
+      makePageData(
+        for: pageID,
+        alignment: .leading,
+        splitMode: secondIsLeftHalf ? .leftHalf : .rightHalf
+      ),
+    ]
   }
 
   private func splitMode(for part: ReaderSplitPart) -> PageSplitMode {
