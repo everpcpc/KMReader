@@ -175,7 +175,7 @@ struct MediaAnalysisView: View {
               .foregroundColor(.secondary)
           }
 
-          if let comment = book.media.comment, !comment.isEmpty {
+          if let comment = book.media.localizedComment {
             Text(comment)
               .font(.caption)
               .foregroundColor(.secondary)

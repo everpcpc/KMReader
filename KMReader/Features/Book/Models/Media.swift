@@ -103,6 +103,10 @@ nonisolated struct Media: Equatable, Hashable, Sendable {
     return MediaProfile(rawValue: mediaProfile) ?? .unknown
   }
 
+  var localizedComment: String? {
+    KomgaErrorCodeFormatter.localizedMessage(for: comment)
+  }
+
   init(
     status: String,
     mediaType: String,

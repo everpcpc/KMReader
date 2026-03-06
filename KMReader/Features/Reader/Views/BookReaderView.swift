@@ -110,7 +110,7 @@ struct BookReaderView: View {
             ReaderUnavailableView(
               icon: mediaStatus.icon,
               title: LocalizedStringKey(mediaStatus.message),
-              message: book.media.comment,
+              message: book.media.localizedComment,
               onClose: closeReader
             )
           }

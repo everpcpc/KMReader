@@ -323,9 +323,9 @@ struct OneShotDetailContentView: View {
             Spacer()
           }
 
-          if let comment = book.media.comment, !comment.isEmpty {
+          if let comment = book.media.localizedComment {
             VStack(alignment: .leading, spacing: 2) {
-              Image("exclamationmark.triangle")
+              Image(systemName: "exclamationmark.triangle")
                 .font(.caption)
                 .foregroundColor(.orange)
               Text(comment)
