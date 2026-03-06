@@ -496,6 +496,7 @@
           nextVC.view.frame = container.view.bounds
           nextVC.view.layer.zPosition = 0
           nextVC.view.isHidden = true
+          warmAdjacentController(nextVC)
         } else {
           nextController = nil
         }
@@ -513,6 +514,7 @@
           prevVC.view.frame = container.view.bounds
           prevVC.view.layer.zPosition = 0
           prevVC.view.isHidden = true
+          warmAdjacentController(prevVC)
         } else {
           previousController = nil
         }
@@ -532,6 +534,11 @@
         parent.view.addSubview(child.view)
         child.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         child.didMove(toParent: parent)
+      }
+
+      private func warmAdjacentController(_ controller: EpubPageViewController) {
+        controller.loadViewIfNeeded()
+        controller.forceEnsureContentLoaded()
       }
 
       private func removeChildController(_ child: EpubPageViewController?, from parent: UIViewController) {
@@ -791,6 +798,7 @@
           newNextVC.view.frame = container.view.bounds
           newNextVC.view.layer.zPosition = 0
           newNextVC.view.isHidden = true
+          warmAdjacentController(newNextVC)
         }
 
         transitionDirection = nil
@@ -856,6 +864,7 @@
           newPrevVC.view.frame = container.view.bounds
           newPrevVC.view.layer.zPosition = 0
           newPrevVC.view.isHidden = true
+          warmAdjacentController(newPrevVC)
         }
 
         transitionDirection = nil
