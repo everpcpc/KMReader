@@ -334,12 +334,10 @@
     }
 
     private func isCurrentAnimatedInlineTarget(viewModel: ReaderViewModel) -> Bool {
-      guard let currentViewItem = viewModel.currentViewItem(),
-        let pagePairIDs = currentViewItem.pagePairIDs
-      else {
+      guard let currentViewItem = viewModel.currentViewItem() else {
         return false
       }
-      return pagePairIDs.first == pageID || pagePairIDs.second == pageID
+      return currentViewItem.pageIDs.contains(pageID)
     }
 
     private func cancelAnimatedInlinePreparation() {

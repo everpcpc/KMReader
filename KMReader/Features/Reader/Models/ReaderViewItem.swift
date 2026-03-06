@@ -18,6 +18,19 @@ extension ReaderViewItem {
     return false
   }
 
+  var pageIDs: [ReaderPageID] {
+    switch self {
+    case .page(let id):
+      return [id]
+    case .split(let id, _):
+      return [id]
+    case .dual(let firstID, let secondID):
+      return [firstID, secondID]
+    case .end:
+      return []
+    }
+  }
+
   var pageID: ReaderPageID {
     switch self {
     case .page(let id):

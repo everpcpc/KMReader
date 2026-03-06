@@ -663,7 +663,7 @@ struct CoverPageView: View {
       let shouldPreload = await MainActor.run { () -> Bool in
         guard token == transitionToken else { return false }
         guard currentItem == item else { return false }
-        preloadVisiblePages(for: item)
+        preloadPresentationWindow(around: item)
         return true
       }
       guard shouldPreload else { return }
@@ -672,26 +672,32 @@ struct CoverPageView: View {
     }
   }
 
-  private func preloadVisiblePages(for item: ReaderViewItem) {
-    let visiblePageIndices: [Int]
-    switch item {
-    case .page(let id):
-      visiblePageIndices = [viewModel.pageIndex(for: id)].compactMap { $0 }
-    case .split(let id, _):
-      visiblePageIndices = [viewModel.pageIndex(for: id)].compactMap { $0 }
-    case .dual(let first, let second):
-      visiblePageIndices = [viewModel.pageIndex(for: first), viewModel.pageIndex(for: second)].compactMap {
-        $0
+  private func preloadPresentationWindow(around item: ReaderViewItem) {
+    let candidateItems = [
+      item,
+      viewModel.adjacentViewItem(from: item, offset: 1),
+      viewModel.adjacentViewItem(from: item, offset: -1),
+    ].compactMap { $0 }
+
+    var pageIndices: [Int] = []
+    var seenPageIDs: Set<ReaderPageID> = []
+    for candidateItem in candidateItems {
+      for pageID in candidateItem.pageIDs where seenPageIDs.insert(pageID).inserted {
+        if let pageIndex = viewModel.pageIndex(for: pageID) {
+          pageIndices.append(pageIndex)
+        }
       }
-    case .end:
-      visiblePageIndices = []
     }
 
-    guard !visiblePageIndices.isEmpty else { return }
+    guard !pageIndices.isEmpty else { return }
 
-    Task(priority: .utility) {
-      for pageIndex in visiblePageIndices {
-        _ = await viewModel.preloadImageForPage(at: pageIndex)
+    Task(priority: .userInitiated) {
+      await withTaskGroup(of: Void.self) { group in
+        for pageIndex in pageIndices {
+          group.addTask {
+            _ = await viewModel.preloadImageForPage(at: pageIndex)
+          }
+        }
       }
     }
   }

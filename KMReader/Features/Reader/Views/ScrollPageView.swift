@@ -415,17 +415,7 @@ struct ScrollPageView: View {
   }
 
   private func preloadVisiblePages(for item: ReaderViewItem) {
-    let visiblePageIndices: [Int]
-    switch item {
-    case .page(let id):
-      visiblePageIndices = [viewModel.pageIndex(for: id)].compactMap { $0 }
-    case .split(let id, _):
-      visiblePageIndices = [viewModel.pageIndex(for: id)].compactMap { $0 }
-    case .dual(let first, let second):
-      visiblePageIndices = [viewModel.pageIndex(for: first), viewModel.pageIndex(for: second)].compactMap { $0 }
-    case .end:
-      visiblePageIndices = []
-    }
+    let visiblePageIndices = item.pageIDs.compactMap { viewModel.pageIndex(for: $0) }
 
     guard !visiblePageIndices.isEmpty else { return }
 

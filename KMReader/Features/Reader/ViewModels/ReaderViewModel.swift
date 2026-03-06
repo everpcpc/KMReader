@@ -720,7 +720,6 @@ class ReaderViewModel {
 
       // Update page pairs and dual page indices after loading pages
       regenerateViewState()
-
       await ensureTableOfContentsLoaded(for: book)
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -1446,19 +1445,12 @@ class ReaderViewModel {
   }
 
   func focusAnimatedPlayback(for viewItem: ReaderViewItem?) async {
-    guard let viewItem,
-      !viewItem.isEnd,
-      let pagePairIDs = viewItem.pagePairIDs
-    else {
+    guard let viewItem, !viewItem.isEnd else {
       await focusAnimatedPlayback(on: nil)
       return
     }
 
-    var pageIDs: Set<ReaderPageID> = [pagePairIDs.first]
-    if let secondPageID = pagePairIDs.second {
-      pageIDs.insert(secondPageID)
-    }
-    await focusAnimatedPlayback(on: pageIDs)
+    await focusAnimatedPlayback(on: Set(viewItem.pageIDs))
   }
 
   func animatedPlaybackFileURL(for pageID: ReaderPageID) -> URL? {
