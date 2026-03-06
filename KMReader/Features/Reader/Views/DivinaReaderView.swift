@@ -17,7 +17,7 @@ struct DivinaReaderView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
-  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -551,12 +551,7 @@ struct DivinaReaderView: View {
     useDualPage: Bool,
     screenKey: String
   ) -> some View {
-    #if os(iOS)
-      let useSplitPairInDualMode = pageTransitionStyle == .pageCurl && useDualPage
-    #else
-      let useSplitPairInDualMode = false
-    #endif
-    let _ = viewModel.updateCombineSplitWidePagePairInDualMode(useSplitPairInDualMode)
+    let _ = viewModel.updateCombineSplitWidePagePairInDualMode(useDualPage)
     let _ = viewModel.updateActualDualPageMode(useDualPage)
 
     Group {

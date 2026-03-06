@@ -16,7 +16,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
-  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
+  @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true

@@ -646,7 +646,7 @@ enum AppConfig {
       {
         return style
       }
-      return .scroll
+      return .cover
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "pageTransitionStyle")
