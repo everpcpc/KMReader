@@ -222,6 +222,7 @@ struct MediaAnalysisView: View {
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
     libraries = await DatabaseOperator.shared.fetchLibraries(instanceId: instanceId)
+      .filter { $0.id != KomgaLibrary.allLibrariesId }
   }
 
   private func loadData(refresh: Bool) async {
