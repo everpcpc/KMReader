@@ -3,7 +3,6 @@
 //
 
 #if os(iOS)
-  import AVFoundation
   import SwiftUI
   import UIKit
 
@@ -30,19 +29,14 @@
     private let scrollView = UIScrollView()
     private let pageItem = NativePageItem()
     private let animatedInlineContainer = UIView()
-    private let animatedInlinePlayerView = AnimatedInlinePlayerView()
 
     private var loadTask: Task<Void, Never>?
     private var animatedInlinePreparationTask: Task<Void, Never>?
-    private var animatedInlineProgressTask: Task<Void, Never>?
 
     private var lastConfiguredPageID: ReaderPageID?
     private var loadError: String?
     private var isVisibleForAnimatedInlinePlayback = false
-    private var animatedInlineCurrentURL: URL?
-    private var animatedInlinePlayer: AVQueuePlayer?
-    private var animatedInlineLooper: AVPlayerLooper?
-    private var animatedInlineStatusObserver: NSKeyValueObservation?
+    private let animatedImageController = AnimatedImagePlayerController()
 
     func configure(
       viewModel: ReaderViewModel,
@@ -103,7 +97,6 @@
     deinit {
       loadTask?.cancel()
       animatedInlinePreparationTask?.cancel()
-      animatedInlineProgressTask?.cancel()
     }
 
     private func setupUI() {
@@ -142,41 +135,14 @@
       animatedInlineContainer.backgroundColor = .clear
       animatedInlineContainer.isHidden = true
       animatedInlineContainer.isUserInteractionEnabled = false
+      animatedInlineContainer.layer.contentsGravity = .resizeAspect
       view.addSubview(animatedInlineContainer)
-
-      animatedInlinePlayerView.translatesAutoresizingMaskIntoConstraints = false
-      animatedInlinePlayerView.playerLayer.videoGravity = .resizeAspect
-      animatedInlineContainer.addSubview(animatedInlinePlayerView)
 
       NSLayoutConstraint.activate([
         animatedInlineContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
         animatedInlineContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         animatedInlineContainer.topAnchor.constraint(equalTo: view.topAnchor),
         animatedInlineContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        animatedInlinePlayerView.leadingAnchor.constraint(equalTo: animatedInlineContainer.leadingAnchor),
-        animatedInlinePlayerView.trailingAnchor.constraint(equalTo: animatedInlineContainer.trailingAnchor),
-        animatedInlinePlayerView.topAnchor.constraint(equalTo: animatedInlineContainer.topAnchor),
-        animatedInlinePlayerView.bottomAnchor.constraint(equalTo: animatedInlineContainer.bottomAnchor),
-      ])
-
-      let progressLabel = UILabel()
-      progressLabel.translatesAutoresizingMaskIntoConstraints = false
-      progressLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
-      progressLabel.textColor = .secondaryLabel
-      progressLabel.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.72)
-      progressLabel.textAlignment = .center
-      progressLabel.layer.cornerRadius = 8
-      progressLabel.layer.masksToBounds = true
-      progressLabel.isHidden = true
-      progressLabel.accessibilityIdentifier = "animated-transcode-progress"
-      animatedInlineContainer.addSubview(progressLabel)
-      animatedInlineProgressLabel = progressLabel
-
-      NSLayoutConstraint.activate([
-        progressLabel.centerXAnchor.constraint(equalTo: animatedInlineContainer.centerXAnchor),
-        progressLabel.centerYAnchor.constraint(equalTo: animatedInlineContainer.centerYAnchor),
-        progressLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 56),
-        progressLabel.heightAnchor.constraint(equalToConstant: 26),
       ])
     }
 
@@ -205,11 +171,9 @@
         loadError = nil
       }
 
-      let isAnimatedLoading = shouldShowAnimatedLoading(viewModel: viewModel, readerPage: readerPage)
       let isLoading =
         loadTask != nil
         || (image == nil && readerPage != nil && loadError == nil)
-        || isAnimatedLoading
       let data = NativePageData(
         pageID: pageID,
         isLoading: isLoading,
@@ -274,12 +238,12 @@
         hideAnimatedInlinePlayback()
         return
       }
-      guard let fileURL = viewModel.animatedPlaybackFileURL(for: pageID) else {
+      guard let sourceFileURL = viewModel.animatedSourceFileURL(for: pageID) else {
         hideAnimatedInlinePlayback()
         return
       }
 
-      startAnimatedInlinePlayback(fileURL: fileURL)
+      startAnimatedInlinePlayback(sourceFileURL: sourceFileURL)
     }
 
     private func prepareAnimatedInlinePlaybackIfNeeded() {
@@ -290,47 +254,29 @@
         hideAnimatedInlinePlayback()
         return
       }
+
       guard let readerPage = viewModel.readerPage(for: pageID) else { return }
       guard readerPage.page.isAnimatedImageCandidate else { return }
       guard viewModel.shouldPrepareAnimatedPlayback(for: pageID) else { return }
-      guard viewModel.animatedPlaybackFileURL(for: pageID) == nil else { return }
+      guard viewModel.animatedSourceFileURL(for: pageID) == nil else { return }
       guard animatedInlinePreparationTask == nil else { return }
 
       let requestedPageID = pageID
       animatedInlinePreparationTask = Task { [weak self] in
         guard let self else { return }
-        self.startAnimatedInlineProgressTracking(for: requestedPageID, viewModel: viewModel)
         if let currentViewItem = viewModel.currentViewItem() {
-          await viewModel.focusAnimatedPlayback(for: currentViewItem)
+          viewModel.focusAnimatedPlayback(for: currentViewItem)
         } else {
-          await viewModel.focusAnimatedPlayback(on: requestedPageID)
+          viewModel.focusAnimatedPlayback(on: requestedPageID)
         }
         guard !Task.isCancelled else { return }
         guard self.pageID == requestedPageID else { return }
-        _ = await viewModel.prepareAnimatedPagePlaybackURL(pageID: requestedPageID)
+        await viewModel.prepareAnimatedPagePlaybackURL(pageID: requestedPageID)
         guard !Task.isCancelled else { return }
         guard self.pageID == requestedPageID else { return }
         self.animatedInlinePreparationTask = nil
-        self.stopAnimatedInlineProgressTracking()
         self.refreshPageItem()
       }
-    }
-
-    private func shouldShowAnimatedLoading(
-      viewModel: ReaderViewModel,
-      readerPage: ReaderPage?
-    ) -> Bool {
-      guard isVisibleForAnimatedInlinePlayback else { return false }
-      guard isCurrentAnimatedInlineTarget(viewModel: viewModel) else { return false }
-      guard viewModel.animatedPlaybackFileURL(for: pageID) == nil else { return false }
-
-      if viewModel.isAnimatedPlaybackLoading(for: pageID) {
-        return true
-      }
-      if readerPage?.page.isAnimatedImageCandidate == true {
-        return animatedInlinePreparationTask != nil
-      }
-      return false
     }
 
     private func isCurrentAnimatedInlineTarget(viewModel: ReaderViewModel) -> Bool {
@@ -343,130 +289,19 @@
     private func cancelAnimatedInlinePreparation() {
       animatedInlinePreparationTask?.cancel()
       animatedInlinePreparationTask = nil
-      stopAnimatedInlineProgressTracking()
     }
 
     private func hideAnimatedInlinePlayback() {
       animatedInlineContainer.isHidden = true
-      updateAnimatedInlineProgressLabel(nil)
-      stopAnimatedInlinePlayback()
+      animatedImageController.stop()
     }
 
-    private func startAnimatedInlinePlayback(fileURL: URL) {
-      if animatedInlineCurrentURL == fileURL, let player = animatedInlinePlayer {
-        if animatedInlinePlayerView.playerLayer.player !== player {
-          animatedInlinePlayerView.playerLayer.player = player
-        }
-        animatedInlinePlayerView.alpha = 1
-        player.play()
-        animatedInlineContainer.isHidden = false
-        return
-      }
-
-      stopAnimatedInlinePlayback()
+    private func startAnimatedInlinePlayback(sourceFileURL: URL) {
       animatedInlineContainer.isHidden = false
-      animatedInlinePlayerView.alpha = 0
-
-      let item = AVPlayerItem(url: fileURL)
-      let player = AVQueuePlayer()
-      player.isMuted = true
-      player.actionAtItemEnd = .none
-      player.automaticallyWaitsToMinimizeStalling = false
-
-      animatedInlineLooper = AVPlayerLooper(player: player, templateItem: item)
-      animatedInlineStatusObserver = item.observe(\.status, options: [.initial, .new]) {
-        [weak self] observedItem, _ in
-        guard let self else { return }
-        Task { @MainActor in
-          guard self.animatedInlineCurrentURL == fileURL else { return }
-          switch observedItem.status {
-          case .readyToPlay, .failed:
-            self.animatedInlinePlayerView.alpha = 1
-            self.animatedInlineContainer.isHidden = false
-          default:
-            break
-          }
-        }
-      }
-
-      animatedInlineCurrentURL = fileURL
-      animatedInlinePlayer = player
-      animatedInlinePlayerView.playerLayer.player = player
-      player.play()
-    }
-
-    private func stopAnimatedInlinePlayback() {
-      animatedInlinePlayerView.alpha = 0
-      animatedInlineStatusObserver?.invalidate()
-      animatedInlineStatusObserver = nil
-      animatedInlineLooper = nil
-      animatedInlinePlayer?.pause()
-      animatedInlinePlayer?.removeAllItems()
-      animatedInlinePlayer = nil
-      animatedInlineCurrentURL = nil
-      animatedInlinePlayerView.playerLayer.player = nil
-      updateAnimatedInlineProgressLabel(nil)
-    }
-
-    private weak var animatedInlineProgressLabel: UILabel?
-
-    private func startAnimatedInlineProgressTracking(
-      for requestedPageID: ReaderPageID,
-      viewModel: ReaderViewModel
-    ) {
-      stopAnimatedInlineProgressTracking()
-      animatedInlineProgressTask = Task { [weak self] in
-        guard let self else { return }
-        var hasEnteredLoadingPhase = false
-        while !Task.isCancelled {
-          guard self.pageID == requestedPageID else { return }
-          if viewModel.animatedPlaybackFileURL(for: requestedPageID) != nil { break }
-
-          let isLoading = viewModel.isAnimatedPlaybackLoading(for: requestedPageID)
-          if isLoading {
-            hasEnteredLoadingPhase = true
-          }
-          let progress = await viewModel.animatedPlaybackProgress(for: requestedPageID)
-          guard !Task.isCancelled else { return }
-          guard self.pageID == requestedPageID else { return }
-
-          if let progress {
-            self.updateAnimatedInlineProgressLabel(progress)
-          } else if isLoading || !hasEnteredLoadingPhase {
-            self.updateAnimatedInlineProgressLabel(0)
-          } else {
-            break
-          }
-
-          try? await Task.sleep(nanoseconds: 120_000_000)
-        }
-        self.updateAnimatedInlineProgressLabel(nil)
-      }
-    }
-
-    private func stopAnimatedInlineProgressTracking() {
-      animatedInlineProgressTask?.cancel()
-      animatedInlineProgressTask = nil
-      updateAnimatedInlineProgressLabel(nil)
-    }
-
-    private func updateAnimatedInlineProgressLabel(_ progress: Double?) {
-      Task { @MainActor [weak self] in
-        self?.applyAnimatedInlineProgressLabel(progress)
-      }
-    }
-
-    @MainActor
-    private func applyAnimatedInlineProgressLabel(_ progress: Double?) {
-      guard let progress else {
-        animatedInlineProgressLabel?.isHidden = true
-        animatedInlineProgressLabel?.text = nil
-        return
-      }
-      let clampedProgress = min(max(progress, 0), 1)
-      let percentage = Int((clampedProgress * 100).rounded())
-      animatedInlineProgressLabel?.text = " \(percentage)% "
-      animatedInlineProgressLabel?.isHidden = false
+      animatedImageController.start(
+        sourceFileURL: sourceFileURL,
+        targetLayer: animatedInlineContainer.layer
+      )
     }
 
     @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
@@ -514,16 +349,6 @@
       let width = scrollView.frame.size.width / scale
       let height = scrollView.frame.size.height / scale
       return CGRect(x: center.x - width / 2, y: center.y - height / 2, width: width, height: height)
-    }
-
-    private final class AnimatedInlinePlayerView: UIView {
-      override class var layerClass: AnyClass {
-        AVPlayerLayer.self
-      }
-
-      var playerLayer: AVPlayerLayer {
-        layer as! AVPlayerLayer
-      }
     }
   }
 #endif

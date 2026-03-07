@@ -17,11 +17,6 @@ import UniformTypeIdentifiers
 @MainActor
 @Observable
 class ReaderViewModel {
-  private struct AnimatedPlaybackPreparationTask {
-    let sourceFileURL: URL
-    let token: UUID
-    let task: Task<URL?, Never>
-  }
 
   var readerPages: [ReaderPage] = []
   private(set) var segments: [ReaderSegment] = []
@@ -52,8 +47,6 @@ class ReaderViewModel {
   private var animatedPageStates: [ReaderPageID: Bool] = [:]
   /// Source file URL for animated pages keyed by reader page ID.
   private var animatedPageSourceFileURLs: [ReaderPageID: URL] = [:]
-  /// Local MP4 file URL for animated page playback keyed by reader page ID.
-  private var animatedPageFileURLs: [ReaderPageID: URL] = [:]
   private var animatedPlaybackFocusedPageIDs: Set<ReaderPageID> = []
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
@@ -68,7 +61,6 @@ class ReaderViewModel {
   private var downloadingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
   private var upscalingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
   private var preloadingImageTasks: [ReaderPageID: Task<PlatformImage?, Never>] = [:]
-  private var animatedPlaybackPreparationTasks: [ReaderPageID: AnimatedPlaybackPreparationTask] = [:]
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
   private var segmentPageRangeByBookId: [String: Range<Int>] = [:]
   private(set) var readerPagesVersion: Int = 0
@@ -557,13 +549,6 @@ class ReaderViewModel {
       task.cancel()
     }
     preloadingImageTasks.removeAll()
-    for (_, preparation) in animatedPlaybackPreparationTasks {
-      preparation.task.cancel()
-    }
-    animatedPlaybackPreparationTasks.removeAll()
-    Task {
-      await AnimatedImageVideoTranscoder.shared.cancelAll()
-    }
 
     preloadedImagesByID.removeAll()
     isolatePages.removeAll()
@@ -577,7 +562,6 @@ class ReaderViewModel {
     segmentPageRangeByBookId.removeAll()
     animatedPageStates.removeAll()
     animatedPageSourceFileURLs.removeAll()
-    animatedPageFileURLs.removeAll()
     animatedPlaybackFocusedPageIDs.removeAll()
     liveTextActivePageIndex = nil
     currentPageID = nil
@@ -1017,7 +1001,6 @@ class ReaderViewModel {
 
       let animatedKeysToRemove = Set(animatedPageStates.keys)
         .union(animatedPageSourceFileURLs.keys)
-        .union(animatedPageFileURLs.keys)
         .filter { !keepPageIDs.contains($0) }
 
       if !animatedKeysToRemove.isEmpty {
@@ -1373,16 +1356,8 @@ class ReaderViewModel {
     return nil
   }
 
-  func isAnimatedPlaybackLoading(for pageID: ReaderPageID) -> Bool {
-    guard animatedPageStates[pageID] == true else { return false }
-    guard animatedPlaybackFileURL(for: pageID) == nil else { return false }
-    return animatedPlaybackPreparationTasks[pageID] != nil
-  }
-
-  func animatedPlaybackProgress(for pageID: ReaderPageID) async -> Double? {
-    guard isAnimatedPlaybackLoading(for: pageID) else { return nil }
-    guard let sourceFileURL = animatedPageSourceFileURLs[pageID] else { return nil }
-    return await AnimatedImageVideoTranscoder.shared.progress(for: sourceFileURL)
+  func isAnimatedPage(for pageID: ReaderPageID) -> Bool {
+    animatedPageStates[pageID] == true
   }
 
   func shouldPrepareAnimatedPlayback(for pageID: ReaderPageID) -> Bool {
@@ -1395,150 +1370,60 @@ class ReaderViewModel {
 
   private func clearAnimatedPlaybackState(for pageID: ReaderPageID) {
     animatedPageSourceFileURLs.removeValue(forKey: pageID)
-    animatedPageFileURLs.removeValue(forKey: pageID)
-    cancelAnimatedPlaybackPreparation(for: pageID)
   }
 
-  private func applyResolvedAnimatedPlaybackURL(_ resolvedURL: URL?, for pageID: ReaderPageID) {
-    if let resolvedURL, FileManager.default.fileExists(atPath: resolvedURL.path) {
-      animatedPageFileURLs[pageID] = resolvedURL
-    } else {
-      animatedPageFileURLs.removeValue(forKey: pageID)
-    }
-  }
-
-  private func finalizeAnimatedPlaybackPreparation(
-    for pageID: ReaderPageID,
-    resolvedURL: URL?
-  ) {
-    applyResolvedAnimatedPlaybackURL(resolvedURL, for: pageID)
-  }
-
-  private func makeAnimatedPlaybackPreparationTask(
-    pageID: ReaderPageID,
-    sourceFileURL: URL
-  ) -> AnimatedPlaybackPreparationTask {
-    let conversionTask = Task<URL?, Never> { [sourceFileURL] in
-      await AnimatedImageVideoTranscoder.shared.prepareVideoURL(for: sourceFileURL)
-    }
-    let preparation = AnimatedPlaybackPreparationTask(
-      sourceFileURL: sourceFileURL,
-      token: UUID(),
-      task: conversionTask
-    )
-    animatedPlaybackPreparationTasks[pageID] = preparation
-    return preparation
-  }
-
-  private func cancelAnimatedPlaybackPreparations(except focusedPageIDs: Set<ReaderPageID>) {
-    let stalePageIDs = animatedPlaybackPreparationTasks.keys.filter { !focusedPageIDs.contains($0) }
-    for stalePageID in stalePageIDs {
-      cancelAnimatedPlaybackPreparation(for: stalePageID)
-    }
-  }
-
-  func focusAnimatedPlayback(on pageID: ReaderPageID?) async {
+  func focusAnimatedPlayback(on pageID: ReaderPageID?) {
     if let pageID {
-      await focusAnimatedPlayback(on: [pageID])
+      focusAnimatedPlayback(on: [pageID])
     } else {
-      await focusAnimatedPlayback(on: [])
+      focusAnimatedPlayback(on: [])
     }
   }
 
-  private func focusAnimatedPlayback(on pageIDs: Set<ReaderPageID>) async {
+  private func focusAnimatedPlayback(on pageIDs: Set<ReaderPageID>) {
     guard animatedPlaybackFocusedPageIDs != pageIDs else { return }
     animatedPlaybackFocusedPageIDs = pageIDs
-    cancelAnimatedPlaybackPreparations(except: pageIDs)
-    let keptSourceFileURLs = Set(pageIDs.compactMap { animatedPageSourceFileURLs[$0] })
-    await AnimatedImageVideoTranscoder.shared.cancelAll(exceptSourceFileURLs: keptSourceFileURLs)
   }
 
-  func focusAnimatedPlayback(for viewItem: ReaderViewItem?) async {
+  func focusAnimatedPlayback(for viewItem: ReaderViewItem?) {
     guard let viewItem, !viewItem.isEnd else {
-      await focusAnimatedPlayback(on: nil)
+      focusAnimatedPlayback(on: nil)
       return
     }
-
-    await focusAnimatedPlayback(on: Set(viewItem.pageIDs))
+    focusAnimatedPlayback(on: Set(viewItem.pageIDs))
   }
 
-  func animatedPlaybackFileURL(for pageID: ReaderPageID) -> URL? {
-    guard let fileURL = animatedPageFileURLs[pageID] else {
-      return nil
-    }
+  func animatedSourceFileURL(for pageID: ReaderPageID) -> URL? {
+    guard animatedPageStates[pageID] == true else { return nil }
+    guard let fileURL = animatedPageSourceFileURLs[pageID] else { return nil }
     guard FileManager.default.fileExists(atPath: fileURL.path) else {
-      animatedPageFileURLs.removeValue(forKey: pageID)
       return nil
     }
     return fileURL
   }
 
-  private func resolveAnimatedPlaybackFileURL(pageID: ReaderPageID, sourceFileURL: URL) async -> URL? {
-    if let cachedURL = animatedPageFileURLs[pageID], FileManager.default.fileExists(atPath: cachedURL.path) {
-      return cachedURL
-    }
-
-    if let existingPreparation = animatedPlaybackPreparationTasks[pageID] {
-      if existingPreparation.sourceFileURL == sourceFileURL {
-        let resolvedURL = await existingPreparation.task.value
-        guard !Task.isCancelled else { return nil }
-        finalizeAnimatedPlaybackPreparation(
-          for: pageID,
-          resolvedURL: resolvedURL
-        )
-        if animatedPlaybackPreparationTasks[pageID]?.token == existingPreparation.token {
-          animatedPlaybackPreparationTasks.removeValue(forKey: pageID)
-        }
-        return animatedPageFileURLs[pageID]
-      }
-      existingPreparation.task.cancel()
-      animatedPlaybackPreparationTasks.removeValue(forKey: pageID)
-    }
-
-    let preparation = makeAnimatedPlaybackPreparationTask(pageID: pageID, sourceFileURL: sourceFileURL)
-    let resolvedURL = await preparation.task.value
-    guard !Task.isCancelled else { return nil }
-    guard animatedPageSourceFileURLs[pageID] == sourceFileURL else { return nil }
-    finalizeAnimatedPlaybackPreparation(
-      for: pageID,
-      resolvedURL: resolvedURL
-    )
-    if animatedPlaybackPreparationTasks[pageID]?.token == preparation.token {
-      animatedPlaybackPreparationTasks.removeValue(forKey: pageID)
-    }
-    return animatedPageFileURLs[pageID]
+  func prepareAnimatedPagePlaybackURL(pageID: ReaderPageID) async {
+    guard let pageIndex = pageIndex(for: pageID) else { return }
+    await prepareAnimatedPagePlaybackURL(pageIndex: pageIndex)
   }
 
-  private func cancelAnimatedPlaybackPreparation(for pageID: ReaderPageID) {
-    guard let preparation = animatedPlaybackPreparationTasks.removeValue(forKey: pageID) else { return }
-    preparation.task.cancel()
-  }
-
-  func prepareAnimatedPagePlaybackURL(pageID: ReaderPageID) async -> URL? {
-    guard let pageIndex = pageIndex(for: pageID) else { return nil }
-    return await prepareAnimatedPagePlaybackURL(pageIndex: pageIndex)
-  }
-
-  /// Resolve local file URL for animated playback. Returns nil when this page is not animated.
-  private func prepareAnimatedPagePlaybackURL(pageIndex: Int) async -> URL? {
-    guard pageIndex >= 0 && pageIndex < readerPages.count else { return nil }
-    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
+  private func prepareAnimatedPagePlaybackURL(pageIndex: Int) async {
+    guard pageIndex >= 0 && pageIndex < readerPages.count else { return }
+    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return }
     let page = readerPages[pageIndex].page
     guard page.isAnimatedImageCandidate else {
       animatedPageStates[pageID] = false
       clearAnimatedPlaybackState(for: pageID)
-      return nil
+      return
     }
 
-    guard let fileURL = await getPageImageFileURL(pageIndex: pageIndex) else { return nil }
+    guard let fileURL = await getPageImageFileURL(pageIndex: pageIndex) else { return }
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
     animatedPageStates[pageID] = isAnimated
     if isAnimated {
       setAnimatedSourceFileURL(fileURL, for: pageID)
-      return await resolveAnimatedPlaybackFileURL(pageID: pageID, sourceFileURL: fileURL)
     } else {
       clearAnimatedPlaybackState(for: pageID)
-      return nil
     }
   }
 
@@ -1594,17 +1479,9 @@ class ReaderViewModel {
       task.cancel()
     }
     preloadingImageTasks.removeAll()
-    for (_, preparation) in animatedPlaybackPreparationTasks {
-      preparation.task.cancel()
-    }
-    animatedPlaybackPreparationTasks.removeAll()
-    Task {
-      await AnimatedImageVideoTranscoder.shared.cancelAll()
-    }
     preloadedImagesByID.removeAll()
     animatedPageStates.removeAll()
     animatedPageSourceFileURLs.removeAll()
-    animatedPageFileURLs.removeAll()
     animatedPlaybackFocusedPageIDs.removeAll()
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
   }
