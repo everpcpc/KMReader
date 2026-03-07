@@ -1045,6 +1045,32 @@ class ReaderViewModel {
     return await ImageDecodeHelper.decodeForDisplay(image)
   }
 
+  private func loadPosterImageFromAnimatedFile(fileURL: URL) async -> PlatformImage? {
+    let image = await Task.detached(priority: .userInitiated) { () -> PlatformImage? in
+      guard let decoder = AnimatedImageFrameDecoder(fileURL: fileURL) else {
+        return nil
+      }
+      guard let posterFrame = decoder.posterFrame else {
+        return nil
+      }
+
+      #if os(macOS)
+        return NSImage(
+          cgImage: posterFrame,
+          size: NSSize(width: posterFrame.width, height: posterFrame.height)
+        )
+      #else
+        return UIImage(cgImage: posterFrame)
+      #endif
+    }.value
+
+    guard let image else {
+      return nil
+    }
+
+    return await ImageDecodeHelper.decodeForDisplay(image)
+  }
+
   private func preloadDecodedPageImage(pageIndex: Int) async -> (PlatformImage?, Bool, URL?) {
     guard let readerPage = readerPage(at: pageIndex) else {
       return (nil, false, nil)
@@ -1057,6 +1083,15 @@ class ReaderViewModel {
 
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: sourceFileURL)
     let animatedSourceFileURL = isAnimated ? sourceFileURL : nil
+    if isAnimated {
+      if let posterImage = await loadPosterImageFromAnimatedFile(fileURL: sourceFileURL) {
+        return (posterImage, true, animatedSourceFileURL)
+      }
+
+      let fallbackImage = await loadImageFromFile(fileURL: sourceFileURL)
+      return (fallbackImage, true, animatedSourceFileURL)
+    }
+
     let preferredFileURL = await preferredDisplayImageFileURL(
       page: page,
       pageID: readerPage.id,

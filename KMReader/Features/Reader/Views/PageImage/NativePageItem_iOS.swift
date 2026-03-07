@@ -55,7 +55,9 @@
         analysisSourceImage = nil
       #endif
       updateAnimatedPlayback(sourceFileURL: nil)
+      imageView.isHidden = false
       imageView.image = nil
+      animatedInlineContainer.layer.contents = nil
       updateSepiaOverlay()
     }
 
@@ -75,8 +77,8 @@
             analysisSourceImage = pageSourceImage
           #endif
           imageView.image = pageSourceImage
-          updateSepiaOverlay()
         }
+        updateAnimatedPresentationState(isActive: currentData?.animatedSourceFileURL != nil)
         updateAnimatedPlayback(sourceFileURL: currentData?.animatedSourceFileURL)
         #if !os(tvOS)
           if enableLiveText {
@@ -157,7 +159,8 @@
       self.readingDirection = readingDirection
       self.displayMode = displayMode
       self.readerBackground = background
-      self.enableLiveText = enableLiveText
+      let shouldEnableLiveText = enableLiveText && !viewModel.isAnimatedPage(for: data.pageID)
+      self.enableLiveText = shouldEnableLiveText
 
       let pageSourceImage: PlatformImage?
       if let image = image, data.splitMode != .none {
@@ -167,12 +170,11 @@
       }
 
       #if !os(tvOS)
-        analysisSourceImage = pageSourceImage
+        analysisSourceImage = shouldEnableLiveText ? pageSourceImage : nil
       #endif
 
       imageView.image = pageSourceImage
-      updateSepiaOverlay()
-      imageView.layer.shadowOpacity = pageSourceImage == nil ? 0 : 0.25
+      updateAnimatedPresentationState(isActive: data.animatedSourceFileURL != nil)
 
       updateHeightConstraint(targetHeight)
 
@@ -200,7 +202,7 @@
       }
 
       #if !os(tvOS)
-        if enableLiveText {
+        if shouldEnableLiveText {
           if window != nil && !isHidden {
             if !imageView.interactions.contains(where: { $0 === interaction }) {
               imageView.addInteraction(interaction)
@@ -247,7 +249,7 @@
     }
 
     private func updateSepiaOverlay() {
-      guard readerBackground.appliesImageMultiplyBlend, imageView.image != nil else {
+      guard !isAnimatedPlaybackVisible, readerBackground.appliesImageMultiplyBlend, imageView.image != nil else {
         sepiaOverlayView.isHidden = true
         sepiaOverlayView.layer.compositingFilter = nil
         sepiaOverlayView.backgroundColor = .clear
@@ -259,16 +261,35 @@
     }
 
     func updateAnimatedPlayback(sourceFileURL: URL?) {
+      layoutIfNeeded()
       if let sourceFileURL {
         animatedInlineContainer.isHidden = false
+        animatedInlineContainer.layer.contents = displayedCGImage()
+        updateAnimatedPresentationState(isActive: true)
         animatedImageController.start(
           sourceFileURL: sourceFileURL,
           targetLayer: animatedInlineContainer.layer
         )
       } else {
-        animatedInlineContainer.isHidden = true
         animatedImageController.stop()
+        animatedInlineContainer.layer.contents = nil
+        animatedInlineContainer.isHidden = true
+        updateAnimatedPresentationState(isActive: false)
       }
+    }
+
+    private var isAnimatedPlaybackVisible: Bool {
+      currentData?.animatedSourceFileURL != nil && !animatedInlineContainer.isHidden
+    }
+
+    private func displayedCGImage() -> CGImage? {
+      imageView.image?.cgImage
+    }
+
+    private func updateAnimatedPresentationState(isActive: Bool) {
+      imageView.isHidden = isActive
+      imageView.layer.shadowOpacity = (isActive || imageView.image == nil) ? 0 : 0.25
+      updateSepiaOverlay()
     }
 
     private func updateHeightConstraint(_ targetHeight: CGFloat) {
