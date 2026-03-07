@@ -10,6 +10,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   let id: String
   let type: ThumbnailType
   let shadowStyle: ShadowStyle
+  let contentBlurRadius: CGFloat
   let width: CGFloat?
   let cornerRadius: CGFloat
   let alignment: Alignment
@@ -73,6 +74,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     id: String,
     type: ThumbnailType = .book,
     shadowStyle: ShadowStyle = .basic,
+    contentBlurRadius: CGFloat = 0,
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
     alignment: Alignment = .center,
@@ -86,6 +88,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     self.id = id
     self.type = type
     self.shadowStyle = shadowStyle
+    self.contentBlurRadius = max(0, contentBlurRadius)
     self.width = width
     self.cornerRadius = cornerRadius
     self.alignment = alignment
@@ -151,6 +154,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
     }
     .animation(.easeInOut(duration: 0.18), value: image != nil)
     .animation(.easeInOut(duration: 0.18), value: shouldShowPlaceholder)
+    .animation(.easeInOut(duration: 0.18), value: contentBlurRadius)
     .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
     .frame(width: width)
     .overlay {
@@ -191,16 +195,32 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   var imageContent: some View {
     if let platformImage = image {
       if effectivePreserveAspectRatio {
-        Image(platformImage: platformImage)
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-      } else {
-        GeometryReader { proxy in
+        if contentBlurRadius > 0 {
           Image(platformImage: platformImage)
             .resizable()
-            .aspectRatio(contentMode: .fill)
-            .frame(width: proxy.size.width, height: proxy.size.height)
-            .clipped()
+            .aspectRatio(contentMode: .fit)
+            .blur(radius: contentBlurRadius)
+        } else {
+          Image(platformImage: platformImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+        }
+      } else {
+        GeometryReader { proxy in
+          if contentBlurRadius > 0 {
+            Image(platformImage: platformImage)
+              .resizable()
+              .aspectRatio(contentMode: .fill)
+              .frame(width: proxy.size.width, height: proxy.size.height)
+              .blur(radius: contentBlurRadius)
+              .clipped()
+          } else {
+            Image(platformImage: platformImage)
+              .resizable()
+              .aspectRatio(contentMode: .fill)
+              .frame(width: proxy.size.width, height: proxy.size.height)
+              .clipped()
+          }
         }
       }
     }
@@ -208,8 +228,18 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
 
   @ViewBuilder
   private var imageCard: some View {
-    let base =
-      imageContent
+    if effectivePreserveAspectRatio {
+      framedImageCard
+        .aspectRatio(imageAspectRatio, contentMode: .fit)
+        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+    } else {
+      framedImageCard
+        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
+    }
+  }
+
+  private var framedImageCard: some View {
+    imageContent
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
       .overlay { borderOverlay }
       .overlay {
@@ -217,15 +247,6 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
           overlay()
         }
       }
-
-    if effectivePreserveAspectRatio {
-      base
-        .aspectRatio(imageAspectRatio, contentMode: .fit)
-        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-    } else {
-      base
-        .shadowStyle(effectiveShadowStyle, cornerRadius: cornerRadius)
-    }
   }
 
   private var placeholderCard: some View {
@@ -240,6 +261,7 @@ extension ThumbnailImage where Overlay == EmptyView, Menu == EmptyView {
     id: String,
     type: ThumbnailType = .book,
     shadowStyle: ShadowStyle = .basic,
+    contentBlurRadius: CGFloat = 0,
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
     alignment: Alignment = .center,
@@ -249,7 +271,7 @@ extension ThumbnailImage where Overlay == EmptyView, Menu == EmptyView {
     onAction: (() -> Void)? = nil,
   ) {
     self.init(
-      id: id, type: type, shadowStyle: shadowStyle,
+      id: id, type: type, shadowStyle: shadowStyle, contentBlurRadius: contentBlurRadius,
       width: width, cornerRadius: cornerRadius,
       alignment: alignment,
       isTransitionSource: isTransitionSource,
@@ -267,6 +289,7 @@ extension ThumbnailImage where Menu == EmptyView {
     id: String,
     type: ThumbnailType = .book,
     shadowStyle: ShadowStyle = .basic,
+    contentBlurRadius: CGFloat = 0,
     width: CGFloat? = nil,
     cornerRadius: CGFloat = 8,
     alignment: Alignment = .center,
@@ -277,7 +300,7 @@ extension ThumbnailImage where Menu == EmptyView {
     @ViewBuilder overlay: @escaping () -> Overlay
   ) {
     self.init(
-      id: id, type: type, shadowStyle: shadowStyle,
+      id: id, type: type, shadowStyle: shadowStyle, contentBlurRadius: contentBlurRadius,
       width: width, cornerRadius: cornerRadius,
       alignment: alignment,
       isTransitionSource: isTransitionSource,

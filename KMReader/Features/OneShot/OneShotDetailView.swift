@@ -329,7 +329,7 @@ struct OneshotDetailView: View {
         Divider()
 
         if let book = book {
-          if !(book.readProgress?.completed ?? false) {
+          if !book.isCompleted {
             Button {
               markOneshotAsRead()
             } label: {
@@ -337,7 +337,7 @@ struct OneshotDetailView: View {
             }
           }
 
-          if book.readProgress != nil {
+          if book.hasStartedReading {
             Button {
               markOneshotAsUnread()
             } label: {

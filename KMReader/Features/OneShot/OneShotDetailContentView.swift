@@ -12,10 +12,12 @@ struct OneShotDetailContentView: View {
   let downloadStatus: DownloadStatus?
   let inSheet: Bool
 
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
+
   @State private var thumbnailRefreshKey = UUID()
 
-  private var isCompleted: Bool {
-    book.readProgress?.completed ?? false
+  private var coverBlurRadius: CGFloat {
+    thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
   private var hasReadInfo: Bool {
@@ -44,6 +46,7 @@ struct OneShotDetailContentView: View {
         ThumbnailImage(
           id: book.id,
           type: .book,
+          contentBlurRadius: coverBlurRadius,
           width: PlatformHelper.detailThumbnailWidth,
           isTransitionSource: false,
           onAction: {}
@@ -100,7 +103,7 @@ struct OneShotDetailContentView: View {
           }
 
           if let readProgress = book.readProgress {
-            if isCompleted {
+            if book.isCompleted {
               InfoChip(
                 labelKey: "Completed",
                 systemImage: "checkmark.circle.fill",

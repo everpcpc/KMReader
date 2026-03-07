@@ -916,7 +916,7 @@ struct DivinaReaderView: View {
       }
       if incognito {
         initialPageNumber = nil
-      } else if resolvedBook.readProgress?.completed == true {
+      } else if resolvedBook.isCompleted {
         initialPageNumber = nil
       } else {
         initialPageNumber = resolvedBook.readProgress?.page

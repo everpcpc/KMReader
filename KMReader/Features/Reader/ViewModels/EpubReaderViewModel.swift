@@ -136,7 +136,7 @@
 
     func load(book: Book) async {
       downloadInfo = book.downloadInfo
-      let shouldResumeFromProgression = book.readProgress?.completed != true
+      let shouldResumeFromProgression = !book.isCompleted
       await load(
         bookId: book.id,
         shouldResumeFromProgression: shouldResumeFromProgression

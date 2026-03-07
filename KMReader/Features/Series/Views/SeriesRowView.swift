@@ -9,6 +9,8 @@ import SwiftUI
 struct SeriesRowView: View {
   @Bindable var komgaSeries: KomgaSeries
 
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
+
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -35,10 +37,19 @@ struct SeriesRowView: View {
     return Double(komgaSeries.booksReadCount) / Double(komgaSeries.booksCount)
   }
 
+  private var coverBlurRadius: CGFloat {
+    thumbnailBlurUnreadCovers && komgaSeries.isUnread ? CoverBlurStyle.unreadRadius : 0
+  }
+
   var body: some View {
     HStack(spacing: 12) {
       NavigationLink(value: navDestination) {
-        ThumbnailImage(id: series.id, type: .series, width: 80)
+        ThumbnailImage(
+          id: series.id,
+          type: .series,
+          contentBlurRadius: coverBlurRadius,
+          width: 80
+        )
       }
       .adaptiveButtonStyle(.plain)
 

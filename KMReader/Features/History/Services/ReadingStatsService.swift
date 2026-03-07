@@ -35,7 +35,7 @@ class ReadingStatsService {
     let completedSeriesIds = Set(
       readBooks
         .lazy
-        .filter { $0.readProgress?.completed == true }
+        .filter(\.isCompleted)
         .map { $0.seriesId }
     )
     let readSeries = await database.fetchSeriesByIdsForStats(
@@ -53,8 +53,8 @@ class ReadingStatsService {
   // MARK: - Aggregation
 
   private func buildPayload(filteredBooks: [Book], readSeries: [Series], totalBooks: Int) -> ReadingStatsPayload {
-    let booksWithProgress = filteredBooks.filter { $0.readProgress != nil }
-    let completedBooks = filteredBooks.filter { $0.readProgress?.completed == true }
+    let booksWithProgress = filteredBooks.filter(\.hasStartedReading)
+    let completedBooks = filteredBooks.filter(\.isCompleted)
 
     let totalPagesRead = completedBooks.reduce(0.0) { partial, book in
       partial + Double(book.readProgress?.page ?? 0)
@@ -111,10 +111,7 @@ class ReadingStatsService {
     completedBooks: [Book]
   ) -> [ReadingStatsItem] {
     let completedCount = completedBooks.count
-    let inProgressCount = filteredBooks.filter { book in
-      guard let progress = book.readProgress else { return false }
-      return progress.completed == false
-    }.count
+    let inProgressCount = filteredBooks.filter(\.isInProgress).count
     let unreadCount = max(totalBooks - filteredBooks.count, 0)
 
     return [

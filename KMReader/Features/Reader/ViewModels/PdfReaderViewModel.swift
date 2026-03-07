@@ -73,7 +73,7 @@
       beginLoading()
       bookId = book.id
       downloadInfo = book.downloadInfo
-      if book.readProgress?.completed == true {
+      if book.isCompleted {
         initialPageNumber = 1
       } else {
         initialPageNumber = max(1, book.readProgress?.page ?? 1)

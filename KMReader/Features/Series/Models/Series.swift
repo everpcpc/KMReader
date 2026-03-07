@@ -24,4 +24,12 @@ struct Series: Codable, Identifiable, Equatable {
   var unreadCount: Int {
     booksUnreadCount + booksInProgressCount
   }
+
+  var hasStartedReading: Bool {
+    booksReadCount > 0 || booksInProgressCount > 0
+  }
+
+  var isUnread: Bool {
+    !hasStartedReading
+  }
 }

@@ -18,10 +18,6 @@ struct BookContextMenu: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  private var isCompleted: Bool {
-    book.readProgress?.completed ?? false
-  }
-
   private var menuTitle: String {
     if book.oneshot {
       return book.metadata.title
@@ -52,14 +48,14 @@ struct BookContextMenu: View {
         } label: {
           Label("Add to Read List", systemImage: ContentIcon.readList)
         }
-        if !isCompleted {
+        if !book.isCompleted {
           Button {
             markAsRead(bookId: book.id)
           } label: {
             Label("Mark as Read", systemImage: "checkmark.circle")
           }
         }
-        if book.readProgress != nil {
+        if book.hasStartedReading {
           Button {
             markAsUnread(bookId: book.id)
           } label: {

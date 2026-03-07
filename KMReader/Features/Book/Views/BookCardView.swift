@@ -17,6 +17,7 @@ struct BookCardView: View {
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -25,11 +26,6 @@ struct BookCardView: View {
     guard let progressPage = komgaBook.progressPage else { return 0 }
     guard komgaBook.mediaPagesCount > 0 else { return 0 }
     return Double(progressPage) / Double(komgaBook.mediaPagesCount)
-  }
-
-  private var isInProgress: Bool {
-    guard let progressCompleted = komgaBook.progressCompleted else { return false }
-    return !progressCompleted
   }
 
   var shouldShowSeriesTitle: Bool {
@@ -57,12 +53,17 @@ struct BookCardView: View {
     return 12
   }
 
+  private var coverBlurRadius: CGFloat {
+    thumbnailBlurUnreadCovers && komgaBook.isUnread ? CoverBlurStyle.unreadRadius : 0
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
         id: komgaBook.bookId,
         type: .book,
         shadowStyle: .platform,
+        contentBlurRadius: coverBlurRadius,
         alignment: .bottom,
         preserveAspectRatioOverride: cardTextOverlayMode ? false : nil,
         onAction: { onReadBook?(false) }
@@ -74,7 +75,7 @@ struct BookCardView: View {
             }
           }
 
-          if komgaBook.progressCompleted == nil && thumbnailShowUnreadIndicator {
+          if komgaBook.isUnread && thumbnailShowUnreadIndicator {
             UnreadIndicator()
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
@@ -99,7 +100,7 @@ struct BookCardView: View {
 
       if thumbnailShowProgressBar && !cardTextOverlayMode {
         ReadingProgressBar(progress: progress, type: .card)
-          .opacity(isInProgress ? 1 : 0)
+          .opacity(komgaBook.isInProgress ? 1 : 0)
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
@@ -179,7 +180,7 @@ struct BookCardView: View {
   private var overlayTextContent: some View {
     let style = CardOverlayTextStyle.standard
     let showDownloadIcon = komgaBook.downloadStatus != .notDownloaded
-    let showProgressBar = isInProgress && thumbnailShowProgressBar
+    let showProgressBar = komgaBook.isInProgress && thumbnailShowProgressBar
 
     CardOverlayTextStack(
       title: bookTitleLine,

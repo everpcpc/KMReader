@@ -82,6 +82,14 @@ final class KomgaSeries {
     return .notDownloaded
   }
 
+  var hasStartedReading: Bool {
+    booksReadCount > 0 || booksInProgressCount > 0
+  }
+
+  var isUnread: Bool {
+    !hasStartedReading
+  }
+
   /// Computed property for offline policy.
   var offlinePolicy: SeriesOfflinePolicy {
     get {

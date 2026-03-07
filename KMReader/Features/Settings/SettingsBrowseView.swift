@@ -15,6 +15,7 @@ struct SettingsBrowseView: View {
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   private var gridDensityBinding: Binding<GridDensity> {
@@ -57,7 +58,8 @@ struct SettingsBrowseView: View {
           SettingsBrowseCardPreview(
             title: "Series Title",
             detail: "12 books",
-            unreadCount: 3
+            unreadCount: 12,
+            shouldBlurCover: true
           )
           .frame(maxWidth: .infinity)
 
@@ -73,7 +75,8 @@ struct SettingsBrowseView: View {
             title: "#1 - Book Title",
             subtitle: "Series Title",
             detail: "200 pages",
-            showUnreadDot: true
+            showUnreadDot: true,
+            shouldBlurCover: true
           )
           .frame(maxWidth: .infinity)
         }
@@ -134,6 +137,15 @@ struct SettingsBrowseView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "settings.appearance.coverShowUnreadIndicator.title"))
             Text(String(localized: "settings.appearance.coverShowUnreadIndicator.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $thumbnailBlurUnreadCovers) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.coverBlurUnread.title"))
+            Text(String(localized: "settings.appearance.coverBlurUnread.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }

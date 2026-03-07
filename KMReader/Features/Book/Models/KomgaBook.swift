@@ -111,6 +111,22 @@ final class KomgaBook {
     }
   }
 
+  var hasStartedReading: Bool {
+    readProgress != nil
+  }
+
+  var isUnread: Bool {
+    !hasStartedReading
+  }
+
+  var isCompleted: Bool {
+    progressCompleted == true
+  }
+
+  var isInProgress: Bool {
+    hasStartedReading && !isCompleted
+  }
+
   init(
     id: String? = nil,
     bookId: String,

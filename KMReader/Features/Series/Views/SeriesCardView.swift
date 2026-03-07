@@ -12,6 +12,7 @@ struct SeriesCardView: View {
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
 
   @State private var showCollectionPicker = false
   @State private var showDeleteConfirmation = false
@@ -34,12 +35,17 @@ struct SeriesCardView: View {
     cardTextOverlayMode ? 0 : 12
   }
 
+  private var coverBlurRadius: CGFloat {
+    thumbnailBlurUnreadCovers && komgaSeries.isUnread ? CoverBlurStyle.unreadRadius : 0
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
         id: komgaSeries.seriesId,
         type: .series,
         shadowStyle: .platform,
+        contentBlurRadius: coverBlurRadius,
         alignment: .bottom,
         navigationLink: navDestination,
         preserveAspectRatioOverride: cardTextOverlayMode ? false : nil

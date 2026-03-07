@@ -268,7 +268,7 @@ struct BookDetailView: View {
         }
 
         if let book = book {
-          if !(book.readProgress?.completed ?? false) {
+          if !book.isCompleted {
             Button {
               markBookAsRead()
             } label: {
@@ -276,7 +276,7 @@ struct BookDetailView: View {
             }
           }
 
-          if book.readProgress != nil {
+          if book.hasStartedReading {
             Button {
               markBookAsUnread()
             } label: {

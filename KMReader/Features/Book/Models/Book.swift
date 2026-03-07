@@ -24,4 +24,20 @@ struct Book: Codable, Identifiable, Equatable {
   let deleted: Bool
   let fileHash: String?
   let oneshot: Bool
+
+  var hasStartedReading: Bool {
+    readProgress != nil
+  }
+
+  var isUnread: Bool {
+    !hasStartedReading
+  }
+
+  var isCompleted: Bool {
+    readProgress?.completed == true
+  }
+
+  var isInProgress: Bool {
+    hasStartedReading && !isCompleted
+  }
 }

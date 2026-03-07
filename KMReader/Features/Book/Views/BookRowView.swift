@@ -12,24 +12,16 @@ struct BookRowView: View {
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
 
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
+
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
-
-  var completed: Bool {
-    guard let progressCompleted = komgaBook.progressCompleted else { return false }
-    return progressCompleted
-  }
 
   private var progress: Double {
     guard let progressPage = komgaBook.progressPage else { return 0 }
     guard komgaBook.mediaPagesCount > 0 else { return 0 }
     return Double(progressPage) / Double(komgaBook.mediaPagesCount)
-  }
-
-  private var isInProgress: Bool {
-    guard let progressCompleted = komgaBook.progressCompleted else { return false }
-    return !progressCompleted
   }
 
   var shouldShowSeriesTitle: Bool {
@@ -47,12 +39,21 @@ struct BookRowView: View {
     (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
+  private var coverBlurRadius: CGFloat {
+    thumbnailBlurUnreadCovers && komgaBook.isUnread ? CoverBlurStyle.unreadRadius : 0
+  }
+
   var body: some View {
     HStack(spacing: 12) {
       Button {
         onReadBook?(false)
       } label: {
-        ThumbnailImage(id: komgaBook.bookId, type: .book, width: 60)
+        ThumbnailImage(
+          id: komgaBook.bookId,
+          type: .book,
+          contentBlurRadius: coverBlurRadius,
+          width: 60
+        )
       }.adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 4) {
@@ -71,7 +72,7 @@ struct BookRowView: View {
                 .lineLimit(1)
             }
             Text("#\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
-              .foregroundColor(completed ? .secondary : .primary)
+              .foregroundColor(komgaBook.isCompleted ? .secondary : .primary)
               .lineLimit(bookTitleLineLimit)
           }
         }.adaptiveButtonStyle(.plain)

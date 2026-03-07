@@ -9,9 +9,15 @@ import SwiftUI
 struct SeriesDetailContentView: View {
   let series: Series
 
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
+
   @State private var thumbnailRefreshKey = UUID()
 
   private let collapsedMetadataChipLimit = 10
+
+  private var coverBlurRadius: CGFloat {
+    thumbnailBlurUnreadCovers && series.isUnread ? CoverBlurStyle.unreadRadius : 0
+  }
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -28,6 +34,7 @@ struct SeriesDetailContentView: View {
         ThumbnailImage(
           id: series.id,
           type: .series,
+          contentBlurRadius: coverBlurRadius,
           width: PlatformHelper.detailThumbnailWidth,
           isTransitionSource: false,
           onAction: {}

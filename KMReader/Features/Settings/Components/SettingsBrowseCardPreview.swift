@@ -11,6 +11,7 @@ struct SettingsBrowseCardPreview: View {
   let detail: String
   let unreadCount: Int?
   let showUnreadDot: Bool
+  let shouldBlurCover: Bool
   let progress: Double?
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -20,6 +21,7 @@ struct SettingsBrowseCardPreview: View {
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
 
   private let cornerRadius: CGFloat = 8
   private let imageCornerRadius: CGFloat = 6
@@ -35,6 +37,7 @@ struct SettingsBrowseCardPreview: View {
     detail: String,
     unreadCount: Int? = nil,
     showUnreadDot: Bool = false,
+    shouldBlurCover: Bool = false,
     progress: Double? = nil
   ) {
     self.title = title
@@ -42,6 +45,7 @@ struct SettingsBrowseCardPreview: View {
     self.detail = detail
     self.unreadCount = unreadCount
     self.showUnreadDot = showUnreadDot
+    self.shouldBlurCover = shouldBlurCover
     self.progress = progress
   }
 
@@ -79,6 +83,10 @@ struct SettingsBrowseCardPreview: View {
 
   private var effectivePreserveAspectRatio: Bool {
     thumbnailPreserveAspectRatio && !cardTextOverlayMode
+  }
+
+  private var shouldBlurPreviewCover: Bool {
+    shouldBlurCover && thumbnailBlurUnreadCovers
   }
 
   private static func randomImageRatio() -> CGFloat {
@@ -122,6 +130,7 @@ struct SettingsBrowseCardPreview: View {
     .animation(animation, value: thumbnailShowShadow)
     .animation(animation, value: thumbnailShowUnreadIndicator)
     .animation(animation, value: thumbnailShowProgressBar)
+    .animation(animation, value: thumbnailBlurUnreadCovers)
     .animation(animation, value: cardTextOverlayMode)
   }
 
@@ -140,9 +149,20 @@ struct SettingsBrowseCardPreview: View {
     .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
   }
 
+  @ViewBuilder
   private var imageCard: some View {
-    RoundedRectangle(cornerRadius: imageCornerRadius)
-      .fill(imageFill)
+    if shouldBlurPreviewCover {
+      styledImageCard(
+        baseImageCard
+          .blur(radius: CoverBlurStyle.unreadRadius)
+      )
+    } else {
+      styledImageCard(baseImageCard)
+    }
+  }
+
+  private func styledImageCard<Content: View>(_ content: Content) -> some View {
+    content
       .overlay { imageBorderOverlay }
       .shadowStyle(effectiveShadowStyle, cornerRadius: imageCornerRadius)
       .overlay {
@@ -161,6 +181,12 @@ struct SettingsBrowseCardPreview: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
       }
+  }
+
+  private var baseImageCard: some View {
+    RoundedRectangle(cornerRadius: imageCornerRadius)
+      .fill(imageFill)
+      .clipShape(RoundedRectangle(cornerRadius: imageCornerRadius))
   }
 
   @ViewBuilder

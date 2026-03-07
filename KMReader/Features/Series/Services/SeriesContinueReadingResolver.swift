@@ -134,6 +134,6 @@ enum SeriesContinueReadingResolver {
   }
 
   private static func isUnread(_ book: KomgaBook) -> Bool {
-    book.progressReadDate == nil
+    book.isUnread
   }
 }
