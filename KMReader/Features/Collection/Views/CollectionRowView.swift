@@ -100,12 +100,12 @@ struct CollectionRowView: View {
   private func togglePinned() {
     let nextPinned = !komgaCollection.isPinned
     Task {
-      await DatabaseOperator.shared.setCollectionPinned(
+      try? await DatabaseOperator.database().setCollectionPinned(
         collectionId: komgaCollection.collectionId,
         instanceId: komgaCollection.instanceId,
         isPinned: nextPinned
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
   }
 }

@@ -457,11 +457,11 @@
     private func savePreferences() {
       if let bookId {
         Task {
-          await DatabaseOperator.shared.updateBookEpubPreferences(
+          try? await DatabaseOperator.database().updateBookEpubPreferences(
             bookId: bookId,
             preferences: draft
           )
-          await DatabaseOperator.shared.commit()
+          try? await DatabaseOperator.database().commit()
         }
         onPreferencesSaved?(draft)
         dismiss()
@@ -475,11 +475,11 @@
     private func clearBookPreferences() {
       guard let bookId else { return }
       Task {
-        await DatabaseOperator.shared.updateBookEpubPreferences(
+        try? await DatabaseOperator.database().updateBookEpubPreferences(
           bookId: bookId,
           preferences: nil
         )
-        await DatabaseOperator.shared.commit()
+        try? await DatabaseOperator.database().commit()
       }
       onPreferencesCleared?()
       ErrorManager.shared.notify(message: String(localized: "Reset to Global"))

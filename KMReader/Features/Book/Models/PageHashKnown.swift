@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct PageHashKnown: Codable, Identifiable, Equatable {
+nonisolated struct PageHashKnown: Codable, Identifiable, Equatable, Sendable {
   let hash: String
   let action: PageHashAction
   let matchCount: Int

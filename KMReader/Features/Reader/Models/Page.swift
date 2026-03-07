@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct Page<T: Codable>: Codable {
+nonisolated struct Page<T: Codable & Sendable>: Codable, Sendable {
   let content: [T]
   let pageable: Pageable
   let totalElements: Int
@@ -18,7 +18,7 @@ struct Page<T: Codable>: Codable {
   let empty: Bool
 }
 
-struct Pageable: Codable {
+nonisolated struct Pageable: Codable, Sendable {
   let sort: Sort
   let offset: Int
   let pageNumber: Int
@@ -27,7 +27,7 @@ struct Pageable: Codable {
   let unpaged: Bool
 }
 
-struct Sort: Codable {
+nonisolated struct Sort: Codable, Sendable {
   let sorted: Bool
   let unsorted: Bool
   let empty: Bool

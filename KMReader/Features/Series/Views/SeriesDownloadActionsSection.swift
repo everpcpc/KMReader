@@ -184,23 +184,23 @@ struct SeriesDownloadActionsSection: View {
       if newPolicy != .manual {
         try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
       }
-      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+      try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: series.id, instanceId: current.instanceId, policy: newPolicy
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
   }
 
   private func updatePolicyAndLimit(_ newPolicy: SeriesOfflinePolicy, limit: Int) {
     Task {
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
-      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+      try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: series.id,
         instanceId: current.instanceId,
         policy: newPolicy,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
   }
 
@@ -243,10 +243,10 @@ struct SeriesDownloadActionsSection: View {
     Task {
       // Sync books first
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
-      await DatabaseOperator.shared.downloadSeriesOffline(
+      try? await DatabaseOperator.database().downloadSeriesOffline(
         seriesId: series.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -256,12 +256,12 @@ struct SeriesDownloadActionsSection: View {
   private func downloadUnread(limit: Int) {
     Task {
       try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
-      await DatabaseOperator.shared.downloadSeriesUnreadOffline(
+      try? await DatabaseOperator.database().downloadSeriesUnreadOffline(
         seriesId: series.id,
         instanceId: current.instanceId,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -270,11 +270,11 @@ struct SeriesDownloadActionsSection: View {
 
   private func removeRead() {
     Task {
-      await DatabaseOperator.shared.removeSeriesReadOffline(
+      try? await DatabaseOperator.database().removeSeriesReadOffline(
         seriesId: series.id,
         instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
@@ -294,10 +294,10 @@ struct SeriesDownloadActionsSection: View {
 
   private func removeAll() {
     Task {
-      await DatabaseOperator.shared.removeSeriesOffline(
+      try? await DatabaseOperator.database().removeSeriesOffline(
         seriesId: series.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )

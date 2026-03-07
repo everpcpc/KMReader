@@ -402,16 +402,17 @@ class ReaderViewModel {
 
   private func loadTableOfContentsFromStorageOrNetwork(for book: Book) async -> [ReaderTOCEntry] {
     let mediaProfile = book.media.mediaProfileValue ?? .unknown
+    let database = await DatabaseOperator.databaseIfConfigured()
 
     if mediaProfile == .epub {
-      if let localTOC = await DatabaseOperator.shared.fetchTOC(id: book.id) {
+      if let localTOC = await database?.fetchTOC(id: book.id) {
         return localTOC
       }
       if !AppConfig.isOffline {
         do {
           let manifest = try await BookService.shared.getBookManifest(id: book.id)
           let toc = await ReaderManifestService(bookId: book.id).parseTOC(manifest: manifest)
-          await DatabaseOperator.shared.updateBookTOC(bookId: book.id, toc: toc)
+          await database?.updateBookTOC(bookId: book.id, toc: toc)
           return toc
         } catch {
           logger.error("❌ Failed to load TOC from manifest for book \(book.id): \(error)")
@@ -422,7 +423,7 @@ class ReaderViewModel {
     }
 
     if mediaProfile == .pdf {
-      return await DatabaseOperator.shared.fetchTOC(id: book.id) ?? []
+      return await database?.fetchTOC(id: book.id) ?? []
     }
 
     return []
@@ -509,7 +510,8 @@ class ReaderViewModel {
   }
 
   private func fetchSegmentPages(for book: Book) async -> [BookPage]? {
-    if let cachedPages = await DatabaseOperator.shared.fetchPages(id: book.id) {
+    let database = await DatabaseOperator.databaseIfConfigured()
+    if let cachedPages = await database?.fetchPages(id: book.id) {
       return cachedPages
     }
 
@@ -519,7 +521,7 @@ class ReaderViewModel {
 
     do {
       let fetchedPages = try await BookService.shared.getBookPages(id: book.id)
-      await DatabaseOperator.shared.updateBookPages(bookId: book.id, pages: fetchedPages)
+      await database?.updateBookPages(bookId: book.id, pages: fetchedPages)
       return fetchedPages
     } catch {
       logger.error("❌ Failed to preload segment pages for book \(book.id): \(error)")
@@ -528,7 +530,8 @@ class ReaderViewModel {
   }
 
   private func hydrateIsolatePages(for bookId: String) async {
-    let isolatePagesForBook = await DatabaseOperator.shared.fetchIsolatePages(id: bookId) ?? []
+    let database = await DatabaseOperator.databaseIfConfigured()
+    let isolatePagesForBook = await database?.fetchIsolatePages(id: bookId) ?? []
     isolatePagesByBookId[bookId] = Set(isolatePagesForBook)
   }
 
@@ -688,18 +691,19 @@ class ReaderViewModel {
 
     do {
       await prepareOfflinePDFForDivina(book: book)
+      let database = await DatabaseOperator.databaseIfConfigured()
 
       let fetchedPages: [BookPage]
-      if let localPages = await DatabaseOperator.shared.fetchPages(id: book.id) {
+      if let localPages = await database?.fetchPages(id: book.id) {
         fetchedPages = localPages
       } else if !AppConfig.isOffline {
         fetchedPages = try await BookService.shared.getBookPages(id: book.id)
-        await DatabaseOperator.shared.updateBookPages(bookId: book.id, pages: fetchedPages)
+        await database?.updateBookPages(bookId: book.id, pages: fetchedPages)
       } else {
         throw APIError.offline
       }
 
-      let localIsolatePages = await DatabaseOperator.shared.fetchIsolatePages(id: book.id) ?? []
+      let localIsolatePages = await database?.fetchIsolatePages(id: book.id) ?? []
       isolatePagesByBookId[book.id] = Set(localIsolatePages)
       currentPageID = initialPageNumber.flatMap { pageNumber in
         fetchedPages.first(where: { $0.number == pageNumber }).map {
@@ -854,8 +858,11 @@ class ReaderViewModel {
       return
     }
 
-    let hasLocalPages = !(await DatabaseOperator.shared.fetchPages(id: book.id)?.isEmpty ?? true)
-    let hasLocalTOC = await DatabaseOperator.shared.fetchTOC(id: book.id) != nil
+    let database = await DatabaseOperator.databaseIfConfigured()
+    let localPages = await database?.fetchPages(id: book.id)
+    let localTOC = await database?.fetchTOC(id: book.id)
+    let hasLocalPages = !(localPages ?? []).isEmpty
+    let hasLocalTOC = localTOC != nil
     let forceRebuildMetadata = !hasLocalPages || !hasLocalTOC
     if forceRebuildMetadata {
       logger.debug(
@@ -901,9 +908,11 @@ class ReaderViewModel {
       "💾 Applying prepared PDF metadata to database for book \(bookId), pages=\(result.pages.count), toc=\(result.tableOfContents.count)"
     )
 
-    await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: result.pages)
-    await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: result.tableOfContents)
-    await DatabaseOperator.shared.commit()
+    if let database = await DatabaseOperator.databaseIfConfigured() {
+      await database.updateBookPages(bookId: bookId, pages: result.pages)
+      await database.updateBookTOC(bookId: bookId, toc: result.tableOfContents)
+      await database.commit()
+    }
     if result.renderedImageCount > 0 {
       await OfflineManager.shared.refreshDownloadedBookSize(
         instanceId: AppConfig.current.instanceId,
@@ -1726,11 +1735,13 @@ class ReaderViewModel {
 
     let sortedLocalPages = localIsolatePages.sorted()
     Task {
-      await DatabaseOperator.shared.updateIsolatePages(
-        bookId: isolatePosition.bookId,
-        pages: sortedLocalPages
-      )
-      await DatabaseOperator.shared.commit()
+      if let database = await DatabaseOperator.databaseIfConfigured() {
+        await database.updateIsolatePages(
+          bookId: isolatePosition.bookId,
+          pages: sortedLocalPages
+        )
+        await database.commit()
+      }
     }
   }
 

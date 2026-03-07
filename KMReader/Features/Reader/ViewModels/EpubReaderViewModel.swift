@@ -192,7 +192,10 @@
         }
         try await ensureOfflineReady(downloadInfo: downloadInfo, instanceId: instanceId)
 
-        guard let manifest = await DatabaseOperator.shared.fetchWebPubManifest(bookId: bookId) else {
+        guard
+          let database = await DatabaseOperator.databaseIfConfigured(),
+          let manifest = await database.fetchWebPubManifest(bookId: bookId)
+        else {
           throw AppErrorType.missingRequiredData(
             message: "Missing WebPub manifest. Please re-download this book."
           )
@@ -229,7 +232,7 @@
           if !AppConfig.isOffline {
             await syncRemoteProgressionToLocal(bookId: bookId)
           }
-          savedProgression = await DatabaseOperator.shared.fetchBookEpubProgression(bookId: bookId)
+          savedProgression = await database.fetchBookEpubProgression(bookId: bookId)
         }
 
         if let savedProgression {
@@ -1071,11 +1074,13 @@
     private func syncRemoteProgressionToLocal(bookId: String) async {
       do {
         let progression = try await BookService.shared.getWebPubProgression(bookId: bookId)
-        await DatabaseOperator.shared.updateBookEpubProgression(
-          bookId: bookId,
-          progression: progression
-        )
-        await DatabaseOperator.shared.commit()
+        if let database = await DatabaseOperator.databaseIfConfigured() {
+          await database.updateBookEpubProgression(
+            bookId: bookId,
+            progression: progression
+          )
+          await database.commit()
+        }
         if let progression {
           logger.debug(
             "Synced remote EPUB progression to local storage: href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0)"

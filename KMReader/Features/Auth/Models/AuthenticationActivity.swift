@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct AuthenticationActivity: Codable, Identifiable, Equatable {
+nonisolated struct AuthenticationActivity: Codable, Identifiable, Equatable, Sendable {
   let id: UUID
   let userId: String
   let email: String

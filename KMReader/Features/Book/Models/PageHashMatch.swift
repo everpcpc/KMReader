@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct PageHashMatch: Codable, Identifiable, Equatable {
+nonisolated struct PageHashMatch: Codable, Identifiable, Equatable, Sendable {
   let bookId: String
   let url: String
   let pageNumber: Int

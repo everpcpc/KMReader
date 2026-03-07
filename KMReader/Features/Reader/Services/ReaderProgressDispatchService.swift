@@ -382,11 +382,20 @@ actor ReaderProgressDispatchService {
   private func applyLocalPageProgressCacheUpdate(_ update: PageUpdate, token: UInt64) async {
     guard localPageCacheTokens[update.bookId] == token else { return }
 
-    await DatabaseOperator.shared.updateReadingProgress(
-      bookId: update.bookId,
-      page: update.page,
-      completed: update.completed
-    )
+    do {
+      try await DatabaseOperator.database().updateReadingProgress(
+        bookId: update.bookId,
+        page: update.page,
+        completed: update.completed
+      )
+    } catch {
+      guard localPageCacheTokens[update.bookId] == token else { return }
+      localPageCacheTokens.removeValue(forKey: update.bookId)
+      logger.error(
+        "❌ [Progress/Page] Failed to update local cache: book=\(update.bookId), version=\(update.version), page=\(update.page), error=\(error.localizedDescription)"
+      )
+      return
+    }
 
     guard localPageCacheTokens[update.bookId] == token else { return }
     localPageCacheTokens.removeValue(forKey: update.bookId)
@@ -461,8 +470,15 @@ actor ReaderProgressDispatchService {
     isFlush: Bool
   ) async -> ProgressUpdateResult {
     if AppConfig.isOffline {
-      await Self.performPageProgressOfflineUpdate(update)
-      return .offlineQueued
+      do {
+        try await Self.performPageProgressOfflineUpdate(update)
+        return .offlineQueued
+      } catch {
+        logger.error(
+          "❌ [Progress/Page] Offline queue failed: book=\(update.bookId), version=\(update.version), page=\(update.page), error=\(error.localizedDescription)"
+        )
+        return .failed
+      }
     }
 
     var timeoutRetryAttempt = 0
@@ -566,26 +582,27 @@ actor ReaderProgressDispatchService {
     }
   }
 
-  private nonisolated static func performPageProgressOfflineUpdate(_ update: PageUpdate) async {
+  private nonisolated static func performPageProgressOfflineUpdate(_ update: PageUpdate) async throws {
     let logger = AppLogger(.reader)
+    let database = try await DatabaseOperator.database()
 
     logger.debug(
       "📨 [Progress/Page] Queue offline update: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
 
-    await DatabaseOperator.shared.queuePendingProgress(
+    await database.queuePendingProgress(
       instanceId: AppConfig.current.instanceId,
       bookId: update.bookId,
       page: update.page,
       completed: update.completed,
       progressionData: nil
     )
-    await DatabaseOperator.shared.updateReadingProgress(
+    await database.updateReadingProgress(
       bookId: update.bookId,
       page: update.page,
       completed: update.completed
     )
-    await DatabaseOperator.shared.commit()
+    try await database.commitImmediately()
     logger.debug(
       "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
@@ -620,13 +637,14 @@ actor ReaderProgressDispatchService {
     timeout: TimeInterval
   ) async throws {
     let logger = AppLogger(.reader)
+    let database = try await DatabaseOperator.database()
 
     do {
       let totalProgression = update.progression.locator.locations?.totalProgression.map(Double.init)
       let fallbackPage = max(0, update.globalPageNumber - 1)
 
       if AppConfig.isOffline {
-        _ = await DatabaseOperator.shared.updateEpubReadingProgressFromTotalProgression(
+        _ = await database.updateEpubReadingProgressFromTotalProgression(
           bookId: update.bookId,
           totalProgression: totalProgression,
           fallbackPage: fallbackPage
@@ -634,7 +652,7 @@ actor ReaderProgressDispatchService {
         logger.debug(
           "💾 [Progress/Epub] Queue offline update: book=\(update.bookId), version=\(update.version), globalPage=\(update.globalPageNumber), totalProgression=\(totalProgression ?? 0)"
         )
-        await DatabaseOperator.shared.queuePendingProgress(
+        await database.queuePendingProgress(
           instanceId: AppConfig.current.instanceId,
           bookId: update.bookId,
           page: update.globalPageNumber,
@@ -658,18 +676,22 @@ actor ReaderProgressDispatchService {
         logger.debug(
           "✅ [Progress/Epub] Server sync completed: book=\(update.bookId), version=\(update.version), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber)"
         )
-        _ = await DatabaseOperator.shared.updateEpubReadingProgressFromTotalProgression(
+        _ = await database.updateEpubReadingProgressFromTotalProgression(
           bookId: update.bookId,
           totalProgression: totalProgression,
           fallbackPage: fallbackPage
         )
       }
 
-      await DatabaseOperator.shared.updateBookEpubProgression(
+      await database.updateBookEpubProgression(
         bookId: update.bookId,
         progression: update.progression
       )
-      await DatabaseOperator.shared.commit()
+      if AppConfig.isOffline {
+        try await database.commitImmediately()
+      } else {
+        await database.commit()
+      }
     } catch let apiError as APIError {
       if case .badRequest(let message, _, _, _) = apiError,
         message.lowercased().contains("epub extension not found")

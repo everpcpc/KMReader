@@ -84,9 +84,10 @@ struct OfflineTasksStatusView: View {
       }
       return
     }
-    let newSummary = await DatabaseOperator.shared.fetchDownloadQueueSummary(
-      instanceId: instanceId
-    )
+    let newSummary =
+      (try? await DatabaseOperator.database().fetchDownloadQueueSummary(
+        instanceId: instanceId
+      )) ?? .empty
     withAnimation {
       summary = newSummary
     }

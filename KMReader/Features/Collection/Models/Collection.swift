@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct SeriesCollection: Codable, Identifiable, Equatable {
+nonisolated struct SeriesCollection: Codable, Identifiable, Equatable, Sendable {
   let id: String
   let name: String
   let ordered: Bool

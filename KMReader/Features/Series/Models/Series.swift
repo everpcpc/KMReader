@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct Series: Codable, Identifiable, Equatable {
+nonisolated struct Series: Codable, Identifiable, Equatable, Sendable {
   let id: String
   let libraryId: String
   let name: String

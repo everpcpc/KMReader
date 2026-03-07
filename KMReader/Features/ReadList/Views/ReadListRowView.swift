@@ -103,12 +103,12 @@ struct ReadListRowView: View {
   private func togglePinned() {
     let nextPinned = !komgaReadList.isPinned
     Task {
-      await DatabaseOperator.shared.setReadListPinned(
+      try? await DatabaseOperator.database().setReadListPinned(
         readListId: komgaReadList.readListId,
         instanceId: komgaReadList.instanceId,
         isPinned: nextPinned
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
   }
 }

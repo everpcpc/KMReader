@@ -27,7 +27,11 @@ struct DownloadQueueSummary: Sendable {
   let pendingCount: Int
   let failedCount: Int
 
-  static let empty = DownloadQueueSummary(downloadingCount: 0, pendingCount: 0, failedCount: 0)
+  nonisolated static let empty = DownloadQueueSummary(
+    downloadingCount: 0,
+    pendingCount: 0,
+    failedCount: 0
+  )
 
   var isEmpty: Bool {
     return downloadingCount == 0 && pendingCount == 0 && failedCount == 0
@@ -36,13 +40,44 @@ struct DownloadQueueSummary: Sendable {
 
 @ModelActor
 actor DatabaseOperator {
-  @MainActor static var shared: DatabaseOperator!
+  private actor SharedStore {
+    private var sharedDatabase: DatabaseOperator?
+
+    func configure(modelContainer: ModelContainer) {
+      sharedDatabase = DatabaseOperator(modelContainer: modelContainer)
+    }
+
+    func database() throws -> DatabaseOperator {
+      guard let sharedDatabase else {
+        throw AppErrorType.storageNotConfigured(message: "DatabaseOperator has not been configured")
+      }
+      return sharedDatabase
+    }
+
+    func databaseIfConfigured() -> DatabaseOperator? {
+      sharedDatabase
+    }
+  }
+
+  private static let sharedStore = SharedStore()
 
   private let logger = AppLogger(.database)
   private var pendingCommitTask: Task<Void, Never>?
   private let reconcileDeleteBatchSize = 1000
 
-  /// Commits changes with a 2-second debounce to avoid frequent UI updates
+  static func configure(modelContainer: ModelContainer) async {
+    await sharedStore.configure(modelContainer: modelContainer)
+  }
+
+  static func database() async throws -> DatabaseOperator {
+    try await sharedStore.database()
+  }
+
+  static func databaseIfConfigured() async -> DatabaseOperator? {
+    await sharedStore.databaseIfConfigured()
+  }
+
+  /// Commits changes with a 500ms debounce to avoid frequent UI updates
   func commit() {
     pendingCommitTask?.cancel()
     pendingCommitTask = Task {
@@ -125,6 +160,73 @@ actor DatabaseOperator {
       let compositeId = CompositeID.generate(instanceId: instanceId, id: book.id)
       if let existing = existingById[compositeId] {
         applyBook(dto: book, to: existing)
+      } else {
+        let newBook = KomgaBook(
+          bookId: book.id,
+          seriesId: book.seriesId,
+          libraryId: book.libraryId,
+          instanceId: instanceId,
+          name: book.name,
+          url: book.url,
+          number: book.number,
+          created: book.created,
+          lastModified: book.lastModified,
+          sizeBytes: book.sizeBytes,
+          size: book.size,
+          media: book.media,
+          metadata: book.metadata,
+          readProgress: book.readProgress,
+          isUnavailable: book.deleted,
+          oneshot: book.oneshot,
+          seriesTitle: book.seriesTitle
+        )
+        modelContext.insert(newBook)
+      }
+    }
+  }
+
+  func upsertReadingProgressBooks(
+    _ books: [Book],
+    instanceId: String
+  ) {
+    guard !books.isEmpty else { return }
+
+    let compositeIds = Set(
+      books.map { CompositeID.generate(instanceId: instanceId, id: $0.id) }
+    )
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { compositeIds.contains($0.id) }
+    )
+    let existingBooks = (try? modelContext.fetch(descriptor)) ?? []
+    let existingById = Dictionary(
+      existingBooks.map { ($0.id, $0) },
+      uniquingKeysWith: { first, _ in first }
+    )
+
+    for book in books {
+      let compositeId = CompositeID.generate(instanceId: instanceId, id: book.id)
+      if let existing = existingById[compositeId] {
+        let oldStatus = readingStatus(
+          progressCompleted: existing.progressCompleted,
+          progressPage: existing.progressPage
+        )
+
+        guard existing.readProgress != book.readProgress else { continue }
+
+        existing.updateReadProgress(book.readProgress)
+
+        let newStatus = readingStatus(
+          progressCompleted: existing.progressCompleted,
+          progressPage: existing.progressPage
+        )
+        if oldStatus != newStatus {
+          updateSeriesReadingCounts(
+            seriesId: existing.seriesId,
+            instanceId: instanceId,
+            oldStatus: oldStatus,
+            newStatus: newStatus
+          )
+        }
       } else {
         let newBook = KomgaBook(
           bookId: book.id,
@@ -1261,9 +1363,9 @@ actor DatabaseOperator {
           await OfflineManager.shared.deleteBook(
             instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
         }
-        await DatabaseOperator.shared.syncSeriesDownloadStatus(
+        self.syncSeriesDownloadStatus(
           seriesId: seriesId, instanceId: instanceId)
-        await DatabaseOperator.shared.commit()
+        self.commit()
       }
     }
   }
@@ -1359,9 +1461,9 @@ actor DatabaseOperator {
         await OfflineManager.shared.deleteBook(
           instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+      self.syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      self.commit()
     }
   }
 
@@ -1393,9 +1495,9 @@ actor DatabaseOperator {
         await OfflineManager.shared.deleteBook(
           instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+      self.syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      self.commit()
     }
   }
 
@@ -1641,9 +1743,9 @@ actor DatabaseOperator {
         await OfflineManager.shared.deleteBook(
           instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncReadListDownloadStatus(
+      self.syncReadListDownloadStatus(
         readListId: readListId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      self.commit()
     }
   }
 
@@ -1678,9 +1780,9 @@ actor DatabaseOperator {
         await OfflineManager.shared.deleteBook(
           instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
       }
-      await DatabaseOperator.shared.syncReadListDownloadStatus(
+      self.syncReadListDownloadStatus(
         readListId: readListId, instanceId: instanceId)
-      await DatabaseOperator.shared.commit()
+      self.commit()
     }
   }
 

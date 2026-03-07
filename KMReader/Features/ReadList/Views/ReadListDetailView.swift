@@ -154,12 +154,12 @@ extension ReadListDetailView {
     guard let komgaReadList else { return }
     let nextPinned = !komgaReadList.isPinned
     Task {
-      await DatabaseOperator.shared.setReadListPinned(
+      try? await DatabaseOperator.database().setReadListPinned(
         readListId: komgaReadList.readListId,
         instanceId: komgaReadList.instanceId,
         isPinned: nextPinned
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
   }
 

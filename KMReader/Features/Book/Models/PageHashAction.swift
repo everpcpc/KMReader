@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum PageHashAction: String, Codable, CaseIterable, Sendable {
+nonisolated enum PageHashAction: String, Codable, CaseIterable, Sendable {
   case deleteAuto = "DELETE_AUTO"
   case deleteManual = "DELETE_MANUAL"
   case ignore = "IGNORE"

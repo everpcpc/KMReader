@@ -13,7 +13,7 @@ import Foundation
 
     static func handleShortcut(_ item: UIApplicationShortcutItem) {
       Task { @MainActor in
-        guard let db = DatabaseOperator.shared else {
+        guard let db = await DatabaseOperator.databaseIfConfigured() else {
           pendingShortcutItem = item
           return
         }

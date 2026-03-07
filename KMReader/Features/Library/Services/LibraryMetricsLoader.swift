@@ -118,7 +118,7 @@ struct LibraryMetricsLoader {
     ensureEntry: Bool
   ) async {
     if !ensureEntry {
-      try? await DatabaseOperator.shared.upsertAllLibrariesEntry(
+      try? await DatabaseOperator.database().upsertAllLibrariesEntry(
         instanceId: instanceId,
         fileSize: nil,
         booksCount: nil,
@@ -201,7 +201,7 @@ struct LibraryMetricsLoader {
       }
     }
 
-    try? await DatabaseOperator.shared.upsertAllLibrariesEntry(
+    try? await DatabaseOperator.database().upsertAllLibrariesEntry(
       instanceId: instanceId,
       fileSize: metrics.fileSize,
       booksCount: metrics.booksCount,

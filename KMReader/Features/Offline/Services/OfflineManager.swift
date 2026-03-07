@@ -209,7 +209,7 @@ actor OfflineManager {
 
   /// Get the download status of a book from SwiftData.
   func getDownloadStatus(bookId: String) async -> DownloadStatus {
-    await DatabaseOperator.shared.getDownloadStatus(bookId: bookId)
+    (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId)) ?? .notDownloaded
   }
 
   /// Check if a book is downloaded.
@@ -246,26 +246,26 @@ actor OfflineManager {
     case .pending:
       await cancelDownload(bookId: info.bookId, instanceId: instanceId)
     case .notDownloaded, .failed:
-      await DatabaseOperator.shared.updateBookDownloadStatus(
+      try? await DatabaseOperator.database().updateBookDownloadStatus(
         bookId: info.bookId,
         instanceId: instanceId,
         status: .pending,
         downloadAt: .now
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       await refreshQueueStatus(instanceId: instanceId)
       await syncDownloadQueue(instanceId: instanceId)
     }
   }
 
   func retryDownload(instanceId: String, bookId: String) async {
-    await DatabaseOperator.shared.updateBookDownloadStatus(
+    try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId,
       instanceId: instanceId,
       status: .pending,
       downloadAt: .now
     )
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
   }
@@ -278,12 +278,12 @@ actor OfflineManager {
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
     // Update SwiftData
-    await DatabaseOperator.shared.updateBookDownloadStatus(
+    try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId, instanceId: instanceId, status: .notDownloaded,
       syncSeriesStatus: syncSeriesStatus
     )
     if commit {
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       await refreshQueueStatus(instanceId: instanceId)
     }
 
@@ -306,7 +306,7 @@ actor OfflineManager {
 
   /// Delete a book manually, setting series policy to manual first to prevent automatic re-download.
   func deleteBookManually(seriesId: String, instanceId: String, bookId: String) async {
-    await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+    try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
       seriesId: seriesId,
       instanceId: instanceId,
       policy: .manual,
@@ -317,7 +317,7 @@ actor OfflineManager {
 
   /// Delete multiple books manually, setting series policy to manual first to prevent automatic re-download.
   func deleteBooksManually(seriesId: String, instanceId: String, bookIds: [String]) async {
-    await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+    try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
       seriesId: seriesId,
       instanceId: instanceId,
       policy: .manual,
@@ -327,24 +327,25 @@ actor OfflineManager {
       await deleteBook(
         instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
     }
-    await DatabaseOperator.shared.syncSeriesDownloadStatus(
+    try? await DatabaseOperator.database().syncSeriesDownloadStatus(
       seriesId: seriesId, instanceId: instanceId)
     // Also sync readlists containing these books
-    await DatabaseOperator.shared.syncReadListsContainingBooks(
+    try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: bookIds, instanceId: instanceId)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
   }
 
   /// Delete all downloaded books for the current instance.
   func deleteAllDownloadedBooks() async {
     let instanceId = AppConfig.current.instanceId
-    let books = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
+    let books =
+      (try? await DatabaseOperator.database().fetchDownloadedBooks(instanceId: instanceId)) ?? []
 
     // Group by series to update policies
     let seriesIds = Set(books.map { $0.seriesId })
     for seriesId in seriesIds {
-      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+      try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: seriesId,
         instanceId: instanceId,
         policy: .manual,
@@ -358,13 +359,13 @@ actor OfflineManager {
     }
 
     for seriesId in seriesIds {
-      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+      try? await DatabaseOperator.database().syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
     }
     // Also sync readlists containing these books
-    await DatabaseOperator.shared.syncReadListsContainingBooks(
+    try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: books.map { $0.id }, instanceId: instanceId)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
 
     #if os(iOS) || os(macOS)
@@ -375,15 +376,17 @@ actor OfflineManager {
   /// Delete all read (completed) downloaded books for the current instance.
   func deleteReadBooks() async {
     let instanceId = AppConfig.current.instanceId
-    let readBooks = await DatabaseOperator.shared.fetchReadBooksEligibleForAutoDelete(
-      instanceId: instanceId)
+    let readBooks =
+      (try? await DatabaseOperator.database().fetchReadBooksEligibleForAutoDelete(
+        instanceId: instanceId
+      )) ?? []
 
     if readBooks.isEmpty { return }
 
     // Group by series to update policies
     let seriesIds = Set(readBooks.map { $0.seriesId })
     for seriesId in seriesIds {
-      await DatabaseOperator.shared.updateSeriesOfflinePolicy(
+      try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: seriesId,
         instanceId: instanceId,
         policy: .manual,
@@ -397,13 +400,13 @@ actor OfflineManager {
     }
 
     for seriesId in seriesIds {
-      await DatabaseOperator.shared.syncSeriesDownloadStatus(
+      try? await DatabaseOperator.database().syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
     }
     // Also sync readlists containing these books
-    await DatabaseOperator.shared.syncReadListsContainingBooks(
+    try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: readBooks.map { $0.id }, instanceId: instanceId)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
   }
 
@@ -419,7 +422,8 @@ actor OfflineManager {
     }
 
     // Get all downloaded book IDs from SwiftData
-    let downloadedBooks = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
+    let downloadedBooks =
+      (try? await DatabaseOperator.database().fetchDownloadedBooks(instanceId: instanceId)) ?? []
     let downloadedBookIds = Set(downloadedBooks.map { $0.id })
 
     var deletedCount = 0
@@ -464,12 +468,12 @@ actor OfflineManager {
   ) async {
     removeActiveTask(bookId)
     let resolvedInstanceId = instanceId ?? AppConfig.current.instanceId
-    await DatabaseOperator.shared.updateBookDownloadStatus(
+    try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId, instanceId: resolvedInstanceId, status: .notDownloaded,
       syncSeriesStatus: syncSeriesStatus
     )
     if commit {
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       await refreshQueueStatus(instanceId: resolvedInstanceId)
     }
   }
@@ -480,10 +484,10 @@ actor OfflineManager {
     let bookIds = Array(activeTasks.keys)
     for (bookId, task) in activeTasks {
       task.cancel()
-      await DatabaseOperator.shared.updateBookDownloadStatus(
+      try? await DatabaseOperator.database().updateBookDownloadStatus(
         bookId: bookId, instanceId: instanceId, status: .notDownloaded
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
     activeTasks.removeAll()
     await MainActor.run {
@@ -499,15 +503,15 @@ actor OfflineManager {
   }
 
   func retryFailedDownloads(instanceId: String) async {
-    await DatabaseOperator.shared.retryFailedBooks(instanceId: instanceId)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().retryFailedBooks(instanceId: instanceId)
+    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
   }
 
   func cancelFailedDownloads(instanceId: String) async {
-    await DatabaseOperator.shared.cancelFailedBooks(instanceId: instanceId)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().cancelFailedBooks(instanceId: instanceId)
+    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
   }
 
@@ -593,14 +597,16 @@ actor OfflineManager {
 
     await syncMissingOfflineEpubProgressions(instanceId: instanceId)
 
-    let pending = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
+    let pending =
+      (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: instanceId)) ?? []
 
     guard let nextBook = pending.first else {
       if completedDownloadsSinceLastNotification > 0 {
         completedDownloadsSinceLastNotification = 0
-        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-          instanceId: instanceId
-        )
+        let failedCount =
+          (try? await DatabaseOperator.database().fetchFailedBooksCount(
+            instanceId: instanceId
+          )) ?? 0
         if failedCount == 0 {
           await MainActor.run {
             ErrorManager.shared.notify(
@@ -617,9 +623,10 @@ actor OfflineManager {
   }
 
   private func syncMissingOfflineEpubProgressions(instanceId: String) async {
-    let bookIds = await DatabaseOperator.shared.fetchOfflineEpubBookIdsMissingProgression(
-      instanceId: instanceId
-    )
+    let bookIds =
+      (try? await DatabaseOperator.database().fetchOfflineEpubBookIdsMissingProgression(
+        instanceId: instanceId
+      )) ?? []
     guard !bookIds.isEmpty else { return }
 
     logger.info(
@@ -634,7 +641,7 @@ actor OfflineManager {
         let progression = try await BookService.shared.getWebPubProgression(bookId: bookId)
         guard progression != nil else { continue }
 
-        await DatabaseOperator.shared.updateBookEpubProgression(
+        try? await DatabaseOperator.database().updateBookEpubProgression(
           bookId: bookId,
           progression: progression
         )
@@ -648,7 +655,7 @@ actor OfflineManager {
     }
 
     if syncedCount > 0 {
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
 
     logger.info(
@@ -685,9 +692,12 @@ actor OfflineManager {
 
       do {
         // Get pending count and failed count for Live Activity
-        let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
-        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-          instanceId: instanceId)
+        let pendingBooks =
+          (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: instanceId)) ?? []
+        let failedCount =
+          (try? await DatabaseOperator.database().fetchFailedBooksCount(
+            instanceId: instanceId
+          )) ?? 0
 
         // Start or update Live Activity for download progress
         await LiveActivityManager.shared.startActivity(
@@ -700,24 +710,24 @@ actor OfflineManager {
 
         // First, fetch and save metadata (this needs to happen before background download)
         let pages = try await BookService.shared.getBookPages(id: info.bookId)
-        await DatabaseOperator.shared.updateBookPages(bookId: info.bookId, pages: pages)
-        await DatabaseOperator.shared.commit()
+        try? await DatabaseOperator.database().updateBookPages(bookId: info.bookId, pages: pages)
+        try? await DatabaseOperator.database().commit()
 
         // Save TOC if available
         if let manifest = try? await BookService.shared.getBookManifest(id: info.bookId) {
           let toc = await ReaderManifestService(bookId: info.bookId).parseTOC(manifest: manifest)
-          await DatabaseOperator.shared.updateBookTOC(bookId: info.bookId, toc: toc)
-          await DatabaseOperator.shared.commit()
+          try? await DatabaseOperator.database().updateBookTOC(bookId: info.bookId, toc: toc)
+          try? await DatabaseOperator.database().commit()
         }
 
         switch info.kind {
         case .epubWebPub:
           let webPubManifest = try await BookService.shared.getBookWebPubManifest(bookId: info.bookId)
-          await DatabaseOperator.shared.updateBookWebPubManifest(
+          try? await DatabaseOperator.database().updateBookWebPubManifest(
             bookId: info.bookId,
             manifest: webPubManifest
           )
-          await DatabaseOperator.shared.commit()
+          try? await DatabaseOperator.database().commit()
           try await scheduleBackgroundEpubDownload(
             instanceId: instanceId,
             info: info,
@@ -745,12 +755,12 @@ actor OfflineManager {
         await BackgroundDownloadManager.shared.cancelDownloads(forBookId: info.bookId)
         clearBackgroundDownloadContext(bookId: info.bookId)
         removeActiveTask(info.bookId)
-        await DatabaseOperator.shared.updateBookDownloadStatus(
+        try? await DatabaseOperator.database().updateBookDownloadStatus(
           bookId: info.bookId,
           instanceId: instanceId,
           status: .failed(error: error.localizedDescription)
         )
-        await DatabaseOperator.shared.commit()
+        try? await DatabaseOperator.database().commit()
         await refreshQueueStatus(instanceId: instanceId)
         await syncDownloadQueue(instanceId: instanceId)
       }
@@ -970,8 +980,11 @@ actor OfflineManager {
   ) async {
     #if os(iOS)
       foregroundDownloadInfoByBookId[info.bookId] = (instanceId: instanceId, info: info)
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
-      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(instanceId: instanceId)
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: instanceId)) ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(instanceId: instanceId))
+        ?? 0
       await LiveActivityManager.shared.startActivity(
         seriesTitle: info.seriesTitle,
         bookInfo: info.bookInfo,
@@ -1024,12 +1037,12 @@ actor OfflineManager {
             shouldTriggerNextDownload = AppConfig.isOffline
           } else {
             logger.error("❌ Download failed for book \(info.bookId): \(error)")
-            await DatabaseOperator.shared.updateBookDownloadStatus(
+            try? await DatabaseOperator.database().updateBookDownloadStatus(
               bookId: info.bookId,
               instanceId: instanceId,
               status: .failed(error: error.localizedDescription)
             )
-            await DatabaseOperator.shared.commit()
+            try? await DatabaseOperator.database().commit()
             await self.refreshQueueStatus(instanceId: instanceId)
           }
         }
@@ -1120,13 +1133,13 @@ actor OfflineManager {
     let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
     guard let size = try? Self.calculateDirectorySize(bookDir) else { return }
 
-    await DatabaseOperator.shared.updateBookDownloadStatus(
+    try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId,
       instanceId: instanceId,
       status: .downloaded,
       downloadedSize: size
     )
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().commit()
   }
 
   func readOfflinePDFPreparationStamp(instanceId: String, bookId: String) async -> String? {
@@ -1173,23 +1186,23 @@ actor OfflineManager {
   // MARK: - Resource Fetchers (Offline-Aware)
 
   func getBookPages(bookId: String) async throws -> [BookPage] {
-    if let pages = await DatabaseOperator.shared.fetchPages(id: bookId) {
+    if let pages = try? await DatabaseOperator.database().fetchPages(id: bookId) {
       return pages
     }
     throw APIError.offline
   }
 
   func getBookTOC(bookId: String) async throws -> [ReaderTOCEntry] {
-    if let toc = await DatabaseOperator.shared.fetchTOC(id: bookId) {
+    if let toc = try? await DatabaseOperator.database().fetchTOC(id: bookId) {
       return toc
     }
     throw APIError.offline
   }
 
   func updateLocalProgress(bookId: String, page: Int, completed: Bool) async {
-    await DatabaseOperator.shared.updateReadingProgress(
+    try? await DatabaseOperator.database().updateReadingProgress(
       bookId: bookId, page: page, completed: completed)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().commit()
   }
 
   private nonisolated static func calculateDirectorySize(_ url: URL) throws -> Int64 {
@@ -1217,7 +1230,9 @@ actor OfflineManager {
   // MARK: - Private Helpers
 
   private func refreshQueueStatus(instanceId: String) async {
-    let summary = await DatabaseOperator.shared.fetchDownloadQueueSummary(instanceId: instanceId)
+    let summary =
+      (try? await DatabaseOperator.database().fetchDownloadQueueSummary(instanceId: instanceId))
+      ?? .empty
     await MainActor.run {
       DownloadProgressTracker.shared.updateQueueStatus(
         pending: summary.pendingCount,
@@ -1242,10 +1257,13 @@ actor OfflineManager {
   #if os(iOS)
     private func updateForegroundLiveActivityProgress(bookId: String, progress: Double) async {
       guard let entry = foregroundDownloadInfoByBookId[bookId] else { return }
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: entry.instanceId)
-      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-        instanceId: entry.instanceId
-      )
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: entry.instanceId))
+        ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(
+          instanceId: entry.instanceId
+        )) ?? 0
       await LiveActivityManager.shared.updateActivity(
         seriesTitle: entry.info.seriesTitle,
         bookInfo: entry.info.bookInfo,
@@ -1258,8 +1276,11 @@ actor OfflineManager {
     private func finishForegroundLiveActivity(bookId: String, instanceId: String) async {
       foregroundDownloadInfoByBookId.removeValue(forKey: bookId)
 
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(instanceId: instanceId)
-      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(instanceId: instanceId)
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: instanceId)) ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(instanceId: instanceId))
+        ?? 0
 
       if pendingBooks.isEmpty {
         if failedCount > 0 {
@@ -1351,7 +1372,9 @@ actor OfflineManager {
         let totalTasks = backgroundDownloadTotalTasks[bookId],
         totalTasks > 0
       else {
-        if case .downloaded = await DatabaseOperator.shared.getDownloadStatus(bookId: bookId) {
+        if (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId))
+          == .downloaded
+        {
           return
         }
         logger.debug("⏭️ Ignore completion callback without active context for book: \(bookId)")
@@ -1361,11 +1384,14 @@ actor OfflineManager {
       let completedTasks = min((backgroundDownloadCompletedTasks[bookId] ?? 0) + 1, totalTasks)
       backgroundDownloadCompletedTasks[bookId] = completedTasks
       let progress = Double(completedTasks) / Double(totalTasks)
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
-        instanceId: info.instanceId
-      )
-      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-        instanceId: info.instanceId)
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(
+          instanceId: info.instanceId
+        )) ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(
+          instanceId: info.instanceId
+        )) ?? 0
 
       await MainActor.run {
         DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: progress)
@@ -1396,7 +1422,9 @@ actor OfflineManager {
       _ = pageNumber
 
       guard let info = backgroundDownloadInfo[bookId] else {
-        if case .downloaded = await DatabaseOperator.shared.getDownloadStatus(bookId: bookId) {
+        if (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId))
+          == .downloaded
+        {
           return
         }
         logger.warning(
@@ -1420,12 +1448,12 @@ actor OfflineManager {
 
       // Mark book as failed
       logger.error("❌ Background download failed for \(bookId): \(error)")
-      await DatabaseOperator.shared.updateBookDownloadStatus(
+      try? await DatabaseOperator.database().updateBookDownloadStatus(
         bookId: bookId,
         instanceId: info.instanceId,
         status: .failed(error: error.localizedDescription)
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       await refreshQueueStatus(instanceId: info.instanceId)
 
       // Cancel remaining downloads for this book
@@ -1434,11 +1462,14 @@ actor OfflineManager {
       removeActiveTask(bookId)
 
       // Update Live Activity or end if no more pending
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
-        instanceId: info.instanceId
-      )
-      let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-        instanceId: info.instanceId)
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(
+          instanceId: info.instanceId
+        )) ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(
+          instanceId: info.instanceId
+        )) ?? 0
 
       if pendingBooks.isEmpty {
         if failedCount > 0 {
@@ -1476,7 +1507,9 @@ actor OfflineManager {
       }
 
       guard let info = backgroundDownloadInfo[bookId] else {
-        if case .downloaded = await DatabaseOperator.shared.getDownloadStatus(bookId: bookId) {
+        if (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId))
+          == .downloaded
+        {
           return
         }
         logger.debug("⏭️ Ignore all-complete callback without active context for book: \(bookId)")
@@ -1508,9 +1541,9 @@ actor OfflineManager {
         func failExtraction(_ message: String) async {
           logger.error("❌ \(message): \(bookId)")
           try? FileManager.default.removeItem(at: bookDir)
-          await DatabaseOperator.shared.updateBookDownloadStatus(
+          try? await DatabaseOperator.database().updateBookDownloadStatus(
             bookId: bookId, instanceId: info.instanceId, status: .failed(error: message))
-          await DatabaseOperator.shared.commit()
+          try? await DatabaseOperator.database().commit()
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
           await refreshQueueStatus(instanceId: info.instanceId)
@@ -1518,7 +1551,7 @@ actor OfflineManager {
         }
 
         guard
-          let manifest = await DatabaseOperator.shared.fetchWebPubManifest(
+          let manifest = try? await DatabaseOperator.database().fetchWebPubManifest(
             bookId: bookId, instanceId: info.instanceId)
         else {
           await failExtraction("Missing WebPub manifest. Please retry download.")
@@ -1543,12 +1576,15 @@ actor OfflineManager {
 
       clearBackgroundDownloadContext(bookId: bookId)
 
-      let pendingBooks = await DatabaseOperator.shared.fetchPendingBooks(
-        instanceId: info.instanceId
-      )
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(
+          instanceId: info.instanceId
+        )) ?? []
       if pendingBooks.isEmpty {
-        let failedCount = await DatabaseOperator.shared.fetchFailedBooksCount(
-          instanceId: info.instanceId)
+        let failedCount =
+          (try? await DatabaseOperator.database().fetchFailedBooksCount(
+            instanceId: info.instanceId
+          )) ?? 0
         if failedCount > 0 {
           await LiveActivityManager.shared.updateActivity(
             seriesTitle: String(localized: "Offline"),
@@ -1571,19 +1607,19 @@ actor OfflineManager {
   private func downloadEpub(bookId: String, to bookDir: URL) async throws {
     // Save pages metadata to DB
     let pages = try await BookService.shared.getBookPages(id: bookId)
-    await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: pages)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().updateBookPages(bookId: bookId, pages: pages)
+    try? await DatabaseOperator.database().commit()
 
     // Save TOC if it exists to DB
     if let manifest = try? await BookService.shared.getBookManifest(id: bookId) {
       let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
-      await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: toc)
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().updateBookTOC(bookId: bookId, toc: toc)
+      try? await DatabaseOperator.database().commit()
     }
 
     let webPubManifest = try await BookService.shared.getBookWebPubManifest(bookId: bookId)
-    await DatabaseOperator.shared.updateBookWebPubManifest(bookId: bookId, manifest: webPubManifest)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().updateBookWebPubManifest(bookId: bookId, manifest: webPubManifest)
+    try? await DatabaseOperator.database().commit()
 
     // Download the original EPUB file and extract as ZIP
     try await downloadAndExtractEpub(bookId: bookId, manifest: webPubManifest, bookDir: bookDir)
@@ -1707,14 +1743,14 @@ actor OfflineManager {
     let pages = try await BookService.shared.getBookPages(id: bookId)
 
     // Save pages metadata to DB
-    await DatabaseOperator.shared.updateBookPages(bookId: bookId, pages: pages)
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().updateBookPages(bookId: bookId, pages: pages)
+    try? await DatabaseOperator.database().commit()
 
     // Save TOC to DB
     if let manifest = try? await BookService.shared.getBookManifest(id: bookId) {
       let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
-      await DatabaseOperator.shared.updateBookTOC(bookId: bookId, toc: toc)
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().updateBookTOC(bookId: bookId, toc: toc)
+      try? await DatabaseOperator.database().commit()
     }
 
     var pagesToDownload: [BookPage] = []
@@ -1833,13 +1869,13 @@ actor OfflineManager {
     bookId: String,
     bookDir: URL
   ) async {
-    await DatabaseOperator.shared.updateBookDownloadStatus(
+    try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId,
       instanceId: instanceId,
       status: .downloaded,
       downloadAt: .now
     )
-    await DatabaseOperator.shared.commit()
+    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
     await clearCachesAfterDownload(bookId: bookId)
     completedDownloadsSinceLastNotification += 1
@@ -1848,7 +1884,7 @@ actor OfflineManager {
 
     #if os(iOS) || os(macOS)
       let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-      if let book = await DatabaseOperator.shared.fetchBook(id: compositeId) {
+      if let book = try? await DatabaseOperator.database().fetchBook(id: compositeId) {
         SpotlightIndexService.indexBook(book, instanceId: instanceId)
       }
     #endif
@@ -1861,13 +1897,13 @@ actor OfflineManager {
   ) {
     Task.detached {
       guard let size = try? Self.calculateDirectorySize(bookDir) else { return }
-      await DatabaseOperator.shared.updateBookDownloadStatus(
+      try? await DatabaseOperator.database().updateBookDownloadStatus(
         bookId: bookId,
         instanceId: instanceId,
         status: .downloaded,
         downloadedSize: size
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
     }
   }
 

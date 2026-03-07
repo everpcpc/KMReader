@@ -116,7 +116,8 @@ import Foundation
       guard AppConfig.enableSpotlightIndexing else { return }
       let domain = domainIdentifier
       Task.detached(priority: .utility) {
-        let books = await DatabaseOperator.shared.fetchDownloadedBooks(instanceId: instanceId)
+        let books =
+          (try? await DatabaseOperator.database().fetchDownloadedBooks(instanceId: instanceId)) ?? []
         let filteredBooks = filterBooksForIndexedLibraries(books, instanceId: instanceId)
         var items: [CSSearchableItem] = []
 

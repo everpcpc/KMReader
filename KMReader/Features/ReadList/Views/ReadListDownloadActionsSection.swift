@@ -142,10 +142,10 @@ struct ReadListDownloadActionsSection: View {
     Task {
       // Sync books first
       try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
-      await DatabaseOperator.shared.downloadReadListOffline(
+      try? await DatabaseOperator.database().downloadReadListOffline(
         readListId: readList.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -155,12 +155,12 @@ struct ReadListDownloadActionsSection: View {
   private func downloadUnread(limit: Int) {
     Task {
       try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
-      await DatabaseOperator.shared.downloadReadListUnreadOffline(
+      try? await DatabaseOperator.database().downloadReadListUnreadOffline(
         readListId: readList.id,
         instanceId: current.instanceId,
         limit: limit
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -169,11 +169,11 @@ struct ReadListDownloadActionsSection: View {
 
   private func removeRead() {
     Task {
-      await DatabaseOperator.shared.removeReadListReadOffline(
+      try? await DatabaseOperator.database().removeReadListReadOffline(
         readListId: readList.id,
         instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
@@ -193,10 +193,10 @@ struct ReadListDownloadActionsSection: View {
 
   private func removeAll() {
     Task {
-      await DatabaseOperator.shared.removeReadListOffline(
+      try? await DatabaseOperator.database().removeReadListOffline(
         readListId: readList.id, instanceId: current.instanceId
       )
-      await DatabaseOperator.shared.commit()
+      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )

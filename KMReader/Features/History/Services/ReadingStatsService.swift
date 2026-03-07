@@ -16,7 +16,7 @@ class ReadingStatsService {
     guard !instanceId.isEmpty else {
       return .empty
     }
-    guard let database = await MainActor.run(body: { DatabaseOperator.shared }) else {
+    guard let database = await DatabaseOperator.databaseIfConfigured() else {
       return .empty
     }
 

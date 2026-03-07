@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum UserRole: Hashable, Codable, RawRepresentable {
+nonisolated enum UserRole: Hashable, Codable, RawRepresentable, Sendable {
   case admin
   case fileDownload
   case pageStreaming

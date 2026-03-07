@@ -145,10 +145,6 @@ final class InstanceInitializer {
     stageProgress[stage] ?? 0.0
   }
 
-  private var db: DatabaseOperator {
-    DatabaseOperator.shared
-  }
-
   /// Sync data for the current instance.
   /// - Parameter forceFullSync: If true, ignores lastSyncedAt and fetches all series/books.
   func syncData(forceFullSync: Bool = false) async {
@@ -196,101 +192,107 @@ final class InstanceInitializer {
     stageProgress = SyncStage.initialProgress
     var hasFailures = false
 
-    let storedLastSyncedAt = await db.getLastSyncedAt(instanceId: instanceId)
-    let lastSyncedAt: (series: Date, books: Date) =
-      forceFullSync
-      ? (Date(timeIntervalSince1970: 0), Date(timeIntervalSince1970: 0))
-      : storedLastSyncedAt
-    let syncStartTime = Date()
-    let shouldReconcileDeletions = forceFullSync
-    includesReconcileStages = shouldReconcileDeletions
-    visibleStages = SyncStage.visibleStages(includeReconcile: shouldReconcileDeletions)
+    do {
+      let database = try await DatabaseOperator.database()
+      let storedLastSyncedAt = await database.getLastSyncedAt(instanceId: instanceId)
 
-    logger.info(
-      "🔄 Starting sync for instance: \(instanceId), forceFullSync: \(forceFullSync), seriesLastSynced: \(storedLastSyncedAt.series), booksLastSynced: \(storedLastSyncedAt.books)"
-    )
+      let lastSyncedAt: (series: Date, books: Date) =
+        forceFullSync
+        ? (Date(timeIntervalSince1970: 0), Date(timeIntervalSince1970: 0))
+        : storedLastSyncedAt
+      let syncStartTime = Date()
+      let shouldReconcileDeletions = forceFullSync
+      includesReconcileStages = shouldReconcileDeletions
+      visibleStages = SyncStage.visibleStages(includeReconcile: shouldReconcileDeletions)
 
-    // Phase 1: Libraries (always full sync)
-    currentPhase = .libraries
-    if !(await syncLibraries(instanceId: instanceId)) {
-      hasFailures = true
-    }
-
-    // Phase 2: Collections (always full sync)
-    currentPhase = .collections
-    if !(await syncAllCollections(instanceId: instanceId)) {
-      hasFailures = true
-    }
-
-    // Phase 3: Series (incremental sync by lastModified)
-    currentPhase = .series
-    var seriesSyncSucceeded = await syncSeriesIncremental(
-      instanceId: instanceId,
-      since: lastSyncedAt.series
-    )
-    if seriesSyncSucceeded && shouldReconcileDeletions {
-      seriesSyncSucceeded = await reconcileSeriesDeletions(
-        instanceId: instanceId
+      logger.info(
+        "🔄 Starting sync for instance: \(instanceId), forceFullSync: \(forceFullSync), seriesLastSynced: \(storedLastSyncedAt.series), booksLastSynced: \(storedLastSyncedAt.books)"
       )
-    }
-    if !seriesSyncSucceeded {
-      hasFailures = true
-    } else {
-      do {
-        try await db.updateSeriesLastSyncedAt(
-          instanceId: instanceId, date: syncStartTime)
-        await db.commit()
-      } catch {
+
+      currentPhase = .libraries
+      if !(await syncLibraries(instanceId: instanceId, database: database)) {
         hasFailures = true
-        logger.error("❌ Failed to update series lastSyncedAt: \(error)")
       }
-    }
 
-    // Phase 4: ReadLists (always full sync)
-    currentPhase = .readLists
-    if !(await syncAllReadLists(instanceId: instanceId)) {
-      hasFailures = true
-    }
+      currentPhase = .collections
+      if !(await syncAllCollections(instanceId: instanceId, database: database)) {
+        hasFailures = true
+      }
 
-    // Phase 5: Books (incremental sync by lastModified)
-    currentPhase = .books
-    var booksSyncSucceeded = await syncBooksIncremental(
-      instanceId: instanceId,
-      since: lastSyncedAt.books
-    )
-    if booksSyncSucceeded && shouldReconcileDeletions {
-      booksSyncSucceeded = await reconcileBookDeletions(
-        instanceId: instanceId
+      currentPhase = .series
+      var seriesSyncSucceeded = await syncSeriesIncremental(
+        instanceId: instanceId,
+        since: lastSyncedAt.series,
+        database: database
       )
-    }
-    if !booksSyncSucceeded {
-      hasFailures = true
-    } else {
-      do {
-        try await db.updateBooksLastSyncedAt(
-          instanceId: instanceId, date: syncStartTime)
-        await db.commit()
-      } catch {
-        hasFailures = true
-        logger.error("❌ Failed to update books lastSyncedAt: \(error)")
+      if seriesSyncSucceeded && shouldReconcileDeletions {
+        seriesSyncSucceeded = await reconcileSeriesDeletions(
+          instanceId: instanceId,
+          database: database
+        )
       }
-    }
+      if !seriesSyncSucceeded {
+        hasFailures = true
+      } else {
+        do {
+          try await database.updateSeriesLastSyncedAt(
+            instanceId: instanceId, date: syncStartTime)
+          await database.commit()
+        } catch {
+          hasFailures = true
+          logger.error("❌ Failed to update series lastSyncedAt: \(error)")
+        }
+      }
 
-    // Keep reading progress aligned across all libraries (no dashboard library filter).
-    let readProgressSyncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
-    if readProgressSyncSucceeded {
-      AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
-    }
+      currentPhase = .readLists
+      if !(await syncAllReadLists(instanceId: instanceId, database: database)) {
+        hasFailures = true
+      }
 
-    progress = 1.0
-    if hasFailures {
-      logger.warning("⚠️ Sync completed with errors for instance: \(instanceId)")
-    } else {
-      logger.info("✅ Sync completed for instance: \(instanceId)")
-    }
+      currentPhase = .books
+      var booksSyncSucceeded = await syncBooksIncremental(
+        instanceId: instanceId,
+        since: lastSyncedAt.books,
+        database: database
+      )
+      if booksSyncSucceeded && shouldReconcileDeletions {
+        booksSyncSucceeded = await reconcileBookDeletions(
+          instanceId: instanceId,
+          database: database
+        )
+      }
+      if !booksSyncSucceeded {
+        hasFailures = true
+      } else {
+        do {
+          try await database.updateBooksLastSyncedAt(
+            instanceId: instanceId, date: syncStartTime)
+          await database.commit()
+        } catch {
+          hasFailures = true
+          logger.error("❌ Failed to update books lastSyncedAt: \(error)")
+        }
+      }
 
-    isSyncing = false
-    return hasFailures
+      let readProgressSyncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
+      if readProgressSyncSucceeded {
+        AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
+      }
+
+      progress = 1.0
+      if hasFailures {
+        logger.warning("⚠️ Sync completed with errors for instance: \(instanceId)")
+      } else {
+        logger.info("✅ Sync completed for instance: \(instanceId)")
+      }
+
+      isSyncing = false
+      return hasFailures
+    } catch {
+      logger.error("❌ Failed to load sync markers: \(error)")
+      isSyncing = false
+      return true
+    }
   }
 
   private func shouldSkipReadingProgressSync(instanceId: String) -> Bool {
@@ -303,13 +305,13 @@ final class InstanceInitializer {
 
   // MARK: - Sync Methods
 
-  private func syncLibraries(instanceId: String) async -> Bool {
+  private func syncLibraries(instanceId: String, database: DatabaseOperator) async -> Bool {
     updateProgress(phase: .libraries, phaseProgress: 0.0)
     do {
       let libraries = try await LibraryService.shared.getLibraries()
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
-      try await db.replaceLibraries(libraryInfos, for: instanceId)
-      await db.commit()
+      try await database.replaceLibraries(libraryInfos, for: instanceId)
+      await database.commit()
       logger.info("📚 Synced \(libraries.count) libraries")
       updateProgress(phase: .libraries, phaseProgress: 1.0)
       return true
@@ -320,7 +322,7 @@ final class InstanceInitializer {
     }
   }
 
-  private func syncAllCollections(instanceId: String) async -> Bool {
+  private func syncAllCollections(instanceId: String, database: DatabaseOperator) async -> Bool {
     updateProgress(phase: .collections, phaseProgress: 0.0)
     do {
       var page = 0
@@ -332,8 +334,8 @@ final class InstanceInitializer {
         let result: Page<SeriesCollection> = try await CollectionService.shared.getCollections(
           page: page, size: syncPageSize)
         remoteCollectionIds.formUnion(result.content.map(\.id))
-        await db.upsertCollections(result.content, instanceId: instanceId)
-        await db.commit()
+        await database.upsertCollections(result.content, instanceId: instanceId)
+        await database.commit()
 
         totalPages = max(result.totalPages, 1)
         hasMore = !result.last
@@ -341,9 +343,12 @@ final class InstanceInitializer {
 
         updateProgress(phase: .collections, phaseProgress: Double(page) / Double(totalPages))
       }
-      let deletedCount = await db.deleteCollectionsNotIn(remoteCollectionIds, instanceId: instanceId)
+      let deletedCount = await database.deleteCollectionsNotIn(
+        remoteCollectionIds,
+        instanceId: instanceId
+      )
       if deletedCount > 0 {
-        await db.commit()
+        await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale collections")
       }
       logger.info("📂 Synced collections")
@@ -357,7 +362,8 @@ final class InstanceInitializer {
 
   private func syncSeriesIncremental(
     instanceId: String,
-    since: Date
+    since: Date,
+    database: DatabaseOperator
   ) async -> Bool {
     updateProgress(phase: .series, phaseProgress: 0.0, stage: .seriesIncremental)
     do {
@@ -380,8 +386,8 @@ final class InstanceInitializer {
         }
 
         if !itemsToSync.isEmpty {
-          await db.upsertSeriesList(itemsToSync, instanceId: instanceId)
-          await db.commit()
+          await database.upsertSeriesList(itemsToSync, instanceId: instanceId)
+          await database.commit()
         }
 
         page += 1
@@ -405,10 +411,10 @@ final class InstanceInitializer {
     }
   }
 
-  private func reconcileSeriesDeletions(instanceId: String) async -> Bool {
+  private func reconcileSeriesDeletions(instanceId: String, database: DatabaseOperator) async -> Bool {
     updateProgress(phase: .series, phaseProgress: 0.0, stage: .seriesReconcile)
     do {
-      let localCount = await db.fetchTotalSeriesCount(instanceId: instanceId)
+      let localCount = await database.fetchTotalSeriesCount(instanceId: instanceId)
       do {
         let remoteCount = try await fetchRemoteSeriesCountForDeletionReconcile()
         if localCount <= remoteCount {
@@ -428,9 +434,9 @@ final class InstanceInitializer {
         self.updateProgress(phase: .series, phaseProgress: progress, stage: .seriesReconcile)
       }
 
-      let deletedCount = await db.deleteSeriesNotIn(remoteSeriesIds, instanceId: instanceId)
+      let deletedCount = await database.deleteSeriesNotIn(remoteSeriesIds, instanceId: instanceId)
       if deletedCount > 0 {
-        await db.commit()
+        await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale series")
       }
       return true
@@ -440,7 +446,7 @@ final class InstanceInitializer {
     }
   }
 
-  private func syncAllReadLists(instanceId: String) async -> Bool {
+  private func syncAllReadLists(instanceId: String, database: DatabaseOperator) async -> Bool {
     updateProgress(phase: .readLists, phaseProgress: 0.0)
     do {
       var page = 0
@@ -452,8 +458,8 @@ final class InstanceInitializer {
         let result: Page<ReadList> = try await ReadListService.shared.getReadLists(
           page: page, size: syncPageSize)
         remoteReadListIds.formUnion(result.content.map(\.id))
-        await db.upsertReadLists(result.content, instanceId: instanceId)
-        await db.commit()
+        await database.upsertReadLists(result.content, instanceId: instanceId)
+        await database.commit()
 
         totalPages = max(result.totalPages, 1)
         hasMore = !result.last
@@ -461,9 +467,12 @@ final class InstanceInitializer {
 
         updateProgress(phase: .readLists, phaseProgress: Double(page) / Double(totalPages))
       }
-      let deletedCount = await db.deleteReadListsNotIn(remoteReadListIds, instanceId: instanceId)
+      let deletedCount = await database.deleteReadListsNotIn(
+        remoteReadListIds,
+        instanceId: instanceId
+      )
       if deletedCount > 0 {
-        await db.commit()
+        await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale read lists")
       }
       logger.info("📖 Synced read lists")
@@ -477,7 +486,8 @@ final class InstanceInitializer {
 
   private func syncBooksIncremental(
     instanceId: String,
-    since: Date
+    since: Date,
+    database: DatabaseOperator
   ) async -> Bool {
     updateProgress(phase: .books, phaseProgress: 0.0, stage: .booksIncremental)
     do {
@@ -500,8 +510,8 @@ final class InstanceInitializer {
         }
 
         if !itemsToSync.isEmpty {
-          await db.upsertBooks(itemsToSync, instanceId: instanceId)
-          await db.commit()
+          await database.upsertBooks(itemsToSync, instanceId: instanceId)
+          await database.commit()
         }
 
         page += 1
@@ -525,10 +535,10 @@ final class InstanceInitializer {
     }
   }
 
-  private func reconcileBookDeletions(instanceId: String) async -> Bool {
+  private func reconcileBookDeletions(instanceId: String, database: DatabaseOperator) async -> Bool {
     updateProgress(phase: .books, phaseProgress: 0.0, stage: .booksReconcile)
     do {
-      let localCount = await db.fetchTotalBooksCount(instanceId: instanceId)
+      let localCount = await database.fetchTotalBooksCount(instanceId: instanceId)
       do {
         let remoteCount = try await fetchRemoteBookCountForDeletionReconcile()
         if localCount <= remoteCount {
@@ -548,9 +558,9 @@ final class InstanceInitializer {
         self.updateProgress(phase: .books, phaseProgress: progress, stage: .booksReconcile)
       }
 
-      let deletedCount = await db.deleteBooksNotIn(remoteBookIds, instanceId: instanceId)
+      let deletedCount = await database.deleteBooksNotIn(remoteBookIds, instanceId: instanceId)
       if deletedCount > 0 {
-        await db.commit()
+        await database.commit()
         let cleanupResult = await OfflineManager.shared.cleanupOrphanedFiles()
         if cleanupResult.deletedCount > 0 {
           logger.info(

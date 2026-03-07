@@ -37,8 +37,8 @@ class LibraryManager {
     do {
       let fullLibraries = try await libraryService.getLibraries()
       let infos = fullLibraries.map { LibraryInfo(id: $0.id, name: $0.name) }
-      try await DatabaseOperator.shared.replaceLibraries(infos, for: instanceId)
-      await DatabaseOperator.shared.commit()
+      try await DatabaseOperator.database().replaceLibraries(infos, for: instanceId)
+      try await DatabaseOperator.database().commit()
       hasLoaded = true
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -52,7 +52,8 @@ class LibraryManager {
     guard !instanceId.isEmpty else {
       return nil
     }
-    let libraries = await DatabaseOperator.shared.fetchLibraries(instanceId: instanceId)
+    let libraries =
+      (try? await DatabaseOperator.database().fetchLibraries(instanceId: instanceId)) ?? []
     return libraries.first { $0.id == id }
   }
 
@@ -64,7 +65,7 @@ class LibraryManager {
   func removeLibraries(for instanceId: String) {
     Task {
       do {
-        try await DatabaseOperator.shared.deleteLibraries(instanceId: instanceId)
+        try await DatabaseOperator.database().deleteLibraries(instanceId: instanceId)
         if loadedInstanceId == instanceId {
           hasLoaded = false
           loadedInstanceId = nil

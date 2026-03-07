@@ -15,7 +15,9 @@ actor LogStore {
     subsystem: "com.everpcpc.kmreader",
     category: "Database"
   )
-  nonisolated private static let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+  nonisolated private static let sqliteDestructor: sqlite3_destructor_type = { pointer in
+    free(pointer)
+  }
 
   struct CategoryCount: Hashable, Sendable {
     let category: String
@@ -157,7 +159,11 @@ actor LogStore {
       case .double(let number):
         sqlite3_bind_double(statement, position, number)
       case .text(let text):
-        sqlite3_bind_text(statement, position, text, -1, Self.sqliteTransient)
+        guard let duplicated = strdup(text) else {
+          sqlite3_bind_null(statement, position)
+          continue
+        }
+        sqlite3_bind_text(statement, position, duplicated, -1, Self.sqliteDestructor)
       }
     }
   }

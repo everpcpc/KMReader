@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ReadList: Codable, Identifiable, Equatable {
+nonisolated struct ReadList: Codable, Identifiable, Equatable, Sendable {
   let id: String
   let name: String
   let summary: String

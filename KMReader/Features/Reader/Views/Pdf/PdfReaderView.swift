@@ -305,8 +305,9 @@
 
     private func loadBook() async {
       var resolvedBook: Book = book
+      let database = await DatabaseOperator.databaseIfConfigured()
 
-      if let cachedBook = await DatabaseOperator.shared.fetchBook(id: book.id) {
+      if let cachedBook = await database?.fetchBook(id: book.id) {
         resolvedBook = cachedBook
       }
 
@@ -355,7 +356,8 @@
     }
 
     private func fetchSeries(for book: Book) async -> Series? {
-      var series = await DatabaseOperator.shared.fetchSeries(id: book.seriesId)
+      let database = await DatabaseOperator.databaseIfConfigured()
+      var series = await database?.fetchSeries(id: book.seriesId)
       if series == nil && !isOffline {
         series = try? await SyncService.shared.syncSeriesDetail(seriesId: book.seriesId)
       }

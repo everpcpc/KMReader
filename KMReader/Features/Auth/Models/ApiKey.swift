@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct ApiKey: Codable, Identifiable, Hashable {
+nonisolated struct ApiKey: Codable, Identifiable, Hashable, Sendable {
   let id: String
   let userId: String
   let key: String  // This is probably a hint or prefix, strictly speaking the full key is only returned on creation
@@ -14,6 +14,6 @@ struct ApiKey: Codable, Identifiable, Hashable {
   let lastModifiedDate: Date
 }
 
-struct ApiKeyRequest: Codable {
+nonisolated struct ApiKeyRequest: Codable, Sendable {
   let comment: String
 }

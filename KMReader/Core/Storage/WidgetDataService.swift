@@ -19,12 +19,15 @@ enum WidgetDataService {
     let libraryIds = AppConfig.dashboard.libraryIds
 
     Task.detached(priority: .utility) {
-      let keepReadingBooks = await DatabaseOperator.shared.fetchKeepReadingBooksForWidget(
-        instanceId: instanceId, libraryIds: libraryIds, limit: 6)
-      let recentlyAddedBooks = await DatabaseOperator.shared.fetchRecentlyAddedBooksForWidget(
-        instanceId: instanceId, libraryIds: libraryIds, limit: 6)
-      let recentlyUpdatedSeries = await DatabaseOperator.shared.fetchRecentlyUpdatedSeriesForWidget(
-        instanceId: instanceId, libraryIds: libraryIds, limit: 6)
+      let keepReadingBooks =
+        (try? await DatabaseOperator.database().fetchKeepReadingBooksForWidget(
+          instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
+      let recentlyAddedBooks =
+        (try? await DatabaseOperator.database().fetchRecentlyAddedBooksForWidget(
+          instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
+      let recentlyUpdatedSeries =
+        (try? await DatabaseOperator.database().fetchRecentlyUpdatedSeriesForWidget(
+          instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
       let keepReadingEntries = keepReadingBooks.map { Self.bookToEntry($0) }
       let recentlyAddedEntries = recentlyAddedBooks.map { Self.bookToEntry($0) }
       let recentlyUpdatedSeriesEntries = recentlyUpdatedSeries.map { Self.seriesToEntry($0) }

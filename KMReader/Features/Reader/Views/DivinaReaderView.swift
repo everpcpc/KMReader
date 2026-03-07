@@ -890,9 +890,10 @@ struct DivinaReaderView: View {
 
     // Resolve from in-memory/DB first, then always refresh from network when online.
     var resolvedBook: Book?
+    let database = await DatabaseOperator.databaseIfConfigured()
     if let currentBook, currentBook.id == bookId {
       resolvedBook = currentBook
-    } else if let cachedBook = await DatabaseOperator.shared.fetchBook(id: bookId) {
+    } else if let cachedBook = await database?.fetchBook(id: bookId) {
       resolvedBook = cachedBook
     } else if book.id == bookId {
       resolvedBook = book
@@ -931,14 +932,14 @@ struct DivinaReaderView: View {
         do {
           let manifest = try await BookService.shared.getBookManifest(id: activeBook.id)
           let toc = await ReaderManifestService(bookId: activeBook.id).parseTOC(manifest: manifest)
-          await DatabaseOperator.shared.updateBookTOC(bookId: activeBook.id, toc: toc)
+          await database?.updateBookTOC(bookId: activeBook.id, toc: toc)
         } catch {
           // Silently fail - we'll use cached manifest
         }
       }
 
       // 3. Try to get series from DB
-      var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
+      var series = await database?.fetchSeries(id: activeBook.seriesId)
       if series == nil && !AppConfig.isOffline {
         series = try? await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
       }
@@ -994,8 +995,9 @@ struct DivinaReaderView: View {
   private func resolveAdjacentBooks(for bookId: String) async -> (previous: Book?, next: Book?) {
     let readListId = readListContext?.id
     let instanceId = AppConfig.current.instanceId
+    let database = await DatabaseOperator.databaseIfConfigured()
 
-    var resolvedNextBook = await DatabaseOperator.shared.getNextBook(
+    var resolvedNextBook = await database?.getNextBook(
       instanceId: instanceId,
       bookId: bookId,
       readListId: readListId
@@ -1007,7 +1009,7 @@ struct DivinaReaderView: View {
       )
     }
 
-    var resolvedPreviousBook = await DatabaseOperator.shared.getPreviousBook(
+    var resolvedPreviousBook = await database?.getPreviousBook(
       instanceId: instanceId,
       bookId: bookId,
       readListId: readListId

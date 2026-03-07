@@ -7,7 +7,7 @@ import Foundation
 import SwiftUI
 
 /// Custom status for series download progress.
-enum SeriesDownloadStatus: Equatable, Sendable {
+nonisolated enum SeriesDownloadStatus: Equatable, Sendable {
   case notDownloaded
   case partiallyDownloaded(downloaded: Int, total: Int)
   case downloaded

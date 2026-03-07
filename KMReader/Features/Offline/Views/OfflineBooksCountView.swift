@@ -43,7 +43,9 @@ struct OfflineBooksCountView: View {
       }
       return
     }
-    let count = await DatabaseOperator.shared.fetchDownloadedBooksCount(instanceId: instanceId)
+    let count =
+      (try? await DatabaseOperator.database().fetchDownloadedBooksCount(instanceId: instanceId))
+      ?? 0
     withAnimation {
       downloadedCount = count
     }

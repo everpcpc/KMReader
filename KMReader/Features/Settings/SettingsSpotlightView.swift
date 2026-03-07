@@ -178,7 +178,9 @@ import SwiftUI
       }
 
       await LibraryManager.shared.loadLibraries()
-      let loadedLibraries = await DatabaseOperator.shared.fetchLibraries(instanceId: instanceId)
+      let loadedLibraries =
+        (try? await DatabaseOperator.database().fetchLibraries(instanceId: instanceId))
+        ?? []
         .filter { $0.id != KomgaLibrary.allLibrariesId }
       libraries = loadedLibraries
 

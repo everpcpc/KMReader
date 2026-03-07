@@ -244,7 +244,7 @@ class AuthViewModel {
 
     // Persist instance if this is a new login
     if shouldPersistInstance {
-      let instanceSummary = try await DatabaseOperator.shared.upsertInstance(
+      let instanceSummary = try await DatabaseOperator.database().upsertInstance(
         serverURL: serverURL,
         username: username,
         authToken: authToken,

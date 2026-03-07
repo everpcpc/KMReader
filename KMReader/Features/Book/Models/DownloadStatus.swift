@@ -8,7 +8,7 @@ import SwiftUI
 
 /// Status of an offline book download (persisted in SwiftData).
 /// Note: Downloading progress is tracked separately in OfflineManager.
-enum DownloadStatus: Equatable, Sendable {
+nonisolated enum DownloadStatus: Equatable, Sendable {
   case notDownloaded
   case pending
   case downloaded

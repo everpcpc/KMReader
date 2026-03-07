@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct User: Codable {
+nonisolated struct User: Codable, Sendable {
   let id: String
   let email: String
   let roles: [String]

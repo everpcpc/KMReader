@@ -175,9 +175,8 @@
         return
       }
 
-      let savedPreferences = await DatabaseOperator.shared.fetchBookEpubPreferences(
-        bookId: activeBook.id
-      )
+      let database = await DatabaseOperator.databaseIfConfigured()
+      let savedPreferences = await database?.fetchBookEpubPreferences(bookId: activeBook.id)
       if !incognito {
         readerPresentation.trackVisitedBook(
           sessionID: sessionID,
@@ -192,13 +191,13 @@
       if !AppConfig.isOffline {
         do {
           let manifest = try await BookService.shared.getBookWebPubManifest(bookId: activeBook.id)
-          await DatabaseOperator.shared.updateBookWebPubManifest(bookId: activeBook.id, manifest: manifest)
+          await database?.updateBookWebPubManifest(bookId: activeBook.id, manifest: manifest)
         } catch {
           // Silently fail - we'll use cached manifest
         }
       }
 
-      var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
+      var series = await database?.fetchSeries(id: activeBook.seriesId)
       if series == nil && !AppConfig.isOffline {
         do {
           series = try await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)

@@ -148,8 +148,8 @@ class CollectionService {
     )
     // Delete from local SwiftData
     let instanceId = AppConfig.current.instanceId
-    await DatabaseOperator.shared.deleteCollection(id: collectionId, instanceId: instanceId)
-    await DatabaseOperator.shared.commit()
+    try await DatabaseOperator.database().deleteCollection(id: collectionId, instanceId: instanceId)
+    try await DatabaseOperator.database().commit()
   }
 
   func removeSeriesFromCollection(collectionId: String, seriesIds: [String]) async throws {

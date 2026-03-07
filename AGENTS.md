@@ -349,6 +349,7 @@ KMReader/
 10. **Platform differences**: Use `PlatformHelper` and `#if os(...)` blocks
 11. **Direction rule (UI bridging)**: Allow `SwiftUI -> UIKit/AppKit`, but do not use `UIKit/AppKit -> SwiftUI` (`UIHostingController`/`NSHostingController`) for feature screens/components, because `UIHostingController`/`NSHostingController` does not inherit required SwiftUI environment values in this project.
 12. **Object environment safety**: Do not use non-optional object-style environment dependencies (`@Environment(SomeType.self)`, `@EnvironmentObject`) in app code. Treat them as banned patterns. Pass object dependencies explicitly via initializers, context structs, or action closures. If environment lookup is still required, use a non-object custom `EnvironmentKey` or an optional lookup with controlled fallback/logging instead of crashing.
+13. **No unchecked/unsafe APIs**: Do not use `@unchecked Sendable`, `nonisolated(unsafe)`, `unsafeBitCast`, or other `unsafe*` escape hatches in app code. Prefer safe ownership, actor boundaries, copying, or explicit wrappers. If a low-level API appears to require them, stop and redesign instead of introducing them.
 
 Additional patterns:
 

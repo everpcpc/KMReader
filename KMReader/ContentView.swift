@@ -101,8 +101,9 @@ struct ContentView: View {
               showPrivacyBlur = false
             }
             Task {
-              await DatabaseOperator.shared.updateInstanceLastUsed(
-                instanceId: AppConfig.current.instanceId)
+              if let database = await DatabaseOperator.databaseIfConfigured() {
+                await database.updateInstanceLastUsed(instanceId: AppConfig.current.instanceId)
+              }
               // Resume offline downloads if not paused and online
               if !AppConfig.isOffline && !AppConfig.offlinePaused {
                 OfflineManager.shared.triggerSync(
@@ -122,11 +123,11 @@ struct ContentView: View {
             if privacyProtection {
               showPrivacyBlur = true
             }
-            Task {
+            Task(priority: .utility) {
               await SSEService.shared.disconnect(notify: false)
-            }
-            Task.detached(priority: .utility) {
-              try? await DatabaseOperator.shared.commitImmediately()
+              if let database = await DatabaseOperator.databaseIfConfigured() {
+                try? await database.commitImmediately()
+              }
             }
             WidgetDataService.refreshWidgetData()
           }

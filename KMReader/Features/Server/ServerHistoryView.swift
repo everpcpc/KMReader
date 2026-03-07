@@ -351,26 +351,37 @@ struct ServerHistoryView: View {
         .filter { !$0.isEmpty }
     )
 
+    guard let database = await DatabaseOperator.databaseIfConfigured() else {
+      ErrorManager.shared.alert(
+        error: AppErrorType.storageNotConfigured(message: "DatabaseOperator has not been configured")
+      )
+      isClearingLocal = false
+      return
+    }
+
+    for bookId in bookIds {
+      await database.deleteBook(id: bookId, instanceId: instanceId)
+    }
+    for seriesId in seriesIds {
+      await database.deleteSeries(id: seriesId, instanceId: instanceId)
+    }
+
     do {
-      for bookId in bookIds {
-        await DatabaseOperator.shared.deleteBook(id: bookId, instanceId: instanceId)
-      }
-      for seriesId in seriesIds {
-        await DatabaseOperator.shared.deleteSeries(id: seriesId, instanceId: instanceId)
-      }
-      try await DatabaseOperator.shared.commitImmediately()
-
-      for bookId in bookIds {
-        bookNameById.removeValue(forKey: bookId)
-      }
-      for seriesId in seriesIds {
-        seriesNameById.removeValue(forKey: seriesId)
-      }
-
-      await updateLocalReferences(for: pagination.items)
+      try await database.commitImmediately()
     } catch {
       ErrorManager.shared.alert(error: error)
+      isClearingLocal = false
+      return
     }
+
+    for bookId in bookIds {
+      bookNameById.removeValue(forKey: bookId)
+    }
+    for seriesId in seriesIds {
+      seriesNameById.removeValue(forKey: seriesId)
+    }
+
+    await updateLocalReferences(for: pagination.items)
 
     let removedBooks = bookIds.count
     let removedSeries = seriesIds.count

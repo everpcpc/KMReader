@@ -95,7 +95,7 @@ struct MainApp: App {
     do {
       let container = try makeModelContainer()
       CustomFontStore.shared.configure(with: container)
-      DatabaseOperator.shared = DatabaseOperator(modelContainer: container)
+      await DatabaseOperator.configure(modelContainer: container)
       _ = OfflineManager.shared
       modelContainer = container
       #if os(iOS)

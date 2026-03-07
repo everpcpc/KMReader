@@ -6,7 +6,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-struct Book: Codable, Identifiable, Equatable {
+nonisolated struct Book: Codable, Identifiable, Equatable, Sendable {
   let id: String
   let seriesId: String
   let seriesTitle: String

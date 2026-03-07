@@ -34,7 +34,12 @@ actor ProgressSyncService {
       logger.debug("🏁 Finished pending progress sync for instance \(instanceId)")
     }
 
-    let pending = await DatabaseOperator.shared.fetchPendingProgress(instanceId: instanceId)
+    guard let database = await DatabaseOperator.databaseIfConfigured() else {
+      logger.warning("⚠️ Skipping pending progress sync because database is not configured")
+      return
+    }
+
+    let pending = await database.fetchPendingProgress(instanceId: instanceId)
 
     guard !pending.isEmpty else {
       logger.info("✅ No pending progress to sync")
@@ -54,8 +59,8 @@ actor ProgressSyncService {
       )
       do {
         try await syncProgressItem(item)
-        await DatabaseOperator.shared.deletePendingProgress(id: item.id)
-        await DatabaseOperator.shared.commit()
+        await database.deletePendingProgress(id: item.id)
+        await database.commit()
         successCount += 1
         logger.debug("🧹 Removed synced pending item id=\(item.id)")
 
@@ -67,8 +72,8 @@ actor ProgressSyncService {
           logger.info(
             "⏭️ Ignored progress conflict (409) for book \(item.bookId) (pending id=\(item.id))"
           )
-          await DatabaseOperator.shared.deletePendingProgress(id: item.id)
-          await DatabaseOperator.shared.commit()
+          await database.deletePendingProgress(id: item.id)
+          await database.commit()
           ignoredConflictCount += 1
           if item.completed {
             completedBookIds.insert(item.bookId)
@@ -138,7 +143,7 @@ actor ProgressSyncService {
         bookId: item.bookId,
         progression: progression
       )
-      await DatabaseOperator.shared.updateBookEpubProgression(
+      try await DatabaseOperator.database().updateBookEpubProgression(
         bookId: item.bookId,
         progression: progression
       )

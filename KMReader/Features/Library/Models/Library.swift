@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct Library: Codable, Identifiable, Equatable {
+nonisolated struct Library: Codable, Identifiable, Equatable, Sendable {
   let id: String
   let name: String
   let root: String
