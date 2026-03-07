@@ -5,20 +5,21 @@ KMReader helps you read, browse, download, and manage your Komga library with a 
 IMPORTANT FEATURES
 
 - Native readers for every format
-DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl (iOS), and cover-style transitions (all platforms).
-EPUB on iOS and macOS with paged or scrolled flow, custom fonts, themes, and per-book preferences.
-Animated pages use native inline playback with smooth progress feedback while media prepares.
+DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl (iOS), and cover-style transitions on all platforms.
+EPUB on iOS and macOS with paged, scrolled, or cover layouts, custom fonts, themes, and per-book preferences.
+Animated GIF and WebP pages start immediately, zoom naturally, and stay stable while you move through a book.
 PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality, and clearer offline preparation progress.
 Incognito mode and iOS Live Text support let you read your way.
 
 - Dashboard, discovery, and shortcuts
 Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists keep important items close.
-Browse Series, Books, Collections, and Read Lists with advanced metadata filters and saved filters.
+Browse Series, Books, Collections, and Read Lists with advanced metadata filters, saved filters, and optional unread-cover blur.
 Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions, help you jump back into reading faster.
 KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
 - Offline that actually works
 Download books for offline reading.
+EPUB downloads use a single-file workflow with local extraction for faster, more reliable saves.
 Use manual offline mode controls and more reliable iOS background downloads.
 Get Live Activities for both active reading sessions and downloads.
 Set per-series policies: Manual, Unread only, Unread + cleanup, or All books.
@@ -28,6 +29,7 @@ Sync progress and offline changes when you reconnect, with safer conflict handli
 Save multiple Komga servers and switch instantly.
 Sign in with password or API key, and manage API keys in the app.
 Edit metadata, manage libraries and media (analysis, missing posters, duplicate files and pages), monitor tasks, and view logs.
+On macOS, reader actions also live in the system menu bar for faster keyboard-first control.
 
 KMReader targets Komga 1.19.0+ and supports API v1/v2.
 

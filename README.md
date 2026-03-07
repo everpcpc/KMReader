@@ -22,9 +22,9 @@
 
 ### Native Reading Experience
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), and cover-style page transitions (all platforms).
-- EPUB reader on iOS/macOS with paged, scrolled, and curl layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
-- Animated pages use native inline playback with visible preparation progress and smoother performance for long reading sessions.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), and cover-style page transitions on all platforms.
+- EPUB reader on iOS/macOS with paged, scrolled, and cover layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
+- Animated GIF and WebP pages start immediately, zoom naturally with the page, and stay stable across long reading sessions.
 - PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, and clearer progress feedback.
 - Per-book preferences save reading direction, page layout, and theme settings.
 - Incognito mode and iOS Live Text support, including optional shake-to-toggle.
@@ -34,6 +34,7 @@
 - Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists.
 - Browse Series, Books, Collections, and Read Lists with metadata filters for publishers, authors, genres, tags, and languages using all/any logic.
 - Save and reuse filters across browse surfaces.
+- Optional unread-cover blur helps hide spoiler-heavy artwork until you start reading.
 - Reading history and stats help surface recent activity from synced local data.
 - Spotlight integration for downloaded content on iOS/macOS, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 - UI localization includes English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
@@ -41,6 +42,7 @@
 ### Offline and Sync
 
 - Download books for full offline reading across DIVINA, EPUB, and PDF workflows.
+- EPUB downloads use a single-file download plus local extraction for faster, more reliable offline saves.
 - Manual offline mode controls and resilient iOS background downloads for page files and extra resources.
 - iOS Live Activities for both active reading sessions and downloads.
 - Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
@@ -58,7 +60,7 @@
 
 - iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities for reader/downloads, background downloads, Live Text, and page curl/cover transitions.
 - macOS: dedicated reader windows, reader actions in the system menu bar, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
-- tvOS: remote-first DIVINA reading with a TV-optimized browsing experience.
+- tvOS: remote-first DIVINA reading with cover transitions and a TV-optimized browsing experience.
 
 ## Getting Started
 
