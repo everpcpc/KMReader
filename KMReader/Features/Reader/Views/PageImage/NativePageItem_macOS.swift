@@ -58,11 +58,7 @@
     override func viewDidMoveToWindow() {
       super.viewDidMoveToWindow()
       if window == nil {
-        clearAnalysis()
-        imageView.image = nil
-        analyzedImage = nil
-        analysisSourceImage = nil
-        updateSepiaOverlay()
+        prepareForDismantle()
       } else {
         if imageView.image == nil, let data = currentData {
           let pageSourceImage: NSImage?
@@ -75,6 +71,7 @@
           imageView.image = pageSourceImage
           updateSepiaOverlay()
         }
+        updateAnimatedPlayback(sourceFileURL: currentData?.animatedSourceFileURL)
         if enableLiveText {
           if let image = analysisSourceImage {
             analyzeImage(image)

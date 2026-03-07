@@ -11,6 +11,7 @@ final class AnimatedImagePlayerController {
 
   private var decoder: AnimatedImageFrameDecoder?
   private var displayLink: CADisplayLink?
+  private var currentSourceFileURL: URL?
   private weak var targetLayer: CALayer?
 
   private var frameBuffer: [Int: CGImage] = [:]
@@ -21,6 +22,7 @@ final class AnimatedImagePlayerController {
 
   func start(sourceFileURL: URL, targetLayer: CALayer) {
     if isRunning, self.targetLayer === targetLayer,
+      currentSourceFileURL == sourceFileURL,
       decoder != nil
     {
       return
@@ -33,6 +35,7 @@ final class AnimatedImagePlayerController {
     }
 
     self.decoder = decoder
+    self.currentSourceFileURL = sourceFileURL
     self.targetLayer = targetLayer
     self.currentFrameIndex = 0
     self.elapsedTime = 0
@@ -65,7 +68,10 @@ final class AnimatedImagePlayerController {
   func stop() {
     displayLink?.invalidate()
     displayLink = nil
+    targetLayer?.contents = nil
     decoder = nil
+    currentSourceFileURL = nil
+    targetLayer = nil
     frameBuffer.removeAll()
     currentFrameIndex = 0
     elapsedTime = 0

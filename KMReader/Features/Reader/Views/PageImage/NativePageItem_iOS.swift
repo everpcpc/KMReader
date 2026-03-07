@@ -77,6 +77,7 @@
           imageView.image = pageSourceImage
           updateSepiaOverlay()
         }
+        updateAnimatedPlayback(sourceFileURL: currentData?.animatedSourceFileURL)
         #if !os(tvOS)
           if enableLiveText {
             analyzeImage()

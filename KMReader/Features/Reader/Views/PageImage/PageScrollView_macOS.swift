@@ -182,7 +182,10 @@
         let pages = parent.pages
 
         if pageViews.count != pages.count {
-          pageViews.forEach { $0.removeFromSuperview() }
+          pageViews.forEach { view in
+            view.prepareForDismantle()
+            view.removeFromSuperview()
+          }
           pageViews = pages.map { _ in NativePageItem() }
           pageViews.forEach { stack.addArrangedSubview($0) }
         }
