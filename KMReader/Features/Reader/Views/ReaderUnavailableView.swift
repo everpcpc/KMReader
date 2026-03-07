@@ -11,10 +11,6 @@ struct ReaderUnavailableView: View {
   let message: String?
   let onClose: () -> Void
 
-  #if os(tvOS)
-    @FocusState private var isCloseButtonFocused: Bool
-  #endif
-
   init(
     icon: String,
     title: LocalizedStringKey,
@@ -53,18 +49,9 @@ struct ReaderUnavailableView: View {
           .padding(.vertical, 8)
       }
       .adaptiveButtonStyle(.borderedProminent)
-      #if os(tvOS)
-        .focused($isCloseButtonFocused)
-      #endif
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .padding()
-    // #if os(tvOS)
-    //   .onAppear {
-    //     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-    //       isCloseButtonFocused = true
-    //     }
-    //   }
-    // #endif
+    .background(PlatformHelper.systemBackgroundColor.readerIgnoresSafeArea())
   }
 }

@@ -101,6 +101,10 @@
       }
     }
 
+    private var readerTheme: ReaderTheme {
+      activePreferences.resolvedTheme(for: colorScheme)
+    }
+
     private func updateHandoff() {
       let url = KomgaWebLinkBuilder.epubReader(
         serverURL: current.serverURL,
@@ -216,7 +220,7 @@
     private var readerBody: some View {
       GeometryReader { geometry in
         ZStack {
-          Color.clear.readerIgnoresSafeArea()
+          readerTheme.backgroundColor.readerIgnoresSafeArea()
 
           contentView(for: geometry.size, viewModel: viewModel)
 

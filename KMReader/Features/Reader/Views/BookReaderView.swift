@@ -15,7 +15,6 @@ struct BookReaderView: View {
 
   @Environment(\.dismiss) private var dismiss
 
-  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("useNativePdfReader") private var useNativePdfReader: Bool = true
 
   private var mediaProfile: MediaProfile {
@@ -31,21 +30,28 @@ struct BookReaderView: View {
   }
 
   var body: some View {
-    ZStack {
-      readerBackground.color.readerIgnoresSafeArea()
-
-      Group {
-        if book.deleted {
-          ReaderUnavailableView(
-            icon: "trash.circle",
-            title: "Book has been deleted",
-            onClose: closeReader
-          )
-        } else {
-          switch mediaStatus {
-          case .ready:
-            switch mediaProfile {
-            case .divina, .unknown:
+    Group {
+      if book.deleted {
+        ReaderUnavailableView(
+          icon: "trash.circle",
+          title: "Book has been deleted",
+          onClose: closeReader
+        )
+      } else {
+        switch mediaStatus {
+        case .ready:
+          switch mediaProfile {
+          case .divina, .unknown:
+            DivinaReaderView(
+              sessionID: sessionID,
+              book: book,
+              incognito: incognito,
+              readListContext: readListContext,
+              readerPresentation: readerPresentation,
+              onClose: closeReader
+            )
+          case .epub:
+            if book.media.epubDivinaCompatible ?? false {
               DivinaReaderView(
                 sessionID: sessionID,
                 book: book,
@@ -54,9 +60,9 @@ struct BookReaderView: View {
                 readerPresentation: readerPresentation,
                 onClose: closeReader
               )
-            case .epub:
-              if book.media.epubDivinaCompatible ?? false {
-                DivinaReaderView(
+            } else {
+              #if os(iOS)
+                EpubReaderView(
                   sessionID: sessionID,
                   book: book,
                   incognito: incognito,
@@ -64,68 +70,57 @@ struct BookReaderView: View {
                   readerPresentation: readerPresentation,
                   onClose: closeReader
                 )
-              } else {
-                #if os(iOS)
-                  EpubReaderView(
-                    sessionID: sessionID,
-                    book: book,
-                    incognito: incognito,
-                    readListContext: readListContext,
-                    readerPresentation: readerPresentation,
-                    onClose: closeReader
-                  )
-                #else
-                  ReaderUnavailableView(
-                    icon: "exclamationmark.triangle",
-                    title: "EPUB Reader Not Available",
-                    message: String(
-                      localized:
-                        "EPUB reading is only supported on iOS."
-                    ),
-                    onClose: closeReader
-                  )
-                #endif
-              }
-            case .pdf:
-              if useNativePdfReader {
-                #if os(iOS) || os(macOS)
-                  PdfReaderView(
-                    sessionID: sessionID,
-                    book: book,
-                    incognito: incognito,
-                    readerPresentation: readerPresentation,
-                    onClose: closeReader
-                  )
-                #else
-                  ReaderUnavailableView(
-                    icon: "doc.richtext",
-                    title: "PDF Reader Not Available",
-                    message: String(
-                      localized:
-                        "PDF reading is only supported on iOS and macOS."
-                    ),
-                    onClose: closeReader
-                  )
-                #endif
-              } else {
-                DivinaReaderView(
-                  sessionID: sessionID,
-                  book: book,
-                  incognito: incognito,
-                  readListContext: readListContext,
-                  readerPresentation: readerPresentation,
+              #else
+                ReaderUnavailableView(
+                  icon: "exclamationmark.triangle",
+                  title: "EPUB Reader Not Available",
+                  message: String(
+                    localized:
+                      "EPUB reading is only supported on iOS."
+                  ),
                   onClose: closeReader
                 )
-              }
+              #endif
             }
-          default:
-            ReaderUnavailableView(
-              icon: mediaStatus.icon,
-              title: LocalizedStringKey(mediaStatus.message),
-              message: book.media.localizedComment,
-              onClose: closeReader
-            )
+          case .pdf:
+            if useNativePdfReader {
+              #if os(iOS) || os(macOS)
+                PdfReaderView(
+                  sessionID: sessionID,
+                  book: book,
+                  incognito: incognito,
+                  readerPresentation: readerPresentation,
+                  onClose: closeReader
+                )
+              #else
+                ReaderUnavailableView(
+                  icon: "doc.richtext",
+                  title: "PDF Reader Not Available",
+                  message: String(
+                    localized:
+                      "PDF reading is only supported on iOS and macOS."
+                  ),
+                  onClose: closeReader
+                )
+              #endif
+            } else {
+              DivinaReaderView(
+                sessionID: sessionID,
+                book: book,
+                incognito: incognito,
+                readListContext: readListContext,
+                readerPresentation: readerPresentation,
+                onClose: closeReader
+              )
+            }
           }
+        default:
+          ReaderUnavailableView(
+            icon: mediaStatus.icon,
+            title: LocalizedStringKey(mediaStatus.message),
+            message: book.media.localizedComment,
+            onClose: closeReader
+          )
         }
       }
     }
