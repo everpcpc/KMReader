@@ -9,6 +9,8 @@
   final class NativePageItem: UIView {
     private let imageView = UIImageView()
     private let sepiaOverlayView = UIView()
+    private let animatedInlineContainer = UIView()
+    private let animatedImageController = AnimatedImagePlayerController()
     private let pageNumberLabel = UILabel()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let errorLabel = UILabel()
@@ -52,6 +54,7 @@
         analyzedImage = nil
         analysisSourceImage = nil
       #endif
+      updateAnimatedPlayback(sourceFileURL: nil)
       imageView.image = nil
       updateSepiaOverlay()
     }
@@ -98,6 +101,12 @@
       sepiaOverlayView.isUserInteractionEnabled = false
       sepiaOverlayView.isHidden = true
       addSubview(sepiaOverlayView)
+
+      animatedInlineContainer.isUserInteractionEnabled = false
+      animatedInlineContainer.isHidden = true
+      animatedInlineContainer.backgroundColor = .clear
+      animatedInlineContainer.layer.contentsGravity = .resizeAspect
+      addSubview(animatedInlineContainer)
 
       loadingIndicator.hidesWhenStopped = true
       loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -248,6 +257,19 @@
       sepiaOverlayView.layer.compositingFilter = "multiplyBlendMode"
     }
 
+    func updateAnimatedPlayback(sourceFileURL: URL?) {
+      if let sourceFileURL {
+        animatedInlineContainer.isHidden = false
+        animatedImageController.start(
+          sourceFileURL: sourceFileURL,
+          targetLayer: animatedInlineContainer.layer
+        )
+      } else {
+        animatedInlineContainer.isHidden = true
+        animatedImageController.stop()
+      }
+    }
+
     private func updateHeightConstraint(_ targetHeight: CGFloat) {
       if displayMode == .fillWidth {
         if heightConstraint == nil {
@@ -384,6 +406,7 @@
 
       imageView.frame = CGRect(x: xOffset, y: yOffset, width: actualImageWidth, height: actualImageHeight)
       sepiaOverlayView.frame = imageView.frame
+      animatedInlineContainer.frame = imageView.frame
 
       let topY = yOffset
       let pageLabelWidth = max(30, pageNumberLabel.intrinsicContentSize.width + 16)

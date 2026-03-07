@@ -19,18 +19,21 @@ struct NativePageData {
   let error: String?
   let alignment: HorizontalAlignment
   let splitMode: PageSplitMode
+  let animatedSourceFileURL: URL?
 
   init(
     pageID: ReaderPageID,
     isLoading: Bool,
     error: String?,
     alignment: HorizontalAlignment,
-    splitMode: PageSplitMode = .none
+    splitMode: PageSplitMode = .none,
+    animatedSourceFileURL: URL? = nil
   ) {
     self.pageID = pageID
     self.isLoading = isLoading
     self.error = error
     self.alignment = alignment
     self.splitMode = splitMode
+    self.animatedSourceFileURL = animatedSourceFileURL
   }
 }

@@ -28,7 +28,6 @@
 
     private let scrollView = UIScrollView()
     private let pageItem = NativePageItem()
-    private let animatedInlineContainer = UIView()
 
     private var loadTask: Task<Void, Never>?
     private var animatedInlinePreparationTask: Task<Void, Never>?
@@ -36,7 +35,6 @@
     private var lastConfiguredPageID: ReaderPageID?
     private var loadError: String?
     private var isVisibleForAnimatedInlinePlayback = false
-    private let animatedImageController = AnimatedImagePlayerController()
 
     func configure(
       viewModel: ReaderViewModel,
@@ -130,20 +128,6 @@
         pageItem.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
         pageItem.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
       ])
-
-      animatedInlineContainer.translatesAutoresizingMaskIntoConstraints = false
-      animatedInlineContainer.backgroundColor = .clear
-      animatedInlineContainer.isHidden = true
-      animatedInlineContainer.isUserInteractionEnabled = false
-      animatedInlineContainer.layer.contentsGravity = .resizeAspect
-      view.addSubview(animatedInlineContainer)
-
-      NSLayoutConstraint.activate([
-        animatedInlineContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-        animatedInlineContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        animatedInlineContainer.topAnchor.constraint(equalTo: view.topAnchor),
-        animatedInlineContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-      ])
     }
 
     private func setupGestures() {
@@ -156,7 +140,6 @@
     private func applyConfiguration() {
       view.backgroundColor = UIColor(renderConfig.readerBackground.color)
       scrollView.backgroundColor = UIColor(renderConfig.readerBackground.color)
-      animatedInlineContainer.backgroundColor = .clear
       refreshPageItem()
       prepareAnimatedInlinePlaybackIfNeeded()
     }
@@ -292,16 +275,11 @@
     }
 
     private func hideAnimatedInlinePlayback() {
-      animatedInlineContainer.isHidden = true
-      animatedImageController.stop()
+      pageItem.updateAnimatedPlayback(sourceFileURL: nil)
     }
 
     private func startAnimatedInlinePlayback(sourceFileURL: URL) {
-      animatedInlineContainer.isHidden = false
-      animatedImageController.start(
-        sourceFileURL: sourceFileURL,
-        targetLayer: animatedInlineContainer.layer
-      )
+      pageItem.updateAnimatedPlayback(sourceFileURL: sourceFileURL)
     }
 
     @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {

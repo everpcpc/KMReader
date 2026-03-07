@@ -6,6 +6,8 @@
   final class NativePageItem: NSView {
     private let imageView = NSImageView()
     private let sepiaOverlayView = NSView()
+    private let animatedInlineContainer = NSView()
+    private let animatedImageController = AnimatedImagePlayerController()
     private let pageNumberContainer = NSView()
     private let pageNumberLabel = NSTextField()
     private let progressIndicator = NSProgressIndicator()
@@ -46,6 +48,7 @@
 
     func prepareForDismantle() {
       clearAnalysis()
+      updateAnimatedPlayback(sourceFileURL: nil)
       imageView.image = nil
       analyzedImage = nil
       analysisSourceImage = nil
@@ -121,6 +124,13 @@
       sepiaOverlayView.isHidden = true
       sepiaOverlayView.translatesAutoresizingMaskIntoConstraints = true
       addSubview(sepiaOverlayView)
+
+      animatedInlineContainer.wantsLayer = true
+      animatedInlineContainer.isHidden = true
+      animatedInlineContainer.translatesAutoresizingMaskIntoConstraints = true
+      animatedInlineContainer.layer?.backgroundColor = CGColor(red: 0, green: 0, blue: 0, alpha: 0)
+      animatedInlineContainer.layer?.contentsGravity = .resizeAspect
+      addSubview(animatedInlineContainer)
 
       overlayView.isHidden = true
       overlayView.wantsLayer = true
@@ -277,6 +287,21 @@
       sepiaOverlayView.layer?.compositingFilter = "multiplyBlendMode"
     }
 
+    func updateAnimatedPlayback(sourceFileURL: URL?) {
+      if let sourceFileURL {
+        animatedInlineContainer.isHidden = false
+        if let layer = animatedInlineContainer.layer {
+          animatedImageController.start(
+            sourceFileURL: sourceFileURL,
+            targetLayer: layer
+          )
+        }
+      } else {
+        animatedInlineContainer.isHidden = true
+        animatedImageController.stop()
+      }
+    }
+
     private func updateHeightConstraint(_ targetHeight: CGFloat) {
       if displayMode == .fillWidth {
         if heightConstraint == nil {
@@ -390,6 +415,7 @@
       let imgFrame = NSRect(x: xOffset, y: yOffset, width: actualImageWidth, height: actualImageHeight)
       imageView.frame = imgFrame
       sepiaOverlayView.frame = imgFrame
+      animatedInlineContainer.frame = imgFrame
       overlayView.frame = imgFrame
 
       let topY = yOffset + actualImageHeight - 36

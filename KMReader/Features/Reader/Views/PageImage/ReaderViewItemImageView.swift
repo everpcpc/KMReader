@@ -31,13 +31,6 @@ struct ReaderViewItemImageView: View {
         pages: pages
       )
       .frame(width: screenSize.width, height: screenSize.height)
-      .overlay {
-        HStack(spacing: 0) {
-          ForEach(Array(pages.enumerated()), id: \.offset) { _, data in
-            pagePlaybackOverlay(for: data.pageID)
-          }
-        }
-      }
     }
   }
 
@@ -76,7 +69,8 @@ struct ReaderViewItemImageView: View {
       isLoading: viewModel.page(for: pageID) != nil && viewModel.preloadedImage(for: pageID) == nil,
       error: nil,
       alignment: alignment,
-      splitMode: splitMode
+      splitMode: splitMode,
+      animatedSourceFileURL: animatedSourceFileURL(for: pageID)
     )
   }
 
@@ -115,20 +109,8 @@ struct ReaderViewItemImageView: View {
     return isLeftHalf ? .leftHalf : .rightHalf
   }
 
-  @ViewBuilder
-  private func pagePlaybackOverlay(for pageID: ReaderPageID) -> some View {
-    if let sourceFileURL = animatedSourceFileURL(for: pageID) {
-      AnimatedImagePlayerView(sourceFileURL: sourceFileURL)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-  }
-
   private func animatedSourceFileURL(for pageID: ReaderPageID) -> URL? {
-    #if os(tvOS)
-      return nil
-    #else
-      guard isPlaybackActive else { return nil }
-      return viewModel.animatedSourceFileURL(for: pageID)
-    #endif
+    guard isPlaybackActive else { return nil }
+    return viewModel.animatedSourceFileURL(for: pageID)
   }
 }
