@@ -1,22 +1,15 @@
-KMReader - What's New (from v4.0 to current)
+Reader Improvements
+- Added cover-style page transitions across DIVINA on iPhone, iPad, Mac, and Apple TV, plus new cover transitions for EPUB on iPhone, iPad, and Mac.
+- Animated GIF and WebP pages now start faster, zoom with the page, and stay stable when you navigate, scroll, or reopen a page.
+- Improved dual-page spread handling, adjacent-page preloading, and cover-turn reliability for smoother reading.
+- Improved Komga media error messages so unsupported files and analysis issues are easier to understand inside the app.
 
-Reader Experience
-- Added a new cover-style page transition for DIVINA on iPhone, making comic-style navigation feel more natural.
-- Animated pages now play more smoothly with native inline playback, clearer loading progress, and better battery-friendly performance.
-- Improved page-turn reliability in cover mode and fixed end-page flicker so navigation stays stable.
-- Fixed an issue where some offline PDF pages could appear upside down, and added visible preparation progress while pages are generated.
-- Polished reader responsiveness across table-of-contents jumps, page changes, and gesture handling.
+Offline and Library Workflows
+- EPUB downloads are now saved as a single file and extracted locally, making offline downloads faster and more reliable.
+- Improved offline sync and iOS background downloads so long-running downloads and reconnects behave more predictably.
+- Added an option to blur unread book and series covers to help avoid spoiler-heavy artwork.
 
-Offline and Sync
-- Added a manual Offline Mode action so you can switch modes when needed.
-- Strengthened iOS background downloads for pages, PDFs, and EPUB resources so long downloads are more reliable.
-- Improved progress syncing behavior to avoid interruptions when server-side conflicts happen.
-- Optimized sync flow so heavy cleanup runs only during full sync, reducing unnecessary work during regular refreshes.
-
-iPhone and Dashboard
-- Added Dynamic Island Live Activities for both active reading sessions and download progress.
-- Updated splash and landing visuals to match your selected app icon style.
-- Improved thumbnail appearance animations for a smoother browsing feel.
-
-Localization
-- Expanded UI localization support with Spanish, Italian, and Russian coverage across the app and widgets.
+Management and Platform Polish
+- Added in-app media management tools for media analysis, missing posters, duplicate files, duplicate pages, and page-hash matches.
+- Moved macOS reader actions into the system menu bar for quicker keyboard-first control.
+- Refined reader and browse behavior across page sync, thumbnail presentation, and other everyday interactions.
