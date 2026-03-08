@@ -625,20 +625,6 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var scrollPageTransitionStyle: ScrollPageTransitionStyle {
-    get {
-      if let stored = UserDefaults.standard.string(forKey: "scrollPageTransitionStyle"),
-        let style = ScrollPageTransitionStyle(rawValue: stored)
-      {
-        return style
-      }
-      return .default
-    }
-    set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "scrollPageTransitionStyle")
-    }
-  }
-
   static nonisolated var pageTransitionStyle: PageTransitionStyle {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pageTransitionStyle"),

@@ -22,7 +22,6 @@ struct DivinaPreferencesView: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
-  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("imageUpscalingMode") private var imageUpscalingMode: ReaderImageUpscalingMode =
@@ -48,10 +47,6 @@ struct DivinaPreferencesView: View {
   private var shouldShowPagedSpecificSettings: Bool {
     guard let forcedReadingDirection else { return true }
     return forcedReadingDirection != .webtoon
-  }
-
-  private var shouldShowScrollTransitionStyle: Bool {
-    shouldShowPagedSpecificSettings && pageTransitionStyle == .scroll
   }
 
   private var shouldShowTapTransitionDuration: Bool {
@@ -322,20 +317,6 @@ struct DivinaPreferencesView: View {
             }
             .pickerStyle(.menu)
             Text(pageTransitionStyle.description)
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-
-        if shouldShowScrollTransitionStyle {
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
-              ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
-                Text(style.displayName).tag(style)
-              }
-            }
-            .pickerStyle(.menu)
-            Text(scrollPageTransitionStyle.description)
               .font(.caption)
               .foregroundColor(.secondary)
           }

@@ -223,6 +223,14 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
+  private func readerContentKey(screenKey: String, useDualPage: Bool) -> String {
+    "\(currentBookId)-\(screenKey)-\(readingDirection)-\(useDualPage)"
+  }
+
+  private func applyDualPagePresentationMode(_ useDualPage: Bool) {
+    viewModel.updateDualPagePresentationMode(useDualPage)
+  }
+
   #if os(tvOS)
     private var shouldEnableUIKitRemoteCapture: Bool {
       !showingPageJumpSheet
@@ -381,6 +389,7 @@ struct DivinaReaderView: View {
 
         readerContent(
           useDualPage: useDualPage,
+          screenSize: screenSize,
           screenKey: screenKey
         )
 
@@ -395,6 +404,9 @@ struct DivinaReaderView: View {
         #if os(macOS)
           keyboardHelpOverlay
         #endif
+      }
+      .onChange(of: useDualPage, initial: true) { _, newValue in
+        applyDualPagePresentationMode(newValue)
       }
       #if os(tvOS)
         .onPlayPauseCommand {
@@ -552,11 +564,9 @@ struct DivinaReaderView: View {
   @ViewBuilder
   private func readerContent(
     useDualPage: Bool,
+    screenSize: CGSize,
     screenKey: String
   ) -> some View {
-    let _ = viewModel.updateCombineSplitWidePagePairInDualMode(useDualPage)
-    let _ = viewModel.updateActualDualPageMode(useDualPage)
-
     Group {
       if viewModel.hasPages {
         Group {
@@ -573,14 +583,13 @@ struct DivinaReaderView: View {
             #else
               ScrollPageView(
                 mode: .vertical,
+                viewportSize: screenSize,
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
                 renderConfig: renderConfig,
-                showingControls: showingControls,
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                toggleControls: { toggleControls() },
                 onScrollActivityChange: { _ in }
               )
             #endif
@@ -610,10 +619,10 @@ struct DivinaReaderView: View {
                   )
                 }
               #else
-                standardScrollPageView(useDualPage: useDualPage)
+                standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
               #endif
             case .scroll:
-              standardScrollPageView(useDualPage: useDualPage)
+              standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
             case .cover:
               CoverPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
@@ -628,7 +637,7 @@ struct DivinaReaderView: View {
           }
         }
         .readerIgnoresSafeArea()
-        .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
+        .id(readerContentKey(screenKey: screenKey, useDualPage: useDualPage))
         #if os(iOS) || os(macOS)
           .background(
             DivinaTapZoneGestureBridge(
@@ -671,17 +680,16 @@ struct DivinaReaderView: View {
   }
 
   @ViewBuilder
-  private func standardScrollPageView(useDualPage: Bool) -> some View {
+  private func standardScrollPageView(useDualPage: Bool, screenSize: CGSize) -> some View {
     ScrollPageView(
       mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+      viewportSize: screenSize,
       readingDirection: readingDirection,
       splitWidePageMode: splitWidePageMode,
       renderConfig: renderConfig,
-      showingControls: showingControls,
       viewModel: viewModel,
       readListContext: readListContext,
       onDismiss: { closeReader() },
-      toggleControls: { toggleControls() },
       onScrollActivityChange: { _ in }
     )
   }

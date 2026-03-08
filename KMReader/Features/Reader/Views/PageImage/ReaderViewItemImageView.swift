@@ -15,7 +15,12 @@ struct ReaderViewItemImageView: View {
   let splitWidePageMode: SplitWidePageMode
 
   var body: some View {
-    let pages = pageData
+    let pages = viewModel.nativePageData(
+      for: item,
+      readingDirection: readingDirection,
+      splitWidePageMode: splitWidePageMode,
+      isPlaybackActive: isPlaybackActive
+    )
 
     if pages.isEmpty {
       EmptyView()
@@ -32,85 +37,5 @@ struct ReaderViewItemImageView: View {
       )
       .frame(width: screenSize.width, height: screenSize.height)
     }
-  }
-
-  private var pageData: [NativePageData] {
-    switch item {
-    case .page(let id):
-      return [makePageData(for: id, alignment: .center)]
-    case .split(let id, let part):
-      if part == .both {
-        return splitPairPageData(for: id)
-      }
-      return [
-        makePageData(
-          for: id,
-          alignment: .center,
-          splitMode: splitMode(for: part)
-        )
-      ]
-    case .dual(let first, let second):
-      return [
-        makePageData(for: first, alignment: .trailing),
-        makePageData(for: second, alignment: .leading),
-      ]
-    case .end:
-      return []
-    }
-  }
-
-  private func makePageData(
-    for pageID: ReaderPageID,
-    alignment: HorizontalAlignment,
-    splitMode: PageSplitMode = .none
-  ) -> NativePageData {
-    NativePageData(
-      pageID: pageID,
-      isLoading: viewModel.page(for: pageID) != nil && viewModel.preloadedImage(for: pageID) == nil,
-      error: nil,
-      alignment: alignment,
-      splitMode: splitMode,
-      animatedSourceFileURL: animatedSourceFileURL(for: pageID)
-    )
-  }
-
-  private func splitPairPageData(for pageID: ReaderPageID) -> [NativePageData] {
-    let firstIsLeftHalf = viewModel.isLeftSplitHalf(
-      part: .first,
-      readingDirection: readingDirection,
-      splitWidePageMode: splitWidePageMode
-    )
-    let secondIsLeftHalf = viewModel.isLeftSplitHalf(
-      part: .second,
-      readingDirection: readingDirection,
-      splitWidePageMode: splitWidePageMode
-    )
-
-    return [
-      makePageData(
-        for: pageID,
-        alignment: .trailing,
-        splitMode: firstIsLeftHalf ? .leftHalf : .rightHalf
-      ),
-      makePageData(
-        for: pageID,
-        alignment: .leading,
-        splitMode: secondIsLeftHalf ? .leftHalf : .rightHalf
-      ),
-    ]
-  }
-
-  private func splitMode(for part: ReaderSplitPart) -> PageSplitMode {
-    let isLeftHalf = viewModel.isLeftSplitHalf(
-      part: part,
-      readingDirection: readingDirection,
-      splitWidePageMode: splitWidePageMode
-    )
-    return isLeftHalf ? .leftHalf : .rightHalf
-  }
-
-  private func animatedSourceFileURL(for pageID: ReaderPageID) -> URL? {
-    guard isPlaybackActive else { return nil }
-    return viewModel.animatedSourceFileURL(for: pageID)
   }
 }

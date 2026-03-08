@@ -51,8 +51,10 @@ class ReaderViewModel {
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
-  private var combineSplitWidePagePairInDualMode: Bool
   private var isActuallyUsingDualPageMode: Bool = false
+  typealias PagePresentationInvalidationHandler = @MainActor (ReaderPagePresentationInvalidation) -> Void
+  @ObservationIgnored
+  private var pagePresentationInvalidationHandlers: [UUID: PagePresentationInvalidationHandler] = [:]
 
   private let logger = AppLogger(.reader)
   private var bookMediaProfile: MediaProfile = .unknown
@@ -140,7 +142,6 @@ class ReaderViewModel {
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
-    self.combineSplitWidePagePairInDualMode = false
     self.incognitoMode = incognitoMode
     regenerateViewState()
   }
@@ -237,9 +238,52 @@ class ReaderViewModel {
     preloadedImagesByID[pageID]
   }
 
+  func addPagePresentationInvalidationObserver(
+    _ handler: @escaping PagePresentationInvalidationHandler
+  ) -> UUID {
+    let token = UUID()
+    pagePresentationInvalidationHandlers[token] = handler
+    return token
+  }
+
+  func removePagePresentationInvalidationObserver(_ token: UUID) {
+    pagePresentationInvalidationHandlers.removeValue(forKey: token)
+  }
+
+  private func invalidatePagePresentation(for pageID: ReaderPageID) {
+    notifyPagePresentationInvalidation(.pages([pageID]))
+  }
+
+  private func invalidatePagePresentation(for pageIDs: Set<ReaderPageID>) {
+    guard !pageIDs.isEmpty else { return }
+    notifyPagePresentationInvalidation(.pages(pageIDs))
+  }
+
+  private func invalidateAllPagePresentations() {
+    notifyPagePresentationInvalidation(.all)
+  }
+
+  private func notifyPagePresentationInvalidation(
+    _ invalidation: ReaderPagePresentationInvalidation
+  ) {
+    for handler in pagePresentationInvalidationHandlers.values {
+      handler(invalidation)
+    }
+  }
+
   private func setPreloadedImage(_ image: PlatformImage, forPageIndex pageIndex: Int) {
     guard let pageID = readerPageID(forPageIndex: pageIndex) else { return }
+    setPreloadedImage(image, for: pageID)
+  }
+
+  private func setPreloadedImage(_ image: PlatformImage, for pageID: ReaderPageID) {
     preloadedImagesByID[pageID] = image
+    invalidatePagePresentation(for: pageID)
+  }
+
+  private func clearPreloadedImage(for pageID: ReaderPageID) {
+    guard preloadedImagesByID.removeValue(forKey: pageID) != nil else { return }
+    invalidatePagePresentation(for: pageID)
   }
 
   private func readerPage(at pageIndex: Int) -> ReaderPage? {
@@ -573,6 +617,7 @@ class ReaderViewModel {
     currentPageID = nil
     currentViewItemID = nil
     navigationTarget = nil
+    invalidateAllPagePresentations()
     readerPagesVersion &+= 1
   }
 
@@ -971,12 +1016,11 @@ class ReaderViewModel {
 
       // Store preloaded images for instant access by PageImageView
       for (pageIndex, pageID, image, isAnimated, animatedSourceFileURL) in results {
-        self.animatedPageStates[pageID] = isAnimated
-        if let animatedSourceFileURL {
-          self.setAnimatedSourceFileURL(animatedSourceFileURL, for: pageID)
-        } else {
-          self.clearAnimatedPlaybackState(for: pageID)
-        }
+        self.updateAnimatedPresentation(
+          knownAnimatedState: isAnimated,
+          sourceFileURL: animatedSourceFileURL,
+          for: pageID
+        )
         if let image = image {
           self.setPreloadedImage(image, forPageIndex: pageIndex)
         }
@@ -1001,7 +1045,7 @@ class ReaderViewModel {
       let imageKeysToRemove = preloadedImagesByID.keys.filter { !keepPageIDs.contains($0) }
       if !imageKeysToRemove.isEmpty {
         for key in imageKeysToRemove {
-          preloadedImagesByID.removeValue(forKey: key)
+          clearPreloadedImage(for: key)
         }
       }
 
@@ -1011,8 +1055,7 @@ class ReaderViewModel {
 
       if !animatedKeysToRemove.isEmpty {
         for key in animatedKeysToRemove {
-          animatedPageStates.removeValue(forKey: key)
-          clearAnimatedPlaybackState(for: key)
+          updateAnimatedPresentation(knownAnimatedState: nil, sourceFileURL: nil, for: key)
         }
       }
     }
@@ -1405,12 +1448,34 @@ class ReaderViewModel {
     animatedPageStates[pageID] != false
   }
 
-  private func setAnimatedSourceFileURL(_ sourceFileURL: URL, for pageID: ReaderPageID) {
-    animatedPageSourceFileURLs[pageID] = sourceFileURL
-  }
+  private func updateAnimatedPresentation(
+    knownAnimatedState: Bool?,
+    sourceFileURL: URL?,
+    for pageID: ReaderPageID
+  ) {
+    var didChange = false
 
-  private func clearAnimatedPlaybackState(for pageID: ReaderPageID) {
-    animatedPageSourceFileURLs.removeValue(forKey: pageID)
+    if let knownAnimatedState {
+      if animatedPageStates[pageID] != knownAnimatedState {
+        animatedPageStates[pageID] = knownAnimatedState
+        didChange = true
+      }
+    } else if animatedPageStates.removeValue(forKey: pageID) != nil {
+      didChange = true
+    }
+
+    if let sourceFileURL {
+      if animatedPageSourceFileURLs[pageID] != sourceFileURL {
+        animatedPageSourceFileURLs[pageID] = sourceFileURL
+        didChange = true
+      }
+    } else if animatedPageSourceFileURLs.removeValue(forKey: pageID) != nil {
+      didChange = true
+    }
+
+    if didChange {
+      invalidatePagePresentation(for: pageID)
+    }
   }
 
   func focusAnimatedPlayback(on pageID: ReaderPageID?) {
@@ -1453,19 +1518,17 @@ class ReaderViewModel {
     guard let pageID = readerPageID(forPageIndex: pageIndex) else { return }
     let page = readerPages[pageIndex].page
     guard page.isAnimatedImageCandidate else {
-      animatedPageStates[pageID] = false
-      clearAnimatedPlaybackState(for: pageID)
+      updateAnimatedPresentation(knownAnimatedState: false, sourceFileURL: nil, for: pageID)
       return
     }
 
     guard let fileURL = await getPageImageFileURL(pageIndex: pageIndex) else { return }
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
-    animatedPageStates[pageID] = isAnimated
-    if isAnimated {
-      setAnimatedSourceFileURL(fileURL, for: pageID)
-    } else {
-      clearAnimatedPlaybackState(for: pageID)
-    }
+    updateAnimatedPresentation(
+      knownAnimatedState: isAnimated,
+      sourceFileURL: isAnimated ? fileURL : nil,
+      for: pageID
+    )
   }
 
   /// Preload a single page image into memory for instant display.
@@ -1482,16 +1545,15 @@ class ReaderViewModel {
     let preloadTask = Task<PlatformImage?, Never> { [weak self] in
       guard let self else { return nil }
       let (image, isAnimated, animatedSourceFileURL) = await self.preloadDecodedPageImage(pageIndex: pageIndex)
-      self.animatedPageStates[pageID] = isAnimated
-      if let animatedSourceFileURL {
-        self.setAnimatedSourceFileURL(animatedSourceFileURL, for: pageID)
-      } else {
-        self.clearAnimatedPlaybackState(for: pageID)
-      }
+      self.updateAnimatedPresentation(
+        knownAnimatedState: isAnimated,
+        sourceFileURL: animatedSourceFileURL,
+        for: pageID
+      )
       guard let image else {
         return nil
       }
-      self.preloadedImagesByID[pageID] = image
+      self.setPreloadedImage(image, for: pageID)
       return image
     }
 
@@ -1524,6 +1586,7 @@ class ReaderViewModel {
     animatedPageStates.removeAll()
     animatedPageSourceFileURLs.removeAll()
     animatedPlaybackFocusedPageIDs.removeAll()
+    invalidateAllPagePresentations()
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
   }
 
@@ -1600,38 +1663,32 @@ class ReaderViewModel {
   func updateDualPageSettings(noCover: Bool) {
     let newIsolateCover = !noCover
     guard isolateCoverPageEnabled != newIsolateCover else { return }
-    isolateCoverPageEnabled = newIsolateCover
-    regenerateViewState()
+    regenerateViewStatePreservingCurrentPage {
+      isolateCoverPageEnabled = newIsolateCover
+    }
   }
 
   func updatePageLayout(_ layout: PageLayout) {
     let shouldForceDualPage = layout == .dual
     guard forceDualPagePairs != shouldForceDualPage else { return }
-    forceDualPagePairs = shouldForceDualPage
-    regenerateViewState()
+    regenerateViewStatePreservingCurrentPage {
+      forceDualPagePairs = shouldForceDualPage
+    }
   }
 
   func updateSplitWidePageMode(_ mode: SplitWidePageMode) {
     guard splitWidePageMode != mode else { return }
-
-    let currentPageID = resolvedCurrentPageID
-
-    splitWidePageMode = mode
-    regenerateViewState()
-
-    requestNavigation(toPageID: currentPageID)
+    regenerateViewStatePreservingCurrentPage {
+      splitWidePageMode = mode
+    }
   }
 
-  func updateActualDualPageMode(_ isUsing: Bool) {
-    guard isActuallyUsingDualPageMode != isUsing else { return }
-    isActuallyUsingDualPageMode = isUsing
-    regenerateViewState()
-  }
+  func updateDualPagePresentationMode(_ isUsingDualPageMode: Bool) {
+    guard isActuallyUsingDualPageMode != isUsingDualPageMode else { return }
 
-  func updateCombineSplitWidePagePairInDualMode(_ isEnabled: Bool) {
-    guard combineSplitWidePagePairInDualMode != isEnabled else { return }
-    combineSplitWidePagePairInDualMode = isEnabled
-    regenerateViewState()
+    regenerateViewStatePreservingCurrentPage {
+      isActuallyUsingDualPageMode = isUsingDualPageMode
+    }
   }
 
   func toggleIsolatePage(_ pageID: ReaderPageID) {
@@ -1667,7 +1724,7 @@ class ReaderViewModel {
 
   private func regenerateViewState() {
     let preservedCurrentItem = currentViewItemID
-    let preservedCurrentPageID = currentPageID
+    let preservedCurrentPageID = resolvedCurrentPageID
 
     // Keep split-wide behavior available in dual mode as well.
     let effectiveSplitWidePages = splitWidePageMode.isEnabled
@@ -1682,7 +1739,6 @@ class ReaderViewModel {
       noCover: !shouldIsolateCover,
       allowDualPairs: isActuallyUsingDualPageMode,
       forceDualPairs: forceDualPagePairs,
-      combineSplitWidePagePairInDualMode: combineSplitWidePagePairInDualMode,
       splitWidePages: effectiveSplitWidePages,
       isolatePages: Set(isolatePages)
     )
@@ -1692,6 +1748,13 @@ class ReaderViewModel {
       preferredPageID: preservedCurrentPageID
     )
     currentPageID = currentViewItemID?.pageID ?? preservedCurrentPageID
+  }
+
+  private func regenerateViewStatePreservingCurrentPage(_ mutation: () -> Void) {
+    let currentPageID = resolvedCurrentPageID
+    mutation()
+    regenerateViewState()
+    requestNavigation(toPageID: currentPageID)
   }
 
   func viewItem(at index: Int) -> ReaderViewItem? {
@@ -1802,7 +1865,6 @@ private func generateViewItems(
   noCover: Bool,
   allowDualPairs: Bool,
   forceDualPairs: Bool,
-  combineSplitWidePagePairInDualMode: Bool,
   splitWidePages: Bool,
   isolatePages: Set<Int> = []
 ) -> [ReaderViewItem] {
@@ -1831,12 +1893,7 @@ private func generateViewItems(
           && (noCover || isWideCoverPage || index != segmentStartIndex)
 
         if isWidePageEligibleForSplit {
-          if combineSplitWidePagePairInDualMode {
-            items.append(.split(id: readerPages[index].id, part: .both))
-          } else {
-            items.append(.split(id: readerPages[index].id, part: .first))
-            items.append(.split(id: readerPages[index].id, part: .second))
-          }
+          items.append(.split(id: readerPages[index].id, part: .both))
           index += 1
           continue
         }
@@ -1892,7 +1949,7 @@ private func generateViewItems(
       }
 
       if shouldSplitPage {
-        if combineSplitWidePagePairInDualMode && allowDualPairs {
+        if allowDualPairs {
           items.append(.split(id: readerPages[index].id, part: .both))
         } else {
           items.append(.split(id: readerPages[index].id, part: .first))

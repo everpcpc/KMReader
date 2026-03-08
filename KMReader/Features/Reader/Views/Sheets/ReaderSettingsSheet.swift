@@ -17,7 +17,6 @@ struct ReaderSettingsSheet: View {
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
-  @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
@@ -41,10 +40,6 @@ struct ReaderSettingsSheet: View {
 
   private var shouldShowPagedTurnSettings: Bool {
     !isWebtoonDirection
-  }
-
-  private var shouldShowScrollTransitionStyle: Bool {
-    shouldShowPagedTurnSettings && pageTransitionStyle == .scroll
   }
 
   private var shouldShowTapTransitionDuration: Bool {
@@ -221,20 +216,6 @@ struct ReaderSettingsSheet: View {
               }
               .pickerStyle(.menu)
               Text(pageTransitionStyle.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-
-          if shouldShowScrollTransitionStyle {
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
-                ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
-                  Text(style.displayName).tag(style)
-                }
-              }
-              .pickerStyle(.menu)
-              Text(scrollPageTransitionStyle.description)
                 .font(.caption)
                 .foregroundColor(.secondary)
             }

@@ -1,34 +1,19 @@
-//
-// NativeEndPageViewController.swift
-//
-
-#if os(iOS)
+#if os(iOS) || os(tvOS)
   import SwiftUI
   import UIKit
 
-  @MainActor
-  final class NativeEndPageViewController: UIViewController {
-    enum SectionDisplayMode {
-      case both
-      case previousOnly
-      case nextOnly
-    }
-
+  final class NativePagedEndCell: UICollectionViewCell {
     private var previousBook: Book?
     private var nextBook: Book?
     private var readListContext: ReaderReadListContext?
     private var readingDirection: ReadingDirection = .ltr
-    private var sectionDisplayMode: SectionDisplayMode = .both
-    private var renderConfig = ReaderRenderConfig(
-      tapZoneSize: .large,
-      tapZoneMode: .auto,
-      showPageNumber: true,
-      readerBackground: .system,
-      enableLiveText: false,
-      doubleTapZoomScale: 3.0,
-      doubleTapZoomMode: .fast
-    )
+    private var readerBackground: ReaderBackground = .system
     private var onDismiss: (() -> Void)?
+
+    private var previousCoverTask: Task<Void, Never>?
+    private var nextCoverTask: Task<Void, Never>?
+    private var previousCoverBookID: String?
+    private var nextCoverBookID: String?
     private var lastIsPortrait: Bool?
 
     private let contentStack = UIStackView()
@@ -38,15 +23,16 @@
     private let previousContainer = UIView()
     private let previousStack = UIStackView()
     private let previousBadgeLabel = UILabel()
-    private let previousCoverViewController = NativeBookCoverViewController()
+    private let previousCoverContainer = UIView()
+    private let previousCoverImageView = UIImageView()
     private let previousTitleLabel = UILabel()
     private let previousDetailLabel = UILabel()
 
     private let nextContainer = UIView()
     private let nextStack = UIStackView()
     private let nextBadgeLabel = UILabel()
-    private let nextCoverViewController = NativeBookCoverViewController()
-    private let nextMetadataStack = UIStackView()
+    private let nextCoverContainer = UIView()
+    private let nextCoverImageView = UIImageView()
     private let nextTitleLabel = UILabel()
     private let nextDetailLabel = UILabel()
     private let caughtUpStack = UIStackView()
@@ -58,57 +44,70 @@
     private let dividerTitleLabel = UILabel()
     private let trailingDivider = UIView()
     private let verticalDivider = UIView()
-
-    private let buttonStack = UIStackView()
     private let closeButton = UIButton(type: .system)
-    private var sectionsEqualWidthConstraint: NSLayoutConstraint?
+
     private var contentLeadingConstraint: NSLayoutConstraint?
     private var contentTrailingConstraint: NSLayoutConstraint?
     private var contentTopConstraint: NSLayoutConstraint?
     private var contentBottomConstraint: NSLayoutConstraint?
-    private var contentMaxWidthConstraint: NSLayoutConstraint?
     private var previousCoverWidthConstraint: NSLayoutConstraint?
     private var previousCoverHeightConstraint: NSLayoutConstraint?
     private var nextCoverWidthConstraint: NSLayoutConstraint?
     private var nextCoverHeightConstraint: NSLayoutConstraint?
     private var verticalDividerHeightConstraint: NSLayoutConstraint?
+    private var sectionsEqualWidthConstraint: NSLayoutConstraint?
+
+    override init(frame: CGRect) {
+      super.init(frame: frame)
+      setupUI()
+    }
+
+    required init?(coder: NSCoder) {
+      fatalError("init(coder:) has not been implemented")
+    }
+
+    override func prepareForReuse() {
+      super.prepareForReuse()
+      previousCoverTask?.cancel()
+      nextCoverTask?.cancel()
+      previousCoverTask = nil
+      nextCoverTask = nil
+      previousCoverBookID = nil
+      nextCoverBookID = nil
+      previousCoverImageView.image = nil
+      nextCoverImageView.image = nil
+      lastIsPortrait = nil
+    }
+
+    override func layoutSubviews() {
+      super.layoutSubviews()
+      applyDynamicMetrics()
+      applyLayoutModeIfNeeded()
+    }
 
     func configure(
       previousBook: Book?,
       nextBook: Book?,
       readListContext: ReaderReadListContext?,
       readingDirection: ReadingDirection,
-      sectionDisplayMode: SectionDisplayMode = .both,
-      renderConfig: ReaderRenderConfig,
-      onDismiss: @escaping () -> Void
+      readerBackground: ReaderBackground,
+      onDismiss: (() -> Void)?
     ) {
       self.previousBook = previousBook
       self.nextBook = nextBook
       self.readListContext = readListContext
       self.readingDirection = readingDirection
-      self.sectionDisplayMode = sectionDisplayMode
-      self.renderConfig = renderConfig
+      self.readerBackground = readerBackground
       self.onDismiss = onDismiss
 
-      if isViewLoaded {
-        applyConfiguration()
-      }
-    }
-
-    override func viewDidLoad() {
-      super.viewDidLoad()
-      setupUI()
-      applyConfiguration()
-    }
-
-    override func viewDidLayoutSubviews() {
-      super.viewDidLayoutSubviews()
-      applyDynamicMetrics()
-      applyLayoutModeIfNeeded()
+      applyAppearance()
+      applyContent()
+      setNeedsLayout()
     }
 
     private func setupUI() {
-      view.backgroundColor = UIColor(renderConfig.readerBackground.color)
+      backgroundColor = .clear
+      contentView.backgroundColor = UIColor(readerBackground.color)
 
       contentStack.translatesAutoresizingMaskIntoConstraints = false
       contentStack.axis = .vertical
@@ -116,7 +115,7 @@
       contentStack.spacing = 20
       contentStack.isLayoutMarginsRelativeArrangement = true
       contentStack.layoutMargins = UIEdgeInsets(top: 20, left: 24, bottom: 20, right: 24)
-      view.addSubview(contentStack)
+      contentView.addSubview(contentStack)
 
       relationHeaderLabel.numberOfLines = 1
       relationHeaderLabel.textAlignment = .center
@@ -133,7 +132,7 @@
       previousStack.translatesAutoresizingMaskIntoConstraints = false
       previousStack.axis = .vertical
       previousStack.alignment = .center
-      previousStack.spacing = 6
+      previousStack.spacing = 8
       previousContainer.addSubview(previousStack)
 
       previousBadgeLabel.numberOfLines = 1
@@ -141,10 +140,8 @@
       previousBadgeLabel.adjustsFontForContentSizeCategory = true
       previousStack.addArrangedSubview(previousBadgeLabel)
 
-      addChild(previousCoverViewController)
-      previousCoverViewController.view.translatesAutoresizingMaskIntoConstraints = false
-      previousStack.addArrangedSubview(previousCoverViewController.view)
-      previousCoverViewController.didMove(toParent: self)
+      setupCoverContainer(previousCoverContainer, imageView: previousCoverImageView)
+      previousStack.addArrangedSubview(previousCoverContainer)
 
       previousTitleLabel.numberOfLines = 2
       previousTitleLabel.textAlignment = .center
@@ -168,25 +165,18 @@
       nextBadgeLabel.adjustsFontForContentSizeCategory = true
       nextStack.addArrangedSubview(nextBadgeLabel)
 
-      addChild(nextCoverViewController)
-      nextCoverViewController.view.translatesAutoresizingMaskIntoConstraints = false
-      nextStack.addArrangedSubview(nextCoverViewController.view)
-      nextCoverViewController.didMove(toParent: self)
-
-      nextMetadataStack.axis = .vertical
-      nextMetadataStack.alignment = .center
-      nextMetadataStack.spacing = 4
-      nextStack.addArrangedSubview(nextMetadataStack)
+      setupCoverContainer(nextCoverContainer, imageView: nextCoverImageView)
+      nextStack.addArrangedSubview(nextCoverContainer)
 
       nextTitleLabel.numberOfLines = 2
       nextTitleLabel.textAlignment = .center
       nextTitleLabel.adjustsFontForContentSizeCategory = true
-      nextMetadataStack.addArrangedSubview(nextTitleLabel)
+      nextStack.addArrangedSubview(nextTitleLabel)
 
       nextDetailLabel.numberOfLines = 1
       nextDetailLabel.textAlignment = .center
       nextDetailLabel.adjustsFontForContentSizeCategory = true
-      nextMetadataStack.addArrangedSubview(nextDetailLabel)
+      nextStack.addArrangedSubview(nextDetailLabel)
 
       caughtUpStack.axis = .horizontal
       caughtUpStack.alignment = .center
@@ -194,10 +184,9 @@
       nextStack.addArrangedSubview(caughtUpStack)
 
       caughtUpIconView.image = UIImage(systemName: "checkmark.circle.fill")
-      caughtUpIconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
       caughtUpStack.addArrangedSubview(caughtUpIconView)
 
-      caughtUpLabel.numberOfLines = 1
+      caughtUpLabel.numberOfLines = 2
       caughtUpLabel.textAlignment = .center
       caughtUpLabel.adjustsFontForContentSizeCategory = true
       caughtUpStack.addArrangedSubview(caughtUpLabel)
@@ -226,59 +215,42 @@
       verticalDividerHeightConstraint = verticalDivider.heightAnchor.constraint(equalToConstant: 220)
       verticalDividerHeightConstraint?.isActive = true
 
-      buttonStack.axis = .horizontal
-      buttonStack.alignment = .center
-      buttonStack.spacing = 16
-      contentStack.addArrangedSubview(buttonStack)
-
       closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
-      buttonStack.addArrangedSubview(closeButton)
+      contentStack.addArrangedSubview(closeButton)
 
       let contentLeading = contentStack.leadingAnchor.constraint(
-        greaterThanOrEqualTo: view.leadingAnchor,
+        greaterThanOrEqualTo: contentView.leadingAnchor,
         constant: 40
       )
       let contentTrailing = contentStack.trailingAnchor.constraint(
-        lessThanOrEqualTo: view.trailingAnchor,
+        lessThanOrEqualTo: contentView.trailingAnchor,
         constant: -40
       )
       let contentTop = contentStack.topAnchor.constraint(
-        greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor,
+        greaterThanOrEqualTo: contentView.topAnchor,
         constant: 40
       )
       let contentBottom = contentStack.bottomAnchor.constraint(
-        lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor,
+        lessThanOrEqualTo: contentView.bottomAnchor,
         constant: -40
-      )
-      let contentMaxWidth = contentStack.widthAnchor.constraint(
-        lessThanOrEqualTo: view.widthAnchor,
-        constant: -80
       )
       contentLeadingConstraint = contentLeading
       contentTrailingConstraint = contentTrailing
       contentTopConstraint = contentTop
       contentBottomConstraint = contentBottom
-      contentMaxWidthConstraint = contentMaxWidth
 
-      let previousCoverWidth = previousCoverViewController.view.widthAnchor.constraint(equalToConstant: 120)
-      let previousCoverHeight = previousCoverViewController.view.heightAnchor.constraint(
-        equalToConstant: 160
-      )
-      let nextCoverWidth = nextCoverViewController.view.widthAnchor.constraint(equalToConstant: 120)
-      let nextCoverHeight = nextCoverViewController.view.heightAnchor.constraint(equalToConstant: 160)
-      previousCoverWidthConstraint = previousCoverWidth
-      previousCoverHeightConstraint = previousCoverHeight
-      nextCoverWidthConstraint = nextCoverWidth
-      nextCoverHeightConstraint = nextCoverHeight
+      previousCoverWidthConstraint = previousCoverContainer.widthAnchor.constraint(equalToConstant: 120)
+      previousCoverHeightConstraint = previousCoverContainer.heightAnchor.constraint(equalToConstant: 160)
+      nextCoverWidthConstraint = nextCoverContainer.widthAnchor.constraint(equalToConstant: 120)
+      nextCoverHeightConstraint = nextCoverContainer.heightAnchor.constraint(equalToConstant: 160)
 
       NSLayoutConstraint.activate([
         contentLeading,
         contentTrailing,
         contentTop,
         contentBottom,
-        contentStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        contentStack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-        contentMaxWidth,
+        contentStack.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+        contentStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
 
         previousStack.leadingAnchor.constraint(equalTo: previousContainer.leadingAnchor),
         previousStack.trailingAnchor.constraint(equalTo: previousContainer.trailingAnchor),
@@ -290,41 +262,46 @@
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
 
-        previousCoverWidth,
-        previousCoverHeight,
-        nextCoverWidth,
-        nextCoverHeight,
+        previousCoverWidthConstraint!,
+        previousCoverHeightConstraint!,
+        nextCoverWidthConstraint!,
+        nextCoverHeightConstraint!,
+      ])
+
+      previousBadgeLabel.text = String(localized: "reader.previousBook").uppercased()
+      nextBadgeLabel.text = String(localized: "reader.nextBook").uppercased()
+      caughtUpLabel.text = String(localized: "You're all caught up!")
+    }
+
+    private func setupCoverContainer(_ container: UIView, imageView: UIImageView) {
+      container.translatesAutoresizingMaskIntoConstraints = false
+      container.backgroundColor = .clear
+      container.layer.shadowOpacity = 0.18
+      container.layer.shadowOffset = CGSize(width: 0, height: 6)
+      container.layer.shadowRadius = 16
+
+      imageView.translatesAutoresizingMaskIntoConstraints = false
+      imageView.contentMode = .scaleAspectFit
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = 12
+      imageView.backgroundColor = coverPlaceholderColor
+      container.addSubview(imageView)
+
+      NSLayoutConstraint.activate([
+        imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+        imageView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        imageView.topAnchor.constraint(equalTo: container.topAnchor),
+        imageView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
       ])
     }
 
-    private func applyConfiguration() {
-      let textColor = contentColor
-      let presentation = NativeEndPagePresentation.make(
-        previousBook: previousBook,
-        nextBook: nextBook,
-        readListContext: readListContext,
-        sectionDisplayMode: presentationSectionDisplayMode
-      )
-      let showsBothSections = presentation.previous.isVisible && presentation.next.isVisible
-      let visibleRelationTitle = showsBothSections ? presentation.relationTitle : ""
+    private func applyAppearance() {
+      let backgroundColor = UIColor(readerBackground.color)
+      let textColor = UIColor(readerBackground.contentColor)
 
-      view.backgroundColor = UIColor(renderConfig.readerBackground.color)
-
-      relationHeaderLabel.text = visibleRelationTitle
-      dividerTitleLabel.text = visibleRelationTitle
-      dividerTitleLabel.isHidden = visibleRelationTitle.isEmpty
-
-      relationHeaderLabel.font = preferredFont(textStyle: .headline, design: .rounded, weight: .semibold)
-      previousBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
-      previousTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
-      previousDetailLabel.font = .preferredFont(forTextStyle: .caption1)
-      nextBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
-      nextTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
-      nextDetailLabel.font = .preferredFont(forTextStyle: .caption1)
-      caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
-      dividerTitleLabel.font = .preferredFont(forTextStyle: .caption1)
-
+      contentView.backgroundColor = backgroundColor
       relationHeaderLabel.textColor = textColor.withAlphaComponent(0.85)
+      dividerTitleLabel.textColor = textColor.withAlphaComponent(0.8)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
       previousDetailLabel.textColor = textColor.withAlphaComponent(0.6)
@@ -333,149 +310,123 @@
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpIconView.tintColor = textColor
       caughtUpLabel.textColor = textColor
-      dividerTitleLabel.textColor = textColor.withAlphaComponent(0.8)
       leadingDivider.backgroundColor = textColor.withAlphaComponent(0.3)
       trailingDivider.backgroundColor = textColor.withAlphaComponent(0.3)
       verticalDivider.backgroundColor = textColor.withAlphaComponent(0.3)
-      previousCoverViewController.useLightShadow = shouldUseLightCoverShadow
-      nextCoverViewController.useLightShadow = shouldUseLightCoverShadow
-      let coverBlendTintColor =
-        renderConfig.readerBackground.appliesImageMultiplyBlend
-        ? UIColor(renderConfig.readerBackground.color)
-        : nil
-      previousCoverViewController.imageBlendTintColor = coverBlendTintColor
-      nextCoverViewController.imageBlendTintColor = coverBlendTintColor
+      previousCoverContainer.layer.shadowColor = effectiveShadowColor.cgColor
+      nextCoverContainer.layer.shadowColor = effectiveShadowColor.cgColor
 
-      previousBadgeLabel.text = String(localized: "reader.previousBook").uppercased()
+      relationHeaderLabel.font = .preferredFont(forTextStyle: .headline)
+      previousBadgeLabel.font = .preferredFont(forTextStyle: .caption1)
+      previousTitleLabel.font = .preferredFont(forTextStyle: .title3)
+      previousDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      nextBadgeLabel.font = .preferredFont(forTextStyle: .caption1)
+      nextTitleLabel.font = .preferredFont(forTextStyle: .title3)
+      nextDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
+      dividerTitleLabel.font = .preferredFont(forTextStyle: .caption1)
+
+      var configuration = UIButton.Configuration.bordered()
+      configuration.image = UIImage(systemName: "xmark")
+      configuration.imagePlacement = .leading
+      configuration.imagePadding = 8
+      configuration.title = String(localized: "Close")
+      configuration.cornerStyle = .capsule
+      closeButton.configuration = configuration
+      closeButton.tintColor = textColor
+    }
+
+    private func applyContent() {
+      let presentation = NativeEndPagePresentation.make(
+        previousBook: previousBook,
+        nextBook: nextBook,
+        readListContext: readListContext
+      )
+
+      relationHeaderLabel.text = presentation.relationTitle
+      dividerTitleLabel.text = presentation.relationTitle
+      dividerTitleLabel.isHidden = presentation.relationTitle.isEmpty
+      previousBadgeLabel.text = presentation.previous.badgeText
       nextBadgeLabel.text = presentation.next.badgeText
 
       if presentation.previous.isVisible {
         previousContainer.isHidden = false
-        previousBadgeLabel.text = presentation.previous.badgeText
-        previousCoverViewController.configure(bookID: presentation.previous.bookID)
         previousTitleLabel.text = presentation.previous.title
         previousDetailLabel.text = presentation.previous.detail
+        updatePreviousCover(bookID: presentation.previous.bookID)
       } else {
         previousContainer.isHidden = true
-        previousBadgeLabel.text = nil
-        previousCoverViewController.configure(bookID: nil)
         previousTitleLabel.text = nil
         previousDetailLabel.text = nil
+        updatePreviousCover(bookID: nil)
       }
 
       if presentation.next.isVisible {
         nextContainer.isHidden = false
         nextBadgeLabel.isHidden = presentation.next.badgeText == nil
-        nextMetadataStack.isHidden = !presentation.next.showsMetadata
+        nextCoverContainer.isHidden = !presentation.next.showsCover
+        nextTitleLabel.isHidden = !presentation.next.showsMetadata
+        nextDetailLabel.isHidden = !presentation.next.showsMetadata
         caughtUpStack.isHidden = !presentation.next.showsCaughtUp
-        caughtUpLabel.text = presentation.next.showsCaughtUp ? String(localized: "You're all caught up!") : nil
-        nextCoverViewController.view.isHidden = !presentation.next.showsCover
-        nextCoverViewController.configure(bookID: presentation.next.bookID)
         nextTitleLabel.text = presentation.next.title
         nextDetailLabel.text = presentation.next.detail
+        updateNextCover(bookID: presentation.next.bookID)
       } else {
         nextContainer.isHidden = true
         nextBadgeLabel.isHidden = true
-        nextMetadataStack.isHidden = true
-        caughtUpStack.isHidden = true
-        caughtUpLabel.text = nil
-        nextCoverViewController.view.isHidden = true
-        nextCoverViewController.configure(bookID: nil)
+        nextCoverContainer.isHidden = true
+        nextTitleLabel.isHidden = true
+        nextDetailLabel.isHidden = true
+        caughtUpStack.isHidden = false
         nextTitleLabel.text = nil
         nextDetailLabel.text = nil
+        updateNextCover(bookID: nil)
       }
 
-      var closeConfig = borderedButtonConfiguration()
-      closeConfig.image = UIImage(systemName: "xmark")
-      closeConfig.imagePlacement = .leading
-      closeConfig.imagePadding = 8
-      closeConfig.preferredSymbolConfigurationForImage = buttonSymbolConfiguration
-      closeConfig.title = String(localized: "Close")
-      closeConfig.cornerStyle = .capsule
-      closeButton.configuration = closeConfig
-      closeButton.tintColor = textColor
       closeButton.isHidden = !presentation.showsCloseButton
-
-      applyDynamicMetrics()
-      applyLayoutModeIfNeeded(force: true)
     }
 
     private func applyLayoutModeIfNeeded(force: Bool = false) {
-      guard view.bounds.width > 0, view.bounds.height > 0 else { return }
-      let isPortrait = view.bounds.height >= view.bounds.width
+      guard bounds.width > 0, bounds.height > 0 else { return }
+
+      let isPortrait = bounds.height >= bounds.width
       if !force, lastIsPortrait == isPortrait { return }
       lastIsPortrait = isPortrait
 
       let presentation = NativeEndPagePresentation.make(
         previousBook: previousBook,
         nextBook: nextBook,
-        readListContext: readListContext,
-        sectionDisplayMode: presentationSectionDisplayMode
+        readListContext: readListContext
       )
 
-      previousStack.alignment = .center
-      nextStack.alignment = .center
-      previousTitleLabel.textAlignment = .center
-      previousDetailLabel.textAlignment = .center
-      nextTitleLabel.textAlignment = .center
-      nextDetailLabel.textAlignment = .center
-      caughtUpLabel.textAlignment = .center
-
-      switch presentation.layoutMode(for: view.bounds.size, readingDirection: readingDirection) {
+      switch presentation.layoutMode(for: bounds.size, readingDirection: readingDirection) {
       case .singlePrevious:
         sectionsStack.axis = .vertical
         relationHeaderLabel.isHidden = true
-        previousCoverViewController.view.isHidden = previousBook == nil
-        setArrangedSubviews(
-          of: sectionsStack,
-          with: [
-            previousContainer.isHidden ? nil : previousContainer
-          ]
-        )
+        setArrangedSubviews(of: sectionsStack, with: [previousContainer])
       case .singleNext:
         sectionsStack.axis = .vertical
         relationHeaderLabel.isHidden = true
-        previousCoverViewController.view.isHidden = previousBook == nil
-        setArrangedSubviews(
-          of: sectionsStack,
-          with: [
-            nextContainer.isHidden ? nil : nextContainer
-          ]
-        )
+        setArrangedSubviews(of: sectionsStack, with: [nextContainer])
       case .stacked:
         sectionsStack.axis = .vertical
         relationHeaderLabel.isHidden = true
-        previousCoverViewController.view.isHidden = true
         setArrangedSubviews(
           of: sectionsStack,
-          with: [
-            previousContainer.isHidden ? nil : previousContainer,
-            horizontalDividerStack,
-            nextContainer,
-          ]
+          with: [previousContainer, horizontalDividerStack, nextContainer]
         )
       case .sideBySide(let nextOnLeadingSide, let showsRelationHeader):
         sectionsStack.axis = .horizontal
         relationHeaderLabel.isHidden = !showsRelationHeader
-        previousCoverViewController.view.isHidden = previousBook == nil
-
         if nextOnLeadingSide {
           setArrangedSubviews(
             of: sectionsStack,
-            with: [
-              nextContainer,
-              verticalDivider,
-              previousContainer.isHidden ? nil : previousContainer,
-            ]
+            with: [nextContainer, verticalDivider, previousContainer]
           )
         } else {
           setArrangedSubviews(
             of: sectionsStack,
-            with: [
-              previousContainer.isHidden ? nil : previousContainer,
-              verticalDivider,
-              nextContainer,
-            ]
+            with: [previousContainer, verticalDivider, nextContainer]
           )
         }
       }
@@ -483,20 +434,8 @@
       updateSectionsEqualWidthConstraint()
     }
 
-    private var presentationSectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode {
-      switch sectionDisplayMode {
-      case .both:
-        return .both
-      case .previousOnly:
-        return .previousOnly
-      case .nextOnly:
-        return .nextOnly
-      }
-    }
-
-    private func setArrangedSubviews(of stack: UIStackView, with views: [UIView?]) {
-      let filteredViews = views.compactMap { $0 }
-      if stack.arrangedSubviews.elementsEqual(filteredViews, by: { $0 === $1 }) {
+    private func setArrangedSubviews(of stack: UIStackView, with views: [UIView]) {
+      if stack.arrangedSubviews.elementsEqual(views, by: { $0 === $1 }) {
         return
       }
 
@@ -506,7 +445,7 @@
         subview.removeFromSuperview()
       }
 
-      for view in filteredViews {
+      for view in views {
         stack.addArrangedSubview(view)
       }
     }
@@ -521,20 +460,20 @@
         sectionsEqualWidthConstraint = previousContainer.widthAnchor.constraint(equalTo: nextContainer.widthAnchor)
         sectionsEqualWidthConstraint?.priority = .defaultHigh
       }
-      sectionsEqualWidthConstraint?.isActive = true
+      sectionsEqualWidthConstraint?.isActive = sectionsStack.axis == .horizontal
     }
 
     private func applyDynamicMetrics() {
-      guard view.bounds.width > 0, view.bounds.height > 0 else { return }
+      guard bounds.width > 0, bounds.height > 0 else { return }
 
-      let isPortrait = view.bounds.height >= view.bounds.width
-      let minDimension = min(view.bounds.width, view.bounds.height)
-      let maxDimension = max(view.bounds.width, view.bounds.height)
+      let isPortrait = bounds.height >= bounds.width
+      let minDimension = min(bounds.width, bounds.height)
+      let maxDimension = max(bounds.width, bounds.height)
       let outerPadding = clamped(minDimension * 0.08, lower: 20, upper: 56)
       let innerPadding = clamped(minDimension * 0.045, lower: 16, upper: 32)
       let stackSpacing = clamped(minDimension * 0.034, lower: 12, upper: 22)
       let portraitSectionSpacing = stackSpacing + clamped(stackSpacing * 0.5, lower: 6, upper: 12)
-      let coverWidth = clamped(minDimension * 0.24, lower: 96, upper: 190)
+      let coverWidth = clamped(minDimension * (isPortrait ? 0.28 : 0.22), lower: 96, upper: 190)
       let coverHeight = coverWidth / CoverAspectRatio.widthToHeight
       let dividerHeight = clamped(maxDimension * 0.32, lower: 140, upper: 320)
 
@@ -551,8 +490,6 @@
       contentTrailingConstraint?.constant = -outerPadding
       contentTopConstraint?.constant = outerPadding
       contentBottomConstraint?.constant = -outerPadding
-      contentMaxWidthConstraint?.constant = -outerPadding * 2
-
       previousCoverWidthConstraint?.constant = coverWidth
       previousCoverHeightConstraint?.constant = coverHeight
       nextCoverWidthConstraint?.constant = coverWidth
@@ -560,70 +497,79 @@
       verticalDividerHeightConstraint?.constant = dividerHeight
     }
 
-    private func borderedButtonConfiguration() -> UIButton.Configuration {
-      if #available(iOS 26.0, *) {
-        return .glass()
+    private func updatePreviousCover(bookID: String?) {
+      if previousCoverBookID == bookID {
+        if previousCoverTask != nil || previousCoverImageView.image != nil || bookID == nil {
+          return
+        }
       }
-      return .bordered()
+
+      previousCoverTask?.cancel()
+      previousCoverTask = nil
+      previousCoverBookID = bookID
+      previousCoverImageView.image = nil
+      previousCoverImageView.backgroundColor = coverPlaceholderColor
+
+      guard let bookID else { return }
+
+      previousCoverTask = Task { @MainActor [weak self] in
+        let image = await loadNativeBookCoverImage(for: bookID)
+        guard !Task.isCancelled, let self else { return }
+        guard self.previousCoverBookID == bookID else { return }
+        self.previousCoverTask = nil
+        self.previousCoverImageView.image = image
+        self.previousCoverImageView.backgroundColor = image == nil ? self.coverPlaceholderColor : .clear
+      }
     }
 
-    private var buttonSymbolConfiguration: UIImage.SymbolConfiguration {
-      UIImage.SymbolConfiguration(
-        textStyle: .subheadline,
-        scale: .small
-      )
+    private func updateNextCover(bookID: String?) {
+      if nextCoverBookID == bookID {
+        if nextCoverTask != nil || nextCoverImageView.image != nil || bookID == nil {
+          return
+        }
+      }
+
+      nextCoverTask?.cancel()
+      nextCoverTask = nil
+      nextCoverBookID = bookID
+      nextCoverImageView.image = nil
+      nextCoverImageView.backgroundColor = coverPlaceholderColor
+
+      guard let bookID else { return }
+
+      nextCoverTask = Task { @MainActor [weak self] in
+        let image = await loadNativeBookCoverImage(for: bookID)
+        guard !Task.isCancelled, let self else { return }
+        guard self.nextCoverBookID == bookID else { return }
+        self.nextCoverTask = nil
+        self.nextCoverImageView.image = image
+        self.nextCoverImageView.backgroundColor = image == nil ? self.coverPlaceholderColor : .clear
+      }
     }
 
-    private var contentColor: UIColor {
-      switch renderConfig.readerBackground {
+    private var effectiveShadowColor: UIColor {
+      switch readerBackground {
       case .black, .gray:
-        return .white
-      case .white:
-        return .black
-      case .sepia:
-        return UIColor(renderConfig.readerBackground.contentColor)
-      case .system:
-        return .label
+        return UIColor.white.withAlphaComponent(0.18)
+      case .white, .sepia, .system:
+        return UIColor.black.withAlphaComponent(0.22)
       }
     }
 
-    private var shouldUseLightCoverShadow: Bool {
-      switch renderConfig.readerBackground {
-      case .black, .gray:
-        return true
-      case .white:
-        return false
-      case .sepia:
-        return false
-      case .system:
-        return traitCollection.userInterfaceStyle == .dark
-      }
+    private var coverPlaceholderColor: UIColor {
+      #if os(tvOS)
+        return UIColor.white.withAlphaComponent(0.08)
+      #else
+        return .secondarySystemFill
+      #endif
     }
 
     private func clamped(_ value: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {
       Swift.min(Swift.max(value, lower), upper)
     }
 
-    private func preferredFont(
-      textStyle: UIFont.TextStyle,
-      design: UIFontDescriptor.SystemDesign? = nil,
-      weight: UIFont.Weight? = nil
-    ) -> UIFont {
-      var descriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: textStyle)
-      if let design, let designedDescriptor = descriptor.withDesign(design) {
-        descriptor = designedDescriptor
-      }
-      if let weight {
-        descriptor = descriptor.addingAttributes([
-          UIFontDescriptor.AttributeName.traits: [UIFontDescriptor.TraitKey.weight: weight]
-        ])
-      }
-      return UIFont(descriptor: descriptor, size: 0)
-    }
-
     @objc private func handleClose() {
       onDismiss?()
     }
-
   }
 #endif

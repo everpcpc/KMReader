@@ -131,7 +131,7 @@
       coverContainerView.layer.shadowPath = nil
 
       coverImageTask = Task { [weak self] in
-        let image = await Self.loadCoverImage(for: bookID)
+        let image = await loadNativeBookCoverImage(for: bookID)
         guard !Task.isCancelled else { return }
         guard let self else { return }
         guard self.coverImageBookID == bookID else { return }
@@ -215,21 +215,5 @@
       return UIColor.black.withAlphaComponent(0.35)
     }
 
-    nonisolated private static func loadCoverImage(for bookID: String) async -> UIImage? {
-      await Task.detached(priority: .userInitiated) {
-        let fileURL = ThumbnailCache.getThumbnailFileURL(id: bookID, type: .book)
-        let targetURL: URL?
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-          targetURL = fileURL
-        } else {
-          targetURL = try? await ThumbnailCache.shared.ensureThumbnail(id: bookID, type: .book)
-        }
-
-        guard !Task.isCancelled, let targetURL else { return nil }
-        guard let image = PlatformImage(contentsOfFile: targetURL.path) else { return nil }
-        return await ImageDecodeHelper.decodeForDisplay(image)
-      }
-      .value
-    }
   }
 #endif

@@ -350,11 +350,15 @@ KMReader/
 11. **Direction rule (UI bridging)**: Allow `SwiftUI -> UIKit/AppKit`, but do not use `UIKit/AppKit -> SwiftUI` (`UIHostingController`/`NSHostingController`) for feature screens/components, because `UIHostingController`/`NSHostingController` does not inherit required SwiftUI environment values in this project.
 12. **Object environment safety**: Do not use non-optional object-style environment dependencies (`@Environment(SomeType.self)`, `@EnvironmentObject`) in app code. Treat them as banned patterns. Pass object dependencies explicitly via initializers, context structs, or action closures. If environment lookup is still required, use a non-object custom `EnvironmentKey` or an optional lookup with controlled fallback/logging instead of crashing.
 13. **No unchecked/unsafe APIs**: Do not use `@unchecked Sendable`, `nonisolated(unsafe)`, `unsafeBitCast`, or other `unsafe*` escape hatches in app code. Prefer safe ownership, actor boundaries, copying, or explicit wrappers. If a low-level API appears to require them, stop and redesign instead of introducing them.
+14. **Strongly avoid patch-style fixes for structural problems**: When the current abstraction or ownership boundary is wrong, do not preserve it by stacking flags, delays, version counters, bridge layers, or special cases just to keep the diff small. Prefer the larger refactor that moves the code toward the final stable architecture.
+15. **Prioritize end-state quality over local diff size**: Stability, simplicity, clarity of ownership, and long-term maintainability are more important than minimizing code churn. Do not be afraid to rewrite or replace a local subsystem when that is the cleaner and more reliable design.
+16. **If a temporary compatibility layer is unavoidable, mark it explicitly**: State why it exists, what the intended final design is, and what should be removed later. Temporary layers should be rare and treated as debt, not as the default implementation style.
 
 Additional patterns:
 
 - Do not register or consume view models/coordinators through non-optional object-style SwiftUI environment dependencies
 - Pass shared object dependencies explicitly at split/tab roots, `NavigationStack` roots, sheets, full-screen covers, scene boundaries, and any `UIHostingController`/`NSHostingController` boundary; do not assume outer environment inheritance is stable during snapshot, rotation, or scene transitions
+- For architecture-level bugs, prefer replacing the confused layer instead of adding compensating state around it. Small patches are acceptable only when the underlying ownership model is already sound.
 - SSE callbacks are single-assignment closures; implement dispatchers if multiple components need the same event
 - Clearing caches/server data must go through `CacheManager` and SwiftData stores
 - New API endpoints belong in appropriate service; keep request-building out of views
