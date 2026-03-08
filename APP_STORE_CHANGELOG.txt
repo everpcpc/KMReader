@@ -1,15 +1,15 @@
 Reader Improvements
-- Added cover-style page transitions across DIVINA on iPhone, iPad, Mac, and Apple TV, plus new cover transitions for EPUB on iPhone, iPad, and Mac.
-- Animated GIF and WebP pages now start faster, zoom with the page, and stay stable when you navigate, scroll, or reopen a page.
-- Improved dual-page spread handling, adjacent-page preloading, and cover-turn reliability for smoother reading.
-- Improved Komga media error messages so unsupported files and analysis issues are easier to understand inside the app.
+- DIVINA now offers cover-style page transitions on iPhone, iPad, Mac, and Apple TV, and EPUB adds cover transitions on iPhone, iPad, and Mac.
+- Animated GIF and WebP pages now start immediately, stay smooth while you zoom or scroll, and behave more reliably when you reopen or revisit pages.
+- Rebuilt DIVINA scroll reading for steadier page tracking, better rotation handling, improved wide-page and dual-page spreads, and smoother cover turns.
+- Komga media error messages are clearer in the app, so unsupported files and analysis issues are easier to understand.
 
 Offline and Library Workflows
-- EPUB downloads are now saved as a single file and extracted locally, making offline downloads faster and more reliable.
-- Improved offline sync and iOS background downloads so long-running downloads and reconnects behave more predictably.
+- EPUB downloads are now saved as a single file and extracted locally, making offline reading faster and more reliable.
+- Offline sync and iOS background downloads now behave more predictably during reconnects and long-running transfers.
 - Added an option to blur unread book and series covers to help avoid spoiler-heavy artwork.
 
 Management and Platform Polish
 - Added in-app media management tools for media analysis, missing posters, duplicate files, duplicate pages, and page-hash matches.
-- Moved macOS reader actions into the system menu bar for quicker keyboard-first control.
-- Refined reader and browse behavior across page sync, thumbnail presentation, and other everyday interactions.
+- macOS reader actions now live in the system menu bar for quicker keyboard-first control.
+- Reader and browse interactions feel more consistent across scrolling, page loading, and everyday navigation.
