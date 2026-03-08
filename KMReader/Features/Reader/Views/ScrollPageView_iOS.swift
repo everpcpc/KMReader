@@ -11,7 +11,6 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onScrollActivityChange: ((Bool) -> Void)?
 
     private var shouldDisableScrollInteraction: Bool {
       #if os(tvOS)
@@ -300,9 +299,6 @@
         collectionView.layoutIfNeeded()
 
         if animated {
-          if !session.isProgrammaticScrolling {
-            parent.onScrollActivityChange?(true)
-          }
           session.beginProgrammaticScroll(to: item)
         } else {
           session.clearPendingProgrammaticCommit()
@@ -531,9 +527,7 @@
       private func finishScrollInteractionIfNeeded() {
         guard let collectionView else { return }
 
-        if session.endUserInteraction() {
-          parent.onScrollActivityChange?(false)
-        }
+        _ = session.endUserInteraction()
 
         session.clearPendingProgrammaticCommit()
         let committedDuringSnapshot = applyPendingSnapshotIfNeeded(in: collectionView)
@@ -591,9 +585,7 @@
       }
 
       func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        if session.beginUserInteraction() {
-          parent.onScrollActivityChange?(true)
-        }
+        _ = session.beginUserInteraction()
       }
 
       func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -615,9 +607,7 @@
 
       func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         guard let collectionView else { return }
-        if session.endProgrammaticScroll() {
-          parent.onScrollActivityChange?(false)
-        }
+        _ = session.endProgrammaticScroll()
         let committedDuringSnapshot = applyPendingSnapshotIfNeeded(in: collectionView)
         if !commitPendingProgrammaticItemIfNeeded(in: collectionView) {
           if !committedDuringSnapshot {

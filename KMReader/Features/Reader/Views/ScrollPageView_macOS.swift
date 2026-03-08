@@ -11,7 +11,6 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onScrollActivityChange: ((Bool) -> Void)?
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -355,9 +354,6 @@
         )
 
         if animated {
-          if !session.isProgrammaticScrolling {
-            parent.onScrollActivityChange?(true)
-          }
           session.beginProgrammaticScroll(to: item)
           NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.24
@@ -366,9 +362,7 @@
             scrollView.reflectScrolledClipView(scrollView.contentView)
           } completionHandler: {
             Task { @MainActor in
-              if self.session.endProgrammaticScroll() {
-                self.parent.onScrollActivityChange?(false)
-              }
+              _ = self.session.endProgrammaticScroll()
               let committedDuringSnapshot = self.applyPendingSnapshotIfNeeded(
                 in: scrollView,
                 collectionView: collectionView
@@ -576,17 +570,13 @@
 
       @objc private func handleBoundsDidChange(_ notification: Notification) {
         guard !isAdjustingBounds, !session.isProgrammaticScrolling else { return }
-        if session.beginUserInteraction() {
-          parent.onScrollActivityChange?(true)
-        }
+        _ = session.beginUserInteraction()
       }
 
       @objc private func handleDidEndLiveScroll(_ notification: Notification) {
         guard let scrollView, let collectionView else { return }
 
-        if session.endUserInteraction() {
-          parent.onScrollActivityChange?(false)
-        }
+        _ = session.endUserInteraction()
 
         session.clearPendingProgrammaticCommit()
         let committedDuringSnapshot = applyPendingSnapshotIfNeeded(

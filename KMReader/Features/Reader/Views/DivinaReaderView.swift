@@ -589,8 +589,7 @@ struct DivinaReaderView: View {
                 renderConfig: renderConfig,
                 viewModel: viewModel,
                 readListContext: readListContext,
-                onDismiss: { closeReader() },
-                onScrollActivityChange: { _ in }
+                onDismiss: { closeReader() }
               )
             #endif
           } else {
@@ -689,8 +688,7 @@ struct DivinaReaderView: View {
       renderConfig: renderConfig,
       viewModel: viewModel,
       readListContext: readListContext,
-      onDismiss: { closeReader() },
-      onScrollActivityChange: { _ in }
+      onDismiss: { closeReader() }
     )
   }
 
