@@ -3,7 +3,7 @@
 //
 //
 
-@preconcurrency import CoreSpotlight
+import CoreSpotlight
 import Foundation
 
 #if os(iOS) || os(macOS)

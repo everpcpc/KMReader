@@ -224,7 +224,6 @@
             displayMode: .fit,
             targetHeight: targetHeight
           )
-          pageViews[index].updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
         }
       }
 

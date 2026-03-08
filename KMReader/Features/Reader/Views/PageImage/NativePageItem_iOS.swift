@@ -78,7 +78,6 @@
           #endif
           imageView.image = pageSourceImage
         }
-        updateAnimatedPresentationState(isActive: currentData?.animatedSourceFileURL != nil)
         updateAnimatedPlayback(sourceFileURL: currentData?.animatedSourceFileURL)
         #if !os(tvOS)
           if enableLiveText {
@@ -174,9 +173,9 @@
       #endif
 
       imageView.image = pageSourceImage
-      updateAnimatedPresentationState(isActive: data.animatedSourceFileURL != nil)
 
       updateHeightConstraint(targetHeight)
+      updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
 
       if pageSourceImage != nil, showPageNumber {
         if let displayedPageNumber = viewModel.displayPageNumber(for: data.pageID) {
