@@ -53,6 +53,14 @@ struct DivinaPreferencesView: View {
     shouldShowPagedSpecificSettings && pageTransitionStyle != .pageCurl
   }
 
+  private var tapPageTransitionDurationText: String {
+    if tapPageTransitionDuration <= 0 {
+      return String(localized: "Page Turn Animation Off")
+    }
+
+    return String(format: "%.1fs", tapPageTransitionDuration)
+  }
+
   private var shouldShowWebtoonTapNavigationSettings: Bool {
     guard !tapZoneMode.isDisabled else { return false }
     switch tapZoneMode {
@@ -320,6 +328,27 @@ struct DivinaPreferencesView: View {
               .font(.caption)
               .foregroundColor(.secondary)
           }
+
+          #if os(iOS) || os(macOS)
+            if shouldShowTapTransitionDuration {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Page Turn Animation Duration")
+                  Spacer()
+                  Text(tapPageTransitionDurationText)
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $tapPageTransitionDuration,
+                  in: 0...1,
+                  step: 0.1
+                )
+                Text("Animation duration for tap-based page turns. Set to 0 to turn off page turn animation.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+          #endif
         }
 
         #if os(macOS)
@@ -388,29 +417,6 @@ struct DivinaPreferencesView: View {
               Text("Size of tap zones for page navigation")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            }
-
-            if shouldShowTapTransitionDuration {
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text("Tap Page Scroll Duration")
-                  Spacer()
-                  Text(
-                    tapPageTransitionDuration == 0
-                      ? String(localized: "None")
-                      : String(format: "%.1fs", tapPageTransitionDuration)
-                  )
-                  .foregroundColor(.secondary)
-                }
-                Slider(
-                  value: $tapPageTransitionDuration,
-                  in: 0...1,
-                  step: 0.1
-                )
-                Text("Animation duration when tap to turn pages")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
             }
 
             if shouldShowWebtoonTapNavigationSettings {

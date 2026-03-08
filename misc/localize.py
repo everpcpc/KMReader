@@ -9,6 +9,8 @@ from pathlib import Path
 
 from localize_sort import sort_entries, sort_keys
 
+REQUIRED_PLATFORMS = ("ios", "macos", "tvos")
+
 
 def eprint(message: str) -> None:
     print(message, file=sys.stderr)
@@ -29,18 +31,75 @@ def iter_stringsdata_files(root: Path) -> list[Path]:
     return list(root.rglob("*.stringsdata"))
 
 
-def select_latest_stringsdata_dir(stringsdata_files: list[Path]) -> Path | None:
-    latest_file = None
-    latest_mtime = -1.0
+def iter_target_stringsdata_files(variant_dir: Path, target_name: str = "KMReader") -> list[Path]:
+    target_root = variant_dir / f"{target_name}.build" / "Objects-normal"
+    if not target_root.is_dir():
+        return []
+    return iter_stringsdata_files(target_root)
+
+
+def iter_explicit_stringsdata_files(root: Path, target_name: str = "KMReader") -> list[Path]:
+    target_variant_files = iter_target_stringsdata_files(root, target_name)
+    if target_variant_files:
+        return target_variant_files
+
+    if root.name == f"{target_name}.build":
+        target_root = root / "Objects-normal"
+        if target_root.is_dir():
+            return iter_stringsdata_files(target_root)
+
+    return iter_stringsdata_files(root)
+
+
+def platform_key_for_variant(variant_name: str) -> str:
+    lowered = variant_name.lower()
+    if "iphone" in lowered or lowered.endswith("ios"):
+        return "ios"
+    if "appletv" in lowered or "tvos" in lowered:
+        return "tvos"
+    if lowered in {"debug", "release", "profile"}:
+        return "macos"
+    if "macos" in lowered:
+        return "macos"
+    return lowered
+
+
+def variant_dir_for_stringsdata(path: Path, stringsdata_root: Path) -> Path | None:
+    try:
+        relative = path.relative_to(stringsdata_root)
+    except ValueError:
+        return None
+
+    if len(relative.parts) < 5 or relative.parts[1] != "KMReader.build":
+        return None
+
+    return stringsdata_root / relative.parts[0]
+
+
+def select_latest_stringsdata_dirs(
+    stringsdata_files: list[Path], stringsdata_root: Path
+) -> dict[str, Path]:
+    latest_variant_by_platform: dict[str, tuple[float, Path]] = {}
+
     for path in stringsdata_files:
+        variant_dir = variant_dir_for_stringsdata(path, stringsdata_root)
+        if variant_dir is None:
+            continue
+
         try:
             mtime = path.stat().st_mtime
         except OSError:
             continue
-        if mtime > latest_mtime:
-            latest_mtime = mtime
-            latest_file = path
-    return latest_file.parent if latest_file else None
+
+        platform = platform_key_for_variant(variant_dir.name)
+        current = latest_variant_by_platform.get(platform)
+        if current is None or mtime > current[0]:
+            latest_variant_by_platform[platform] = (mtime, variant_dir)
+
+    return {
+        platform: variant_dir
+        for platform, (_, variant_dir) in latest_variant_by_platform.items()
+    }
 
 
 def load_stringsdata_entries(paths: list[Path]) -> dict:
@@ -134,7 +193,8 @@ def main() -> int:
         if not stringsdata_dir.is_dir():
             eprint(f"Error: LOCALIZE_STRINGS_DIR is not a directory: {stringsdata_dir}")
             return 1
-        stringsdata_files = iter_stringsdata_files(stringsdata_dir)
+        stringsdata_dirs = [stringsdata_dir]
+        stringsdata_files = iter_explicit_stringsdata_files(stringsdata_dir)
     else:
         if not stringsdata_root.exists():
             eprint(f"Error: no KMReader build intermediates found under {derived_dir}")
@@ -152,20 +212,34 @@ def main() -> int:
         return 1
 
     if explicit_strings_dir:
-        stringsdata_dir = Path(explicit_strings_dir)
+        stringsdata_files = iter_explicit_stringsdata_files(stringsdata_dirs[0])
     else:
-        stringsdata_dir = select_latest_stringsdata_dir(stringsdata_files)
-        if not stringsdata_dir:
-            eprint("Error: unable to select latest stringsdata directory")
+        selected_dirs = select_latest_stringsdata_dirs(stringsdata_files, stringsdata_root)
+        missing_platforms = [
+            platform for platform in REQUIRED_PLATFORMS if platform not in selected_dirs
+        ]
+        if missing_platforms:
+            eprint(
+                "Error: missing latest stringsdata for platforms: "
+                + ", ".join(missing_platforms)
+            )
+            eprint("Hint: run `make build` so iOS, macOS, and tvOS all emit stringsdata.")
             return 1
-        stringsdata_files = iter_stringsdata_files(stringsdata_dir)
+
+        stringsdata_dirs = [selected_dirs[platform] for platform in REQUIRED_PLATFORMS]
+        stringsdata_files = []
+        for directory in stringsdata_dirs:
+            stringsdata_files.extend(iter_target_stringsdata_files(directory))
 
     if not stringsdata_files:
-        eprint(f"Error: no .stringsdata files found in {stringsdata_dir}")
+        dirs_text = ", ".join(str(path) for path in stringsdata_dirs)
+        eprint(f"Error: no .stringsdata files found in {dirs_text}")
         eprint("Hint: run a build for KMReader target, then rerun make localize.")
         return 1
 
-    print(f"Using stringsdata from {stringsdata_dir}")
+    print("Using stringsdata from:")
+    for directory in stringsdata_dirs:
+        print(f"  - {directory}")
 
     try:
         merged = load_stringsdata_entries(stringsdata_files)
@@ -188,7 +262,6 @@ def main() -> int:
             str(xcstrings_path),
             "--stringsdata",
             str(tmp_path),
-            "--skip-marking-strings-stale",
         ]
         code = os.spawnvp(os.P_WAIT, args[0], args)
         if code == 0:

@@ -7,13 +7,13 @@ import Foundation
 
 enum PageTransitionStyle: String, CaseIterable, Hashable {
   case scroll = "scroll"
-  case pageCurl = "pageCurl"
   case cover = "cover"
+  case pageCurl = "pageCurl"
 
   /// Platform-specific available cases
   static var availableCases: [PageTransitionStyle] {
     #if os(iOS)
-      return allCases
+      return [.scroll, .cover, .pageCurl]
     #else
       return [.scroll, .cover]
     #endif
@@ -22,16 +22,16 @@ enum PageTransitionStyle: String, CaseIterable, Hashable {
   var displayName: String {
     switch self {
     case .scroll: return String(localized: "reader.page_transition.scroll")
-    case .pageCurl: return String(localized: "reader.page_transition.page_curl")
     case .cover: return String(localized: "reader.page_transition.cover")
+    case .pageCurl: return String(localized: "reader.page_transition.page_curl")
     }
   }
 
   var description: String {
     switch self {
     case .scroll: return String(localized: "reader.page_transition.scroll.description")
-    case .pageCurl: return String(localized: "reader.page_transition.page_curl.description")
     case .cover: return String(localized: "reader.page_transition.cover.description")
+    case .pageCurl: return String(localized: "reader.page_transition.page_curl.description")
     }
   }
 }
