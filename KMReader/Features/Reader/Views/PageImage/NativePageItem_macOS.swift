@@ -289,8 +289,8 @@
       layoutSubtreeIfNeeded()
       if let sourceFileURL {
         animatedInlineContainer.isHidden = false
-        animatedInlineContainer.layer?.contents = displayedCGImage()
-        updateAnimatedPresentationState(isActive: true)
+        animatedInlineContainer.layer?.contents = nil
+        updateAnimatedPresentationState()
         if let layer = animatedInlineContainer.layer {
           animatedImageController.start(
             sourceFileURL: sourceFileURL,
@@ -301,7 +301,7 @@
         animatedImageController.stop()
         animatedInlineContainer.layer?.contents = nil
         animatedInlineContainer.isHidden = true
-        updateAnimatedPresentationState(isActive: false)
+        updateAnimatedPresentationState()
       }
     }
 
@@ -309,13 +309,9 @@
       currentData?.animatedSourceFileURL != nil && !animatedInlineContainer.isHidden
     }
 
-    private func displayedCGImage() -> CGImage? {
-      imageView.image?.cgImage(forProposedRect: nil, context: nil, hints: nil)
-    }
-
-    private func updateAnimatedPresentationState(isActive: Bool) {
-      imageView.isHidden = isActive
-      imageView.layer?.shadowOpacity = (isActive || imageView.image == nil) ? 0 : 0.25
+    private func updateAnimatedPresentationState() {
+      imageView.isHidden = false
+      imageView.layer?.shadowOpacity = imageView.image == nil ? 0 : 0.25
       updateSepiaOverlay()
     }
 

@@ -47,7 +47,6 @@ class ReaderViewModel {
   private var animatedPageStates: [ReaderPageID: Bool] = [:]
   /// Source file URL for animated pages keyed by reader page ID.
   private var animatedPageSourceFileURLs: [ReaderPageID: URL] = [:]
-  private var animatedPlaybackFocusedPageIDs: Set<ReaderPageID> = []
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
@@ -612,7 +611,6 @@ class ReaderViewModel {
     segmentPageRangeByBookId.removeAll()
     animatedPageStates.removeAll()
     animatedPageSourceFileURLs.removeAll()
-    animatedPlaybackFocusedPageIDs.removeAll()
     liveTextActivePageIndex = nil
     currentPageID = nil
     currentViewItemID = nil
@@ -1456,27 +1454,6 @@ class ReaderViewModel {
     }
   }
 
-  func focusAnimatedPlayback(on pageID: ReaderPageID?) {
-    if let pageID {
-      focusAnimatedPlayback(on: [pageID])
-    } else {
-      focusAnimatedPlayback(on: [])
-    }
-  }
-
-  private func focusAnimatedPlayback(on pageIDs: Set<ReaderPageID>) {
-    guard animatedPlaybackFocusedPageIDs != pageIDs else { return }
-    animatedPlaybackFocusedPageIDs = pageIDs
-  }
-
-  func focusAnimatedPlayback(for viewItem: ReaderViewItem?) {
-    guard let viewItem, !viewItem.isEnd else {
-      focusAnimatedPlayback(on: nil)
-      return
-    }
-    focusAnimatedPlayback(on: Set(viewItem.pageIDs))
-  }
-
   func animatedSourceFileURL(for pageID: ReaderPageID) -> URL? {
     guard animatedPageStates[pageID] == true else { return nil }
     guard let fileURL = animatedPageSourceFileURLs[pageID] else { return nil }
@@ -1563,7 +1540,6 @@ class ReaderViewModel {
     preloadedImagesByID.removeAll()
     animatedPageStates.removeAll()
     animatedPageSourceFileURLs.removeAll()
-    animatedPlaybackFocusedPageIDs.removeAll()
     invalidateAllPagePresentations()
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
   }

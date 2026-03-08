@@ -247,11 +247,6 @@
       let requestedPageID = pageID
       animatedInlinePreparationTask = Task { [weak self] in
         guard let self else { return }
-        if let currentViewItem = viewModel.currentViewItem() {
-          viewModel.focusAnimatedPlayback(for: currentViewItem)
-        } else {
-          viewModel.focusAnimatedPlayback(on: requestedPageID)
-        }
         guard !Task.isCancelled else { return }
         guard self.pageID == requestedPageID else { return }
         await viewModel.prepareAnimatedPagePlaybackURL(pageID: requestedPageID)

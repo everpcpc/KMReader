@@ -219,16 +219,8 @@
           splitWidePageMode: currentSplitWidePageMode,
           isPlaybackActive: isPlaybackActive
         )
-        guard playbackData.count == pageViews.count else {
-          currentPageData = playbackData
-          updatePages()
-          return
-        }
-
         currentPageData = playbackData
-        for (index, data) in playbackData.enumerated() {
-          pageViews[index].updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
-        }
+        updatePages()
       }
 
       private func resetMagnification() {
