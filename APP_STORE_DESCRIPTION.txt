@@ -5,9 +5,9 @@ KMReader helps you read, browse, download, and manage your Komga library with a 
 IMPORTANT FEATURES
 
 - Native readers for every format
-DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl (iOS), and cover-style transitions on all platforms.
+DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl (iOS), cover-style transitions on all platforms, and steadier scroll reading.
 EPUB on iOS and macOS with paged, scrolled, or cover layouts, custom fonts, themes, and per-book preferences.
-Animated GIF and WebP pages start immediately, zoom naturally, and stay stable while you move through a book.
+Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when you revisit pages.
 PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality, and clearer offline preparation progress.
 Incognito mode and iOS Live Text support let you read your way.
 
@@ -20,7 +20,7 @@ KMReader UI is localized in English, German, French, Japanese, Korean, Simplifie
 - Offline that actually works
 Download books for offline reading.
 EPUB downloads use a single-file workflow with local extraction for faster, more reliable saves.
-Use manual offline mode controls and more reliable iOS background downloads.
+Use manual offline mode controls and more predictable iOS background downloads.
 Get Live Activities for both active reading sessions and downloads.
 Set per-series policies: Manual, Unread only, Unread + cleanup, or All books.
 Sync progress and offline changes when you reconnect, with safer conflict handling.
@@ -28,7 +28,7 @@ Sync progress and offline changes when you reconnect, with safer conflict handli
 - Multi-server and admin tools
 Save multiple Komga servers and switch instantly.
 Sign in with password or API key, and manage API keys in the app.
-Edit metadata, manage libraries and media (analysis, missing posters, duplicate files and pages), monitor tasks, and view logs.
+Edit metadata, manage libraries and media (analysis, missing posters, duplicate files, duplicate pages, and page-hash matches), monitor tasks, and view logs.
 On macOS, reader actions also live in the system menu bar for faster keyboard-first control.
 
 KMReader targets Komga 1.19.0+ and supports API v1/v2.
