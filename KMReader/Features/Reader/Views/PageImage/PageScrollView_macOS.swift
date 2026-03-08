@@ -203,7 +203,6 @@
             displayMode: parent.displayMode,
             targetHeight: targetHeight
           )
-          pageViews[index].updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
         }
 
         // Match reading direction

@@ -70,6 +70,7 @@ struct MainApp: App {
 
   init() {
     PlatformHelper.setup()
+    AnimatedImageSupport.configureCoders()
     _authViewModel = State(initialValue: AuthViewModel())
   }
 

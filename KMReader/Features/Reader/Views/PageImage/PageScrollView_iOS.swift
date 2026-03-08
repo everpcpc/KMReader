@@ -165,7 +165,6 @@
             displayMode: parent.displayMode,
             targetHeight: targetHeight
           )
-          pageViews[index].updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
         }
 
         contentStack?.semanticContentAttribute = parent.readingDirection == .rtl ? .forceRightToLeft : .forceLeftToRight
