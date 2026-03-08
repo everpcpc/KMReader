@@ -115,6 +115,12 @@ class ReaderViewModel {
     return isolatePagesByBookId[currentReaderPage.bookId]?.contains(isolatePosition.localIndex) == true
   }
 
+  /// Whether the current page is a wide (non-portrait) image, which cannot be isolated.
+  var isCurrentPageWide: Bool {
+    guard let currentReaderPage else { return false }
+    return !currentReaderPage.page.isPortrait
+  }
+
   convenience init() {
     self.init(
       isolateCoverPage: AppConfig.isolateCoverPage,
@@ -1630,6 +1636,8 @@ class ReaderViewModel {
 
   func toggleIsolatePage(_ pageID: ReaderPageID) {
     guard let isolatePosition = isolatePosition(for: pageID) else { return }
+    // Wide pages always fill both slots and cannot be isolated
+    if let page = readerPage(for: pageID)?.page, !page.isPortrait { return }
     toggleIsolatePage(at: isolatePosition)
   }
 
@@ -1816,12 +1824,11 @@ private func generateViewItems(
     while index < segmentEndExclusive {
       if shouldForceDualPairs {
         let currentPage = readerPages[index].page
+        let isCoverPage = !noCover && index == segmentStartIndex
+        let isWideCoverPage = isCoverPage && !currentPage.isPortrait
         let isWidePageEligibleForSplit =
           !currentPage.isPortrait
-          && splitWidePages
-          && !isolatePages.contains(index)
-          && (noCover || index != segmentStartIndex)
-          && index != segmentEndExclusive - 1
+          && (noCover || isWideCoverPage || index != segmentStartIndex)
 
         if isWidePageEligibleForSplit {
           if combineSplitWidePagePairInDualMode {
@@ -1834,9 +1841,11 @@ private func generateViewItems(
           continue
         }
 
+        let nextPage = index + 1 < segmentEndExclusive ? readerPages[index + 1].page : nil
         let shouldShowSingle =
-          (!noCover && index == segmentStartIndex) || index == segmentEndExclusive - 1
+          (isCoverPage && currentPage.isPortrait) || index == segmentEndExclusive - 1
           || isolatePages.contains(index) || isolatePages.contains(index + 1)
+          || nextPage?.isPortrait == false  // next page is wide → keep it for its own split
         if shouldShowSingle {
           items.append(.page(id: readerPages[index].id))
           index += 1
@@ -1853,12 +1862,16 @@ private func generateViewItems(
       var useSinglePage = false
       var shouldSplitPage = false
 
-      // Check if wide page should be split (only if not already isolated or cover)
+      let isCoverPage = !noCover && index == segmentStartIndex
+      let isWideCoverPage = isCoverPage && !currentPage.isPortrait
+
+      // In dual-page mode (allowDualPairs) wide pages always fill both slots.
+      // In single-page mode (splitWidePages controls) wide pages split only when enabled.
+      // Wide cover pages bypass cover isolation in both cases.
       let isWidePageEligibleForSplit =
         !currentPage.isPortrait
-        && splitWidePages
-        && !isolatePages.contains(index)
-        && (noCover || index != segmentStartIndex)
+        && (splitWidePages || allowDualPairs)
+        && (noCover || isWideCoverPage || index != segmentStartIndex)
 
       if isWidePageEligibleForSplit {
         shouldSplitPage = true
@@ -1868,13 +1881,11 @@ private func generateViewItems(
       if !currentPage.isPortrait && !shouldSplitPage {
         useSinglePage = true
       }
-      if !noCover && index == segmentStartIndex {
+      if isCoverPage && !isWideCoverPage {
         useSinglePage = true
-        shouldSplitPage = false
       }
       if isolatePages.contains(index) {
         useSinglePage = true
-        shouldSplitPage = false
       }
       if index == segmentEndExclusive - 1 {
         useSinglePage = true

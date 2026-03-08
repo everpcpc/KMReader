@@ -417,7 +417,7 @@ struct DivinaControlsOverlayView: View {
       )
     }
 
-    if isCurrentPageValid {
+    if isCurrentPageValid && !viewModel.isCurrentPageWide {
       if viewModel.isCurrentPageIsolated, let currentPageID {
         Button {
           viewModel.toggleIsolatePage(currentPageID)
