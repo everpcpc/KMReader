@@ -162,12 +162,13 @@ struct CoverPageView: View {
   private func pageView(for item: ReaderViewItem, isActive: Bool = false) -> some View {
     Group {
       if case .end(let id) = item {
-        EndPageView(
+        NativeEndPageHostView(
           previousBook: viewModel.currentBook(forSegmentBookId: id.bookId),
           nextBook: viewModel.nextBook(forSegmentBookId: id.bookId),
           readListContext: readListContext,
+          readingDirection: readingDirection,
+          renderConfig: renderConfig,
           onDismiss: onDismiss,
-          readingDirection: readingDirection
         )
       } else {
         ReaderViewItemImageView(
