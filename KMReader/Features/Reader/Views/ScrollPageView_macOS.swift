@@ -7,10 +7,33 @@
     let viewportSize: CGSize
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let navigationAnimationDuration: TimeInterval
     let renderConfig: ReaderRenderConfig
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+
+    init(
+      mode: PageViewMode,
+      viewportSize: CGSize,
+      readingDirection: ReadingDirection,
+      splitWidePageMode: SplitWidePageMode,
+      navigationAnimationDuration: TimeInterval = 0.3,
+      renderConfig: ReaderRenderConfig,
+      viewModel: ReaderViewModel,
+      readListContext: ReaderReadListContext?,
+      onDismiss: @escaping () -> Void
+    ) {
+      self.mode = mode
+      self.viewportSize = viewportSize
+      self.readingDirection = readingDirection
+      self.splitWidePageMode = splitWidePageMode
+      self.navigationAnimationDuration = navigationAnimationDuration
+      self.renderConfig = renderConfig
+      self.viewModel = viewModel
+      self.readListContext = readListContext
+      self.onDismiss = onDismiss
+    }
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -45,6 +68,9 @@
       scrollView.backgroundColor = NSColor(renderConfig.readerBackground.color)
       scrollView.drawsBackground = true
       scrollView.contentView.postsBoundsChangedNotifications = true
+
+      collectionView.frame = CGRect(origin: .zero, size: scrollView.contentView.bounds.size)
+      collectionView.autoresizingMask = [.width, .height]
 
       context.coordinator.scrollView = scrollView
       context.coordinator.collectionView = collectionView
@@ -95,13 +121,15 @@
       weak var scrollView: NSScrollView?
       weak var collectionView: NSCollectionView?
 
-      private let session = NativePagedReaderSession()
+      private let engine = ScrollReaderEngine()
       private let pagePresentationCoordinator = NativePagedPagePresentationCoordinator()
       private var isAdjustingBounds = false
       private var lastViewportSize: CGSize = .zero
       private var observersInstalled = false
       private var lastRenderInputs: RenderInputs?
       private var deferredViewModelCommitTask: Task<Void, Never>?
+      private var programmaticScrollToken: Int = 0
+      private var lastObservedClipBounds: CGRect = .zero
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -132,7 +160,7 @@
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
         pagePresentationCoordinator.teardown()
-        session.teardown()
+        engine.teardown()
       }
 
       func update(
@@ -145,28 +173,48 @@
         self.collectionView = collectionView
         installObservers()
         pagePresentationCoordinator.update(viewModel: parent.viewModel)
-        let displayedItems = parent.mode.displayOrderedItems(parent.viewModel.viewItems)
 
+        let displayedItems = parent.mode.displayOrderedItems(parent.viewModel.viewItems)
+        let anchorItem = currentAnchorItem(in: scrollView, collectionView: collectionView)
         let sizeChanged = updateLayoutIfNeeded(for: collectionView)
         let renderInputsChanged = updateRenderInputsIfNeeded()
+        var frameChanged = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
         var refreshedVisibleContent = false
 
-        if session.installInitialSnapshotIfNeeded(displayedItems) {
+        if engine.installInitialItemsIfNeeded(displayedItems) {
           collectionView.reloadData()
           collectionView.layoutSubtreeIfNeeded()
+          frameChanged =
+            synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
+            || frameChanged
           refreshedVisibleContent = synchronizeInitialPositionIfPossible(
             in: scrollView,
             collectionView: collectionView
           )
-        } else if displayedItems != session.renderedItems {
-          handleViewItemsChange(displayedItems, in: scrollView, collectionView: collectionView)
+        } else if displayedItems != engine.renderedItems {
+          if engine.isInteractionActive {
+            engine.queueRenderedItems(displayedItems, anchor: anchorItem)
+          } else {
+            applyRenderedItems(
+              displayedItems,
+              anchor: anchorItem,
+              commitAfterRestore: parent.viewModel.navigationTarget == nil,
+              in: scrollView,
+              collectionView: collectionView
+            )
+          }
           refreshedVisibleContent = true
         }
 
-        if session.hasSyncedInitialPosition, sizeChanged, let anchor = currentAnchorItem(in: collectionView) {
-          scrollToItem(anchor, animated: false, in: scrollView, collectionView: collectionView)
-          refreshVisibleItems(in: collectionView)
-          refreshedVisibleContent = true
+        if engine.hasSyncedInitialPosition, sizeChanged || frameChanged, !refreshedVisibleContent {
+          if let anchorItem {
+            scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
+            refreshVisibleItems(in: collectionView)
+            if parent.viewModel.navigationTarget == nil {
+              commitItemIfNeeded(anchorItem, in: collectionView)
+            }
+            refreshedVisibleContent = true
+          }
         }
 
         if let navigationTarget = parent.viewModel.navigationTarget {
@@ -176,6 +224,7 @@
         }
 
         pagePresentationCoordinator.flushIfPossible()
+        lastObservedClipBounds = scrollView.contentView.bounds
       }
 
       private func updateRenderInputsIfNeeded() -> Bool {
@@ -214,12 +263,41 @@
         return collectionView.bounds.size
       }
 
+      private func synchronizeCollectionViewFrame(
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) -> Bool {
+        let viewportSize = resolvedViewportSize(for: collectionView)
+        guard viewportSize.width > 0, viewportSize.height > 0 else { return false }
+
+        let contentSize =
+          collectionView.collectionViewLayout?.collectionViewContentSize
+          ?? viewportSize
+        let desiredSize = CGSize(
+          width: max(
+            parent.mode.isVertical ? viewportSize.width : contentSize.width,
+            scrollView.contentView.bounds.width
+          ),
+          height: max(
+            parent.mode.isVertical ? contentSize.height : viewportSize.height,
+            scrollView.contentView.bounds.height
+          )
+        )
+        guard collectionView.frame.size != desiredSize else { return false }
+
+        collectionView.setFrameSize(desiredSize)
+        return true
+      }
+
       private func canApplyInitialPosition(
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
       ) -> Bool {
-        let boundsSize = collectionView.bounds.size
-        return scrollView.window != nil && boundsSize.width > 0 && boundsSize.height > 0
+        let viewportSize = resolvedViewportSize(for: collectionView)
+        let clipBounds = scrollView.contentView.bounds.size
+        return scrollView.window != nil
+          && max(viewportSize.width, clipBounds.width) > 0
+          && max(viewportSize.height, clipBounds.height) > 0
       }
 
       @discardableResult
@@ -228,82 +306,84 @@
         collectionView: NSCollectionView
       ) -> Bool {
         guard
-          let currentItem = session.prepareInitialPositionIfNeeded(
+          let currentItem = engine.prepareInitialPosition(
             currentItem: parent.viewModel.currentViewItem()
           )
         else {
           return false
         }
         guard canApplyInitialPosition(in: scrollView, collectionView: collectionView) else { return false }
+        _ = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
 
         scrollToItem(currentItem, animated: false, in: scrollView, collectionView: collectionView)
-        guard let committedItem = session.completeInitialPositionIfNeeded() else { return false }
+        guard let committedItem = engine.completeInitialPosition() else { return false }
         preloadVisiblePages(for: committedItem)
         refreshVisibleItems(in: collectionView)
-        scheduleViewModelCommit(for: committedItem)
+        if parent.viewModel.navigationTarget == nil {
+          scheduleViewModelCommit(for: committedItem)
+        }
+        Task { @MainActor [weak self] in
+          guard let self, self.engine.committedItem == committedItem else { return }
+          await self.parent.viewModel.preloadPages(bypassThrottle: true)
+        }
         return true
       }
 
       func handleCollectionViewLayout() {
         guard let scrollView, let collectionView else { return }
+        _ = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
         if synchronizeInitialPositionIfPossible(in: scrollView, collectionView: collectionView) {
           pagePresentationCoordinator.flushIfPossible()
         }
       }
 
-      private func handleViewItemsChange(
-        _ newItems: [ReaderViewItem],
+      private func applyRenderedItems(
+        _ items: [ReaderViewItem],
+        anchor: ReaderViewItem?,
+        commitAfterRestore: Bool,
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
       ) {
-        guard
-          let plan = session.handleViewItemsChange(
-            newItems,
-            anchor: currentAnchorItem(in: collectionView)
-          )
-        else {
-          return
+        engine.replaceRenderedItems(items)
+        collectionView.reloadData()
+        collectionView.layoutSubtreeIfNeeded()
+        _ = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
+
+        if let anchor = engine.resolveItem(anchor) {
+          scrollToItem(anchor, animated: false, in: scrollView, collectionView: collectionView)
         }
 
-        applySnapshotPlan(plan, in: scrollView, collectionView: collectionView)
+        refreshVisibleItems(in: collectionView)
+        if commitAfterRestore {
+          commitRestoredItemIfNeeded(
+            anchor: anchor,
+            in: scrollView,
+            collectionView: collectionView
+          )
+        }
       }
 
       @discardableResult
-      private func applyPendingSnapshotIfNeeded(
+      private func applyQueuedRenderedItemsIfNeeded(
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
       ) -> Bool {
         guard
-          let plan = session.applyPendingSnapshotIfNeeded(
-            anchorFallback: currentAnchorItem(in: collectionView)
+          let update = engine.consumeQueuedRenderedItems(
+            anchorFallback: currentAnchorItem(in: scrollView, collectionView: collectionView)
           )
         else {
           return false
         }
 
-        applySnapshotPlan(plan, in: scrollView, collectionView: collectionView)
-        return plan.commitAnchor && plan.anchor != nil
-      }
-
-      private func applySnapshotPlan(
-        _ plan: NativePagedReaderSession.SnapshotPlan,
-        in scrollView: NSScrollView,
-        collectionView: NSCollectionView
-      ) {
-        collectionView.reloadData()
-        collectionView.layoutSubtreeIfNeeded()
-
-        guard let anchor = plan.anchor else {
-          refreshVisibleItems(in: collectionView)
-          return
-        }
-
-        scrollToItem(anchor, animated: false, in: scrollView, collectionView: collectionView)
-        if plan.commitAnchor {
-          commitItemIfNeeded(anchor, in: collectionView)
-        } else {
-          refreshVisibleItems(in: collectionView)
-        }
+        applyRenderedItems(
+          update.items,
+          anchor: update.anchor,
+          commitAfterRestore: parent.viewModel.navigationTarget == nil,
+          in: scrollView,
+          collectionView: collectionView
+        )
+        return true
       }
 
       private func handleNavigationChange(
@@ -311,27 +391,30 @@
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
       ) {
-        guard let targetItem = parent.viewModel.resolvedViewItem(for: navigationTarget) else {
+        guard let resolvedTarget = parent.viewModel.resolvedViewItem(for: navigationTarget),
+          let targetItem = engine.resolveItem(resolvedTarget)
+        else {
           parent.viewModel.clearNavigationTarget()
           return
         }
 
-        switch session.navigationPlan(
-          for: targetItem,
-          centeredItem: centeredItem(in: collectionView),
-          latestViewItems: parent.mode.displayOrderedItems(parent.viewModel.viewItems)
-        ) {
-        case .none:
+        guard engine.hasSyncedInitialPosition else {
+          engine.setPendingInitialItem(targetItem)
           return
-        case .refreshVisible:
-          refreshVisibleItems(in: collectionView)
-        case .commit(let item):
-          commitItemIfNeeded(item, in: collectionView)
-        case .scroll(let item):
-          scrollToItem(item, animated: true, in: scrollView, collectionView: collectionView)
-        case .applySnapshot(let plan):
-          applySnapshotPlan(plan, in: scrollView, collectionView: collectionView)
         }
+
+        if engine.isProgrammaticScrolling && engine.isPendingProgrammaticCommit(targetItem) {
+          refreshVisibleItems(in: collectionView)
+          return
+        }
+
+        if centeredItem(in: scrollView, collectionView: collectionView) == targetItem {
+          engine.clearPendingProgrammaticCommit()
+          commitItemIfNeeded(targetItem, in: collectionView)
+          return
+        }
+
+        scrollToItem(targetItem, animated: true, in: scrollView, collectionView: collectionView)
       }
 
       private func scrollToItem(
@@ -340,7 +423,7 @@
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
       ) {
-        guard let index = session.renderedItems.firstIndex(of: item) else { return }
+        guard let index = engine.renderedItems.firstIndex(of: item) else { return }
         let indexPath = IndexPath(item: index, section: 0)
         collectionView.layoutSubtreeIfNeeded()
 
@@ -350,80 +433,148 @@
           return
         }
 
-        let targetOrigin = CGPoint(
-          x: parent.mode.isVertical ? scrollView.contentView.bounds.origin.x : attributes.frame.minX,
-          y: parent.mode.isVertical ? attributes.frame.minY : scrollView.contentView.bounds.origin.y
+        let targetOrigin = clampedContentOrigin(
+          CGPoint(
+            x: parent.mode.isVertical ? scrollView.contentView.bounds.origin.x : attributes.frame.minX,
+            y: parent.mode.isVertical ? attributes.frame.minY : scrollView.contentView.bounds.origin.y
+          ),
+          in: scrollView,
+          collectionView: collectionView
         )
 
-        if animated {
-          session.beginProgrammaticScroll(to: item)
+        if isEquivalentContentOrigin(targetOrigin, to: scrollView.contentView.bounds.origin) {
+          engine.clearPendingProgrammaticCommit()
+          refreshVisibleItems(in: collectionView)
+          if animated {
+            commitItemIfNeeded(item, in: collectionView)
+          }
+          return
+        }
+
+        let shouldAnimate = animated && parent.navigationAnimationDuration > 0
+        programmaticScrollToken &+= 1
+        let token = programmaticScrollToken
+
+        if shouldAnimate {
+          engine.beginProgrammaticScroll(to: item)
           NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.24
+            context.duration = parent.navigationAnimationDuration
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             scrollView.contentView.animator().setBoundsOrigin(targetOrigin)
             scrollView.reflectScrolledClipView(scrollView.contentView)
-          } completionHandler: {
-            Task { @MainActor in
-              _ = self.session.endProgrammaticScroll()
-              let committedDuringSnapshot = self.applyPendingSnapshotIfNeeded(
-                in: scrollView,
-                collectionView: collectionView
-              )
-              if !self.commitPendingProgrammaticItemIfNeeded(in: collectionView) {
-                if !committedDuringSnapshot {
-                  self.commitCenteredItem(in: collectionView)
-                }
-              }
+          } completionHandler: { [weak self] in
+            Task { @MainActor [weak self] in
+              guard let self, token == self.programmaticScrollToken else { return }
+              self.lastObservedClipBounds = scrollView.contentView.bounds
+              self.finishProgrammaticScroll(in: scrollView, collectionView: collectionView)
             }
           }
         } else {
-          session.clearPendingProgrammaticCommit()
+          engine.clearPendingProgrammaticCommit()
           isAdjustingBounds = true
           scrollView.contentView.setBoundsOrigin(targetOrigin)
           scrollView.reflectScrolledClipView(scrollView.contentView)
           isAdjustingBounds = false
+          lastObservedClipBounds = scrollView.contentView.bounds
           collectionView.layoutSubtreeIfNeeded()
           refreshVisibleItems(in: collectionView)
+          if animated {
+            commitItemIfNeeded(item, in: collectionView)
+          }
         }
       }
 
-      private func currentAnchorItem(in collectionView: NSCollectionView) -> ReaderViewItem? {
-        session.currentAnchor(
-          fallbackCentered: centeredItem(in: collectionView),
-          fallbackCurrent: parent.viewModel.currentViewItem()
+      private func clampedContentOrigin(
+        _ proposedOrigin: CGPoint,
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) -> CGPoint {
+        let contentSize =
+          collectionView.collectionViewLayout?.collectionViewContentSize
+          ?? collectionView.bounds.size
+        let maxX = max(0, contentSize.width - scrollView.contentView.bounds.width)
+        let maxY = max(0, contentSize.height - scrollView.contentView.bounds.height)
+
+        return CGPoint(
+          x: min(max(proposedOrigin.x, 0), maxX),
+          y: min(max(proposedOrigin.y, 0), maxY)
         )
       }
 
-      private func centeredItem(in collectionView: NSCollectionView) -> ReaderViewItem? {
-        let visibleItems = collectionView.visibleItems()
-        guard !visibleItems.isEmpty else { return session.committedItem }
-
-        let visibleRect = collectionView.enclosingScrollView?.contentView.bounds ?? collectionView.visibleRect
-        let center = CGPoint(x: visibleRect.midX, y: visibleRect.midY)
-
-        let nearestItem = visibleItems.min { lhs, rhs in
-          distanceFromCenter(of: lhs, to: center) < distanceFromCenter(of: rhs, to: center)
-        }
-
-        guard let nearestItem else { return session.committedItem }
-        let index = nearestItem.representedObject as? Int ?? -1
-        return renderedItem(at: index) ?? session.committedItem
+      private func isEquivalentContentOrigin(_ lhs: CGPoint, to rhs: CGPoint) -> Bool {
+        abs(lhs.x - rhs.x) < 0.5 && abs(lhs.y - rhs.y) < 0.5
       }
 
-      private func distanceFromCenter(of item: NSCollectionViewItem, to center: CGPoint) -> CGFloat {
-        let frame = item.view.frame
+      private func currentAnchorItem(
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) -> ReaderViewItem? {
+        centeredItem(in: scrollView, collectionView: collectionView)
+          ?? parent.viewModel.currentViewItem()
+          ?? engine.committedItem
+      }
+
+      private func centeredItem(
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) -> ReaderViewItem? {
+        let visibleIndexPaths = collectionView.indexPathsForVisibleItems()
+        guard !visibleIndexPaths.isEmpty else { return engine.committedItem }
+
+        let visibleRect = scrollView.contentView.bounds
+        let center = CGPoint(x: visibleRect.midX, y: visibleRect.midY)
+
+        let nearestIndexPath = visibleIndexPaths.min { lhs, rhs in
+          let lhsDistance = distanceFromCenter(of: lhs, to: center, in: collectionView)
+          let rhsDistance = distanceFromCenter(of: rhs, to: center, in: collectionView)
+          return lhsDistance < rhsDistance
+        }
+
+        guard let nearestIndexPath, let item = renderedItem(at: nearestIndexPath.item) else {
+          return engine.committedItem
+        }
+        return item
+      }
+
+      private func distanceFromCenter(
+        of indexPath: IndexPath,
+        to center: CGPoint,
+        in collectionView: NSCollectionView
+      ) -> CGFloat {
+        guard let attributes = collectionView.layoutAttributesForItem(at: indexPath) else {
+          return .greatestFiniteMagnitude
+        }
+        let frame = attributes.frame
         let dx = frame.midX - center.x
         let dy = frame.midY - center.y
         return sqrt(dx * dx + dy * dy)
       }
 
       private func commitCenteredItem(in collectionView: NSCollectionView) {
-        guard let item = centeredItem(in: collectionView) else { return }
+        guard let scrollView,
+          let item = centeredItem(in: scrollView, collectionView: collectionView)
+        else {
+          return
+        }
         commitItemIfNeeded(item, in: collectionView)
       }
 
+      private func commitRestoredItemIfNeeded(
+        anchor: ReaderViewItem?,
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) {
+        if let item = engine.resolveItem(anchor) {
+          commitItemIfNeeded(item, in: collectionView)
+          return
+        }
+        if let item = centeredItem(in: scrollView, collectionView: collectionView) {
+          commitItemIfNeeded(item, in: collectionView)
+        }
+      }
+
       private func commitPendingProgrammaticItemIfNeeded(in collectionView: NSCollectionView) -> Bool {
-        guard let resolvedItem = session.consumePendingProgrammaticCommit() else {
+        guard let resolvedItem = engine.consumePendingProgrammaticCommit() else {
           return false
         }
         commitItemIfNeeded(resolvedItem, in: collectionView)
@@ -431,8 +582,8 @@
       }
 
       private func commitItemIfNeeded(_ item: ReaderViewItem, in collectionView: NSCollectionView) {
-        let previousCommittedItem = session.committedItem
-        session.commit(item)
+        let previousCommittedItem = engine.committedItem
+        engine.commit(item)
         preloadVisiblePages(for: item)
         refreshCommittedPlaybackState(
           from: previousCommittedItem,
@@ -461,6 +612,31 @@
         return !collectionView.visibleItems().isEmpty
       }
 
+      private func finishProgrammaticScroll(
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) {
+        _ = engine.endProgrammaticScroll()
+        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(
+          in: scrollView,
+          collectionView: collectionView
+        )
+        if !commitPendingProgrammaticItemIfNeeded(in: collectionView) {
+          if !appliedQueuedItems, parent.viewModel.navigationTarget == nil {
+            commitCenteredItem(in: collectionView)
+          }
+        }
+      }
+
+      private func snapToNearestItemIfNeeded(
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView,
+        animated: Bool
+      ) {
+        guard let item = centeredItem(in: scrollView, collectionView: collectionView) else { return }
+        scrollToItem(item, animated: animated, in: scrollView, collectionView: collectionView)
+      }
+
       func applyPagePresentationInvalidation(_ invalidation: ReaderPagePresentationInvalidation) {
         guard let collectionView else { return }
 
@@ -473,8 +649,8 @@
       }
 
       private func renderedItem(at index: Int) -> ReaderViewItem? {
-        guard session.renderedItems.indices.contains(index) else { return nil }
-        return session.renderedItems[index]
+        guard engine.renderedItems.indices.contains(index) else { return nil }
+        return engine.renderedItems[index]
       }
 
       private func fallbackItem(
@@ -491,7 +667,11 @@
         return item
       }
 
-      private func configureItem(_ item: NSCollectionViewItem, at index: Int, in collectionView: NSCollectionView) {
+      private func configureItem(
+        _ item: NSCollectionViewItem,
+        at index: Int,
+        in collectionView: NSCollectionView
+      ) {
         guard let viewItem = renderedItem(at: index) else { return }
         item.representedObject = index
 
@@ -518,7 +698,7 @@
           renderConfig: parent.renderConfig,
           readingDirection: parent.readingDirection,
           splitWidePageMode: parent.splitWidePageMode,
-          isPlaybackActive: viewItem == session.committedItem
+          isPlaybackActive: viewItem == engine.committedItem
         )
       }
 
@@ -550,7 +730,7 @@
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = Task { @MainActor [weak self] in
           await Task.yield()
-          guard let self, self.session.committedItem == item else { return }
+          guard let self, self.engine.committedItem == item else { return }
 
           if self.parent.viewModel.currentViewItem() != item {
             self.parent.viewModel.updateCurrentPosition(viewItem: item)
@@ -573,22 +753,53 @@
       }
 
       @objc private func handleBoundsDidChange(_ notification: Notification) {
-        guard !isAdjustingBounds, !session.isProgrammaticScrolling else { return }
-        _ = session.beginUserInteraction()
+        guard let scrollView, let collectionView else { return }
+        let currentBounds = scrollView.contentView.bounds
+        let previousBounds = lastObservedClipBounds
+        let anchorItem = currentAnchorItem(in: scrollView, collectionView: collectionView)
+        lastObservedClipBounds = currentBounds
+
+        guard !isAdjustingBounds, !engine.isProgrammaticScrolling else { return }
+
+        let originChanged = previousBounds.origin != currentBounds.origin
+        let sizeChanged =
+          previousBounds.size != .zero
+          && previousBounds.size != currentBounds.size
+
+        if sizeChanged {
+          collectionView.layoutSubtreeIfNeeded()
+          if synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView) {
+            collectionView.layoutSubtreeIfNeeded()
+          }
+
+          if engine.hasSyncedInitialPosition, let anchorItem {
+            scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
+            refreshVisibleItems(in: collectionView)
+            if parent.viewModel.navigationTarget == nil {
+              commitItemIfNeeded(anchorItem, in: collectionView)
+            }
+          } else if synchronizeInitialPositionIfPossible(in: scrollView, collectionView: collectionView) {
+            pagePresentationCoordinator.flushIfPossible()
+          }
+          return
+        }
+
+        if originChanged {
+          _ = engine.beginUserInteraction()
+        }
       }
 
       @objc private func handleDidEndLiveScroll(_ notification: Notification) {
         guard let scrollView, let collectionView else { return }
 
-        _ = session.endUserInteraction()
-
-        session.clearPendingProgrammaticCommit()
-        let committedDuringSnapshot = applyPendingSnapshotIfNeeded(
+        _ = engine.endUserInteraction()
+        engine.clearPendingProgrammaticCommit()
+        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(
           in: scrollView,
           collectionView: collectionView
         )
-        if !committedDuringSnapshot {
-          commitCenteredItem(in: collectionView)
+        if !appliedQueuedItems, parent.viewModel.navigationTarget == nil {
+          snapToNearestItemIfNeeded(in: scrollView, collectionView: collectionView, animated: true)
         }
       }
 
@@ -597,7 +808,7 @@
       }
 
       func collectionView(_ collectionView: NSCollectionView, numberOfItemsInSection section: Int) -> Int {
-        session.renderedItems.count
+        engine.renderedItems.count
       }
 
       func collectionView(
@@ -629,7 +840,7 @@
         layout collectionViewLayout: NSCollectionViewLayout,
         sizeForItemAt indexPath: IndexPath
       ) -> CGSize {
-        collectionView.bounds.size
+        resolvedViewportSize(for: collectionView)
       }
     }
   }

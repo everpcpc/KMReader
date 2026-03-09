@@ -17,7 +17,6 @@ import UniformTypeIdentifiers
 @MainActor
 @Observable
 class ReaderViewModel {
-
   var readerPages: [ReaderPage] = []
   private(set) var segments: [ReaderSegment] = []
   var isolatePages: [Int] = []
@@ -639,8 +638,6 @@ class ReaderViewModel {
       return
     }
 
-    let currentPageID = currentReaderPage?.id
-
     guard let fetchedPages = await fetchSegmentPages(for: nextBook) else {
       regenerateViewState()
       return
@@ -652,6 +649,7 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: nextBook.id)
+    let currentPageID = currentReaderPage?.id
 
     appendSegment(
       currentBook: nextBook,
@@ -684,8 +682,6 @@ class ReaderViewModel {
       return
     }
 
-    let currentPageID = currentReaderPage?.id
-
     guard let fetchedPages = await fetchSegmentPages(for: previousBook) else {
       regenerateViewState()
       return
@@ -697,6 +693,7 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: previousBook.id)
+    let currentPageID = currentReaderPage?.id
 
     prependSegment(
       currentBook: previousBook,
@@ -962,9 +959,10 @@ class ReaderViewModel {
 
   /// Preload pages around the current page for smoother scrolling
   /// Preloads a small window around the current page to keep memory usage in check
-  func preloadPages() async {
+  func preloadPages(bypassThrottle: Bool = false) async {
     let now = Date()
-    if let last = lastPreloadRequestTime,
+    if !bypassThrottle,
+      let last = lastPreloadRequestTime,
       now.timeIntervalSince(last) < 0.3
     {
       return

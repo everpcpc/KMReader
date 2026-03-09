@@ -19,6 +19,7 @@ struct DivinaReaderView: View {
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
+  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -58,8 +59,8 @@ struct DivinaReaderView: View {
   @State private var showingDetailSheet = false
   @State private var requestedNextSegmentPreloads: Set<String> = []
   @State private var requestedPreviousSegmentPreloads: Set<String> = []
-  @State private var inFlightNextSegmentPreloads: Set<String> = []
-  @State private var inFlightPreviousSegmentPreloads: Set<String> = []
+  @State private var inFlightNextSegmentPreloads: [String: Task<Void, Never>] = [:]
+  @State private var inFlightPreviousSegmentPreloads: [String: Task<Void, Never>] = [:]
   @State private var deferredPageMaintenanceTask: Task<Void, Never>?
 
   #if os(tvOS)
@@ -167,6 +168,10 @@ struct DivinaReaderView: View {
     viewModel.currentViewItem()?.isEnd == true
   }
 
+  private var pageTurnAnimationDuration: Double {
+    max(tapPageTransitionDuration, 0)
+  }
+
   private func shouldUseDualPage(screenSize: CGSize) -> Bool {
     guard screenSize.width > screenSize.height else { return false }  // Only in landscape
     guard pageLayout != .single else { return false }
@@ -238,10 +243,9 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
-  private func readerContentKey(screenKey: String, useDualPage: Bool) -> String {
+  private func readerContentKey(useDualPage: Bool) -> String {
     [
       currentBookId,
-      screenKey,
       readingDirection.rawValue,
       pageTransitionStyle.rawValue,
       pageLayout.rawValue,
@@ -413,8 +417,7 @@ struct DivinaReaderView: View {
 
         readerContent(
           useDualPage: useDualPage,
-          screenSize: screenSize,
-          screenKey: screenKey
+          screenSize: screenSize
         )
 
         #if os(tvOS)
@@ -519,6 +522,10 @@ struct DivinaReaderView: View {
       deferredPageMaintenanceTask = nil
       requestedNextSegmentPreloads.removeAll()
       requestedPreviousSegmentPreloads.removeAll()
+      inFlightNextSegmentPreloads.values.forEach { $0.cancel() }
+      inFlightPreviousSegmentPreloads.values.forEach { $0.cancel() }
+      inFlightNextSegmentPreloads.removeAll()
+      inFlightPreviousSegmentPreloads.removeAll()
       if !preserveReaderOptions {
         resetReaderPreferencesForCurrentBook()
       }
@@ -547,6 +554,10 @@ struct DivinaReaderView: View {
       keyboardHelpTimer?.invalidate()
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
+      inFlightNextSegmentPreloads.values.forEach { $0.cancel() }
+      inFlightPreviousSegmentPreloads.values.forEach { $0.cancel() }
+      inFlightNextSegmentPreloads.removeAll()
+      inFlightPreviousSegmentPreloads.removeAll()
       viewModel.clearPreloadedImages()
       readerPresentation.clearFlushHandler(for: sessionID)
       #if os(macOS)
@@ -588,10 +599,9 @@ struct DivinaReaderView: View {
   @ViewBuilder
   private func readerContent(
     useDualPage: Bool,
-    screenSize: CGSize,
-    screenKey: String
+    screenSize: CGSize
   ) -> some View {
-    let contentKey = readerContentKey(screenKey: screenKey, useDualPage: useDualPage)
+    let contentKey = readerContentKey(useDualPage: useDualPage)
     Group {
       if viewModel.hasPages {
         Group {
@@ -611,6 +621,7 @@ struct DivinaReaderView: View {
                 viewportSize: screenSize,
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                navigationAnimationDuration: pageTurnAnimationDuration,
                 renderConfig: renderConfig,
                 viewModel: viewModel,
                 readListContext: readListContext,
@@ -713,6 +724,7 @@ struct DivinaReaderView: View {
       viewportSize: screenSize,
       readingDirection: readingDirection,
       splitWidePageMode: splitWidePageMode,
+      navigationAnimationDuration: pageTurnAnimationDuration,
       renderConfig: renderConfig,
       viewModel: viewModel,
       readListContext: readListContext,
@@ -1100,69 +1112,116 @@ struct DivinaReaderView: View {
     guard let currentReaderPage = viewModel.currentReaderPage else { return }
     let segmentBookId = currentReaderPage.bookId
 
-    guard !requestedPreviousSegmentPreloads.contains(segmentBookId) else { return }
-    guard !inFlightPreviousSegmentPreloads.contains(segmentBookId) else { return }
     guard let pagesFromSegmentStart = viewModel.currentPageOffsetInSegment(for: segmentBookId) else {
       return
     }
     guard pagesFromSegmentStart <= segmentPreloadTriggerDistance else { return }
-
-    guard
-      let preloadContext = await resolveSegmentPreloadContext(for: segmentBookId),
-      let resolvedPreviousBook = preloadContext.previousBook
-    else {
-      requestedPreviousSegmentPreloads.insert(segmentBookId)
-      return
-    }
-
-    inFlightPreviousSegmentPreloads.insert(segmentBookId)
-    defer { inFlightPreviousSegmentPreloads.remove(segmentBookId) }
-
-    let resolvedPreviousPreviousBook = await resolveBookBefore(resolvedPreviousBook)
-
-    await viewModel.preloadPreviousSegmentIfNeeded(
-      currentBook: preloadContext.currentBook,
-      previousBook: resolvedPreviousBook,
-      nextBook: preloadContext.nextBook,
-      previousPreviousBook: resolvedPreviousPreviousBook
-    )
-
-    if viewModel.currentBook(forSegmentBookId: resolvedPreviousBook.id) != nil {
-      requestedPreviousSegmentPreloads.insert(segmentBookId)
-    }
+    await ensurePreviousSegmentPreloaded(for: segmentBookId)
   }
 
   private func preloadNextSegmentForCurrentPositionIfNeeded() async {
     guard let currentReaderPage = viewModel.currentReaderPage else { return }
     let segmentBookId = currentReaderPage.bookId
 
-    guard !requestedNextSegmentPreloads.contains(segmentBookId) else { return }
-    guard !inFlightNextSegmentPreloads.contains(segmentBookId) else { return }
     guard let remainingPagesInSegment = viewModel.remainingPagesInSegment(for: segmentBookId) else {
       return
     }
     guard remainingPagesInSegment <= segmentPreloadTriggerDistance else { return }
+    await ensureNextSegmentPreloaded(for: segmentBookId)
+  }
 
-    guard
-      let preloadContext = await resolveSegmentPreloadContext(for: segmentBookId),
-      let resolvedNextBook = preloadContext.nextBook
-    else {
-      requestedNextSegmentPreloads.insert(segmentBookId)
+  @MainActor
+  private func ensurePreviousSegmentPreloaded(for segmentBookId: String) async {
+    guard !requestedPreviousSegmentPreloads.contains(segmentBookId) else { return }
+
+    if let task = inFlightPreviousSegmentPreloads[segmentBookId] {
+      await task.value
       return
     }
 
-    inFlightNextSegmentPreloads.insert(segmentBookId)
-    defer { inFlightNextSegmentPreloads.remove(segmentBookId) }
+    let task = Task { @MainActor in
+      guard
+        let preloadContext = await resolveSegmentPreloadContext(for: segmentBookId),
+        let resolvedPreviousBook = preloadContext.previousBook
+      else {
+        requestedPreviousSegmentPreloads.insert(segmentBookId)
+        return
+      }
 
-    await viewModel.preloadNextSegmentIfNeeded(
-      currentBook: preloadContext.currentBook,
-      previousBook: preloadContext.previousBook,
-      nextBook: resolvedNextBook
-    )
+      let resolvedPreviousPreviousBook = await resolveBookBefore(resolvedPreviousBook)
 
-    if viewModel.currentBook(forSegmentBookId: resolvedNextBook.id) != nil {
-      requestedNextSegmentPreloads.insert(segmentBookId)
+      await viewModel.preloadPreviousSegmentIfNeeded(
+        currentBook: preloadContext.currentBook,
+        previousBook: resolvedPreviousBook,
+        nextBook: preloadContext.nextBook,
+        previousPreviousBook: resolvedPreviousPreviousBook
+      )
+
+      if viewModel.currentBook(forSegmentBookId: resolvedPreviousBook.id) != nil {
+        requestedPreviousSegmentPreloads.insert(segmentBookId)
+      }
     }
+
+    inFlightPreviousSegmentPreloads[segmentBookId] = task
+    await task.value
+    inFlightPreviousSegmentPreloads.removeValue(forKey: segmentBookId)
+  }
+
+  @MainActor
+  private func ensureNextSegmentPreloaded(for segmentBookId: String) async {
+    guard !requestedNextSegmentPreloads.contains(segmentBookId) else { return }
+
+    if let task = inFlightNextSegmentPreloads[segmentBookId] {
+      await task.value
+      return
+    }
+
+    let task = Task { @MainActor in
+      guard
+        let preloadContext = await resolveSegmentPreloadContext(for: segmentBookId),
+        let resolvedNextBook = preloadContext.nextBook
+      else {
+        requestedNextSegmentPreloads.insert(segmentBookId)
+        return
+      }
+
+      await viewModel.preloadNextSegmentIfNeeded(
+        currentBook: preloadContext.currentBook,
+        previousBook: preloadContext.previousBook,
+        nextBook: resolvedNextBook
+      )
+
+      if viewModel.currentBook(forSegmentBookId: resolvedNextBook.id) != nil {
+        requestedNextSegmentPreloads.insert(segmentBookId)
+      }
+    }
+
+    inFlightNextSegmentPreloads[segmentBookId] = task
+    await task.value
+    inFlightNextSegmentPreloads.removeValue(forKey: segmentBookId)
+  }
+
+  @MainActor
+  private func navigateAcrossBoundaryIfNeeded(offset: Int) async -> Bool {
+    guard let currentReaderPage = viewModel.currentReaderPage else { return false }
+    let segmentBookId = currentReaderPage.bookId
+
+    switch offset {
+    case -1:
+      guard viewModel.currentPageOffsetInSegment(for: segmentBookId) == 0 else { return false }
+      await ensurePreviousSegmentPreloaded(for: segmentBookId)
+    case 1:
+      guard viewModel.remainingPagesInSegment(for: segmentBookId) == 0 else { return false }
+      await ensureNextSegmentPreloaded(for: segmentBookId)
+    default:
+      return false
+    }
+
+    guard let adjacentItem = viewModel.adjacentViewItem(offset: offset) else {
+      return false
+    }
+    viewModel.requestNavigation(toViewItem: adjacentItem)
+    return true
   }
 
   private func jumpToPageID(_ pageID: ReaderPageID) {
@@ -1280,8 +1339,13 @@ struct DivinaReaderView: View {
     guard viewModel.hasPages else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical, .webtoon:
-      guard let nextItem = viewModel.adjacentViewItem(offset: 1) else { return }
-      viewModel.requestNavigation(toViewItem: nextItem)
+      if let nextItem = viewModel.adjacentViewItem(offset: 1) {
+        viewModel.requestNavigation(toViewItem: nextItem)
+      } else {
+        Task { @MainActor in
+          _ = await navigateAcrossBoundaryIfNeeded(offset: 1)
+        }
+      }
     }
   }
 
@@ -1289,8 +1353,13 @@ struct DivinaReaderView: View {
     guard viewModel.hasPages else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical, .webtoon:
-      guard let previousItem = viewModel.adjacentViewItem(offset: -1) else { return }
-      viewModel.requestNavigation(toViewItem: previousItem)
+      if let previousItem = viewModel.adjacentViewItem(offset: -1) {
+        viewModel.requestNavigation(toViewItem: previousItem)
+      } else {
+        Task { @MainActor in
+          _ = await navigateAcrossBoundaryIfNeeded(offset: -1)
+        }
+      }
     }
   }
 

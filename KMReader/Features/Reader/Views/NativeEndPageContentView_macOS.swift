@@ -313,6 +313,7 @@
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpIconView.contentTintColor = textColor
       caughtUpLabel.textColor = textColor
+      dividerTitleLabel.textColor = textColor.withAlphaComponent(0.8)
       leadingDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
       trailingDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
       verticalDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
