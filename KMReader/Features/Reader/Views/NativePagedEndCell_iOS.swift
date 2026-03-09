@@ -9,11 +9,6 @@
     private var readingDirection: ReadingDirection = .ltr
     private var readerBackground: ReaderBackground = .system
     private var onDismiss: (() -> Void)?
-
-    private var previousCoverTask: Task<Void, Never>?
-    private var nextCoverTask: Task<Void, Never>?
-    private var previousCoverBookID: String?
-    private var nextCoverBookID: String?
     private var lastIsPortrait: Bool?
 
     private let contentStack = UIStackView()
@@ -23,16 +18,14 @@
     private let previousContainer = UIView()
     private let previousStack = UIStackView()
     private let previousBadgeLabel = UILabel()
-    private let previousCoverContainer = UIView()
-    private let previousCoverImageView = UIImageView()
+    private let previousCoverView = NativeBookCoverView()
     private let previousTitleLabel = UILabel()
     private let previousDetailLabel = UILabel()
 
     private let nextContainer = UIView()
     private let nextStack = UIStackView()
     private let nextBadgeLabel = UILabel()
-    private let nextCoverContainer = UIView()
-    private let nextCoverImageView = UIImageView()
+    private let nextCoverView = NativeBookCoverView()
     private let nextTitleLabel = UILabel()
     private let nextDetailLabel = UILabel()
     private let caughtUpStack = UIStackView()
@@ -68,14 +61,8 @@
 
     override func prepareForReuse() {
       super.prepareForReuse()
-      previousCoverTask?.cancel()
-      nextCoverTask?.cancel()
-      previousCoverTask = nil
-      nextCoverTask = nil
-      previousCoverBookID = nil
-      nextCoverBookID = nil
-      previousCoverImageView.image = nil
-      nextCoverImageView.image = nil
+      previousCoverView.configure(bookID: nil)
+      nextCoverView.configure(bookID: nil)
       lastIsPortrait = nil
     }
 
@@ -140,8 +127,8 @@
       previousBadgeLabel.adjustsFontForContentSizeCategory = true
       previousStack.addArrangedSubview(previousBadgeLabel)
 
-      setupCoverContainer(previousCoverContainer, imageView: previousCoverImageView)
-      previousStack.addArrangedSubview(previousCoverContainer)
+      previousCoverView.translatesAutoresizingMaskIntoConstraints = false
+      previousStack.addArrangedSubview(previousCoverView)
 
       previousTitleLabel.numberOfLines = 2
       previousTitleLabel.textAlignment = .center
@@ -165,8 +152,8 @@
       nextBadgeLabel.adjustsFontForContentSizeCategory = true
       nextStack.addArrangedSubview(nextBadgeLabel)
 
-      setupCoverContainer(nextCoverContainer, imageView: nextCoverImageView)
-      nextStack.addArrangedSubview(nextCoverContainer)
+      nextCoverView.translatesAutoresizingMaskIntoConstraints = false
+      nextStack.addArrangedSubview(nextCoverView)
 
       nextTitleLabel.numberOfLines = 2
       nextTitleLabel.textAlignment = .center
@@ -239,10 +226,10 @@
       contentTopConstraint = contentTop
       contentBottomConstraint = contentBottom
 
-      previousCoverWidthConstraint = previousCoverContainer.widthAnchor.constraint(equalToConstant: 120)
-      previousCoverHeightConstraint = previousCoverContainer.heightAnchor.constraint(equalToConstant: 160)
-      nextCoverWidthConstraint = nextCoverContainer.widthAnchor.constraint(equalToConstant: 120)
-      nextCoverHeightConstraint = nextCoverContainer.heightAnchor.constraint(equalToConstant: 160)
+      previousCoverWidthConstraint = previousCoverView.widthAnchor.constraint(equalToConstant: 120)
+      previousCoverHeightConstraint = previousCoverView.heightAnchor.constraint(equalToConstant: 160)
+      nextCoverWidthConstraint = nextCoverView.widthAnchor.constraint(equalToConstant: 120)
+      nextCoverHeightConstraint = nextCoverView.heightAnchor.constraint(equalToConstant: 160)
 
       NSLayoutConstraint.activate([
         contentLeading,
@@ -273,28 +260,6 @@
       caughtUpLabel.text = String(localized: "You're all caught up!")
     }
 
-    private func setupCoverContainer(_ container: UIView, imageView: UIImageView) {
-      container.translatesAutoresizingMaskIntoConstraints = false
-      container.backgroundColor = .clear
-      container.layer.shadowOpacity = 0.18
-      container.layer.shadowOffset = CGSize(width: 0, height: 6)
-      container.layer.shadowRadius = 16
-
-      imageView.translatesAutoresizingMaskIntoConstraints = false
-      imageView.contentMode = .scaleAspectFit
-      imageView.clipsToBounds = true
-      imageView.layer.cornerRadius = 12
-      imageView.backgroundColor = coverPlaceholderColor
-      container.addSubview(imageView)
-
-      NSLayoutConstraint.activate([
-        imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-        imageView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-        imageView.topAnchor.constraint(equalTo: container.topAnchor),
-        imageView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-      ])
-    }
-
     private func applyAppearance() {
       let backgroundColor = UIColor(readerBackground.color)
       let textColor = UIColor(readerBackground.contentColor)
@@ -313,8 +278,11 @@
       leadingDivider.backgroundColor = textColor.withAlphaComponent(0.3)
       trailingDivider.backgroundColor = textColor.withAlphaComponent(0.3)
       verticalDivider.backgroundColor = textColor.withAlphaComponent(0.3)
-      previousCoverContainer.layer.shadowColor = effectiveShadowColor.cgColor
-      nextCoverContainer.layer.shadowColor = effectiveShadowColor.cgColor
+
+      previousCoverView.useLightShadow = shouldUseLightCoverShadow
+      nextCoverView.useLightShadow = shouldUseLightCoverShadow
+      previousCoverView.imageBlendTintColor = coverBlendTintColor
+      nextCoverView.imageBlendTintColor = coverBlendTintColor
 
       relationHeaderLabel.font = .preferredFont(forTextStyle: .headline)
       previousBadgeLabel.font = .preferredFont(forTextStyle: .caption1)
@@ -351,36 +319,38 @@
 
       if presentation.previous.isVisible {
         previousContainer.isHidden = false
+        previousCoverView.isHidden = !presentation.previous.showsCover
         previousTitleLabel.text = presentation.previous.title
         previousDetailLabel.text = presentation.previous.detail
-        updatePreviousCover(bookID: presentation.previous.bookID)
+        previousCoverView.configure(bookID: presentation.previous.bookID)
       } else {
         previousContainer.isHidden = true
+        previousCoverView.isHidden = true
         previousTitleLabel.text = nil
         previousDetailLabel.text = nil
-        updatePreviousCover(bookID: nil)
+        previousCoverView.configure(bookID: nil)
       }
 
       if presentation.next.isVisible {
         nextContainer.isHidden = false
         nextBadgeLabel.isHidden = presentation.next.badgeText == nil
-        nextCoverContainer.isHidden = !presentation.next.showsCover
+        nextCoverView.isHidden = !presentation.next.showsCover
         nextTitleLabel.isHidden = !presentation.next.showsMetadata
         nextDetailLabel.isHidden = !presentation.next.showsMetadata
         caughtUpStack.isHidden = !presentation.next.showsCaughtUp
         nextTitleLabel.text = presentation.next.title
         nextDetailLabel.text = presentation.next.detail
-        updateNextCover(bookID: presentation.next.bookID)
+        nextCoverView.configure(bookID: presentation.next.bookID)
       } else {
         nextContainer.isHidden = true
         nextBadgeLabel.isHidden = true
-        nextCoverContainer.isHidden = true
+        nextCoverView.isHidden = true
         nextTitleLabel.isHidden = true
         nextDetailLabel.isHidden = true
         caughtUpStack.isHidden = false
         nextTitleLabel.text = nil
         nextDetailLabel.text = nil
-        updateNextCover(bookID: nil)
+        nextCoverView.configure(bookID: nil)
       }
 
       closeButton.isHidden = !presentation.showsCloseButton
@@ -497,71 +467,19 @@
       verticalDividerHeightConstraint?.constant = dividerHeight
     }
 
-    private func updatePreviousCover(bookID: String?) {
-      if previousCoverBookID == bookID {
-        if previousCoverTask != nil || previousCoverImageView.image != nil || bookID == nil {
-          return
-        }
-      }
-
-      previousCoverTask?.cancel()
-      previousCoverTask = nil
-      previousCoverBookID = bookID
-      previousCoverImageView.image = nil
-      previousCoverImageView.backgroundColor = coverPlaceholderColor
-
-      guard let bookID else { return }
-
-      previousCoverTask = Task { @MainActor [weak self] in
-        let image = await loadNativeBookCoverImage(for: bookID)
-        guard !Task.isCancelled, let self else { return }
-        guard self.previousCoverBookID == bookID else { return }
-        self.previousCoverTask = nil
-        self.previousCoverImageView.image = image
-        self.previousCoverImageView.backgroundColor = image == nil ? self.coverPlaceholderColor : .clear
-      }
-    }
-
-    private func updateNextCover(bookID: String?) {
-      if nextCoverBookID == bookID {
-        if nextCoverTask != nil || nextCoverImageView.image != nil || bookID == nil {
-          return
-        }
-      }
-
-      nextCoverTask?.cancel()
-      nextCoverTask = nil
-      nextCoverBookID = bookID
-      nextCoverImageView.image = nil
-      nextCoverImageView.backgroundColor = coverPlaceholderColor
-
-      guard let bookID else { return }
-
-      nextCoverTask = Task { @MainActor [weak self] in
-        let image = await loadNativeBookCoverImage(for: bookID)
-        guard !Task.isCancelled, let self else { return }
-        guard self.nextCoverBookID == bookID else { return }
-        self.nextCoverTask = nil
-        self.nextCoverImageView.image = image
-        self.nextCoverImageView.backgroundColor = image == nil ? self.coverPlaceholderColor : .clear
-      }
-    }
-
-    private var effectiveShadowColor: UIColor {
+    private var shouldUseLightCoverShadow: Bool {
       switch readerBackground {
       case .black, .gray:
-        return UIColor.white.withAlphaComponent(0.18)
-      case .white, .sepia, .system:
-        return UIColor.black.withAlphaComponent(0.22)
+        return true
+      case .white, .sepia:
+        return false
+      case .system:
+        return traitCollection.userInterfaceStyle == .dark
       }
     }
 
-    private var coverPlaceholderColor: UIColor {
-      #if os(tvOS)
-        return UIColor.white.withAlphaComponent(0.08)
-      #else
-        return .secondarySystemFill
-      #endif
+    private var coverBlendTintColor: UIColor? {
+      readerBackground.appliesImageMultiplyBlend ? UIColor(readerBackground.color) : nil
     }
 
     private func clamped(_ value: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {

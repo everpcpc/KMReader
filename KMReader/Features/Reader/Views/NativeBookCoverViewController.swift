@@ -7,213 +7,39 @@
 
   @MainActor
   final class NativeBookCoverViewController: UIViewController {
-    private let coverContainerView = UIView()
-    private let coverImageView = UIImageView()
-    private let sepiaOverlayView = UIView()
-
-    private var coverImageTask: Task<Void, Never>?
-    private var coverImageBookID: String?
-    private var failedCoverImageBookID: String?
-    private var sourceCoverImage: UIImage?
+    private let coverView = NativeBookCoverView()
 
     var useLightShadow: Bool = false {
       didSet {
-        updateShadowAppearance()
+        coverView.useLightShadow = useLightShadow
       }
     }
 
     var imageBlendTintColor: UIColor? {
       didSet {
-        updateRenderedCoverImage()
+        coverView.imageBlendTintColor = imageBlendTintColor
       }
     }
 
     var cornerRadius: CGFloat = 12 {
       didSet {
-        updateCoverImageDecoration()
+        coverView.cornerRadius = cornerRadius
       }
+    }
+
+    override func loadView() {
+      view = coverView
     }
 
     override func viewDidLoad() {
       super.viewDidLoad()
-      setupUI()
-    }
-
-    override func viewDidLayoutSubviews() {
-      super.viewDidLayoutSubviews()
-      updateCoverImageDecoration()
-    }
-
-    deinit {
-      coverImageTask?.cancel()
+      coverView.useLightShadow = useLightShadow
+      coverView.imageBlendTintColor = imageBlendTintColor
+      coverView.cornerRadius = cornerRadius
     }
 
     func configure(bookID: String?) {
-      updateCoverImage(for: bookID)
+      coverView.configure(bookID: bookID)
     }
-
-    private func setupUI() {
-      view.backgroundColor = .clear
-
-      coverContainerView.translatesAutoresizingMaskIntoConstraints = false
-      coverContainerView.backgroundColor = .clear
-      coverContainerView.layer.shadowOpacity = 0
-      coverContainerView.layer.shadowOffset = CGSize(width: 0, height: 3)
-      coverContainerView.layer.shadowRadius = 6
-      view.addSubview(coverContainerView)
-
-      coverImageView.translatesAutoresizingMaskIntoConstraints = false
-      coverImageView.contentMode = .scaleAspectFit
-      coverImageView.clipsToBounds = true
-      coverImageView.layer.cornerRadius = 0
-      coverContainerView.addSubview(coverImageView)
-      sepiaOverlayView.isUserInteractionEnabled = false
-      sepiaOverlayView.isHidden = true
-      sepiaOverlayView.translatesAutoresizingMaskIntoConstraints = false
-      coverImageView.addSubview(sepiaOverlayView)
-
-      NSLayoutConstraint.activate([
-        coverContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-        coverContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        coverContainerView.topAnchor.constraint(equalTo: view.topAnchor),
-        coverContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        coverImageView.leadingAnchor.constraint(equalTo: coverContainerView.leadingAnchor),
-        coverImageView.trailingAnchor.constraint(equalTo: coverContainerView.trailingAnchor),
-        coverImageView.topAnchor.constraint(equalTo: coverContainerView.topAnchor),
-        coverImageView.bottomAnchor.constraint(equalTo: coverContainerView.bottomAnchor),
-        sepiaOverlayView.leadingAnchor.constraint(equalTo: coverImageView.leadingAnchor),
-        sepiaOverlayView.trailingAnchor.constraint(equalTo: coverImageView.trailingAnchor),
-        sepiaOverlayView.topAnchor.constraint(equalTo: coverImageView.topAnchor),
-        sepiaOverlayView.bottomAnchor.constraint(equalTo: coverImageView.bottomAnchor),
-      ])
-
-      updateShadowAppearance()
-    }
-
-    private func updateCoverImage(for bookID: String?) {
-      if coverImageBookID == bookID {
-        if coverImageTask != nil || coverImageView.image != nil || failedCoverImageBookID == bookID {
-          return
-        }
-      }
-
-      if coverImageBookID != bookID {
-        failedCoverImageBookID = nil
-      }
-
-      coverImageTask?.cancel()
-      coverImageTask = nil
-      coverImageBookID = bookID
-
-      guard let bookID else {
-        sourceCoverImage = nil
-        coverImageView.image = nil
-        coverImageView.layer.mask = nil
-        coverImageView.layer.cornerRadius = cornerRadius
-        coverImageView.backgroundColor = .clear
-        sepiaOverlayView.isHidden = true
-        sepiaOverlayView.layer.compositingFilter = nil
-        sepiaOverlayView.backgroundColor = .clear
-        coverContainerView.layer.shadowOpacity = 0
-        coverContainerView.layer.shadowPath = nil
-        failedCoverImageBookID = nil
-        return
-      }
-
-      sourceCoverImage = nil
-      coverImageView.image = nil
-      coverImageView.backgroundColor = .clear
-      coverImageView.layer.cornerRadius = 0
-      sepiaOverlayView.isHidden = true
-      sepiaOverlayView.layer.compositingFilter = nil
-      sepiaOverlayView.backgroundColor = .clear
-      coverContainerView.layer.shadowOpacity = 0
-      coverContainerView.layer.shadowPath = nil
-
-      coverImageTask = Task { [weak self] in
-        let image = await loadNativeBookCoverImage(for: bookID)
-        guard !Task.isCancelled else { return }
-        guard let self else { return }
-        guard self.coverImageBookID == bookID else { return }
-        self.coverImageTask = nil
-        self.sourceCoverImage = image
-        self.updateRenderedCoverImage()
-        self.failedCoverImageBookID = image == nil ? bookID : nil
-        self.coverImageView.layer.cornerRadius = image == nil ? self.cornerRadius : 0
-        self.coverImageView.backgroundColor = image == nil ? .secondarySystemFill : .clear
-      }
-    }
-
-    private func updateRenderedCoverImage() {
-      guard let sourceCoverImage else {
-        coverImageView.image = nil
-        updateSepiaOverlay()
-        updateCoverImageDecoration()
-        return
-      }
-      coverImageView.image = sourceCoverImage
-      updateSepiaOverlay()
-      updateCoverImageDecoration()
-    }
-
-    private func updateCoverImageDecoration() {
-      guard let image = coverImageView.image, !coverImageView.bounds.isEmpty else {
-        coverImageView.layer.mask = nil
-        coverContainerView.layer.shadowOpacity = 0
-        coverContainerView.layer.shadowPath = nil
-        return
-      }
-
-      let contentRect = imageContentRect(for: image, in: coverImageView)
-      let maskPath = UIBezierPath(
-        roundedRect: contentRect,
-        cornerRadius: cornerRadius
-      )
-      let maskLayer = CAShapeLayer()
-      maskLayer.path = maskPath.cgPath
-      coverImageView.layer.mask = maskLayer
-
-      coverContainerView.layer.shadowOpacity = 0.22
-      coverContainerView.layer.shadowPath = maskPath.cgPath
-    }
-
-    private func updateSepiaOverlay() {
-      guard sourceCoverImage != nil, let tintColor = imageBlendTintColor else {
-        sepiaOverlayView.isHidden = true
-        sepiaOverlayView.layer.compositingFilter = nil
-        sepiaOverlayView.backgroundColor = .clear
-        return
-      }
-      sepiaOverlayView.isHidden = false
-      sepiaOverlayView.backgroundColor = tintColor
-      sepiaOverlayView.layer.compositingFilter = "multiplyBlendMode"
-    }
-
-    private func imageContentRect(for image: UIImage, in imageView: UIImageView) -> CGRect {
-      let imageSize = image.size
-      let viewSize = imageView.bounds.size
-      guard imageSize.width > 0, imageSize.height > 0, viewSize.width > 0, viewSize.height > 0 else {
-        return imageView.bounds
-      }
-
-      let scale = min(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
-      let width = imageSize.width * scale
-      let height = imageSize.height * scale
-      let x = (viewSize.width - width) / 2
-      let y = (viewSize.height - height) / 2
-      return CGRect(x: x, y: y, width: width, height: height)
-    }
-
-    private func updateShadowAppearance() {
-      coverContainerView.layer.shadowColor = effectiveShadowColor.cgColor
-    }
-
-    private var effectiveShadowColor: UIColor {
-      if useLightShadow {
-        return UIColor.white.withAlphaComponent(0.4)
-      }
-      return UIColor.black.withAlphaComponent(0.35)
-    }
-
   }
 #endif
