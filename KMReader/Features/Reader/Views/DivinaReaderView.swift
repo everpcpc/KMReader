@@ -239,7 +239,16 @@ struct DivinaReaderView: View {
   }
 
   private func readerContentKey(screenKey: String, useDualPage: Bool) -> String {
-    "\(currentBookId)-\(screenKey)-\(readingDirection)-\(useDualPage)"
+    [
+      currentBookId,
+      screenKey,
+      readingDirection.rawValue,
+      pageTransitionStyle.rawValue,
+      pageLayout.rawValue,
+      isolateCoverPage.description,
+      splitWidePageMode.rawValue,
+      String(useDualPage),
+    ].joined(separator: "-")
   }
 
   private func applyDualPagePresentationMode(_ useDualPage: Bool) {

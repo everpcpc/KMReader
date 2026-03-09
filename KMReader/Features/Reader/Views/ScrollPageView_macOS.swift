@@ -382,6 +382,8 @@
           scrollView.contentView.setBoundsOrigin(targetOrigin)
           scrollView.reflectScrolledClipView(scrollView.contentView)
           isAdjustingBounds = false
+          collectionView.layoutSubtreeIfNeeded()
+          refreshVisibleItems(in: collectionView)
         }
       }
 

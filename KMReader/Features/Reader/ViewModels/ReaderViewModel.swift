@@ -1680,7 +1680,7 @@ class ReaderViewModel {
     let preservedCurrentItem = currentViewItemID
     let preservedCurrentPageID = resolvedCurrentPageID
 
-    // Keep split-wide behavior available in dual mode as well.
+    // Apply the split-wide preference consistently in single and dual presentations.
     let effectiveSplitWidePages = splitWidePageMode.isEnabled
 
     // Cover page isolation only applies when NOT in single page mode
@@ -1843,7 +1843,8 @@ private func generateViewItems(
         let isCoverPage = !noCover && index == segmentStartIndex
         let isWideCoverPage = isCoverPage && !currentPage.isPortrait
         let isWidePageEligibleForSplit =
-          !currentPage.isPortrait
+          splitWidePages
+          && !currentPage.isPortrait
           && (noCover || isWideCoverPage || index != segmentStartIndex)
 
         if isWidePageEligibleForSplit {
@@ -1852,11 +1853,17 @@ private func generateViewItems(
           continue
         }
 
+        if !currentPage.isPortrait {
+          items.append(.page(id: readerPages[index].id))
+          index += 1
+          continue
+        }
+
         let nextPage = index + 1 < segmentEndExclusive ? readerPages[index + 1].page : nil
         let shouldShowSingle =
           (isCoverPage && currentPage.isPortrait) || index == segmentEndExclusive - 1
           || isolatePages.contains(index) || isolatePages.contains(index + 1)
-          || nextPage?.isPortrait == false  // next page is wide → keep it for its own split
+          || nextPage?.isPortrait == false  // next page is wide → keep it for its own item
         if shouldShowSingle {
           items.append(.page(id: readerPages[index].id))
           index += 1
@@ -1876,12 +1883,11 @@ private func generateViewItems(
       let isCoverPage = !noCover && index == segmentStartIndex
       let isWideCoverPage = isCoverPage && !currentPage.isPortrait
 
-      // In dual-page mode (allowDualPairs) wide pages always fill both slots.
-      // In single-page mode (splitWidePages controls) wide pages split only when enabled.
-      // Wide cover pages bypass cover isolation in both cases.
+      // Wide pages split only when enabled. In dual-page mode that produces a two-slot
+      // spread; otherwise the page stays as a single item.
       let isWidePageEligibleForSplit =
-        !currentPage.isPortrait
-        && (splitWidePages || allowDualPairs)
+        splitWidePages
+        && !currentPage.isPortrait
         && (noCover || isWideCoverPage || index != segmentStartIndex)
 
       if isWidePageEligibleForSplit {
