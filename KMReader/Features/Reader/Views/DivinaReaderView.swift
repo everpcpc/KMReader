@@ -187,6 +187,7 @@ struct DivinaReaderView: View {
     logger.debug(
       "🚪 Closing DIVINA reader for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pageCount)"
     )
+    viewModel.clearPreloadedImages()
     if let onClose {
       onClose()
     } else {
@@ -223,8 +224,8 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
-  private func readerContentKey(screenKey: String, useDualPage: Bool) -> String {
-    "\(currentBookId)-\(screenKey)-\(readingDirection)-\(useDualPage)"
+  private func readerContentKey(useDualPage: Bool) -> String {
+    "\(currentBookId)-\(readingDirection)-\(useDualPage)"
   }
 
   private func applyDualPagePresentationMode(_ useDualPage: Bool) {
@@ -389,8 +390,7 @@ struct DivinaReaderView: View {
 
         readerContent(
           useDualPage: useDualPage,
-          screenSize: screenSize,
-          screenKey: screenKey
+          screenSize: screenSize
         )
 
         #if os(tvOS)
@@ -523,7 +523,6 @@ struct DivinaReaderView: View {
       keyboardHelpTimer?.invalidate()
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
-      viewModel.clearPreloadedImages()
       readerPresentation.clearFlushHandler(for: sessionID)
       #if os(macOS)
         readerPresentation.clearMacReaderCommands()
@@ -564,8 +563,7 @@ struct DivinaReaderView: View {
   @ViewBuilder
   private func readerContent(
     useDualPage: Bool,
-    screenSize: CGSize,
-    screenKey: String
+    screenSize: CGSize
   ) -> some View {
     Group {
       if viewModel.hasPages {
@@ -636,7 +634,7 @@ struct DivinaReaderView: View {
           }
         }
         .readerIgnoresSafeArea()
-        .id(readerContentKey(screenKey: screenKey, useDualPage: useDualPage))
+        .id(readerContentKey(useDualPage: useDualPage))
         #if os(iOS) || os(macOS)
           .background(
             DivinaTapZoneGestureBridge(

@@ -192,7 +192,7 @@
         loadingIndicator.stopAnimating()
         errorLabel.text = error
         errorLabel.isHidden = false
-      } else if pageSourceImage == nil || data.isLoading {
+      } else if pageSourceImage == nil {
         errorLabel.isHidden = true
         loadingIndicator.startAnimating()
       } else {

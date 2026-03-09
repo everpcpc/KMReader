@@ -234,7 +234,7 @@
         progressIndicator.stopAnimation(nil)
         errorLabel.stringValue = error
         errorLabel.isHidden = false
-      } else if pageSourceImage == nil || data.isLoading {
+      } else if pageSourceImage == nil {
         errorLabel.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {
