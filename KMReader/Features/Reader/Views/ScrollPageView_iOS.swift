@@ -457,7 +457,7 @@
             nextBook: parent.viewModel.nextBook(forSegmentBookId: segmentBookId),
             readListContext: parent.readListContext,
             readingDirection: parent.readingDirection,
-            readerBackground: parent.renderConfig.readerBackground,
+            renderConfig: parent.renderConfig,
             onDismiss: parent.onDismiss
           )
           return

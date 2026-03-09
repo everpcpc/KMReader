@@ -356,14 +356,17 @@
       case .singlePrevious:
         sectionsStack.orientation = .vertical
         relationHeaderLabel.isHidden = true
+        previousCoverView.isHidden = previousBook == nil
         setArrangedSubviews(of: sectionsStack, with: [previousContainer])
       case .singleNext:
         sectionsStack.orientation = .vertical
         relationHeaderLabel.isHidden = true
+        previousCoverView.isHidden = true
         setArrangedSubviews(of: sectionsStack, with: [nextContainer])
       case .stacked:
         sectionsStack.orientation = .vertical
         relationHeaderLabel.isHidden = true
+        previousCoverView.isHidden = true
         setArrangedSubviews(
           of: sectionsStack,
           with: [previousContainer, horizontalDividerStack, nextContainer]
@@ -371,6 +374,7 @@
       case .sideBySide(let nextOnLeadingSide, let showsRelationHeader):
         sectionsStack.orientation = .horizontal
         relationHeaderLabel.isHidden = !showsRelationHeader
+        previousCoverView.isHidden = previousBook == nil
         if nextOnLeadingSide {
           setArrangedSubviews(
             of: sectionsStack,
