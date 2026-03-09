@@ -25,7 +25,9 @@ final class NativePagedPagePresentationCoordinator {
   }
 
   func flushIfPossible() {
-    guard let host, host.hasVisiblePagePresentationContent(), let pendingInvalidation else { return }
+    guard let pendingInvalidation else { return }
+    guard let host else { return }
+    guard host.hasVisiblePagePresentationContent() else { return }
     self.pendingInvalidation = nil
     host.applyPagePresentationInvalidation(pendingInvalidation)
   }

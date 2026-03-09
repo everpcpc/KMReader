@@ -39,7 +39,8 @@
       collectionView.contentInsetAdjustmentBehavior = .never
       collectionView.bounces = false
       collectionView.isPrefetchingEnabled = false
-      collectionView.semanticContentAttribute = mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+      // Keep collection coordinates canonical. RTL is represented by display order, not container mirroring.
+      collectionView.semanticContentAttribute = .forceLeftToRight
 
       #if !os(tvOS)
         collectionView.isPagingEnabled = true
@@ -65,7 +66,7 @@
     func updateUIView(_ collectionView: UICollectionView, context: Context) {
       context.coordinator.update(parent: self, collectionView: collectionView)
       collectionView.backgroundColor = UIColor(renderConfig.readerBackground.color)
-      collectionView.semanticContentAttribute = mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+      collectionView.semanticContentAttribute = .forceLeftToRight
       collectionView.isScrollEnabled = !shouldDisableScrollInteraction
       if let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout {
         let targetDirection: UICollectionView.ScrollDirection = mode.isVertical ? .vertical : .horizontal
@@ -120,17 +121,18 @@
         self.parent = parent
         self.collectionView = collectionView
         pagePresentationCoordinator.update(viewModel: parent.viewModel)
+        let displayedItems = parent.mode.displayOrderedItems(parent.viewModel.viewItems)
 
         let sizeChanged = updateLayoutIfNeeded(for: collectionView)
         let renderInputsChanged = updateRenderInputsIfNeeded()
         var refreshedVisibleContent = false
 
-        if session.installInitialSnapshotIfNeeded(parent.viewModel.viewItems) {
+        if session.installInitialSnapshotIfNeeded(displayedItems) {
           collectionView.reloadData()
           collectionView.layoutIfNeeded()
           refreshedVisibleContent = synchronizeInitialPositionIfPossible(in: collectionView)
-        } else if parent.viewModel.viewItems != session.renderedItems {
-          handleViewItemsChange(parent.viewModel.viewItems, in: collectionView)
+        } else if displayedItems != session.renderedItems {
+          handleViewItemsChange(displayedItems, in: collectionView)
           refreshedVisibleContent = true
         }
 
@@ -274,7 +276,7 @@
         switch session.navigationPlan(
           for: targetItem,
           centeredItem: centeredItem(in: collectionView),
-          latestViewItems: parent.viewModel.viewItems
+          latestViewItems: parent.mode.displayOrderedItems(parent.viewModel.viewItems)
         ) {
         case .none:
           return

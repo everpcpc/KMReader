@@ -32,4 +32,9 @@ enum PageViewMode {
   var isVertical: Bool {
     self == .vertical
   }
+
+  func displayOrderedItems(_ items: [ReaderViewItem]) -> [ReaderViewItem] {
+    guard isRTL && !isVertical else { return items }
+    return Array(items.reversed())
+  }
 }

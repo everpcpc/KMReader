@@ -567,6 +567,7 @@ struct DivinaReaderView: View {
     screenSize: CGSize,
     screenKey: String
   ) -> some View {
+    let contentKey = readerContentKey(screenKey: screenKey, useDualPage: useDualPage)
     Group {
       if viewModel.hasPages {
         Group {
@@ -636,7 +637,7 @@ struct DivinaReaderView: View {
           }
         }
         .readerIgnoresSafeArea()
-        .id(readerContentKey(screenKey: screenKey, useDualPage: useDualPage))
+        .id(contentKey)
         #if os(iOS) || os(macOS)
           .background(
             DivinaTapZoneGestureBridge(

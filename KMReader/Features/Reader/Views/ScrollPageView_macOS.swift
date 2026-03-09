@@ -28,6 +28,7 @@
       collectionView.dataSource = context.coordinator
       collectionView.backgroundColors = [NSColor(renderConfig.readerBackground.color)]
       collectionView.isSelectable = false
+      collectionView.userInterfaceLayoutDirection = .leftToRight
       collectionView.register(
         NativePagedPageCell.self,
         forItemWithIdentifier: NSUserInterfaceItemIdentifier(Coordinator.pageCellReuseIdentifier)
@@ -59,7 +60,7 @@
       guard let collectionView = scrollView.documentView as? NSCollectionView else { return }
 
       collectionView.backgroundColors = [NSColor(renderConfig.readerBackground.color)]
-      collectionView.userInterfaceLayoutDirection = mode.isRTL ? .rightToLeft : .leftToRight
+      collectionView.userInterfaceLayoutDirection = .leftToRight
 
       if let layout = collectionView.collectionViewLayout as? NSCollectionViewFlowLayout {
         let targetDirection: NSCollectionView.ScrollDirection = mode.isVertical ? .vertical : .horizontal
@@ -144,20 +145,21 @@
         self.collectionView = collectionView
         installObservers()
         pagePresentationCoordinator.update(viewModel: parent.viewModel)
+        let displayedItems = parent.mode.displayOrderedItems(parent.viewModel.viewItems)
 
         let sizeChanged = updateLayoutIfNeeded(for: collectionView)
         let renderInputsChanged = updateRenderInputsIfNeeded()
         var refreshedVisibleContent = false
 
-        if session.installInitialSnapshotIfNeeded(parent.viewModel.viewItems) {
+        if session.installInitialSnapshotIfNeeded(displayedItems) {
           collectionView.reloadData()
           collectionView.layoutSubtreeIfNeeded()
           refreshedVisibleContent = synchronizeInitialPositionIfPossible(
             in: scrollView,
             collectionView: collectionView
           )
-        } else if parent.viewModel.viewItems != session.renderedItems {
-          handleViewItemsChange(parent.viewModel.viewItems, in: scrollView, collectionView: collectionView)
+        } else if displayedItems != session.renderedItems {
+          handleViewItemsChange(displayedItems, in: scrollView, collectionView: collectionView)
           refreshedVisibleContent = true
         }
 
@@ -317,7 +319,7 @@
         switch session.navigationPlan(
           for: targetItem,
           centeredItem: centeredItem(in: collectionView),
-          latestViewItems: parent.viewModel.viewItems
+          latestViewItems: parent.mode.displayOrderedItems(parent.viewModel.viewItems)
         ) {
         case .none:
           return

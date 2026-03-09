@@ -276,7 +276,7 @@ class ReaderViewModel {
   }
 
   private func setPreloadedImage(_ image: PlatformImage, for pageID: ReaderPageID) {
-    preloadedImagesByID[pageID] = image
+    _ = preloadedImagesByID.updateValue(image, forKey: pageID)
     invalidatePagePresentation(for: pageID)
   }
 
