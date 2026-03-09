@@ -22,13 +22,13 @@
     private var lastIsPortrait: Bool?
 
     private let contentStack = NSStackView()
-    private let relationHeaderLabel = NSTextField(labelWithString: "")
     private let sectionsStack = NSStackView()
 
     private let previousContainer = NSView()
     private let previousStack = NSStackView()
     private let previousBadgeLabel = NSTextField(labelWithString: "")
     private let previousCoverView = NativeBookCoverView()
+    private let previousMetadataStack = NSStackView()
     private let previousTitleLabel = NSTextField(labelWithString: "")
     private let previousDetailLabel = NSTextField(labelWithString: "")
 
@@ -36,6 +36,7 @@
     private let nextStack = NSStackView()
     private let nextBadgeLabel = NSTextField(labelWithString: "")
     private let nextCoverView = NativeBookCoverView()
+    private let nextMetadataStack = NSStackView()
     private let nextTitleLabel = NSTextField(labelWithString: "")
     private let nextDetailLabel = NSTextField(labelWithString: "")
     private let caughtUpStack = NSStackView()
@@ -54,6 +55,7 @@
     private var contentTopConstraint: NSLayoutConstraint?
     private var contentBottomConstraint: NSLayoutConstraint?
     private var contentMaxWidthConstraint: NSLayoutConstraint?
+    private var horizontalDividerWidthConstraint: NSLayoutConstraint?
     private var previousCoverWidthConstraint: NSLayoutConstraint?
     private var previousCoverHeightConstraint: NSLayoutConstraint?
     private var nextCoverWidthConstraint: NSLayoutConstraint?
@@ -93,6 +95,7 @@
       self.renderConfig = renderConfig
       self.onDismiss = onDismiss
       applyConfiguration()
+      needsLayout = true
     }
 
     private func setupUI() {
@@ -104,10 +107,6 @@
       contentStack.alignment = .centerX
       contentStack.spacing = 20
       addSubview(contentStack)
-
-      relationHeaderLabel.alignment = .center
-      relationHeaderLabel.maximumNumberOfLines = 1
-      contentStack.addArrangedSubview(relationHeaderLabel)
 
       sectionsStack.orientation = .vertical
       sectionsStack.alignment = .centerX
@@ -128,13 +127,20 @@
       previousCoverView.translatesAutoresizingMaskIntoConstraints = false
       previousStack.addArrangedSubview(previousCoverView)
 
+      previousMetadataStack.orientation = .vertical
+      previousMetadataStack.alignment = .centerX
+      previousMetadataStack.spacing = 4
+      previousStack.addArrangedSubview(previousMetadataStack)
+
       previousTitleLabel.alignment = .center
       previousTitleLabel.maximumNumberOfLines = 2
-      previousStack.addArrangedSubview(previousTitleLabel)
+      previousTitleLabel.lineBreakMode = .byTruncatingTail
+      previousMetadataStack.addArrangedSubview(previousTitleLabel)
 
       previousDetailLabel.alignment = .center
       previousDetailLabel.maximumNumberOfLines = 1
-      previousStack.addArrangedSubview(previousDetailLabel)
+      previousDetailLabel.lineBreakMode = .byTruncatingTail
+      previousMetadataStack.addArrangedSubview(previousDetailLabel)
 
       nextContainer.translatesAutoresizingMaskIntoConstraints = false
       nextStack.translatesAutoresizingMaskIntoConstraints = false
@@ -150,13 +156,20 @@
       nextCoverView.translatesAutoresizingMaskIntoConstraints = false
       nextStack.addArrangedSubview(nextCoverView)
 
+      nextMetadataStack.orientation = .vertical
+      nextMetadataStack.alignment = .centerX
+      nextMetadataStack.spacing = 4
+      nextStack.addArrangedSubview(nextMetadataStack)
+
       nextTitleLabel.alignment = .center
       nextTitleLabel.maximumNumberOfLines = 2
-      nextStack.addArrangedSubview(nextTitleLabel)
+      nextTitleLabel.lineBreakMode = .byTruncatingTail
+      nextMetadataStack.addArrangedSubview(nextTitleLabel)
 
       nextDetailLabel.alignment = .center
       nextDetailLabel.maximumNumberOfLines = 1
-      nextStack.addArrangedSubview(nextDetailLabel)
+      nextDetailLabel.lineBreakMode = .byTruncatingTail
+      nextMetadataStack.addArrangedSubview(nextDetailLabel)
 
       caughtUpStack.orientation = .horizontal
       caughtUpStack.alignment = .centerY
@@ -173,6 +186,11 @@
       horizontalDividerStack.orientation = .horizontal
       horizontalDividerStack.alignment = .centerY
       horizontalDividerStack.spacing = 10
+      horizontalDividerStack.setContentCompressionResistancePriority(.required, for: .vertical)
+      horizontalDividerStack.setContentHuggingPriority(.required, for: .vertical)
+      horizontalDividerStack.heightAnchor.constraint(greaterThanOrEqualToConstant: 18).isActive = true
+      horizontalDividerWidthConstraint = horizontalDividerStack.widthAnchor.constraint(equalToConstant: 320)
+      horizontalDividerWidthConstraint?.isActive = true
 
       leadingDivider.wantsLayer = true
       leadingDivider.translatesAutoresizingMaskIntoConstraints = false
@@ -182,6 +200,8 @@
 
       dividerTitleLabel.alignment = .center
       dividerTitleLabel.maximumNumberOfLines = 1
+      dividerTitleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+      dividerTitleLabel.setContentHuggingPriority(.required, for: .vertical)
       horizontalDividerStack.addArrangedSubview(dividerTitleLabel)
 
       trailingDivider.wantsLayer = true
@@ -189,6 +209,7 @@
       trailingDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
       trailingDivider.widthAnchor.constraint(greaterThanOrEqualToConstant: 40).isActive = true
       horizontalDividerStack.addArrangedSubview(trailingDivider)
+      leadingDivider.widthAnchor.constraint(equalTo: trailingDivider.widthAnchor).isActive = true
 
       verticalDivider.wantsLayer = true
       verticalDivider.translatesAutoresizingMaskIntoConstraints = false
@@ -245,11 +266,13 @@
         previousStack.trailingAnchor.constraint(equalTo: previousContainer.trailingAnchor),
         previousStack.topAnchor.constraint(equalTo: previousContainer.topAnchor),
         previousStack.bottomAnchor.constraint(equalTo: previousContainer.bottomAnchor),
+        previousMetadataStack.widthAnchor.constraint(equalTo: previousStack.widthAnchor),
 
         nextStack.leadingAnchor.constraint(equalTo: nextContainer.leadingAnchor),
         nextStack.trailingAnchor.constraint(equalTo: nextContainer.trailingAnchor),
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
+        nextMetadataStack.widthAnchor.constraint(equalTo: nextStack.widthAnchor),
 
         previousCoverWidthConstraint!,
         previousCoverHeightConstraint!,
@@ -266,16 +289,13 @@
         readListContext: readListContext,
         sectionDisplayMode: sectionDisplayMode
       )
-      let showsBothSections = presentation.previous.isVisible && presentation.next.isVisible
-      let visibleRelationTitle = showsBothSections ? presentation.relationTitle : ""
+      let relationTitle = presentation.relationTitle
 
       layer?.backgroundColor = NSColor(renderConfig.readerBackground.color).cgColor
 
-      relationHeaderLabel.stringValue = visibleRelationTitle
-      dividerTitleLabel.stringValue = visibleRelationTitle
-      dividerTitleLabel.isHidden = visibleRelationTitle.isEmpty
+      dividerTitleLabel.stringValue = relationTitle
+      dividerTitleLabel.isHidden = relationTitle.isEmpty
 
-      relationHeaderLabel.font = NSFont.preferredFont(forTextStyle: .headline)
       previousBadgeLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
       previousTitleLabel.font = NSFont.preferredFont(forTextStyle: .title3)
       previousDetailLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
@@ -285,7 +305,6 @@
       caughtUpLabel.font = NSFont.preferredFont(forTextStyle: .headline)
       dividerTitleLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
 
-      relationHeaderLabel.textColor = textColor.withAlphaComponent(0.85)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
       previousDetailLabel.textColor = textColor.withAlphaComponent(0.6)
@@ -323,8 +342,7 @@
         nextContainer.isHidden = false
         nextBadgeLabel.isHidden = presentation.next.badgeText == nil
         nextCoverView.isHidden = !presentation.next.showsCover
-        nextTitleLabel.isHidden = !presentation.next.showsMetadata
-        nextDetailLabel.isHidden = !presentation.next.showsMetadata
+        nextMetadataStack.isHidden = !presentation.next.showsMetadata
         caughtUpStack.isHidden = !presentation.next.showsCaughtUp
         nextTitleLabel.stringValue = presentation.next.title ?? ""
         nextDetailLabel.stringValue = presentation.next.detail ?? ""
@@ -333,8 +351,7 @@
         nextContainer.isHidden = true
         nextBadgeLabel.isHidden = true
         nextCoverView.isHidden = true
-        nextTitleLabel.isHidden = true
-        nextDetailLabel.isHidden = true
+        nextMetadataStack.isHidden = true
         caughtUpStack.isHidden = false
         nextTitleLabel.stringValue = ""
         nextDetailLabel.stringValue = ""
@@ -364,29 +381,34 @@
         readListContext: readListContext,
         sectionDisplayMode: sectionDisplayMode
       )
+      let showsRelationHeader = !isPortrait && !presentation.relationTitle.isEmpty
+      setArrangedSubviews(
+        of: contentStack,
+        with: [
+          showsRelationHeader ? horizontalDividerStack : nil,
+          sectionsStack,
+          closeButton,
+        ]
+      )
 
       switch presentation.layoutMode(for: bounds.size, readingDirection: readingDirection) {
       case .singlePrevious:
         sectionsStack.orientation = .vertical
-        relationHeaderLabel.isHidden = true
         previousCoverView.isHidden = previousBook == nil
         setArrangedSubviews(of: sectionsStack, with: [previousContainer])
       case .singleNext:
         sectionsStack.orientation = .vertical
-        relationHeaderLabel.isHidden = true
         previousCoverView.isHidden = true
         setArrangedSubviews(of: sectionsStack, with: [nextContainer])
       case .stacked:
         sectionsStack.orientation = .vertical
-        relationHeaderLabel.isHidden = true
         previousCoverView.isHidden = true
         setArrangedSubviews(
           of: sectionsStack,
           with: [previousContainer, horizontalDividerStack, nextContainer]
         )
-      case .sideBySide(let nextOnLeadingSide, let showsRelationHeader):
+      case .sideBySide(let nextOnLeadingSide, _):
         sectionsStack.orientation = .horizontal
-        relationHeaderLabel.isHidden = !showsRelationHeader
         previousCoverView.isHidden = previousBook == nil
         if nextOnLeadingSide {
           setArrangedSubviews(
@@ -404,14 +426,15 @@
       updateSectionsEqualWidthConstraint()
     }
 
-    private func setArrangedSubviews(of stack: NSStackView, with views: [NSView]) {
-      if stack.arrangedSubviews.elementsEqual(views, by: { $0 === $1 }) {
+    private func setArrangedSubviews(of stack: NSStackView, with views: [NSView?]) {
+      let filteredViews = views.compactMap { $0 }
+      if stack.arrangedSubviews.elementsEqual(filteredViews, by: { $0 === $1 }) {
         return
       }
 
       sectionsEqualWidthConstraint?.isActive = false
       stack.setViews([], in: .center)
-      for view in views {
+      for view in filteredViews {
         stack.addArrangedSubview(view)
       }
     }
@@ -438,6 +461,7 @@
       let outerPadding = clamped(minDimension * 0.08, lower: 20, upper: 56)
       let stackSpacing = clamped(minDimension * 0.034, lower: 12, upper: 22)
       let portraitSectionSpacing = stackSpacing + clamped(stackSpacing * 0.5, lower: 6, upper: 12)
+      let horizontalDividerWidth = clamped(bounds.width * 0.78, lower: 260, upper: 680)
       let coverWidth = clamped(minDimension * (isPortrait ? 0.28 : 0.22), lower: 96, upper: 190)
       let coverHeight = coverWidth / CoverAspectRatio.widthToHeight
       let dividerHeight = clamped(maxDimension * 0.32, lower: 140, upper: 320)
@@ -450,6 +474,7 @@
       contentTopConstraint?.constant = outerPadding
       contentBottomConstraint?.constant = -outerPadding
       contentMaxWidthConstraint?.constant = -outerPadding * 2
+      horizontalDividerWidthConstraint?.constant = horizontalDividerWidth
       previousCoverWidthConstraint?.constant = coverWidth
       previousCoverHeightConstraint?.constant = coverHeight
       nextCoverWidthConstraint?.constant = coverWidth

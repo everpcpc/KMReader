@@ -22,13 +22,13 @@
     private var lastIsPortrait: Bool?
 
     private let contentStack = UIStackView()
-    private let relationHeaderLabel = UILabel()
     private let sectionsStack = UIStackView()
 
     private let previousContainer = UIView()
     private let previousStack = UIStackView()
     private let previousBadgeLabel = UILabel()
     private let previousCoverView = NativeBookCoverView()
+    private let previousMetadataStack = UIStackView()
     private let previousTitleLabel = UILabel()
     private let previousDetailLabel = UILabel()
 
@@ -57,6 +57,7 @@
     private var contentTopConstraint: NSLayoutConstraint?
     private var contentBottomConstraint: NSLayoutConstraint?
     private var contentMaxWidthConstraint: NSLayoutConstraint?
+    private var horizontalDividerWidthConstraint: NSLayoutConstraint?
     private var previousCoverWidthConstraint: NSLayoutConstraint?
     private var previousCoverHeightConstraint: NSLayoutConstraint?
     private var nextCoverWidthConstraint: NSLayoutConstraint?
@@ -95,6 +96,7 @@
       self.renderConfig = renderConfig
       self.onDismiss = onDismiss
       applyConfiguration()
+      setNeedsLayout()
     }
 
     private func setupUI() {
@@ -107,11 +109,6 @@
       contentStack.isLayoutMarginsRelativeArrangement = true
       contentStack.layoutMargins = UIEdgeInsets(top: 20, left: 24, bottom: 20, right: 24)
       addSubview(contentStack)
-
-      relationHeaderLabel.numberOfLines = 1
-      relationHeaderLabel.textAlignment = .center
-      relationHeaderLabel.adjustsFontForContentSizeCategory = true
-      contentStack.addArrangedSubview(relationHeaderLabel)
 
       sectionsStack.axis = .vertical
       sectionsStack.alignment = .fill
@@ -134,15 +131,22 @@
       previousCoverView.translatesAutoresizingMaskIntoConstraints = false
       previousStack.addArrangedSubview(previousCoverView)
 
+      previousMetadataStack.axis = .vertical
+      previousMetadataStack.alignment = .fill
+      previousMetadataStack.spacing = 4
+      previousStack.addArrangedSubview(previousMetadataStack)
+
       previousTitleLabel.numberOfLines = 2
       previousTitleLabel.textAlignment = .center
       previousTitleLabel.adjustsFontForContentSizeCategory = true
-      previousStack.addArrangedSubview(previousTitleLabel)
+      previousTitleLabel.lineBreakMode = .byTruncatingTail
+      previousMetadataStack.addArrangedSubview(previousTitleLabel)
 
       previousDetailLabel.numberOfLines = 1
       previousDetailLabel.textAlignment = .center
       previousDetailLabel.adjustsFontForContentSizeCategory = true
-      previousStack.addArrangedSubview(previousDetailLabel)
+      previousDetailLabel.lineBreakMode = .byTruncatingTail
+      previousMetadataStack.addArrangedSubview(previousDetailLabel)
 
       nextContainer.translatesAutoresizingMaskIntoConstraints = false
       nextStack.translatesAutoresizingMaskIntoConstraints = false
@@ -160,18 +164,20 @@
       nextStack.addArrangedSubview(nextCoverView)
 
       nextMetadataStack.axis = .vertical
-      nextMetadataStack.alignment = .center
+      nextMetadataStack.alignment = .fill
       nextMetadataStack.spacing = 4
       nextStack.addArrangedSubview(nextMetadataStack)
 
       nextTitleLabel.numberOfLines = 2
       nextTitleLabel.textAlignment = .center
       nextTitleLabel.adjustsFontForContentSizeCategory = true
+      nextTitleLabel.lineBreakMode = .byTruncatingTail
       nextMetadataStack.addArrangedSubview(nextTitleLabel)
 
       nextDetailLabel.numberOfLines = 1
       nextDetailLabel.textAlignment = .center
       nextDetailLabel.adjustsFontForContentSizeCategory = true
+      nextDetailLabel.lineBreakMode = .byTruncatingTail
       nextMetadataStack.addArrangedSubview(nextDetailLabel)
 
       caughtUpStack.axis = .horizontal
@@ -191,6 +197,11 @@
       horizontalDividerStack.axis = .horizontal
       horizontalDividerStack.alignment = .center
       horizontalDividerStack.spacing = 10
+      horizontalDividerStack.setContentCompressionResistancePriority(.required, for: .vertical)
+      horizontalDividerStack.setContentHuggingPriority(.required, for: .vertical)
+      horizontalDividerStack.heightAnchor.constraint(greaterThanOrEqualToConstant: 18).isActive = true
+      horizontalDividerWidthConstraint = horizontalDividerStack.widthAnchor.constraint(equalToConstant: 320)
+      horizontalDividerWidthConstraint?.isActive = true
 
       leadingDivider.translatesAutoresizingMaskIntoConstraints = false
       leadingDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
@@ -200,12 +211,15 @@
       dividerTitleLabel.numberOfLines = 1
       dividerTitleLabel.textAlignment = .center
       dividerTitleLabel.adjustsFontForContentSizeCategory = true
+      dividerTitleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+      dividerTitleLabel.setContentHuggingPriority(.required, for: .vertical)
       horizontalDividerStack.addArrangedSubview(dividerTitleLabel)
 
       trailingDivider.translatesAutoresizingMaskIntoConstraints = false
       trailingDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
       trailingDivider.widthAnchor.constraint(greaterThanOrEqualToConstant: 40).isActive = true
       horizontalDividerStack.addArrangedSubview(trailingDivider)
+      leadingDivider.widthAnchor.constraint(equalTo: trailingDivider.widthAnchor).isActive = true
 
       verticalDivider.translatesAutoresizingMaskIntoConstraints = false
       verticalDivider.widthAnchor.constraint(equalToConstant: 1).isActive = true
@@ -264,11 +278,13 @@
         previousStack.trailingAnchor.constraint(equalTo: previousContainer.trailingAnchor),
         previousStack.topAnchor.constraint(equalTo: previousContainer.topAnchor),
         previousStack.bottomAnchor.constraint(equalTo: previousContainer.bottomAnchor),
+        previousMetadataStack.widthAnchor.constraint(equalTo: previousStack.widthAnchor),
 
         nextStack.leadingAnchor.constraint(equalTo: nextContainer.leadingAnchor),
         nextStack.trailingAnchor.constraint(equalTo: nextContainer.trailingAnchor),
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
+        nextMetadataStack.widthAnchor.constraint(equalTo: nextStack.widthAnchor),
 
         previousCoverWidthConstraint!,
         previousCoverHeightConstraint!,
@@ -285,16 +301,13 @@
         readListContext: readListContext,
         sectionDisplayMode: sectionDisplayMode
       )
-      let showsBothSections = presentation.previous.isVisible && presentation.next.isVisible
-      let visibleRelationTitle = showsBothSections ? presentation.relationTitle : ""
+      let relationTitle = presentation.relationTitle
 
       backgroundColor = UIColor(renderConfig.readerBackground.color)
 
-      relationHeaderLabel.text = visibleRelationTitle
-      dividerTitleLabel.text = visibleRelationTitle
-      dividerTitleLabel.isHidden = visibleRelationTitle.isEmpty
+      dividerTitleLabel.text = relationTitle
+      dividerTitleLabel.isHidden = relationTitle.isEmpty
 
-      relationHeaderLabel.font = preferredFont(textStyle: .headline, design: .rounded, weight: .semibold)
       previousBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
       previousTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
       previousDetailLabel.font = .preferredFont(forTextStyle: .caption1)
@@ -304,7 +317,6 @@
       caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
       dividerTitleLabel.font = .preferredFont(forTextStyle: .caption1)
 
-      relationHeaderLabel.textColor = textColor.withAlphaComponent(0.85)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
       previousDetailLabel.textColor = textColor.withAlphaComponent(0.6)
@@ -388,6 +400,7 @@
         readListContext: readListContext,
         sectionDisplayMode: sectionDisplayMode
       )
+      let showsRelationHeader = !isPortrait && !presentation.relationTitle.isEmpty
 
       previousStack.alignment = .center
       nextStack.alignment = .center
@@ -396,11 +409,18 @@
       nextTitleLabel.textAlignment = .center
       nextDetailLabel.textAlignment = .center
       caughtUpLabel.textAlignment = .center
+      setArrangedSubviews(
+        of: contentStack,
+        with: [
+          showsRelationHeader ? horizontalDividerStack : nil,
+          sectionsStack,
+          buttonStack,
+        ]
+      )
 
       switch presentation.layoutMode(for: bounds.size, readingDirection: readingDirection) {
       case .singlePrevious:
         sectionsStack.axis = .vertical
-        relationHeaderLabel.isHidden = true
         previousCoverView.isHidden = previousBook == nil
         setArrangedSubviews(
           of: sectionsStack,
@@ -410,7 +430,6 @@
         )
       case .singleNext:
         sectionsStack.axis = .vertical
-        relationHeaderLabel.isHidden = true
         previousCoverView.isHidden = previousBook == nil
         setArrangedSubviews(
           of: sectionsStack,
@@ -420,7 +439,6 @@
         )
       case .stacked:
         sectionsStack.axis = .vertical
-        relationHeaderLabel.isHidden = true
         previousCoverView.isHidden = true
         setArrangedSubviews(
           of: sectionsStack,
@@ -430,9 +448,8 @@
             nextContainer,
           ]
         )
-      case .sideBySide(let nextOnLeadingSide, let showsRelationHeader):
+      case .sideBySide(let nextOnLeadingSide, _):
         sectionsStack.axis = .horizontal
-        relationHeaderLabel.isHidden = !showsRelationHeader
         previousCoverView.isHidden = previousBook == nil
 
         if nextOnLeadingSide {
@@ -499,6 +516,7 @@
       let innerPadding = clamped(minDimension * 0.045, lower: 16, upper: 32)
       let stackSpacing = clamped(minDimension * 0.034, lower: 12, upper: 22)
       let portraitSectionSpacing = stackSpacing + clamped(stackSpacing * 0.5, lower: 6, upper: 12)
+      let horizontalDividerWidth = clamped(bounds.width * 0.78, lower: 260, upper: 680)
       let coverWidth = clamped(minDimension * 0.24, lower: 96, upper: 190)
       let coverHeight = coverWidth / CoverAspectRatio.widthToHeight
       let dividerHeight = clamped(maxDimension * 0.32, lower: 140, upper: 320)
@@ -517,6 +535,7 @@
       contentTopConstraint?.constant = outerPadding
       contentBottomConstraint?.constant = -outerPadding
       contentMaxWidthConstraint?.constant = -outerPadding * 2
+      horizontalDividerWidthConstraint?.constant = horizontalDividerWidth
       previousCoverWidthConstraint?.constant = coverWidth
       previousCoverHeightConstraint?.constant = coverHeight
       nextCoverWidthConstraint?.constant = coverWidth
