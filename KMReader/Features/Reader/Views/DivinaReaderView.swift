@@ -183,6 +183,21 @@ struct DivinaReaderView: View {
     readerPresentation.updateHandoff(sessionID: sessionID, title: handoffTitle, url: url)
   }
 
+  #if os(iOS)
+    private func updateReaderLiveActivityProgress() {
+      let segmentBookId = currentSegmentBookId
+      let totalPages = viewModel.pageCount(forSegmentBookId: segmentBookId)
+      guard totalPages > 0 else { return }
+      let currentPage = viewModel.currentPageNumber(inSegmentBookId: segmentBookId) ?? 0
+      ReaderLiveActivityManager.shared.updateReadingProgress(
+        ReaderLiveActivityManager.normalizedPageProgress(
+          currentPage: currentPage,
+          totalPages: totalPages
+        )
+      )
+    }
+  #endif
+
   private func closeReader() {
     logger.debug(
       "🚪 Closing DIVINA reader for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pageCount)"
@@ -653,6 +668,9 @@ struct DivinaReaderView: View {
         #endif
         .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
           updateHandoff()
+          #if os(iOS)
+            updateReaderLiveActivityProgress()
+          #endif
           // Keep progress sync responsive.
           Task(priority: .userInitiated) {
             await viewModel.updateProgress()

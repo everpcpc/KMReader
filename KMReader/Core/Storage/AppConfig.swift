@@ -496,6 +496,18 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var enableReaderLiveActivity: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableReaderLiveActivity") != nil {
+        return UserDefaults.standard.bool(forKey: "enableReaderLiveActivity")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enableReaderLiveActivity")
+    }
+  }
+
   static nonisolated var autoFullscreenOnOpen: Bool {
     get {
       if UserDefaults.standard.object(forKey: "autoFullscreenOnOpen") != nil {

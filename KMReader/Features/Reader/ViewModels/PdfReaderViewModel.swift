@@ -163,6 +163,14 @@
 
       guard !bookId.isEmpty else { return }
       guard normalizedTotal > 0 else { return }
+      #if os(iOS)
+        ReaderLiveActivityManager.shared.updateReadingProgress(
+          ReaderLiveActivityManager.normalizedPageProgress(
+            currentPage: normalizedPage,
+            totalPages: normalizedTotal
+          )
+        )
+      #endif
       guard !incognito else {
         logger.debug("⏭️ [Progress/Page] Skip PDF capture: incognito mode enabled")
         return
