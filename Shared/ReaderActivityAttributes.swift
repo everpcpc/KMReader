@@ -28,17 +28,23 @@ import Foundation
       public var readerKind: ReaderKind
       public var seriesTitle: String
       public var chapterTitle: String
+      public var isIncognito: Bool
+      public var readingProgress: Double
 
       public init(
         sessionState: SessionState,
         readerKind: ReaderKind,
         seriesTitle: String,
-        chapterTitle: String
+        chapterTitle: String,
+        isIncognito: Bool,
+        readingProgress: Double
       ) {
         self.sessionState = sessionState
         self.readerKind = readerKind
         self.seriesTitle = seriesTitle
         self.chapterTitle = chapterTitle
+        self.isIncognito = isIncognito
+        self.readingProgress = readingProgress
       }
     }
 

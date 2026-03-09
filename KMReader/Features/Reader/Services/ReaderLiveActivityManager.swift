@@ -9,22 +9,92 @@ import Foundation
 
   @MainActor
   final class ReaderLiveActivityManager {
+    private struct SessionSnapshot {
+      var book: Book
+      var incognito: Bool
+      var readingProgress: Double
+    }
+
     static let shared = ReaderLiveActivityManager()
 
     private let logger = AppLogger(.reader)
     private var currentActivity: Activity<ReaderActivityAttributes>?
-    private var pendingEndTask: Task<Void, Never>?
+    private var currentSnapshot: SessionSnapshot?
+    private var lastDeliveredState: ReaderActivityAttributes.ContentState?
+    private var preferenceObserverTask: Task<Void, Never>?
 
-    private init() {}
+    private init() {
+      preferenceObserverTask = Task { [weak self] in
+        guard let self else { return }
+        self.syncActivity()
+        for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
+          self.syncActivity()
+        }
+      }
+    }
 
-    func readerDidOpen(book: Book) {
-      pendingEndTask?.cancel()
-      pendingEndTask = nil
+    func readerDidOpen(book: Book, incognito: Bool) {
+      currentSnapshot = SessionSnapshot(
+        book: book,
+        incognito: incognito,
+        readingProgress: initialProgress(for: book, incognito: incognito)
+      )
+      syncActivity()
+    }
 
-      let state = makeState(sessionState: .reading, book: book)
+    func readerDidUpdateBook(_ book: Book, incognito: Bool) {
+      let updatedProgress: Double
+      if currentSnapshot?.book.id == book.id {
+        updatedProgress = currentSnapshot?.readingProgress ?? initialProgress(for: book, incognito: incognito)
+      } else {
+        updatedProgress = initialProgress(for: book, incognito: incognito)
+      }
 
-      if let activity = resolveActivity() {
-        update(activity: activity, with: state)
+      currentSnapshot = SessionSnapshot(
+        book: book,
+        incognito: incognito,
+        readingProgress: updatedProgress
+      )
+      syncActivity()
+    }
+
+    func updateReadingProgress(_ progress: Double) {
+      guard var snapshot = currentSnapshot else { return }
+      guard !snapshot.incognito else { return }
+
+      let normalizedProgress = Self.normalizedProgress(progress)
+      let previousPercent = Self.displayPercent(for: snapshot.readingProgress)
+      let newPercent = Self.displayPercent(for: normalizedProgress)
+      guard newPercent != previousPercent else { return }
+
+      snapshot.readingProgress = normalizedProgress
+      currentSnapshot = snapshot
+      syncActivity()
+    }
+
+    func readerDidClose() {
+      currentSnapshot = nil
+      endCurrentActivity()
+    }
+
+    private func endCurrentActivity() {
+      let activity = resolveActivity()
+      currentActivity = nil
+      lastDeliveredState = nil
+      guard let activity else { return }
+      Task {
+        await activity.end(nil, dismissalPolicy: .immediate)
+      }
+    }
+
+    private func syncActivity() {
+      guard AppConfig.enableReaderLiveActivity else {
+        endCurrentActivity()
+        return
+      }
+
+      guard let snapshot = currentSnapshot else {
+        endCurrentActivity()
         return
       }
 
@@ -33,7 +103,15 @@ import Foundation
         return
       }
 
-      let attributes = ReaderActivityAttributes(bookId: book.id)
+      let state = makeState(sessionState: .reading, snapshot: snapshot)
+
+      if let activity = resolveActivity() {
+        guard lastDeliveredState != state else { return }
+        update(activity: activity, with: state)
+        return
+      }
+
+      let attributes = ReaderActivityAttributes(bookId: snapshot.book.id)
 
       do {
         currentActivity = try Activity.request(
@@ -41,43 +119,24 @@ import Foundation
           content: .init(state: state, staleDate: nil),
           pushType: nil
         )
+        lastDeliveredState = state
         logger.info("✅ Reader Live Activity started.")
       } catch {
         logger.error("❌ Failed to start reader Live Activity: \(error)")
       }
     }
 
-    func readerDidClose(book: Book?) {
-      guard let activity = resolveActivity() else { return }
-
-      let state = makeState(sessionState: .closed, book: book)
-      update(activity: activity, with: state)
-
-      pendingEndTask?.cancel()
-      pendingEndTask = Task { [weak self] in
-        try? await Task.sleep(for: .seconds(12))
-        guard !Task.isCancelled else { return }
-        self?.endCurrentActivity()
-      }
-    }
-
-    private func endCurrentActivity() {
-      guard let activity = resolveActivity() else { return }
-      Task {
-        await activity.end(nil, dismissalPolicy: .immediate)
-      }
-      currentActivity = nil
-    }
-
     private func makeState(
       sessionState: ReaderActivityAttributes.SessionState,
-      book: Book?
+      snapshot: SessionSnapshot
     ) -> ReaderActivityAttributes.ContentState {
       ReaderActivityAttributes.ContentState(
         sessionState: sessionState,
-        readerKind: resolveReaderKind(for: book),
-        seriesTitle: book?.seriesTitle ?? "",
-        chapterTitle: resolveChapterTitle(for: book)
+        readerKind: resolveReaderKind(for: snapshot.book),
+        seriesTitle: snapshot.book.seriesTitle,
+        chapterTitle: resolveChapterTitle(for: snapshot.book),
+        isIncognito: snapshot.incognito,
+        readingProgress: snapshot.incognito ? 0 : snapshot.readingProgress
       )
     }
 
@@ -117,6 +176,7 @@ import Foundation
       activity: Activity<ReaderActivityAttributes>,
       with state: ReaderActivityAttributes.ContentState
     ) {
+      lastDeliveredState = state
       Task {
         await activity.update(.init(state: state, staleDate: nil))
       }
@@ -131,6 +191,29 @@ import Foundation
         return existing
       }
       return nil
+    }
+
+    private func initialProgress(for book: Book, incognito: Bool) -> Double {
+      guard !incognito else { return 0 }
+      if book.isCompleted {
+        return 1
+      }
+      guard book.media.pagesCount > 0 else { return 0 }
+      let page = max(0, book.readProgress?.page ?? 0)
+      return Self.normalizedPageProgress(currentPage: page, totalPages: book.media.pagesCount)
+    }
+
+    static nonisolated func normalizedProgress(_ progress: Double) -> Double {
+      min(max(progress, 0), 1)
+    }
+
+    static nonisolated func normalizedPageProgress(currentPage: Int, totalPages: Int) -> Double {
+      guard totalPages > 0 else { return 0 }
+      return normalizedProgress(Double(max(currentPage, 0)) / Double(totalPages))
+    }
+
+    private static nonisolated func displayPercent(for progress: Double) -> Int {
+      Int((normalizedProgress(progress) * 100).rounded())
     }
   }
 #endif

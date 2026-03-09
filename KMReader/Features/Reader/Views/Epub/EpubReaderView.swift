@@ -114,6 +114,11 @@
       readerPresentation.updateHandoff(sessionID: sessionID, title: handoffTitle, url: url)
     }
 
+    private func updateReaderLiveActivityProgress() {
+      let progress = viewModel.currentLocation?.totalProgression ?? 0
+      ReaderLiveActivityManager.shared.updateReadingProgress(progress)
+    }
+
     var body: some View {
       readerBody
         .iPadIgnoresSafeArea()
@@ -132,6 +137,13 @@
             readerPresentation.updatePresentedBook(sessionID: sessionID, book: newBook)
           }
           updateHandoff()
+        }
+        .onChange(of: viewModel.currentLocation) { _, _ in
+          updateReaderLiveActivityProgress()
+        }
+        .onChange(of: showingEndPage) { _, newValue in
+          guard newValue else { return }
+          ReaderLiveActivityManager.shared.updateReadingProgress(1)
         }
         .onChange(of: activePreferences) { _, newPrefs in
           viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)

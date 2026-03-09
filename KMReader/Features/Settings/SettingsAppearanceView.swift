@@ -12,6 +12,9 @@ struct SettingsAppearanceView: View {
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
   @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
   #if os(iOS)
+    @AppStorage("enableReaderLiveActivity") private var enableReaderLiveActivity: Bool = true
+  #endif
+  #if os(iOS)
     @State private var selectedAppIcon: AppIconOption = .primary
     @State private var isUpdatingAppIcon: Bool = false
   #endif
@@ -118,6 +121,19 @@ struct SettingsAppearanceView: View {
           }
         }
       }
+
+      #if os(iOS)
+        Section(header: Text("Live Activities")) {
+          Toggle(isOn: $enableReaderLiveActivity) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Reader Live Activity")
+              Text("Show reader progress on the Lock Screen and in Dynamic Island.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        }
+      #endif
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.appearance.title)

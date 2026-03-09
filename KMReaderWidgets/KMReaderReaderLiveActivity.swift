@@ -35,21 +35,11 @@ import WidgetKit
               Text(context.state.readerKind.label)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-              Text(context.state.statusTitle)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(context.state.tintColor)
+              trailingStatusView(for: context.state)
             }
           }
 
-          Capsule()
-            .fill(context.state.tintColor.opacity(0.3))
-            .frame(height: 6)
-            .overlay(alignment: .leading) {
-              Capsule()
-                .fill(context.state.tintColor)
-                .frame(width: context.state.isReading ? 80 : 28, height: 6)
-            }
-            .animation(.easeInOut(duration: 0.25), value: context.state.isReading)
+          progressBar(for: context.state)
         }
         .padding(12)
         .activityBackgroundTint(Color(.systemBackground).opacity(0.95))
@@ -63,9 +53,7 @@ import WidgetKit
               .font(.title2)
           }
           DynamicIslandExpandedRegion(.trailing) {
-            Text(context.state.statusShortTitle)
-              .font(.caption.weight(.bold))
-              .foregroundStyle(context.state.tintColor)
+            trailingStatusView(for: context.state)
           }
           DynamicIslandExpandedRegion(.center) {
             VStack(spacing: 2) {
@@ -86,18 +74,14 @@ import WidgetKit
               Circle()
                 .fill(context.state.tintColor)
                 .frame(width: 6, height: 6)
-              Text(context.state.statusTitle)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(context.state.tintColor)
+              trailingStatusView(for: context.state)
             }
           }
         } compactLeading: {
           Image(systemName: context.state.readerKind.iconName)
             .foregroundStyle(context.state.tintColor)
         } compactTrailing: {
-          Text(context.state.statusShortTitle)
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(context.state.tintColor)
+          compactTrailingStatusView(for: context.state)
         } minimal: {
           Image(systemName: context.state.readerKind.iconName)
             .foregroundStyle(context.state.tintColor)
@@ -105,23 +89,76 @@ import WidgetKit
         .keylineTint(context.state.tintColor)
       }
     }
+
+    @ViewBuilder
+    private func trailingStatusView(for state: ReaderActivityAttributes.ContentState) -> some View {
+      if state.isIncognitoSession {
+        Image(systemName: "eye.slash.fill")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(state.tintColor)
+      } else {
+        Text(state.progressText)
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(state.tintColor)
+      }
+    }
+
+    @ViewBuilder
+    private func compactTrailingStatusView(for state: ReaderActivityAttributes.ContentState) -> some View {
+      if state.isIncognitoSession {
+        Image(systemName: "eye.slash.fill")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(state.tintColor)
+      } else {
+        Text(state.progressText)
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(state.tintColor)
+      }
+    }
+
+    private func progressBar(for state: ReaderActivityAttributes.ContentState) -> some View {
+      Capsule()
+        .fill(state.tintColor.opacity(0.2))
+        .frame(height: 6)
+        .overlay {
+          GeometryReader { geometry in
+            if state.isIncognitoSession {
+              HStack {
+                Spacer()
+                Image(systemName: "eye.slash")
+                  .font(.caption2.weight(.semibold))
+                  .foregroundStyle(state.tintColor)
+                Spacer()
+              }
+            } else {
+              HStack {
+                Capsule()
+                  .fill(state.tintColor)
+                  .frame(width: geometry.size.width * state.progressFraction, height: 6)
+                Spacer(minLength: 0)
+              }
+            }
+          }
+        }
+        .animation(.easeInOut(duration: 0.25), value: state.progressFraction)
+    }
   }
 
   extension ReaderActivityAttributes.ContentState {
-    fileprivate var isReading: Bool {
-      sessionState == .reading
+    fileprivate var isIncognitoSession: Bool {
+      isIncognito
     }
 
-    fileprivate var statusTitle: String {
-      isReading ? "Reading" : "Closed"
+    fileprivate var progressFraction: Double {
+      min(max(readingProgress, 0), 1)
     }
 
-    fileprivate var statusShortTitle: String {
-      isReading ? "ON" : "OFF"
+    fileprivate var progressText: String {
+      "\(Int((progressFraction * 100).rounded()))%"
     }
 
     fileprivate var tintColor: Color {
-      isReading ? .green : .gray
+      isIncognitoSession ? .orange : .green
     }
   }
 
@@ -161,7 +198,9 @@ import WidgetKit
         sessionState: .reading,
         readerKind: .divina,
         seriesTitle: "One Piece",
-        chapterTitle: "#1058 - The Flame Emperor's Triumph"
+        chapterTitle: "#1058 - The Flame Emperor's Triumph",
+        isIncognito: false,
+        readingProgress: 0.58
       )
     }
   }

@@ -85,7 +85,7 @@ final class ReaderPresentationManager {
     currentSession = session
 
     #if os(iOS)
-      ReaderLiveActivityManager.shared.readerDidOpen(book: book)
+      ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
     #endif
 
     #if os(macOS)
@@ -130,6 +130,9 @@ final class ReaderPresentationManager {
     guard var session = currentSession, session.id == sessionID else { return }
     session.book = book
     currentSession = session
+    #if os(iOS)
+      ReaderLiveActivityManager.shared.readerDidUpdateBook(book, incognito: session.incognito)
+    #endif
   }
 
   func closeReader(syncVisited: Bool = true) {
@@ -138,7 +141,7 @@ final class ReaderPresentationManager {
     finishSession(currentSession, syncVisited: syncVisited)
 
     #if os(iOS)
-      ReaderLiveActivityManager.shared.readerDidClose(book: currentSession.book)
+      ReaderLiveActivityManager.shared.readerDidClose()
     #endif
 
     #if os(macOS)
