@@ -221,10 +221,13 @@
       }
 
       private func resolvedViewportSize(for collectionView: UICollectionView) -> CGSize {
-        if parent.viewportSize.width > 0, parent.viewportSize.height > 0 {
-          return parent.viewportSize
+        let boundsSize = collectionView.bounds.size
+        // The reader content ignores safe area, so the visible collection view bounds
+        // are the only reliable paging viewport after layout.
+        if boundsSize.width > 0, boundsSize.height > 0 {
+          return boundsSize
         }
-        return collectionView.bounds.size
+        return parent.viewportSize
       }
 
       private func canApplyInitialPosition(in collectionView: UICollectionView) -> Bool {
