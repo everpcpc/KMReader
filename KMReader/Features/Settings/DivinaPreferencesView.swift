@@ -121,9 +121,15 @@ struct DivinaPreferencesView: View {
               }
             }
             .pickerStyle(.menu)
-            Text("In single page mode, split landscape pages into two separate pages")
-              .font(.caption)
-              .foregroundColor(.secondary)
+            Text(
+              String(
+                localized: "reader.split_wide_pages.single_page_only.caption",
+                defaultValue:
+                  "Only applies in single-page mode. In dual-page mode, Page Curl uses Auto and Cover/Scroll disable splitting."
+              )
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
           }
         }
 

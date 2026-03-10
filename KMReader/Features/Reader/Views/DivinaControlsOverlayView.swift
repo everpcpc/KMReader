@@ -27,6 +27,7 @@ struct DivinaControlsOverlayView: View {
   let nextBook: Book?
   let onPreviousBook: ((String) -> Void)?
   let onNextBook: ((String) -> Void)?
+  let supportsSplitWidePageMode: Bool
   let controlsVisible: Bool
   let showingControls: Bool
 
@@ -341,7 +342,7 @@ struct DivinaControlsOverlayView: View {
         }
       }
 
-      if readingDirection != .webtoon && (pageLayout == .single || pageLayout == .auto) {
+      if supportsSplitWidePageMode {
         Picker(selection: $splitWidePageMode) {
           ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
             Label(mode.displayName, systemImage: mode.icon).tag(mode)

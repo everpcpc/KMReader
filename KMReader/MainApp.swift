@@ -224,20 +224,22 @@ struct MainApp: App {
         }
         .disabled(!state.isActive || !state.supportsDualPageOptions)
 
-        Menu("Split Wide Pages") {
-          ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
-            Button {
-              readerPresentation.setSplitWidePageModeFromCommand(mode)
-            } label: {
-              if state.splitWidePageMode == mode {
-                Label(mode.displayName, systemImage: "checkmark")
-              } else {
-                Text(mode.displayName)
+        if state.supportsSplitWidePageMode {
+          Menu("Split Wide Pages") {
+            ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
+              Button {
+                readerPresentation.setSplitWidePageModeFromCommand(mode)
+              } label: {
+                if state.splitWidePageMode == mode {
+                  Label(mode.displayName, systemImage: "checkmark")
+                } else {
+                  Text(mode.displayName)
+                }
               }
             }
           }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive || !state.supportsSplitWidePageMode)
 
         Divider()
 

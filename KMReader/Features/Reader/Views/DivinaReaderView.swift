@@ -51,6 +51,7 @@ struct DivinaReaderView: View {
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
+  @State private var isUsingDualPagePresentation = false
 
   // UI Panels states
   @State private var showingPageJumpSheet = false
@@ -172,6 +173,22 @@ struct DivinaReaderView: View {
     max(tapPageTransitionDuration, 0)
   }
 
+  private var effectiveSplitWidePageMode: SplitWidePageMode {
+    SplitWidePageMode.effectiveMode(
+      preference: splitWidePageMode,
+      isUsingDualPage: isUsingDualPagePresentation,
+      transitionStyle: pageTransitionStyle
+    )
+  }
+
+  private var supportsManualSplitWidePageMode: Bool {
+    SplitWidePageMode.supportsManualSelection(
+      pageLayout: pageLayout,
+      readingDirection: readingDirection,
+      isUsingDualPage: isUsingDualPagePresentation
+    )
+  }
+
   private func shouldUseDualPage(screenSize: CGSize) -> Bool {
     guard screenSize.width > screenSize.height else { return false }  // Only in landscape
     guard pageLayout != .single else { return false }
@@ -235,7 +252,7 @@ struct DivinaReaderView: View {
     viewModel.updatePageLayout(pageLayout)
     isolateCoverPage = AppConfig.isolateCoverPage
     splitWidePageMode = AppConfig.splitWidePageMode
-    viewModel.updateSplitWidePageMode(splitWidePageMode)
+    viewModel.updateSplitWidePageMode(effectiveSplitWidePageMode)
     readingDirection = AppConfig.defaultReadingDirection
   }
 
@@ -243,14 +260,17 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
-  private func readerContentKey(useDualPage: Bool) -> String {
+  private func readerContentKey(
+    useDualPage: Bool,
+    effectiveSplitWidePageMode: SplitWidePageMode
+  ) -> String {
     [
       currentBookId,
       readingDirection.rawValue,
       pageTransitionStyle.rawValue,
       pageLayout.rawValue,
       isolateCoverPage.description,
-      splitWidePageMode.rawValue,
+      effectiveSplitWidePageMode.rawValue,
       String(useDualPage),
     ].joined(separator: "-")
   }
@@ -411,13 +431,24 @@ struct DivinaReaderView: View {
       let screenSize = geometry.size
       let screenKey = screenKey(screenSize: screenSize)
       let useDualPage = shouldUseDualPage(screenSize: screenSize)
+      let resolvedSplitWidePageMode = SplitWidePageMode.effectiveMode(
+        preference: splitWidePageMode,
+        isUsingDualPage: useDualPage,
+        transitionStyle: pageTransitionStyle
+      )
+      let shouldShowSplitWidePageModePicker = SplitWidePageMode.supportsManualSelection(
+        pageLayout: pageLayout,
+        readingDirection: readingDirection,
+        isUsingDualPage: useDualPage
+      )
 
       ZStack {
         readerBackground.color.readerIgnoresSafeArea()
 
         readerContent(
           useDualPage: useDualPage,
-          screenSize: screenSize
+          screenSize: screenSize,
+          splitWidePageMode: resolvedSplitWidePageMode
         )
 
         #if os(tvOS)
@@ -426,14 +457,21 @@ struct DivinaReaderView: View {
 
         helperOverlay(screenKey: screenKey)
 
-        controlsOverlay(useDualPage: useDualPage)
+        controlsOverlay(
+          useDualPage: useDualPage,
+          supportsSplitWidePageMode: shouldShowSplitWidePageModePicker
+        )
 
         #if os(macOS)
           keyboardHelpOverlay
         #endif
       }
       .onChange(of: useDualPage, initial: true) { _, newValue in
+        isUsingDualPagePresentation = newValue
         applyDualPagePresentationMode(newValue)
+      }
+      .onChange(of: resolvedSplitWidePageMode, initial: true) { _, newValue in
+        viewModel.updateSplitWidePageMode(newValue)
       }
       #if os(tvOS)
         .onPlayPauseCommand {
@@ -510,9 +548,6 @@ struct DivinaReaderView: View {
     }
     .onChange(of: pageLayout) { _, newValue in
       viewModel.updatePageLayout(newValue)
-    }
-    .onChange(of: splitWidePageMode) { _, newValue in
-      viewModel.updateSplitWidePageMode(newValue)
     }
     .task(id: currentBookId) {
       readerPresentation.registerFlushHandler(for: sessionID) {
@@ -599,9 +634,13 @@ struct DivinaReaderView: View {
   @ViewBuilder
   private func readerContent(
     useDualPage: Bool,
-    screenSize: CGSize
+    screenSize: CGSize,
+    splitWidePageMode: SplitWidePageMode
   ) -> some View {
-    let contentKey = readerContentKey(useDualPage: useDualPage)
+    let contentKey = readerContentKey(
+      useDualPage: useDualPage,
+      effectiveSplitWidePageMode: splitWidePageMode
+    )
     Group {
       if viewModel.hasPages {
         Group {
@@ -654,10 +693,18 @@ struct DivinaReaderView: View {
                   )
                 }
               #else
-                standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
+                standardScrollPageView(
+                  useDualPage: useDualPage,
+                  screenSize: screenSize,
+                  splitWidePageMode: splitWidePageMode
+                )
               #endif
             case .scroll:
-              standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
+              standardScrollPageView(
+                useDualPage: useDualPage,
+                screenSize: screenSize,
+                splitWidePageMode: splitWidePageMode
+              )
             case .cover:
               CoverPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
@@ -718,7 +765,11 @@ struct DivinaReaderView: View {
   }
 
   @ViewBuilder
-  private func standardScrollPageView(useDualPage: Bool, screenSize: CGSize) -> some View {
+  private func standardScrollPageView(
+    useDualPage: Bool,
+    screenSize: CGSize,
+    splitWidePageMode: SplitWidePageMode
+  ) -> some View {
     ScrollPageView(
       mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
       viewportSize: screenSize,
@@ -767,7 +818,10 @@ struct DivinaReaderView: View {
     }
   #endif
 
-  private func controlsOverlay(useDualPage: Bool) -> some View {
+  private func controlsOverlay(
+    useDualPage: Bool,
+    supportsSplitWidePageMode: Bool
+  ) -> some View {
     DivinaControlsOverlayView(
       readingDirection: $readingDirection,
       pageLayout: $pageLayout,
@@ -786,6 +840,7 @@ struct DivinaReaderView: View {
       nextBook: currentSegmentNextBook,
       onPreviousBook: { openPreviousBook(previousBookId: $0) },
       onNextBook: { openNextBook(nextBookId: $0) },
+      supportsSplitWidePageMode: supportsSplitWidePageMode,
       controlsVisible: shouldShowControls,
       showingControls: showingControls
     )
@@ -1248,10 +1303,6 @@ struct DivinaReaderView: View {
         && readingDirection != .vertical
         && pageLayout.supportsDualPageOptions
 
-      let supportsSplitWidePageMode =
-        readingDirection != .webtoon
-        && (pageLayout == .single || pageLayout == .auto)
-
       return ReaderPresentationManager.MacReaderCommandState(
         isActive: true,
         hasPages: viewModel.hasPages,
@@ -1263,7 +1314,7 @@ struct DivinaReaderView: View {
         isolateCoverPage: isolateCoverPage,
         splitWidePageMode: splitWidePageMode,
         supportsDualPageOptions: supportsDualPageOptions,
-        supportsSplitWidePageMode: supportsSplitWidePageMode
+        supportsSplitWidePageMode: supportsManualSplitWidePageMode
       )
     }
 
@@ -1453,7 +1504,7 @@ struct DivinaReaderView: View {
     viewModel = ReaderViewModel(
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
-      splitWidePageMode: splitWidePageMode,
+      splitWidePageMode: effectiveSplitWidePageMode,
       incognitoMode: incognito
     )
     // Reset overlay state
@@ -1474,7 +1525,7 @@ struct DivinaReaderView: View {
     viewModel = ReaderViewModel(
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
-      splitWidePageMode: splitWidePageMode,
+      splitWidePageMode: effectiveSplitWidePageMode,
       incognitoMode: incognito
     )
     // Reset overlay state

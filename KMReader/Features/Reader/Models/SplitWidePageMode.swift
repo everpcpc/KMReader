@@ -11,6 +11,31 @@ enum SplitWidePageMode: String, CaseIterable, Hashable {
   case ltr = "ltr"
   case rtl = "rtl"
 
+  static func effectiveMode(
+    preference: SplitWidePageMode,
+    isUsingDualPage: Bool,
+    transitionStyle: PageTransitionStyle
+  ) -> SplitWidePageMode {
+    guard isUsingDualPage else { return preference }
+
+    switch transitionStyle {
+    case .pageCurl:
+      return .auto
+    case .cover, .scroll:
+      return .none
+    }
+  }
+
+  static func supportsManualSelection(
+    pageLayout: PageLayout,
+    readingDirection: ReadingDirection,
+    isUsingDualPage: Bool
+  ) -> Bool {
+    guard !isUsingDualPage else { return false }
+    guard readingDirection != .webtoon, readingDirection != .vertical else { return false }
+    return pageLayout == .single || pageLayout == .auto
+  }
+
   var displayName: String {
     switch self {
     case .none:

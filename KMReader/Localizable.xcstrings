@@ -28381,70 +28381,6 @@
         }
       }
     },
-    "In single page mode, split landscape pages into two separate pages" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Im Einzelseitenmodus werden Querformatseiten in zwei separate Seiten aufgeteilt, entsprechend der Leserichtung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In single page mode, split landscape pages into two separate pages according to reading direction"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En modo de pagina unica, divide las paginas horizontales en dos paginas segun la direccion de lectura"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En mode page unique, diviser les pages paysage en deux pages distinctes selon le sens de lecture"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In modalita pagina singola, dividi le pagine orizzontali in due pagine separate in base alla direzione di lettura"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "シングルページモードで、読み方向に応じて横長ページを2つの独立したページに分割します"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "단일 페이지 모드에서 읽기 방향에 따라 가로 페이지를 두 개의 별도 페이지로 분할합니다"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "В режиме одной страницы разделять горизонтальные страницы на две отдельные по направлению чтения"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在单页模式下，根据阅读方向将横向页面分割为两个独立页面"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在單頁模式下，根據閱讀方向將橫向頁面分割為兩個獨立頁面"
-          }
-        }
-      }
-    },
     "Index" : {
       "localizations" : {
         "de" : {
@@ -51803,6 +51739,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上一本"
+          }
+        }
+      }
+    },
+    "reader.split_wide_pages.single_page_only.caption" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only applies in single-page mode. In dual-page mode, Page Curl uses Auto, and Cover/Scroll disable splitting."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gilt nur im Einzelseitenmodus. Im Doppelseitenmodus verwendet Seitenrollen Automatisch, und Cover/Scroll deaktivieren die Teilung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se aplica en modo de pagina unica. En modo de doble pagina, Paso de pagina curvado usa Automatico y Capa/Desplazarse desactivan la division."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S’applique uniquement en mode page unique. En mode double page, Tournement de page utilise Auto, et Couverture/Défilement désactivent le découpage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si applica solo in modalità pagina singola. In modalità doppia pagina, Volta pagina a effetto curl usa Automatico e Copertura/Scorri disattivano la divisione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単ページモードでのみ適用されます。見開きモードでは、ページカールは自動を使い、カバー/スクロールでは分割を無効にします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단일 페이지 모드에서만 적용됩니다. 듀얼 페이지 모드에서는 페이지 컬이 자동을 사용하고, 커버/스크롤은 분할을 비활성화합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применяется только в режиме одной страницы. В двухстраничном режиме Перелистывание с загибом использует Авто, а Накрытие/Непрерывный отключают разделение."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在单页模式下生效。双页模式下，仿真翻页会使用自动，覆盖/滚动会禁用分割。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅在單頁模式下生效。雙頁模式下，仿真翻頁會使用自動，覆蓋/捲動會停用分割。"
           }
         }
       }
