@@ -257,6 +257,14 @@
       }
 
       private func resolvedViewportSize(for collectionView: NSCollectionView) -> CGSize {
+        if let scrollView {
+          let clipBoundsSize = scrollView.contentView.bounds.size
+          // The document view can grow beyond the visible page viewport, so page sizing
+          // must track the clip view instead of the collection view frame.
+          if clipBoundsSize.width > 0, clipBoundsSize.height > 0 {
+            return clipBoundsSize
+          }
+        }
         if parent.viewportSize.width > 0, parent.viewportSize.height > 0 {
           return parent.viewportSize
         }
