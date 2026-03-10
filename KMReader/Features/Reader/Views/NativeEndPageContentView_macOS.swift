@@ -13,6 +13,7 @@
       tapZoneSize: .large,
       tapZoneMode: .auto,
       showPageNumber: true,
+      showPageShadow: true,
       readerBackground: .system,
       enableLiveText: false,
       doubleTapZoomScale: 3.0,

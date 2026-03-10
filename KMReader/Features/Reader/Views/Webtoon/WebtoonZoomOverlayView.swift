@@ -21,6 +21,7 @@
         tapZoneSize: renderConfig.tapZoneSize,
         tapZoneMode: .none,
         showPageNumber: renderConfig.showPageNumber,
+        showPageShadow: renderConfig.showPageShadow,
         readerBackground: renderConfig.readerBackground,
         enableLiveText: renderConfig.enableLiveText,
         doubleTapZoomScale: renderConfig.doubleTapZoomScale,

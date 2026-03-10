@@ -1857,7 +1857,7 @@ private func generateViewItems(
           continue
         }
 
-        if (!currentPage.isPortrait && !pageCurl) {
+        if !currentPage.isPortrait && !pageCurl {
           items.append(.page(id: readerPages[index].id))
           index += 1
           continue

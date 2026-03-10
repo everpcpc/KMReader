@@ -625,6 +625,18 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var showPageShadow: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showPageShadow") != nil {
+        return UserDefaults.standard.bool(forKey: "showPageShadow")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "showPageShadow")
+    }
+  }
+
   static nonisolated var tapPageTransitionDuration: Double {
     get {
       if UserDefaults.standard.object(forKey: "tapPageTransitionDuration") != nil {

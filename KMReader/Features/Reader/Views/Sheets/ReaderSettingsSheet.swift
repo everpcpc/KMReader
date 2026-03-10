@@ -14,6 +14,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
@@ -70,7 +71,16 @@ struct ReaderSettingsSheet: View {
           .pickerStyle(.menu)
 
           Toggle(isOn: $showPageNumber) {
-            Text("Always Show Page Number")
+            Text("Show Page Number")
+          }
+
+          Toggle(isOn: $showPageShadow) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Show Page Shadow")
+              Text("Render a subtle shadow around pages. Turn off for seamless dual-page spreads.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
 
           #if os(iOS) || os(macOS)

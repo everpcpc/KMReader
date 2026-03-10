@@ -21,6 +21,7 @@
     private var readingDirection: ReadingDirection = .ltr
     private var displayMode: PageDisplayMode = .fit
     private var readerBackground: ReaderBackground = .system
+    private var showPageShadow = true
     private var enableLiveText = false
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
@@ -192,6 +193,7 @@
       viewModel: ReaderViewModel,
       image: PlatformImage?,
       showPageNumber: Bool,
+      showPageShadow: Bool,
       enableLiveText: Bool,
       background: ReaderBackground,
       readingDirection: ReadingDirection,
@@ -203,6 +205,7 @@
       self.readingDirection = readingDirection
       self.displayMode = displayMode
       self.readerBackground = background
+      self.showPageShadow = showPageShadow
       let shouldEnableLiveText = enableLiveText && !viewModel.isAnimatedPage(for: data.pageID)
       self.enableLiveText = shouldEnableLiveText
 
@@ -248,7 +251,16 @@
         clearAnalysis()
       }
 
+      updateShadowAppearance()
       updateOverlaysPosition()
+    }
+
+    private func updateShadowAppearance() {
+      let shadowOpacity: Float = showPageShadow && imageView.image != nil ? 0.25 : 0
+      imageView.layer?.shadowOpacity = shadowOpacity
+      if shadowOpacity == 0 {
+        imageView.layer?.shadowPath = nil
+      }
     }
 
     private func cropImageForSplitMode(image: NSImage, splitMode: PageSplitMode) -> NSImage? {
@@ -311,7 +323,7 @@
 
     private func updateAnimatedPresentationState() {
       imageView.isHidden = false
-      imageView.layer?.shadowOpacity = imageView.image == nil ? 0 : 0.25
+      updateShadowAppearance()
       updateSepiaOverlay()
     }
 
@@ -458,17 +470,21 @@
       super.layout()
       updateOverlaysPosition()
 
-      let radius = imageView.layer?.shadowRadius ?? 0
-      var shadowRect = imageView.bounds
-      if let alignment = currentData?.alignment {
-        if alignment == .trailing {
-          shadowRect.size.width -= radius
-        } else if alignment == .leading {
-          shadowRect.origin.x += radius
-          shadowRect.size.width -= radius
+      if showPageShadow, imageView.image != nil {
+        let radius = imageView.layer?.shadowRadius ?? 0
+        var shadowRect = imageView.bounds
+        if let alignment = currentData?.alignment {
+          if alignment == .trailing {
+            shadowRect.size.width -= radius
+          } else if alignment == .leading {
+            shadowRect.origin.x += radius
+            shadowRect.size.width -= radius
+          }
         }
+        imageView.layer?.shadowPath = CGPath(rect: shadowRect, transform: nil)
+      } else {
+        imageView.layer?.shadowPath = nil
       }
-      imageView.layer?.shadowPath = CGPath(rect: shadowRect, transform: nil)
 
       if enableLiveText, currentData != nil,
         let image = analysisSourceImage,

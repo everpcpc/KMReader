@@ -19,6 +19,7 @@
     private var readingDirection: ReadingDirection = .ltr
     private var displayMode: PageDisplayMode = .fit
     private var readerBackground: ReaderBackground = .system
+    private var showPageShadow = true
     private var enableLiveText = false
     private let logger = AppLogger(.reader)
 
@@ -147,6 +148,7 @@
       viewModel: ReaderViewModel,
       image: PlatformImage?,
       showPageNumber: Bool,
+      showPageShadow: Bool,
       enableLiveText: Bool,
       background: ReaderBackground,
       readingDirection: ReadingDirection,
@@ -158,6 +160,7 @@
       self.readingDirection = readingDirection
       self.displayMode = displayMode
       self.readerBackground = background
+      self.showPageShadow = showPageShadow
       let shouldEnableLiveText = enableLiveText && !viewModel.isAnimatedPage(for: data.pageID)
       self.enableLiveText = shouldEnableLiveText
 
@@ -216,7 +219,16 @@
         }
       #endif
 
+      updateShadowAppearance()
       setNeedsLayout()
+    }
+
+    private func updateShadowAppearance() {
+      let shadowOpacity: Float = showPageShadow && imageView.image != nil ? 0.25 : 0
+      imageView.layer.shadowOpacity = shadowOpacity
+      if shadowOpacity == 0 {
+        imageView.layer.shadowPath = nil
+      }
     }
 
     private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {
@@ -283,7 +295,7 @@
 
     private func updateAnimatedPresentationState() {
       imageView.isHidden = false
-      imageView.layer.shadowOpacity = imageView.image == nil ? 0 : 0.25
+      updateShadowAppearance()
       updateSepiaOverlay()
     }
 
@@ -364,17 +376,21 @@
       super.layoutSubviews()
       updateOverlaysPosition()
 
-      let radius = imageView.layer.shadowRadius
-      var shadowRect = imageView.bounds
-      if let alignment = currentData?.alignment {
-        if alignment == .trailing {
-          shadowRect.size.width -= radius
-        } else if alignment == .leading {
-          shadowRect.origin.x += radius
-          shadowRect.size.width -= radius
+      if showPageShadow, imageView.image != nil {
+        let radius = imageView.layer.shadowRadius
+        var shadowRect = imageView.bounds
+        if let alignment = currentData?.alignment {
+          if alignment == .trailing {
+            shadowRect.size.width -= radius
+          } else if alignment == .leading {
+            shadowRect.origin.x += radius
+            shadowRect.size.width -= radius
+          }
         }
+        imageView.layer.shadowPath = UIBezierPath(rect: shadowRect).cgPath
+      } else {
+        imageView.layer.shadowPath = nil
       }
-      imageView.layer.shadowPath = UIBezierPath(rect: shadowRect).cgPath
 
       #if !os(tvOS)
         if enableLiveText, imageView.image != nil,
