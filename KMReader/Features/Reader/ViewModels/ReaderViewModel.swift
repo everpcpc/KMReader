@@ -1890,7 +1890,7 @@ private func generateViewItems(
       // Wide pages split only when enabled. In dual-page mode that produces a two-slot
       // spread; otherwise the page stays as a single item.
       let isWidePageEligibleForSplit =
-        (splitWidePages || pageCurl)
+        (splitWidePages || (pageCurl && allowDualPairs))
         && !currentPage.isPortrait
         && (noCover || isWideCoverPage || index != segmentStartIndex)
 
