@@ -24,6 +24,7 @@ struct DivinaReaderView: View {
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
@@ -109,6 +110,7 @@ struct DivinaReaderView: View {
       tapZoneSize: tapZoneSize,
       tapZoneMode: tapZoneMode,
       showPageNumber: showPageNumber,
+      showPageShadow: showPageShadow,
       readerBackground: readerBackground,
       enableLiveText: enableLiveText,
       doubleTapZoomScale: doubleTapZoomScale,

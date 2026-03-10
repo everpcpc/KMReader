@@ -197,6 +197,7 @@
             viewModel: parent.viewModel,
             image: image,
             showPageNumber: parent.renderConfig.showPageNumber,
+            showPageShadow: parent.renderConfig.showPageShadow,
             enableLiveText: parent.renderConfig.enableLiveText,
             background: parent.renderConfig.readerBackground,
             readingDirection: parent.readingDirection,

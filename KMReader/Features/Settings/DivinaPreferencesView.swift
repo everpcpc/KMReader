@@ -20,6 +20,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
+  @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
@@ -154,8 +155,17 @@ struct DivinaPreferencesView: View {
 
         Toggle(isOn: $showPageNumber) {
           VStack(alignment: .leading, spacing: 4) {
-            Text("Always Show Page Number")
+            Text("Show Page Number")
             Text("Display page number overlay on images while reading")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $showPageShadow) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Show Page Shadow")
+            Text("Render a subtle shadow around pages. Turn off for seamless dual-page spreads.")
               .font(.caption)
               .foregroundColor(.secondary)
           }
