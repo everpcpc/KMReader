@@ -1674,6 +1674,10 @@ class ReaderViewModel {
     }
   }
 
+  func refreshForPageTransitionChange() {
+    regenerateViewState()
+  }
+
   private func regenerateViewState() {
     let preservedCurrentItem = currentViewItemID
     let preservedCurrentPageID = resolvedCurrentPageID
@@ -1692,6 +1696,7 @@ class ReaderViewModel {
       allowDualPairs: isActuallyUsingDualPageMode,
       forceDualPairs: forceDualPagePairs,
       splitWidePages: effectiveSplitWidePages,
+      pageCurl: AppConfig.pageTransitionStyle == .pageCurl,
       isolatePages: Set(isolatePages)
     )
     viewItemIndexByPage = generateViewItemIndexMap(items: viewItems)
@@ -1818,6 +1823,7 @@ private func generateViewItems(
   allowDualPairs: Bool,
   forceDualPairs: Bool,
   splitWidePages: Bool,
+  pageCurl: Bool,
   isolatePages: Set<Int> = []
 ) -> [ReaderViewItem] {
   guard !segments.isEmpty, !readerPages.isEmpty else { return [] }
@@ -1841,7 +1847,7 @@ private func generateViewItems(
         let isCoverPage = !noCover && index == segmentStartIndex
         let isWideCoverPage = isCoverPage && !currentPage.isPortrait
         let isWidePageEligibleForSplit =
-          splitWidePages
+          (splitWidePages || pageCurl)
           && !currentPage.isPortrait
           && (noCover || isWideCoverPage || index != segmentStartIndex)
 
@@ -1851,7 +1857,7 @@ private func generateViewItems(
           continue
         }
 
-        if !currentPage.isPortrait {
+        if (!currentPage.isPortrait && !pageCurl) {
           items.append(.page(id: readerPages[index].id))
           index += 1
           continue
@@ -1884,7 +1890,7 @@ private func generateViewItems(
       // Wide pages split only when enabled. In dual-page mode that produces a two-slot
       // spread; otherwise the page stays as a single item.
       let isWidePageEligibleForSplit =
-        splitWidePages
+        (splitWidePages || pageCurl)
         && !currentPage.isPortrait
         && (noCover || isWideCoverPage || index != segmentStartIndex)
 

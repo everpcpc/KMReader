@@ -341,7 +341,7 @@ struct DivinaControlsOverlayView: View {
         }
       }
 
-      if readingDirection != .webtoon && (pageLayout == .single || pageLayout == .auto) {
+      if readingDirection != .webtoon {
         Picker(selection: $splitWidePageMode) {
           ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
             Label(mode.displayName, systemImage: mode.icon).tag(mode)

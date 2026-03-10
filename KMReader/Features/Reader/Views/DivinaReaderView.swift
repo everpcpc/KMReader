@@ -514,6 +514,9 @@ struct DivinaReaderView: View {
     .onChange(of: splitWidePageMode) { _, newValue in
       viewModel.updateSplitWidePageMode(newValue)
     }
+    .onChange(of: pageTransitionStyle) { _, _ in
+      viewModel.refreshForPageTransitionChange()
+    }
     .task(id: currentBookId) {
       readerPresentation.registerFlushHandler(for: sessionID) {
         viewModel.flushProgress()
@@ -1250,7 +1253,6 @@ struct DivinaReaderView: View {
 
       let supportsSplitWidePageMode =
         readingDirection != .webtoon
-        && (pageLayout == .single || pageLayout == .auto)
 
       return ReaderPresentationManager.MacReaderCommandState(
         isActive: true,
