@@ -262,15 +262,17 @@
 
         let currentPageID = viewModel.currentReaderPage?.id
         scrollEngine.currentPageID = currentPageID
-        let pageCount = viewModel.pageCount
-        let didContentItemsChange = scrollEngine.rebuildContentItemsIfNeeded(viewModel: viewModel)
-
-        if lastPagesCount != pageCount
-          || didContentItemsChange
+        let needsContentRebuild = scrollEngine.needsRebuild(viewModel: viewModel)
+        let needsReload = needsContentRebuild
+          || lastPagesCount != viewModel.pageCount
           || abs(heightCache.lastPageWidth - pageWidth) > 0.1
-        {
+
+        if needsReload {
           if isScrollInteractionActive {
+            let preCapturedOffset = scrollEngine.hasScrolledToInitialPage
+              ? captureOffsetWithinPage(currentPageID) : nil
             scrollEngine.pendingReloadCurrentPageID = currentPageID ?? scrollEngine.currentPageID
+            scrollEngine.pendingReloadPreCapturedOffset = preCapturedOffset
           } else {
             handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
           }
@@ -315,22 +317,31 @@
         }
       }
 
-      private func handleDataReload(collectionView: NSCollectionView, currentPageID: ReaderPageID?) {
-        let pageCount = self.pageCount
-        let pagesChanged = lastPagesCount != pageCount
-        let offsetWithinCurrentPage =
-          scrollEngine.hasScrolledToInitialPage
-          ? captureOffsetWithinPage(currentPageID) : nil
+      private func handleDataReload(
+        collectionView: NSCollectionView,
+        currentPageID: ReaderPageID?,
+        preCapturedOffset: CGFloat? = nil
+      ) {
+        // Capture offset using OLD indices + OLD layout (consistent)
+        let offsetWithinCurrentPage = preCapturedOffset
+          ?? (scrollEngine.hasScrolledToInitialPage
+            ? captureOffsetWithinPage(currentPageID) : nil)
 
-        if pagesChanged {
+        // Rebuild content items (updates index mapping to NEW)
+        scrollEngine.rebuildContentItemsIfNeeded(viewModel: viewModel)
+
+        let pageCount = self.pageCount
+        if lastPagesCount != pageCount {
           heightCache.reset()
         }
-
         lastPagesCount = pageCount
+
+        // Reload collection view (layout now matches NEW indices)
         heightCache.rescaleIfNeeded(newWidth: pageWidth)
         collectionView.reloadData()
         collectionView.layoutSubtreeIfNeeded()
 
+        // Restore offset using NEW indices + NEW layout (consistent)
         if let offsetWithinCurrentPage,
           let currentPageID,
           restoreOffsetWithinPage(offsetWithinCurrentPage, for: currentPageID)
@@ -398,9 +409,15 @@
         guard let pendingPageID = scrollEngine.pendingReloadCurrentPageID else { return }
         guard let collectionView = collectionView else { return }
         scrollEngine.pendingReloadCurrentPageID = nil
+        let preCapturedOffset = scrollEngine.pendingReloadPreCapturedOffset
+        scrollEngine.pendingReloadPreCapturedOffset = nil
 
         let currentPageID = viewModel?.currentReaderPage?.id ?? pendingPageID
-        handleDataReload(collectionView: collectionView, currentPageID: currentPageID)
+        handleDataReload(
+          collectionView: collectionView,
+          currentPageID: currentPageID,
+          preCapturedOffset: preCapturedOffset
+        )
         updateCurrentPage()
       }
 

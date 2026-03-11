@@ -8,6 +8,7 @@ import Foundation
 final class WebtoonScrollEngine {
   var currentPageID: ReaderPageID?
   var pendingReloadCurrentPageID: ReaderPageID?
+  var pendingReloadPreCapturedOffset: CGFloat?
   var hasScrolledToInitialPage: Bool = false
 
   private(set) var contentItems: [WebtoonContentItems.Item] = []
@@ -48,6 +49,11 @@ final class WebtoonScrollEngine {
     itemIndexByPageID = snapshot.itemIndexByPageID
     contentItemsVersion = version
     return didChange
+  }
+
+  func needsRebuild(viewModel: ReaderViewModel?) -> Bool {
+    guard let viewModel else { return !contentItems.isEmpty }
+    return viewModel.readerPagesVersion != contentItemsVersion
   }
 
   func itemIndex(forPageID pageID: ReaderPageID?) -> Int? {
