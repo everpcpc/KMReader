@@ -107,7 +107,14 @@ struct MetadataFilterSection: View {
       MetadataMultiSelectLoader(
         title: String(localized: "Authors"),
         cachedItems: $authors,
-        loadItems: { try await ReferentialService.shared.getAuthorsNames() },
+        loadItems: {
+          try await ReferentialService.shared.getAuthorsNames(
+            seriesId: seriesId,
+            libraryIds: libraryIds,
+            collectionId: collectionId,
+            readListId: readListId
+          )
+        },
         selectedItems: Binding(
           get: { Set(metadataFilter.authors ?? []) },
           set: { metadataFilter.authors = $0.isEmpty ? nil : Array($0).sorted() }
