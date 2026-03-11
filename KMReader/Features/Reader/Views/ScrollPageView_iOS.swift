@@ -128,6 +128,9 @@
       private var lastViewportSize: CGSize = .zero
       private var lastRenderInputs: RenderInputs?
       private var deferredViewModelCommitTask: Task<Void, Never>?
+      private var visiblePreloadTask: Task<Void, Never>?
+      private var visiblePreloadItem: ReaderViewItem?
+      private var applicationWillResignActiveObserver: NSObjectProtocol?
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -138,6 +141,13 @@
       func teardown() {
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
+        visiblePreloadTask?.cancel()
+        visiblePreloadTask = nil
+        visiblePreloadItem = nil
+        if let applicationWillResignActiveObserver {
+          NotificationCenter.default.removeObserver(applicationWillResignActiveObserver)
+          self.applicationWillResignActiveObserver = nil
+        }
         pagePresentationCoordinator.teardown()
         engine.teardown()
       }
@@ -145,6 +155,7 @@
       func update(parent: ScrollPageView, collectionView: UICollectionView) {
         self.parent = parent
         self.collectionView = collectionView
+        installApplicationObserverIfNeeded()
         pagePresentationCoordinator.update(viewModel: parent.viewModel)
 
         let displayedItems = parent.mode.displayOrderedItems(parent.viewModel.viewItems)
@@ -201,6 +212,19 @@
         let changed = lastRenderInputs != renderInputs
         lastRenderInputs = renderInputs
         return changed
+      }
+
+      private func installApplicationObserverIfNeeded() {
+        guard applicationWillResignActiveObserver == nil else { return }
+        applicationWillResignActiveObserver = NotificationCenter.default.addObserver(
+          forName: UIApplication.willResignActiveNotification,
+          object: nil,
+          queue: .main
+        ) { [weak self] _ in
+          Task { @MainActor [weak self] in
+            self?.handleApplicationWillResignActive()
+          }
+        }
       }
 
       private func updateLayoutIfNeeded(for collectionView: UICollectionView) -> Bool {
@@ -472,6 +496,14 @@
       }
 
       private func commitItemIfNeeded(_ item: ReaderViewItem, in collectionView: UICollectionView) {
+        commitItem(item, in: collectionView, synchronizeViewModelImmediately: false)
+      }
+
+      private func commitItem(
+        _ item: ReaderViewItem,
+        in collectionView: UICollectionView,
+        synchronizeViewModelImmediately: Bool
+      ) {
         let previousCommittedItem = engine.committedItem
         engine.commit(item)
         preloadVisiblePages(for: item)
@@ -480,7 +512,16 @@
           to: item,
           in: collectionView
         )
-        scheduleViewModelCommit(for: item)
+        if synchronizeViewModelImmediately {
+          if parent.viewModel.currentViewItem() != item {
+            parent.viewModel.updateCurrentPosition(viewItem: item)
+          }
+          if parent.viewModel.navigationTarget != nil {
+            parent.viewModel.clearNavigationTarget()
+          }
+        } else {
+          scheduleViewModelCommit(for: item)
+        }
       }
 
       private func refreshVisibleCells(
@@ -609,14 +650,48 @@
       }
 
       private func preloadVisiblePages(for item: ReaderViewItem) {
-        let visiblePageIndices = item.pageIDs.compactMap { parent.viewModel.pageIndex(for: $0) }
+        let visiblePageIDs = item.pageIDs
+        if visiblePreloadItem == item,
+          visiblePageIDs.allSatisfy({
+            parent.viewModel.preloadedImage(for: $0) != nil
+              || parent.viewModel.hasPendingImageLoad(for: $0)
+          })
+        {
+          return
+        }
+
+        parent.viewModel.prioritizeVisiblePageLoads(for: visiblePageIDs)
+
+        let visiblePageIndices = visiblePageIDs.compactMap { parent.viewModel.pageIndex(for: $0) }
         guard !visiblePageIndices.isEmpty else { return }
 
-        Task(priority: .userInitiated) {
+        visiblePreloadTask?.cancel()
+        visiblePreloadItem = item
+        let viewModel = parent.viewModel
+        visiblePreloadTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+          defer {
+            if let self, self.visiblePreloadItem == item {
+              self.visiblePreloadTask = nil
+            }
+          }
+
           for pageIndex in visiblePageIndices {
-            _ = await parent.viewModel.preloadImageForPage(at: pageIndex)
+            guard !Task.isCancelled else { return }
+            _ = await viewModel.preloadImageForPage(at: pageIndex)
           }
         }
+      }
+
+      private func handleApplicationWillResignActive() {
+        guard let collectionView else { return }
+
+        collectionView.layoutIfNeeded()
+        _ = engine.endUserInteraction()
+        _ = engine.endProgrammaticScroll()
+        engine.clearPendingProgrammaticCommit()
+
+        guard let item = centeredItem(in: collectionView) ?? engine.committedItem else { return }
+        commitItem(item, in: collectionView, synchronizeViewModelImmediately: true)
       }
 
       private func finishScrollInteractionIfNeeded() {

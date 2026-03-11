@@ -4,15 +4,7 @@
 //
 
 import Foundation
-import ImageIO
-import OSLog
-import Photos
 import SwiftUI
-import UniformTypeIdentifiers
-
-#if os(macOS)
-  import AppKit
-#endif
 
 @MainActor
 @Observable
@@ -29,7 +21,6 @@ class ReaderViewModel {
   var loadingDetail: String?
   var loadingProgress: Double?
   var isDismissing = false
-  var pageImageCache: ImageCache
   var incognitoMode: Bool = false
   var isZoomed: Bool = false
 
@@ -38,14 +29,8 @@ class ReaderViewModel {
   var tableOfContents: [ReaderTOCEntry] = []
   private var tableOfContentsByBookId: [String: [ReaderTOCEntry]] = [:]
   private var tableOfContentsBookId: String?
-  /// Cache of preloaded images keyed by reader page ID.
-  private var preloadedImagesByID: [ReaderPageID: PlatformImage] = [:]
   /// Page index with Live Text mode active (nil = no Live Text active)
   var liveTextActivePageIndex: Int? = nil
-  /// Confirmed animated image capability keyed by reader page ID.
-  private var animatedPageStates: [ReaderPageID: Bool] = [:]
-  /// Source file URL for animated pages keyed by reader page ID.
-  private var animatedPageSourceFileURLs: [ReaderPageID: URL] = [:]
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
@@ -55,17 +40,12 @@ class ReaderViewModel {
   private var pagePresentationInvalidationHandlers: [UUID: PagePresentationInvalidationHandler] = [:]
 
   private let logger = AppLogger(.reader)
+  private let pageLoadScheduler: ReaderPageLoadScheduler
   private var bookMediaProfile: MediaProfile = .unknown
 
-  /// Track ongoing download tasks to prevent duplicate downloads for the same page.
-  private var downloadingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
-  private var upscalingTasks: [ReaderPageID: Task<URL?, Never>] = [:]
-  private var preloadingImageTasks: [ReaderPageID: Task<PlatformImage?, Never>] = [:]
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
   private var segmentPageRangeByBookId: [String: Range<Int>] = [:]
   private(set) var readerPagesVersion: Int = 0
-  private var lastPreloadRequestTime: Date?
-  private var preloadTask: Task<Void, Never>?
 
   private var resolvedCurrentPageID: ReaderPageID? {
     if let currentPageID, readerPageIndexByID[currentPageID] != nil {
@@ -136,11 +116,14 @@ class ReaderViewModel {
     splitWidePageMode: SplitWidePageMode = .none,
     incognitoMode: Bool = false
   ) {
-    self.pageImageCache = ImageCache()
+    self.pageLoadScheduler = ReaderPageLoadScheduler()
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
     self.incognitoMode = incognitoMode
+    pageLoadScheduler.setPresentationInvalidationHandler { [weak self] invalidation in
+      self?.notifyPagePresentationInvalidation(invalidation)
+    }
     regenerateViewState()
   }
 
@@ -166,6 +149,7 @@ class ReaderViewModel {
     readerPages = flattenedReaderPages
     readerPageIndexByID = indexMap
     segmentPageRangeByBookId = rangeByBookId
+    pageLoadScheduler.updateReaderPages(flattenedReaderPages)
     readerPagesVersion &+= 1
     rebuildIsolatePageIndices()
   }
@@ -202,11 +186,6 @@ class ReaderViewModel {
     return isolatePosition(forGlobalPageIndex: pageIndex)
   }
 
-  private func readerPageID(forPageIndex pageIndex: Int) -> ReaderPageID? {
-    guard pageIndex >= 0, pageIndex < readerPages.count else { return nil }
-    return readerPages[pageIndex].id
-  }
-
   private func resolvedViewItem(
     preferredItem: ReaderViewItem? = nil,
     preferredPageID: ReaderPageID? = nil
@@ -233,7 +212,11 @@ class ReaderViewModel {
   }
 
   func preloadedImage(for pageID: ReaderPageID) -> PlatformImage? {
-    preloadedImagesByID[pageID]
+    pageLoadScheduler.preloadedImage(for: pageID)
+  }
+
+  func getPageImageFileURL(pageID: ReaderPageID) async -> URL? {
+    await pageLoadScheduler.getPageImageFileURL(pageID: pageID)
   }
 
   func addPagePresentationInvalidationObserver(
@@ -248,40 +231,12 @@ class ReaderViewModel {
     pagePresentationInvalidationHandlers.removeValue(forKey: token)
   }
 
-  private func invalidatePagePresentation(for pageID: ReaderPageID) {
-    notifyPagePresentationInvalidation(.pages([pageID]))
-  }
-
-  private func invalidatePagePresentation(for pageIDs: Set<ReaderPageID>) {
-    guard !pageIDs.isEmpty else { return }
-    notifyPagePresentationInvalidation(.pages(pageIDs))
-  }
-
-  private func invalidateAllPagePresentations() {
-    notifyPagePresentationInvalidation(.all)
-  }
-
   private func notifyPagePresentationInvalidation(
     _ invalidation: ReaderPagePresentationInvalidation
   ) {
     for handler in pagePresentationInvalidationHandlers.values {
       handler(invalidation)
     }
-  }
-
-  private func setPreloadedImage(_ image: PlatformImage, forPageIndex pageIndex: Int) {
-    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return }
-    setPreloadedImage(image, for: pageID)
-  }
-
-  private func setPreloadedImage(_ image: PlatformImage, for pageID: ReaderPageID) {
-    _ = preloadedImagesByID.updateValue(image, forKey: pageID)
-    invalidatePagePresentation(for: pageID)
-  }
-
-  private func clearPreloadedImage(for pageID: ReaderPageID) {
-    guard preloadedImagesByID.removeValue(forKey: pageID) != nil else { return }
-    invalidatePagePresentation(for: pageID)
   }
 
   private func readerPage(at pageIndex: Int) -> ReaderPage? {
@@ -315,6 +270,14 @@ class ReaderViewModel {
 
   func neighboringPageIDs(around pageID: ReaderPageID, radius: Int) -> [ReaderPageID] {
     pageWindowEntries(around: pageID, before: radius, after: radius).map(\.pageID)
+  }
+
+  func hasPendingImageLoad(for pageID: ReaderPageID) -> Bool {
+    pageLoadScheduler.hasPendingImageLoad(for: pageID)
+  }
+
+  func prioritizeVisiblePageLoads(for pageIDs: [ReaderPageID]) {
+    pageLoadScheduler.prioritizeVisiblePageLoads(for: pageIDs)
   }
 
   func pageIndex(for readerPageID: ReaderPageID) -> Int? {
@@ -580,25 +543,12 @@ class ReaderViewModel {
     updateCurrentPosition(pageID: currentPageID)
   }
 
+  private func syncPageLoadSchedulerCurrentPage() {
+    pageLoadScheduler.updateCurrentPageID(resolvedCurrentPageID)
+  }
+
   private func resetStateForBookLoad() {
-    preloadTask?.cancel()
-    preloadTask = nil
-    lastPreloadRequestTime = nil
-
-    for (_, task) in downloadingTasks {
-      task.cancel()
-    }
-    downloadingTasks.removeAll()
-    for (_, task) in upscalingTasks {
-      task.cancel()
-    }
-    upscalingTasks.removeAll()
-    for (_, task) in preloadingImageTasks {
-      task.cancel()
-    }
-    preloadingImageTasks.removeAll()
-
-    preloadedImagesByID.removeAll()
+    pageLoadScheduler.resetForBookLoad()
     isolatePages.removeAll()
     isolatePagesByBookId.removeAll()
     tableOfContents.removeAll()
@@ -606,15 +556,14 @@ class ReaderViewModel {
     tableOfContentsBookId = nil
     segments.removeAll()
     readerPages.removeAll()
+    viewItems.removeAll()
+    viewItemIndexByPage.removeAll()
     readerPageIndexByID.removeAll()
     segmentPageRangeByBookId.removeAll()
-    animatedPageStates.removeAll()
-    animatedPageSourceFileURLs.removeAll()
     liveTextActivePageIndex = nil
     currentPageID = nil
     currentViewItemID = nil
     navigationTarget = nil
-    invalidateAllPagePresentations()
     readerPagesVersion &+= 1
   }
 
@@ -762,115 +711,6 @@ class ReaderViewModel {
     isLoading = false
   }
 
-  /// Get page image file URL from disk cache, or download and cache if not available
-  /// - Parameter pageIndex: Reader page index in the flattened segment stream
-  /// - Returns: Local file URL if available, nil if download failed
-  /// - Note: Prevents duplicate downloads by tracking ongoing tasks
-  private func getPageImageFileURL(pageIndex: Int) async -> URL? {
-    guard let readerPage = readerPage(at: pageIndex) else {
-      logger.warning("⚠️ Invalid page index \(pageIndex), cannot load page image")
-      return nil
-    }
-
-    let pageID = readerPage.id
-    let page = readerPage.page
-    let currentBookId = readerPage.bookId
-
-    if let existingTask = downloadingTasks[pageID] {
-      logger.debug(
-        "⏳ Waiting for existing download task for page \(page.number) for book \(currentBookId)"
-      )
-      if let result = await existingTask.value {
-        return result
-      }
-      if let cachedFileURL = await getCachedImageFileURL(for: readerPage) {
-        return cachedFileURL
-      }
-      return nil
-    }
-
-    let loadTask = Task<URL?, Never> {
-      let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
-      if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
-        instanceId: AppConfig.current.instanceId,
-        bookId: currentBookId,
-        pageNumber: page.number,
-        fileExtension: ext
-      ) {
-        self.logger.debug(
-          "✅ Using offline downloaded image for page \(page.number) for book \(currentBookId)")
-        return offlineURL
-      }
-
-      if let cachedFileURL = await self.getCachedImageFileURL(for: readerPage) {
-        self.logger.debug("✅ Using cached image for page \(page.number) for book \(currentBookId)")
-        return cachedFileURL
-      }
-
-      if AppConfig.isOffline {
-        self.logger.error("❌ Missing offline page \(page.number) for book \(currentBookId)")
-        return nil
-      }
-
-      self.logger.info("📥 Downloading page \(page.number) for book \(currentBookId)")
-
-      do {
-        guard let remoteURL = self.resolvedDownloadURL(for: page, bookId: currentBookId) else {
-          self.logger.error(
-            "❌ Unable to resolve download URL for page \(page.number) in book \(currentBookId)")
-          return nil
-        }
-
-        let result = try await BookService.shared.downloadImageResource(at: remoteURL)
-        let data = result.data
-
-        let dataSize = ByteCountFormatter.string(
-          fromByteCount: Int64(data.count), countStyle: .binary)
-        logger.info(
-          "✅ Downloaded page \(page.number) successfully (\(dataSize)) for book \(currentBookId)")
-
-        await pageImageCache.storeImageData(
-          data,
-          bookId: currentBookId,
-          page: page
-        )
-
-        if let fileURL = await getCachedImageFileURL(for: readerPage) {
-          logger.debug("💾 Saved page \(page.number) to disk cache for book \(currentBookId)")
-          return fileURL
-        } else {
-          logger.error(
-            "❌ Failed to get file URL after saving page \(page.number) to cache for book \(currentBookId)"
-          )
-          return nil
-        }
-      } catch {
-        logger.error(
-          "❌ Failed to download page \(page.number) for book \(currentBookId): \(error)"
-        )
-        return nil
-      }
-    }
-
-    downloadingTasks[pageID] = loadTask
-    let result = await loadTask.value
-    downloadingTasks.removeValue(forKey: pageID)
-    return result
-  }
-
-  func getPageImageFileURL(pageID: ReaderPageID) async -> URL? {
-    guard let pageIndex = pageIndex(for: pageID) else { return nil }
-    return await getPageImageFileURL(pageIndex: pageIndex)
-  }
-
-  /// Get cached image file URL from disk cache for a specific reader page.
-  private func getCachedImageFileURL(for readerPage: ReaderPage) async -> URL? {
-    if await pageImageCache.hasImage(bookId: readerPage.bookId, page: readerPage.page) {
-      return pageImageCache.imageFileURL(bookId: readerPage.bookId, page: readerPage.page)
-    }
-    return nil
-  }
-
   private func prepareOfflinePDFForDivina(book: Book) async {
     guard bookMediaProfile == .pdf else {
       return
@@ -957,589 +797,42 @@ class ReaderViewModel {
     )
   }
 
-  /// Preload pages around the current page for smoother scrolling
-  /// Preloads a small window around the current page to keep memory usage in check
   func preloadPages(bypassThrottle: Bool = false) async {
-    let now = Date()
-    if !bypassThrottle,
-      let last = lastPreloadRequestTime,
-      now.timeIntervalSince(last) < 0.3
-    {
-      return
-    }
-    lastPreloadRequestTime = now
-    guard !readerPages.isEmpty else { return }
-
-    // Cancel any previous preloading task
-    preloadTask?.cancel()
-    let pagesToPreload = pageWindowEntries(
-      around: resolvedCurrentPageID,
-      before: ReaderConstants.preloadBefore,
-      after: ReaderConstants.preloadAfter - 1
-    )
-    guard !pagesToPreload.isEmpty else { return }
-
-    preloadTask = Task { [weak self] in
-      guard let self = self else { return }
-
-      // Load pages concurrently and collect decoded images
-      let results = await withTaskGroup(of: (Int, ReaderPageID, PlatformImage?, URL?).self) {
-        group -> [(Int, ReaderPageID, PlatformImage?, URL?)] in
-        for (index, pageID) in pagesToPreload {
-          if Task.isCancelled { break }
-          // Skip if already preloaded
-          if self.preloadedImage(for: pageID) != nil {
-            continue
-          }
-          group.addTask {
-            if Task.isCancelled { return (index, pageID, nil, nil) }
-            let (image, animatedSourceFileURL) = await self.preloadDecodedPageImage(
-              pageIndex: index
-            )
-            return (index, pageID, image, animatedSourceFileURL)
-          }
-        }
-        var collected: [(Int, ReaderPageID, PlatformImage?, URL?)] = []
-        for await result in group {
-          if !Task.isCancelled {
-            collected.append(result)
-          }
-        }
-        return collected
-      }
-
-      if Task.isCancelled { return }
-
-      // Store preloaded images for instant access by PageImageView
-      for (pageIndex, pageID, image, animatedSourceFileURL) in results {
-        self.updateAnimatedPresentation(
-          knownAnimatedState: animatedSourceFileURL != nil,
-          sourceFileURL: animatedSourceFileURL,
-          for: pageID
-        )
-        if let image = image {
-          self.setPreloadedImage(image, forPageIndex: pageIndex)
-        }
-      }
-
-      // Clean up images too far from current page to release memory
-      self.cleanupDistantImagesAroundCurrentPage()
-    }
+    syncPageLoadSchedulerCurrentPage()
+    await pageLoadScheduler.preloadPages(bypassThrottle: bypassThrottle)
   }
 
-  /// Remove preloaded images that are too far from current page to release memory
   func cleanupDistantImagesAroundCurrentPage() {
-    guard hasPages else { return }
-    let keepPageIDs = Set(
-      pageWindowEntries(
-        around: resolvedCurrentPageID,
-        before: ReaderConstants.keepRangeBefore,
-        after: ReaderConstants.keepRangeAfter
-      ).map(\.pageID)
-    )
-    if !keepPageIDs.isEmpty {
-      let imageKeysToRemove = preloadedImagesByID.keys.filter { !keepPageIDs.contains($0) }
-      if !imageKeysToRemove.isEmpty {
-        for key in imageKeysToRemove {
-          clearPreloadedImage(for: key)
-        }
-      }
-
-      let animatedKeysToRemove = Set(animatedPageStates.keys)
-        .union(animatedPageSourceFileURLs.keys)
-        .filter { !keepPageIDs.contains($0) }
-
-      if !animatedKeysToRemove.isEmpty {
-        for key in animatedKeysToRemove {
-          updateAnimatedPresentation(knownAnimatedState: nil, sourceFileURL: nil, for: key)
-        }
-      }
-    }
-
-    logger.debug("🖼️ Memory Cache: \(preloadedImagesByID.count) images")
-  }
-
-  nonisolated private static func detectAnimatedState(for page: BookPage, fileURL: URL) -> Bool {
-    guard page.isAnimatedImageCandidate else {
-      return false
-    }
-    return AnimatedImageSupport.isAnimatedImageFile(at: fileURL)
-  }
-
-  /// Load and decode image from file URL
-  private func loadImageFromFile(fileURL: URL) async -> PlatformImage? {
-    let image = await Task.detached(priority: .userInitiated) {
-      #if os(macOS)
-        return NSImage(contentsOf: fileURL)
-      #else
-        return UIImage(contentsOfFile: fileURL.path)
-      #endif
-    }.value
-    guard let image else {
-      return nil
-    }
-
-    return await ImageDecodeHelper.decodeForDisplay(image)
-  }
-
-  private func loadPosterImageFromAnimatedFile(fileURL: URL) async -> PlatformImage? {
-    let image = await Task.detached(priority: .userInitiated) { () -> PlatformImage? in
-      AnimatedImageSupport.posterImage(from: fileURL)
-    }.value
-
-    guard let image else {
-      return nil
-    }
-
-    return await ImageDecodeHelper.decodeForDisplay(image)
-  }
-
-  private func preloadDecodedPageImage(pageIndex: Int) async -> (PlatformImage?, URL?) {
-    guard let readerPage = readerPage(at: pageIndex) else {
-      return (nil, nil)
-    }
-    let page = readerPage.page
-
-    guard let sourceFileURL = await getPageImageFileURL(pageIndex: pageIndex) else {
-      return (nil, nil)
-    }
-
-    let isAnimated = Self.detectAnimatedState(for: page, fileURL: sourceFileURL)
-    let animatedSourceFileURL = isAnimated ? sourceFileURL : nil
-    if isAnimated {
-      if let posterImage = await loadPosterImageFromAnimatedFile(fileURL: sourceFileURL) {
-        return (posterImage, animatedSourceFileURL)
-      }
-
-      let fallbackImage = await loadImageFromFile(fileURL: sourceFileURL)
-      return (fallbackImage, animatedSourceFileURL)
-    }
-
-    let preferredFileURL = await preferredDisplayImageFileURL(
-      page: page,
-      pageID: readerPage.id,
-      sourceFileURL: sourceFileURL,
-      isAnimated: isAnimated
-    )
-
-    if let image = await loadImageFromFile(fileURL: preferredFileURL) {
-      return (image, animatedSourceFileURL)
-    }
-
-    if preferredFileURL != sourceFileURL {
-      logger.debug(
-        "⏭️ [Upscale] Fallback to original file for page \(page.number + 1) because @2x decode failed")
-      let fallbackImage = await loadImageFromFile(fileURL: sourceFileURL)
-      return (fallbackImage, animatedSourceFileURL)
-    }
-
-    return (nil, animatedSourceFileURL)
-  }
-
-  private func preferredDisplayImageFileURL(
-    page: BookPage,
-    pageID: ReaderPageID,
-    sourceFileURL: URL,
-    isAnimated: Bool
-  ) async -> URL {
-    guard !isAnimated else { return sourceFileURL }
-
-    let mode = AppConfig.imageUpscalingMode
-    guard mode != .disabled else { return sourceFileURL }
-
-    guard let sourcePixelSize = Self.sourcePixelSize(page: page, fileURL: sourceFileURL) else {
-      logger.debug("⏭️ [Upscale] Skip page \(page.number + 1): unable to resolve source size")
-      return sourceFileURL
-    }
-
-    let autoTriggerScale = CGFloat(AppConfig.imageUpscaleAutoTriggerScale)
-    let alwaysMaxScreenScale = CGFloat(AppConfig.imageUpscaleAlwaysMaxScreenScale)
-    let screenPixelSize: CGSize
-    #if os(iOS) || os(tvOS)
-      screenPixelSize = ReaderUpscaleDecision.screenPixelSize(for: UIScreen.main)
-    #elseif os(macOS)
-      guard let mainScreen = NSScreen.main else {
-        logger.debug("⏭️ [Upscale] Skip page \(page.number + 1): unable to resolve current screen")
-        return sourceFileURL
-      }
-      screenPixelSize = ReaderUpscaleDecision.screenPixelSize(for: mainScreen)
-    #endif
-    let decision = ReaderUpscaleDecision.evaluate(
-      mode: mode,
-      sourcePixelSize: sourcePixelSize,
-      screenPixelSize: screenPixelSize,
-      autoTriggerScale: autoTriggerScale,
-      alwaysMaxScreenScale: alwaysMaxScreenScale
-    )
-    guard decision.shouldUpscale else {
-      let skipReasonText = Self.upscaleSkipReasonText(decision.reason)
-      logger.debug(
-        String(
-          format:
-            "⏭️ [Upscale] Skip page %d: reason=%@ mode=%@ requiredScale=%.2f source=%dx%d screen=%dx%d auto=%.2f always=%.2f",
-          page.number + 1,
-          skipReasonText,
-          mode.rawValue,
-          decision.requiredScale,
-          Int(sourcePixelSize.width),
-          Int(sourcePixelSize.height),
-          Int(screenPixelSize.width),
-          Int(screenPixelSize.height),
-          autoTriggerScale,
-          alwaysMaxScreenScale
-        )
-      )
-      return sourceFileURL
-    }
-
-    let upscaledFileURLs = Self.upscaledImageFileURLs(from: sourceFileURL)
-    if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
-      logger.debug(
-        "✅ [Upscale] Use cached @2x page \(page.number + 1): \(cachedUpscaledURL.lastPathComponent)")
-      return cachedUpscaledURL
-    }
-
-    if let existingTask = upscalingTasks[pageID] {
-      logger.debug("⏳ [Upscale] Await running upscale task for page \(page.number + 1)")
-      if let cachedURL = await existingTask.value {
-        logger.debug("✅ [Upscale] Reuse task result for page \(page.number + 1): \(cachedURL.lastPathComponent)")
-        return cachedURL
-      }
-      logger.debug("⏭️ [Upscale] Running task failed for page \(page.number + 1), use source")
-      return sourceFileURL
-    }
-
-    let pageNumber = page.number
-    logger.debug(
-      String(
-        format: "🚀 [Upscale] Queue page %d: mode=%@ requiredScale=%.2f source=%dx%d",
-        pageNumber + 1,
-        mode.rawValue,
-        decision.requiredScale,
-        Int(sourcePixelSize.width),
-        Int(sourcePixelSize.height)
-      )
-    )
-    let upscaleTask = Task<URL?, Never>.detached(priority: .userInitiated) {
-      [sourceFileURL, upscaledFileURLs, pageNumber] in
-      let logger = AppLogger(.reader)
-
-      if let cachedUpscaledURL = upscaledFileURLs.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
-        logger.debug(
-          "✅ [Upscale] Use cached @2x page \(pageNumber + 1): \(cachedUpscaledURL.lastPathComponent)")
-        return cachedUpscaledURL
-      }
-
-      guard let sourceCGImage = Self.readCGImage(from: sourceFileURL) else {
-        logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): failed to decode source CGImage")
-        return nil
-      }
-
-      let startedAt = Date()
-      guard let output = await ReaderUpscaleModelManager.shared.process(sourceCGImage) else {
-        logger.debug("⏭️ [Upscale] Skip page \(pageNumber + 1): model processing returned nil")
-        return nil
-      }
-
-      guard
-        let persistedURL = Self.persistUpscaledCGImage(
-          output,
-          sourceFileURL: sourceFileURL,
-          targetFileURLs: upscaledFileURLs,
-          logger: logger
-        )
-      else {
-        logger.error(
-          "❌ [Upscale] Failed to save @2x page \(pageNumber + 1): source=\(sourceFileURL.lastPathComponent)"
-        )
-        return nil
-      }
-
-      let duration = Date().timeIntervalSince(startedAt)
-      logger.debug(
-        String(
-          format: "💾 [Upscale] Saved page %d @2x in %.2fs -> %@",
-          pageNumber + 1,
-          duration,
-          persistedURL.lastPathComponent
-        )
-      )
-      return persistedURL
-    }
-
-    upscalingTasks[pageID] = upscaleTask
-    let result = await upscaleTask.value
-    upscalingTasks.removeValue(forKey: pageID)
-    if let result {
-      logger.debug("✅ [Upscale] Ready page \(pageNumber + 1): \(result.lastPathComponent)")
-    } else {
-      logger.debug("⏭️ [Upscale] Use source for page \(pageNumber + 1): @2x generation unavailable")
-    }
-    return result ?? sourceFileURL
-  }
-
-  nonisolated private static func sourcePixelSize(page: BookPage, fileURL: URL) -> CGSize? {
-    if let width = page.width, let height = page.height, width > 0, height > 0 {
-      return CGSize(width: width, height: height)
-    }
-
-    let options = [kCGImageSourceShouldCache: false] as CFDictionary
-    guard
-      let source = CGImageSourceCreateWithURL(fileURL as CFURL, options),
-      let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-      let pixelWidth = properties[kCGImagePropertyPixelWidth] as? CGFloat,
-      let pixelHeight = properties[kCGImagePropertyPixelHeight] as? CGFloat,
-      pixelWidth > 0,
-      pixelHeight > 0
-    else {
-      return nil
-    }
-
-    return CGSize(width: pixelWidth, height: pixelHeight)
-  }
-
-  nonisolated private static func upscaledImageFileURLs(from sourceFileURL: URL) -> [URL] {
-    let directory = sourceFileURL.deletingLastPathComponent()
-    let baseName = sourceFileURL.deletingPathExtension().lastPathComponent
-    let resolvedBaseName = baseName.hasSuffix("@2x") ? baseName : "\(baseName)@2x"
-
-    let sourceExtension = sourceFileURL.pathExtension.lowercased()
-    var candidates: [URL] = []
-
-    if !sourceExtension.isEmpty {
-      candidates.append(
-        directory.appendingPathComponent(resolvedBaseName).appendingPathExtension(sourceExtension))
-    } else {
-      candidates.append(directory.appendingPathComponent(resolvedBaseName))
-    }
-
-    if sourceExtension != "jpg" && sourceExtension != "jpeg" {
-      candidates.append(
-        directory.appendingPathComponent(resolvedBaseName).appendingPathExtension("jpg"))
-    }
-    if sourceExtension != "png" {
-      candidates.append(
-        directory.appendingPathComponent(resolvedBaseName).appendingPathExtension("png"))
-    }
-
-    var seenPaths = Set<String>()
-    return candidates.filter { seenPaths.insert($0.path).inserted }
-  }
-
-  nonisolated private static func readCGImage(from fileURL: URL) -> CGImage? {
-    let options = [kCGImageSourceShouldCache: false] as CFDictionary
-    guard let source = CGImageSourceCreateWithURL(fileURL as CFURL, options) else {
-      return nil
-    }
-    return CGImageSourceCreateImageAtIndex(source, 0, options)
-  }
-
-  nonisolated private static let supportedDestinationTypeIdentifiers: Set<String> = {
-    let identifiers = CGImageDestinationCopyTypeIdentifiers() as? [String] ?? []
-    return Set(identifiers.map { $0.lowercased() })
-  }()
-
-  nonisolated private static func destinationUTType(for fileURL: URL) -> UTType? {
-    let ext = fileURL.pathExtension.lowercased()
-    guard !ext.isEmpty else { return nil }
-    guard let type = UTType(filenameExtension: ext) else { return nil }
-    guard supportedDestinationTypeIdentifiers.contains(type.identifier.lowercased()) else { return nil }
-    return type
-  }
-
-  nonisolated private static func upscaleSkipReasonText(_ reason: ReaderUpscaleDecision.SkipReason?) -> String {
-    switch reason {
-    case .disabled:
-      return "disabled"
-    case .belowAutoTriggerScale:
-      return "below-auto-trigger-threshold"
-    case .exceedsAlwaysMaxScreenScale:
-      return "exceeds-always-max-source-size"
-    case .invalidSourceSize:
-      return "invalid-source-size"
-    case nil:
-      return "unknown"
-    }
-  }
-
-  nonisolated private static func persistUpscaledCGImage(
-    _ image: CGImage,
-    sourceFileURL: URL,
-    targetFileURLs: [URL],
-    logger: AppLogger
-  ) -> URL? {
-    let fileManager = FileManager.default
-    guard let targetDirectory = targetFileURLs.first?.deletingLastPathComponent() else {
-      logger.error("❌ [Upscale] No target path candidates for \(sourceFileURL.lastPathComponent)")
-      return nil
-    }
-    do {
-      try fileManager.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
-    } catch {
-      logger.error("❌ [Upscale] Failed to create target directory: \(targetDirectory.path)")
-      return nil
-    }
-
-    for targetFileURL in targetFileURLs {
-      guard let destinationType = destinationUTType(for: targetFileURL) else {
-        logger.debug(
-          "⏭️ [Upscale] Unsupported destination type for \(targetFileURL.lastPathComponent), trying fallback")
-        continue
-      }
-
-      guard
-        let destination = CGImageDestinationCreateWithURL(
-          targetFileURL as CFURL,
-          destinationType.identifier as CFString,
-          1,
-          nil
-        )
-      else {
-        logger.error(
-          "❌ [Upscale] CGImageDestinationCreateWithURL failed: file=\(targetFileURL.lastPathComponent), type=\(destinationType.identifier)"
-        )
-        continue
-      }
-
-      CGImageDestinationAddImage(destination, image, nil)
-      if CGImageDestinationFinalize(destination) {
-        return targetFileURL
-      }
-
-      logger.error(
-        "❌ [Upscale] CGImageDestinationFinalize failed: file=\(targetFileURL.lastPathComponent), type=\(destinationType.identifier)"
-      )
-    }
-
-    return nil
+    syncPageLoadSchedulerCurrentPage()
+    pageLoadScheduler.cleanupDistantImagesAroundCurrentPage()
   }
 
   func isAnimatedPage(for pageID: ReaderPageID) -> Bool {
-    animatedPageStates[pageID] == true
+    pageLoadScheduler.isAnimatedPage(for: pageID)
   }
 
   func shouldPrepareAnimatedPlayback(for pageID: ReaderPageID) -> Bool {
-    animatedPageStates[pageID] != false
-  }
-
-  private func updateAnimatedPresentation(
-    knownAnimatedState: Bool?,
-    sourceFileURL: URL?,
-    for pageID: ReaderPageID
-  ) {
-    var didChange = false
-
-    if let knownAnimatedState {
-      if animatedPageStates[pageID] != knownAnimatedState {
-        animatedPageStates[pageID] = knownAnimatedState
-        didChange = true
-      }
-    } else if animatedPageStates.removeValue(forKey: pageID) != nil {
-      didChange = true
-    }
-
-    if let sourceFileURL {
-      if animatedPageSourceFileURLs[pageID] != sourceFileURL {
-        animatedPageSourceFileURLs[pageID] = sourceFileURL
-        didChange = true
-      }
-    } else if animatedPageSourceFileURLs.removeValue(forKey: pageID) != nil {
-      didChange = true
-    }
-
-    if didChange {
-      invalidatePagePresentation(for: pageID)
-    }
+    pageLoadScheduler.shouldPrepareAnimatedPlayback(for: pageID)
   }
 
   func animatedSourceFileURL(for pageID: ReaderPageID) -> URL? {
-    guard animatedPageStates[pageID] == true else { return nil }
-    guard let fileURL = animatedPageSourceFileURLs[pageID] else { return nil }
-    guard FileManager.default.fileExists(atPath: fileURL.path) else {
-      return nil
-    }
-    return fileURL
+    pageLoadScheduler.animatedSourceFileURL(for: pageID)
   }
 
   func prepareAnimatedPagePlaybackURL(pageID: ReaderPageID) async {
-    guard let pageIndex = pageIndex(for: pageID) else { return }
-    await prepareAnimatedPagePlaybackURL(pageIndex: pageIndex)
+    await pageLoadScheduler.prepareAnimatedPagePlaybackURL(pageID: pageID)
   }
 
-  private func prepareAnimatedPagePlaybackURL(pageIndex: Int) async {
-    guard pageIndex >= 0 && pageIndex < readerPages.count else { return }
-    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return }
-    let page = readerPages[pageIndex].page
-    guard page.isAnimatedImageCandidate else {
-      updateAnimatedPresentation(knownAnimatedState: false, sourceFileURL: nil, for: pageID)
-      return
-    }
-
-    guard let fileURL = await getPageImageFileURL(pageIndex: pageIndex) else { return }
-    let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
-    updateAnimatedPresentation(
-      knownAnimatedState: isAnimated,
-      sourceFileURL: isAnimated ? fileURL : nil,
-      for: pageID
-    )
-  }
-
-  /// Preload a single page image into memory for instant display.
   func preloadImageForPage(at pageIndex: Int) async -> PlatformImage? {
-    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
-    if let cached = preloadedImagesByID[pageID] {
-      return cached
-    }
-
-    if let existingTask = preloadingImageTasks[pageID] {
-      return await existingTask.value
-    }
-
-    let preloadTask = Task<PlatformImage?, Never> { [weak self] in
-      guard let self else { return nil }
-      let (image, animatedSourceFileURL) = await self.preloadDecodedPageImage(pageIndex: pageIndex)
-      self.updateAnimatedPresentation(
-        knownAnimatedState: animatedSourceFileURL != nil,
-        sourceFileURL: animatedSourceFileURL,
-        for: pageID
-      )
-      guard let image else {
-        return nil
-      }
-      self.setPreloadedImage(image, for: pageID)
-      return image
-    }
-
-    preloadingImageTasks[pageID] = preloadTask
-    let image = await preloadTask.value
-    preloadingImageTasks.removeValue(forKey: pageID)
-    return image
+    await pageLoadScheduler.preloadImageForPage(at: pageIndex)
   }
 
   func preloadImage(for pageID: ReaderPageID) async -> PlatformImage? {
-    guard let pageIndex = pageIndex(for: pageID) else {
-      return preloadedImagesByID[pageID]
-    }
-    return await preloadImageForPage(at: pageIndex)
+    await pageLoadScheduler.preloadImage(for: pageID)
   }
 
-  /// Cancel any ongoing preloading tasks and clear preloaded images
   func clearPreloadedImages() {
-    preloadTask?.cancel()
-    preloadTask = nil
-    for (_, task) in upscalingTasks {
-      task.cancel()
-    }
-    upscalingTasks.removeAll()
-    for (_, task) in preloadingImageTasks {
-      task.cancel()
-    }
-    preloadingImageTasks.removeAll()
-    preloadedImagesByID.removeAll()
-    animatedPageStates.removeAll()
-    animatedPageSourceFileURLs.removeAll()
-    invalidateAllPagePresentations()
-    logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
+    pageLoadScheduler.clearPreloadedImages()
   }
 
   /// Update reading progress on the server
@@ -1602,14 +895,6 @@ class ReaderViewModel {
     }
     guard let currentPageIndex = pageIndex(for: readerPage.id) else { return false }
     return currentPageIndex >= range.upperBound - 1
-  }
-
-  private func resolvedDownloadURL(for page: BookPage, bookId: String) -> URL? {
-    if let url = page.downloadURL {
-      return url
-    }
-    // Fallback: construct URL from page number
-    return BookService.shared.getBookPageURL(bookId: bookId, page: page.number)
   }
 
   func updateDualPageSettings(noCover: Bool) {
@@ -1705,6 +990,7 @@ class ReaderViewModel {
       preferredPageID: preservedCurrentPageID
     )
     currentPageID = currentViewItemID?.pageID ?? preservedCurrentPageID
+    syncPageLoadSchedulerCurrentPage()
   }
 
   private func regenerateViewStatePreservingCurrentPage(_ mutation: () -> Void) {
@@ -1768,18 +1054,21 @@ class ReaderViewModel {
     guard let pageID else {
       currentPageID = nil
       currentViewItemID = nil
+      syncPageLoadSchedulerCurrentPage()
       return
     }
     currentPageID = pageID
     currentViewItemID = resolvedViewItem(
       preferredPageID: pageID
     )
+    syncPageLoadSchedulerCurrentPage()
   }
 
   func updateCurrentPosition(viewItem: ReaderViewItem?) {
     guard let viewItem else {
       currentViewItemID = nil
       currentPageID = nil
+      syncPageLoadSchedulerCurrentPage()
       return
     }
     currentViewItemID = resolvedViewItem(
@@ -1787,6 +1076,7 @@ class ReaderViewModel {
       preferredPageID: viewItem.pageID
     )
     currentPageID = currentViewItemID?.pageID
+    syncPageLoadSchedulerCurrentPage()
   }
 
   func currentViewItem() -> ReaderViewItem? {
