@@ -22,7 +22,7 @@
 
 ### Native Reading Experience
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, and steadier scroll/cover navigation.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, optional page shadows, clearer page-turn animation controls, and steadier scroll/cover navigation with better RTL, wide-page, and interruption handling.
 - EPUB reader on iOS/macOS with paged, scrolled, and cover layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
 - Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when reopening or revisiting pages.
 - PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, and clearer progress feedback.
@@ -44,7 +44,7 @@
 - Download books for full offline reading across DIVINA, EPUB, and PDF workflows.
 - EPUB downloads use a single-file download plus local extraction for faster, more reliable offline saves.
 - Manual offline mode controls and more predictable iOS background downloads for page files and extra resources.
-- iOS Live Activities for both active reading sessions and downloads.
+- Optional iOS Live Activities for both active reading sessions and downloads, including reader progress or incognito status on iPhone.
 - Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
 - Offline mode includes dedicated downloaded-library browsing and metadata filters.
 - Progress and offline data sync automatically when reconnecting, including safer conflict handling.
