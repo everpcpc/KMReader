@@ -128,6 +128,8 @@
       private var observersInstalled = false
       private var lastRenderInputs: RenderInputs?
       private var deferredViewModelCommitTask: Task<Void, Never>?
+      private var visiblePreloadTask: Task<Void, Never>?
+      private var visiblePreloadItem: ReaderViewItem?
       private var programmaticScrollToken: Int = 0
       private var lastObservedClipBounds: CGRect = .zero
 
@@ -159,6 +161,9 @@
         NotificationCenter.default.removeObserver(self)
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
+        visiblePreloadTask?.cancel()
+        visiblePreloadTask = nil
+        visiblePreloadItem = nil
         pagePresentationCoordinator.teardown()
         engine.teardown()
       }
@@ -750,12 +755,34 @@
       }
 
       private func preloadVisiblePages(for item: ReaderViewItem) {
-        let visiblePageIndices = item.pageIDs.compactMap { parent.viewModel.pageIndex(for: $0) }
+        let visiblePageIDs = item.pageIDs
+        if visiblePreloadItem == item,
+          visiblePageIDs.allSatisfy({
+            parent.viewModel.preloadedImage(for: $0) != nil
+              || parent.viewModel.hasPendingImageLoad(for: $0)
+          })
+        {
+          return
+        }
+
+        parent.viewModel.prioritizeVisiblePageLoads(for: visiblePageIDs)
+
+        let visiblePageIndices = visiblePageIDs.compactMap { parent.viewModel.pageIndex(for: $0) }
         guard !visiblePageIndices.isEmpty else { return }
 
-        Task(priority: .userInitiated) {
+        visiblePreloadTask?.cancel()
+        visiblePreloadItem = item
+        let viewModel = parent.viewModel
+        visiblePreloadTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+          defer {
+            if let self, self.visiblePreloadItem == item {
+              self.visiblePreloadTask = nil
+            }
+          }
+
           for pageIndex in visiblePageIndices {
-            _ = await parent.viewModel.preloadImageForPage(at: pageIndex)
+            guard !Task.isCancelled else { return }
+            _ = await viewModel.preloadImageForPage(at: pageIndex)
           }
         }
       }
