@@ -5,6 +5,11 @@
 
 import Foundation
 
+nonisolated struct AuthorDTO: Codable, Sendable {
+  let name: String
+  let role: String?
+}
+
 class ReferentialService {
   static let shared = ReferentialService()
   private let apiClient = APIClient.shared
@@ -103,13 +108,50 @@ class ReferentialService {
     return try await apiClient.request(path: "/api/v1/languages", queryItems: queryItems)
   }
 
-  func getAuthorsNames(search: String? = nil) async throws -> [String] {
+  func getAuthorsNames(
+    seriesId: String? = nil,
+    libraryIds: [String]? = nil,
+    collectionId: String? = nil,
+    readListId: String? = nil,
+    search: String? = nil
+  ) async throws -> [String] {
     var queryItems: [URLQueryItem] = []
+
+    if let seriesId = seriesId {
+      queryItems.append(URLQueryItem(name: "series_id", value: seriesId))
+    }
+
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
+    }
+
+    if let collectionId = collectionId {
+      queryItems.append(URLQueryItem(name: "collection_id", value: collectionId))
+    }
+
+    if let readListId = readListId {
+      queryItems.append(URLQueryItem(name: "readlist_id", value: readListId))
+    }
 
     if let search = search, !search.isEmpty {
       queryItems.append(URLQueryItem(name: "search", value: search))
     }
 
-    return try await apiClient.request(path: "/api/v1/authors/names", queryItems: queryItems)
+    var v2QueryItems = queryItems
+    v2QueryItems.append(URLQueryItem(name: "unpaged", value: "true"))
+
+    do {
+      let page: Page<AuthorDTO> = try await apiClient.request(
+        path: "/api/v2/authors",
+        queryItems: v2QueryItems
+      )
+      return page.content.map { $0.name }
+    } catch {
+      let v1QueryItems = queryItems.filter { $0.name != "readlist_id" }
+      let authors: [AuthorDTO] = try await apiClient.request(path: "/api/v1/authors", queryItems: v1QueryItems)
+      return authors.map { $0.name }
+    }
   }
 }
