@@ -652,7 +652,7 @@
       private func preloadVisiblePages(for item: ReaderViewItem) {
         let visiblePageIDs = item.pageIDs
         if visiblePreloadItem == item,
-          visiblePageIDs.allSatisfy({
+          visiblePreloadTask != nil || visiblePageIDs.allSatisfy({
             parent.viewModel.preloadedImage(for: $0) != nil
               || parent.viewModel.hasPendingImageLoad(for: $0)
           })
@@ -661,9 +661,6 @@
         }
 
         parent.viewModel.prioritizeVisiblePageLoads(for: visiblePageIDs)
-
-        let visiblePageIndices = visiblePageIDs.compactMap { parent.viewModel.pageIndex(for: $0) }
-        guard !visiblePageIndices.isEmpty else { return }
 
         visiblePreloadTask?.cancel()
         visiblePreloadItem = item
@@ -675,9 +672,9 @@
             }
           }
 
-          for pageIndex in visiblePageIndices {
+          for pageID in visiblePageIDs {
             guard !Task.isCancelled else { return }
-            _ = await viewModel.preloadImageForPage(at: pageIndex)
+            _ = await viewModel.preloadImage(for: pageID)
           }
         }
       }

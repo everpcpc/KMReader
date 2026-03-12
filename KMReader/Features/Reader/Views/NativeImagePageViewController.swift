@@ -189,13 +189,12 @@
     private func startLoadingImageIfNeeded() {
       guard loadTask == nil else { return }
       guard let viewModel else { return }
-      guard let requestedPageIndex = viewModel.pageIndex(for: pageID) else { return }
 
       let requestedPageID = pageID
 
       loadTask = Task { [weak self] in
         guard let self else { return }
-        let image = await viewModel.preloadImageForPage(at: requestedPageIndex)
+        let image = await viewModel.preloadImage(for: requestedPageID)
         guard !Task.isCancelled else { return }
         guard self.pageID == requestedPageID else { return }
 

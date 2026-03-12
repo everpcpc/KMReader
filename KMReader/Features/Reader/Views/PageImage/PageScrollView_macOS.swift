@@ -92,6 +92,7 @@
       context.coordinator.scrollView = scrollView
       context.coordinator.applyDisplayModeIfNeeded(in: scrollView)
       context.coordinator.setupNativeInteractions(on: scrollView)
+      context.coordinator.registerInvalidationObserver()
 
       return scrollView
     }
@@ -162,8 +163,21 @@
       weak var contentStack: NSStackView?
       var contentHeightConstraint: NSLayoutConstraint?
       private var pageViews: [NativePageItem] = []
+      private var invalidationObserverToken: UUID?
+
+      func registerInvalidationObserver() {
+        guard invalidationObserverToken == nil else { return }
+        invalidationObserverToken = parent.viewModel.addPagePresentationInvalidationObserver {
+          [weak self] _ in
+          self?.updatePages()
+        }
+      }
 
       func prepareForDismantle() {
+        if let token = invalidationObserverToken {
+          parent?.viewModel.removePagePresentationInvalidationObserver(token)
+          invalidationObserverToken = nil
+        }
         if let scrollView = scrollView {
           NotificationCenter.default.removeObserver(
             self, name: NSScrollView.didEndLiveScrollNotification, object: scrollView)

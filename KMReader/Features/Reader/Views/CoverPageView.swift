@@ -653,53 +653,41 @@ struct CoverPageView: View {
     postTransitionTask = Task(priority: .utility) {
       guard !Task.isCancelled else { return }
 
-      let shouldSyncPosition = await MainActor.run { () -> Bool in
+      let shouldContinue = await MainActor.run { () -> Bool in
         guard token == transitionToken else { return false }
         guard currentItem == item else { return false }
         viewModel.updateCurrentPosition(viewItem: item)
         return true
       }
-      guard shouldSyncPosition else { return }
+      guard shouldContinue else { return }
 
-      let shouldPreload = await MainActor.run { () -> Bool in
-        guard token == transitionToken else { return false }
-        guard currentItem == item else { return false }
-        preloadPresentationWindow(around: item)
-        return true
-      }
-      guard shouldPreload else { return }
-
+      await preloadPresentationWindow(around: item)
       await viewModel.preloadPages()
     }
   }
 
-  private func preloadPresentationWindow(around item: ReaderViewItem) {
+  private func preloadPresentationWindow(around item: ReaderViewItem) async {
     let candidateItems = [
       item,
       viewModel.adjacentViewItem(from: item, offset: 1),
       viewModel.adjacentViewItem(from: item, offset: -1),
     ].compactMap { $0 }
 
-    var pageIndices: [Int] = []
+    var pageIDs: [ReaderPageID] = []
     var seenPageIDs: Set<ReaderPageID> = []
     for candidateItem in candidateItems {
       for pageID in candidateItem.pageIDs where seenPageIDs.insert(pageID).inserted {
-        if let pageIndex = viewModel.pageIndex(for: pageID) {
-          pageIndices.append(pageIndex)
-        }
+        pageIDs.append(pageID)
       }
     }
 
-    guard !pageIndices.isEmpty else { return }
+    guard !pageIDs.isEmpty else { return }
 
-    Task(priority: .userInitiated) {
-      await withTaskGroup(of: Void.self) { group in
-        for pageIndex in pageIndices {
-          group.addTask {
-            _ = await viewModel.preloadImageForPage(at: pageIndex)
-          }
-        }
-      }
+    viewModel.prioritizeVisiblePageLoads(for: item.pageIDs)
+
+    for pageID in pageIDs {
+      guard !Task.isCancelled else { return }
+      _ = await viewModel.preloadImage(for: pageID)
     }
   }
 

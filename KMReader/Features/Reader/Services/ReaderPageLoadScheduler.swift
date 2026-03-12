@@ -42,6 +42,7 @@ final class ReaderPageLoadScheduler {
   private var preloadingImageTasks: [ReaderPageID: ImageLoadTaskRecord] = [:]
   private var lastPreloadRequestTime: Date?
   private var preloadTask: Task<Void, Never>?
+  private var visiblePageIDs: [ReaderPageID] = []
 
   init(
     preloadBefore: Int = ReaderConstants.preloadBefore,
@@ -97,6 +98,8 @@ final class ReaderPageLoadScheduler {
   }
 
   func prioritizeVisiblePageLoads(for pageIDs: [ReaderPageID]) {
+    visiblePageIDs = pageIDs
+
     let keepPageIDs = prioritizedPageIDs(around: pageIDs)
     guard !keepPageIDs.isEmpty else { return }
 
@@ -127,57 +130,31 @@ final class ReaderPageLoadScheduler {
     guard !pagesToPreload.isEmpty else { return }
 
     preloadTask?.cancel()
+    let pageIDsToPreload = pagesToPreload.map(\.pageID)
     preloadTask = Task { [weak self] in
       guard let self else { return }
 
-      let results = await withTaskGroup(of: (Int, ReaderPageID, PlatformImage?, URL?).self) {
-        group -> [(Int, ReaderPageID, PlatformImage?, URL?)] in
-        for (index, pageID) in pagesToPreload {
-          if Task.isCancelled { break }
-          if self.preloadedImage(for: pageID) != nil {
-            continue
-          }
-          group.addTask {
-            if Task.isCancelled { return (index, pageID, nil, nil) }
-            let (image, animatedSourceFileURL) = await self.preloadDecodedPageImage(pageIndex: index)
-            return (index, pageID, image, animatedSourceFileURL)
-          }
-        }
-
-        var collected: [(Int, ReaderPageID, PlatformImage?, URL?)] = []
-        for await result in group {
-          if !Task.isCancelled {
-            collected.append(result)
-          }
-        }
-        return collected
+      for pageID in pageIDsToPreload {
+        guard !Task.isCancelled else { return }
+        if self.preloadedImage(for: pageID) != nil { continue }
+        _ = await self.preloadImage(for: pageID)
       }
 
-      if Task.isCancelled { return }
-
-      for (pageIndex, pageID, image, animatedSourceFileURL) in results {
-        self.updateAnimatedPresentation(
-          knownAnimatedState: animatedSourceFileURL != nil,
-          sourceFileURL: animatedSourceFileURL,
-          for: pageID
-        )
-        if let image {
-          self.setPreloadedImage(image, forPageIndex: pageIndex)
-        }
+      if !Task.isCancelled {
+        self.cleanupDistantImagesAroundCurrentPage()
       }
-
-      self.cleanupDistantImagesAroundCurrentPage()
     }
   }
 
   func cleanupDistantImagesAroundCurrentPage() {
-    let keepPageIDs = Set(
+    var keepPageIDs = Set(
       pageWindowEntries(
         around: currentPageID,
         before: keepRangeBefore,
         after: keepRangeAfter
       ).map(\.pageID)
     )
+    keepPageIDs.formUnion(visiblePageIDs)
     guard !keepPageIDs.isEmpty else { return }
 
     let imageKeysToRemove = preloadedImagesByID.keys.filter { !keepPageIDs.contains($0) }
@@ -192,8 +169,6 @@ final class ReaderPageLoadScheduler {
     for key in animatedKeysToRemove {
       updateAnimatedPresentation(knownAnimatedState: nil, sourceFileURL: nil, for: key)
     }
-
-    logger.debug("🖼️ Memory Cache: \(preloadedImagesByID.count) images")
   }
 
   func isAnimatedPage(for pageID: ReaderPageID) -> Bool {
@@ -216,10 +191,13 @@ final class ReaderPageLoadScheduler {
     await prepareAnimatedPagePlaybackURL(pageIndex: pageIndex)
   }
 
-  func preloadImageForPage(at pageIndex: Int) async -> PlatformImage? {
-    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return nil }
+  func preloadImage(for pageID: ReaderPageID) async -> PlatformImage? {
     if let cached = preloadedImagesByID[pageID] {
       return cached
+    }
+
+    guard let pageIndex = pageIndex(for: pageID) else {
+      return nil
     }
 
     if let existingTask = preloadingImageTasks[pageID] {
@@ -247,13 +225,6 @@ final class ReaderPageLoadScheduler {
     let image = await preloadTask.value
     removeTrackedImageTaskIfCurrent(for: pageID, token: taskToken, from: &preloadingImageTasks)
     return image
-  }
-
-  func preloadImage(for pageID: ReaderPageID) async -> PlatformImage? {
-    guard let pageIndex = pageIndex(for: pageID) else {
-      return preloadedImagesByID[pageID]
-    }
-    return await preloadImageForPage(at: pageIndex)
   }
 
   func clearPreloadedImages() {
@@ -288,6 +259,7 @@ final class ReaderPageLoadScheduler {
     readerPages.removeAll()
     readerPageIndexByID.removeAll()
     currentPageID = nil
+    visiblePageIDs.removeAll()
   }
 
   private func pageIndex(for pageID: ReaderPageID) -> Int? {
@@ -329,11 +301,6 @@ final class ReaderPageLoadScheduler {
       )
     }
     return keepPageIDs
-  }
-
-  private func setPreloadedImage(_ image: PlatformImage, forPageIndex pageIndex: Int) {
-    guard let pageID = readerPageID(forPageIndex: pageIndex) else { return }
-    setPreloadedImage(image, for: pageID)
   }
 
   private func setPreloadedImage(_ image: PlatformImage, for pageID: ReaderPageID) {

@@ -823,10 +823,6 @@ class ReaderViewModel {
     await pageLoadScheduler.prepareAnimatedPagePlaybackURL(pageID: pageID)
   }
 
-  func preloadImageForPage(at pageIndex: Int) async -> PlatformImage? {
-    await pageLoadScheduler.preloadImageForPage(at: pageIndex)
-  }
-
   func preloadImage(for pageID: ReaderPageID) async -> PlatformImage? {
     await pageLoadScheduler.preloadImage(for: pageID)
   }
