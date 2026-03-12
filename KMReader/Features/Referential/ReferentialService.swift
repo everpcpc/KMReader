@@ -147,11 +147,17 @@ class ReferentialService {
         path: "/api/v2/authors",
         queryItems: v2QueryItems
       )
-      return page.content.map { $0.name }
+      let names = page.content.map { $0.name }
+      var seen = Set<String>()
+      let unique = names.filter { seen.insert($0).inserted }
+      return unique
     } catch {
       let v1QueryItems = queryItems.filter { $0.name != "readlist_id" }
       let authors: [AuthorDTO] = try await apiClient.request(path: "/api/v1/authors", queryItems: v1QueryItems)
-      return authors.map { $0.name }
+      let names = authors.map { $0.name }
+      var seen = Set<String>()
+      let unique = names.filter { seen.insert($0).inserted }
+      return unique
     }
   }
 }
