@@ -419,6 +419,7 @@
       webView.scrollView.delegate = self
       webView.scrollView.isScrollEnabled = true
       webView.scrollView.bounces = true
+      webView.scrollView.alwaysBounceHorizontal = true
       webView.scrollView.alwaysBounceVertical = false
       webView.scrollView.showsHorizontalScrollIndicator = false
       webView.scrollView.showsVerticalScrollIndicator = false
