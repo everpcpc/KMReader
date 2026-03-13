@@ -109,6 +109,7 @@
           private var longPressRecognizer: UILongPressGestureRecognizer?
 
           private var singleTapWorkItem: DispatchWorkItem?
+          private var isLongPressActive = false
           private var lastLongPressEndTime: Date = .distantPast
           private var lastDoubleTapTime: Date = .distantPast
           private var lastSingleTapActionTime: Date = .distantPast
@@ -202,14 +203,23 @@
 
           @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
             guard configuration.isEnabled else { return }
-            if gesture.state == .ended || gesture.state == .cancelled || gesture.state == .failed {
+            switch gesture.state {
+            case .began:
+              isLongPressActive = true
+              singleTapWorkItem?.cancel()
+              singleTapWorkItem = nil
+            case .ended, .cancelled, .failed:
+              isLongPressActive = false
               lastLongPressEndTime = Date()
+            default:
+              break
             }
           }
 
           @objc private func handleSingleTap(_ gesture: UITapGestureRecognizer) {
             singleTapWorkItem?.cancel()
             guard configuration.isEnabled else { return }
+            guard !isLongPressActive else { return }
             guard let view = attachedView ?? gesture.view else { return }
 
             let now = Date()
