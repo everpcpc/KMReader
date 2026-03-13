@@ -14,5 +14,10 @@ Management and Platform Polish
 - Komga media error messages are clearer in the app, so unsupported files and analysis issues are easier to understand.
 - macOS reader actions now live in the system menu bar for quicker keyboard-first control.
 
+Recent Fixes
+- Fixed DIVINA scroll page jumps after app background/foreground transitions.
+- Fixed accidental tap-zone triggers after a long press in the reader.
+- Fixed swipe chapter navigation for single-page EPUB content and improved reader preloading stability.
+
 Live Activities
 - Reader Live Activities can now be disabled, close immediately with the reader, and show reading progress or incognito status instead of a generic ON/OFF label.
