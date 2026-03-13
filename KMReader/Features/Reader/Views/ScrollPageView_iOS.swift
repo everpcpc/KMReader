@@ -221,7 +221,7 @@
           object: nil,
           queue: .main
         ) { [weak self] _ in
-          Task { @MainActor [weak self] in
+          MainActor.assumeIsolated {
             self?.handleApplicationWillResignActive()
           }
         }
@@ -442,8 +442,8 @@
         guard !visibleIndexPaths.isEmpty else { return engine.committedItem }
 
         let center = CGPoint(
-          x: collectionView.contentOffset.x + collectionView.bounds.midX,
-          y: collectionView.contentOffset.y + collectionView.bounds.midY
+          x: collectionView.bounds.midX,
+          y: collectionView.bounds.midY
         )
 
         let nearestIndexPath = visibleIndexPaths.min { lhs, rhs in
