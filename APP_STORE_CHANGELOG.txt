@@ -1,8 +1,9 @@
 Reader Improvements
-- DIVINA now offers cover-style page transitions on iPhone, iPad, Mac, and Apple TV, with steadier scroll and paged reading, better viewport alignment, improved RTL behavior, more consistent wide-page handling, and more reliable page loading during fast navigation or app interruptions.
-- EPUB adds cover transitions on iPhone, iPad, and Mac, and cover-style turns feel smoother thanks to better adjacent page preloading.
+- DIVINA now offers cover-style page transitions on iPhone, iPad, Mac, and Apple TV, with steadier scroll and paged reading, better viewport alignment, improved RTL behavior, more consistent wide-page handling, more reliable preloading, and smoother recovery during fast navigation or app interruptions.
+- Webtoon and scroll reading behave more predictably, including fixes for backward chapter jumps and page-position jumps after app background/foreground transitions.
+- EPUB adds cover transitions on iPhone, iPad, and Mac, cover-style turns feel smoother thanks to better adjacent page preloading, and single-page content now supports swipe chapter navigation more reliably.
 - Animated GIF and WebP pages now start immediately, stay smooth while you zoom or scroll, and behave more reliably when you reopen, revisit, or switch pages.
-- Added a Show Page Shadow option for cleaner seamless spreads, and made page-turn animation settings easier to find with a clearer Off state.
+- Added a Show Page Shadow option for cleaner seamless spreads, and reader interactions are more consistent with improved tap-zone handling.
 
 Offline and Library Workflows
 - EPUB downloads are now saved as a single file and extracted locally, making offline reading faster and more reliable.
