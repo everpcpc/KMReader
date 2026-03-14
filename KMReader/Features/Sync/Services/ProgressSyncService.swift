@@ -51,6 +51,7 @@ actor ProgressSyncService {
     var successCount = 0
     var failureCount = 0
     var ignoredConflictCount = 0
+    var ignoredNonRetryableCount = 0
     var completedBookIds = Set<String>()
 
     for item in pending {
@@ -68,17 +69,31 @@ actor ProgressSyncService {
           completedBookIds.insert(item.bookId)
         }
       } catch {
-        if let apiError = error as? APIError, apiError.isConflict {
-          logger.info(
-            "⏭️ Ignored progress conflict (409) for book \(item.bookId) (pending id=\(item.id))"
-          )
-          await database.deletePendingProgress(id: item.id)
-          await database.commit()
-          ignoredConflictCount += 1
-          if item.completed {
-            completedBookIds.insert(item.bookId)
+        if let apiError = error as? APIError {
+          if apiError.isConflict {
+            logger.info(
+              "⏭️ Ignored progress conflict (409) for book \(item.bookId) (pending id=\(item.id))"
+            )
+            await database.deletePendingProgress(id: item.id)
+            await database.commit()
+            ignoredConflictCount += 1
+            if item.completed {
+              completedBookIds.insert(item.bookId)
+            }
+            continue
           }
-          continue
+
+          if let statusCode = apiError.statusCode, (400..<500).contains(statusCode), statusCode != 408,
+            statusCode != 429
+          {
+            logger.info(
+              "⏭️ Ignored non-retryable progress error (\(statusCode)) for book \(item.bookId) (pending id=\(item.id))"
+            )
+            await database.deletePendingProgress(id: item.id)
+            await database.commit()
+            ignoredNonRetryableCount += 1
+            continue
+          }
         }
         logger.error(
           "❌ Failed to sync progress for book \(item.bookId) (pending id=\(item.id)): \(error.localizedDescription)"
@@ -114,6 +129,10 @@ actor ProgressSyncService {
 
     if ignoredConflictCount > 0 {
       logger.info("⏭️ Ignored \(ignoredConflictCount) progress conflicts (409)")
+    }
+
+    if ignoredNonRetryableCount > 0 {
+      logger.info("⏭️ Ignored \(ignoredNonRetryableCount) non-retryable progress errors (4xx)")
     }
 
     if failureCount > 0 {
