@@ -163,7 +163,7 @@ struct CoverPageView: View {
     Group {
       if case .end(let id) = item {
         NativeEndPageHostView(
-          previousBook: viewModel.currentBook(forSegmentBookId: id.bookId),
+          previousBook: viewModel.endPagePreviousBook(forSegmentBookId: id.bookId),
           nextBook: viewModel.nextBook(forSegmentBookId: id.bookId),
           readListContext: readListContext,
           readingDirection: readingDirection,

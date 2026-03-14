@@ -283,7 +283,7 @@ class BookService {
           path: "/api/v1/books/\(bookId)/next"
         )
       }
-    } catch {
+    } catch APIError.notFound {
       return nil
     }
   }
@@ -297,7 +297,7 @@ class BookService {
       } else {
         return try await apiClient.request(path: "/api/v1/books/\(bookId)/previous")
       }
-    } catch {
+    } catch APIError.notFound {
       return nil
     }
   }

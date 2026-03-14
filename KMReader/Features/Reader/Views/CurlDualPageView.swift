@@ -367,7 +367,7 @@
           sectionDisplayMode = slot == .first ? .previousOnly : .nextOnly
         }
         controller.configure(
-          previousBook: parent.viewModel.currentBook(forSegmentBookId: segmentBookId),
+          previousBook: parent.viewModel.endPagePreviousBook(forSegmentBookId: segmentBookId),
           nextBook: parent.viewModel.nextBook(forSegmentBookId: segmentBookId),
           readListContext: parent.readListContext,
           readingDirection: parent.readingDirection,
