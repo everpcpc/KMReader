@@ -60,7 +60,7 @@ struct CoverPageView: View {
   @State private var postTransitionTask: Task<Void, Never>?
 
   private var shouldDisableScrollInteraction: Bool {
-    viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil
+    viewModel.isZoomed
   }
 
   private var isCurrentItemValid: Bool {
