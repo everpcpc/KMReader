@@ -413,7 +413,9 @@ actor DatabaseOperator {
         }
         book.epubProgressionRaw = data
       } else {
-        book.epubProgressionRaw = nil
+        // Store an empty payload as a sentinel for "checked remote progression and none exists"
+        // so startup sync does not keep retrying the same offline EPUB forever.
+        book.epubProgressionRaw = Data()
       }
     }
   }

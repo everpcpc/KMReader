@@ -639,13 +639,29 @@ actor OfflineManager {
     for bookId in bookIds {
       do {
         let progression = try await BookService.shared.getWebPubProgression(bookId: bookId)
-        guard progression != nil else { continue }
 
         try? await DatabaseOperator.database().updateBookEpubProgression(
           bookId: bookId,
           progression: progression
         )
         syncedCount += 1
+      } catch let apiError as APIError {
+        if apiError.statusCode == 404 {
+          try? await DatabaseOperator.database().updateBookEpubProgression(
+            bookId: bookId,
+            progression: nil
+          )
+          syncedCount += 1
+          logger.info(
+            "⏭️ Marked missing remote EPUB progression as handled for offline book \(bookId) after 404"
+          )
+          continue
+        }
+
+        failedCount += 1
+        logger.warning(
+          "⚠️ Failed to sync missing EPUB progression for offline book \(bookId): \(apiError)"
+        )
       } catch {
         failedCount += 1
         logger.warning(
