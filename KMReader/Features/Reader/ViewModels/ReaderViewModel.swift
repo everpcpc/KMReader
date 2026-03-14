@@ -303,6 +303,12 @@ class ReaderViewModel {
     return segments[segmentIndex].previousBook
   }
 
+  /// End page is rendered between the finished segment book and its next sibling.
+  /// The leading "previous" slot intentionally shows the finished/current segment book.
+  func endPagePreviousBook(forSegmentBookId bookId: String) -> Book? {
+    currentBook(forSegmentBookId: bookId)
+  }
+
   private func segmentPageRange(forSegmentBookId bookId: String) -> Range<Int>? {
     segmentPageRangeByBookId[bookId]
   }

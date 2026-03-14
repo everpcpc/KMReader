@@ -1048,31 +1048,101 @@ struct DivinaReaderView: View {
     let instanceId = AppConfig.current.instanceId
     let database = await DatabaseOperator.databaseIfConfigured()
 
-    var resolvedNextBook = await database?.getNextBook(
-      instanceId: instanceId,
+    let resolvedNextBook = await resolveAdjacentBook(
+      direction: .next,
       bookId: bookId,
-      readListId: readListId
-    )
-    if resolvedNextBook == nil && !AppConfig.isOffline {
-      resolvedNextBook = await SyncService.shared.syncNextBook(
-        bookId: bookId,
-        readListId: readListId
-      )
-    }
-
-    var resolvedPreviousBook = await database?.getPreviousBook(
+      readListId: readListId,
       instanceId: instanceId,
-      bookId: bookId,
-      readListId: readListId
+      database: database
     )
-    if resolvedPreviousBook == nil && !AppConfig.isOffline {
-      resolvedPreviousBook = await SyncService.shared.syncPreviousBook(
-        bookId: bookId,
-        readListId: readListId
-      )
-    }
+    let resolvedPreviousBook = await resolveAdjacentBook(
+      direction: .previous,
+      bookId: bookId,
+      readListId: readListId,
+      instanceId: instanceId,
+      database: database
+    )
 
     return (resolvedPreviousBook, resolvedNextBook)
+  }
+
+  private enum AdjacentBookDirection {
+    case previous
+    case next
+  }
+
+  private func resolveAdjacentBook(
+    direction: AdjacentBookDirection,
+    bookId: String,
+    readListId: String?,
+    instanceId: String,
+    database: DatabaseOperator?
+  ) async -> Book? {
+    if AppConfig.isOffline {
+      return await cachedAdjacentBook(
+        direction: direction,
+        bookId: bookId,
+        readListId: readListId,
+        instanceId: instanceId,
+        database: database
+      )
+    }
+
+    do {
+      let resolvedBook: Book?
+      switch direction {
+      case .previous:
+        resolvedBook = try await BookService.shared.getPreviousBook(
+          bookId: bookId,
+          readListId: readListId
+        )
+      case .next:
+        resolvedBook = try await BookService.shared.getNextBook(
+          bookId: bookId,
+          readListId: readListId
+        )
+      }
+
+      if let resolvedBook, let database {
+        await database.upsertBook(dto: resolvedBook, instanceId: instanceId)
+        await database.commit()
+      }
+      return resolvedBook
+    } catch {
+      logger.warning(
+        "⚠️ Failed to resolve \(direction == .next ? "next" : "previous") book from server for \(bookId): \(error)"
+      )
+      return await cachedAdjacentBook(
+        direction: direction,
+        bookId: bookId,
+        readListId: readListId,
+        instanceId: instanceId,
+        database: database
+      )
+    }
+  }
+
+  private func cachedAdjacentBook(
+    direction: AdjacentBookDirection,
+    bookId: String,
+    readListId: String?,
+    instanceId: String,
+    database: DatabaseOperator?
+  ) async -> Book? {
+    switch direction {
+    case .previous:
+      return await database?.getPreviousBook(
+        instanceId: instanceId,
+        bookId: bookId,
+        readListId: readListId
+      )
+    case .next:
+      return await database?.getNextBook(
+        instanceId: instanceId,
+        bookId: bookId,
+        readListId: readListId
+      )
+    }
   }
 
   private var segmentPreloadTriggerDistance: Int {

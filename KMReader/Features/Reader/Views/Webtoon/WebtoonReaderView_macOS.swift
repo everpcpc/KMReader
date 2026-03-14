@@ -291,7 +291,7 @@
           {
             cell.readerBackground = renderConfig.readerBackground
             cell.configure(
-              previousBook: viewModel.currentBook(forSegmentBookId: segmentBookId),
+              previousBook: viewModel.endPagePreviousBook(forSegmentBookId: segmentBookId),
               nextBook: viewModel.nextBook(forSegmentBookId: segmentBookId),
               readListContext: readListContext,
               onDismiss: onDismiss
@@ -547,7 +547,7 @@
           }
           cell.readerBackground = readerBackground
           cell.configure(
-            previousBook: viewModel?.currentBook(forSegmentBookId: segmentBookId),
+            previousBook: viewModel?.endPagePreviousBook(forSegmentBookId: segmentBookId),
             nextBook: viewModel?.nextBook(forSegmentBookId: segmentBookId),
             readListContext: readListContext,
             onDismiss: onDismiss

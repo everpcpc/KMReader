@@ -37,6 +37,8 @@ struct NativeEndPagePresentation {
     readListContext: ReaderReadListContext?,
     sectionDisplayMode: SectionDisplayMode = .both
   ) -> NativeEndPagePresentation {
+    // End page sits between the finished book and its next sibling.
+    // `previousBook` intentionally represents the finished/current segment book shown on the leading side.
     let relationTitle = readListContext?.name ?? previousBook?.seriesTitle ?? nextBook?.seriesTitle ?? ""
     let previousVisible = sectionDisplayMode != .nextOnly && previousBook != nil
     let nextVisible = sectionDisplayMode != .previousOnly

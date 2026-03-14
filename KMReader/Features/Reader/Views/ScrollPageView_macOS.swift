@@ -692,7 +692,7 @@
           guard let endItem = item as? NativePagedEndCell else { return }
           let segmentBookId = viewItem.pageID.bookId
           endItem.configure(
-            previousBook: parent.viewModel.currentBook(forSegmentBookId: segmentBookId),
+            previousBook: parent.viewModel.endPagePreviousBook(forSegmentBookId: segmentBookId),
             nextBook: parent.viewModel.nextBook(forSegmentBookId: segmentBookId),
             readListContext: parent.readListContext,
             readingDirection: parent.readingDirection,
