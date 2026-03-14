@@ -39,7 +39,7 @@
       #if os(tvOS)
         true
       #else
-        viewModel.isZoomed || viewModel.liveTextActivePageIndex != nil
+        viewModel.isZoomed
       #endif
     }
 
@@ -652,10 +652,11 @@
       private func preloadVisiblePages(for item: ReaderViewItem) {
         let visiblePageIDs = item.pageIDs
         if visiblePreloadItem == item,
-          visiblePreloadTask != nil || visiblePageIDs.allSatisfy({
-            parent.viewModel.preloadedImage(for: $0) != nil
-              || parent.viewModel.hasPendingImageLoad(for: $0)
-          })
+          visiblePreloadTask != nil
+            || visiblePageIDs.allSatisfy({
+              parent.viewModel.preloadedImage(for: $0) != nil
+                || parent.viewModel.hasPendingImageLoad(for: $0)
+            })
         {
           return
         }

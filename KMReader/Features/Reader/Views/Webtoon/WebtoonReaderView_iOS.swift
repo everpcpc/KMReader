@@ -242,13 +242,15 @@
         let currentPageID = viewModel.currentReaderPage?.id
         scrollEngine.currentPageID = currentPageID
         let needsContentRebuild = scrollEngine.needsRebuild(viewModel: viewModel)
-        let needsReload = needsContentRebuild
+        let needsReload =
+          needsContentRebuild
           || lastPagesCount != viewModel.pageCount
           || abs(heightCache.lastPageWidth - pageWidth) > 0.1
 
         if needsReload {
           if isScrollInteractionActive {
-            let preCapturedOffset = scrollEngine.hasScrolledToInitialPage
+            let preCapturedOffset =
+              scrollEngine.hasScrolledToInitialPage
               ? captureOffsetWithinPage(currentPageID, in: collectionView) : nil
             scrollEngine.pendingReloadCurrentPageID = currentPageID ?? scrollEngine.currentPageID
             scrollEngine.pendingReloadPreCapturedOffset = preCapturedOffset
@@ -321,7 +323,8 @@
         preCapturedOffset: CGFloat? = nil
       ) {
         // Capture offset using OLD indices + OLD layout (consistent)
-        let offsetWithinCurrentPage = preCapturedOffset
+        let offsetWithinCurrentPage =
+          preCapturedOffset
           ?? (scrollEngine.hasScrolledToInitialPage
             ? captureOffsetWithinPage(currentPageID, in: collectionView) : nil)
 

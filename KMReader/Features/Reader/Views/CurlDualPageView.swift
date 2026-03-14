@@ -633,7 +633,6 @@
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard !isTransitioning else { return false }
         guard !parent.viewModel.isZoomed else { return false }
-        guard parent.viewModel.liveTextActivePageIndex == nil else { return false }
 
         syncCurrentItemWithVisibleController()
         guard let currentSpreadIndex = currentResolvedSpreadIndex(),

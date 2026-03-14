@@ -7,6 +7,7 @@
 
   #if os(iOS)
     import UIKit
+    import VisionKit
   #elseif os(macOS)
     import AppKit
   #endif
@@ -264,7 +265,29 @@
           }
 
           func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-            configuration.isEnabled && !isInteractiveElement(touch.view)
+            guard configuration.isEnabled else { return false }
+            if isInteractiveElement(touch.view) {
+              return false
+            }
+            guard configuration.enableLiveText else {
+              return true
+            }
+            guard
+              let gestureView = attachedView ?? gestureRecognizer.view,
+              let liveTextContext = liveTextInteractionContext(from: touch.view)
+            else {
+              return true
+            }
+
+            let gestureLocation = touch.location(in: gestureView)
+            let action = tapZoneAction(location: gestureLocation, in: gestureView.bounds.size)
+            switch action {
+            case .previous, .next:
+              return true
+            case .toggleControls:
+              let interactionLocation = touch.location(in: liveTextContext.view)
+              return !isLiveTextInteractivePoint(interactionLocation, interaction: liveTextContext.interaction)
+            }
           }
 
           func gestureRecognizer(
@@ -301,6 +324,44 @@
             }
 
             return false
+          }
+
+          private func liveTextInteractionContext(from view: UIView?) -> (
+            view: UIView, interaction: ImageAnalysisInteraction
+          )? {
+            var current = view
+            while let candidate = current {
+              for interaction in candidate.interactions {
+                if let imageAnalysisInteraction = interaction as? ImageAnalysisInteraction {
+                  return (candidate, imageAnalysisInteraction)
+                }
+              }
+              current = candidate.superview
+            }
+            return nil
+          }
+
+          private func tapZoneAction(location: CGPoint, in size: CGSize) -> TapZoneAction {
+            guard size.width > 0, size.height > 0 else { return .toggleControls }
+            let normalizedX = max(0, min(1, location.x / size.width))
+            let normalizedY = max(0, min(1, location.y / size.height))
+            return TapZoneHelper.action(
+              normalizedX: normalizedX,
+              normalizedY: normalizedY,
+              tapZoneMode: configuration.tapZoneMode,
+              readingDirection: configuration.readingDirection,
+              zoneThreshold: configuration.zoneThreshold
+            )
+          }
+
+          private func isLiveTextInteractivePoint(
+            _ point: CGPoint,
+            interaction: ImageAnalysisInteraction
+          ) -> Bool {
+            interaction.hasInteractiveItem(at: point)
+              || interaction.hasDataDetector(at: point)
+              || interaction.hasSupplementaryInterface(at: point)
+              || interaction.hasText(at: point)
           }
 
           private func gestureContainer(from anchorView: UIView?) -> UIView? {

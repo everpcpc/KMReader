@@ -29,8 +29,6 @@ class ReaderViewModel {
   var tableOfContents: [ReaderTOCEntry] = []
   private var tableOfContentsByBookId: [String: [ReaderTOCEntry]] = [:]
   private var tableOfContentsBookId: String?
-  /// Page index with Live Text mode active (nil = no Live Text active)
-  var liveTextActivePageIndex: Int? = nil
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
@@ -566,7 +564,6 @@ class ReaderViewModel {
     viewItemIndexByPage.removeAll()
     readerPageIndexByID.removeAll()
     segmentPageRangeByBookId.removeAll()
-    liveTextActivePageIndex = nil
     currentPageID = nil
     currentViewItemID = nil
     navigationTarget = nil
