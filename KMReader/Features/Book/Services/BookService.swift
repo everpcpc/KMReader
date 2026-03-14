@@ -78,7 +78,48 @@ class BookService {
   }
 
   func getWebPubProgression(bookId: String) async throws -> R2Progression? {
-    return try await apiClient.requestOptional(path: "/api/v1/books/\(bookId)/progression")
+    let requestPath = "/api/v1/books/\(bookId)/progression"
+    let response = try await apiClient.requestData(
+      path: requestPath,
+      headers: ["Accept": "application/webpub+json"]
+    )
+
+    if response.data.isEmpty {
+      return nil
+    }
+
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    do {
+      let progression = try decoder.decode(R2Progression.self, from: response.data)
+      if progression.locator.href.isEmpty && progression.locator.type.isEmpty
+        && progression.locator.title == nil && progression.locator.locations == nil
+        && progression.locator.text == nil && progression.locator.koboSpan == nil
+      {
+        logger.debug(
+          "⏭️ [Progress/Epub] Treating empty locator progression as nil: book=\(bookId)"
+        )
+        return nil
+      }
+      return progression
+    } catch {
+      if let jsonObject = try? JSONSerialization.jsonObject(with: response.data) as? [String: Any],
+        let locator = jsonObject["locator"] as? [String: Any], locator.isEmpty
+      {
+        logger.debug(
+          "⏭️ [Progress/Epub] Treating empty raw locator progression as nil: book=\(bookId)"
+        )
+        return nil
+      }
+
+      let responseBody = String(data: response.data, encoding: .utf8)
+      throw APIError.decodingError(
+        error,
+        url: AppConfig.current.serverURL + requestPath,
+        response: responseBody
+      )
+    }
   }
 
   func getWebPubPositions(bookId: String) async throws -> R2Positions {
