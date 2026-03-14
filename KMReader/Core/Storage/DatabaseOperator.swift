@@ -390,13 +390,15 @@ actor DatabaseOperator {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
-    guard let data = try? modelContext.fetch(descriptor).first?.epubProgressionRaw else {
+    guard let raw = try? modelContext.fetch(descriptor).first?.epubProgressionRaw else {
       return nil
     }
-    return await MainActor.run {
-      let decoder = JSONDecoder()
-      decoder.dateDecodingStrategy = .iso8601
-      return try? decoder.decode(R2Progression.self, from: data)
+
+    switch await decodeStoredEpubProgressionState(raw) {
+    case .available(let progression):
+      return progression
+    case .missing, .unknown:
+      return nil
     }
   }
 
@@ -405,18 +407,68 @@ actor DatabaseOperator {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let book = try? modelContext.fetch(descriptor).first {
-      if let progression {
-        let data = await MainActor.run {
-          let encoder = JSONEncoder()
-          encoder.dateEncodingStrategy = .iso8601
-          return try? encoder.encode(progression)
+      book.epubProgressionRaw = await encodeEpubProgressionRecord(progression: progression)
+    }
+  }
+
+  private func encodeEpubProgressionRecord(progression: R2Progression?) async -> Data? {
+    await MainActor.run {
+      let encoder = JSONEncoder()
+      encoder.dateEncodingStrategy = .iso8601
+      let record =
+        if let progression {
+          EpubProgressionRecord(state: .available, progression: progression)
+        } else {
+          EpubProgressionRecord(state: .missing, progression: nil)
         }
-        book.epubProgressionRaw = data
-      } else {
-        // Store an empty payload as a sentinel for "checked remote progression and none exists"
-        // so startup sync does not keep retrying the same offline EPUB forever.
-        book.epubProgressionRaw = Data()
+      return try? encoder.encode(record)
+    }
+  }
+
+  private func decodeStoredEpubProgressionState(_ raw: Data?) async -> StoredEpubProgressionState {
+    guard let raw else {
+      return .unknown
+    }
+
+    if raw.isEmpty {
+      return .missing
+    }
+
+    return await MainActor.run {
+      let decoder = JSONDecoder()
+      decoder.dateDecodingStrategy = .iso8601
+
+      if let record = try? decoder.decode(EpubProgressionRecord.self, from: raw) {
+        switch record.state {
+        case .available:
+          if let progression = record.progression {
+            return .available(progression)
+          }
+          return .unknown
+        case .missing:
+          return .missing
+        }
       }
+
+      if let progression = try? decoder.decode(R2Progression.self, from: raw) {
+        let locator = progression.locator
+        let isEmptyLocator =
+          locator.href.isEmpty
+          && locator.type.isEmpty
+          && locator.title == nil
+          && locator.locations == nil
+          && locator.text == nil
+          && locator.koboSpan == nil
+        return isEmptyLocator ? .missing : .available(progression)
+      }
+
+      if let jsonObject = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+        let locator = jsonObject["locator"] as? [String: Any], locator.isEmpty
+      {
+        return .missing
+      }
+
+      return .unknown
     }
   }
 
@@ -2131,7 +2183,7 @@ actor DatabaseOperator {
     }
   }
 
-  func fetchOfflineEpubBookIdsMissingProgression(instanceId: String) -> [String] {
+  func fetchOfflineEpubBookIdsMissingProgression(instanceId: String) async -> [String] {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate {
         $0.instanceId == instanceId
@@ -2140,14 +2192,15 @@ actor DatabaseOperator {
     )
 
     guard let results = try? modelContext.fetch(descriptor) else { return [] }
-    return results.compactMap { book in
-      guard
-        book.mediaProfile == "EPUB",
-        (book.progressPage ?? 0) > 0,
-        book.epubProgressionRaw == nil
-      else { return nil }
-      return book.bookId
+
+    var bookIds: [String] = []
+    for book in results {
+      guard book.mediaProfile == "EPUB", (book.progressPage ?? 0) > 0 else { continue }
+      if case .unknown = await decodeStoredEpubProgressionState(book.epubProgressionRaw) {
+        bookIds.append(book.bookId)
+      }
     }
+    return bookIds
   }
 
   func fetchReadBooksEligibleForAutoDelete(instanceId: String) -> [(id: String, seriesId: String)] {

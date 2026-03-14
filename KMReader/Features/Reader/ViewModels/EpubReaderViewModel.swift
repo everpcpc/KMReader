@@ -1072,25 +1072,39 @@
     }
 
     private func syncRemoteProgressionToLocal(bookId: String) async {
-      do {
-        let progression = try await BookService.shared.getWebPubProgression(bookId: bookId)
-        if let database = await DatabaseOperator.databaseIfConfigured() {
-          await database.updateBookEpubProgression(
-            bookId: bookId,
-            progression: progression
-          )
-          await database.commit()
-        }
-        if let progression {
-          logger.debug(
-            "Synced remote EPUB progression to local storage: href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0)"
-          )
-        } else {
-          logger.debug("Synced remote EPUB progression to local storage: empty progression")
-        }
-      } catch {
+      guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
+
+      let remoteState = await BookService.shared.fetchRemoteWebPubProgression(bookId: bookId)
+
+      switch remoteState {
+      case .available(let progression):
+        await database.updateBookEpubProgression(
+          bookId: bookId,
+          progression: progression
+        )
+        await database.commit()
+        logger.debug(
+          "Synced remote EPUB progression to local storage: href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0)"
+        )
+      case .missing:
+        await database.updateBookEpubProgression(
+          bookId: bookId,
+          progression: nil
+        )
+        await database.commit()
+        logger.debug("Synced remote EPUB progression to local storage: missing progression")
+      case .retryableFailure(let error):
         logger.warning(
           "Failed to fetch remote EPUB progression for book \(bookId): \(error.localizedDescription)"
+        )
+      case .invalidPayload(let error):
+        await database.updateBookEpubProgression(
+          bookId: bookId,
+          progression: nil
+        )
+        await database.commit()
+        logger.warning(
+          "Ignoring non-retryable remote EPUB progression payload for book \(bookId): \(error.localizedDescription)"
         )
       }
     }

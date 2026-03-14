@@ -637,35 +637,37 @@ actor OfflineManager {
     var failedCount = 0
 
     for bookId in bookIds {
-      do {
-        let progression = try await BookService.shared.getWebPubProgression(bookId: bookId)
+      let remoteState = await BookService.shared.fetchRemoteWebPubProgression(bookId: bookId)
 
+      switch remoteState {
+      case .available(let progression):
         try? await DatabaseOperator.database().updateBookEpubProgression(
           bookId: bookId,
           progression: progression
         )
         syncedCount += 1
-      } catch let apiError as APIError {
-        if apiError.statusCode == 404 {
-          try? await DatabaseOperator.database().updateBookEpubProgression(
-            bookId: bookId,
-            progression: nil
-          )
-          syncedCount += 1
-          logger.info(
-            "⏭️ Marked missing remote EPUB progression as handled for offline book \(bookId) after 404"
-          )
-          continue
-        }
-
-        failedCount += 1
-        logger.warning(
-          "⚠️ Failed to sync missing EPUB progression for offline book \(bookId): \(apiError)"
+      case .missing:
+        try? await DatabaseOperator.database().updateBookEpubProgression(
+          bookId: bookId,
+          progression: nil
         )
-      } catch {
+        syncedCount += 1
+        logger.info(
+          "⏭️ Marked missing remote EPUB progression as handled for offline book \(bookId)"
+        )
+      case .retryableFailure(let error):
         failedCount += 1
         logger.warning(
-          "⚠️ Failed to sync missing EPUB progression for offline book \(bookId): \(error)"
+          "⚠️ Failed to sync missing EPUB progression for offline book \(bookId): \(error.localizedDescription)"
+        )
+      case .invalidPayload(let error):
+        try? await DatabaseOperator.database().updateBookEpubProgression(
+          bookId: bookId,
+          progression: nil
+        )
+        syncedCount += 1
+        logger.warning(
+          "⏭️ Ignoring non-retryable remote EPUB progression payload for offline book \(bookId): \(error.localizedDescription)"
         )
       }
     }
