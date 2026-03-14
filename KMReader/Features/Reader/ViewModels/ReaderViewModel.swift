@@ -988,7 +988,10 @@ class ReaderViewModel {
       preferredItem: preservedCurrentItem,
       preferredPageID: preservedCurrentPageID
     )
-    currentPageID = currentViewItemID?.pageID ?? preservedCurrentPageID
+    currentPageID = resolvedCurrentPageID(
+      for: currentViewItemID,
+      preferredPageID: preservedCurrentPageID
+    )
     syncPageLoadSchedulerCurrentPage()
   }
 
@@ -1063,6 +1066,17 @@ class ReaderViewModel {
     syncPageLoadSchedulerCurrentPage()
   }
 
+  private func resolvedCurrentPageID(
+    for viewItem: ReaderViewItem?,
+    preferredPageID: ReaderPageID?
+  ) -> ReaderPageID? {
+    guard let viewItem else { return preferredPageID }
+    if let preferredPageID, viewItem.pageIDs.contains(preferredPageID) {
+      return preferredPageID
+    }
+    return viewItem.pageID
+  }
+
   func updateCurrentPosition(viewItem: ReaderViewItem?) {
     guard let viewItem else {
       currentViewItemID = nil
@@ -1070,11 +1084,15 @@ class ReaderViewModel {
       syncPageLoadSchedulerCurrentPage()
       return
     }
+    let preferredPageID = currentPageID
     currentViewItemID = resolvedViewItem(
       preferredItem: viewItem,
-      preferredPageID: viewItem.pageID
+      preferredPageID: preferredPageID ?? viewItem.pageID
     )
-    currentPageID = currentViewItemID?.pageID
+    currentPageID = resolvedCurrentPageID(
+      for: currentViewItemID,
+      preferredPageID: preferredPageID
+    )
     syncPageLoadSchedulerCurrentPage()
   }
 
