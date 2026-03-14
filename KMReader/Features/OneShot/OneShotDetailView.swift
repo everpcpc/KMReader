@@ -293,11 +293,13 @@ struct OneshotDetailView: View {
   @ViewBuilder
   private var oneshotToolbarContent: some View {
     HStack {
-      if let shareURL {
-        ShareLink(item: shareURL, subject: Text(navigationTitle)) {
-          Image(systemName: "square.and.arrow.up")
+      #if !os(tvOS)
+        if let shareURL {
+          ShareLink(item: shareURL, subject: Text(navigationTitle)) {
+            Image(systemName: "square.and.arrow.up")
+          }
         }
-      }
+      #endif
 
       Menu {
         if current.isAdmin {
