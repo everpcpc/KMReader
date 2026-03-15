@@ -185,12 +185,12 @@ struct SeriesDetailContentView: View {
         )
       }
 
-      CollapsibleChipSection(items: sortedTags, collapsedLimit: collapsedMetadataChipLimit) { tag in
+      CollapsibleChipSection(items: combinedTagItems, collapsedLimit: collapsedMetadataChipLimit) { (tagItem: TagItem) in
         TappableInfoChip(
-          label: tag,
+          label: tagItem.name,
           systemImage: "tag",
-          color: .secondary,
-          destination: MetadataFilterHelper.seriesDestinationForTag(tag)
+          color: tagItem.isBookOnly ? Color.secondary.opacity(0.7) : .secondary,
+          destination: MetadataFilterHelper.seriesDestinationForTag(tagItem.name)
         )
       }
 
@@ -292,7 +292,30 @@ struct SeriesDetailContentView: View {
     (series.metadata.genres ?? []).sorted()
   }
 
-  private var sortedTags: [String] {
-    (series.metadata.tags ?? []).sorted()
+  private struct TagItem: Hashable {
+    let name: String
+    let isBookOnly: Bool
+  }
+
+  /// Series tags first (sorted), then book-only tags (sorted) — preserves web UI behavior
+  private var combinedTagItems: [TagItem] {
+    var items = [TagItem]()
+
+    let seriesTags = (series.metadata.tags ?? []).filter { !$0.isEmpty }.sorted()
+    let bookTags = (series.booksMetadata.tags ?? []).filter { !$0.isEmpty }
+
+    // series tags first
+    for t in seriesTags {
+      items.append(TagItem(name: t, isBookOnly: false))
+    }
+
+    // book-only tags (exclude those already in seriesTags)
+    let seriesSet = Set(seriesTags)
+    let bookOnly = Set(bookTags).subtracting(seriesSet).sorted()
+    for t in bookOnly {
+      items.append(TagItem(name: t, isBookOnly: true))
+    }
+
+    return items
   }
 }
