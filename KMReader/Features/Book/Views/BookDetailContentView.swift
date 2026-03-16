@@ -261,10 +261,8 @@ struct BookDetailContentView: View {
         VStack(alignment: .leading, spacing: 8) {
           Text("Links")
             .font(.headline)
-          HFlow {
-            ForEach(Array(links.enumerated()), id: \.offset) { _, link in
-              ExternalLinkChip(label: link.label, url: link.url)
-            }
+          CollapsibleChipSection(items: links, collapsedLimit: collapsedMetadataChipLimit) { link in
+            ExternalLinkChip(label: link.label, url: link.url)
           }
           Divider()
         }
