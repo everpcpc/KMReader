@@ -346,6 +346,7 @@
         nextCoverView.isHidden = !presentation.next.showsCover
         nextMetadataStack.isHidden = !presentation.next.showsMetadata
         caughtUpStack.isHidden = !presentation.next.showsCaughtUp
+        caughtUpLabel.stringValue = presentation.next.showsCaughtUp ? String(localized: "You're all caught up!") : ""
         nextTitleLabel.stringValue = presentation.next.title ?? ""
         nextDetailLabel.stringValue = presentation.next.detail ?? ""
         nextCoverView.configure(bookID: presentation.next.bookID)
@@ -354,7 +355,8 @@
         nextBadgeLabel.isHidden = true
         nextCoverView.isHidden = true
         nextMetadataStack.isHidden = true
-        caughtUpStack.isHidden = false
+        caughtUpStack.isHidden = true
+        caughtUpLabel.stringValue = ""
         nextTitleLabel.stringValue = ""
         nextDetailLabel.stringValue = ""
         nextCoverView.configure(bookID: nil)
