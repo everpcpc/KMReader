@@ -22,6 +22,14 @@ final class ScrollReaderEngine {
     isUserInteracting || isProgrammaticScrolling
   }
 
+  var hasPendingProgrammaticCommit: Bool {
+    pendingProgrammaticCommitItem != nil
+  }
+
+  var programmaticTargetItem: ReaderViewItem? {
+    resolveItem(pendingProgrammaticCommitItem)
+  }
+
   func teardown() {
     pendingInitialItem = nil
     pendingRenderedItems = nil
@@ -49,7 +57,9 @@ final class ScrollReaderEngine {
 
   func queueRenderedItems(_ items: [ReaderViewItem], anchor: ReaderViewItem?) {
     pendingRenderedItems = items
-    deferredAnchorItem = resolveItem(anchor, in: items)
+    deferredAnchorItem =
+      resolveItem(pendingProgrammaticCommitItem, in: items)
+      ?? resolveItem(anchor, in: items)
   }
 
   func consumeQueuedRenderedItems(anchorFallback: ReaderViewItem?) -> (
@@ -121,6 +131,11 @@ final class ScrollReaderEngine {
   }
 
   func clearPendingProgrammaticCommit() {
+    pendingProgrammaticCommitItem = nil
+  }
+
+  func cancelProgrammaticScroll() {
+    isProgrammaticScrolling = false
     pendingProgrammaticCommitItem = nil
   }
 

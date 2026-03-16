@@ -127,6 +127,9 @@
       private let pagePresentationCoordinator = NativePagedPagePresentationCoordinator()
       private var lastViewportSize: CGSize = .zero
       private var lastRenderInputs: RenderInputs?
+      private var needsViewportResyncAfterInteraction = false
+      private var pendingProgrammaticTargetOffset: CGPoint?
+      private var pendingUserInteractionTargetItem: ReaderViewItem?
       private var deferredViewModelCommitTask: Task<Void, Never>?
       private var visiblePreloadTask: Task<Void, Never>?
       private var visiblePreloadItem: ReaderViewItem?
@@ -144,6 +147,9 @@
         visiblePreloadTask?.cancel()
         visiblePreloadTask = nil
         visiblePreloadItem = nil
+        needsViewportResyncAfterInteraction = false
+        pendingProgrammaticTargetOffset = nil
+        pendingUserInteractionTargetItem = nil
         if let applicationWillResignActiveObserver {
           NotificationCenter.default.removeObserver(applicationWillResignActiveObserver)
           self.applicationWillResignActiveObserver = nil
@@ -183,17 +189,22 @@
         }
 
         if engine.hasSyncedInitialPosition, sizeChanged, !refreshedVisibleContent {
-          if let anchorItem {
-            scrollToItem(anchorItem, animated: false, in: collectionView)
+          if engine.isInteractionActive {
+            needsViewportResyncAfterInteraction = true
             refreshVisibleCells(in: collectionView)
-            if parent.viewModel.navigationTarget == nil {
-              commitRestoredItemIfNeeded(anchor: anchorItem, in: collectionView)
-            }
+            refreshedVisibleContent = true
+          } else if let anchorItem {
+            restoreViewportAnchor(anchorItem, in: collectionView)
             refreshedVisibleContent = true
           }
         }
 
-        if let navigationTarget = parent.viewModel.navigationTarget {
+        let finishedProgrammaticScroll = finishProgrammaticScrollIfTargetReached(in: collectionView)
+        if finishedProgrammaticScroll {
+          refreshedVisibleContent = true
+        }
+
+        if !finishedProgrammaticScroll, let navigationTarget = parent.viewModel.navigationTarget {
           handleNavigationChange(navigationTarget, in: collectionView)
         } else if renderInputsChanged && !refreshedVisibleContent {
           refreshVisibleCells(in: collectionView)
@@ -366,6 +377,7 @@
         }
 
         if isEquivalentContentOffset(targetOffset, to: collectionView.contentOffset) {
+          pendingProgrammaticTargetOffset = nil
           engine.clearPendingProgrammaticCommit()
           refreshVisibleCells(in: collectionView)
           if animated {
@@ -378,9 +390,11 @@
 
         if shouldAnimate {
           engine.beginProgrammaticScroll(to: item)
+          pendingProgrammaticTargetOffset = targetOffset
           preloadVisiblePages(for: item)
           collectionView.setContentOffset(targetOffset, animated: true)
         } else {
+          pendingProgrammaticTargetOffset = nil
           engine.clearPendingProgrammaticCommit()
           collectionView.setContentOffset(targetOffset, animated: false)
           refreshVisibleCells(in: collectionView)
@@ -432,9 +446,53 @@
       }
 
       private func currentAnchorItem(in collectionView: UICollectionView) -> ReaderViewItem? {
-        centeredItem(in: collectionView)
+        if let programmaticTargetItem = engine.programmaticTargetItem {
+          return programmaticTargetItem
+        }
+        if let pendingUserInteractionTargetItem {
+          return engine.resolveItem(pendingUserInteractionTargetItem) ?? pendingUserInteractionTargetItem
+        }
+        return centeredItem(in: collectionView)
           ?? parent.viewModel.currentViewItem()
           ?? engine.committedItem
+      }
+
+      private func clearProgrammaticScrollState() {
+        pendingProgrammaticTargetOffset = nil
+        engine.cancelProgrammaticScroll()
+      }
+
+      private func cancelProgrammaticNavigationIfNeeded() {
+        guard engine.isProgrammaticScrolling || engine.hasPendingProgrammaticCommit else { return }
+        clearProgrammaticScrollState()
+        if parent.viewModel.navigationTarget != nil {
+          parent.viewModel.clearNavigationTarget()
+        }
+      }
+
+      private func resolvedSwipeTargetItem(
+        for targetContentOffset: CGPoint,
+        in collectionView: UICollectionView
+      ) -> ReaderViewItem? {
+        let bounds = collectionView.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return nil }
+
+        let inset = collectionView.adjustedContentInset
+        let pageExtent = parent.mode.isVertical ? bounds.height : bounds.width
+        guard pageExtent > 0 else { return nil }
+
+        let rawIndex: CGFloat
+        if parent.mode.isVertical {
+          rawIndex = (targetContentOffset.y + inset.top) / pageExtent
+        } else {
+          rawIndex = (targetContentOffset.x + inset.left) / pageExtent
+        }
+
+        let index = min(
+          max(Int(rawIndex.rounded()), 0),
+          max(engine.renderedItems.count - 1, 0)
+        )
+        return renderedItem(at: index)
       }
 
       private func centeredItem(in collectionView: UICollectionView) -> ReaderViewItem? {
@@ -485,6 +543,51 @@
           return
         }
         commitCenteredItem(in: collectionView)
+      }
+
+      private func restoreViewportAnchor(
+        _ anchor: ReaderViewItem,
+        in collectionView: UICollectionView
+      ) {
+        scrollToItem(anchor, animated: false, in: collectionView)
+        refreshVisibleCells(in: collectionView)
+        if parent.viewModel.navigationTarget == nil {
+          commitRestoredItemIfNeeded(anchor: anchor, in: collectionView)
+        }
+      }
+
+      @discardableResult
+      private func finalizeDeferredViewportResyncIfNeeded(in collectionView: UICollectionView) -> Bool {
+        guard needsViewportResyncAfterInteraction else { return false }
+        needsViewportResyncAfterInteraction = false
+        collectionView.layoutIfNeeded()
+        guard let anchorItem = currentAnchorItem(in: collectionView) else { return false }
+        restoreViewportAnchor(anchorItem, in: collectionView)
+        return true
+      }
+
+      @discardableResult
+      private func finishProgrammaticScrollIfTargetReached(in collectionView: UICollectionView) -> Bool {
+        guard engine.isProgrammaticScrolling || engine.hasPendingProgrammaticCommit else {
+          return false
+        }
+        guard engine.programmaticTargetItem != nil else {
+          clearProgrammaticScrollState()
+          return false
+        }
+
+        let reachedTargetOffset =
+          pendingProgrammaticTargetOffset.map {
+            isEquivalentContentOffset($0, to: collectionView.contentOffset)
+          }
+          ?? false
+
+        guard reachedTargetOffset else {
+          return false
+        }
+
+        finishProgrammaticScroll(in: collectionView)
+        return true
       }
 
       private func commitPendingProgrammaticItemIfNeeded(in collectionView: UICollectionView) -> Bool {
@@ -685,8 +788,9 @@
 
         collectionView.layoutIfNeeded()
         _ = engine.endUserInteraction()
-        _ = engine.endProgrammaticScroll()
-        engine.clearPendingProgrammaticCommit()
+        clearProgrammaticScrollState()
+        needsViewportResyncAfterInteraction = false
+        pendingUserInteractionTargetItem = nil
 
         guard let item = centeredItem(in: collectionView) ?? engine.committedItem else { return }
         commitItem(item, in: collectionView, synchronizeViewModelImmediately: true)
@@ -695,19 +799,33 @@
       private func finishScrollInteractionIfNeeded() {
         guard let collectionView else { return }
 
+        let interactionTargetItem =
+          pendingUserInteractionTargetItem.flatMap { engine.resolveItem($0) } ?? pendingUserInteractionTargetItem
         _ = engine.endUserInteraction()
-        engine.clearPendingProgrammaticCommit()
         let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
-        if !appliedQueuedItems, parent.viewModel.navigationTarget == nil {
-          commitCenteredItem(in: collectionView)
+        let restoredViewport = finalizeDeferredViewportResyncIfNeeded(in: collectionView)
+        if !appliedQueuedItems, !restoredViewport, parent.viewModel.navigationTarget == nil {
+          if let interactionTargetItem {
+            commitItemIfNeeded(interactionTargetItem, in: collectionView)
+          } else {
+            commitCenteredItem(in: collectionView)
+          }
         }
+        pendingUserInteractionTargetItem = nil
       }
 
       private func finishProgrammaticScroll(in collectionView: UICollectionView) {
+        guard engine.isProgrammaticScrolling || engine.hasPendingProgrammaticCommit else {
+          return
+        }
+
+        pendingProgrammaticTargetOffset = nil
         _ = engine.endProgrammaticScroll()
         let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
-        if !commitPendingProgrammaticItemIfNeeded(in: collectionView) {
-          if !appliedQueuedItems, parent.viewModel.navigationTarget == nil {
+        let committedPendingItem = commitPendingProgrammaticItemIfNeeded(in: collectionView)
+        let restoredViewport = finalizeDeferredViewportResyncIfNeeded(in: collectionView)
+        if !committedPendingItem {
+          if !appliedQueuedItems, !restoredViewport, parent.viewModel.navigationTarget == nil {
             commitCenteredItem(in: collectionView)
           }
         }
@@ -763,7 +881,21 @@
       }
 
       func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        pendingUserInteractionTargetItem = nil
+        cancelProgrammaticNavigationIfNeeded()
         _ = engine.beginUserInteraction()
+      }
+
+      func scrollViewWillEndDragging(
+        _ scrollView: UIScrollView,
+        withVelocity velocity: CGPoint,
+        targetContentOffset: UnsafeMutablePointer<CGPoint>
+      ) {
+        guard let collectionView else { return }
+        pendingUserInteractionTargetItem = resolvedSwipeTargetItem(
+          for: targetContentOffset.pointee,
+          in: collectionView
+        )
       }
 
       func scrollViewDidScroll(_ scrollView: UIScrollView) {
