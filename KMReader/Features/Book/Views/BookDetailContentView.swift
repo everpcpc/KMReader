@@ -15,6 +15,8 @@ struct BookDetailContentView: View {
 
   @State private var thumbnailRefreshKey = UUID()
 
+  private let collapsedMetadataChipLimit = 10
+
   private var coverBlurRadius: CGFloat {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
@@ -147,17 +149,15 @@ struct BookDetailContentView: View {
             )
           }
 
-          // Authors as chips
+          // Authors
           if let authors = book.metadata.authors, !authors.isEmpty {
-            HFlow {
-              ForEach(authors.sortedByRole(), id: \.self) { author in
-                TappableInfoChip(
-                  label: author.name,
-                  systemImage: author.role.icon,
-                  color: .purple,
-                  destination: MetadataFilterHelper.booksDestinationForAuthor(author.name)
-                )
-              }
+            CollapsibleChipSection(items: authors.sortedByRole(), collapsedLimit: collapsedMetadataChipLimit) { author in
+              TappableInfoChip(
+                label: author.name,
+                systemImage: author.role.icon,
+                color: .purple,
+                destination: MetadataFilterHelper.booksDestinationForAuthor(author.name)
+              )
             }
           }
         }
@@ -165,15 +165,13 @@ struct BookDetailContentView: View {
 
       // Tags
       if let tags = book.metadata.tags, !tags.isEmpty {
-        HFlow {
-          ForEach(tags.sorted(), id: \.self) { tag in
-            TappableInfoChip(
-              label: tag,
-              systemImage: "tag",
-              color: .secondary,
-              destination: MetadataFilterHelper.booksDestinationForTag(tag)
-            )
-          }
+        CollapsibleChipSection(items: tags.sorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
+          TappableInfoChip(
+            label: tag,
+            systemImage: "tag",
+            color: .secondary,
+            destination: MetadataFilterHelper.booksDestinationForTag(tag)
+          )
         }
       }
 
