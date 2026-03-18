@@ -186,7 +186,8 @@ struct OneShotDetailContentView: View {
           }
 
           if let authors = book.metadata.authors, !authors.isEmpty {
-            CollapsibleChipSection(items: authors.sortedByRole(), collapsedLimit: collapsedMetadataChipLimit) { author in
+            CollapsibleChipSection(items: authors.sortedByRole(), collapsedLimit: collapsedMetadataChipLimit) {
+              author in
               TappableInfoChip(
                 label: author.name,
                 systemImage: author.role.icon,

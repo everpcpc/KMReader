@@ -34,6 +34,8 @@ AuthKey_*.p8
 .env
 .env.local
 
+.playwright-cli/
+
 packages/
 worktrees/
 .alma-snapshots

@@ -185,7 +185,8 @@ struct SeriesDetailContentView: View {
         )
       }
 
-      CollapsibleChipSection(items: combinedTagItems, collapsedLimit: collapsedMetadataChipLimit) { (tagItem: TagItem) in
+      CollapsibleChipSection(items: combinedTagItems, collapsedLimit: collapsedMetadataChipLimit) {
+        (tagItem: TagItem) in
         TappableInfoChip(
           label: tagItem.name,
           systemImage: "tag",
