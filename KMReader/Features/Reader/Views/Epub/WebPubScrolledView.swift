@@ -274,6 +274,9 @@
     private var pendingJumpToLastPage: Bool = false
     private var targetProgressionOnReady: Double?
     private var readyToken: Int = 0
+    private var lastKnownDocumentScrollTop: CGFloat = 0
+    private var lastKnownDocumentContentHeight: CGFloat = 0
+    private var lastKnownDocumentViewportHeight: CGFloat = 0
 
     private var bookTitle: String?
     private var chapterTitle: String?
@@ -323,6 +326,7 @@
     private var lastTouchStartTime: Date = .distantPast
     private var isBoundaryTransitionInFlight = false
     private var boundaryReadyDirection: BoundaryDirection?
+    private let documentBoundaryTolerance: CGFloat = 4
     private let boundaryOverscrollThreshold: CGFloat = 48
     private let boundaryHintDuration: TimeInterval = 0.6
     private let boundaryTransitionDelay: TimeInterval = 0.14
@@ -898,6 +902,10 @@
       }
 
       isContentLoaded = false
+      lastKnownDocumentScrollTop = 0
+      lastKnownDocumentContentHeight = 0
+      lastKnownDocumentViewportHeight = 0
+      totalPagesInChapter = 1
       webView.alpha = 0.01
       loadingIndicator?.startAnimating()
 
@@ -947,6 +955,8 @@
         loadingIndicator?.startAnimating()
       }
 
+      readyToken += 1
+      let currentReadyToken = readyToken
       injectCSS(
         contentCSS,
         readiumProperties: readiumProperties,
@@ -954,31 +964,31 @@
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       ) { [weak self] in
-        self?.injectPaginationJS(targetPageIndex: pageIndex)
+        self?.injectPaginationJS(targetPageIndex: pageIndex, token: currentReadyToken)
       }
     }
 
     private func scrollToPage(_ pageIndex: Int, animated: Bool = true) {
       guard isContentLoaded else { return }
-      let pageHeight = webView.bounds.height
+      let pageHeight = effectiveViewportHeight
       guard pageHeight > 0 else { return }
 
-      let contentHeight = webView.scrollView.contentSize.height
-      let maxOffset = max(0, contentHeight - webView.bounds.height)
+      let contentHeight = effectiveContentHeight
+      let maxOffset = max(0, contentHeight - pageHeight)
       let targetOffset = min(pageHeight * CGFloat(pageIndex), maxOffset)
 
-      webView.scrollView.setContentOffset(CGPoint(x: 0, y: targetOffset), animated: animated)
+      scrollDocument(to: targetOffset, animated: animated)
     }
 
     private func scrollToOffset(_ targetOffset: CGFloat, animated: Bool = true) {
       guard isContentLoaded else { return }
-      let pageHeight = webView.bounds.height
+      let pageHeight = effectiveViewportHeight
       guard pageHeight > 0 else { return }
-      let contentHeight = webView.scrollView.contentSize.height
+      let contentHeight = effectiveContentHeight
       let maxOffset = max(0, contentHeight - pageHeight)
       let clampedOffset = min(max(0, targetOffset), maxOffset)
 
-      webView.scrollView.setContentOffset(CGPoint(x: 0, y: clampedOffset), animated: animated)
+      scrollDocument(to: clampedOffset, animated: animated)
 
       let newPageIndex = Int(round(clampedOffset / pageHeight))
       let clampedIndex = max(0, min(totalPagesInChapter - 1, newPageIndex))
@@ -989,41 +999,199 @@
       }
     }
 
-    private func injectPaginationJS(targetPageIndex: Int) {
+    private var effectiveViewportHeight: CGFloat {
+      let domViewportHeight = lastKnownDocumentViewportHeight
+      if domViewportHeight > 0 {
+        return domViewportHeight
+      }
+      return webView.bounds.height
+    }
+
+    private var effectiveContentHeight: CGFloat {
+      max(
+        webView.scrollView.contentSize.height,
+        lastKnownDocumentContentHeight,
+        effectiveViewportHeight
+      )
+    }
+
+    private var isNearDocumentTop: Bool {
+      lastKnownDocumentScrollTop <= documentBoundaryTolerance
+    }
+
+    private var isNearDocumentBottom: Bool {
+      let maxOffset = max(0, effectiveContentHeight - effectiveViewportHeight)
+      return lastKnownDocumentScrollTop >= max(0, maxOffset - documentBoundaryTolerance)
+    }
+
+    private func scrollDocument(to targetOffset: CGFloat, animated: Bool) {
+      let clampedOffset = max(0, targetOffset)
+      lastKnownDocumentScrollTop = clampedOffset
+      let offset = Double(clampedOffset)
+      let js = """
+          (function() {
+            var top = \(offset);
+            var root = document.documentElement;
+            var body = document.body;
+            var scrolling = document.scrollingElement || root || body;
+            if (\(animated ? "true" : "false")) {
+              window.scrollTo({ top: top, left: 0, behavior: 'smooth' });
+            } else {
+              window.scrollTo(0, top);
+            }
+            if (scrolling) { scrolling.scrollTop = top; }
+            if (root) { root.scrollTop = top; }
+            if (body) { body.scrollTop = top; }
+            if (window.__kmreaderPostMetrics) {
+              window.requestAnimationFrame(function() {
+                window.__kmreaderPostMetrics('scroll');
+              });
+            }
+            return true;
+          })();
+        """
+
+      webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    private func updateDocumentMetrics(from body: [String: Any]) {
+      if let contentHeight = body["contentHeight"] as? Double, contentHeight > 0 {
+        lastKnownDocumentContentHeight = CGFloat(contentHeight)
+      }
+      if let viewportHeight = body["viewportHeight"] as? Double, viewportHeight > 0 {
+        lastKnownDocumentViewportHeight = CGFloat(viewportHeight)
+      }
+      if let scrollTop = body["scrollTop"] as? Double, scrollTop >= 0 {
+        lastKnownDocumentScrollTop = CGFloat(scrollTop)
+      }
+    }
+
+    private func injectPaginationJS(targetPageIndex: Int, token: Int) {
       let js = """
           (function() {
             var target = \(targetPageIndex);
-            var lastReportedPageCount = 0;
+            var token = \(token);
             var hasFinalized = false;
+            var installMetricsBridge = function() {
+              window.__kmreaderCurrentToken = token;
+              if (window.__kmreaderPostMetrics) {
+                return;
+              }
+              window.__kmreaderPostMetrics = function(type) {
+                var root = document.documentElement;
+                var body = document.body;
+                var scrolling = document.scrollingElement || root || body;
+                var viewportHeight =
+                  (window.visualViewport && window.visualViewport.height)
+                  || window.innerHeight
+                  || (root && root.clientHeight)
+                  || 1;
+                if (!viewportHeight || viewportHeight <= 0) { viewportHeight = 1; }
+
+                var bodyRectHeight = body ? Math.ceil(body.getBoundingClientRect().height) : 0;
+                var rootRectHeight = root ? Math.ceil(root.getBoundingClientRect().height) : 0;
+                var contentHeight = Math.max(
+                  scrolling ? (scrolling.scrollHeight || 0) : 0,
+                  root ? (root.scrollHeight || 0) : 0,
+                  body ? (body.scrollHeight || 0) : 0,
+                  bodyRectHeight,
+                  rootRectHeight,
+                  viewportHeight
+                );
+                var maxScroll = Math.max(0, contentHeight - viewportHeight);
+                var scrollTop = Math.max(
+                  0,
+                  Math.min(
+                    maxScroll,
+                    window.scrollY
+                    || (scrolling && scrolling.scrollTop)
+                    || (root && root.scrollTop)
+                    || (body && body.scrollTop)
+                    || 0
+                  )
+                );
+                var total = Math.max(1, Math.ceil(contentHeight / viewportHeight));
+                var currentPage = Math.max(
+                  0,
+                  Math.min(total - 1, Math.round(scrollTop / viewportHeight))
+                );
+
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
+                  window.webkit.messageHandlers.readerBridge.postMessage({
+                    type: type,
+                    token: window.__kmreaderCurrentToken || 0,
+                    totalPages: total,
+                    currentPage: currentPage,
+                    scrollTop: scrollTop,
+                    contentHeight: contentHeight,
+                    viewportHeight: viewportHeight
+                  });
+                }
+              };
+
+              if (window.__kmreaderScrollMetricsInstalled) {
+                return;
+              }
+              window.__kmreaderScrollMetricsInstalled = true;
+              var scheduled = false;
+              var scheduleMetrics = function(type) {
+                if (scheduled) { return; }
+                scheduled = true;
+                window.requestAnimationFrame(function() {
+                  scheduled = false;
+                  window.__kmreaderPostMetrics(type || 'scroll');
+                });
+              };
+              window.addEventListener('scroll', function() {
+                scheduleMetrics('scroll');
+              }, { passive: true });
+              window.addEventListener('resize', function() {
+                scheduleMetrics('scroll');
+              });
+              if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', function() {
+                  scheduleMetrics('scroll');
+                }, { passive: true });
+              }
+            };
 
             var finalize = function() {
               if (hasFinalized) return;
               hasFinalized = true;
+              installMetricsBridge();
 
               var root = document.documentElement;
-              var pageHeight = root.clientHeight || window.innerHeight;
+              var body = document.body;
+              var scrolling = document.scrollingElement || root || body;
+              var pageHeight =
+                (window.visualViewport && window.visualViewport.height)
+                || window.innerHeight
+                || root.clientHeight;
               if (!pageHeight || pageHeight <= 0) { pageHeight = 1; }
 
-              var currentHeight = root.scrollHeight || document.body.scrollHeight;
+              var bodyRectHeight = body ? Math.ceil(body.getBoundingClientRect().height) : 0;
+              var rootRectHeight = root ? Math.ceil(root.getBoundingClientRect().height) : 0;
+              var currentHeight = Math.max(
+                scrolling ? (scrolling.scrollHeight || 0) : 0,
+                root ? (root.scrollHeight || 0) : 0,
+                body ? (body.scrollHeight || 0) : 0,
+                bodyRectHeight,
+                rootRectHeight,
+                pageHeight
+              );
               var total = Math.max(1, Math.ceil(currentHeight / pageHeight));
               var maxScroll = Math.max(0, currentHeight - pageHeight);
 
-              var finalTarget = target;
+              var finalTarget = Math.max(0, Math.min(total - 1, target));
               var offset = Math.min(pageHeight * finalTarget, maxScroll);
 
               window.scrollTo(0, offset);
               if (document.documentElement) { document.documentElement.scrollTop = offset; }
               if (document.body) { document.body.scrollTop = offset; }
 
-              lastReportedPageCount = total;
-
               setTimeout(function() {
-                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
-                  window.webkit.messageHandlers.readerBridge.postMessage({
-                    type: 'ready',
-                    totalPages: total,
-                    currentPage: finalTarget
-                  });
+                if (window.__kmreaderPostMetrics) {
+                  window.__kmreaderPostMetrics('ready');
                 }
               }, 60);
             };
@@ -1038,8 +1206,22 @@
                 if (hasFinalized) return;
 
                 attempt++;
-                var currentH = root.scrollHeight || document.body.scrollHeight;
-                var pageHeight = root.clientHeight || window.innerHeight;
+                var body = document.body;
+                var scrolling = document.scrollingElement || root || body;
+                var bodyRectHeight = body ? Math.ceil(body.getBoundingClientRect().height) : 0;
+                var rootRectHeight = root ? Math.ceil(root.getBoundingClientRect().height) : 0;
+                var currentH = Math.max(
+                  scrolling ? (scrolling.scrollHeight || 0) : 0,
+                  root ? (root.scrollHeight || 0) : 0,
+                  body ? (body.scrollHeight || 0) : 0,
+                  bodyRectHeight,
+                  rootRectHeight,
+                  0
+                );
+                var pageHeight =
+                  (window.visualViewport && window.visualViewport.height)
+                  || window.innerHeight
+                  || root.clientHeight;
                 if (!pageHeight || pageHeight <= 0) { pageHeight = 1; }
 
                 if (currentH === lastH && currentH > 0) {
@@ -1099,16 +1281,27 @@
     ) {
       guard let body = message.body as? [String: Any] else { return }
       guard let type = body["type"] as? String else { return }
+      if let token = body["token"] as? Int, token != readyToken {
+        return
+      }
+
+      updateDocumentMetrics(from: body)
+
+      if let total = body["totalPages"] as? Int {
+        let normalizedTotal = max(1, total)
+        if normalizedTotal != totalPagesInChapter {
+          totalPagesInChapter = normalizedTotal
+          onPageCountReady?(chapterIndex, normalizedTotal)
+        } else {
+          totalPagesInChapter = normalizedTotal
+        }
+      }
 
       if type == "ready" {
         if let total = body["totalPages"] as? Int {
           let normalizedTotal = max(1, total)
           var actualPage = body["currentPage"] as? Int ?? currentSubPageIndex
 
-          totalPagesInChapter = normalizedTotal
-          onPageCountReady?(chapterIndex, normalizedTotal)
-
-          // If we need to jump to last page after loading, do it now
           let shouldJumpToLastPage = pendingJumpToLastPage
           if shouldJumpToLastPage {
             actualPage = max(0, normalizedTotal - 1)
@@ -1119,7 +1312,10 @@
           if !shouldJumpToLastPage,
             let progression = targetProgressionOnReady
           {
-            let targetIndex = max(0, min(normalizedTotal - 1, Int(floor(Double(normalizedTotal) * progression))))
+            let targetIndex = max(
+              0,
+              min(normalizedTotal - 1, Int(floor(Double(normalizedTotal) * progression)))
+            )
             if targetIndex != actualPage {
               actualPage = targetIndex
               scrollToPage(targetIndex, animated: false)
@@ -1136,6 +1332,16 @@
         loadingIndicator?.stopAnimating()
         webView.alpha = 1
         onPageDidChange?(chapterIndex, currentSubPageIndex)
+      } else if type == "scroll" {
+        let actualPage = max(
+          0,
+          min(totalPagesInChapter - 1, body["currentPage"] as? Int ?? currentSubPageIndex)
+        )
+        if currentSubPageIndex != actualPage {
+          currentSubPageIndex = actualPage
+          updateOverlayLabels()
+          onPageDidChange?(chapterIndex, currentSubPageIndex)
+        }
       }
     }
 
@@ -1298,10 +1504,10 @@
       var candidateDirection: BoundaryDirection?
       var overscrollDistance: CGFloat = 0
 
-      if topOverscroll > 0, chapterIndex > 0, topOverscroll >= bottomOverscroll {
+      if topOverscroll > 0, chapterIndex > 0, isNearDocumentTop, topOverscroll >= bottomOverscroll {
         candidateDirection = .previousChapter
         overscrollDistance = topOverscroll
-      } else if bottomOverscroll > 0, chapterIndex <= totalChapters - 1 {
+      } else if bottomOverscroll > 0, chapterIndex < totalChapters - 1, isNearDocumentBottom {
         candidateDirection = .nextChapter
         overscrollDistance = bottomOverscroll
       }
@@ -1415,10 +1621,13 @@
 
     private func updateCurrentPageFromScroll() {
       guard isContentLoaded else { return }
-      let pageHeight = webView.bounds.height
+      let pageHeight = effectiveViewportHeight
       guard pageHeight > 0 else { return }
 
-      let scrollOffset = webView.scrollView.contentOffset.y
+      let scrollOffset =
+        lastKnownDocumentViewportHeight > 0
+        ? lastKnownDocumentScrollTop
+        : webView.scrollView.contentOffset.y
       let newPageIndex = Int(round(scrollOffset / pageHeight))
       let clampedIndex = max(0, min(totalPagesInChapter - 1, newPageIndex))
 

@@ -306,9 +306,15 @@
     var onEndReached: (() -> Void)?
     private var tapGestureRecognizer: UITapGestureRecognizer?
     private var longPressGestureRecognizer: UILongPressGestureRecognizer?
+    private var panGestureRecognizer: UIPanGestureRecognizer?
     private var isLongPressing = false
     private var lastLongPressEndTime: Date = .distantPast
     private var lastTouchStartTime: Date = .distantPast
+    private var interactivePanStartOffsetX: CGFloat = 0
+    private let pageTurnVelocityThreshold: CGFloat = 450
+    private let pageTurnProgressThreshold: CGFloat = 0.5
+    private let chapterOverscrollThreshold: CGFloat = 80
+    private let boundaryResistanceFactor: CGFloat = 0.35
 
     init(
       chapterURL: URL?,
@@ -417,14 +423,14 @@
       webView = WKWebView(frame: .zero, configuration: config)
       webView.navigationDelegate = self
       webView.scrollView.delegate = self
-      webView.scrollView.isScrollEnabled = true
+      webView.scrollView.isScrollEnabled = false
       webView.scrollView.bounces = true
       webView.scrollView.alwaysBounceHorizontal = true
       webView.scrollView.alwaysBounceVertical = false
       webView.scrollView.showsHorizontalScrollIndicator = false
       webView.scrollView.showsVerticalScrollIndicator = false
       webView.scrollView.contentInsetAdjustmentBehavior = .never
-      webView.scrollView.isPagingEnabled = true
+      webView.scrollView.isPagingEnabled = false
       webView.isOpaque = false
       webView.alpha = 0
 
@@ -463,6 +469,13 @@
       longPressRecognizer.cancelsTouchesInView = false
       view.addGestureRecognizer(longPressRecognizer)
       self.longPressGestureRecognizer = longPressRecognizer
+
+      let panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+      panRecognizer.delegate = self
+      panRecognizer.cancelsTouchesInView = false
+      panRecognizer.maximumNumberOfTouches = 1
+      view.addGestureRecognizer(panRecognizer)
+      self.panGestureRecognizer = panRecognizer
     }
 
     private func setupOverlayLabels() {
@@ -641,6 +654,105 @@
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
           self?.isLongPressing = false
         }
+      }
+    }
+
+    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+      guard isContentLoaded else { return }
+      guard !isLongPressing else { return }
+      guard Date().timeIntervalSince(lastLongPressEndTime) >= 0.5 else { return }
+      let pageWidth = webView.bounds.width
+      guard pageWidth > 0 else { return }
+
+      let maxOffset = max(0, CGFloat(max(0, totalPagesInChapter - 1)) * pageWidth)
+
+      switch gesture.state {
+      case .began:
+        interactivePanStartOffsetX = webView.scrollView.contentOffset.x
+        webView.scrollView.setContentOffset(
+          CGPoint(x: interactivePanStartOffsetX, y: 0),
+          animated: false
+        )
+      case .changed:
+        let translationX = gesture.translation(in: view).x
+        let rawOffset = interactivePanStartOffsetX - translationX
+        let adjustedOffset = adjustedHorizontalOffset(
+          rawOffset,
+          maxOffset: maxOffset
+        )
+        webView.scrollView.setContentOffset(
+          CGPoint(x: adjustedOffset, y: 0),
+          animated: false
+        )
+      case .ended:
+        finishInteractivePan(
+          gesture: gesture,
+          pageWidth: pageWidth,
+          maxOffset: maxOffset
+        )
+      case .cancelled, .failed:
+        scrollToPage(currentSubPageIndex)
+      default:
+        break
+      }
+    }
+
+    private func adjustedHorizontalOffset(_ rawOffset: CGFloat, maxOffset: CGFloat) -> CGFloat {
+      if rawOffset < 0 {
+        return rawOffset * boundaryResistanceFactor
+      }
+
+      if rawOffset > maxOffset {
+        return maxOffset + (rawOffset - maxOffset) * boundaryResistanceFactor
+      }
+
+      return rawOffset
+    }
+
+    private func finishInteractivePan(
+      gesture: UIPanGestureRecognizer,
+      pageWidth: CGFloat,
+      maxOffset: CGFloat
+    ) {
+      let translationX = gesture.translation(in: view).x
+      let velocityX = gesture.velocity(in: view).x
+      let rawOffset = interactivePanStartOffsetX - translationX
+
+      if rawOffset < -chapterOverscrollThreshold {
+        if chapterIndex > 0 {
+          onChapterNavigationNeeded?(chapterIndex - 1)
+          return
+        }
+      } else if rawOffset > maxOffset + chapterOverscrollThreshold {
+        if chapterIndex < totalChapters - 1 {
+          onChapterNavigationNeeded?(chapterIndex + 1)
+          return
+        }
+        onEndReached?()
+        return
+      }
+
+      let currentPage = currentSubPageIndex
+      let pageDelta = (rawOffset - interactivePanStartOffsetX) / pageWidth
+
+      let targetPage: Int
+      if velocityX <= -pageTurnVelocityThreshold {
+        targetPage = min(totalPagesInChapter - 1, currentPage + 1)
+      } else if velocityX >= pageTurnVelocityThreshold {
+        targetPage = max(0, currentPage - 1)
+      } else if pageDelta >= pageTurnProgressThreshold {
+        targetPage = min(totalPagesInChapter - 1, currentPage + 1)
+      } else if pageDelta <= -pageTurnProgressThreshold {
+        targetPage = max(0, currentPage - 1)
+      } else {
+        targetPage = currentPage
+      }
+
+      scrollToPage(targetPage)
+      if targetPage != currentSubPageIndex {
+        currentSubPageIndex = targetPage
+        updateOverlayLabels()
+        onPageDidChange?(chapterIndex, currentSubPageIndex)
       }
     }
 
@@ -1251,6 +1363,20 @@
       shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
       // Allow tap gesture to work alongside scroll view gestures
+      return true
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+      if let panGestureRecognizer,
+        gestureRecognizer === panGestureRecognizer,
+        let panGesture = gestureRecognizer as? UIPanGestureRecognizer
+      {
+        let velocity = panGesture.velocity(in: view)
+        if velocity == .zero {
+          return true
+        }
+        return abs(velocity.x) > abs(velocity.y)
+      }
       return true
     }
 

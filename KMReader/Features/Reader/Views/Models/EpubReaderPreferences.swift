@@ -30,15 +30,16 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   static let readiumPropertyKeys: [String] = [
     "--RS__textColor",
     "--RS__backgroundColor",
+    "--RS__disableOverflow",
     "--USER__view",
+    "--USER__iOSPatch",
     "--USER__fontOverride",
     "--USER__fontFamily",
     "--USER__fontWeightOverride",
     "--USER__fontWeight",
     "--USER__colCount",
-    "--USER__pageMargins",
+    "--USER__lineLength",
     "--USER__appearance",
-    "--USER__advancedSettings",
     "--USER__fontSize",
     "--USER__lineHeight",
     "--USER__paraSpacing",
@@ -193,6 +194,13 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       "--RS__backgroundColor": theme.backgroundColorHex,
     ]
     properties["--USER__view"] = flowStyle == .scrolled ? "readium-scroll-on" : nil
+    properties["--RS__disableOverflow"] =
+      flowStyle == .scrolled ? "readium-noOverflow-on" : nil
+    #if os(iOS)
+      properties["--USER__iOSPatch"] = "readium-iOSPatch-on"
+    #else
+      properties["--USER__iOSPatch"] = nil
+    #endif
     properties["font-weight"] = nil
 
     let fontFamilyValue = fontName.map(cssFontFamilyValue)
@@ -207,7 +215,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       properties["--USER__fontWeight"] = nil
     }
     properties["--USER__colCount"] = columnCount.readiumValue
-    properties["--USER__pageMargins"] = String(format: "%.2f", max(0, pageMargins))
+    properties["--USER__lineLength"] = readiumLineLengthValue(for: pageMargins)
 
     if theme.isDark {
       properties["--USER__appearance"] = "readium-night-on"
@@ -222,7 +230,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       let paragraphSpacingRem = max(0, paragraphSpacing)
       let paragraphIndentRem = max(0, paragraphIndent)
 
-      properties["--USER__advancedSettings"] = "readium-advanced-on"
       properties["--USER__fontSize"] = String(format: "%.2f%%", fontSizePercent)
       properties["--USER__lineHeight"] = String(format: "%.2f", lineHeight)
       properties["--USER__paraSpacing"] = String(format: "%.2frem", paragraphSpacingRem)
@@ -230,7 +237,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       properties["--USER__wordSpacing"] = String(format: "%.2frem", wordSpacingRem)
       properties["--USER__letterSpacing"] = String(format: "%.2frem", letterSpacingRem)
     } else {
-      properties["--USER__advancedSettings"] = nil
       properties["--USER__fontSize"] = nil
       properties["--USER__lineHeight"] = nil
       properties["--USER__paraSpacing"] = nil
@@ -256,17 +262,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
         """
     }
 
-    let backgroundFillCSS = """
-      body {
-        min-height: 100vh;
-        display: flow-root;
-      }
-
-      """
-
     let fontWeightCSS = makeFontWeightCSS()
+    let paginationCompatibilityCSS = makePaginationCompatibilityCSS()
     return (
-      css: fontFaceCSS + fontWeightCSS + imageBlendCSS + backgroundFillCSS,
+      css: fontFaceCSS + fontWeightCSS + imageBlendCSS + paginationCompatibilityCSS,
       properties: properties
     )
   }
@@ -306,6 +305,13 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       """
   }
 
+  private func readiumLineLengthValue(for pageMargins: Double) -> String {
+    let normalizedMargins = max(0, pageMargins)
+    let horizontalPadding = normalizedMargins * 20.0
+    let totalInset = max(0, horizontalPadding * 2.0)
+    return "calc(100% - \(String(format: "%.2f", totalInset))px)"
+  }
+
   private func makeFontWeightCSS() -> String {
     """
     :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] {
@@ -333,6 +339,18 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     }
 
     """
+  }
+
+  private func makePaginationCompatibilityCSS() -> String {
+    return """
+      body {
+        display: flow-root;
+        height: auto !important;
+        min-height: 100vh !important;
+        max-height: none !important;
+      }
+
+      """
   }
 
   private func shouldUseLightImageBlend(for theme: ReaderTheme) -> Bool {
