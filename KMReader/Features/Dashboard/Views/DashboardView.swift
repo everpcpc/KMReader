@@ -181,6 +181,14 @@ struct DashboardView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
         HStack {
+          #if os(tvOS)
+            Button {
+              showLibraryPicker = true
+            } label: {
+              Label(String(localized: "Libraries"), systemImage: ContentIcon.library)
+            }
+          #endif
+
           if enableSSE {
             #if os(tvOS)
               if isOffline {
@@ -390,6 +398,11 @@ struct DashboardView: View {
       .refreshable {
         refreshDashboard(reason: "Pull to refresh")
       }
+      .sheet(isPresented: $showLibraryPicker) {
+        LibraryPickerSheet()
+      }
+    #endif
+    #if os(tvOS)
       .sheet(isPresented: $showLibraryPicker) {
         LibraryPickerSheet()
       }

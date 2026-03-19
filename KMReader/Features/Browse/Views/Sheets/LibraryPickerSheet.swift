@@ -7,7 +7,9 @@ import SwiftData
 import SwiftUI
 
 struct LibraryPickerSheet: View {
+  @Environment(\.dismiss) private var dismiss
   @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("libraryPickerSingleSelection") private var isSingleSelectionMode = false
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
   @State private var isRefreshing = false
 
@@ -34,11 +36,28 @@ struct LibraryPickerSheet: View {
   var body: some View {
     SheetView(title: String(localized: "Libraries"), size: .large, applyFormStyle: true) {
       LibraryListContent(
+        selectionEnabled: true,
+        isSingleSelectionMode: isSingleSelectionMode,
         forceMetricsOnAppear: false,
-        enablePullToRefresh: false
+        enablePullToRefresh: false,
+        onLibrarySelected: { _ in
+          guard isSingleSelectionMode else { return }
+          dismiss()
+        }
       )
     } controls: {
       HStack(spacing: 12) {
+        Button {
+          isSingleSelectionMode.toggle()
+        } label: {
+          Label(
+            isSingleSelectionMode
+              ? String(localized: "library.picker.mode.single", defaultValue: "Single Select")
+              : String(localized: "library.picker.mode.multiple", defaultValue: "Multiple Select"),
+            systemImage: isSingleSelectionMode ? "largecircle.fill.circle" : "checklist"
+          )
+        }
+
         Button {
           Task { @MainActor in await refreshLibrariesAndMetrics() }
         } label: {

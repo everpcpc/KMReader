@@ -10,21 +10,27 @@ struct LibraryRowView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("currentAccount") private var current: Current = .init()
   @Bindable var library: KomgaLibrary
+  let selectionEnabled: Bool
+  let isSingleSelectionMode: Bool
   let isSelected: Bool
-  let onSelect: () -> Void
+  let onSelect: (() -> Void)?
   let onAction: (LibraryAction) -> Void
   let onEdit: (() -> Void)?
   let onDelete: (() -> Void)?
 
   init(
     library: KomgaLibrary,
+    selectionEnabled: Bool = false,
+    isSingleSelectionMode: Bool = false,
     isSelected: Bool,
-    onSelect: @escaping () -> Void,
+    onSelect: (() -> Void)? = nil,
     onAction: @escaping (LibraryAction) -> Void,
     onEdit: (() -> Void)? = nil,
     onDelete: (() -> Void)? = nil
   ) {
     self.library = library
+    self.selectionEnabled = selectionEnabled
+    self.isSingleSelectionMode = isSingleSelectionMode
     self.isSelected = isSelected
     self.onSelect = onSelect
     self.onAction = onAction
@@ -33,7 +39,7 @@ struct LibraryRowView: View {
   }
 
   var body: some View {
-    HStack(spacing: 12) {
+    let rowContent = HStack(spacing: 12) {
       VStack(alignment: .leading, spacing: 2) {
         HStack(spacing: 6) {
           Text(library.name)
@@ -54,16 +60,26 @@ struct LibraryRowView: View {
 
       Spacer()
 
-      Toggle(
-        "",
-        isOn: Binding(
-          get: { isSelected },
-          set: { _ in onSelect() }
-        )
-      )
-      .labelsHidden()
+      if selectionEnabled {
+        Image(systemName: selectionIndicatorName)
+          .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+          .font(.title3)
+      }
     }
     .contentShape(Rectangle())
+
+    Group {
+      if let onSelect {
+        Button {
+          onSelect()
+        } label: {
+          rowContent
+        }
+        .buttonStyle(.plain)
+      } else {
+        rowContent
+      }
+    }
     .contextMenu {
       if current.isAdmin && !isOffline {
         if let onEdit {
@@ -97,6 +113,13 @@ struct LibraryRowView: View {
         }
       }
     }
+  }
+
+  private var selectionIndicatorName: String {
+    if isSingleSelectionMode {
+      return isSelected ? "largecircle.fill.circle" : "circle"
+    }
+    return isSelected ? "checkmark.circle.fill" : "circle"
   }
 
   private var metricsView: Text? {

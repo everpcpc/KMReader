@@ -18,6 +18,8 @@ struct LibraryListContent: View {
   @State private var isLoadingMetrics = false
   @State private var selectedLibraryIds: [String]
 
+  let selectionEnabled: Bool
+  let isSingleSelectionMode: Bool
   let loadMetrics: Bool
   let alwaysRefreshMetrics: Bool
   let forceMetricsOnAppear: Bool
@@ -30,6 +32,8 @@ struct LibraryListContent: View {
   private let metricsLoader = LibraryMetricsLoader.shared
 
   init(
+    selectionEnabled: Bool = false,
+    isSingleSelectionMode: Bool = false,
     loadMetrics: Bool = true,
     alwaysRefreshMetrics: Bool = false,
     forceMetricsOnAppear: Bool = true,
@@ -39,6 +43,8 @@ struct LibraryListContent: View {
     onDeleteLibrary: ((LibrarySelection) -> Void)? = nil
   ) {
     let initialSelection = AppConfig.dashboard.libraryIds
+    self.selectionEnabled = selectionEnabled
+    self.isSingleSelectionMode = isSingleSelectionMode
     self.loadMetrics = loadMetrics
     self.alwaysRefreshMetrics = alwaysRefreshMetrics
     self.forceMetricsOnAppear = forceMetricsOnAppear
@@ -115,23 +121,10 @@ struct LibraryListContent: View {
           ForEach(libraries, id: \.libraryId) { library in
             LibraryRowView(
               library: library,
+              selectionEnabled: selectionEnabled,
+              isSingleSelectionMode: isSingleSelectionMode,
               isSelected: selectedLibraryIds.contains(library.libraryId),
-              onSelect: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                  var currentIds = selectedLibraryIds
-                  let isSelected = currentIds.contains(library.libraryId)
-                  if isSelected {
-                    currentIds.removeAll { $0 == library.libraryId }
-                  } else {
-                    if !currentIds.contains(library.libraryId) {
-                      currentIds.append(library.libraryId)
-                    }
-                  }
-                  var seen = Set<String>()
-                  selectedLibraryIds = currentIds.filter { seen.insert($0).inserted }
-                  onLibrarySelected?(isSelected ? nil : library.libraryId)
-                }
-              },
+              onSelect: selectionEnabled ? { handleLibrarySelection(for: library.libraryId) } : nil,
               onAction: { action in
                 action.perform(for: library.libraryId)
               },
@@ -153,8 +146,12 @@ struct LibraryListContent: View {
         await triggerMetricsUpdate(force: false)
       }
     }
+    .onChange(of: isSingleSelectionMode) { _, newValue in
+      guard selectionEnabled, newValue, selectedLibraryIds.count > 1 else { return }
+      selectedLibraryIds = Array(selectedLibraryIds.prefix(1))
+    }
     .onDisappear {
-      if dashboard.libraryIds != selectedLibraryIds {
+      if selectionEnabled, dashboard.libraryIds != selectedLibraryIds {
         dashboard.libraryIds = selectedLibraryIds
       }
     }
@@ -221,48 +218,103 @@ struct LibraryListContent: View {
     let metricsView = allLibrariesMetricsView(entry)
     let fileSizeText = entry?.fileSize.map { formatFileSize($0) } ?? ""
 
-    HStack(spacing: 12) {
-      VStack(alignment: .leading, spacing: 2) {
-        HStack(spacing: 6) {
-          Text(String(localized: "All Libraries"))
-            .font(.headline)
-          if !fileSizeText.isEmpty {
-            Text(fileSizeText)
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-        if current.isAdmin, let metricsView {
-          metricsView
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-      }
+    let rowContent = HStack(spacing: 12) {
+      rowTextContent(
+        name: String(localized: "All Libraries"),
+        fileSizeText: fileSizeText,
+        metricsView: current.isAdmin ? metricsView : nil
+      )
 
       Spacer()
 
-      Toggle(
-        "",
-        isOn: Binding(
-          get: { isSelected },
-          set: { newValue in
-            if newValue {
-              withAnimation(.easeInOut(duration: 0.2)) {
-                selectedLibraryIds = []
-                onLibrarySelected?("")
-              }
-            }
-          }
-        )
-      )
-      .labelsHidden()
+      if selectionEnabled {
+        selectionIndicator(isSelected: isSelected)
+      }
     }
     .contentShape(Rectangle())
+
+    Group {
+      if selectionEnabled {
+        Button {
+          selectAllLibraries()
+        } label: {
+          rowContent
+        }
+        .buttonStyle(.plain)
+      } else {
+        rowContent
+      }
+    }
     .contextMenu {
       if current.isAdmin && !isOffline {
         allLibrariesContextMenu()
       }
     }
+  }
+
+  private func handleLibrarySelection(for libraryId: String) {
+    withAnimation(.easeInOut(duration: 0.2)) {
+      if isSingleSelectionMode {
+        selectedLibraryIds = [libraryId]
+        onLibrarySelected?(libraryId)
+        return
+      }
+
+      var currentIds = selectedLibraryIds
+      let isSelected = currentIds.contains(libraryId)
+      if isSelected {
+        currentIds.removeAll { $0 == libraryId }
+      } else if !currentIds.contains(libraryId) {
+        currentIds.append(libraryId)
+      }
+
+      var seen = Set<String>()
+      selectedLibraryIds = currentIds.filter { seen.insert($0).inserted }
+      onLibrarySelected?(isSelected ? nil : libraryId)
+    }
+  }
+
+  private func selectAllLibraries() {
+    withAnimation(.easeInOut(duration: 0.2)) {
+      selectedLibraryIds = []
+      onLibrarySelected?("")
+    }
+  }
+
+  private func rowTextContent(
+    name: String,
+    fileSizeText: String,
+    metricsView: Text?
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      HStack(spacing: 6) {
+        Text(name)
+          .font(.headline)
+        if !fileSizeText.isEmpty {
+          Text(fileSizeText)
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
+      if let metricsView {
+        metricsView
+          .font(.caption)
+          .foregroundColor(.secondary)
+      }
+    }
+  }
+
+  private func selectionIndicator(isSelected: Bool) -> some View {
+    Image(systemName: selectionIndicatorName(isSelected: isSelected))
+      .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+      .font(.title3)
+  }
+
+  private func selectionIndicatorName(isSelected: Bool) -> String {
+    if isSingleSelectionMode {
+      return isSelected ? "largecircle.fill.circle" : "circle"
+    }
+    return isSelected ? "checkmark.circle.fill" : "circle"
   }
 
   @ViewBuilder

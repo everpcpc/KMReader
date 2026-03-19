@@ -34,6 +34,7 @@ struct ServerLibrariesView: View {
 
   var body: some View {
     LibraryListContent(
+      selectionEnabled: false,
       alwaysRefreshMetrics: true,
       forceMetricsOnAppear: true,
       onEditLibrary: { libraryId in
