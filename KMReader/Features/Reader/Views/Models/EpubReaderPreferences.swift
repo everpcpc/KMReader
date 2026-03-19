@@ -33,6 +33,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     "--RS__disableOverflow",
     "--USER__view",
     "--USER__iOSPatch",
+    "--USER__blendImages",
     "--USER__fontOverride",
     "--USER__fontFamily",
     "--USER__fontWeightOverride",
@@ -222,6 +223,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     } else {
       properties["--USER__appearance"] = nil
     }
+    properties["--USER__blendImages"] = shouldUseLightImageBlend(for: theme)
+      ? "readium-blend-on" : nil
 
     if advancedLayout {
       let fontSizePercent = fontSize * 100
@@ -251,21 +254,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       rootURL: rootURL
     )
 
-    var imageBlendCSS = ""
-    if shouldUseLightImageBlend(for: theme) {
-      imageBlendCSS = """
-        :root[data-kmreader-theme="light"] img,
-        :root[data-kmreader-theme="light"] svg {
-          mix-blend-mode: multiply;
-        }
-
-        """
-    }
-
     let fontWeightCSS = makeFontWeightCSS()
     let paginationCompatibilityCSS = makePaginationCompatibilityCSS()
     return (
-      css: fontFaceCSS + fontWeightCSS + imageBlendCSS + paginationCompatibilityCSS,
+      css: fontFaceCSS + fontWeightCSS + paginationCompatibilityCSS,
       properties: properties
     )
   }
