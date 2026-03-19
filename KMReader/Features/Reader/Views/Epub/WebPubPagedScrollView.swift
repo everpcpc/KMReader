@@ -1159,9 +1159,6 @@
       readingProgression: WebPubReadingProgression?,
       completion: (() -> Void)? = nil
     ) {
-      let isDark = theme.uiColorBackground.brightness < 0.5
-      let themeName = isDark ? "dark" : "light"
-
       let readiumAssets = ReadiumCSSLoader.cssAssets(
         language: language,
         readingProgression: readingProgression
@@ -1213,7 +1210,6 @@
       let js = """
           (function() {
             var root = document.documentElement;
-            root.setAttribute('data-kmreader-theme', '\(themeName)');
             var lang = \(languageJSON);
             if (lang) {
               if (!root.hasAttribute('lang')) {

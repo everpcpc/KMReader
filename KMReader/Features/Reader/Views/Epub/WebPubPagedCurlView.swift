@@ -1725,11 +1725,6 @@
       readingProgression: WebPubReadingProgression?,
       completion: (() -> Void)? = nil
     ) {
-      // Determine if the current theme is dark based on the background color brightness.
-      // This allows the CSS to apply theme-specific rules (like image blending).
-      let isDark = theme.uiColorBackground.brightness < 0.5
-      let themeName = isDark ? "dark" : "light"
-
       let readiumAssets = ReadiumCSSLoader.cssAssets(
         language: language,
         readingProgression: readingProgression
@@ -1781,7 +1776,6 @@
       let js = """
           (function() {
             var root = document.documentElement;
-            root.setAttribute('data-kmreader-theme', '\(themeName)');
             var lang = \(languageJSON);
             if (lang) {
               if (!root.hasAttribute('lang')) {
