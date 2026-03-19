@@ -30,6 +30,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   static let readiumPropertyKeys: [String] = [
     "--RS__textColor",
     "--RS__backgroundColor",
+    "--USER__textColor",
+    "--USER__backgroundColor",
     "--RS__disableOverflow",
     "--USER__view",
     "--USER__iOSPatch",
@@ -40,7 +42,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     "--USER__fontWeight",
     "--USER__colCount",
     "--USER__lineLength",
-    "--USER__appearance",
     "--USER__fontSize",
     "--USER__lineHeight",
     "--USER__paraSpacing",
@@ -219,9 +220,11 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     properties["--USER__lineLength"] = readiumLineLengthValue(for: pageMargins)
 
     if theme.isDark {
-      properties["--USER__appearance"] = "readium-night-on"
+      properties["--USER__textColor"] = theme.textColorHex
+      properties["--USER__backgroundColor"] = theme.backgroundColorHex
     } else {
-      properties["--USER__appearance"] = nil
+      properties["--USER__textColor"] = nil
+      properties["--USER__backgroundColor"] = nil
     }
     properties["--USER__blendImages"] = shouldUseLightImageBlend(for: theme)
       ? "readium-blend-on" : nil
