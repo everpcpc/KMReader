@@ -50,7 +50,7 @@
     private let trailingDivider = UIView()
     private let verticalDivider = UIView()
 
-    private let buttonStack = UIStackView()
+    private let buttonContainer = UIView()
     private let closeButton = UIButton(type: .system)
     private var sectionsEqualWidthConstraint: NSLayoutConstraint?
     private var contentLeadingConstraint: NSLayoutConstraint?
@@ -227,13 +227,15 @@
       verticalDividerHeightConstraint = verticalDivider.heightAnchor.constraint(equalToConstant: 220)
       verticalDividerHeightConstraint?.isActive = true
 
-      buttonStack.axis = .horizontal
-      buttonStack.alignment = .center
-      buttonStack.spacing = 16
-      contentStack.addArrangedSubview(buttonStack)
+      buttonContainer.translatesAutoresizingMaskIntoConstraints = false
+      buttonContainer.setContentCompressionResistancePriority(.required, for: .vertical)
+      contentStack.addArrangedSubview(buttonContainer)
 
+      closeButton.translatesAutoresizingMaskIntoConstraints = false
       closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
-      buttonStack.addArrangedSubview(closeButton)
+      closeButton.setContentHuggingPriority(.required, for: .horizontal)
+      closeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+      buttonContainer.addSubview(closeButton)
 
       let contentLeading = contentStack.leadingAnchor.constraint(
         greaterThanOrEqualTo: leadingAnchor,
@@ -286,6 +288,12 @@
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
         nextMetadataStack.widthAnchor.constraint(equalTo: nextStack.widthAnchor),
+
+        closeButton.centerXAnchor.constraint(equalTo: buttonContainer.centerXAnchor),
+        closeButton.topAnchor.constraint(equalTo: buttonContainer.topAnchor),
+        closeButton.bottomAnchor.constraint(equalTo: buttonContainer.bottomAnchor),
+        closeButton.leadingAnchor.constraint(greaterThanOrEqualTo: buttonContainer.leadingAnchor),
+        closeButton.trailingAnchor.constraint(lessThanOrEqualTo: buttonContainer.trailingAnchor),
 
         previousCoverWidthConstraint!,
         previousCoverHeightConstraint!,
@@ -415,7 +423,7 @@
         with: [
           showsRelationHeader ? horizontalDividerStack : nil,
           sectionsStack,
-          buttonStack,
+          buttonContainer,
         ]
       )
 
