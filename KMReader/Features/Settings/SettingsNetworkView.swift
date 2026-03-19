@@ -17,20 +17,20 @@ struct SettingsNetworkView: View {
     Form {
       Section(header: Text(String(localized: "settings.network.general"))) {
         timeoutRow(
-          labelKey: "settings.network.request_timeout.label",
-          descriptionKey: "settings.network.request_timeout.description",
+          label: "settings.network.request_timeout.label",
+          description: "settings.network.request_timeout.description",
           value: $requestTimeout
         )
 
         timeoutRow(
-          labelKey: "settings.network.download_timeout.label",
-          descriptionKey: "settings.network.download_timeout.description",
+          label: "settings.network.download_timeout.label",
+          description: "settings.network.download_timeout.description",
           value: $downloadTimeout
         )
 
         timeoutRow(
-          labelKey: "settings.network.auth_timeout.label",
-          descriptionKey: "settings.network.auth_timeout.description",
+          label: "settings.network.auth_timeout.label",
+          description: "settings.network.auth_timeout.description",
           value: $authTimeout
         )
 
@@ -88,13 +88,17 @@ struct SettingsNetworkView: View {
 
   @ViewBuilder
   private func timeoutRow(
-    labelKey: String,
-    descriptionKey: String,
+    label: LocalizedStringResource,
+    description: LocalizedStringResource,
     value: Binding<Double>
   ) -> some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
-        Label(String(localized: .init(labelKey)), systemImage: "clock")
+        Label {
+          Text(label)
+        } icon: {
+          Image(systemName: "clock")
+        }
         Spacer()
         #if os(tvOS)
           Text("\(Int(value.wrappedValue))s")
@@ -106,7 +110,7 @@ struct SettingsNetworkView: View {
           Text("s")
             .foregroundStyle(.secondary)
         #else
-          TextField("Timeout Seconds", value: value, format: .number)
+          TextField(String(localized: "Timeout Seconds"), value: value, format: .number)
             .keyboardType(.numbersAndPunctuation)
             .multilineTextAlignment(.trailing)
             .frame(width: 50)
@@ -114,7 +118,7 @@ struct SettingsNetworkView: View {
             .foregroundStyle(.secondary)
         #endif
       }
-      Text(String(localized: .init(descriptionKey)))
+      Text(description)
         .font(.caption)
         .foregroundStyle(.secondary)
     }
