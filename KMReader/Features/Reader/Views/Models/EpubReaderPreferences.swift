@@ -32,6 +32,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     "--RS__backgroundColor",
     "--USER__textColor",
     "--USER__backgroundColor",
+    "--USER__linkColor",
+    "--USER__visitedColor",
     "--RS__disableOverflow",
     "--USER__view",
     "--USER__iOSPatch",
@@ -190,6 +192,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     rootURL: URL? = nil
   ) -> (css: String, properties: [String: String?]) {
     let fontName = fontFamily.fontName
+    let darkLinkColors = darkThemeLinkColors
 
     var properties: [String: String?] = [
       "--RS__textColor": theme.textColorHex,
@@ -222,11 +225,16 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     if theme.isDark {
       properties["--USER__textColor"] = theme.textColorHex
       properties["--USER__backgroundColor"] = theme.backgroundColorHex
+      properties["--USER__linkColor"] = darkLinkColors.link
+      properties["--USER__visitedColor"] = darkLinkColors.visited
     } else {
       properties["--USER__textColor"] = nil
       properties["--USER__backgroundColor"] = nil
+      properties["--USER__linkColor"] = nil
+      properties["--USER__visitedColor"] = nil
     }
-    properties["--USER__blendImages"] = shouldUseLightImageBlend(for: theme)
+    properties["--USER__blendImages"] =
+      shouldUseLightImageBlend(for: theme)
       ? "readium-blend-on" : nil
 
     if advancedLayout {
@@ -258,9 +266,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     )
 
     let fontWeightCSS = makeFontWeightCSS()
+    let darkTextColorOverrideCSS = makeDarkTextColorOverrideCSS(theme: theme)
     let paginationCompatibilityCSS = makePaginationCompatibilityCSS()
     return (
-      css: fontFaceCSS + fontWeightCSS + paginationCompatibilityCSS,
+      css: fontFaceCSS + fontWeightCSS + darkTextColorOverrideCSS + paginationCompatibilityCSS,
       properties: properties
     )
   }
@@ -334,6 +343,53 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     }
 
     """
+  }
+
+  private func makeDarkTextColorOverrideCSS(theme: ReaderTheme) -> String {
+    guard theme.isDark else {
+      return ""
+    }
+
+    return """
+      :root[style*="--USER__textColor"] body {
+        color: var(--USER__textColor) !important;
+        -webkit-text-fill-color: var(--USER__textColor) !important;
+      }
+
+      :root[style*="--USER__textColor"] body *:not(a) {
+        color: inherit !important;
+        background-color: transparent !important;
+        border-color: currentColor !important;
+        -webkit-text-fill-color: currentColor !important;
+      }
+
+      :root[style*="--USER__textColor"] body svg text {
+        fill: currentColor !important;
+        stroke: none !important;
+      }
+
+      :root[style*="--USER__linkColor"] body a:link,
+      :root[style*="--USER__linkColor"] body a:link * {
+        color: var(--USER__linkColor) !important;
+        -webkit-text-fill-color: var(--USER__linkColor) !important;
+      }
+
+      :root[style*="--USER__visitedColor"] body a:visited,
+      :root[style*="--USER__visitedColor"] body a:visited * {
+        color: var(--USER__visitedColor) !important;
+        -webkit-text-fill-color: var(--USER__visitedColor) !important;
+      }
+
+      :root[style*="--USER__backgroundColor"] body,
+      :root[style*="--USER__backgroundColor"] body * {
+        background-color: transparent !important;
+      }
+
+      """
+  }
+
+  private var darkThemeLinkColors: (link: String, visited: String) {
+    ("#63CAFF", "#0099E5")
   }
 
   private func makePaginationCompatibilityCSS() -> String {
