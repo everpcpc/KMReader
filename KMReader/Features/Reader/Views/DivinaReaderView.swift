@@ -569,6 +569,7 @@ struct DivinaReaderView: View {
         readerPresentation.clearMacReaderCommands()
       #endif
     }
+    .readerControlsVisibility(shouldShowControls)
     .onChange(of: viewModel.isZoomed) { _, newValue in
       if newValue {
         showingControls = false
@@ -595,7 +596,6 @@ struct DivinaReaderView: View {
       }
     #endif
     #if os(iOS)
-      .statusBarHidden(!shouldShowControls)
       .readerDismissGesture(readingDirection: readingDirection)
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)

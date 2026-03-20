@@ -157,8 +157,8 @@
         showingControls = false
         readerPresentation.clearFlushHandler(for: sessionID)
       }
+      .readerControlsVisibility(shouldShowControls)
       #if os(iOS)
-        .statusBarHidden(!shouldShowControls)
         .readerDismissGesture(readingDirection: readingDirection)
       #endif
     }

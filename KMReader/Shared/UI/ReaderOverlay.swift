@@ -11,6 +11,7 @@ import SwiftUI
     let namespace: Namespace.ID
     let readerPresentation: ReaderPresentationManager
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+    @State private var readerControlsVisible = true
 
     var body: some View {
       Color.clear
@@ -26,10 +27,15 @@ import SwiftUI
               sourceID: readerPresentation.sourceBookId,
               in: namespace
             )
+            .onReaderControlsVisibilityChange { readerControlsVisible = $0 }
             #if os(iOS)
+              .statusBarHidden(readerPresentation.currentSession != nil && !readerControlsVisible)
               .tint(themeColor.color)
               .accentColor(themeColor.color)
             #endif
+        }
+        .onChange(of: readerPresentation.currentSession?.id) { _, _ in
+          readerControlsVisible = true
         }
     }
   }

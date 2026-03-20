@@ -166,7 +166,7 @@
           )
           readerPresentation.clearFlushHandler(for: sessionID)
         }
-        .statusBarHidden(!shouldShowControls)
+        .readerControlsVisibility(shouldShowControls)
         .readerDismissGesture(readingDirection: dismissGestureReadingDirection)
     }
 
