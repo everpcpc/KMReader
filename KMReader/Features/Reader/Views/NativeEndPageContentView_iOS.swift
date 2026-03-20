@@ -382,15 +382,7 @@
         nextDetailLabel.text = nil
       }
 
-      var closeConfig = borderedButtonConfiguration()
-      closeConfig.image = UIImage(systemName: "xmark")
-      closeConfig.imagePlacement = .leading
-      closeConfig.imagePadding = 8
-      closeConfig.preferredSymbolConfigurationForImage = buttonSymbolConfiguration
-      closeConfig.title = String(localized: "Close")
-      closeConfig.cornerStyle = .capsule
-      closeButton.configuration = closeConfig
-      closeButton.tintColor = textColor
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
       closeButton.isHidden = !presentation.showsCloseButton
 
       applyDynamicMetrics()
@@ -550,22 +542,6 @@
       nextCoverWidthConstraint?.constant = coverWidth
       nextCoverHeightConstraint?.constant = coverHeight
       verticalDividerHeightConstraint?.constant = dividerHeight
-    }
-
-    private func borderedButtonConfiguration() -> UIButton.Configuration {
-      #if os(iOS)
-        if #available(iOS 26.0, *) {
-          return .glass()
-        }
-      #endif
-      return .bordered()
-    }
-
-    private var buttonSymbolConfiguration: UIImage.SymbolConfiguration {
-      UIImage.SymbolConfiguration(
-        textStyle: .subheadline,
-        scale: .small
-      )
     }
 
     private var contentColor: UIColor {

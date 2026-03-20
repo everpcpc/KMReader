@@ -160,7 +160,7 @@
       nextTitleLabel.textColor = textColor
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpLabel.textColor = textColor
-      closeButton.tintColor = textColor
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
     }
 
     private func applyContent() {
@@ -189,13 +189,7 @@
         caughtUpLabel.text = String(localized: "You're all caught up!")
       }
 
-      var configuration = UIButton.Configuration.bordered()
-      configuration.image = UIImage(systemName: "xmark")
-      configuration.imagePlacement = .leading
-      configuration.imagePadding = 8
-      configuration.title = String(localized: "Close")
-      configuration.cornerStyle = .capsule
-      closeButton.configuration = configuration
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: UIColor(readerBackground.contentColor))
     }
 
     @objc private func handleClose() {

@@ -362,10 +362,7 @@
         nextCoverView.configure(bookID: nil)
       }
 
-      closeButton.title = String(localized: "Close")
-      closeButton.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil)
-      closeButton.imagePosition = .imageLeading
-      closeButton.contentTintColor = textColor
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
       closeButton.isHidden = !presentation.showsCloseButton
 
       applyDynamicMetrics()

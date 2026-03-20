@@ -160,7 +160,7 @@
       nextTitleLabel.textColor = textColor
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpLabel.textColor = textColor
-      closeButton.contentTintColor = textColor
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
     }
 
     private func applyContent() {
@@ -190,9 +190,7 @@
         caughtUpLabel.stringValue = String(localized: "You're all caught up!")
       }
 
-      closeButton.title = String(localized: "Close")
-      closeButton.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil)
-      closeButton.imagePosition = .imageLeading
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: NSColor(readerBackground.contentColor))
     }
 
     func isInteractingWithCloseButton(at point: NSPoint, in sourceView: NSView) -> Bool {
