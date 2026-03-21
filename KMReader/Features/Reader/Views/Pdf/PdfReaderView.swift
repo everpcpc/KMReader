@@ -9,6 +9,7 @@
     let onClose: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("pdfReaderBackground") private var readerBackground: ReaderBackground = .system
@@ -61,6 +62,9 @@
 
         controlsOverlay
       }
+      #if os(iOS)
+        .statusBarHidden(!shouldShowControls)
+      #endif
       .sheet(isPresented: $showingPageJumpSheet) {
         if let documentURL = viewModel.documentURL {
           PdfPageJumpSheetView(
@@ -157,7 +161,9 @@
         showingControls = false
         readerPresentation.clearFlushHandler(for: sessionID)
       }
-      .readerControlsVisibility(shouldShowControls)
+      .onChange(of: scenePhase) { _, newPhase in
+        handleScenePhaseChange(newPhase)
+      }
       #if os(iOS)
         .readerDismissGesture(readingDirection: readingDirection)
       #endif
@@ -167,6 +173,11 @@
       if viewModel.errorMessage != nil { return true }
       if viewModel.isLoading { return true }
       return showingControls
+    }
+
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+      guard phase != .active || !shouldShowControls else { return }
+      showingControls = true
     }
 
     private var animation: Animation {
