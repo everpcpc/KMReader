@@ -16,6 +16,7 @@
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
@@ -64,6 +65,11 @@
       } else {
         dismiss()
       }
+    }
+
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+      guard phase != .active || !shouldShowControls else { return }
+      showingControls = true
     }
 
     var shouldShowControls: Bool {
@@ -121,6 +127,7 @@
 
     var body: some View {
       readerBody
+        .statusBarHidden(!shouldShowControls)
         .iPadIgnoresSafeArea()
         .task(id: book.id) {
           readerPresentation.registerFlushHandler(for: sessionID) {
@@ -166,7 +173,9 @@
           )
           readerPresentation.clearFlushHandler(for: sessionID)
         }
-        .readerControlsVisibility(shouldShowControls)
+        .onChange(of: scenePhase) { _, newPhase in
+          handleScenePhaseChange(newPhase)
+        }
         .readerDismissGesture(readingDirection: dismissGestureReadingDirection)
     }
 

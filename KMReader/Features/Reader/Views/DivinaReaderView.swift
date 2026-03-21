@@ -14,6 +14,7 @@ struct DivinaReaderView: View {
   let onClose: (() -> Void)?
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.scenePhase) private var scenePhase
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
@@ -214,6 +215,11 @@ struct DivinaReaderView: View {
     } else {
       dismiss()
     }
+  }
+
+  private func handleScenePhaseChange(_ phase: ScenePhase) {
+    guard phase != .active || !shouldShowControls else { return }
+    showingControls = true
   }
 
   private func schedulePageMaintenanceAfterPageChange() {
@@ -464,6 +470,7 @@ struct DivinaReaderView: View {
     }
     .iPadIgnoresSafeArea()
     #if os(iOS)
+      .statusBarHidden(!shouldShowControls)
       .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
         if shakeToOpenLiveText {
           enableLiveText.toggle()
@@ -569,7 +576,9 @@ struct DivinaReaderView: View {
         readerPresentation.clearMacReaderCommands()
       #endif
     }
-    .readerControlsVisibility(shouldShowControls)
+    .onChange(of: scenePhase) { _, newPhase in
+      handleScenePhaseChange(newPhase)
+    }
     .onChange(of: viewModel.isZoomed) { _, newValue in
       if newValue {
         showingControls = false
