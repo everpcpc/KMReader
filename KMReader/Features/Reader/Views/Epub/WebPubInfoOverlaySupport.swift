@@ -14,14 +14,15 @@
     case scrolled
   }
 
-  struct Entry {
-    let text: String
+  struct Entry: Equatable {
+    let text: String?
     let isVisible: Bool
 
-    static let hidden = Entry(text: "", isVisible: false)
+    static let hidden = Entry(text: nil, isVisible: false)
   }
 
-  struct Content {
+  struct Content: Equatable {
+    let showingControls: Bool
     let topTitle: Entry
     let topProgress: Entry
     let bottomLeading: Entry
@@ -58,6 +59,7 @@
 
     guard totalPagesInChapter > 0 else {
       return Content(
+        showingControls: showingControls,
         topTitle: topTitle,
         topProgress: topProgress,
         bottomLeading: .hidden,
@@ -68,6 +70,7 @@
 
     if showingControls {
       return Content(
+        showingControls: showingControls,
         topTitle: topTitle,
         topProgress: topProgress,
         bottomLeading: .hidden,
@@ -81,6 +84,7 @@
     }
 
     return Content(
+      showingControls: showingControls,
       topTitle: topTitle,
       topProgress: topProgress,
       bottomLeading: visibleEntry(chapterTitle),
@@ -162,6 +166,14 @@
       private let bottomLeadingLabel: UILabel
       private let bottomCenterLabel: UILabel
       private let bottomTrailingLabel: UILabel
+      private var currentContent = Content(
+        showingControls: false,
+        topTitle: .hidden,
+        topProgress: .hidden,
+        bottomLeading: .hidden,
+        bottomCenter: .hidden,
+        bottomTrailing: .hidden
+      )
 
       init(
         containerView: UIView,
@@ -211,24 +223,43 @@
       }
 
       func update(content: Content, animated: Bool) {
+        guard content != currentContent else { return }
+        currentContent = content
         let updates = {
-          self.apply(entry: content.topTitle, to: self.topTitleLabel)
-          self.apply(entry: content.topProgress, to: self.topProgressLabel)
-          self.apply(entry: content.bottomLeading, to: self.bottomLeadingLabel)
-          self.apply(entry: content.bottomCenter, to: self.bottomCenterLabel)
-          self.apply(entry: content.bottomTrailing, to: self.bottomTrailingLabel)
+          if let text = content.topTitle.text {
+            self.topTitleLabel.text = text
+          }
+          self.topTitleLabel.alpha = content.topTitle.isVisible ? 1.0 : 0.0
+
+          if let text = content.topProgress.text {
+            self.topProgressLabel.text = text
+          }
+          self.topProgressLabel.alpha = content.topProgress.isVisible ? 1.0 : 0.0
+
+          if let text = content.bottomLeading.text {
+            self.bottomLeadingLabel.text = text
+          }
+          self.bottomLeadingLabel.alpha = content.bottomLeading.isVisible ? 1.0 : 0.0
+
+          if let text = content.bottomCenter.text {
+            self.bottomCenterLabel.text = text
+          }
+          self.bottomCenterLabel.alpha = content.bottomCenter.isVisible ? 1.0 : 0.0
+
+          if let text = content.bottomTrailing.text {
+            self.bottomTrailingLabel.text = text
+          }
+          self.bottomTrailingLabel.alpha = content.bottomTrailing.isVisible ? 1.0 : 0.0
         }
 
-        if animated {
-          UIView.animate(withDuration: 0.2, animations: updates)
-        } else {
+        guard animated else {
+          updates()
+          return
+        }
+
+        UIView.animate {
           updates()
         }
-      }
-
-      private func apply(entry: Entry, to label: UILabel) {
-        label.text = entry.text
-        label.alpha = entry.isVisible ? 1.0 : 0.0
       }
 
       private static func makeLabel(
@@ -255,6 +286,14 @@
       private let bottomLeadingLabel: NSTextField
       private let bottomCenterLabel: NSTextField
       private let bottomTrailingLabel: NSTextField
+      private var currentContent = Content(
+        showingControls: false,
+        topTitle: .hidden,
+        topProgress: .hidden,
+        bottomLeading: .hidden,
+        bottomCenter: .hidden,
+        bottomTrailing: .hidden
+      )
 
       init(
         containerView: NSView,
@@ -301,17 +340,35 @@
           .forEach { $0.textColor = labelColor }
       }
 
-      func update(content: Content) {
-        apply(entry: content.topTitle, to: topTitleLabel)
-        apply(entry: content.topProgress, to: topProgressLabel)
-        apply(entry: content.bottomLeading, to: bottomLeadingLabel)
-        apply(entry: content.bottomCenter, to: bottomCenterLabel)
-        apply(entry: content.bottomTrailing, to: bottomTrailingLabel)
+      func update(content: Content, animated: Bool) {
+        guard content != currentContent else { return }
+        let isControlsTransition = currentContent.showingControls != content.showingControls
+        currentContent = content
+        let updates = {
+          self.apply(entry: content.topTitle, to: self.topTitleLabel)
+          self.apply(entry: content.topProgress, to: self.topProgressLabel)
+          self.apply(entry: content.bottomLeading, to: self.bottomLeadingLabel)
+          self.apply(entry: content.bottomCenter, to: self.bottomCenterLabel)
+          self.apply(entry: content.bottomTrailing, to: self.bottomTrailingLabel)
+        }
+
+        guard animated, isControlsTransition else {
+          updates()
+          return
+        }
+
+        NSAnimationContext.runAnimationGroup { context in
+          context.duration = 0.2
+          context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+          updates()
+        }
       }
 
       private func apply(entry: Entry, to label: NSTextField) {
-        label.stringValue = entry.text
-        label.alphaValue = entry.isVisible ? 1.0 : 0.0
+        if let text = entry.text {
+          label.stringValue = text
+        }
+        label.animator().alphaValue = entry.isVisible ? 1.0 : 0.0
       }
 
       private static func makeLabel(

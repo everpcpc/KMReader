@@ -205,7 +205,7 @@
         totalPagesInChapter: totalPagesInChapter,
         showingControls: parent.showingControls
       )
-      infoOverlay?.update(content: content)
+      infoOverlay?.update(content: content, animated: true)
     }
 
     private func applyPagination(on webView: WKWebView, targetPageIndex: Int) {

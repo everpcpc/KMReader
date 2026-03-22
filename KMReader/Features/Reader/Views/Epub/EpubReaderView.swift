@@ -120,9 +120,17 @@
       private var supportsOverlayControls: Bool {
         false
       }
+
+      private var supportsKeyboardOverlayToggle: Bool {
+        true
+      }
     #else
       private var supportsOverlayControls: Bool {
         true
+      }
+
+      private var supportsKeyboardOverlayToggle: Bool {
+        supportsOverlayControls
       }
     #endif
 
@@ -726,7 +734,7 @@
           hasTOC: !viewModel.tableOfContents.isEmpty,
           supportsLiveText: false,
           supportsJumpToPage: false,
-          supportsToggleControls: supportsOverlayControls,
+          supportsToggleControls: supportsKeyboardOverlayToggle,
           hasNextBook: false,
           onDismiss: {
             hideKeyboardHelp()
@@ -771,23 +779,41 @@
           return true
         }
 
-        if keyCode == 44 || keyCode == 4 {
+        if keyCode == 44 {
           showKeyboardHelp.toggle()
           return true
         }
 
-        if keyCode == 36 || keyCode == 3 {
+        if keyCode == 36 {
           if let window = NSApplication.shared.keyWindow {
             window.toggleFullScreen(nil)
           }
           return true
         }
 
-        if keyCode == 49 || keyCode == 8 {
+        if keyCode == 49 {
+          toggleControls()
           return true
         }
 
         guard flags.intersection([.command, .option, .control]).isEmpty else { return false }
+
+        if keyCode == 3 {
+          if let window = NSApplication.shared.keyWindow {
+            window.toggleFullScreen(nil)
+          }
+          return true
+        }
+
+        if keyCode == 4 {
+          showKeyboardHelp.toggle()
+          return true
+        }
+
+        if keyCode == 8 {
+          toggleControls()
+          return true
+        }
 
         if keyCode == 17 {
           if !viewModel.tableOfContents.isEmpty {
