@@ -3,11 +3,15 @@
 //
 //
 
-#if os(iOS)
+#if os(iOS) || os(macOS)
   import Foundation
   import Observation
   import SwiftUI
-  import UIKit
+  #if os(iOS)
+    import UIKit
+  #elseif os(macOS)
+    import AppKit
+  #endif
 
   struct WebPubLocation: Equatable {
     let href: String
@@ -614,6 +618,10 @@
       chapterPageCounts[index]
     }
 
+    var resolvedViewportSize: CGSize? {
+      viewportSize.width > 0 && viewportSize.height > 0 ? viewportSize : nil
+    }
+
     func initialProgression(for chapterIndex: Int) -> Double? {
       guard initialChapterIndex == chapterIndex else { return nil }
       return initialProgression
@@ -652,20 +660,39 @@
       updateLocation(chapterIndex: currentChapterIndex, pageIndex: currentPageIndex)
 
       // Store in memory cache only (no file persistence)
-      let effectiveViewport = viewportSize.width > 0 ? viewportSize : UIScreen.main.bounds.size
+      let effectiveViewport = viewportSize.width > 0 ? viewportSize : Self.defaultViewportSize
       let href = readingOrder[chapterIndex].href
       let cacheKey = pageCountCacheKey(for: href, viewport: effectiveViewport)
       pageCountCache[cacheKey] = normalizedCount
     }
 
-    var labelTopOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 24 : 8 }
-    var labelBottomOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 16 : 8 }
-    var useSafeArea: Bool { UIDevice.current.userInterfaceIdiom != .pad }
+    var labelTopOffset: CGFloat {
+      #if os(iOS)
+        return PlatformHelper.isPad ? 24 : 8
+      #else
+        return 8
+      #endif
+    }
+    var labelBottomOffset: CGFloat {
+      #if os(iOS)
+        return PlatformHelper.isPad ? 16 : 8
+      #else
+        return 8
+      #endif
+    }
+    var useSafeArea: Bool {
+      #if os(iOS)
+        return !PlatformHelper.isPad
+      #else
+        return true
+      #endif
+    }
 
-    func containerInsetsForLabels() -> UIEdgeInsets {
-      let topPadding = labelTopOffset + 24
-      let bottomPadding = labelBottomOffset + 24
-      return UIEdgeInsets(top: topPadding, left: 0, bottom: bottomPadding, right: 0)
+    func containerInsetsForLabels() -> ReaderContainerInsets {
+      WebPubInfoOverlaySupport.containerInsets(
+        topOffset: labelTopOffset,
+        bottomOffset: labelBottomOffset
+      )
     }
 
     // MARK: - Private Methods
@@ -900,7 +927,7 @@
 
       var effectiveViewport = viewportSize
       if effectiveViewport.width <= 0 {
-        effectiveViewport = UIScreen.main.bounds.size
+        effectiveViewport = Self.defaultViewportSize
       }
 
       for (index, link) in readingOrder.enumerated() {
@@ -1167,6 +1194,19 @@
         return components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
       }
       return trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
+    private static var defaultViewportSize: CGSize {
+      #if os(iOS)
+        return UIScreen.main.bounds.size
+      #elseif os(macOS)
+        if let screen = NSScreen.main {
+          return screen.frame.size
+        }
+        return CGSize(width: 1280, height: 800)
+      #else
+        return CGSize(width: 1280, height: 800)
+      #endif
     }
   }
 

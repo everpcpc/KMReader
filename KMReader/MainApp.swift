@@ -161,95 +161,125 @@ struct MainApp: App {
       CommandMenu("Reader") {
         let state = readerPresentation.macReaderCommandState
 
-        Button("Reader Settings") {
-          readerPresentation.showReaderSettingsFromCommand()
+        if state.supportsReaderSettings {
+          Button("Reader Settings") {
+            readerPresentation.showReaderSettingsFromCommand()
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Button("Book Details") {
-          readerPresentation.showBookDetailsFromCommand()
+        if state.supportsBookDetails {
+          Button("Book Details") {
+            readerPresentation.showBookDetailsFromCommand()
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Divider()
-
-        Button("Table of Contents") {
-          readerPresentation.showTableOfContentsFromCommand()
+        if state.hasTableOfContents || state.supportsPageJump {
+          Divider()
         }
-        .disabled(!state.isActive || !state.hasTableOfContents)
 
-        Button("Jump to Page") {
-          readerPresentation.showPageJumpFromCommand()
+        if state.hasTableOfContents {
+          Button("Table of Contents") {
+            readerPresentation.showTableOfContentsFromCommand()
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive || !state.hasPages)
 
-        Divider()
+        if state.supportsPageJump {
+          Button("Jump to Page") {
+            readerPresentation.showPageJumpFromCommand()
+          }
+          .disabled(!state.isActive || !state.hasPages)
+        }
 
-        Menu("Reading Direction") {
-          ForEach(ReadingDirection.availableCases, id: \.self) { direction in
-            Button {
-              readerPresentation.setReadingDirectionFromCommand(direction)
-            } label: {
-              if state.readingDirection == direction {
-                Label(direction.displayName, systemImage: "checkmark")
-              } else {
-                Text(direction.displayName)
+        if state.supportsReadingDirectionSelection
+          || state.supportsPageLayoutSelection
+          || state.supportsDualPageOptions
+          || state.supportsSplitWidePageMode
+        {
+          Divider()
+        }
+
+        if state.supportsReadingDirectionSelection {
+          Menu("Reading Direction") {
+            ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+              Button {
+                readerPresentation.setReadingDirectionFromCommand(direction)
+              } label: {
+                if state.readingDirection == direction {
+                  Label(direction.displayName, systemImage: "checkmark")
+                } else {
+                  Text(direction.displayName)
+                }
               }
             }
           }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Menu("Page Layout") {
-          ForEach(PageLayout.allCases, id: \.self) { layout in
-            Button {
-              readerPresentation.setPageLayoutFromCommand(layout)
-            } label: {
-              if state.pageLayout == layout {
-                Label(layout.displayName, systemImage: "checkmark")
-              } else {
-                Text(layout.displayName)
+        if state.supportsPageLayoutSelection {
+          Menu("Page Layout") {
+            ForEach(PageLayout.allCases, id: \.self) { layout in
+              Button {
+                readerPresentation.setPageLayoutFromCommand(layout)
+              } label: {
+                if state.pageLayout == layout {
+                  Label(layout.displayName, systemImage: "checkmark")
+                } else {
+                  Text(layout.displayName)
+                }
               }
             }
           }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Button(
-          state.isolateCoverPage
-            ? "Disable Isolate Cover Page"
-            : "Enable Isolate Cover Page"
-        ) {
-          readerPresentation.toggleIsolateCoverPageFromCommand()
+        if state.supportsDualPageOptions {
+          Button(
+            state.isolateCoverPage
+              ? "Disable Isolate Cover Page"
+              : "Enable Isolate Cover Page"
+          ) {
+            readerPresentation.toggleIsolateCoverPageFromCommand()
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive || !state.supportsDualPageOptions)
 
-        Menu("Split Wide Pages") {
-          ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
-            Button {
-              readerPresentation.setSplitWidePageModeFromCommand(mode)
-            } label: {
-              if state.splitWidePageMode == mode {
-                Label(mode.displayName, systemImage: "checkmark")
-              } else {
-                Text(mode.displayName)
+        if state.supportsSplitWidePageMode {
+          Menu("Split Wide Pages") {
+            ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
+              Button {
+                readerPresentation.setSplitWidePageModeFromCommand(mode)
+              } label: {
+                if state.splitWidePageMode == mode {
+                  Label(mode.displayName, systemImage: "checkmark")
+                } else {
+                  Text(mode.displayName)
+                }
               }
             }
           }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive || !state.supportsSplitWidePageMode)
 
-        Divider()
-
-        Button("Open Previous Book") {
-          readerPresentation.openPreviousBookFromCommand()
+        if state.supportsBookNavigation {
+          Divider()
         }
-        .disabled(!state.isActive || !state.canOpenPreviousBook)
 
-        Button("Open Next Book") {
-          readerPresentation.openNextBookFromCommand()
+        if state.supportsBookNavigation {
+          Button("Open Previous Book") {
+            readerPresentation.openPreviousBookFromCommand()
+          }
+          .disabled(!state.isActive || !state.canOpenPreviousBook)
         }
-        .disabled(!state.isActive || !state.canOpenNextBook)
+
+        if state.supportsBookNavigation {
+          Button("Open Next Book") {
+            readerPresentation.openNextBookFromCommand()
+          }
+          .disabled(!state.isActive || !state.canOpenNextBook)
+        }
       }
     }
   #endif

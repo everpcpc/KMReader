@@ -3,7 +3,7 @@
 //
 //
 
-#if os(iOS)
+#if os(iOS) || os(macOS)
   import SwiftUI
 
   struct EpubReaderView: View {
@@ -33,6 +33,11 @@
     @State private var showingDetailSheet = false
     @State private var showingQuickActions = false
     @State private var showingEndPage = false
+    #if os(macOS)
+      @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
+      @State private var showKeyboardHelp = false
+      @State private var keyboardHelpTimer: Timer?
+    #endif
 
     private let logger = AppLogger(.reader)
 
@@ -111,6 +116,16 @@
       activePreferences.resolvedTheme(for: colorScheme)
     }
 
+    #if os(macOS)
+      private var supportsOverlayControls: Bool {
+        false
+      }
+    #else
+      private var supportsOverlayControls: Bool {
+        true
+      }
+    #endif
+
     private func updateHandoff() {
       let url = KomgaWebLinkBuilder.epubReader(
         serverURL: current.serverURL,
@@ -121,14 +136,18 @@
     }
 
     private func updateReaderLiveActivityProgress() {
+      #if os(iOS)
       let progress = viewModel.currentLocation?.totalProgression ?? 0
       ReaderLiveActivityManager.shared.updateReadingProgress(progress)
+      #endif
     }
 
     var body: some View {
       readerBody
-        .statusBarHidden(!shouldShowControls)
-        .iPadIgnoresSafeArea()
+        #if os(iOS)
+          .statusBarHidden(!shouldShowControls)
+          .iPadIgnoresSafeArea()
+        #endif
         .task(id: book.id) {
           readerPresentation.registerFlushHandler(for: sessionID) {
             viewModel.flushProgress()
@@ -138,6 +157,9 @@
         .onAppear {
           updateHandoff()
           viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
+          #if os(macOS)
+            configureMacReaderCommands()
+          #endif
         }
         .onChange(of: currentBook) { _, newBook in
           if let newBook {
@@ -145,12 +167,26 @@
           }
           updateHandoff()
         }
+        #if os(macOS)
+          .onChange(of: macReaderCommandState) { _, newState in
+            readerPresentation.updateMacReaderCommandState(newState)
+          }
+        #endif
         .onChange(of: viewModel.currentLocation) { _, _ in
           updateReaderLiveActivityProgress()
         }
+        #if os(macOS)
+          .onChange(of: viewModel.hasContent) { oldValue, newValue in
+            if !oldValue && newValue {
+              triggerKeyboardHelp(timeout: 1.5)
+            }
+          }
+        #endif
         .onChange(of: showingEndPage) { _, newValue in
           guard newValue else { return }
-          ReaderLiveActivityManager.shared.updateReadingProgress(1)
+          #if os(iOS)
+            ReaderLiveActivityManager.shared.updateReadingProgress(1)
+          #endif
         }
         .onChange(of: activePreferences) { _, newPrefs in
           viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)
@@ -172,11 +208,26 @@
             "👋 EPUB reader disappeared for book \(handoffBookId), chapter=\(viewModel.currentChapterIndex), page=\(viewModel.currentPageIndex), hasLocation=\(viewModel.currentLocation != nil)"
           )
           readerPresentation.clearFlushHandler(for: sessionID)
+          #if os(macOS)
+            keyboardHelpTimer?.invalidate()
+            readerPresentation.clearMacReaderCommands()
+          #endif
         }
         .onChange(of: scenePhase) { _, newPhase in
           handleScenePhaseChange(newPhase)
         }
-        .readerDismissGesture(readingDirection: dismissGestureReadingDirection)
+        #if os(iOS)
+          .readerDismissGesture(readingDirection: dismissGestureReadingDirection)
+        #endif
+        #if os(macOS)
+          .background(
+            KeyboardEventHandler(
+              onKeyPress: { keyCode, flags in
+                handleKeyCode(keyCode, flags: flags)
+              }
+            )
+          )
+        #endif
     }
 
     private func loadBook() async {
@@ -246,6 +297,10 @@
           contentView(for: geometry.size, viewModel: viewModel)
 
           controlsOverlay
+
+          #if os(macOS)
+            keyboardHelpOverlay
+          #endif
         }
         .onAppear {
           viewModel.updateViewport(size: geometry.size)
@@ -302,6 +357,53 @@
         }
         .padding()
       } else if viewModel.hasContent {
+        readerContent
+      } else {
+        Text("No content available.")
+          .foregroundStyle(.secondary)
+      }
+    }
+
+    @ViewBuilder
+    private var readerContent: some View {
+      #if os(macOS)
+        switch activePreferences.flowStyle {
+        case .paged:
+          WebPubPagedScrollView(
+            viewModel: viewModel,
+            preferences: activePreferences,
+            colorScheme: colorScheme,
+            showingControls: shouldShowControls,
+            bookTitle: currentBook?.metadata.title,
+            onCenterTap: {
+              toggleControls()
+            },
+            onEndReached: {
+              if !showingEndPage {
+                viewModel.syncEndProgression()
+                showingEndPage = true
+              }
+            }
+          )
+        case .scrolled:
+          WebPubScrolledView(
+            viewModel: viewModel,
+            preferences: activePreferences,
+            colorScheme: colorScheme,
+            showingControls: shouldShowControls,
+            bookTitle: currentBook?.metadata.title,
+            onCenterTap: {
+              toggleControls()
+            },
+            onEndReached: {
+              if !showingEndPage {
+                viewModel.syncEndProgression()
+                showingEndPage = true
+              }
+            }
+          )
+        }
+      #else
         switch activePreferences.flowStyle {
         case .paged:
           switch epubPageTransitionStyle {
@@ -375,10 +477,7 @@
             }
           ).readerIgnoresSafeArea()
         }
-      } else {
-        Text("No content available.")
-          .foregroundStyle(.secondary)
-      }
+      #endif
     }
 
     private var loadingTitle: String {
@@ -421,7 +520,7 @@
     private var controlsOverlay: some View {
       Color.clear
         .overlay(alignment: .topTrailing) {
-          if shouldShowControls {
+          if supportsOverlayControls && shouldShowControls {
             Button {
               closeReader()
             } label: {
@@ -443,7 +542,7 @@
         }
         .overlay(alignment: .bottomTrailing) {
           VStack(alignment: .trailing) {
-            if shouldShowControls && showingQuickActions {
+            if supportsOverlayControls && shouldShowControls && showingQuickActions {
               quickActionsPanel
                 .transition(
                   .asymmetric(
@@ -452,7 +551,7 @@
                   )
                 )
             }
-            if shouldShowControls {
+            if supportsOverlayControls && shouldShowControls {
               Button {
                 withAnimation(animation) {
                   showingQuickActions.toggle()
@@ -479,7 +578,7 @@
         }
         .tint(.primary)
         .iPadIgnoresSafeArea(paddingTop: 24)
-        .allowsHitTesting(shouldShowControls)
+        .allowsHitTesting(supportsOverlayControls && shouldShowControls)
         .sheet(isPresented: $showingChapterSheet) {
           EpubTocSheetView(
             chapters: viewModel.tableOfContents,
@@ -567,7 +666,7 @@
           insertion: .move(edge: .trailing).combined(with: .opacity),
           removal: .move(edge: .trailing).combined(with: .opacity)
         )
-      )
+        )
     }
 
     private func toggleControls() {
@@ -597,5 +696,163 @@
       }
       return nil
     }
+
+    #if os(macOS)
+      private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
+        ReaderPresentationManager.MacReaderCommandState(
+          isActive: true,
+          supportsReaderSettings: true,
+          supportsBookDetails: currentBook != nil && currentSeries != nil,
+          hasPages: viewModel.hasContent,
+          hasTableOfContents: !viewModel.tableOfContents.isEmpty,
+          supportsPageJump: false,
+          supportsBookNavigation: false,
+          canOpenPreviousBook: false,
+          canOpenNextBook: false,
+          readingDirection: dismissGestureReadingDirection,
+          pageLayout: .single,
+          isolateCoverPage: false,
+          splitWidePageMode: .none,
+          supportsReadingDirectionSelection: false,
+          supportsPageLayoutSelection: false,
+          supportsDualPageOptions: false,
+          supportsSplitWidePageMode: false
+        )
+      }
+
+      private var keyboardHelpOverlay: some View {
+        KeyboardHelpOverlay(
+          readingDirection: dismissGestureReadingDirection,
+          hasTOC: !viewModel.tableOfContents.isEmpty,
+          supportsLiveText: false,
+          supportsJumpToPage: false,
+          supportsToggleControls: supportsOverlayControls,
+          hasNextBook: false,
+          onDismiss: {
+            hideKeyboardHelp()
+          }
+        )
+        .opacity(showKeyboardHelp ? 1.0 : 0.0)
+        .allowsHitTesting(showKeyboardHelp)
+        .animation(.default, value: showKeyboardHelp)
+      }
+
+      private func configureMacReaderCommands() {
+        readerPresentation.configureMacReaderCommands(
+          state: macReaderCommandState,
+          handlers: ReaderPresentationManager.MacReaderCommandHandlers(
+            showReaderSettings: {
+              showingPreferencesSheet = true
+            },
+            showBookDetails: {
+              if currentBook != nil && currentSeries != nil {
+                showingDetailSheet = true
+              }
+            },
+            showTableOfContents: {
+              if !viewModel.tableOfContents.isEmpty {
+                showingChapterSheet = true
+              }
+            },
+            showPageJump: {},
+            openPreviousBook: {},
+            openNextBook: {},
+            setReadingDirection: { _ in },
+            setPageLayout: { _ in },
+            toggleIsolateCoverPage: {},
+            setSplitWidePageMode: { _ in }
+          )
+        )
+      }
+
+      private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
+        if keyCode == 53 {
+          closeReader()
+          return true
+        }
+
+        if keyCode == 44 || keyCode == 4 {
+          showKeyboardHelp.toggle()
+          return true
+        }
+
+        if keyCode == 36 || keyCode == 3 {
+          if let window = NSApplication.shared.keyWindow {
+            window.toggleFullScreen(nil)
+          }
+          return true
+        }
+
+        if keyCode == 49 || keyCode == 8 {
+          return true
+        }
+
+        guard flags.intersection([.command, .option, .control]).isEmpty else { return false }
+
+        if keyCode == 17 {
+          if !viewModel.tableOfContents.isEmpty {
+            showingChapterSheet = true
+          }
+          return true
+        }
+
+        guard viewModel.hasContent else { return false }
+
+        switch dismissGestureReadingDirection {
+        case .ltr:
+          switch keyCode {
+          case 124:
+            viewModel.goToNextPage()
+            return true
+          case 123:
+            viewModel.goToPreviousPage()
+            return true
+          default:
+            return false
+          }
+        case .rtl:
+          switch keyCode {
+          case 123:
+            viewModel.goToNextPage()
+            return true
+          case 124:
+            viewModel.goToPreviousPage()
+            return true
+          default:
+            return false
+          }
+        case .vertical, .webtoon:
+          switch keyCode {
+          case 125:
+            viewModel.goToNextPage()
+            return true
+          case 126:
+            viewModel.goToPreviousPage()
+            return true
+          default:
+            return false
+          }
+        }
+      }
+
+      private func hideKeyboardHelp() {
+        keyboardHelpTimer?.invalidate()
+        keyboardHelpTimer = nil
+        showKeyboardHelp = false
+      }
+
+      private func triggerKeyboardHelp(timeout: TimeInterval) {
+        keyboardHelpTimer?.invalidate()
+        guard showKeyboardHelpOverlay, viewModel.hasContent else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+          self.showKeyboardHelp = true
+          self.keyboardHelpTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
+            Task { @MainActor in
+              self.hideKeyboardHelp()
+            }
+          }
+        }
+      }
+    #endif
   }
 #endif

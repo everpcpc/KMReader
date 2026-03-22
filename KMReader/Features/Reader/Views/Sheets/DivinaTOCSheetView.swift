@@ -23,7 +23,6 @@ struct DivinaTOCSheetView: View {
             )
           }
         }
-        .adaptiveButtonStyle(.plain)
         .optimizedListStyle()
         .onAppear {
           DispatchQueue.main.async {
@@ -100,6 +99,7 @@ private struct TOCEntryRow: View {
           } label: {
             TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
           }
+          .buttonStyle(.plain)
         }
         .id(entry.id)
         .onAppear {
@@ -113,6 +113,7 @@ private struct TOCEntryRow: View {
         } label: {
           TOCEntryLabel(entry: entry, isCurrent: isCurrent, level: level)
         }
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
         .id(entry.id)
       }

@@ -61,7 +61,7 @@ struct BookReaderView: View {
                 onClose: closeReader
               )
             } else {
-              #if os(iOS)
+              #if os(iOS) || os(macOS)
                 EpubReaderView(
                   sessionID: sessionID,
                   book: book,
@@ -76,7 +76,7 @@ struct BookReaderView: View {
                   title: "EPUB Reader Not Available",
                   message: String(
                     localized:
-                      "EPUB reading is only supported on iOS."
+                      "EPUB reading is only supported on iOS and macOS."
                   ),
                   onClose: closeReader
                 )

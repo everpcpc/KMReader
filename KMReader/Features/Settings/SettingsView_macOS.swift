@@ -16,6 +16,7 @@ import SwiftUI
           Section(String(localized: "Reader")) {
             SettingsSectionRow(section: .divinaReader)
             SettingsSectionRow(section: .pdfReader)
+            SettingsSectionRow(section: .epubReader)
           }
 
           Section(String(localized: "Display")) {
@@ -40,30 +41,7 @@ import SwiftUI
         .navigationTitle("Settings")
       } detail: {
         if let selectedSection {
-          Group {
-            switch selectedSection {
-            case .appearance:
-              SettingsAppearanceView()
-            case .browse:
-              SettingsBrowseView()
-            case .dashboard:
-              SettingsDashboardView()
-            case .cache:
-              SettingsCacheView()
-            case .divinaReader:
-              DivinaPreferencesView()
-            case .pdfReader:
-              PdfPreferencesView()
-            case .sse:
-              SettingsSSEView()
-            case .spotlight:
-              SettingsSpotlightView()
-            case .network:
-              SettingsNetworkView()
-            case .logs:
-              SettingsLogsView()
-            }
-          }
+          detailContent(for: selectedSection)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
           Text("Select a setting")
@@ -77,6 +55,34 @@ import SwiftUI
             columnVisibility = .all
           }
         }
+      }
+    }
+
+    @ViewBuilder
+    private func detailContent(for section: SettingsSection) -> some View {
+      switch section {
+      case .appearance:
+        SettingsAppearanceView()
+      case .browse:
+        SettingsBrowseView()
+      case .dashboard:
+        SettingsDashboardView()
+      case .cache:
+        SettingsCacheView()
+      case .divinaReader:
+        DivinaPreferencesView()
+      case .pdfReader:
+        PdfPreferencesView()
+      case .epubReader:
+        EpubPreferencesView()
+      case .sse:
+        SettingsSSEView()
+      case .spotlight:
+        SettingsSpotlightView()
+      case .network:
+        SettingsNetworkView()
+      case .logs:
+        SettingsLogsView()
       }
     }
   }

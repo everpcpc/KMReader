@@ -3,7 +3,7 @@
 //
 //
 
-#if os(iOS)
+#if os(iOS) || os(macOS)
   import SwiftUI
 
   struct EpubEndPageView: View {

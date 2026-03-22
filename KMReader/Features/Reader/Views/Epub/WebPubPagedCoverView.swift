@@ -225,7 +225,7 @@
           guard subPageIndex >= 0 else { return nil }
         }
 
-        let containerInsets = parent.viewModel.containerInsetsForLabels()
+        let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
         if let fontName = parent.preferences.fontFamily.fontName {
           parent.viewModel.ensureFontCopied(fontName: fontName)
@@ -238,7 +238,8 @@
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: rootURL
+          rootURL: rootURL,
+          viewportSize: parent.viewModel.resolvedViewportSize
         )
         let chapterIndexForCallback = chapterIndex
         let onPageCountReady: (Int) -> Void = { [weak viewModel = parent.viewModel] pageCount in
@@ -384,7 +385,7 @@
 
       func configureVisibleController(_ controller: EpubPageViewController) {
         let chapterIndex = controller.chapterIndex
-        let containerInsets = parent.viewModel.containerInsetsForLabels()
+        let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
         if let fontName = parent.preferences.fontFamily.fontName {
           parent.viewModel.ensureFontCopied(fontName: fontName)
@@ -395,7 +396,8 @@
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: parent.viewModel.resourceRootURL
+          rootURL: parent.viewModel.resourceRootURL,
+          viewportSize: parent.viewModel.resolvedViewportSize
         )
 
         guard

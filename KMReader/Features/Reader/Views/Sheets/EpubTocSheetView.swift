@@ -3,7 +3,7 @@
 //
 //
 
-#if os(iOS)
+#if os(iOS) || os(macOS)
   import SwiftUI
 
   struct EpubTocSheetView: View {
@@ -24,7 +24,6 @@
             }
           }
           .optimizedListStyle()
-          .adaptiveButtonStyle(.plain)
           .onAppear {
             DispatchQueue.main.async {
               if let target = currentLink {
@@ -72,6 +71,7 @@
           } label: {
             ChapterLabel(link: link, currentLink: currentLink)
           }
+          .buttonStyle(.plain)
         }
         .id(link.href)
       } else {
@@ -80,6 +80,7 @@
         } label: {
           ChapterLabel(link: link, currentLink: currentLink)
         }
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
         .id(link.href)
       }

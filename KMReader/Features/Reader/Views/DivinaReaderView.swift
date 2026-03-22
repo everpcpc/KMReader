@@ -810,6 +810,9 @@ struct DivinaReaderView: View {
       KeyboardHelpOverlay(
         readingDirection: readingDirection,
         hasTOC: !viewModel.tableOfContents.isEmpty,
+        supportsLiveText: true,
+        supportsJumpToPage: true,
+        supportsToggleControls: true,
         hasNextBook: currentSegmentNextBook != nil,
         onDismiss: {
           hideKeyboardHelp()
@@ -820,17 +823,17 @@ struct DivinaReaderView: View {
       .animation(.default, value: showKeyboardHelp)
     }
 
-    private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) {
+    private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
       // Handle ESC key to close window
       if keyCode == 53 {  // ESC key
         closeReader()
-        return
+        return true
       }
 
       // Handle ? key and H key for keyboard help
       if keyCode == 44 {  // ? key (Shift + /)
         showKeyboardHelp.toggle()
-        return
+        return true
       }
 
       // Handle Return/Enter key for fullscreen toggle
@@ -838,43 +841,43 @@ struct DivinaReaderView: View {
         if let window = NSApplication.shared.keyWindow {
           window.toggleFullScreen(nil)
         }
-        return
+        return true
       }
 
       // Handle Space key for toggle controls
       if keyCode == 49 {  // Space key
         toggleControls()
-        return
+        return true
       }
 
       // Ignore if modifier keys are pressed (except for system shortcuts)
-      guard flags.intersection([.command, .option, .control]).isEmpty else { return }
+      guard flags.intersection([.command, .option, .control]).isEmpty else { return false }
 
       // Handle F key for fullscreen toggle
       if keyCode == 3 {  // F key
         if let window = NSApplication.shared.keyWindow {
           window.toggleFullScreen(nil)
         }
-        return
+        return true
       }
 
       // Handle H key for keyboard help
       if keyCode == 4 {  // H key
         showKeyboardHelp.toggle()
-        return
+        return true
       }
 
       // Handle C key for toggle controls
       if keyCode == 8 {  // C key
         toggleControls()
-        return
+        return true
       }
 
       if keyCode == 37 {  // L key
         enableLiveText.toggle()
         let message = enableLiveText ? String(localized: "Live Text: ON") : String(localized: "Live Text: OFF")
         ErrorManager.shared.notify(message: message)
-        return
+        return true
       }
 
       // Handle T key for TOC
@@ -882,7 +885,7 @@ struct DivinaReaderView: View {
         if !viewModel.tableOfContents.isEmpty {
           showingTOCSheet = true
         }
-        return
+        return true
       }
 
       // Handle J key for jump to page
@@ -890,7 +893,7 @@ struct DivinaReaderView: View {
         if viewModel.hasPages {
           showingPageJumpSheet = true
         }
-        return
+        return true
       }
 
       // Handle N key for next book
@@ -898,42 +901,48 @@ struct DivinaReaderView: View {
         if let nextBook = currentSegmentNextBook {
           openNextBook(nextBookId: nextBook.id)
         }
-        return
+        return true
       }
 
-      guard viewModel.hasPages else { return }
+      guard viewModel.hasPages else { return false }
 
       switch readingDirection {
       case .ltr:
         switch keyCode {
         case 124:  // Right arrow
           goToNextPage()
+          return true
         case 123:  // Left arrow
           goToPreviousPage()
+          return true
         default:
-          break
+          return false
         }
       case .rtl:
         switch keyCode {
         case 123:  // Left arrow
           goToNextPage()
+          return true
         case 124:  // Right arrow
           goToPreviousPage()
+          return true
         default:
-          break
+          return false
         }
       case .vertical:
         switch keyCode {
         case 125:  // Down arrow
           goToNextPage()
+          return true
         case 126:  // Up arrow
           goToPreviousPage()
+          return true
         default:
-          break
+          return false
         }
       case .webtoon:
         // Webtoon scrolling is handled by WebtoonReaderView's own keyboard monitor
-        break
+        return false
       }
     }
   #endif
@@ -1337,14 +1346,20 @@ struct DivinaReaderView: View {
 
       return ReaderPresentationManager.MacReaderCommandState(
         isActive: true,
+        supportsReaderSettings: true,
+        supportsBookDetails: currentSegmentBook != nil,
         hasPages: viewModel.hasPages,
         hasTableOfContents: !viewModel.tableOfContents.isEmpty,
+        supportsPageJump: viewModel.hasPages,
+        supportsBookNavigation: true,
         canOpenPreviousBook: currentSegmentPreviousBook != nil,
         canOpenNextBook: currentSegmentNextBook != nil,
         readingDirection: readingDirection,
         pageLayout: pageLayout,
         isolateCoverPage: isolateCoverPage,
         splitWidePageMode: splitWidePageMode,
+        supportsReadingDirectionSelection: true,
+        supportsPageLayoutSelection: true,
         supportsDualPageOptions: supportsDualPageOptions,
         supportsSplitWidePageMode: supportsSplitWidePageMode
       )

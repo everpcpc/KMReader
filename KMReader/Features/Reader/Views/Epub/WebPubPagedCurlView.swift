@@ -8,53 +8,6 @@
   import UIKit
   import WebKit
 
-  extension ReaderTheme {
-    var uiColorBackground: UIColor { UIColor(hex: backgroundColorHex) ?? .white }
-    var uiColorText: UIColor { UIColor(hex: textColorHex) ?? .black }
-  }
-
-  extension UIColor {
-    convenience init?(hex: String) {
-      var trimmed = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-      if trimmed.hasPrefix("#") {
-        trimmed.removeFirst()
-      }
-      guard trimmed.count == 6, let value = Int(trimmed, radix: 16) else { return nil }
-      let red = CGFloat((value >> 16) & 0xFF) / 255.0
-      let green = CGFloat((value >> 8) & 0xFF) / 255.0
-      let blue = CGFloat(value & 0xFF) / 255.0
-      self.init(red: red, green: green, blue: blue, alpha: 1.0)
-    }
-
-    var brightness: CGFloat {
-      var r: CGFloat = 0
-      var g: CGFloat = 0
-      var b: CGFloat = 0
-      var a: CGFloat = 0
-      guard getRed(&r, green: &g, blue: &b, alpha: &a) else { return 0 }
-      return (r * 299 + g * 587 + b * 114) / 1000
-    }
-  }
-
-  /// A weak wrapper for WKScriptMessageHandler to avoid retain cycles.
-  /// WKUserContentController retains its message handlers strongly, so we use this
-  /// wrapper to prevent the view controller from being retained by the web view.
-  private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
-    private weak var delegate: WKScriptMessageHandler?
-
-    init(delegate: WKScriptMessageHandler) {
-      self.delegate = delegate
-      super.init()
-    }
-
-    func userContentController(
-      _ userContentController: WKUserContentController,
-      didReceive message: WKScriptMessage
-    ) {
-      delegate?.userContentController(userContentController, didReceive: message)
-    }
-  }
-
   struct WebPubPagedCurlView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
@@ -260,7 +213,7 @@
 
       if let currentVC = uiViewController.viewControllers?.first as? EpubPageViewController {
         let chapterIndex = currentVC.chapterIndex
-        let containerInsets = viewModel.containerInsetsForLabels()
+        let containerInsets = viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = preferences.resolvedTheme(for: colorScheme)
 
         // Ensure the selected font is copied to the resource directory
@@ -272,7 +225,8 @@
         let readiumPayload = preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: viewModel.resourceRootURL
+          rootURL: viewModel.resourceRootURL,
+          viewportSize: viewModel.resolvedViewportSize
         )
 
         guard
@@ -466,7 +420,7 @@
           guard subPageIndex >= 0 else { return nil }
         }
 
-        let containerInsets = parent.viewModel.containerInsetsForLabels()
+        let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
 
         // Ensure the selected font is copied to the resource directory
@@ -480,7 +434,8 @@
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: rootURL
+          rootURL: rootURL,
+          viewportSize: parent.viewModel.resolvedViewportSize
         )
         let chapterIndexForCallback = chapterIndex
         let onPageCountReady: (Int) -> Void = { [weak viewModel = parent.viewModel] pageCount in
@@ -1146,12 +1101,7 @@
     private var labelBottomOffset: CGFloat
     private var useSafeArea: Bool
 
-    // Overlay labels
-    private var topBookTitleLabel: UILabel?
-    private var topProgressLabel: UILabel?
-    private var bottomChapterLabel: UILabel?
-    private var bottomPageCenterLabel: UILabel?
-    private var bottomPageRightLabel: UILabel?
+    private var infoOverlay: WebPubInfoOverlaySupport.UIKitOverlay?
 
     private var loadingIndicator: UIActivityIndicatorView?
 
@@ -1365,141 +1315,27 @@
     }
 
     func setupOverlayLabels() {
-      let topOffset = labelTopOffset
-      let bottomOffset = -labelBottomOffset
-
-      // Top book title label
-      let bookTitleLabel = UILabel()
-      bookTitleLabel.font = .systemFont(ofSize: 14)
-      bookTitleLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      bookTitleLabel.textAlignment = .center
-      bookTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-      bookTitleLabel.isUserInteractionEnabled = false
-      bookTitleLabel.alpha = 0
-      view.addSubview(bookTitleLabel)
-      NSLayoutConstraint.activate([
-        bookTitleLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
-        bookTitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-        bookTitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-      ])
-      self.topBookTitleLabel = bookTitleLabel
-
-      // Top progress label
-      let progressLabel = UILabel()
-      progressLabel.font = .systemFont(ofSize: 14)
-      progressLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      progressLabel.textAlignment = .center
-      progressLabel.translatesAutoresizingMaskIntoConstraints = false
-      progressLabel.isUserInteractionEnabled = false
-      progressLabel.alpha = 0
-      view.addSubview(progressLabel)
-      NSLayoutConstraint.activate([
-        progressLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
-        progressLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-        progressLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-      ])
-      self.topProgressLabel = progressLabel
-
-      // Bottom chapter label
-      let chapterLabel = UILabel()
-      chapterLabel.font = .systemFont(ofSize: 12)
-      chapterLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      chapterLabel.textAlignment = .left
-      chapterLabel.translatesAutoresizingMaskIntoConstraints = false
-      chapterLabel.isUserInteractionEnabled = false
-      chapterLabel.alpha = 0
-      view.addSubview(chapterLabel)
-      NSLayoutConstraint.activate([
-        chapterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
-        chapterLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-      ])
-      self.bottomChapterLabel = chapterLabel
-
-      // Bottom page label (centered)
-      let pageCenterLabel = UILabel()
-      pageCenterLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-      pageCenterLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      pageCenterLabel.textAlignment = .center
-      pageCenterLabel.translatesAutoresizingMaskIntoConstraints = false
-      pageCenterLabel.isUserInteractionEnabled = false
-      pageCenterLabel.alpha = 0
-      view.addSubview(pageCenterLabel)
-      NSLayoutConstraint.activate([
-        pageCenterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
-        pageCenterLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-      ])
-      self.bottomPageCenterLabel = pageCenterLabel
-
-      // Bottom page label (right side)
-      let pageRightLabel = UILabel()
-      pageRightLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-      pageRightLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      pageRightLabel.textAlignment = .right
-      pageRightLabel.translatesAutoresizingMaskIntoConstraints = false
-      pageRightLabel.isUserInteractionEnabled = false
-      pageRightLabel.alpha = 0
-      view.addSubview(pageRightLabel)
-      NSLayoutConstraint.activate([
-        pageRightLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
-        pageRightLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-        pageRightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chapterLabel.trailingAnchor, constant: 8),
-      ])
-      self.bottomPageRightLabel = pageRightLabel
+      infoOverlay = WebPubInfoOverlaySupport.UIKitOverlay(
+        containerView: view,
+        topAnchor: topAnchor,
+        bottomAnchor: bottomAnchor,
+        topOffset: labelTopOffset,
+        bottomOffset: labelBottomOffset,
+        theme: theme
+      )
     }
 
     func updateOverlayLabels() {
-      UIView.animate {
-        // Top labels
-        if self.showingControls {
-          self.topBookTitleLabel?.alpha = 0.0
-          if let totalProgression = self.totalProgression {
-            let percentage = String(format: "%.2f%%", totalProgression * 100)
-            self.topProgressLabel?.text = String(localized: "Book Progress \(percentage)")
-            self.topProgressLabel?.alpha = 1.0
-          } else {
-            self.topProgressLabel?.alpha = 0.0
-          }
-        } else {
-          self.topProgressLabel?.alpha = 0.0
-          if let bookTitle = self.bookTitle, !bookTitle.isEmpty {
-            self.topBookTitleLabel?.text = bookTitle
-            self.topBookTitleLabel?.alpha = 1.0
-          } else {
-            self.topBookTitleLabel?.alpha = 0.0
-          }
-        }
-
-        // Bottom labels
-        if self.totalPagesInChapter > 0 {
-          if self.showingControls {
-            self.bottomChapterLabel?.alpha = 0.0
-            let current = self.currentSubPageIndex + 1
-            let total = self.totalPagesInChapter
-            self.bottomPageCenterLabel?.text = String(localized: "Chapter Progress \(current) / \(total)")
-            self.bottomPageCenterLabel?.alpha = 1.0
-            self.bottomPageRightLabel?.alpha = 0.0
-          } else {
-            if let chapterTitle = self.chapterTitle, !chapterTitle.isEmpty {
-              self.bottomChapterLabel?.text = chapterTitle
-              self.bottomChapterLabel?.alpha = 1.0
-            } else {
-              self.bottomChapterLabel?.alpha = 0.0
-            }
-            self.bottomPageCenterLabel?.alpha = 0.0
-            let remainingPages = self.totalPagesInChapter - (self.currentSubPageIndex + 1)
-            if remainingPages > 0 {
-              self.bottomPageRightLabel?.text = String(localized: "\(remainingPages) pages left")
-            } else {
-              self.bottomPageRightLabel?.text = String(localized: "Last page")
-            }
-            self.bottomPageRightLabel?.alpha = 1.0
-          }
-        } else {
-          self.bottomChapterLabel?.alpha = 0.0
-          self.bottomPageCenterLabel?.alpha = 0.0
-          self.bottomPageRightLabel?.alpha = 0.0
-        }
-      }
+      let content = WebPubInfoOverlaySupport.content(
+        flowStyle: .paged,
+        bookTitle: bookTitle,
+        chapterTitle: chapterTitle,
+        totalProgression: totalProgression,
+        currentPageIndex: currentSubPageIndex,
+        totalPagesInChapter: totalPagesInChapter,
+        showingControls: showingControls
+      )
+      infoOverlay?.update(content: content, animated: true)
     }
 
     func forceEnsureContentLoaded() {
@@ -1533,7 +1369,7 @@
       let config = WKWebViewConfiguration()
       let controller = WKUserContentController()
       // Use weak wrapper to avoid retain cycle (WKUserContentController retains handlers strongly)
-      controller.add(WeakScriptMessageHandler(delegate: self), name: "readerBridge")
+      controller.add(WeakWKScriptMessageHandler(delegate: self), name: "readerBridge")
       config.userContentController = controller
 
       // Set background to fill entire view (including safe area)
@@ -1598,12 +1434,7 @@
       loadingIndicator?.color = theme.uiColorText
 
       // Update overlay label colors
-      let labelColor = theme.uiColorText.withAlphaComponent(0.6)
-      topBookTitleLabel?.textColor = labelColor
-      topProgressLabel?.textColor = labelColor
-      bottomChapterLabel?.textColor = labelColor
-      bottomPageCenterLabel?.textColor = labelColor
-      bottomPageRightLabel?.textColor = labelColor
+      infoOverlay?.apply(theme: theme)
     }
 
     private func applyContainerInsets() {

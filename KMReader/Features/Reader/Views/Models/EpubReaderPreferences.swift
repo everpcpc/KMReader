@@ -189,7 +189,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   func makeReadiumPayload(
     theme: ReaderTheme,
     fontPath: String? = nil,
-    rootURL: URL? = nil
+    rootURL: URL? = nil,
+    viewportSize: CGSize? = nil
   ) -> (css: String, properties: [String: String?]) {
     let fontName = fontFamily.fontName
     let darkLinkColors = darkThemeLinkColors
@@ -219,7 +220,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       properties["--USER__fontWeightOverride"] = nil
       properties["--USER__fontWeight"] = nil
     }
-    properties["--USER__colCount"] = columnCount.readiumValue
+    properties["--USER__colCount"] = resolvedReadiumColumnCount(for: viewportSize)
     properties["--USER__lineLength"] = readiumLineLengthValue(for: pageMargins)
 
     if theme.isDark {
@@ -274,8 +275,30 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     )
   }
 
-  func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {
-    makeReadiumPayload(theme: theme, fontPath: fontPath, rootURL: rootURL).css
+  func makeCSS(
+    theme: ReaderTheme,
+    fontPath: String? = nil,
+    rootURL: URL? = nil,
+    viewportSize: CGSize? = nil
+  ) -> String {
+    makeReadiumPayload(
+      theme: theme,
+      fontPath: fontPath,
+      rootURL: rootURL,
+      viewportSize: viewportSize
+    ).css
+  }
+
+  private func resolvedReadiumColumnCount(for viewportSize: CGSize?) -> String? {
+    switch columnCount {
+    case .one, .two:
+      return columnCount.readiumValue
+    case .auto:
+      guard flowStyle == .paged else { return nil }
+      guard let viewportSize else { return nil }
+      let width = viewportSize.width
+      return width >= 900 ? EpubColumnCount.two.readiumValue : EpubColumnCount.one.readiumValue
+    }
   }
 
   private func readiumFontWeightValue(for weight: Double) -> Int {

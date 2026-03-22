@@ -14,7 +14,7 @@ enum SettingsSection: String, CaseIterable {
   #if os(iOS) || os(macOS)
     case pdfReader
   #endif
-  #if os(iOS)
+  #if os(iOS) || os(macOS)
     case epubReader
   #endif
   case sse
@@ -40,7 +40,7 @@ enum SettingsSection: String, CaseIterable {
       case .pdfReader:
         return "doc.richtext"
     #endif
-    #if os(iOS)
+    #if os(iOS) || os(macOS)
       case .epubReader:
         return "character.book.closed"
     #endif
@@ -73,7 +73,7 @@ enum SettingsSection: String, CaseIterable {
       case .pdfReader:
         return String(localized: "PDF Reader")
     #endif
-    #if os(iOS)
+    #if os(iOS) || os(macOS)
       case .epubReader:
         return String(localized: "EPUB Reader")
     #endif

@@ -11037,6 +11037,70 @@
         }
       }
     },
+    "Choose Font" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrift waehlen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Font"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir fuente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir la police"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli font"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォントを選択"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "글꼴 선택"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать шрифт"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择字体"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇字體"
+          }
+        }
+      }
+    },
     "Choose how tap zones work: auto matches reading direction, or select a fixed layout" : {
       "localizations" : {
         "de" : {
@@ -20253,66 +20317,66 @@
         }
       }
     },
-    "EPUB reading is only supported on iOS." : {
+    "EPUB reading is only supported on iOS and macOS." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Lesen von EPUBs wird nur auf iOS unterstützt."
+            "value" : "EPUB-Lesen wird nur auf iOS und macOS unterstuetzt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB reading is only supported on iOS."
+            "value" : "EPUB reading is only supported on iOS and macOS."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La lectura EPUB solo es compatible con iOS."
+            "value" : "La lectura EPUB solo es compatible con iOS y macOS."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La lecture EPUB n'est disponible que sur iOS."
+            "value" : "La lecture EPUB est uniquement prise en charge sur iOS et macOS."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La lettura EPUB e supportata solo su iOS."
+            "value" : "La lettura EPUB e supportata solo su iOS e macOS."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB の閲覧は iOS でのみサポートされています。"
+            "value" : "EPUBの読書はiOSとmacOSでのみサポートされています。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB 읽기는 iOS에서만 지원됩니다."
+            "value" : "EPUB 읽기는 iOS 및 macOS에서만 지원됩니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Чтение EPUB поддерживается только на iOS."
+            "value" : "Чтение EPUB поддерживается только на iOS и macOS."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB 阅读仅在 iOS 上支持。"
+            "value" : "EPUB 阅读仅支持 iOS 和 macOS。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EPUB 閱讀僅在 iOS 上支援。"
+            "value" : "EPUB 閱讀僅支援 iOS 和 macOS。"
           }
         }
       }

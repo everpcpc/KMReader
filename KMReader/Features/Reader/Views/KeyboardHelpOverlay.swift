@@ -12,6 +12,9 @@ import SwiftUI
   struct KeyboardHelpOverlay: View {
     let readingDirection: ReadingDirection
     let hasTOC: Bool
+    let supportsLiveText: Bool
+    let supportsJumpToPage: Bool
+    let supportsToggleControls: Bool
     let hasNextBook: Bool
     let onDismiss: () -> Void
 
@@ -40,12 +43,18 @@ import SwiftUI
               .background(Color.white.opacity(0.3))
 
             HelpRow(key: "F / Return", description: "Toggle fullscreen")
-            HelpRow(key: "C / Space", description: "Toggle controls")
-            HelpRow(key: "L", description: "Toggle Live Text")
+            if supportsToggleControls {
+              HelpRow(key: "C / Space", description: "Toggle controls")
+            }
+            if supportsLiveText {
+              HelpRow(key: "L", description: "Toggle Live Text")
+            }
             if hasTOC {
               HelpRow(key: "T", description: "Table of Contents")
             }
-            HelpRow(key: "J", description: "Jump to page")
+            if supportsJumpToPage {
+              HelpRow(key: "J", description: "Jump to page")
+            }
             if hasNextBook {
               HelpRow(key: "N", description: "Next book")
             }

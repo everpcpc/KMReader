@@ -1,0 +1,502 @@
+#if os(macOS)
+  import AppKit
+  import SwiftData
+  import SwiftUI
+
+  struct EpubPreferencesView: View {
+    let inSheet: Bool
+    let bookId: String?
+    let hasBookPreferences: Bool
+    let onPreferencesSaved: ((EpubReaderPreferences) -> Void)?
+    let onPreferencesCleared: (() -> Void)?
+
+    private let baselinePreferences: EpubReaderPreferences
+    @State private var draft: EpubReaderPreferences
+    @State private var showPresetsSheet: Bool = false
+    @State private var showSavePresetAlert: Bool = false
+    @State private var newPresetName: String = ""
+    @State private var showSystemFontPicker: Bool = false
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
+
+    init(
+      inSheet: Bool = false,
+      bookId: String? = nil,
+      hasBookPreferences: Bool = false,
+      initialPreferences: EpubReaderPreferences? = nil,
+      onPreferencesSaved: ((EpubReaderPreferences) -> Void)? = nil,
+      onPreferencesCleared: (() -> Void)? = nil
+    ) {
+      self.inSheet = inSheet
+      self.bookId = bookId
+      self.hasBookPreferences = hasBookPreferences
+      self.onPreferencesSaved = onPreferencesSaved
+      self.onPreferencesCleared = onPreferencesCleared
+      let baseline = initialPreferences ?? AppConfig.epubPreferences
+      baselinePreferences = baseline
+      _draft = State(initialValue: baseline)
+    }
+
+    private var navigationTitle: String {
+      bookId == nil ? SettingsSection.epubReader.title : String(localized: "Current Book")
+    }
+
+    private var shouldShowResetToGlobal: Bool {
+      bookId != nil && hasBookPreferences
+    }
+
+    private var isSaveDisabled: Bool {
+      draft == baselinePreferences
+    }
+
+    private var readerTheme: ReaderTheme {
+      draft.theme.resolvedTheme(for: colorScheme)
+    }
+
+    private var backgroundColor: Color {
+      Color(hex: readerTheme.backgroundColorHex) ?? .white
+    }
+
+    private var fontWeightEnabled: Binding<Bool> {
+      Binding(
+        get: { draft.fontWeight != nil },
+        set: { isOn in
+          if isOn {
+            if draft.fontWeight == nil {
+              draft.fontWeight = EpubConstants.defaultFontWeight
+            }
+          } else {
+            draft.fontWeight = nil
+          }
+        }
+      )
+    }
+
+    private var fontWeightValue: Binding<Double> {
+      Binding(
+        get: { draft.fontWeight ?? EpubConstants.defaultFontWeight },
+        set: { draft.fontWeight = $0 }
+      )
+    }
+
+    private var fontWeightLabelText: String {
+      let valueText: String
+      if let fontWeight = draft.fontWeight {
+        valueText = String(format: "%.1f", fontWeight)
+      } else {
+        valueText = String(localized: "Default")
+      }
+      return String.localizedStringWithFormat(String(localized: "Weight: %@"), valueText)
+    }
+
+    private var selectedSystemFontName: String? {
+      guard case .system(let name) = draft.fontFamily else { return nil }
+      return name
+    }
+
+    private var selectedPanelFont: NSFont {
+      if let fontName = selectedSystemFontName,
+        let font = NSFont(name: fontName, size: NSFont.systemFontSize)
+      {
+        return font
+      }
+      return NSFont.systemFont(ofSize: NSFont.systemFontSize)
+    }
+
+    private var themePicker: some View {
+      let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+      ]
+
+      return LazyVGrid(columns: columns, spacing: 12) {
+        ForEach(ThemeChoice.allCases) { choice in
+          themePreviewButton(for: choice)
+        }
+      }
+      .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func themePreviewButton(for choice: ThemeChoice) -> some View {
+      let previewTheme = choice.resolvedTheme(for: colorScheme)
+      let isSelected = draft.theme == choice
+
+      Button {
+        draft.theme = choice
+      } label: {
+        Image(systemName: "textformat")
+          .font(.system(size: 20))
+          .foregroundStyle(previewTheme.textColor)
+          .frame(maxWidth: .infinity, minHeight: 54, alignment: .center)
+          .padding(8)
+          .background(previewTheme.backgroundColor)
+          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+          .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+              .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+          )
+      }
+      .buttonStyle(.plain)
+      .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    var body: some View {
+      SheetView(title: navigationTitle, size: .large, onReset: resetPreferences, applyFormStyle: true) {
+        VStack(spacing: 0) {
+          EpubSettingsPreviewView(preferences: draft)
+            .frame(height: 160)
+            .background(backgroundColor)
+            .overlay(alignment: .bottom) {
+              LinearGradient(
+                colors: [
+                  backgroundColor,
+                  backgroundColor.opacity(0),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+              )
+              .frame(height: 20)
+              .offset(y: 20)
+              .allowsHitTesting(false)
+            }
+
+          Form {
+            Section(String(localized: "Page Turn")) {
+              Picker(String(localized: "epub.reading_flow"), selection: $draft.flowStyle) {
+                ForEach(EpubFlowStyle.allCases) { style in
+                  Text(style.displayName).tag(style)
+                }
+              }
+              .pickerStyle(.menu)
+            }
+
+            Section(String(localized: "Presets")) {
+              Button(String(localized: "Load Preset")) {
+                showPresetsSheet = true
+              }
+
+              Button(String(localized: "Save as Preset")) {
+                showSavePresetAlert = true
+              }
+            }
+
+            Section(String(localized: "Theme")) {
+              themePicker
+            }
+
+            Section(String(localized: "Font")) {
+              HStack {
+                Text(String(localized: "Typeface"))
+                Spacer()
+                Text(draft.fontFamily.displayName)
+                  .foregroundStyle(.secondary)
+              }
+
+              HStack {
+                Button(String(localized: "Choose Font")) {
+                  showSystemFontPicker = true
+                }
+
+                Spacer()
+
+                if selectedSystemFontName != nil {
+                  Button(String(localized: "Publisher Default")) {
+                    draft.fontFamily = .publisher
+                  }
+                }
+              }
+
+              HStack {
+                Text(fontWeightLabelText)
+                Spacer()
+                Toggle("", isOn: fontWeightEnabled)
+                  .labelsHidden()
+              }
+
+              if draft.fontWeight != nil {
+                Slider(value: fontWeightValue, in: 0.0...5.0, step: 0.1)
+              }
+            }
+
+            Section(String(localized: "Page")) {
+              if draft.flowStyle.isPaged {
+                Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
+                  ForEach(EpubColumnCount.allCases) { option in
+                    Text(option.label)
+                      .tag(option)
+                  }
+                }
+                .pickerStyle(.segmented)
+              }
+
+              if draft.flowStyle == .scrolled {
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text(String(localized: "epub.scrolled.tap_scroll_height"))
+                    Spacer()
+                    Text("\(Int(draft.tapScrollPercentage))%")
+                      .foregroundStyle(.secondary)
+                  }
+                  Slider(
+                    value: $draft.tapScrollPercentage,
+                    in: 25...100,
+                    step: 5
+                  )
+                  Text(String(localized: "epub.scrolled.tap_scroll_height.description"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+              }
+
+              VStack(alignment: .leading) {
+                Slider(value: $draft.pageMargins, in: 0.25...2.0, step: 0.05)
+                Text(
+                  String(localized: "Page Margins: \(String(format: "%.2f", draft.pageMargins))x")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+              }
+            }
+
+            Section {
+              Toggle(String(localized: "Advanced Layout"), isOn: $draft.advancedLayout)
+            }
+
+            if draft.advancedLayout {
+              Section(String(localized: "Character & Word")) {
+                VStack(alignment: .leading) {
+                  Slider(value: $draft.fontSize, in: 0.25...4.0, step: 0.05)
+                  Text(String(localized: "Font Size: \(String(format: "%.2f", draft.fontSize))x"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading) {
+                  Slider(value: $draft.letterSpacing, in: 0.0...1.0, step: 0.01)
+                  Text(
+                    String(localized: "Letter Spacing: \(String(format: "%.2f", draft.letterSpacing))")
+                  )
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading) {
+                  Slider(value: $draft.wordSpacing, in: 0.0...1.0, step: 0.01)
+                  Text(
+                    String(localized: "Word Spacing: \(String(format: "%.2f", draft.wordSpacing))")
+                  )
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                }
+              }
+
+              Section(String(localized: "Line & Paragraph")) {
+                VStack(alignment: .leading) {
+                  Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
+                  Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading) {
+                  Slider(value: $draft.paragraphSpacing, in: 0.0...3.0, step: 0.1)
+                  Text(
+                    String(localized: "Paragraph Spacing: \(String(format: "%.1f", draft.paragraphSpacing))")
+                  )
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading) {
+                  Slider(value: $draft.paragraphIndent, in: 0.0...8.0, step: 0.5)
+                  Text(
+                    String(localized: "Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
+                  )
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                }
+              }
+            }
+          }
+        }
+      } controls: {
+        if shouldShowResetToGlobal {
+          Button {
+            clearBookPreferences()
+          } label: {
+            Label(String(localized: "Reset to Global"), systemImage: "trash")
+          }
+        }
+
+        Button {
+          savePreferences()
+        } label: {
+          Label(String(localized: "Done"), systemImage: "checkmark")
+        }
+        .disabled(isSaveDisabled)
+      }
+      .sheet(isPresented: $showPresetsSheet) {
+        EpubThemePresetsView(onApply: { preferences in
+          draft = preferences
+        })
+      }
+      .background(
+        MacSystemFontPickerPresenter(
+          isPresented: $showSystemFontPicker,
+          initialFont: selectedPanelFont,
+          onFontSelected: { font in
+            let selectedName = font.familyName ?? font.fontName
+            draft.fontFamily = .system(selectedName)
+          }
+        )
+      )
+      .alert("Save Preset", isPresented: $showSavePresetAlert) {
+        TextField("Preset Name", text: $newPresetName)
+        Button("Cancel", role: .cancel) {
+          newPresetName = ""
+        }
+        Button("Save") {
+          savePreset()
+        }
+      } message: {
+        Text("Enter a name for this theme preset")
+      }
+      .animation(.easeInOut(duration: 0.2), value: draft.advancedLayout)
+      .animation(.easeInOut(duration: 0.2), value: draft.fontWeight != nil)
+      .animation(.easeInOut(duration: 0.2), value: draft.flowStyle)
+      .onChange(of: draft.advancedLayout) { _, newValue in
+        guard !newValue else { return }
+        draft.fontSize = EpubConstants.defaultFontScale
+        draft.wordSpacing = EpubConstants.defaultWordSpacing
+        draft.paragraphSpacing = EpubConstants.defaultParagraphSpacing
+        draft.paragraphIndent = EpubConstants.defaultParagraphIndent
+        draft.letterSpacing = EpubConstants.defaultLetterSpacing
+        draft.lineHeight = EpubConstants.defaultLineHeight
+        draft.fontWeight = nil
+      }
+    }
+
+    private func resetPreferences() {
+      draft = EpubReaderPreferences()
+      ErrorManager.shared.notify(message: String(localized: "Reset"))
+    }
+
+    private func savePreset() {
+      let trimmed = newPresetName.trimmingCharacters(in: .whitespaces)
+      guard !trimmed.isEmpty else { return }
+
+      let preset = EpubThemePreset.create(name: trimmed, preferences: draft)
+      modelContext.insert(preset)
+      try? modelContext.save()
+      ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
+      newPresetName = ""
+    }
+
+    private func savePreferences() {
+      if let bookId {
+        Task {
+          try? await DatabaseOperator.database().updateBookEpubPreferences(
+            bookId: bookId,
+            preferences: draft
+          )
+          try? await DatabaseOperator.database().commit()
+        }
+        onPreferencesSaved?(draft)
+      } else {
+        AppConfig.epubPreferences = draft
+      }
+      dismiss()
+    }
+
+    private func clearBookPreferences() {
+      guard let bookId else { return }
+      Task {
+        try? await DatabaseOperator.database().updateBookEpubPreferences(
+          bookId: bookId,
+          preferences: nil
+        )
+        try? await DatabaseOperator.database().commit()
+      }
+      onPreferencesCleared?()
+      ErrorManager.shared.notify(message: String(localized: "Reset to Global"))
+      dismiss()
+    }
+  }
+
+  private struct MacSystemFontPickerPresenter: NSViewRepresentable {
+    @Binding var isPresented: Bool
+    let initialFont: NSFont
+    let onFontSelected: (NSFont) -> Void
+
+    func makeCoordinator() -> Coordinator {
+      Coordinator(isPresented: $isPresented, onFontSelected: onFontSelected)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+      context.coordinator.bind(initialFont: initialFont)
+      return NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+      context.coordinator.bind(initialFont: initialFont)
+      context.coordinator.updatePresentation(isPresented: isPresented)
+    }
+
+    final class Coordinator: NSObject {
+      private var isPresented: Binding<Bool>
+      private let onFontSelected: (NSFont) -> Void
+      private var initialFont: NSFont = .systemFont(ofSize: NSFont.systemFontSize)
+      private var isPanelVisible = false
+
+      init(isPresented: Binding<Bool>, onFontSelected: @escaping (NSFont) -> Void) {
+        self.isPresented = isPresented
+        self.onFontSelected = onFontSelected
+        super.init()
+        NotificationCenter.default.addObserver(
+          self,
+          selector: #selector(fontPanelWillClose(_:)),
+          name: NSWindow.willCloseNotification,
+          object: NSFontPanel.shared
+        )
+      }
+
+      func bind(initialFont: NSFont) {
+        self.initialFont = initialFont
+      }
+
+      func updatePresentation(isPresented: Bool) {
+        if isPresented {
+          presentIfNeeded()
+        } else if isPanelVisible {
+          NSFontPanel.shared.close()
+        }
+      }
+
+      private func presentIfNeeded() {
+        guard !isPanelVisible else { return }
+        let fontManager = NSFontManager.shared
+        fontManager.target = self
+        fontManager.action = #selector(changeFont(_:))
+        fontManager.setSelectedFont(initialFont, isMultiple: false)
+        fontManager.orderFrontFontPanel(nil)
+        isPanelVisible = true
+      }
+
+      @objc
+      private func changeFont(_ sender: NSFontManager) {
+        let convertedFont = sender.convert(initialFont)
+        initialFont = convertedFont
+        onFontSelected(convertedFont)
+      }
+
+      @objc
+      private func fontPanelWillClose(_ notification: Notification) {
+        isPanelVisible = false
+        isPresented.wrappedValue = false
+      }
+    }
+  }
+#endif

@@ -30,14 +30,20 @@ final class ReaderPresentationManager {
   #if os(macOS)
     struct MacReaderCommandState: Equatable {
       var isActive: Bool = false
+      var supportsReaderSettings: Bool = false
+      var supportsBookDetails: Bool = false
       var hasPages: Bool = false
       var hasTableOfContents: Bool = false
+      var supportsPageJump: Bool = false
+      var supportsBookNavigation: Bool = false
       var canOpenPreviousBook: Bool = false
       var canOpenNextBook: Bool = false
       var readingDirection: ReadingDirection = .ltr
       var pageLayout: PageLayout = .auto
       var isolateCoverPage: Bool = true
       var splitWidePageMode: SplitWidePageMode = .none
+      var supportsReadingDirectionSelection: Bool = false
+      var supportsPageLayoutSelection: Bool = false
       var supportsDualPageOptions: Bool = false
       var supportsSplitWidePageMode: Bool = false
     }
