@@ -22,6 +22,8 @@ Regenerate key project docs from current product capabilities.
 ## Scope Rules
 
 - Reflect current important features only.
+- Treat docs as a durable product overview, not a summary of every recent change.
+- Do not add minor UX polish, small fixes, or short-lived release-specific details unless they change the core product positioning.
 - Keep product-facing language clear and concise.
 - Avoid low-level technical implementation details.
 - Keep messaging consistent across all three files.
@@ -37,10 +39,11 @@ Regenerate key project docs from current product capabilities.
 
 1. Collect current user-visible features from codebase and project docs.
 2. Decide the most important feature set to present.
-3. Update all target files so wording and feature emphasis stay aligned.
-4. Keep `README.md` as the most complete overview.
-5. Keep `APP_STORE_DESCRIPTION.txt` concise and store-appropriate.
-6. Keep `static/index.html` aligned with the same feature priorities.
+3. Filter out low-signal recent changes that belong in changelogs rather than evergreen docs.
+4. Update all target files so wording and feature emphasis stay aligned.
+5. Keep `README.md` as the most complete overview.
+6. Keep `APP_STORE_DESCRIPTION.txt` concise and store-appropriate.
+7. Keep `static/index.html` aligned with the same feature priorities.
 
 ## Validation
 

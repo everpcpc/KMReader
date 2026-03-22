@@ -1,19 +1,15 @@
 Reader Improvements
-- DIVINA now offers cover-style page transitions on iPhone, iPad, Mac, and Apple TV, with steadier scroll and paged reading, better viewport alignment, improved RTL behavior, more consistent wide-page handling, more reliable preloading, and smoother recovery during fast navigation or app interruptions.
-- Webtoon and scroll reading behave more predictably, including fixes for backward chapter jumps and page-position jumps after app background/foreground transitions.
-- EPUB adds cover transitions on iPhone, iPad, and Mac, cover-style turns feel smoother thanks to better adjacent page preloading, and single-page content now supports swipe chapter navigation more reliably.
-- Animated GIF and WebP pages now start immediately, stay smooth while you zoom or scroll, and behave more reliably when you reopen, revisit, or switch pages.
-- Added a Show Page Shadow option for cleaner seamless spreads, and reader interactions are more consistent with improved tap-zone handling.
+- EPUB on macOS now feels much closer to the iOS experience, with better settings, preview behavior, overlays, and keyboard shortcuts.
+- EPUB reading has been improved across the app with better pagination, typography controls, dark theme behavior, link colors, and image rendering.
+- Reader navigation is more reliable, including smoother DIVINA scrolling, better page position restoration, and more accurate next and previous book handling.
+- Live Text interactions in the reader are more precise, reducing accidental page turns or missed control toggles.
 
-Offline and Library Workflows
-- EPUB downloads are now saved as a single file and extracted locally, making offline reading faster and more reliable.
-- Offline sync and iOS background downloads now behave more predictably during reconnects and long-running transfers.
-- Added an option to blur unread book and series covers to help avoid spoiler-heavy artwork.
+Browsing and Library Updates
+- Added a faster single-library picker mode for quicker filtering, including easier access on Apple TV.
+- Book, series, and one-shot detail pages now support native share actions.
+- Detail pages are easier to scan with collapsible metadata and link sections, plus clearer combined tag display.
 
-Management and Platform Polish
-- Added in-app media management tools for media analysis, missing posters, duplicate files, duplicate pages, and page-hash matches.
-- Komga media error messages are clearer in the app, so unsupported files and analysis issues are easier to understand.
-- macOS reader actions now live in the system menu bar for quicker keyboard-first control.
-
-Live Activities
-- Reader Live Activities can now be disabled, close immediately with the reader, and show reading progress or incognito status instead of a generic ON/OFF label.
+Polish and Fixes
+- Improved reader overlay animations and control behavior, especially for EPUB on iPhone, iPad, and Mac.
+- Fixed several iPad layout issues related to closing the reader and restoring the main interface correctly.
+- Refined end-of-book screens and close button styling for a cleaner, more consistent finish across platforms.
