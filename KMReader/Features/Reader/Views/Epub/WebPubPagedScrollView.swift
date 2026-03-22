@@ -844,7 +844,10 @@
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       ) { [weak self] in
-        self?.injectPaginationJS(targetPageIndex: pageIndex)
+        self?.injectPaginationJS(
+          targetPageIndex: pageIndex,
+          preferLastPage: self?.pendingJumpToLastPage ?? false
+        )
       }
     }
 
@@ -860,107 +863,12 @@
       webView.scrollView.setContentOffset(CGPoint(x: targetOffset, y: 0), animated: animated)
     }
 
-    private func injectPaginationJS(targetPageIndex: Int) {
-      let js = """
-          (function() {
-            var target = \(targetPageIndex);
-            var lastReportedPageCount = 0;
-            var hasFinalized = false;
-
-            var finalize = function() {
-              if (hasFinalized) return;
-              hasFinalized = true;
-
-              var root = document.documentElement;
-              var pageWidth = root.clientWidth || window.innerWidth;
-              if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-
-              var currentWidth = root.scrollWidth || document.body.scrollWidth;
-              var total = Math.max(1, Math.ceil(currentWidth / pageWidth));
-              var maxScroll = Math.max(0, currentWidth - pageWidth);
-
-              var finalTarget = target;
-              var offset = Math.min(pageWidth * finalTarget, maxScroll);
-
-              window.scrollTo(offset, 0);
-              if (document.documentElement) { document.documentElement.scrollLeft = offset; }
-              if (document.body) { document.body.scrollLeft = offset; }
-
-              lastReportedPageCount = total;
-
-              setTimeout(function() {
-                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
-                  window.webkit.messageHandlers.readerBridge.postMessage({
-                    type: 'ready',
-                    totalPages: total,
-                    currentPage: finalTarget
-                  });
-                }
-              }, 60);
-            };
-
-            var startLayoutCheck = function() {
-              var root = document.documentElement;
-              var lastW = root.scrollWidth || document.body.scrollWidth;
-              var stableCount = 0;
-              var attempt = 0;
-
-              var check = function() {
-                if (hasFinalized) return;
-
-                attempt++;
-                var currentW = root.scrollWidth || document.body.scrollWidth;
-                var pageWidth = root.clientWidth || window.innerWidth;
-                if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-
-                if (currentW === lastW && currentW > 0) {
-                  stableCount++;
-                } else {
-                  stableCount = 0;
-                  lastW = currentW;
-                }
-
-                var isProbablyReady = (stableCount >= 4);
-                if (target > 0 && currentW <= pageWidth && attempt < 40) {
-                  isProbablyReady = false;
-                }
-
-                if (isProbablyReady || attempt >= 60) {
-                  finalize();
-                } else {
-                  window.requestAnimationFrame(check);
-                }
-              };
-              window.requestAnimationFrame(check);
-            };
-
-            var globalTimeout = setTimeout(function() {
-              finalize();
-            }, 10000);
-
-            var loadStarted = false;
-            var startOnce = function() {
-              if (loadStarted) return;
-              loadStarted = true;
-              clearTimeout(globalTimeout);
-              startLayoutCheck();
-            };
-
-            if (document.readyState === 'complete') {
-              startOnce();
-            } else {
-              if (document.readyState === 'interactive' || document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function() {
-                  setTimeout(startOnce, 500);
-                });
-              }
-              window.addEventListener('load', function() {
-                startOnce();
-              });
-            }
-          })();
-        """
-
+    private func injectPaginationJS(targetPageIndex: Int, preferLastPage: Bool) {
+      let js = WebPubPagedJavaScriptBuilder.makePaginationScript(
+        targetPageIndex: targetPageIndex,
+        preferLastPage: preferLastPage,
+        waitForLoadEvents: true
+      )
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
@@ -979,17 +887,10 @@
           totalPagesInChapter = normalizedTotal
           onPageCountReady?(chapterIndex, normalizedTotal)
 
-          // If we need to jump to last page after loading, do it now
           let shouldJumpToLastPage = pendingJumpToLastPage
           if shouldJumpToLastPage {
-            actualPage = max(0, normalizedTotal - 1)
-            scrollToPage(actualPage, animated: false)
             pendingJumpToLastPage = false
-          }
-
-          if !shouldJumpToLastPage,
-            let progression = targetProgressionOnReady
-          {
+          } else if let progression = targetProgressionOnReady {
             let targetIndex = max(0, min(normalizedTotal - 1, Int(floor(Double(normalizedTotal) * progression))))
             if targetIndex != actualPage {
               actualPage = targetIndex
@@ -1018,122 +919,13 @@
       readingProgression: WebPubReadingProgression?,
       completion: (() -> Void)? = nil
     ) {
-      let readiumAssets = ReadiumCSSLoader.cssAssets(
+      let js = WebPubPagedJavaScriptBuilder.makeInjectCSSScript(
+        contentCSS: css,
+        readiumProperties: readiumProperties,
+        readiumPropertyKeys: readiumPropertyKeys,
         language: language,
         readingProgression: readingProgression
       )
-      let readiumVariant = ReadiumCSSLoader.resolveVariantSubdirectory(
-        language: language,
-        readingProgression: readingProgression
-      )
-      let shouldSetDir = readiumVariant == "rtl"
-
-      let readiumBefore = Data(readiumAssets.before.utf8).base64EncodedString()
-      let readiumDefault = Data(readiumAssets.defaultCSS.utf8).base64EncodedString()
-      let readiumAfter = Data(readiumAssets.after.utf8).base64EncodedString()
-      let customCSS = Data(css.utf8).base64EncodedString()
-
-      var properties: [String: Any] = [:]
-      for (key, value) in readiumProperties {
-        properties[key] = value ?? NSNull()
-      }
-      let propertiesJSON: String = {
-        guard
-          let data = try? JSONSerialization.data(withJSONObject: properties, options: []),
-          let json = String(data: data, encoding: .utf8)
-        else {
-          return "{}"
-        }
-        return json
-      }()
-      let propertyKeysJSON: String = {
-        guard
-          let data = try? JSONSerialization.data(withJSONObject: readiumPropertyKeys, options: []),
-          let json = String(data: data, encoding: .utf8)
-        else {
-          return "[]"
-        }
-        return json
-      }()
-      let languageJSON: String = {
-        guard let language else { return "null" }
-        var escaped = language
-        escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\")
-        escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"")
-        escaped = escaped.replacingOccurrences(of: "\n", with: "\\n")
-        escaped = escaped.replacingOccurrences(of: "\r", with: "\\r")
-        escaped = escaped.replacingOccurrences(of: "\t", with: "\\t")
-        return "\"\(escaped)\""
-      }()
-
-      let js = """
-          (function() {
-            var root = document.documentElement;
-            var lang = \(languageJSON);
-            if (lang) {
-              if (!root.hasAttribute('lang')) {
-                root.setAttribute('lang', lang);
-              }
-              if (!root.hasAttribute('xml:lang')) {
-                root.setAttribute('xml:lang', lang);
-              }
-              if (document.body) {
-                if (!document.body.hasAttribute('lang')) {
-                  document.body.setAttribute('lang', lang);
-                }
-                if (!document.body.hasAttribute('xml:lang')) {
-                  document.body.setAttribute('xml:lang', lang);
-                }
-              }
-            }
-            if (\(shouldSetDir ? "true" : "false")) {
-              root.setAttribute('dir', 'rtl');
-              if (document.body) {
-                document.body.setAttribute('dir', 'rtl');
-              }
-            }
-
-            var props = \(propertiesJSON);
-            Object.keys(props).forEach(function(key) {
-              var value = props[key];
-              if (value === null || value === undefined) {
-                root.style.removeProperty(key);
-              } else {
-                root.style.setProperty(key, value, 'important');
-              }
-            });
-            var knownKeys = \(propertyKeysJSON);
-            knownKeys.forEach(function(key) {
-              if (!(key in props)) {
-                root.style.removeProperty(key);
-              }
-            });
-
-            var meta = document.querySelector('meta[name=viewport]');
-            if (!meta) {
-              meta = document.createElement('meta');
-              meta.name = 'viewport';
-              document.head.appendChild(meta);
-            }
-            meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-
-            var style = document.getElementById('kmreader-style');
-            if (!style) {
-              style = document.createElement('style');
-              style.id = 'kmreader-style';
-              document.head.appendChild(style);
-            }
-            var hasStyles = document.querySelector("link[rel~='stylesheet'], style:not(#kmreader-style)") !== null;
-            var css = atob('\(readiumBefore)') + "\\n"
-              + (hasStyles ? "" : atob('\(readiumDefault)') + "\\n")
-              + atob('\(readiumAfter)') + "\\n"
-              + atob('\(customCSS)');
-            style.textContent = css;
-
-            return true;
-          })();
-        """
-
       webView.evaluateJavaScript(js) { _, _ in
         completion?()
       }
