@@ -139,6 +139,8 @@
       private var singleTapWorkItem: DispatchWorkItem?
       private var deferredReloadWorkItem: DispatchWorkItem?
       private var deferredCleanupWorkItem: DispatchWorkItem?
+      private var sizeProbeTasks: [ReaderPageID: Task<Void, Never>] = [:]
+      private var pendingMeasuredPageIDs: Set<ReaderPageID> = []
 
       var heightCache = WebtoonPageHeightCache()
 
@@ -187,6 +189,77 @@
       private func indexPath(forPageID pageID: ReaderPageID?) -> IndexPath? {
         guard let itemIndex = itemIndex(forPageID: pageID) else { return nil }
         return IndexPath(item: itemIndex, section: 0)
+      }
+
+      private func hasKnownHeight(for pageID: ReaderPageID, page: BookPage?) -> Bool {
+        if heightCache.hasHeight(for: pageID) {
+          return true
+        }
+
+        guard let page else { return false }
+        return (page.width ?? 0) > 0 && (page.height ?? 0) > 0
+      }
+
+      private func applyMeasuredHeightIfNeeded(for pageID: ReaderPageID, pixelSize: CGSize) {
+        guard heightCache.updateHeight(for: pageID, pixelSize: pixelSize, pageWidth: pageWidth) else {
+          return
+        }
+        if isScrollInteractionActive {
+          pendingMeasuredPageIDs.insert(pageID)
+        } else {
+          invalidateLayout(for: pageID)
+        }
+      }
+
+      private func invalidateLayout(for pageID: ReaderPageID) {
+        guard let collectionView, let indexPath = indexPath(forPageID: pageID) else { return }
+
+        UIView.performWithoutAnimation {
+          collectionView.performBatchUpdates({
+            collectionView.reloadItems(at: [indexPath])
+          }, completion: nil)
+        }
+      }
+
+      private func applyPendingMeasuredLayoutUpdatesIfNeeded() {
+        guard !pendingMeasuredPageIDs.isEmpty else { return }
+        guard let collectionView else { return }
+
+        let indexPaths = pendingMeasuredPageIDs.compactMap { indexPath(forPageID: $0) }
+        pendingMeasuredPageIDs.removeAll()
+        guard !indexPaths.isEmpty else { return }
+
+        UIView.performWithoutAnimation {
+          collectionView.performBatchUpdates({
+            collectionView.reloadItems(at: indexPaths)
+          }, completion: nil)
+        }
+      }
+
+      private func ensureMeasuredHeightProbe(for pageID: ReaderPageID, page: BookPage?) {
+        guard !hasKnownHeight(for: pageID, page: page) else { return }
+        guard sizeProbeTasks[pageID] == nil else { return }
+        guard let viewModel else { return }
+
+        sizeProbeTasks[pageID] = Task { @MainActor [weak self, weak viewModel] in
+          defer { self?.sizeProbeTasks[pageID] = nil }
+          guard let self, let viewModel else { return }
+          guard let fileURL = await viewModel.getPageImageFileURL(pageID: pageID) else { return }
+          guard let pixelSize = webtoonProbePixelSize(at: fileURL) else { return }
+          self.applyMeasuredHeightIfNeeded(for: pageID, pixelSize: pixelSize)
+        }
+      }
+
+      private func displayImageIfReady(
+        _ image: PlatformImage?,
+        for pageID: ReaderPageID,
+        page: BookPage?
+      ) -> PlatformImage? {
+        guard let image else { return nil }
+        if let pixelSize = webtoonPixelSize(from: image) {
+          _ = heightCache.updateHeight(for: pageID, pixelSize: pixelSize, pageWidth: pageWidth)
+        }
+        return hasKnownHeight(for: pageID, page: page) ? image : nil
       }
 
       func scheduleInitialScroll() {
@@ -334,6 +407,9 @@
         let pageCount = self.pageCount
         if lastPagesCount != pageCount {
           heightCache.reset()
+          sizeProbeTasks.values.forEach { $0.cancel() }
+          sizeProbeTasks.removeAll()
+          pendingMeasuredPageIDs.removeAll()
         }
         lastPagesCount = pageCount
 
@@ -443,6 +519,9 @@
         singleTapWorkItem?.cancel()
         singleTapWorkItem = nil
         cancelDeferredMaintenance()
+        sizeProbeTasks.values.forEach { $0.cancel() }
+        sizeProbeTasks.removeAll()
+        pendingMeasuredPageIDs.removeAll()
       }
 
       private func scheduleDeferredPendingReloadIfNeeded() {
@@ -567,6 +646,9 @@
           )
           return cell
         case .page(let pageID):
+          let page = viewModel?.page(for: pageID)
+          ensureMeasuredHeightProbe(for: pageID, page: page)
+
           let item = collectionView.dequeueReusableCell(
             withReuseIdentifier: "WebtoonPageCell",
             for: indexPath
@@ -577,12 +659,16 @@
           }
           cell.readerBackground = readerBackground
 
-          let preloadedImage = viewModel?.preloadedImage(for: pageID)
+          let displayImage = displayImageIfReady(
+            viewModel?.preloadedImage(for: pageID),
+            for: pageID,
+            page: page
+          )
           let pageLabel =
             viewModel?.displayPageNumber(for: pageID).map(String.init)
             ?? String(pageID.pageNumber)
 
-          if preloadedImage == nil {
+          if displayImage == nil, hasKnownHeight(for: pageID, page: page) {
             Task { @MainActor [weak self] in
               guard let self = self else { return }
               await self.loadImage(for: pageID)
@@ -591,7 +677,7 @@
 
           cell.configure(
             pageLabel: pageLabel,
-            image: preloadedImage,
+            image: displayImage,
             showPageNumber: showPageNumber
           )
 
@@ -614,7 +700,15 @@
           return CGSize(width: pageWidth, height: WebtoonConstants.footerHeight)
         case .page(let pageID):
           guard let page = viewModel?.page(for: pageID) else {
-            return CGSize(width: pageWidth, height: pageWidth * 3)
+            return CGSize(width: pageWidth, height: WebtoonConstants.measuringPlaceholderHeight)
+          }
+          if let preloadedImage = viewModel?.preloadedImage(for: pageID),
+            let pixelSize = webtoonPixelSize(from: preloadedImage)
+          {
+            _ = heightCache.updateHeight(for: pageID, pixelSize: pixelSize, pageWidth: pageWidth)
+          }
+          if !hasKnownHeight(for: pageID, page: page) {
+            return CGSize(width: pageWidth, height: WebtoonConstants.measuringPlaceholderHeight)
           }
           let height = heightCache.height(for: pageID, page: page, pageWidth: pageWidth)
           let scale = collectionView.traitCollection.displayScale
@@ -654,6 +748,7 @@
 
       private func finalizeScrollInteraction() {
         isUserScrolling = false
+        applyPendingMeasuredLayoutUpdatesIfNeeded()
         updateCurrentPage()
         scheduleDeferredPendingReloadIfNeeded()
         scheduleDeferredCleanupIfNeeded()
@@ -702,12 +797,26 @@
         }
 
         if let preloadedImage = viewModel.preloadedImage(for: pageID) {
-          pageCell(for: pageID)?.setImage(preloadedImage)
+          if let pixelSize = webtoonPixelSize(from: preloadedImage) {
+            applyMeasuredHeightIfNeeded(for: pageID, pixelSize: pixelSize)
+          }
+          if let page = viewModel.page(for: pageID),
+            hasKnownHeight(for: pageID, page: page)
+          {
+            pageCell(for: pageID)?.setImage(preloadedImage)
+          }
           return
         }
 
         if let image = await viewModel.preloadImage(for: pageID) {
-          pageCell(for: pageID)?.setImage(image)
+          if let pixelSize = webtoonPixelSize(from: image) {
+            applyMeasuredHeightIfNeeded(for: pageID, pixelSize: pixelSize)
+          }
+          if let page = viewModel.page(for: pageID),
+            hasKnownHeight(for: pageID, page: page)
+          {
+            pageCell(for: pageID)?.setImage(image)
+          }
         } else {
           showImageError(for: pageID)
         }
