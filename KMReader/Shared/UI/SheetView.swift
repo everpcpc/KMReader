@@ -17,6 +17,7 @@ import SwiftUI
 ///   - On tvOS controls are displayed at the top of the sheet in an HStack.
 ///   - A standard Close button is always appended unless `showsCloseButton` is false.
 struct SheetView<Content: View, Controls: View>: View {
+  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   private let title: String?
   private let size: SheetPresentationSize
   private let showsCloseButton: Bool
@@ -70,7 +71,12 @@ struct SheetView<Content: View, Controls: View>: View {
       sheetContent()
         .padding(applyFormStyle ? 0 : PlatformHelper.sheetPadding)
         .inlineTitleIfNeeded(title)
-    }.applySheetSize(size)
+    }
+    #if os(iOS)
+      .tint(themeColor.color)
+      .accentColor(themeColor.color)
+    #endif
+    .applySheetSize(size)
   }
 
   @ViewBuilder
