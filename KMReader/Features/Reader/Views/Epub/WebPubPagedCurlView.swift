@@ -1367,6 +1367,7 @@
 
     private func setupWebView() {
       let config = WKWebViewConfiguration()
+      config.defaultWebpagePreferences.preferredContentMode = .mobile
       let controller = WKUserContentController()
       // Use weak wrapper to avoid retain cycle (WKUserContentController retains handlers strongly)
       controller.add(WeakWKScriptMessageHandler(delegate: self), name: "readerBridge")
@@ -1496,6 +1497,8 @@
       preferences: WKWebpagePreferences,
       decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
+      preferences.preferredContentMode = .mobile
+
       // Allow initial page load
       guard let url = navigationAction.request.url else {
         decisionHandler(.allow, preferences)

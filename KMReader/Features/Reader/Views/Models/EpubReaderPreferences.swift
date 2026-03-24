@@ -37,6 +37,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     "--RS__disableOverflow",
     "--USER__view",
     "--USER__iOSPatch",
+    "--USER__iPadOSPatch",
     "--USER__blendImages",
     "--USER__fontOverride",
     "--USER__fontFamily",
@@ -204,8 +205,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       flowStyle == .scrolled ? "readium-noOverflow-on" : nil
     #if os(iOS)
       properties["--USER__iOSPatch"] = "readium-iOSPatch-on"
+      properties["--USER__iPadOSPatch"] = nil
     #else
       properties["--USER__iOSPatch"] = nil
+      properties["--USER__iPadOSPatch"] = nil
     #endif
     properties["font-weight"] = nil
 
@@ -426,7 +429,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
 
       """
   }
-
   private func shouldUseLightImageBlend(for theme: ReaderTheme) -> Bool {
     switch theme {
     case .white, .lightQuiet, .lightSepia:

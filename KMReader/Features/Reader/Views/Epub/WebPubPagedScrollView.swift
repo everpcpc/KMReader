@@ -374,6 +374,7 @@
 
     private func setupWebView() {
       let config = WKWebViewConfiguration()
+      config.defaultWebpagePreferences.preferredContentMode = .mobile
       let controller = WKUserContentController()
       // Use weak wrapper to avoid retain cycle
       controller.add(WeakWKScriptMessageHandler(delegate: self), name: "readerBridge")
