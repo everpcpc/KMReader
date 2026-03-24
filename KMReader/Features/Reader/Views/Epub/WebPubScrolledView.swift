@@ -13,6 +13,7 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
+    let tapPageTransitionDuration: Double
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -42,6 +43,7 @@
         rootURL: viewModel.resourceRootURL,
         containerInsets: viewModel.containerInsetsForLabels().uiEdgeInsets,
         tapScrollPercentage: preferences.tapScrollPercentage,
+        tapPageTransitionDuration: tapPageTransitionDuration,
         theme: theme,
         contentCSS: readiumPayload.css,
         readiumProperties: readiumPayload.properties,
@@ -199,6 +201,7 @@
         rootURL: viewModel.resourceRootURL,
         containerInsets: containerInsets,
         tapScrollPercentage: preferences.tapScrollPercentage,
+        tapPageTransitionDuration: tapPageTransitionDuration,
         theme: theme,
         contentCSS: readiumPayload.css,
         readiumProperties: readiumPayload.properties,
@@ -244,6 +247,7 @@
     private var totalPagesInChapter: Int = 1
     private var containerInsets: UIEdgeInsets
     private var tapScrollPercentage: Double
+    private var tapPageTransitionDuration: TimeInterval
     private var theme: ReaderTheme
     private var contentCSS: String
     private var readiumProperties: [String: String?]
@@ -315,6 +319,7 @@
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       tapScrollPercentage: Double,
+      tapPageTransitionDuration: Double,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -336,6 +341,7 @@
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
+      self.tapPageTransitionDuration = Self.normalizedTapPageTransitionDuration(tapPageTransitionDuration)
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -679,6 +685,7 @@
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       tapScrollPercentage: Double,
+      tapPageTransitionDuration: Double,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -696,10 +703,14 @@
     ) {
       let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
       let normalizedTapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
+      let normalizedTapPageTransitionDuration = Self.normalizedTapPageTransitionDuration(
+        tapPageTransitionDuration
+      )
       let appearanceChanged =
         theme != self.theme
         || containerInsets != self.containerInsets
         || normalizedTapScrollPercentage != self.tapScrollPercentage
+        || normalizedTapPageTransitionDuration != self.tapPageTransitionDuration
         || contentCSS != self.contentCSS
         || readiumProperties != self.readiumProperties
         || publicationLanguage != self.publicationLanguage
@@ -712,6 +723,7 @@
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.tapScrollPercentage = normalizedTapScrollPercentage
+      self.tapPageTransitionDuration = normalizedTapPageTransitionDuration
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -745,6 +757,10 @@
 
     private static func normalizedTapScrollPercentage(_ value: Double) -> Double {
       min(100.0, max(25.0, value))
+    }
+
+    private static func normalizedTapPageTransitionDuration(_ value: Double) -> TimeInterval {
+      min(1.0, max(0.0, value))
     }
 
     private func loadContentIfNeeded(force: Bool) {
@@ -888,25 +904,72 @@
       let clampedOffset = max(0, targetOffset)
       lastKnownDocumentScrollTop = clampedOffset
       let offset = Double(clampedOffset)
+      let duration = animated ? tapPageTransitionDuration : 0
       let js = """
           (function() {
             var top = \(offset);
+            var duration = \(duration);
             var root = document.documentElement;
             var body = document.body;
             var scrolling = document.scrollingElement || root || body;
-            if (\(animated ? "true" : "false")) {
-              window.scrollTo({ top: top, left: 0, behavior: 'smooth' });
-            } else {
-              window.scrollTo(0, top);
+            var getCurrentTop = function() {
+              return Math.max(
+                0,
+                window.scrollY
+                || (scrolling && scrolling.scrollTop)
+                || (root && root.scrollTop)
+                || (body && body.scrollTop)
+                || 0
+              );
+            };
+            var setTop = function(value) {
+              window.scrollTo(0, value);
+              if (scrolling) { scrolling.scrollTop = value; }
+              if (root) { root.scrollTop = value; }
+              if (body) { body.scrollTop = value; }
+            };
+            var finish = function() {
+              if (window.__kmreaderPostMetrics) {
+                window.requestAnimationFrame(function() {
+                  window.__kmreaderPostMetrics('scroll');
+                });
+              }
+            };
+            if (window.__kmreaderScrollAnimationFrame) {
+              window.cancelAnimationFrame(window.__kmreaderScrollAnimationFrame);
+              window.__kmreaderScrollAnimationFrame = null;
             }
-            if (scrolling) { scrolling.scrollTop = top; }
-            if (root) { root.scrollTop = top; }
-            if (body) { body.scrollTop = top; }
-            if (window.__kmreaderPostMetrics) {
-              window.requestAnimationFrame(function() {
-                window.__kmreaderPostMetrics('scroll');
-              });
+            if (!(duration > 0)) {
+              setTop(top);
+              finish();
+              return true;
             }
+            var startTop = getCurrentTop();
+            var distance = top - startTop;
+            if (Math.abs(distance) < 0.5) {
+              setTop(top);
+              finish();
+              return true;
+            }
+            var startTime = null;
+            var easeOutCubic = function(progress) {
+              return 1 - Math.pow(1 - progress, 3);
+            };
+            var step = function(timestamp) {
+              if (startTime === null) {
+                startTime = timestamp;
+              }
+              var progress = Math.min(1, (timestamp - startTime) / (duration * 1000));
+              var eased = easeOutCubic(progress);
+              setTop(startTop + (distance * eased));
+              if (progress < 1) {
+                window.__kmreaderScrollAnimationFrame = window.requestAnimationFrame(step);
+                return;
+              }
+              window.__kmreaderScrollAnimationFrame = null;
+              finish();
+            };
+            window.__kmreaderScrollAnimationFrame = window.requestAnimationFrame(step);
             return true;
           })();
         """

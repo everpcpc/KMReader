@@ -21,6 +21,7 @@
     @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
+    @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
 
     @State private var viewModel: EpubReaderViewModel
     @State private var activePreferences: EpubReaderPreferences
@@ -145,8 +146,8 @@
 
     private func updateReaderLiveActivityProgress() {
       #if os(iOS)
-      let progress = viewModel.currentLocation?.totalProgression ?? 0
-      ReaderLiveActivityManager.shared.updateReadingProgress(progress)
+        let progress = viewModel.currentLocation?.totalProgression ?? 0
+        ReaderLiveActivityManager.shared.updateReadingProgress(progress)
       #endif
     }
 
@@ -398,6 +399,7 @@
             viewModel: viewModel,
             preferences: activePreferences,
             colorScheme: colorScheme,
+            tapPageTransitionDuration: tapPageTransitionDuration,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {
@@ -472,6 +474,7 @@
             viewModel: viewModel,
             preferences: activePreferences,
             colorScheme: colorScheme,
+            tapPageTransitionDuration: tapPageTransitionDuration,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {
@@ -674,7 +677,7 @@
           insertion: .move(edge: .trailing).combined(with: .opacity),
           removal: .move(edge: .trailing).combined(with: .opacity)
         )
-        )
+      )
     }
 
     private func toggleControls() {

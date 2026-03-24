@@ -42,7 +42,7 @@ import SwiftUI
       } detail: {
         if let selectedSection {
           detailContent(for: selectedSection)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
           Text("Select a setting")
             .foregroundColor(.secondary)

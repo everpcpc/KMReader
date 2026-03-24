@@ -271,18 +271,18 @@
       let maxOffset = max(0, contentWidth - pageWidth)
       let targetOffset = min(pageWidth * CGFloat(pageIndex), maxOffset)
       let js = """
-        (function() {
-          var left = \(Double(targetOffset));
-          if (\(animated ? "true" : "false")) {
-            window.scrollTo({ left: left, top: 0, behavior: 'smooth' });
-          } else {
-            window.scrollTo(left, 0);
-          }
-          if (document.documentElement) { document.documentElement.scrollLeft = left; }
-          if (document.body) { document.body.scrollLeft = left; }
-          return true;
-        })();
-      """
+          (function() {
+            var left = \(Double(targetOffset));
+            if (\(animated ? "true" : "false")) {
+              window.scrollTo({ left: left, top: 0, behavior: 'smooth' });
+            } else {
+              window.scrollTo(left, 0);
+            }
+            if (document.documentElement) { document.documentElement.scrollLeft = left; }
+            if (document.body) { document.body.scrollLeft = left; }
+            return true;
+          })();
+        """
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
 

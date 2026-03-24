@@ -7,6 +7,7 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
+    let tapPageTransitionDuration: Double
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -75,6 +76,7 @@
     private var lastKnownDocumentViewportHeight: CGFloat = 0
     private var chapterTitle: String?
     private var totalProgression: Double?
+    private var tapPageTransitionDuration: TimeInterval = 0.3
 
     init(parent: WebPubScrolledView) {
       self.parent = parent
@@ -114,11 +116,15 @@
       let nextChapterURL = parent.viewModel.chapterURL(at: selectedChapterIndex)
       let nextRootURL = parent.viewModel.resourceRootURL
       let shouldReload = nextChapterURL != chapterURL || nextRootURL != rootURL
+      let normalizedTapPageTransitionDuration = Self.normalizedTapPageTransitionDuration(
+        parent.tapPageTransitionDuration
+      )
       let appearanceChanged =
         contentCSS != readiumPayload.css
         || readiumProperties != readiumPayload.properties
         || publicationLanguage != parent.viewModel.publicationLanguage
         || publicationReadingProgression != parent.viewModel.publicationReadingProgression
+        || tapPageTransitionDuration != normalizedTapPageTransitionDuration
 
       chapterIndex = selectedChapterIndex
       chapterURL = nextChapterURL
@@ -128,6 +134,7 @@
       publicationLanguage = parent.viewModel.publicationLanguage
       publicationReadingProgression = parent.viewModel.publicationReadingProgression
       chapterTitle = currentLocation?.title
+      tapPageTransitionDuration = normalizedTapPageTransitionDuration
       totalProgression = currentLocation.flatMap { location in
         parent.viewModel.totalProgression(location: location, chapterProgress: nil)
       }
@@ -262,25 +269,80 @@
       let clampedOffset = max(0, targetOffset)
       lastKnownDocumentScrollTop = clampedOffset
       let offset = Double(clampedOffset)
+      let duration = tapPageTransitionDuration
       let js = """
-        (function() {
-          var top = \(offset);
-          var root = document.documentElement;
-          var body = document.body;
-          var scrolling = document.scrollingElement || root || body;
-          window.scrollTo(0, top);
-          if (scrolling) { scrolling.scrollTop = top; }
-          if (root) { root.scrollTop = top; }
-          if (body) { body.scrollTop = top; }
-          if (window.__kmreaderPostMetrics) {
-            window.requestAnimationFrame(function() {
-              window.__kmreaderPostMetrics('scroll');
-            });
-          }
-          return true;
-        })();
-      """
+          (function() {
+            var top = \(offset);
+            var duration = \(duration);
+            var root = document.documentElement;
+            var body = document.body;
+            var scrolling = document.scrollingElement || root || body;
+            var getCurrentTop = function() {
+              return Math.max(
+                0,
+                window.scrollY
+                || (scrolling && scrolling.scrollTop)
+                || (root && root.scrollTop)
+                || (body && body.scrollTop)
+                || 0
+              );
+            };
+            var setTop = function(value) {
+              window.scrollTo(0, value);
+              if (scrolling) { scrolling.scrollTop = value; }
+              if (root) { root.scrollTop = value; }
+              if (body) { body.scrollTop = value; }
+            };
+            var finish = function() {
+              if (window.__kmreaderPostMetrics) {
+                window.requestAnimationFrame(function() {
+                  window.__kmreaderPostMetrics('scroll');
+                });
+              }
+            };
+            if (window.__kmreaderScrollAnimationFrame) {
+              window.cancelAnimationFrame(window.__kmreaderScrollAnimationFrame);
+              window.__kmreaderScrollAnimationFrame = null;
+            }
+            if (!(duration > 0)) {
+              setTop(top);
+              finish();
+              return true;
+            }
+            var startTop = getCurrentTop();
+            var distance = top - startTop;
+            if (Math.abs(distance) < 0.5) {
+              setTop(top);
+              finish();
+              return true;
+            }
+            var startTime = null;
+            var easeOutCubic = function(progress) {
+              return 1 - Math.pow(1 - progress, 3);
+            };
+            var step = function(timestamp) {
+              if (startTime === null) {
+                startTime = timestamp;
+              }
+              var progress = Math.min(1, (timestamp - startTime) / (duration * 1000));
+              var eased = easeOutCubic(progress);
+              setTop(startTop + (distance * eased));
+              if (progress < 1) {
+                window.__kmreaderScrollAnimationFrame = window.requestAnimationFrame(step);
+                return;
+              }
+              window.__kmreaderScrollAnimationFrame = null;
+              finish();
+            };
+            window.__kmreaderScrollAnimationFrame = window.requestAnimationFrame(step);
+            return true;
+          })();
+        """
       webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    private static func normalizedTapPageTransitionDuration(_ value: Double) -> TimeInterval {
+      min(1.0, max(0.0, value))
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -388,149 +450,149 @@
 
     private func injectPaginationJS(on webView: WKWebView, targetPageIndex: Int, token: Int) {
       let js = """
-        (function() {
-          var target = \(targetPageIndex);
-          var token = \(token);
-          var hasFinalized = false;
-          var installMetricsBridge = function() {
-            window.__kmreaderCurrentToken = token;
-            if (window.__kmreaderPostMetrics) {
-              return;
-            }
-            window.__kmreaderPostMetrics = function(type) {
+          (function() {
+            var target = \(targetPageIndex);
+            var token = \(token);
+            var hasFinalized = false;
+            var installMetricsBridge = function() {
+              window.__kmreaderCurrentToken = token;
+              if (window.__kmreaderPostMetrics) {
+                return;
+              }
+              window.__kmreaderPostMetrics = function(type) {
+                var root = document.documentElement;
+                var body = document.body;
+                var scrolling = document.scrollingElement || root || body;
+                var viewportHeight =
+                  (window.visualViewport && window.visualViewport.height)
+                  || window.innerHeight
+                  || (root && root.clientHeight)
+                  || 1;
+                if (!viewportHeight || viewportHeight <= 0) { viewportHeight = 1; }
+
+                var bodyRectHeight = body ? Math.ceil(body.getBoundingClientRect().height) : 0;
+                var rootRectHeight = root ? Math.ceil(root.getBoundingClientRect().height) : 0;
+                var contentHeight = Math.max(
+                  scrolling ? (scrolling.scrollHeight || 0) : 0,
+                  root ? (root.scrollHeight || 0) : 0,
+                  body ? (body.scrollHeight || 0) : 0,
+                  bodyRectHeight,
+                  rootRectHeight,
+                  viewportHeight
+                );
+                var maxScroll = Math.max(0, contentHeight - viewportHeight);
+                var scrollTop = Math.max(
+                  0,
+                  Math.min(
+                    maxScroll,
+                    window.scrollY
+                    || (scrolling && scrolling.scrollTop)
+                    || (root && root.scrollTop)
+                    || (body && body.scrollTop)
+                    || 0
+                  )
+                );
+                var total = Math.max(1, Math.ceil(contentHeight / viewportHeight));
+                var currentPage = Math.max(
+                  0,
+                  Math.min(total - 1, Math.round(scrollTop / viewportHeight))
+                );
+
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
+                  window.webkit.messageHandlers.readerBridge.postMessage({
+                    type: type,
+                    token: window.__kmreaderCurrentToken || 0,
+                    totalPages: total,
+                    currentPage: currentPage,
+                    scrollTop: scrollTop,
+                    contentHeight: contentHeight,
+                    viewportHeight: viewportHeight
+                  });
+                }
+              };
+
+              if (window.__kmreaderScrollMetricsInstalled) {
+                return;
+              }
+              window.__kmreaderScrollMetricsInstalled = true;
+              var scheduled = false;
+              var scheduleMetrics = function(type) {
+                if (scheduled) { return; }
+                scheduled = true;
+                window.requestAnimationFrame(function() {
+                  scheduled = false;
+                  window.__kmreaderPostMetrics(type || 'scroll');
+                });
+              };
+              window.addEventListener('scroll', function() {
+                scheduleMetrics('scroll');
+              }, { passive: true });
+              window.addEventListener('resize', function() {
+                scheduleMetrics('scroll');
+              });
+              if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', function() {
+                  scheduleMetrics('scroll');
+                }, { passive: true });
+              }
+            };
+
+            var finalize = function() {
+              if (hasFinalized) return;
+              hasFinalized = true;
+              installMetricsBridge();
+
               var root = document.documentElement;
               var body = document.body;
               var scrolling = document.scrollingElement || root || body;
-              var viewportHeight =
+              var pageHeight =
                 (window.visualViewport && window.visualViewport.height)
                 || window.innerHeight
-                || (root && root.clientHeight)
-                || 1;
-              if (!viewportHeight || viewportHeight <= 0) { viewportHeight = 1; }
+                || root.clientHeight;
+              if (!pageHeight || pageHeight <= 0) { pageHeight = 1; }
 
               var bodyRectHeight = body ? Math.ceil(body.getBoundingClientRect().height) : 0;
               var rootRectHeight = root ? Math.ceil(root.getBoundingClientRect().height) : 0;
-              var contentHeight = Math.max(
+              var currentHeight = Math.max(
                 scrolling ? (scrolling.scrollHeight || 0) : 0,
                 root ? (root.scrollHeight || 0) : 0,
                 body ? (body.scrollHeight || 0) : 0,
                 bodyRectHeight,
                 rootRectHeight,
-                viewportHeight
+                pageHeight
               );
-              var maxScroll = Math.max(0, contentHeight - viewportHeight);
-              var scrollTop = Math.max(
-                0,
-                Math.min(
-                  maxScroll,
-                  window.scrollY
-                  || (scrolling && scrolling.scrollTop)
-                  || (root && root.scrollTop)
-                  || (body && body.scrollTop)
-                  || 0
-                )
-              );
-              var total = Math.max(1, Math.ceil(contentHeight / viewportHeight));
-              var currentPage = Math.max(
-                0,
-                Math.min(total - 1, Math.round(scrollTop / viewportHeight))
-              );
+              var total = Math.max(1, Math.ceil(currentHeight / pageHeight));
+              var maxScroll = Math.max(0, currentHeight - pageHeight);
+              var finalTarget = Math.max(0, Math.min(total - 1, target));
+              var offset = Math.min(pageHeight * finalTarget, maxScroll);
 
-              if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
-                window.webkit.messageHandlers.readerBridge.postMessage({
-                  type: type,
-                  token: window.__kmreaderCurrentToken || 0,
-                  totalPages: total,
-                  currentPage: currentPage,
-                  scrollTop: scrollTop,
-                  contentHeight: contentHeight,
-                  viewportHeight: viewportHeight
-                });
-              }
+              window.scrollTo(0, offset);
+              if (document.documentElement) { document.documentElement.scrollTop = offset; }
+              if (document.body) { document.body.scrollTop = offset; }
+
+              setTimeout(function() {
+                if (window.__kmreaderPostMetrics) {
+                  window.__kmreaderPostMetrics('ready');
+                }
+              }, 60);
             };
 
-            if (window.__kmreaderScrollMetricsInstalled) {
-              return;
-            }
-            window.__kmreaderScrollMetricsInstalled = true;
-            var scheduled = false;
-            var scheduleMetrics = function(type) {
-              if (scheduled) { return; }
-              scheduled = true;
+            var timeout = setTimeout(finalize, 5000);
+            var start = function() {
+              clearTimeout(timeout);
               window.requestAnimationFrame(function() {
-                scheduled = false;
-                window.__kmreaderPostMetrics(type || 'scroll');
+                window.requestAnimationFrame(finalize);
               });
             };
-            window.addEventListener('scroll', function() {
-              scheduleMetrics('scroll');
-            }, { passive: true });
-            window.addEventListener('resize', function() {
-              scheduleMetrics('scroll');
-            });
-            if (window.visualViewport) {
-              window.visualViewport.addEventListener('resize', function() {
-                scheduleMetrics('scroll');
-              }, { passive: true });
+
+            if (document.readyState === 'complete') {
+              start();
+            } else {
+              window.addEventListener('load', start, { once: true });
+              document.addEventListener('DOMContentLoaded', start, { once: true });
             }
-          };
-
-          var finalize = function() {
-            if (hasFinalized) return;
-            hasFinalized = true;
-            installMetricsBridge();
-
-            var root = document.documentElement;
-            var body = document.body;
-            var scrolling = document.scrollingElement || root || body;
-            var pageHeight =
-              (window.visualViewport && window.visualViewport.height)
-              || window.innerHeight
-              || root.clientHeight;
-            if (!pageHeight || pageHeight <= 0) { pageHeight = 1; }
-
-            var bodyRectHeight = body ? Math.ceil(body.getBoundingClientRect().height) : 0;
-            var rootRectHeight = root ? Math.ceil(root.getBoundingClientRect().height) : 0;
-            var currentHeight = Math.max(
-              scrolling ? (scrolling.scrollHeight || 0) : 0,
-              root ? (root.scrollHeight || 0) : 0,
-              body ? (body.scrollHeight || 0) : 0,
-              bodyRectHeight,
-              rootRectHeight,
-              pageHeight
-            );
-            var total = Math.max(1, Math.ceil(currentHeight / pageHeight));
-            var maxScroll = Math.max(0, currentHeight - pageHeight);
-            var finalTarget = Math.max(0, Math.min(total - 1, target));
-            var offset = Math.min(pageHeight * finalTarget, maxScroll);
-
-            window.scrollTo(0, offset);
-            if (document.documentElement) { document.documentElement.scrollTop = offset; }
-            if (document.body) { document.body.scrollTop = offset; }
-
-            setTimeout(function() {
-              if (window.__kmreaderPostMetrics) {
-                window.__kmreaderPostMetrics('ready');
-              }
-            }, 60);
-          };
-
-          var timeout = setTimeout(finalize, 5000);
-          var start = function() {
-            clearTimeout(timeout);
-            window.requestAnimationFrame(function() {
-              window.requestAnimationFrame(finalize);
-            });
-          };
-
-          if (document.readyState === 'complete') {
-            start();
-          } else {
-            window.addEventListener('load', start, { once: true });
-            document.addEventListener('DOMContentLoaded', start, { once: true });
-          }
-        })();
-      """
+          })();
+        """
 
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
@@ -556,75 +618,76 @@
         properties[key] = value ?? NSNull()
       }
       let propertiesJSON = WebPubJavaScriptSupport.encodeJSON(properties, fallback: "{}")
-      let propertyKeysJSON = WebPubJavaScriptSupport.encodeJSON(EpubReaderPreferences.readiumPropertyKeys, fallback: "[]")
+      let propertyKeysJSON = WebPubJavaScriptSupport.encodeJSON(
+        EpubReaderPreferences.readiumPropertyKeys, fallback: "[]")
       let languageJSON = WebPubJavaScriptSupport.escapedJSONString(publicationLanguage)
 
       let js = """
-        (function() {
-          var root = document.documentElement;
-          var lang = \(languageJSON);
-          if (lang) {
-            if (!root.hasAttribute('lang')) {
-              root.setAttribute('lang', lang);
-            }
-            if (!root.hasAttribute('xml:lang')) {
-              root.setAttribute('xml:lang', lang);
-            }
-            if (document.body) {
-              if (!document.body.hasAttribute('lang')) {
-                document.body.setAttribute('lang', lang);
+          (function() {
+            var root = document.documentElement;
+            var lang = \(languageJSON);
+            if (lang) {
+              if (!root.hasAttribute('lang')) {
+                root.setAttribute('lang', lang);
               }
-              if (!document.body.hasAttribute('xml:lang')) {
-                document.body.setAttribute('xml:lang', lang);
+              if (!root.hasAttribute('xml:lang')) {
+                root.setAttribute('xml:lang', lang);
+              }
+              if (document.body) {
+                if (!document.body.hasAttribute('lang')) {
+                  document.body.setAttribute('lang', lang);
+                }
+                if (!document.body.hasAttribute('xml:lang')) {
+                  document.body.setAttribute('xml:lang', lang);
+                }
               }
             }
-          }
-          if (\(shouldSetDir ? "true" : "false")) {
-            root.setAttribute('dir', 'rtl');
-            if (document.body) {
-              document.body.setAttribute('dir', 'rtl');
+            if (\(shouldSetDir ? "true" : "false")) {
+              root.setAttribute('dir', 'rtl');
+              if (document.body) {
+                document.body.setAttribute('dir', 'rtl');
+              }
             }
-          }
 
-          var props = \(propertiesJSON);
-          Object.keys(props).forEach(function(key) {
-            var value = props[key];
-            if (value === null || value === undefined) {
-              root.style.removeProperty(key);
-            } else {
-              root.style.setProperty(key, value, 'important');
+            var props = \(propertiesJSON);
+            Object.keys(props).forEach(function(key) {
+              var value = props[key];
+              if (value === null || value === undefined) {
+                root.style.removeProperty(key);
+              } else {
+                root.style.setProperty(key, value, 'important');
+              }
+            });
+            var knownKeys = \(propertyKeysJSON);
+            knownKeys.forEach(function(key) {
+              if (!(key in props)) {
+                root.style.removeProperty(key);
+              }
+            });
+
+            var meta = document.querySelector('meta[name=viewport]');
+            if (!meta) {
+              meta = document.createElement('meta');
+              meta.name = 'viewport';
+              document.head.appendChild(meta);
             }
-          });
-          var knownKeys = \(propertyKeysJSON);
-          knownKeys.forEach(function(key) {
-            if (!(key in props)) {
-              root.style.removeProperty(key);
+            meta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+
+            var style = document.getElementById('kmreader-style');
+            if (!style) {
+              style = document.createElement('style');
+              style.id = 'kmreader-style';
+              document.head.appendChild(style);
             }
-          });
-
-          var meta = document.querySelector('meta[name=viewport]');
-          if (!meta) {
-            meta = document.createElement('meta');
-            meta.name = 'viewport';
-            document.head.appendChild(meta);
-          }
-          meta.setAttribute('content', 'width=device-width, initial-scale=1.0');
-
-          var style = document.getElementById('kmreader-style');
-          if (!style) {
-            style = document.createElement('style');
-            style.id = 'kmreader-style';
-            document.head.appendChild(style);
-          }
-          var hasStyles = document.querySelector("link[rel~='stylesheet'], style:not(#kmreader-style)") !== null;
-          var css = atob('\(readiumBefore)') + "\\n"
-            + (hasStyles ? "" : atob('\(readiumDefault)') + "\\n")
-            + atob('\(readiumAfter)') + "\\n"
-            + atob('\(customCSS)');
-          style.textContent = css;
-          return true;
-        })();
-      """
+            var hasStyles = document.querySelector("link[rel~='stylesheet'], style:not(#kmreader-style)") !== null;
+            var css = atob('\(readiumBefore)') + "\\n"
+              + (hasStyles ? "" : atob('\(readiumDefault)') + "\\n")
+              + atob('\(readiumAfter)') + "\\n"
+              + atob('\(customCSS)');
+            style.textContent = css;
+            return true;
+          })();
+        """
 
       webView.evaluateJavaScript(js) { _, _ in
         completion?()
