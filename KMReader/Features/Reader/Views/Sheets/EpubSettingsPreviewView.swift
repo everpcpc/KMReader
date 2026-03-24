@@ -301,8 +301,12 @@
           })();
           """
 
-        webView.evaluateJavaScript(js) { [weak self] _, _ in
-          self?.lastAppliedPayload = payload
+        webView.evaluateJavaScript(js) { [weak self] result, error in
+          guard let self else { return }
+          let didApply = (result as? Bool) == true && error == nil
+          if didApply {
+            self.lastAppliedPayload = payload
+          }
         }
       }
 
