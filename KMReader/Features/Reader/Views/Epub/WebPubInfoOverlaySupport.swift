@@ -216,6 +216,13 @@
               greaterThanOrEqualTo: bottomLeadingLabel.trailingAnchor, constant: 8),
           ])
 
+          bottomLeadingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+          bottomLeadingLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+          bottomTrailingLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+          bottomTrailingLabel.setContentHuggingPriority(.required, for: .horizontal)
+          bottomCenterLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+          bottomCenterLabel.setContentHuggingPriority(.required, for: .horizontal)
+
           apply(theme: theme)
         }
 
@@ -272,6 +279,8 @@
         ) -> UILabel {
           let label = UILabel()
           label.translatesAutoresizingMaskIntoConstraints = false
+          label.numberOfLines = 1
+          label.lineBreakMode = .byTruncatingTail
           label.font =
             monospaced
             ? UIFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .regular)
@@ -335,6 +344,13 @@
             bottomTrailingLabel.leadingAnchor.constraint(
               greaterThanOrEqualTo: bottomLeadingLabel.trailingAnchor, constant: 8),
           ])
+
+          bottomLeadingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+          bottomLeadingLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+          bottomTrailingLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+          bottomTrailingLabel.setContentHuggingPriority(.required, for: .horizontal)
+          bottomCenterLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+          bottomCenterLabel.setContentHuggingPriority(.required, for: .horizontal)
 
           apply(theme: theme)
         }
