@@ -5,6 +5,13 @@
 
 import CoreGraphics
 import Foundation
+import ImageIO
+
+#if os(iOS) || os(tvOS)
+  import UIKit
+#elseif os(macOS)
+  import AppKit
+#endif
 
 @MainActor
 func scheduleOnMain(after delay: TimeInterval, action: @escaping () -> Void) {
@@ -56,6 +63,10 @@ struct WebtoonPageHeightCache {
     lastPageWidth = newWidth
   }
 
+  func hasHeight(for pageID: ReaderPageID) -> Bool {
+    heights[pageID] != nil
+  }
+
   mutating func height(
     for pageID: ReaderPageID,
     page: BookPage,
@@ -73,6 +84,74 @@ struct WebtoonPageHeightCache {
         return targetHeight
       }
     }
-    return pageWidth * 3
+    return max(pageWidth, 1)
   }
+
+  mutating func updateHeight(
+    for pageID: ReaderPageID,
+    pixelSize: CGSize,
+    pageWidth: CGFloat
+  ) -> Bool {
+    guard let targetHeight = webtoonMeasuredHeight(pixelSize: pixelSize, pageWidth: pageWidth) else {
+      return false
+    }
+
+    if let cachedHeight = heights[pageID], abs(cachedHeight - targetHeight) < 0.5 {
+      return false
+    }
+
+    heights[pageID] = targetHeight
+    return true
+  }
+}
+
+func webtoonMeasuredHeight(pixelSize: CGSize, pageWidth: CGFloat) -> CGFloat? {
+  guard pageWidth > 0, pixelSize.width > 0, pixelSize.height > 0 else { return nil }
+  let ratio = pixelSize.height / pixelSize.width
+  guard ratio.isFinite, ratio > 0 else { return nil }
+  let targetHeight = pageWidth * ratio
+  guard targetHeight.isFinite, targetHeight > 0 else { return nil }
+  return targetHeight
+}
+
+func webtoonProbePixelSize(at fileURL: URL) -> CGSize? {
+  let options = [kCGImageSourceShouldCache: false] as CFDictionary
+  guard
+    let source = CGImageSourceCreateWithURL(fileURL as CFURL, options),
+    let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+    let pixelWidth = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+    let pixelHeight = properties[kCGImagePropertyPixelHeight] as? CGFloat,
+    pixelWidth > 0,
+    pixelHeight > 0
+  else {
+    return nil
+  }
+
+  return CGSize(width: pixelWidth, height: pixelHeight)
+}
+
+func webtoonPixelSize(from image: PlatformImage) -> CGSize? {
+  #if os(iOS) || os(tvOS)
+    if let cgImage = image.cgImage {
+      return CGSize(width: cgImage.width, height: cgImage.height)
+    }
+    if let ciImage = image.ciImage {
+      let extent = ciImage.extent.integral
+      if extent.width > 0, extent.height > 0 {
+        return CGSize(width: extent.width, height: extent.height)
+      }
+    }
+    let size = image.size
+    let scale = image.scale
+    guard size.width > 0, size.height > 0, scale > 0 else { return nil }
+    return CGSize(width: size.width * scale, height: size.height * scale)
+  #elseif os(macOS)
+    for representation in image.representations where representation.pixelsWide > 0 && representation.pixelsHigh > 0 {
+      return CGSize(width: representation.pixelsWide, height: representation.pixelsHigh)
+    }
+
+    let size = image.size
+    guard size.width > 0, size.height > 0 else { return nil }
+    return size
+  #endif
 }
