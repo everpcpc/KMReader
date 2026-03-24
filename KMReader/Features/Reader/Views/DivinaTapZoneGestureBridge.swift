@@ -273,21 +273,17 @@
               return true
             }
             guard
-              let gestureView = attachedView ?? gestureRecognizer.view,
               let liveTextContext = liveTextInteractionContext(from: touch.view)
             else {
               return true
             }
 
-            let gestureLocation = touch.location(in: gestureView)
-            let action = tapZoneAction(location: gestureLocation, in: gestureView.bounds.size)
-            switch action {
-            case .previous, .next:
-              return true
-            case .toggleControls:
-              let interactionLocation = touch.location(in: liveTextContext.view)
-              return !isLiveTextInteractivePoint(interactionLocation, interaction: liveTextContext.interaction)
+            let interactionLocation = touch.location(in: liveTextContext.view)
+            if isLiveTextInteractivePoint(interactionLocation, interaction: liveTextContext.interaction) {
+              return false
             }
+
+            return true
           }
 
           func gestureRecognizer(
@@ -339,19 +335,6 @@
               current = candidate.superview
             }
             return nil
-          }
-
-          private func tapZoneAction(location: CGPoint, in size: CGSize) -> TapZoneAction {
-            guard size.width > 0, size.height > 0 else { return .toggleControls }
-            let normalizedX = max(0, min(1, location.x / size.width))
-            let normalizedY = max(0, min(1, location.y / size.height))
-            return TapZoneHelper.action(
-              normalizedX: normalizedX,
-              normalizedY: normalizedY,
-              tapZoneMode: configuration.tapZoneMode,
-              readingDirection: configuration.readingDirection,
-              zoneThreshold: configuration.zoneThreshold
-            )
           }
 
           private func isLiveTextInteractivePoint(
