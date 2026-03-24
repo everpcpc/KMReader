@@ -215,9 +215,10 @@
         guard let collectionView, let indexPath = indexPath(forPageID: pageID) else { return }
 
         UIView.performWithoutAnimation {
-          collectionView.performBatchUpdates({
-            collectionView.reloadItems(at: [indexPath])
-          }, completion: nil)
+          collectionView.performBatchUpdates(
+            {
+              collectionView.reloadItems(at: [indexPath])
+            }, completion: nil)
         }
       }
 
@@ -230,9 +231,10 @@
         guard !indexPaths.isEmpty else { return }
 
         UIView.performWithoutAnimation {
-          collectionView.performBatchUpdates({
-            collectionView.reloadItems(at: indexPaths)
-          }, completion: nil)
+          collectionView.performBatchUpdates(
+            {
+              collectionView.reloadItems(at: indexPaths)
+            }, completion: nil)
         }
       }
 
