@@ -100,6 +100,7 @@
     }
 
     static func dismantleNSView(_ nsView: NSScrollView, coordinator: Coordinator) {
+      coordinator.synchronizeCurrentPositionBeforeTeardown(in: nsView)
       coordinator.teardown()
     }
 
@@ -166,6 +167,19 @@
         visiblePreloadItem = nil
         pagePresentationCoordinator.teardown()
         engine.teardown()
+      }
+
+      func synchronizeCurrentPositionBeforeTeardown(in scrollView: NSScrollView) {
+        deferredViewModelCommitTask?.cancel()
+        deferredViewModelCommitTask = nil
+
+        guard let collectionView = scrollView.documentView as? NSCollectionView else { return }
+        collectionView.layoutSubtreeIfNeeded()
+
+        guard let item = currentAnchorItem(in: scrollView, collectionView: collectionView) else {
+          return
+        }
+        synchronizeViewModelCurrentPosition(to: item)
       }
 
       func update(
@@ -525,6 +539,18 @@
         centeredItem(in: scrollView, collectionView: collectionView)
           ?? parent.viewModel.currentViewItem()
           ?? engine.committedItem
+      }
+
+      private func synchronizeViewModelCurrentPosition(to item: ReaderViewItem) {
+        let resolvedItem = engine.resolveItem(item) ?? item
+        engine.commit(resolvedItem)
+
+        if parent.viewModel.currentViewItem() != resolvedItem {
+          parent.viewModel.updateCurrentPosition(viewItem: resolvedItem)
+        }
+        if parent.viewModel.navigationTarget != nil {
+          parent.viewModel.clearNavigationTarget()
+        }
       }
 
       private func centeredItem(
