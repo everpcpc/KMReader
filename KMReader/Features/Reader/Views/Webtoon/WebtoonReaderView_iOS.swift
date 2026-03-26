@@ -501,10 +501,9 @@
         let preCapturedOffset = scrollEngine.pendingReloadPreCapturedOffset
         scrollEngine.pendingReloadPreCapturedOffset = nil
 
-        let currentPageID = viewModel?.currentReaderPage?.id ?? pendingPageID
         handleDataReload(
           collectionView: collectionView,
-          currentPageID: currentPageID,
+          currentPageID: pendingPageID,
           preCapturedOffset: preCapturedOffset
         )
         updateCurrentPage()
