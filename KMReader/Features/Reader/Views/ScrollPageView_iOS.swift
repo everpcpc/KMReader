@@ -103,6 +103,7 @@
     }
 
     static func dismantleUIView(_ uiView: UICollectionView, coordinator: Coordinator) {
+      coordinator.synchronizeCurrentPositionBeforeTeardown(in: uiView)
       coordinator.teardown()
     }
 
@@ -156,6 +157,15 @@
         }
         pagePresentationCoordinator.teardown()
         engine.teardown()
+      }
+
+      func synchronizeCurrentPositionBeforeTeardown(in collectionView: UICollectionView) {
+        deferredViewModelCommitTask?.cancel()
+        deferredViewModelCommitTask = nil
+        collectionView.layoutIfNeeded()
+
+        guard let item = currentAnchorItem(in: collectionView) else { return }
+        synchronizeViewModelCurrentPosition(to: item)
       }
 
       func update(parent: ScrollPageView, collectionView: UICollectionView) {
@@ -455,6 +465,18 @@
         return centeredItem(in: collectionView)
           ?? parent.viewModel.currentViewItem()
           ?? engine.committedItem
+      }
+
+      private func synchronizeViewModelCurrentPosition(to item: ReaderViewItem) {
+        let resolvedItem = engine.resolveItem(item) ?? item
+        engine.commit(resolvedItem)
+
+        if parent.viewModel.currentViewItem() != resolvedItem {
+          parent.viewModel.updateCurrentPosition(viewItem: resolvedItem)
+        }
+        if parent.viewModel.navigationTarget != nil {
+          parent.viewModel.clearNavigationTarget()
+        }
       }
 
       private func clearProgrammaticScrollState() {
