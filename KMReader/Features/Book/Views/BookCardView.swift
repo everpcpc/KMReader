@@ -57,6 +57,10 @@ struct BookCardView: View {
     thumbnailBlurUnreadCovers && komgaBook.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
+  private var completedMetaText: String {
+    komgaBook.completedLastReadText ?? "\(komgaBook.mediaPagesCount) pages"
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
@@ -138,7 +142,7 @@ struct BookCardView: View {
                   .foregroundColor(.secondary)
                   .font(.caption2)
               }
-              Text("\(komgaBook.mediaPagesCount) pages")
+              Text(progress == 1 ? completedMetaText : "\(komgaBook.mediaPagesCount) pages")
                 .lineLimit(1)
             }
             if komgaBook.downloadStatus != .notDownloaded {
@@ -206,7 +210,7 @@ struct BookCardView: View {
               .foregroundColor(style.secondaryColor)
               .font(.caption2)
           }
-          Text("\(komgaBook.mediaPagesCount) pages")
+          Text(progress == 1 ? completedMetaText : "\(komgaBook.mediaPagesCount) pages")
             .lineLimit(1)
         }
         if showDownloadIcon && !showProgressBar {

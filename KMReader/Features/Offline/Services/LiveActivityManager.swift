@@ -20,7 +20,7 @@ import Foundation
 
     /// Start or update a download Live Activity
     func startActivity(
-      seriesTitle: String, bookInfo: String, totalBooks: Int, pendingCount: Int, failedCount: Int
+      seriesTitle: String?, bookInfo: String, totalBooks: Int, pendingCount: Int, failedCount: Int
     ) {
       if resolveActivity() != nil {
         updateActivity(
@@ -61,7 +61,7 @@ import Foundation
 
     /// Update the current Live Activity with new progress
     func updateActivity(
-      seriesTitle: String,
+      seriesTitle: String?,
       bookInfo: String,
       progress: Double,
       pendingCount: Int,

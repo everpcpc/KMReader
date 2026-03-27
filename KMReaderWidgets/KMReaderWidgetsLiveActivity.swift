@@ -23,10 +23,12 @@ import WidgetKit
               .foregroundStyle(.blue)
 
             VStack(alignment: .leading, spacing: 2) {
-              Text(context.state.seriesTitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+              if let seriesTitle = context.state.displaySeriesTitle {
+                Text(seriesTitle)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                  .lineLimit(1)
+              }
 
               Text(context.state.bookInfo)
                 .font(.subheadline.weight(.medium))
@@ -49,23 +51,7 @@ import WidgetKit
           }
 
           // Progress bar
-          GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-              RoundedRectangle(cornerRadius: 4)
-                .fill(Color.secondary.opacity(0.2))
-
-              RoundedRectangle(cornerRadius: 4)
-                .fill(
-                  LinearGradient(
-                    colors: [.blue, .cyan],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                  )
-                )
-                .frame(width: geometry.size.width * context.state.progress)
-            }
-          }
-          .frame(height: 6)
+          progressBar(for: context.state)
 
           // Footer stats
           HStack {
@@ -93,28 +79,38 @@ import WidgetKit
         DynamicIsland {
           // Expanded UI
           DynamicIslandExpandedRegion(.leading) {
-            Image(systemName: "arrow.down.circle.fill")
-              .foregroundStyle(.blue)
-              .font(.title2)
+            HStack(spacing: 0) {
+              Image(systemName: "arrow.down.circle.fill")
+                .foregroundStyle(.blue)
+                .font(.title2)
+              Spacer(minLength: 0)
+            }
+            .padding(.leading, 12)
           }
           DynamicIslandExpandedRegion(.trailing) {
-            if context.state.progress > 0 {
-              Text("\(Int(context.state.progress * 100))%")
-                .font(.headline.weight(.bold))
-                .foregroundStyle(.blue)
-                .monospacedDigit()
-            } else {
-              Image(systemName: "ellipsis")
-                .font(.headline.weight(.bold))
-                .foregroundStyle(.blue)
+            HStack(spacing: 0) {
+              Spacer(minLength: 0)
+              if context.state.progress > 0 {
+                Text("\(Int(context.state.progress * 100))%")
+                  .font(.headline.weight(.bold))
+                  .foregroundStyle(.blue)
+                  .monospacedDigit()
+              } else {
+                Image(systemName: "ellipsis")
+                  .font(.headline.weight(.bold))
+                  .foregroundStyle(.blue)
+              }
             }
+            .padding(.trailing, 12)
           }
           DynamicIslandExpandedRegion(.center) {
             VStack(spacing: 2) {
-              Text(context.state.seriesTitle)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+              if let seriesTitle = context.state.displaySeriesTitle {
+                Text(seriesTitle)
+                  .font(.caption2)
+                  .foregroundStyle(.secondary)
+                  .lineLimit(1)
+              }
               Text(context.state.bookInfo)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -122,8 +118,7 @@ import WidgetKit
             }
           }
           DynamicIslandExpandedRegion(.bottom) {
-            ProgressView(value: context.state.progress)
-              .tint(.blue)
+            progressBar(for: context.state)
           }
         } compactLeading: {
           Image(systemName: "arrow.down.circle.fill")
@@ -155,6 +150,15 @@ import WidgetKit
   }
 
   extension DownloadActivityAttributes.ContentState {
+    fileprivate var displaySeriesTitle: String? {
+      guard let seriesTitle, !seriesTitle.isEmpty else { return nil }
+      return seriesTitle
+    }
+
+    fileprivate var progressFraction: Double {
+      min(max(progress, 0), 1)
+    }
+
     fileprivate static var downloading: DownloadActivityAttributes.ContentState {
       DownloadActivityAttributes.ContentState(
         seriesTitle: "One Piece",
@@ -170,5 +174,29 @@ import WidgetKit
     KMReaderWidgetsLiveActivity()
   } contentStates: {
     DownloadActivityAttributes.ContentState.downloading
+  }
+
+  extension KMReaderWidgetsLiveActivity {
+    private func progressBar(for state: DownloadActivityAttributes.ContentState) -> some View {
+      Capsule()
+        .fill(Color.secondary.opacity(0.2))
+        .frame(height: 6)
+        .overlay {
+          GeometryReader { geometry in
+            HStack {
+              Capsule()
+                .fill(
+                  LinearGradient(
+                    colors: [.blue, .cyan],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                  )
+                )
+                .frame(width: geometry.size.width * state.progressFraction, height: 6)
+              Spacer(minLength: 0)
+            }
+          }
+        }
+    }
   }
 #endif

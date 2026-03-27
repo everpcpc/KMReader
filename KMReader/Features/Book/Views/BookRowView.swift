@@ -94,6 +94,9 @@ struct BookRowView: View {
                 if progressCompleted {
                   Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
+                  if let completedLastReadText = komgaBook.completedLastReadText {
+                    Text(completedLastReadText)
+                  }
                 } else {
                   Image(systemName: "circle.righthalf.filled")
                     .foregroundColor(.blue)

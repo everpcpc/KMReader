@@ -20,10 +20,12 @@ import WidgetKit
               .frame(width: 22, height: 22)
 
             VStack(alignment: .leading, spacing: 2) {
-              Text(context.state.seriesTitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+              if let seriesTitle = context.state.displaySeriesTitle {
+                Text(seriesTitle)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                  .lineLimit(1)
+              }
               Text(context.state.chapterTitle)
                 .font(.subheadline.weight(.medium))
                 .lineLimit(1)
@@ -48,34 +50,27 @@ import WidgetKit
       } dynamicIsland: { context in
         DynamicIsland {
           DynamicIslandExpandedRegion(.leading) {
-            Image(systemName: context.state.readerKind.iconName)
-              .foregroundStyle(context.state.tintColor)
-              .font(.title2)
+            HStack(spacing: 0) {
+              Image(systemName: context.state.readerKind.iconName)
+                .foregroundStyle(context.state.tintColor)
+                .font(.title2)
+              Spacer(minLength: 0)
+            }
+            .padding(.leading, 12)
           }
           DynamicIslandExpandedRegion(.trailing) {
-            trailingStatusView(for: context.state)
-          }
-          DynamicIslandExpandedRegion(.center) {
-            VStack(spacing: 2) {
-              Text(context.state.seriesTitle)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-              Text(context.state.chapterTitle)
-                .font(.caption)
-                .lineLimit(1)
-            }
-          }
-          DynamicIslandExpandedRegion(.bottom) {
-            HStack(spacing: 6) {
-              Text(context.state.readerKind.label)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-              Circle()
-                .fill(context.state.tintColor)
-                .frame(width: 6, height: 6)
+            HStack(spacing: 0) {
+              Spacer(minLength: 0)
               trailingStatusView(for: context.state)
             }
+            .padding(.trailing, 12)
+          }
+          DynamicIslandExpandedRegion(.center) {
+            expandedTitleView(for: context.state)
+          }
+          DynamicIslandExpandedRegion(.bottom) {
+            progressBar(for: context.state)
+              .padding(.horizontal, 12)
           }
         } compactLeading: {
           Image(systemName: context.state.readerKind.iconName)
@@ -142,9 +137,30 @@ import WidgetKit
         }
         .animation(.easeInOut(duration: 0.25), value: state.progressFraction)
     }
+
+    private func expandedTitleView(for state: ReaderActivityAttributes.ContentState) -> some View {
+      VStack(spacing: 1) {
+        if let seriesTitle = state.displaySeriesTitle {
+          Text(seriesTitle)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+        Text(state.chapterTitle)
+          .font(.caption)
+          .lineLimit(1)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      .offset(y: -2)
+    }
   }
 
   extension ReaderActivityAttributes.ContentState {
+    fileprivate var displaySeriesTitle: String? {
+      guard let seriesTitle, !seriesTitle.isEmpty else { return nil }
+      return seriesTitle
+    }
+
     fileprivate var isIncognitoSession: Bool {
       isIncognito
     }

@@ -26,7 +26,7 @@ import Foundation
     public struct ContentState: Codable, Hashable {
       public var sessionState: SessionState
       public var readerKind: ReaderKind
-      public var seriesTitle: String
+      public var seriesTitle: String?
       public var chapterTitle: String
       public var isIncognito: Bool
       public var readingProgress: Double
@@ -34,7 +34,7 @@ import Foundation
       public init(
         sessionState: SessionState,
         readerKind: ReaderKind,
-        seriesTitle: String,
+        seriesTitle: String? = nil,
         chapterTitle: String,
         isIncognito: Bool,
         readingProgress: Double

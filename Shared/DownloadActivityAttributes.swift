@@ -14,7 +14,7 @@ import Foundation
   public struct DownloadActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
       /// Series title
-      public var seriesTitle: String
+      public var seriesTitle: String?
       /// Book info (e.g. "#1 - Chapter Title")
       public var bookInfo: String
       /// Download progress (0.0 - 1.0)
@@ -25,7 +25,7 @@ import Foundation
       public var failedCount: Int
 
       public init(
-        seriesTitle: String, bookInfo: String, progress: Double, pendingCount: Int,
+        seriesTitle: String? = nil, bookInfo: String, progress: Double, pendingCount: Int,
         failedCount: Int
       ) {
         self.seriesTitle = seriesTitle

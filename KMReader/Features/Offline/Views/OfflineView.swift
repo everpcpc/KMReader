@@ -313,7 +313,7 @@ struct OfflineView: View {
                   defaultValue: "Last read"
                 )
               )
-              Text(syncTime, style: .relative)
+              Text(syncTime.formatted(.relative(presentation: .named, unitsStyle: .abbreviated)))
                 .monospacedDigit()
             }
             .font(.caption2)

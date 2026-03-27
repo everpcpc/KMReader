@@ -29,7 +29,7 @@ enum DownloadContentKind: Sendable {
 
 struct DownloadInfo: Sendable {
   let bookId: String
-  let seriesTitle: String
+  let seriesTitle: String?
   let bookInfo: String
   let kind: DownloadContentKind
 }
@@ -967,7 +967,7 @@ actor OfflineManager {
     private func registerBackgroundDownloadContext(
       bookId: String,
       instanceId: String,
-      seriesTitle: String,
+      seriesTitle: String?,
       bookInfo: String,
       totalTasks: Int,
       completedTasks: Int
@@ -1316,8 +1316,15 @@ actor OfflineManager {
       }
 
       let candidate = foregroundDownloadInfoByBookId.values.first?.info
-      let seriesTitle = candidate?.seriesTitle ?? String(localized: "Offline")
-      let bookInfo = candidate?.bookInfo ?? String(localized: "Downloading")
+      let seriesTitle: String?
+      let bookInfo: String
+      if let candidate {
+        seriesTitle = candidate.seriesTitle
+        bookInfo = candidate.bookInfo
+      } else {
+        seriesTitle = String(localized: "Offline")
+        bookInfo = String(localized: "Downloading")
+      }
       await LiveActivityManager.shared.updateActivity(
         seriesTitle: seriesTitle,
         bookInfo: bookInfo,
@@ -1370,7 +1377,7 @@ actor OfflineManager {
     /// Track background download context per book
     private var backgroundDownloadInfo:
       [String: (
-        instanceId: String, seriesTitle: String, bookInfo: String
+        instanceId: String, seriesTitle: String?, bookInfo: String
       )] = [:]
     private var backgroundDownloadTotalTasks: [String: Int] = [:]
     private var backgroundDownloadCompletedTasks: [String: Int] = [:]
@@ -1548,7 +1555,7 @@ actor OfflineManager {
 
     private func finalizeBackgroundBookDownload(
       bookId: String,
-      info: (instanceId: String, seriesTitle: String, bookInfo: String)
+      info: (instanceId: String, seriesTitle: String?, bookInfo: String)
     ) async {
       logger.info("✅ Background downloads finished for book: \(bookId)")
       let bookDir = bookDirectory(instanceId: info.instanceId, bookId: bookId)
@@ -2045,7 +2052,7 @@ extension Book {
 
     return DownloadInfo(
       bookId: id,
-      seriesTitle: oneshot ? String(localized: "Oneshot") : seriesTitle,
+      seriesTitle: oneshot ? nil : seriesTitle,
       bookInfo: oneshot ? "\(metadata.title)" : "#\(metadata.number) - \(metadata.title)",
       kind: kind
     )

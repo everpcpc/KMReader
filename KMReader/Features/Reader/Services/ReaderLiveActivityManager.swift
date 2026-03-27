@@ -133,7 +133,7 @@ import Foundation
       ReaderActivityAttributes.ContentState(
         sessionState: sessionState,
         readerKind: resolveReaderKind(for: snapshot.book),
-        seriesTitle: snapshot.book.seriesTitle,
+        seriesTitle: snapshot.book.oneshot ? nil : snapshot.book.seriesTitle,
         chapterTitle: resolveChapterTitle(for: snapshot.book),
         isIncognito: snapshot.incognito,
         readingProgress: snapshot.incognito ? 0 : snapshot.readingProgress
