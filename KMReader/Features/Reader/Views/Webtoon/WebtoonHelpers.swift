@@ -51,6 +51,10 @@ struct WebtoonPageHeightCache {
     heights.removeAll()
   }
 
+  mutating func retainHeights(for pageIDs: Set<ReaderPageID>) {
+    heights = heights.filter { pageIDs.contains($0.key) }
+  }
+
   mutating func rescaleIfNeeded(newWidth: CGFloat) {
     if lastPageWidth > 0, abs(lastPageWidth - newWidth) > 0.1 {
       let scaleFactor = newWidth / lastPageWidth

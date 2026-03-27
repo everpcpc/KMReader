@@ -150,6 +150,11 @@
       private var sizeProbeTasks: [ReaderPageID: Task<Void, Never>] = [:]
       private var pendingMeasuredPageIDs: Set<ReaderPageID> = []
 
+      private struct ScrollAnchor {
+        let pageID: ReaderPageID
+        let offsetWithinPage: CGFloat
+      }
+
       init(_ parent: WebtoonReaderView) {
         self.scrollEngine = WebtoonScrollEngine(
           initialPageID: parent.viewModel.currentReaderPage?.id
@@ -222,6 +227,45 @@
         return IndexPath(item: itemIndex, section: 0)
       }
 
+      private func currentAnchorPageID(preferredPageID: ReaderPageID? = nil) -> ReaderPageID? {
+        preferredPageID ?? scrollEngine.currentPageID ?? viewModel?.currentReaderPage?.id
+      }
+
+      private func captureScrollAnchor(preferredPageID: ReaderPageID? = nil) -> ScrollAnchor? {
+        guard collectionView != nil else { return nil }
+        guard scrollEngine.hasScrolledToInitialPage else { return nil }
+        guard let pageID = currentAnchorPageID(preferredPageID: preferredPageID) else { return nil }
+        guard let offsetWithinPage = captureOffsetWithinPage(pageID) else { return nil }
+        return ScrollAnchor(pageID: pageID, offsetWithinPage: offsetWithinPage)
+      }
+
+      @discardableResult
+      private func restoreScrollAnchor(_ anchor: ScrollAnchor?) -> Bool {
+        guard let anchor else { return false }
+        return restoreOffsetWithinPage(anchor.offsetWithinPage, for: anchor.pageID)
+      }
+
+      private func currentContentPageIDs() -> Set<ReaderPageID> {
+        Set(
+          scrollEngine.contentItems.compactMap { item in
+            guard case .page(let pageID) = item else { return nil }
+            return pageID
+          }
+        )
+      }
+
+      private func pruneStaleMeasurementState() {
+        let validPageIDs = currentContentPageIDs()
+        heightCache.retainHeights(for: validPageIDs)
+        pendingMeasuredPageIDs.formIntersection(validPageIDs)
+
+        let stalePageIDs = sizeProbeTasks.keys.filter { !validPageIDs.contains($0) }
+        for pageID in stalePageIDs {
+          sizeProbeTasks[pageID]?.cancel()
+          sizeProbeTasks.removeValue(forKey: pageID)
+        }
+      }
+
       private func hasKnownHeight(for pageID: ReaderPageID, page: BookPage?) -> Bool {
         if heightCache.hasHeight(for: pageID) {
           return true
@@ -244,9 +288,17 @@
 
       private func invalidateLayout(for pageID: ReaderPageID) {
         guard let collectionView, let indexPath = indexPath(forPageID: pageID) else { return }
+        let scrollAnchor = captureScrollAnchor()
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0
           collectionView.reloadItems(at: Set([indexPath]))
+          collectionView.layoutSubtreeIfNeeded()
+        } completionHandler: { [weak self] in
+          Task { @MainActor [weak self] in
+            guard let self else { return }
+            _ = self.restoreScrollAnchor(scrollAnchor)
+            self.updateCurrentPage()
+          }
         }
       }
 
@@ -254,6 +306,7 @@
         guard !pendingMeasuredPageIDs.isEmpty else { return }
         guard let collectionView else { return }
 
+        let scrollAnchor = captureScrollAnchor()
         let indexPaths = pendingMeasuredPageIDs.compactMap { indexPath(forPageID: $0) }
         pendingMeasuredPageIDs.removeAll()
         guard !indexPaths.isEmpty else { return }
@@ -261,6 +314,17 @@
         NSAnimationContext.runAnimationGroup { context in
           context.duration = 0
           collectionView.reloadItems(at: Set(indexPaths))
+          collectionView.layoutSubtreeIfNeeded()
+        } completionHandler: { [weak self] in
+          Task { @MainActor [weak self] in
+            guard let self else { return }
+            if !self.restoreScrollAnchor(scrollAnchor),
+              let pageID = scrollAnchor?.pageID
+            {
+              self.requestInitialScroll(pageID, delay: WebtoonConstants.layoutReadyDelay)
+            }
+            self.updateCurrentPage()
+          }
         }
       }
 
@@ -402,22 +466,20 @@
         currentPageID: ReaderPageID?,
         preCapturedOffset: CGFloat? = nil
       ) {
-        // Capture offset using OLD indices + OLD layout (consistent)
-        let offsetWithinCurrentPage =
-          preCapturedOffset
-          ?? (scrollEngine.hasScrolledToInitialPage
-            ? captureOffsetWithinPage(currentPageID) : nil)
+        let anchorPageID = currentAnchorPageID(preferredPageID: currentPageID)
+        let scrollAnchor =
+          captureScrollAnchor(preferredPageID: anchorPageID)
+          ?? preCapturedOffset.flatMap { offsetWithinPage in
+            anchorPageID.map {
+              ScrollAnchor(pageID: $0, offsetWithinPage: offsetWithinPage)
+            }
+          }
 
         // Rebuild content items (updates index mapping to NEW)
         scrollEngine.rebuildContentItemsIfNeeded(viewModel: viewModel)
+        pruneStaleMeasurementState()
 
         let pageCount = self.pageCount
-        if lastPagesCount != pageCount {
-          heightCache.reset()
-          sizeProbeTasks.values.forEach { $0.cancel() }
-          sizeProbeTasks.removeAll()
-          pendingMeasuredPageIDs.removeAll()
-        }
         lastPagesCount = pageCount
 
         // Reload collection view (layout now matches NEW indices)
@@ -426,18 +488,15 @@
         collectionView.layoutSubtreeIfNeeded()
 
         // Restore offset using NEW indices + NEW layout (consistent)
-        if let offsetWithinCurrentPage,
-          let currentPageID,
-          restoreOffsetWithinPage(offsetWithinCurrentPage, for: currentPageID)
-        {
+        if restoreScrollAnchor(scrollAnchor) {
           scrollEngine.hasScrolledToInitialPage = true
           return
         }
 
         scrollEngine.hasScrolledToInitialPage = false
         scrollEngine.resetInitialScrollRetrier()
-        if currentPageID != nil {
-          requestInitialScroll(currentPageID, delay: WebtoonConstants.layoutReadyDelay)
+        if let fallbackPageID = scrollAnchor?.pageID ?? anchorPageID {
+          requestInitialScroll(fallbackPageID, delay: WebtoonConstants.layoutReadyDelay)
         }
       }
 
@@ -495,11 +554,12 @@
         scrollEngine.pendingReloadCurrentPageID = nil
         let preCapturedOffset = scrollEngine.pendingReloadPreCapturedOffset
         scrollEngine.pendingReloadPreCapturedOffset = nil
+        let latestCapturedOffset = captureOffsetWithinPage(pendingPageID) ?? preCapturedOffset
 
         handleDataReload(
           collectionView: collectionView,
           currentPageID: pendingPageID,
-          preCapturedOffset: preCapturedOffset
+          preCapturedOffset: latestCapturedOffset
         )
         updateCurrentPage()
       }
