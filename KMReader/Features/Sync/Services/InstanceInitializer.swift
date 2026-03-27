@@ -121,6 +121,7 @@ final class InstanceInitializer {
   static let shared = InstanceInitializer()
 
   private(set) var isSyncing = false
+  private var isSyncingReadingProgress = false
   private(set) var progress: Double = 0.0
   private(set) var currentPhase: SyncPhase = .libraries
   private(set) var phaseProgress: [SyncPhase: Double] = SyncPhase.initialProgress
@@ -165,13 +166,17 @@ final class InstanceInitializer {
   }
 
   func syncReadingProgressOnly(force: Bool = false) async {
-    guard !isSyncing else { return }
+    guard !isSyncing, !isSyncingReadingProgress else { return }
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
+    guard force || !AppConfig.isOffline else { return }
 
     if !force, shouldSkipReadingProgressSync(instanceId: instanceId) {
       return
     }
+
+    isSyncingReadingProgress = true
+    defer { isSyncingReadingProgress = false }
 
     let syncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
     guard syncSucceeded else { return }
@@ -296,7 +301,9 @@ final class InstanceInitializer {
   }
 
   private func shouldSkipReadingProgressSync(instanceId: String) -> Bool {
-    let interval: TimeInterval = 24 * 60 * 60
+    guard let interval = AppConfig.readingHistoryAutoSyncMinimumInterval else {
+      return true
+    }
     guard let lastSyncTime = AppConfig.readingProgressSyncTime(instanceId: instanceId) else {
       return false
     }

@@ -63,6 +63,9 @@ Current supported target languages:
 ## Deterministic Update Command
 
 Always write all target languages in one command to avoid partial updates.
+Run `./misc/translate.py update` commands sequentially.
+Do not run multiple `update` commands in parallel against the same `KMReader/Localizable.xcstrings` file, because each invocation rewrites the file and concurrent writes can corrupt the JSON.
+Parallelism is only safe for read-only steps such as `rg` or `./misc/translate.py list`.
 
 ```bash
 ./misc/translate.py update "<KEY>" \
@@ -77,6 +80,8 @@ Always write all target languages in one command to avoid partial updates.
   --zh-hans "<Simplified Chinese>" \
   --zh-hant "<Traditional Chinese>"
 ```
+
+If `Localizable.xcstrings` becomes invalid JSON at any point, restore it to a known-good state first, rerun `make localize`, and then repeat the missing-key updates sequentially.
 
 ## Quality Rules
 

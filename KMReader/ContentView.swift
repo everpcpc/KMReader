@@ -12,6 +12,7 @@ struct ContentView: View {
   @Environment(\.scenePhase) private var scenePhase
 
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
@@ -35,6 +36,14 @@ struct ContentView: View {
 
   private var isReady: Bool {
     (authViewModel.bootstrapState == .ready || isOffline) && !instanceInitializer.isSyncing
+  }
+
+  private var automaticReadingHistorySyncTrigger: String {
+    guard isLoggedIn, authViewModel.bootstrapState == .ready, !isOffline, !current.instanceId.isEmpty
+    else {
+      return ""
+    }
+    return current.instanceId
   }
 
   var body: some View {
@@ -80,6 +89,10 @@ struct ContentView: View {
           }
           WidgetDataService.refreshWidgetData()
         }
+        .task(id: automaticReadingHistorySyncTrigger) {
+          guard !automaticReadingHistorySyncTrigger.isEmpty else { return }
+          await instanceInitializer.syncReadingProgressOnly()
+        }
         .onChange(of: isOffline) { oldValue, newValue in
           if oldValue && !newValue {
             // Just came back online - sync pending progress and resume downloads
@@ -109,6 +122,7 @@ struct ContentView: View {
                 OfflineManager.shared.triggerSync(
                   instanceId: AppConfig.current.instanceId, restart: true)
               }
+              await instanceInitializer.syncReadingProgressOnly()
             }
             if enableSSE && !isOffline {
               Task {

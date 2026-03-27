@@ -234,7 +234,6 @@ struct OfflineView: View {
     .task(id: current.instanceId) {
       guard !authViewModel.isSwitching else { return }
       latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
-      triggerReadingProgressSync()
     }
     .onChange(of: resolvedLibraryIdsKey) { _, _ in
       guard !authViewModel.isSwitching else { return }

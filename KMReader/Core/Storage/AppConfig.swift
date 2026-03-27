@@ -62,6 +62,24 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "apiRetryCount") }
   }
 
+  static nonisolated var readingHistoryAutoSyncIntervalHours: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "readingHistoryAutoSyncIntervalHours") != nil {
+        return max(0, UserDefaults.standard.integer(forKey: "readingHistoryAutoSyncIntervalHours"))
+      }
+      return 24
+    }
+    set {
+      UserDefaults.standard.set(max(0, newValue), forKey: "readingHistoryAutoSyncIntervalHours")
+    }
+  }
+
+  static nonisolated var readingHistoryAutoSyncMinimumInterval: TimeInterval? {
+    let hours = readingHistoryAutoSyncIntervalHours
+    guard hours > 0 else { return nil }
+    return TimeInterval(hours * 60 * 60)
+  }
+
   static nonisolated var isLoggedIn: Bool {
     get { UserDefaults.standard.bool(forKey: "isLoggedInV2") }
     set { UserDefaults.standard.set(newValue, forKey: "isLoggedInV2") }
