@@ -157,6 +157,24 @@ actor OfflineManager {
   }
 
   private static func webPubRelativePath(from href: String) -> String {
+    if let resourcePath = manifestResourcePath(from: href),
+      let normalizedPath = normalizeArchivePath(resourcePath)
+    {
+      let components = normalizedPath.split(separator: "/").map(String.init)
+      let sanitized =
+        components.enumerated().map { index, component in
+          let fallback = index == components.count - 1 ? "resource" : "dir"
+          return sanitizePathComponent(component, fallback: fallback)
+        }
+      if !sanitized.isEmpty {
+        return sanitized.joined(separator: "/")
+      }
+    }
+
+    return legacyWebPubRelativePath(from: href)
+  }
+
+  private static func legacyWebPubRelativePath(from href: String) -> String {
     let cleaned = href.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !cleaned.isEmpty else {
       return FileNameHelper.sanitizedFileName("resource", defaultBaseName: "resource")
@@ -235,7 +253,21 @@ actor OfflineManager {
     let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
     let root = webPubRootURL(bookDir: bookDir)
     let destination = Self.webPubResourceURL(root: root, href: href)
-    return FileManager.default.fileExists(atPath: destination.path) ? destination : nil
+    if FileManager.default.fileExists(atPath: destination.path) {
+      return destination
+    }
+
+    let legacyDestination = root.appendingPathComponent(
+      Self.legacyWebPubRelativePath(from: href),
+      isDirectory: false
+    )
+    if legacyDestination.path != destination.path,
+      FileManager.default.fileExists(atPath: legacyDestination.path)
+    {
+      return legacyDestination
+    }
+
+    return nil
   }
 
   func toggleDownload(instanceId: String, info: DownloadInfo) async {
@@ -1711,24 +1743,23 @@ actor OfflineManager {
 
     guard !hrefs.isEmpty else { return }
 
-    // Build a map from EPUB-internal path to webpub destination.
-    // Manifest hrefs may include a base-path prefix (e.g. /komga/api/v1/books/{id}/resource/...),
-    // so we find the last "/resource/" segment to extract the EPUB-internal path.
-    let resourceMarker = "/resource/"
-    var internalPathToDestination: [String: URL] = [:]
-    for href in hrefs {
-      let path = URL(string: href)?.path ?? href
-      guard let range = path.range(of: resourceMarker, options: .backwards) else { continue }
-      let rawInternal = String(path[range.upperBound...])
-      guard let internalPath = rawInternal.removingPercentEncoding else { continue }
-      let destination = Self.webPubResourceURL(root: root, href: href)
-      internalPathToDestination[internalPath] = destination
-    }
-
     let archive = try Archive(url: epubFile, accessMode: .read)
 
+    // Komga already normalizes EPUB hrefs to publication resource keys.
+    var archivePathToDestination: [String: URL] = [:]
+    for href in hrefs {
+      guard let archivePath = Self.manifestResourcePath(from: href),
+        let normalizedArchivePath = Self.normalizeArchivePath(archivePath)
+      else { continue }
+      let destination = Self.webPubResourceURL(root: root, href: href)
+      archivePathToDestination[normalizedArchivePath] = destination
+    }
+
     for entry in archive where entry.type == .file {
-      guard let destination = internalPathToDestination[entry.path] else { continue }
+      guard
+        let normalizedEntryPath = Self.normalizeArchivePath(entry.path),
+        let destination = archivePathToDestination[normalizedEntryPath]
+      else { continue }
 
       let directory = destination.deletingLastPathComponent()
       Self.ensureDirectoryExists(at: directory)
@@ -1741,6 +1772,43 @@ actor OfflineManager {
       _ = try archive.extract(entry, to: destination)
       Self.excludeFromBackupIfNeeded(at: destination)
     }
+  }
+
+  private static func manifestResourcePath(from href: String) -> String? {
+    let trimmed = href.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+
+    var path = URLComponents(string: trimmed)?.path ?? trimmed
+    if let range = path.range(of: "/resource/", options: .backwards) {
+      path = String(path[range.upperBound...])
+    }
+
+    let withoutFragment = path.split(separator: "#", maxSplits: 1).first.map(String.init) ?? path
+    let withoutQuery =
+      withoutFragment.split(separator: "?", maxSplits: 1).first.map(String.init) ?? withoutFragment
+    let decodedPath = withoutQuery.removingPercentEncoding ?? withoutQuery
+    return decodedPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+  }
+
+  private static func normalizeArchivePath(_ path: String) -> String? {
+    let components = path.split(separator: "/").map(String.init)
+    guard !components.isEmpty else { return nil }
+
+    var normalized: [String] = []
+    for component in components {
+      switch component {
+      case "", ".":
+        continue
+      case "..":
+        guard !normalized.isEmpty else { return nil }
+        normalized.removeLast()
+      default:
+        normalized.append(component)
+      }
+    }
+
+    guard !normalized.isEmpty else { return nil }
+    return normalized.joined(separator: "/")
   }
 
   private func collectWebPubResourceLinks(from manifest: WebPubPublication) -> [String] {

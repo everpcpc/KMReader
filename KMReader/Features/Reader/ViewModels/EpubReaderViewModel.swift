@@ -1001,7 +1001,7 @@
             href: link.href
           )
         else {
-          throw AppErrorType.invalidFileURL(url: link.href)
+          throw AppErrorType.invalidFileURL(url: Self.normalizedHref(link.href))
         }
         chapterURLCache[index] = cachedURL
       }
