@@ -227,7 +227,7 @@
 
         if engine.hasSyncedInitialPosition, sizeChanged || frameChanged, !refreshedVisibleContent {
           if let anchorItem {
-            scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
+            _ = scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
             refreshVisibleItems(in: collectionView)
             if parent.viewModel.navigationTarget == nil {
               commitItemIfNeeded(anchorItem, in: collectionView)
@@ -342,7 +342,10 @@
         guard canApplyInitialPosition(in: scrollView, collectionView: collectionView) else { return false }
         _ = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
 
-        scrollToItem(currentItem, animated: false, in: scrollView, collectionView: collectionView)
+        guard scrollToItem(currentItem, animated: false, in: scrollView, collectionView: collectionView)
+        else {
+          return false
+        }
         guard let committedItem = engine.completeInitialPosition() else { return false }
         preloadVisiblePages(for: committedItem)
         refreshVisibleItems(in: collectionView)
@@ -377,7 +380,7 @@
         _ = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
 
         if let anchor = engine.resolveItem(anchor) {
-          scrollToItem(anchor, animated: false, in: scrollView, collectionView: collectionView)
+          _ = scrollToItem(anchor, animated: false, in: scrollView, collectionView: collectionView)
         }
 
         refreshVisibleItems(in: collectionView)
@@ -441,23 +444,24 @@
           return
         }
 
-        scrollToItem(targetItem, animated: true, in: scrollView, collectionView: collectionView)
+        _ = scrollToItem(targetItem, animated: true, in: scrollView, collectionView: collectionView)
       }
 
+      @discardableResult
       private func scrollToItem(
         _ item: ReaderViewItem,
         animated: Bool,
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
-      ) {
-        guard let index = engine.renderedItems.firstIndex(of: item) else { return }
+      ) -> Bool {
+        guard let index = engine.renderedItems.firstIndex(of: item) else { return false }
         let indexPath = IndexPath(item: index, section: 0)
         collectionView.layoutSubtreeIfNeeded()
 
         guard
           let attributes = collectionView.collectionViewLayout?.layoutAttributesForItem(at: indexPath)
         else {
-          return
+          return false
         }
 
         let targetOrigin = clampedContentOrigin(
@@ -470,12 +474,15 @@
         )
 
         if isEquivalentContentOrigin(targetOrigin, to: scrollView.contentView.bounds.origin) {
+          guard isPositionedOnItem(item, in: scrollView, collectionView: collectionView) else {
+            return false
+          }
           engine.clearPendingProgrammaticCommit()
           refreshVisibleItems(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
-          return
+          return true
         }
 
         let shouldAnimate = animated && parent.navigationAnimationDuration > 0
@@ -504,11 +511,15 @@
           isAdjustingBounds = false
           lastObservedClipBounds = scrollView.contentView.bounds
           collectionView.layoutSubtreeIfNeeded()
+          guard isPositionedOnItem(item, in: scrollView, collectionView: collectionView) else {
+            return false
+          }
           refreshVisibleItems(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
         }
+        return true
       }
 
       private func clampedContentOrigin(
@@ -539,6 +550,14 @@
         centeredItem(in: scrollView, collectionView: collectionView)
           ?? parent.viewModel.currentViewItem()
           ?? engine.committedItem
+      }
+
+      private func isPositionedOnItem(
+        _ item: ReaderViewItem,
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) -> Bool {
+        centeredItem(in: scrollView, collectionView: collectionView) == item
       }
 
       private func synchronizeViewModelCurrentPosition(to item: ReaderViewItem) {
@@ -673,7 +692,7 @@
         animated: Bool
       ) {
         guard let item = centeredItem(in: scrollView, collectionView: collectionView) else { return }
-        scrollToItem(item, animated: animated, in: scrollView, collectionView: collectionView)
+        _ = scrollToItem(item, animated: animated, in: scrollView, collectionView: collectionView)
       }
 
       func applyPagePresentationInvalidation(_ invalidation: ReaderPagePresentationInvalidation) {
@@ -832,7 +851,7 @@
           }
 
           if engine.hasSyncedInitialPosition, let anchorItem {
-            scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
+            _ = scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
             refreshVisibleItems(in: collectionView)
             if parent.viewModel.navigationTarget == nil {
               commitItemIfNeeded(anchorItem, in: collectionView)

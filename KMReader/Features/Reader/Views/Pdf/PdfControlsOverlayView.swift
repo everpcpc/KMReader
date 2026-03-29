@@ -30,7 +30,7 @@
     }
 
     private var animation: Animation {
-      .bouncy(duration: 0.25)
+      .easeInOut(duration: 0.2)
     }
 
     private var progress: Double {
@@ -54,7 +54,6 @@
             .transition(
               .move(edge: .top)
                 .combined(with: .opacity)
-                .combined(with: .scale(scale: 0.8, anchor: .top))
             )
         }
 
@@ -65,7 +64,6 @@
             .transition(
               .move(edge: .bottom)
                 .combined(with: .opacity)
-                .combined(with: .scale(scale: 0.8, anchor: .bottom))
             )
         }
       }

@@ -291,7 +291,9 @@
         }
         guard canApplyInitialPosition(in: collectionView) else { return false }
 
-        scrollToItem(currentItem, animated: false, in: collectionView)
+        guard scrollToItem(currentItem, animated: false, in: collectionView) else {
+          return false
+        }
         guard let committedItem = engine.completeInitialPosition() else { return false }
         preloadVisiblePages(for: committedItem)
         refreshVisibleCells(in: collectionView)
@@ -319,7 +321,7 @@
         collectionView.layoutIfNeeded()
 
         if let anchor = engine.resolveItem(anchor) {
-          scrollToItem(anchor, animated: false, in: collectionView)
+          _ = scrollToItem(anchor, animated: false, in: collectionView)
         }
 
         refreshVisibleCells(in: collectionView)
@@ -371,29 +373,33 @@
           return
         }
 
-        scrollToItem(targetItem, animated: true, in: collectionView)
+        _ = scrollToItem(targetItem, animated: true, in: collectionView)
       }
 
+      @discardableResult
       private func scrollToItem(
         _ item: ReaderViewItem,
         animated: Bool,
         in collectionView: UICollectionView
-      ) {
-        guard let index = engine.renderedItems.firstIndex(of: item) else { return }
+      ) -> Bool {
+        guard let index = engine.renderedItems.firstIndex(of: item) else { return false }
         let indexPath = IndexPath(item: index, section: 0)
         collectionView.layoutIfNeeded()
         guard let targetOffset = targetContentOffset(for: indexPath, in: collectionView) else {
-          return
+          return false
         }
 
         if isEquivalentContentOffset(targetOffset, to: collectionView.contentOffset) {
+          guard isPositionedOnItem(item, in: collectionView) else {
+            return false
+          }
           pendingProgrammaticTargetOffset = nil
           engine.clearPendingProgrammaticCommit()
           refreshVisibleCells(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
-          return
+          return true
         }
 
         let shouldAnimate = animated && parent.navigationAnimationDuration > 0
@@ -407,11 +413,16 @@
           pendingProgrammaticTargetOffset = nil
           engine.clearPendingProgrammaticCommit()
           collectionView.setContentOffset(targetOffset, animated: false)
+          collectionView.layoutIfNeeded()
+          guard isPositionedOnItem(item, in: collectionView) else {
+            return false
+          }
           refreshVisibleCells(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
         }
+        return true
       }
 
       private func targetContentOffset(
@@ -465,6 +476,10 @@
         return centeredItem(in: collectionView)
           ?? parent.viewModel.currentViewItem()
           ?? engine.committedItem
+      }
+
+      private func isPositionedOnItem(_ item: ReaderViewItem, in collectionView: UICollectionView) -> Bool {
+        centeredItem(in: collectionView) == item
       }
 
       private func synchronizeViewModelCurrentPosition(to item: ReaderViewItem) {
@@ -571,7 +586,7 @@
         _ anchor: ReaderViewItem,
         in collectionView: UICollectionView
       ) {
-        scrollToItem(anchor, animated: false, in: collectionView)
+        _ = scrollToItem(anchor, animated: false, in: collectionView)
         refreshVisibleCells(in: collectionView)
         if parent.viewModel.navigationTarget == nil {
           commitRestoredItemIfNeeded(anchor: anchor, in: collectionView)

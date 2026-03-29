@@ -97,6 +97,7 @@ struct DivinaReaderView: View {
         isolateCoverPage: AppConfig.isolateCoverPage,
         pageLayout: AppConfig.pageLayout,
         splitWidePageMode: AppConfig.splitWidePageMode,
+        pageTransitionStyle: AppConfig.pageTransitionStyle,
         incognitoMode: incognito
       )
     )
@@ -251,15 +252,21 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
-  private func readerContentKey(useDualPage: Bool) -> String {
+  private func readerPresentationKey(useDualPage: Bool) -> String {
     [
-      currentBookId,
       readingDirection.rawValue,
       pageTransitionStyle.rawValue,
       pageLayout.rawValue,
       isolateCoverPage.description,
       splitWidePageMode.rawValue,
       String(useDualPage),
+    ].joined(separator: "-")
+  }
+
+  private func readerContentKey(useDualPage: Bool) -> String {
+    [
+      currentBookId,
+      readerPresentationKey(useDualPage: useDualPage),
     ].joined(separator: "-")
   }
 
@@ -443,6 +450,9 @@ struct DivinaReaderView: View {
       .onChange(of: useDualPage, initial: true) { _, newValue in
         applyDualPagePresentationMode(newValue)
       }
+      .onChange(of: readerPresentationKey(useDualPage: useDualPage)) { _, _ in
+        viewModel.preserveCurrentPageForPresentationRebuild()
+      }
       #if os(tvOS)
         .onPlayPauseCommand {
           logger.debug("📺 onPlayPauseCommand: toggling controls, showingControls=\(showingControls)")
@@ -523,8 +533,8 @@ struct DivinaReaderView: View {
     .onChange(of: splitWidePageMode) { _, newValue in
       viewModel.updateSplitWidePageMode(newValue)
     }
-    .onChange(of: pageTransitionStyle) { _, _ in
-      viewModel.refreshForPageTransitionChange()
+    .onChange(of: pageTransitionStyle) { _, newValue in
+      viewModel.updatePageTransitionStyle(newValue)
     }
     .task(id: currentBookId) {
       readerPresentation.registerFlushHandler(for: sessionID) {
