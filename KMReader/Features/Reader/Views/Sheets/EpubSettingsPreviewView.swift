@@ -68,7 +68,7 @@
     let fontFamily =
       preferences.fontFamily.fontName.map { "'\($0)'" } ?? "system-ui, -apple-system, sans-serif"
 
-    let fontWeightValue = preferences.fontWeight.map { 240 + Int($0 * 160) }
+    let fontWeightValue = preferences.fontWeight.map { Int($0.rounded()) }
     let letterSpacingEm =
       useAdvancedLayout ? preferences.letterSpacing : EpubConstants.defaultLetterSpacing
     let wordSpacingEm =

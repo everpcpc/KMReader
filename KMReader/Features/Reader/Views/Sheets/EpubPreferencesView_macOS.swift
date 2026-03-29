@@ -84,7 +84,7 @@
     private var fontWeightLabelText: String {
       let valueText: String
       if let fontWeight = draft.fontWeight {
-        valueText = String(format: "%.1f", fontWeight)
+        valueText = "\(Int(fontWeight.rounded()))"
       } else {
         valueText = String(localized: "Default")
       }
@@ -216,8 +216,21 @@
                   .labelsHidden()
               }
 
+              Text(
+                String(
+                  localized:
+                    "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+                )
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
+
               if draft.fontWeight != nil {
-                Slider(value: fontWeightValue, in: 0.0...5.0, step: 0.1)
+                Slider(
+                  value: fontWeightValue,
+                  in: EpubConstants.minimumFontWeight...EpubConstants.maximumFontWeight,
+                  step: EpubConstants.fontWeightStep
+                )
               }
             }
 

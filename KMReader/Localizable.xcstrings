@@ -26589,6 +26589,70 @@
         }
       }
     },
+    "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Unterstützung der Schriftstärke hängt von der aktuellen Schriftart ab. Manche Schriftarten ignorieren diese Einstellung oder unterstützen nur einen Teil des Bereichs."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La compatibilidad del grosor de fuente depende de la fuente actual. Algunas fuentes pueden ignorar este ajuste o solo admitir parte del rango."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La prise en charge de l'épaisseur de police dépend de la police actuelle. Certaines polices peuvent ignorer ce réglage ou ne prendre en charge qu'une partie de la plage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il supporto del peso del carattere dipende dal font corrente. Alcuni font potrebbero ignorare questa impostazione o supportare solo parte dell'intervallo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォントウェイトのサポートは現在のフォントに依存します。フォントによってはこの設定を無視したり、範囲の一部しかサポートしない場合があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "글꼴 두께 지원 여부는 현재 글꼴에 따라 달라집니다. 일부 글꼴은 이 설정을 무시하거나 범위의 일부만 지원할 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддержка толщины шрифта зависит от текущего шрифта. Некоторые шрифты могут игнорировать этот параметр или поддерживать только часть диапазона."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字重是否生效取决于当前字体。有些字体会忽略这个设置，或只支持其中一部分范围。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字重是否生效取決於目前字體。有些字體會忽略這個設定，或只支援其中一部分範圍。"
+          }
+        }
+      }
+    },
     "Force Default Reading Direction" : {
       "localizations" : {
         "de" : {
