@@ -45,7 +45,7 @@ struct DivinaControlsOverlayView: View {
   }
 
   private var animation: Animation {
-    .bouncy(duration: 0.25)
+    .easeInOut(duration: 0.2)
   }
 
   private var currentSegmentBookId: String? {
@@ -145,7 +145,6 @@ struct DivinaControlsOverlayView: View {
           .transition(
             .move(edge: .top)
               .combined(with: .opacity)
-              .combined(with: .scale(scale: 0.8, anchor: .top))
           )
       }
 
@@ -156,7 +155,6 @@ struct DivinaControlsOverlayView: View {
           .transition(
             .move(edge: .bottom)
               .combined(with: .opacity)
-              .combined(with: .scale(scale: 0.8, anchor: .bottom))
           )
       }
     }

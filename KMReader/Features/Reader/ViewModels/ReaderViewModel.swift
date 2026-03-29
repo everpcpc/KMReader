@@ -32,6 +32,7 @@ class ReaderViewModel {
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
+  private var pageTransitionStyle: PageTransitionStyle
   private var isActuallyUsingDualPageMode: Bool = false
   typealias PagePresentationInvalidationHandler = @MainActor (ReaderPagePresentationInvalidation) -> Void
   @ObservationIgnored
@@ -104,6 +105,7 @@ class ReaderViewModel {
       isolateCoverPage: AppConfig.isolateCoverPage,
       pageLayout: AppConfig.pageLayout,
       splitWidePageMode: AppConfig.splitWidePageMode,
+      pageTransitionStyle: AppConfig.pageTransitionStyle,
       incognitoMode: false
     )
   }
@@ -112,12 +114,14 @@ class ReaderViewModel {
     isolateCoverPage: Bool,
     pageLayout: PageLayout,
     splitWidePageMode: SplitWidePageMode = .none,
+    pageTransitionStyle: PageTransitionStyle = AppConfig.pageTransitionStyle,
     incognitoMode: Bool = false
   ) {
     self.pageLoadScheduler = ReaderPageLoadScheduler()
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
+    self.pageTransitionStyle = pageTransitionStyle
     self.incognitoMode = incognitoMode
     pageLoadScheduler.setPresentationInvalidationHandler { [weak self] invalidation in
       self?.notifyPagePresentationInvalidation(invalidation)
@@ -919,6 +923,13 @@ class ReaderViewModel {
     }
   }
 
+  func updatePageTransitionStyle(_ style: PageTransitionStyle) {
+    guard pageTransitionStyle != style else { return }
+    regenerateViewStatePreservingCurrentPage {
+      pageTransitionStyle = style
+    }
+  }
+
   func updateDualPagePresentationMode(_ isUsingDualPageMode: Bool) {
     guard isActuallyUsingDualPageMode != isUsingDualPageMode else { return }
 
@@ -958,8 +969,8 @@ class ReaderViewModel {
     }
   }
 
-  func refreshForPageTransitionChange() {
-    regenerateViewState()
+  func preserveCurrentPageForPresentationRebuild() {
+    requestNavigation(toPageID: resolvedCurrentPageID)
   }
 
   private func regenerateViewState() {
@@ -980,7 +991,7 @@ class ReaderViewModel {
       allowDualPairs: isActuallyUsingDualPageMode,
       forceDualPairs: forceDualPagePairs,
       splitWidePages: effectiveSplitWidePages,
-      pageCurl: AppConfig.pageTransitionStyle == .pageCurl,
+      pageCurl: pageTransitionStyle == .pageCurl,
       isolatePages: Set(isolatePages)
     )
     viewItemIndexByPage = generateViewItemIndexMap(items: viewItems)
