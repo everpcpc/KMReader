@@ -62,6 +62,8 @@ import WidgetKit
             HStack(spacing: 0) {
               Spacer(minLength: 0)
               trailingStatusView(for: context.state)
+                .frame(minWidth: 36, alignment: .trailing)
+                .layoutPriority(1)
             }
             .padding(.trailing, 12)
           }
@@ -95,6 +97,10 @@ import WidgetKit
         Text(state.progressText)
           .font(.caption.weight(.semibold))
           .foregroundStyle(state.tintColor)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+          .allowsTightening(true)
+          .fixedSize(horizontal: true, vertical: false)
       }
     }
 
@@ -108,6 +114,10 @@ import WidgetKit
         Text(state.progressText)
           .font(.caption2.weight(.semibold))
           .foregroundStyle(state.tintColor)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+          .allowsTightening(true)
+          .fixedSize(horizontal: true, vertical: false)
       }
     }
 
@@ -151,6 +161,7 @@ import WidgetKit
           .lineLimit(1)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      .padding(.horizontal, 20)
       .offset(y: -2)
     }
   }
