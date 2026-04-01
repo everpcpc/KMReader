@@ -378,22 +378,42 @@
       #if os(macOS)
         switch activePreferences.flowStyle {
         case .paged:
-          WebPubPagedScrollView(
-            viewModel: viewModel,
-            preferences: activePreferences,
-            colorScheme: colorScheme,
-            showingControls: shouldShowControls,
-            bookTitle: currentBook?.metadata.title,
-            onCenterTap: {
-              toggleControls()
-            },
-            onEndReached: {
-              if !showingEndPage {
-                viewModel.syncEndProgression()
-                showingEndPage = true
+          switch epubPageTransitionStyle {
+          case .cover:
+            WebPubPagedCoverView(
+              viewModel: viewModel,
+              preferences: activePreferences,
+              colorScheme: colorScheme,
+              showingControls: shouldShowControls,
+              bookTitle: currentBook?.metadata.title,
+              onCenterTap: {
+                toggleControls()
+              },
+              onEndReached: {
+                if !showingEndPage {
+                  viewModel.syncEndProgression()
+                  showingEndPage = true
+                }
               }
-            }
-          )
+            )
+          case .scroll, .pageCurl:
+            WebPubPagedScrollView(
+              viewModel: viewModel,
+              preferences: activePreferences,
+              colorScheme: colorScheme,
+              showingControls: shouldShowControls,
+              bookTitle: currentBook?.metadata.title,
+              onCenterTap: {
+                toggleControls()
+              },
+              onEndReached: {
+                if !showingEndPage {
+                  viewModel.syncEndProgression()
+                  showingEndPage = true
+                }
+              }
+            )
+          }
         case .scrolled:
           WebPubScrolledView(
             viewModel: viewModel,
@@ -709,6 +729,23 @@
     }
 
     #if os(macOS)
+      private var isAtLastEpubPage: Bool {
+        guard let lastPosition = viewModel.lastPagePosition() else { return false }
+        return viewModel.currentChapterIndex == lastPosition.chapterIndex
+          && viewModel.currentPageIndex >= lastPosition.pageIndex
+      }
+
+      private func goToNextEpubPage() {
+        if isAtLastEpubPage {
+          if !showingEndPage {
+            viewModel.syncEndProgression()
+            showingEndPage = true
+          }
+          return
+        }
+        viewModel.goToNextPage()
+      }
+
       private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
         ReaderPresentationManager.MacReaderCommandState(
           isActive: true,
@@ -831,7 +868,7 @@
         case .ltr:
           switch keyCode {
           case 124:
-            viewModel.goToNextPage()
+            goToNextEpubPage()
             return true
           case 123:
             viewModel.goToPreviousPage()
@@ -842,7 +879,7 @@
         case .rtl:
           switch keyCode {
           case 123:
-            viewModel.goToNextPage()
+            goToNextEpubPage()
             return true
           case 124:
             viewModel.goToPreviousPage()
@@ -853,7 +890,7 @@
         case .vertical, .webtoon:
           switch keyCode {
           case 125:
-            viewModel.goToNextPage()
+            goToNextEpubPage()
             return true
           case 126:
             viewModel.goToPreviousPage()

@@ -16,6 +16,7 @@
     @State private var showSavePresetAlert: Bool = false
     @State private var newPresetName: String = ""
     @State private var showSystemFontPicker: Bool = false
+    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -171,6 +172,18 @@
                 }
               }
               .pickerStyle(.menu)
+
+              if draft.flowStyle.isPaged {
+                Picker(
+                  String(localized: "Page Transition Style"),
+                  selection: $epubPageTransitionStyle
+                ) {
+                  ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                    Text(style.displayName).tag(style)
+                  }
+                }
+                .pickerStyle(.menu)
+              }
             }
 
             Section(String(localized: "Presets")) {
