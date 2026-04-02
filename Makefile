@@ -56,9 +56,9 @@ help: ## Show this help message
 	@echo "  make clean            - Remove archives and exports"
 	@echo ""
 	@echo "Version commands:"
-	@echo "  make bump             - Increment CURRENT_PROJECT_VERSION in project.pbxproj"
-	@echo "  make major            - Increment major version (MARKETING_VERSION)"
-	@echo "  make minor            - Increment minor version (MARKETING_VERSION)"
+	@echo "  make bump             - Increment CURRENT_PROJECT_VERSION and commit only the version file"
+	@echo "  make major            - Increment major version and commit only the version file"
+	@echo "  make minor            - Increment minor version and commit only the version file"
 	@echo ""
 
 build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS)
@@ -190,13 +190,13 @@ clean: clean-archives clean-exports ## Remove archives and exports
 	@echo "$(GREEN)Cleaned archives and exports successfully!$(NC)"
 
 
-bump: ## Increment CURRENT_PROJECT_VERSION in project.pbxproj
+bump: ## Increment CURRENT_PROJECT_VERSION and commit only the version file
 	@$(MISC_DIR)/bump.sh
 
-major: ## Increment major version (MARKETING_VERSION)
+major: ## Increment major version and commit only the version file
 	@$(MISC_DIR)/bump-version.sh major
 
-minor: ## Increment minor version (MARKETING_VERSION)
+minor: ## Increment minor version and commit only the version file
 	@$(MISC_DIR)/bump-version.sh minor
 
 format: ## Format Swift files with swift-format

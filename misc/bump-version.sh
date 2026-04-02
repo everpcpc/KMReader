@@ -3,7 +3,7 @@
 # Bump marketing version script for KMReader
 # Usage: ./bump-version.sh [major|minor]
 # Increments MARKETING_VERSION in project.pbxproj (two-digit version: major.minor)
-# Requires a clean git working directory
+# Allows unrelated working tree changes, but commits only the version file
 
 set -e
 
@@ -18,7 +18,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Configuration
-PROJECT="$PROJECT_ROOT/KMReader.xcodeproj/project.pbxproj"
+PROJECT_REL="KMReader.xcodeproj/project.pbxproj"
+PROJECT="$PROJECT_ROOT/$PROJECT_REL"
 
 # Check argument
 if [ -z "$1" ]; then
@@ -34,10 +35,10 @@ if [ "$VERSION_TYPE" != "major" ] && [ "$VERSION_TYPE" != "minor" ]; then
 	exit 1
 fi
 
-# Check if git working directory is clean
+# Refuse to bump if the version file itself already has pending changes.
 cd "$PROJECT_ROOT"
-if [ -n "$(git status --porcelain)" ]; then
-	echo -e "${RED}Error: Working directory is not clean. Please commit or stash your changes first.${NC}"
+if ! git diff --quiet -- "$PROJECT_REL" || ! git diff --cached --quiet -- "$PROJECT_REL"; then
+	echo -e "${RED}Error: $PROJECT_REL already has uncommitted changes. Commit or stash them before bumping.${NC}"
 	exit 1
 fi
 
@@ -83,7 +84,7 @@ echo -e "${GREEN}Version bumped successfully!${NC}"
 
 # Commit the changes
 echo -e "${GREEN}Committing changes...${NC}"
-git add "$PROJECT"
-git commit -m "chore: bump version to $NEXT_VERSION"
+git add "$PROJECT_REL"
+git commit -m "chore: bump version to $NEXT_VERSION" -- "$PROJECT_REL"
 
 echo -e "${GREEN}Version bump committed!${NC}"
