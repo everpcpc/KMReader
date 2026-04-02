@@ -163,7 +163,7 @@ Test with:
 
 ### Tech Stack
 
-- **UI**: SwiftUI over UIKit/AppKit, use UIKit/AppKit as less as possible.
+- **UI**: SwiftUI, UIKit, and AppKit are all acceptable. Choose the most maintainable and platform-appropriate approach per feature.
 - **State**: `@Observable` pattern (not `ObservableObject`)
 - **Persistence**: SwiftData for profiles/libraries/fonts/series/books/collections/read lists/dashboard caches, UserDefaults via `AppConfig`
 - **Networking**: Centralized `APIClient` with feature-specific services
@@ -339,7 +339,7 @@ KMReader/
 
 1. **Comments**: Minimal, in English only
 2. **Commit messages**: Concise, clear, semantic format, in English
-3. **SwiftUI over UIKit/AppKit**: Prefer SwiftUI exclusively
+3. **UI framework choice**: SwiftUI, UIKit, and AppKit may all be used. Pick the approach that best fits the feature, platform APIs, and maintainability.
 4. **No inline Binding**: Avoid inline Binding usage
 5. **No confirmationDialog**: Do not use confirmationDialog
 6. **One type per file**: Every struct or class in a separate file
@@ -347,7 +347,7 @@ KMReader/
 8. **@AppStorage over UserDefaults**: In views use @AppStorage; elsewhere use AppConfig, UserDefaults is forbidden in files except AppConfig.swift
 9. **Computed properties in view bodies**: Avoid stored variables in view bodies
 10. **Platform differences**: Use `PlatformHelper` and `#if os(...)` blocks
-11. **Direction rule (UI bridging)**: Allow `SwiftUI -> UIKit/AppKit`, but do not use `UIKit/AppKit -> SwiftUI` (`UIHostingController`/`NSHostingController`) for feature screens/components, because `UIHostingController`/`NSHostingController` does not inherit required SwiftUI environment values in this project.
+11. **UI bridging discipline**: Interop between SwiftUI and UIKit/AppKit is allowed in either direction. Be explicit about dependency injection and verify environment/data propagation across hosting boundaries instead of assuming it will behave correctly.
 12. **Object environment safety**: Do not use non-optional object-style environment dependencies (`@Environment(SomeType.self)`, `@EnvironmentObject`) in app code. Treat them as banned patterns. Pass object dependencies explicitly via initializers, context structs, or action closures. If environment lookup is still required, use a non-object custom `EnvironmentKey` or an optional lookup with controlled fallback/logging instead of crashing.
 13. **No unchecked/unsafe APIs**: Do not use `@unchecked Sendable`, `nonisolated(unsafe)`, `unsafeBitCast`, or other `unsafe*` escape hatches in app code. Prefer safe ownership, actor boundaries, copying, or explicit wrappers. If a low-level API appears to require them, stop and redesign instead of introducing them.
 14. **Strongly avoid patch-style fixes for structural problems**: When the current abstraction or ownership boundary is wrong, do not preserve it by stacking flags, delays, version counters, bridge layers, or special cases just to keep the diff small. Prefer the larger refactor that moves the code toward the final stable architecture.

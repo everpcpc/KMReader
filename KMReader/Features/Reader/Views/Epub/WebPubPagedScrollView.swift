@@ -12,6 +12,7 @@
   /// Uses a single WKWebView and horizontal pagination.
   struct WebPubPagedScrollView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
+    let animatePageTransitions: Bool
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
     let showingControls: Bool
@@ -47,6 +48,7 @@
         readiumProperties: readiumPayload.properties,
         publicationLanguage: viewModel.publicationLanguage,
         publicationReadingProgression: viewModel.publicationReadingProgression,
+        animatePageTransitions: animatePageTransitions,
         chapterIndex: chapterIndex,
         initialSubPageIndex: pageIndex,
         targetProgressionOnReady: initialProgression,
@@ -203,6 +205,7 @@
         readiumProperties: readiumPayload.properties,
         publicationLanguage: viewModel.publicationLanguage,
         publicationReadingProgression: viewModel.publicationReadingProgression,
+        animatePageTransitions: animatePageTransitions,
         chapterIndex: chapterIndex,
         totalChapters: viewModel.chapterCount,
         bookTitle: bookTitle,
@@ -242,6 +245,7 @@
     private var readiumProperties: [String: String?]
     private var publicationLanguage: String?
     private var publicationReadingProgression: WebPubReadingProgression?
+    private var animatePageTransitions: Bool
     private var chapterURL: URL?
     private var rootURL: URL?
     private var lastLayoutSize: CGSize = .zero
@@ -303,6 +307,7 @@
       readiumProperties: [String: String?],
       publicationLanguage: String?,
       publicationReadingProgression: WebPubReadingProgression?,
+      animatePageTransitions: Bool,
       chapterIndex: Int,
       initialSubPageIndex: Int,
       targetProgressionOnReady: Double?,
@@ -323,6 +328,7 @@
       self.readiumProperties = readiumProperties
       self.publicationLanguage = publicationLanguage
       self.publicationReadingProgression = publicationReadingProgression
+      self.animatePageTransitions = animatePageTransitions
       self.chapterIndex = chapterIndex
       self.currentSubPageIndex = max(0, initialSubPageIndex)
       self.targetProgressionOnReady = targetProgressionOnReady
@@ -476,7 +482,8 @@
         totalProgression: totalProgression,
         currentPageIndex: currentSubPageIndex,
         totalPagesInChapter: totalPagesInChapter,
-        showingControls: showingControls
+        showingControls: showingControls,
+        showProgressFooter: AppConfig.epubShowsProgressFooter
       )
       infoOverlay?.update(content: content, animated: true)
     }
@@ -556,7 +563,7 @@
           maxOffset: maxOffset
         )
       case .cancelled, .failed:
-        scrollToPage(currentSubPageIndex)
+        scrollToPage(currentSubPageIndex, animated: animatePageTransitions)
       default:
         break
       }
@@ -613,7 +620,7 @@
         targetPage = currentPage
       }
 
-      scrollToPage(targetPage)
+      scrollToPage(targetPage, animated: animatePageTransitions)
       if targetPage != currentSubPageIndex {
         currentSubPageIndex = targetPage
         updateOverlayLabels()
@@ -644,7 +651,7 @@
       }
 
       let newIndex = currentSubPageIndex - 1
-      scrollToPage(newIndex)
+      scrollToPage(newIndex, animated: animatePageTransitions)
       currentSubPageIndex = newIndex
       updateOverlayLabels()
       onPageDidChange?(chapterIndex, currentSubPageIndex)
@@ -664,7 +671,7 @@
       }
 
       let newIndex = currentSubPageIndex + 1
-      scrollToPage(newIndex)
+      scrollToPage(newIndex, animated: animatePageTransitions)
       currentSubPageIndex = newIndex
       updateOverlayLabels()
       onPageDidChange?(chapterIndex, currentSubPageIndex)
@@ -718,6 +725,7 @@
       readiumProperties: [String: String?],
       publicationLanguage: String?,
       publicationReadingProgression: WebPubReadingProgression?,
+      animatePageTransitions: Bool,
       chapterIndex: Int,
       totalChapters: Int,
       bookTitle: String?,
@@ -748,6 +756,7 @@
       self.readiumProperties = readiumProperties
       self.publicationLanguage = publicationLanguage
       self.publicationReadingProgression = publicationReadingProgression
+      self.animatePageTransitions = animatePageTransitions
       self.chapterIndex = chapterIndex
       self.totalChapters = totalChapters
       self.bookTitle = bookTitle

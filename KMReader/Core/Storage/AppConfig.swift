@@ -782,6 +782,30 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var epubShowsStatusBarWhileReading: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "epubShowsStatusBarWhileReading") != nil {
+        return UserDefaults.standard.bool(forKey: "epubShowsStatusBarWhileReading")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "epubShowsStatusBarWhileReading")
+    }
+  }
+
+  static nonisolated var epubShowsProgressFooter: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "epubShowsProgressFooter") != nil {
+        return UserDefaults.standard.bool(forKey: "epubShowsProgressFooter")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "epubShowsProgressFooter")
+    }
+  }
+
   // MARK: - Dashboard
   static nonisolated var dashboard: DashboardConfiguration {
     get {

@@ -23,6 +23,8 @@
     @State private var newPresetName: String = ""
     @State private var fontListRefreshId: UUID = UUID()
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
+    @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
+    @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
@@ -161,11 +163,35 @@
 
           if draft.flowStyle.isPaged {
             Picker(String(localized: "Page Transition Style"), selection: $epubPageTransitionStyle) {
-              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+              ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
                 Text(style.displayName).tag(style)
               }
             }
             .pickerStyle(.menu)
+
+            Text(epubPageTransitionStyle.description)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Section(String(localized: "Reader Overlay")) {
+          Toggle(isOn: $epubShowsStatusBarWhileReading) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "Show Status Bar While Reading"))
+              Text(String(localized: "Keep time and battery visible when controls are hidden."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+
+          Toggle(isOn: $epubShowsProgressFooter) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "Show Progress Footer"))
+              Text(String(localized: "Show book progress at the bottom while reading."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
           }
         }
 

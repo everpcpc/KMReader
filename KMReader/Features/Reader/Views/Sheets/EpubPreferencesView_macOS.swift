@@ -17,6 +17,7 @@
     @State private var newPresetName: String = ""
     @State private var showSystemFontPicker: Bool = false
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
+    @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -178,11 +179,26 @@
                   String(localized: "Page Transition Style"),
                   selection: $epubPageTransitionStyle
                 ) {
-                  ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                  ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
                     Text(style.displayName).tag(style)
                   }
                 }
                 .pickerStyle(.menu)
+
+                Text(epubPageTransitionStyle.description)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
+
+            Section(String(localized: "Reader Overlay")) {
+              Toggle(isOn: $epubShowsProgressFooter) {
+                VStack(alignment: .leading, spacing: 4) {
+                  Text(String(localized: "Show Progress Footer"))
+                  Text(String(localized: "Show book progress at the bottom while reading."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
               }
             }
 

@@ -680,7 +680,7 @@ struct DivinaReaderView: View {
               #else
                 standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
               #endif
-            case .scroll:
+            case .none, .scroll:
               standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
             case .cover:
               CoverPageView(

@@ -21,6 +21,7 @@
     @AppStorage("currentAccount") private var current: Current = .init()
     @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
+    @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
     @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
 
     @State private var viewModel: EpubReaderViewModel
@@ -82,6 +83,10 @@
       guard viewModel.errorMessage == nil else { return true }
       guard !viewModel.isLoading else { return true }
       return showingControls
+    }
+
+    private var shouldShowStatusBar: Bool {
+      shouldShowControls || epubShowsStatusBarWhileReading
     }
 
     private var handoffBookId: String {
@@ -154,7 +159,7 @@
     var body: some View {
       readerBody
         #if os(iOS)
-          .statusBarHidden(!shouldShowControls)
+          .statusBarHidden(!shouldShowStatusBar)
           .iPadIgnoresSafeArea()
         #endif
         .task(id: book.id) {
@@ -379,6 +384,24 @@
         switch activePreferences.flowStyle {
         case .paged:
           switch epubPageTransitionStyle {
+          case .none:
+            WebPubPagedScrollView(
+              viewModel: viewModel,
+              animatePageTransitions: false,
+              preferences: activePreferences,
+              colorScheme: colorScheme,
+              showingControls: shouldShowControls,
+              bookTitle: currentBook?.metadata.title,
+              onCenterTap: {
+                toggleControls()
+              },
+              onEndReached: {
+                if !showingEndPage {
+                  viewModel.syncEndProgression()
+                  showingEndPage = true
+                }
+              }
+            )
           case .cover:
             WebPubPagedCoverView(
               viewModel: viewModel,
@@ -399,6 +422,7 @@
           case .scroll, .pageCurl:
             WebPubPagedScrollView(
               viewModel: viewModel,
+              animatePageTransitions: true,
               preferences: activePreferences,
               colorScheme: colorScheme,
               showingControls: shouldShowControls,
@@ -437,9 +461,28 @@
         switch activePreferences.flowStyle {
         case .paged:
           switch epubPageTransitionStyle {
+          case .none:
+            WebPubPagedScrollView(
+              viewModel: viewModel,
+              animatePageTransitions: false,
+              preferences: activePreferences,
+              colorScheme: colorScheme,
+              showingControls: shouldShowControls,
+              bookTitle: currentBook?.metadata.title,
+              onCenterTap: {
+                toggleControls()
+              },
+              onEndReached: {
+                if !showingEndPage {
+                  viewModel.syncEndProgression()
+                  showingEndPage = true
+                }
+              }
+            ).readerIgnoresSafeArea()
           case .scroll:
             WebPubPagedScrollView(
               viewModel: viewModel,
+              animatePageTransitions: true,
               preferences: activePreferences,
               colorScheme: colorScheme,
               showingControls: shouldShowControls,

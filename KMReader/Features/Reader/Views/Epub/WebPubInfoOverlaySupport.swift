@@ -28,6 +28,7 @@
       let bottomLeading: Entry
       let bottomCenter: Entry
       let bottomTrailing: Entry
+      let bottomProgress: Double?
     }
 
     static func containerInsets(topOffset: CGFloat, bottomOffset: CGFloat) -> ReaderContainerInsets {
@@ -41,7 +42,8 @@
       totalProgression: Double?,
       currentPageIndex: Int,
       totalPagesInChapter: Int,
-      showingControls: Bool
+      showingControls: Bool,
+      showProgressFooter: Bool = false
     ) -> Content {
       let topTitle =
         showingControls
@@ -65,7 +67,8 @@
           topProgress: topProgress,
           bottomLeading: .hidden,
           bottomCenter: .hidden,
-          bottomTrailing: .hidden
+          bottomTrailing: .hidden,
+          bottomProgress: nil
         )
       }
 
@@ -80,9 +83,12 @@
             currentPageIndex: currentPageIndex,
             totalPagesInChapter: totalPagesInChapter
           ),
-          bottomTrailing: .hidden
+          bottomTrailing: .hidden,
+          bottomProgress: nil
         )
       }
+
+      let bottomProgress = showProgressFooter ? totalProgression : nil
 
       return Content(
         showingControls: showingControls,
@@ -94,7 +100,8 @@
           flowStyle: flowStyle,
           currentPageIndex: currentPageIndex,
           totalPagesInChapter: totalPagesInChapter
-        )
+        ),
+        bottomProgress: bottomProgress
       )
     }
 
@@ -163,18 +170,23 @@
     #if os(iOS)
       @MainActor
       final class UIKitOverlay {
+        private weak var containerView: UIView?
         private let topTitleLabel: UILabel
         private let topProgressLabel: UILabel
         private let bottomLeadingLabel: UILabel
         private let bottomCenterLabel: UILabel
         private let bottomTrailingLabel: UILabel
+        private let bottomProgressTrackView: UIView
+        private let bottomProgressFillView: UIView
+        private let bottomProgressFillWidthConstraint: NSLayoutConstraint
         private var currentContent = Content(
           showingControls: false,
           topTitle: .hidden,
           topProgress: .hidden,
           bottomLeading: .hidden,
           bottomCenter: .hidden,
-          bottomTrailing: .hidden
+          bottomTrailing: .hidden,
+          bottomProgress: nil
         )
 
         init(
@@ -185,15 +197,34 @@
           bottomOffset: CGFloat,
           theme: ReaderTheme
         ) {
+          self.containerView = containerView
           topTitleLabel = Self.makeLabel(fontSize: 14, alignment: .center)
           topProgressLabel = Self.makeLabel(fontSize: 14, alignment: .center)
           bottomLeadingLabel = Self.makeLabel(fontSize: 12, alignment: .left)
           bottomCenterLabel = Self.makeLabel(fontSize: 12, alignment: .center, monospaced: true)
           bottomTrailingLabel = Self.makeLabel(fontSize: 12, alignment: .right, monospaced: true)
+          bottomProgressTrackView = UIView()
+          bottomProgressTrackView.translatesAutoresizingMaskIntoConstraints = false
+          bottomProgressTrackView.layer.cornerRadius = 1.5
+          bottomProgressTrackView.clipsToBounds = true
+          bottomProgressTrackView.isUserInteractionEnabled = false
+          bottomProgressTrackView.alpha = 0
+
+          bottomProgressFillView = UIView()
+          bottomProgressFillView.translatesAutoresizingMaskIntoConstraints = false
+          bottomProgressFillView.layer.cornerRadius = 1.5
+          bottomProgressFillView.clipsToBounds = true
+          bottomProgressFillView.isUserInteractionEnabled = false
+          bottomProgressFillView.alpha = 0
+          bottomProgressTrackView.addSubview(bottomProgressFillView)
+          bottomProgressFillWidthConstraint = bottomProgressFillView.widthAnchor.constraint(equalToConstant: 0)
 
           let bottomConstant = -bottomOffset
-          [topTitleLabel, topProgressLabel, bottomLeadingLabel, bottomCenterLabel, bottomTrailingLabel]
-            .forEach(containerView.addSubview)
+          [
+            topTitleLabel, topProgressLabel, bottomLeadingLabel, bottomCenterLabel, bottomTrailingLabel,
+            bottomProgressTrackView,
+          ]
+          .forEach(containerView.addSubview)
 
           NSLayoutConstraint.activate([
             topTitleLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
@@ -214,6 +245,17 @@
             bottomTrailingLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             bottomTrailingLabel.leadingAnchor.constraint(
               greaterThanOrEqualTo: bottomLeadingLabel.trailingAnchor, constant: 8),
+
+            bottomProgressTrackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            bottomProgressTrackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            bottomProgressTrackView.bottomAnchor.constraint(
+              equalTo: bottomAnchor, constant: min(CGFloat(0), bottomConstant + 6)),
+            bottomProgressTrackView.heightAnchor.constraint(equalToConstant: 3),
+
+            bottomProgressFillView.leadingAnchor.constraint(equalTo: bottomProgressTrackView.leadingAnchor),
+            bottomProgressFillView.topAnchor.constraint(equalTo: bottomProgressTrackView.topAnchor),
+            bottomProgressFillView.bottomAnchor.constraint(equalTo: bottomProgressTrackView.bottomAnchor),
+            bottomProgressFillWidthConstraint,
           ])
 
           bottomLeadingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -230,6 +272,8 @@
           let labelColor = theme.uiColorText.withAlphaComponent(0.6)
           [topTitleLabel, topProgressLabel, bottomLeadingLabel, bottomCenterLabel, bottomTrailingLabel]
             .forEach { $0.textColor = labelColor }
+          bottomProgressTrackView.backgroundColor = theme.uiColorText.withAlphaComponent(0.18)
+          bottomProgressFillView.backgroundColor = theme.uiColorText.withAlphaComponent(0.85)
         }
 
         func update(content: Content, animated: Bool) {
@@ -260,6 +304,8 @@
               self.bottomTrailingLabel.text = text
             }
             self.bottomTrailingLabel.alpha = content.bottomTrailing.isVisible ? 1.0 : 0.0
+
+            self.updateProgressBar(progress: content.bottomProgress)
           }
 
           guard animated else {
@@ -270,6 +316,18 @@
           UIView.animate {
             updates()
           }
+        }
+
+        private func updateProgressBar(progress: Double?) {
+          containerView?.layoutIfNeeded()
+          let visible = progress != nil
+          let normalized = min(max(progress ?? 0, 0), 1)
+          let trackWidth = bottomProgressTrackView.bounds.width
+          let fillWidth = max(trackWidth * normalized, normalized > 0 ? 4 : 0)
+          bottomProgressFillWidthConstraint.constant = fillWidth
+          bottomProgressTrackView.alpha = visible ? 1.0 : 0.0
+          bottomProgressFillView.alpha = visible ? 1.0 : 0.0
+          containerView?.layoutIfNeeded()
         }
 
         private static func makeLabel(
@@ -294,18 +352,23 @@
     #elseif os(macOS)
       @MainActor
       final class AppKitOverlay {
+        private weak var containerView: NSView?
         private let topTitleLabel: NSTextField
         private let topProgressLabel: NSTextField
         private let bottomLeadingLabel: NSTextField
         private let bottomCenterLabel: NSTextField
         private let bottomTrailingLabel: NSTextField
+        private let bottomProgressTrackView: NSView
+        private let bottomProgressFillView: NSView
+        private let bottomProgressFillWidthConstraint: NSLayoutConstraint
         private var currentContent = Content(
           showingControls: false,
           topTitle: .hidden,
           topProgress: .hidden,
           bottomLeading: .hidden,
           bottomCenter: .hidden,
-          bottomTrailing: .hidden
+          bottomTrailing: .hidden,
+          bottomProgress: nil
         )
 
         init(
@@ -314,15 +377,32 @@
           bottomOffset: CGFloat,
           theme: ReaderTheme
         ) {
+          self.containerView = containerView
           topTitleLabel = Self.makeLabel(fontSize: 14, alignment: .center)
           topProgressLabel = Self.makeLabel(fontSize: 14, alignment: .center)
           bottomLeadingLabel = Self.makeLabel(fontSize: 12, alignment: .left)
           bottomCenterLabel = Self.makeLabel(fontSize: 12, alignment: .center, monospaced: true)
           bottomTrailingLabel = Self.makeLabel(fontSize: 12, alignment: .right, monospaced: true)
+          bottomProgressTrackView = NSView()
+          bottomProgressTrackView.translatesAutoresizingMaskIntoConstraints = false
+          bottomProgressTrackView.wantsLayer = true
+          bottomProgressTrackView.layer?.cornerRadius = 1.5
+          bottomProgressTrackView.alphaValue = 0
+
+          bottomProgressFillView = NSView()
+          bottomProgressFillView.translatesAutoresizingMaskIntoConstraints = false
+          bottomProgressFillView.wantsLayer = true
+          bottomProgressFillView.layer?.cornerRadius = 1.5
+          bottomProgressFillView.alphaValue = 0
+          bottomProgressTrackView.addSubview(bottomProgressFillView)
+          bottomProgressFillWidthConstraint = bottomProgressFillView.widthAnchor.constraint(equalToConstant: 0)
 
           let bottomConstant = -bottomOffset
-          [topTitleLabel, topProgressLabel, bottomLeadingLabel, bottomCenterLabel, bottomTrailingLabel]
-            .forEach(containerView.addSubview)
+          [
+            topTitleLabel, topProgressLabel, bottomLeadingLabel, bottomCenterLabel, bottomTrailingLabel,
+            bottomProgressTrackView,
+          ]
+          .forEach(containerView.addSubview)
 
           NSLayoutConstraint.activate([
             topTitleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: topOffset),
@@ -343,6 +423,17 @@
             bottomTrailingLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             bottomTrailingLabel.leadingAnchor.constraint(
               greaterThanOrEqualTo: bottomLeadingLabel.trailingAnchor, constant: 8),
+
+            bottomProgressTrackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            bottomProgressTrackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            bottomProgressTrackView.bottomAnchor.constraint(
+              equalTo: containerView.bottomAnchor, constant: min(CGFloat(0), bottomConstant + 6)),
+            bottomProgressTrackView.heightAnchor.constraint(equalToConstant: 3),
+
+            bottomProgressFillView.leadingAnchor.constraint(equalTo: bottomProgressTrackView.leadingAnchor),
+            bottomProgressFillView.topAnchor.constraint(equalTo: bottomProgressTrackView.topAnchor),
+            bottomProgressFillView.bottomAnchor.constraint(equalTo: bottomProgressTrackView.bottomAnchor),
+            bottomProgressFillWidthConstraint,
           ])
 
           bottomLeadingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -359,6 +450,8 @@
           let labelColor = (NSColor(hex: theme.textColorHex) ?? .labelColor).withAlphaComponent(0.6)
           [topTitleLabel, topProgressLabel, bottomLeadingLabel, bottomCenterLabel, bottomTrailingLabel]
             .forEach { $0.textColor = labelColor }
+          bottomProgressTrackView.layer?.backgroundColor = labelColor.withAlphaComponent(0.18).cgColor
+          bottomProgressFillView.layer?.backgroundColor = labelColor.withAlphaComponent(0.85).cgColor
         }
 
         func update(content: Content, animated: Bool) {
@@ -371,6 +464,7 @@
             self.apply(entry: content.bottomLeading, to: self.bottomLeadingLabel)
             self.apply(entry: content.bottomCenter, to: self.bottomCenterLabel)
             self.apply(entry: content.bottomTrailing, to: self.bottomTrailingLabel)
+            self.updateProgressBar(progress: content.bottomProgress)
           }
 
           guard animated, isControlsTransition else {
@@ -390,6 +484,18 @@
             label.stringValue = text
           }
           label.animator().alphaValue = entry.isVisible ? 1.0 : 0.0
+        }
+
+        private func updateProgressBar(progress: Double?) {
+          containerView?.layoutSubtreeIfNeeded()
+          let visible = progress != nil
+          let normalized = min(max(progress ?? 0, 0), 1)
+          let trackWidth = bottomProgressTrackView.bounds.width
+          let fillWidth = max(trackWidth * normalized, normalized > 0 ? 4 : 0)
+          bottomProgressFillWidthConstraint.constant = fillWidth
+          bottomProgressTrackView.alphaValue = visible ? 1.0 : 0.0
+          bottomProgressFillView.alphaValue = visible ? 1.0 : 0.0
+          containerView?.layoutSubtreeIfNeeded()
         }
 
         private static func makeLabel(

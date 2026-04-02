@@ -1333,7 +1333,8 @@
         totalProgression: totalProgression,
         currentPageIndex: currentSubPageIndex,
         totalPagesInChapter: totalPagesInChapter,
-        showingControls: showingControls
+        showingControls: showingControls,
+        showProgressFooter: AppConfig.epubShowsProgressFooter
       )
       infoOverlay?.update(content: content, animated: true)
     }

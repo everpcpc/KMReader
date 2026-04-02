@@ -5,6 +5,7 @@
 
   struct WebPubPagedScrollView: NSViewRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
+    let animatePageTransitions: Bool
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
     let showingControls: Bool
@@ -75,6 +76,7 @@
     private var chapterTitle: String?
     private var totalProgression: Double?
     private var isAwaitingPaginationReady = false
+    private var animatePageTransitions = true
 
     init(parent: WebPubPagedScrollView) {
       self.parent = parent
@@ -131,6 +133,7 @@
       totalProgression = currentLocation.flatMap { location in
         parent.viewModel.totalProgression(location: location, chapterProgress: nil)
       }
+      animatePageTransitions = parent.animatePageTransitions
 
       if let targetChapterIndex = parent.viewModel.targetChapterIndex,
         let targetPageIndex = parent.viewModel.targetPageIndex,
@@ -206,7 +209,8 @@
         totalProgression: totalProgression,
         currentPageIndex: currentSubPageIndex,
         totalPagesInChapter: totalPagesInChapter,
-        showingControls: parent.showingControls
+        showingControls: parent.showingControls,
+        showProgressFooter: AppConfig.epubShowsProgressFooter
       )
       infoOverlay?.update(content: content, animated: true)
     }
@@ -228,7 +232,7 @@
     private func goToPreviousPage() {
       if currentSubPageIndex > 0 {
         let page = currentSubPageIndex - 1
-        scrollToPage(page, animated: true)
+        scrollToPage(page, animated: animatePageTransitions)
         commitPage(page)
         return
       }
@@ -241,7 +245,7 @@
     private func goToNextPage() {
       if currentSubPageIndex < totalPagesInChapter - 1 {
         let page = currentSubPageIndex + 1
-        scrollToPage(page, animated: true)
+        scrollToPage(page, animated: animatePageTransitions)
         commitPage(page)
         return
       }
