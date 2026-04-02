@@ -6,14 +6,14 @@ IMPORTANT FEATURES
 
 - Native readers for every format
 DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl (iOS), cover-style transitions on all platforms, optional page shadows, clearer page-turn animation controls, and steadier scroll reading with better RTL and wide-page handling.
-EPUB on iOS and macOS with paged, scrolled, or cover layouts, custom fonts, themes, and per-book preferences.
+EPUB on iOS and macOS with paged, scrolled, or cover layouts, custom fonts, themes, text alignment and font-weight controls, and configurable overlay/footer visibility.
 Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when you revisit pages.
 PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality, and clearer offline preparation progress.
 Incognito mode, optional reader Live Activities with progress or incognito status, and iOS Live Text support let you read your way.
 
 - Dashboard, discovery, and shortcuts
 Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists keep important items close.
-Browse Series, Books, Collections, and Read Lists with advanced metadata filters, saved filters, and optional unread-cover blur.
+Browse Series, Books, Collections, and Read Lists with advanced metadata filters, saved filters, optional unread-cover blur, and automatically synced reading history.
 Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions, help you jump back into reading faster.
 KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 

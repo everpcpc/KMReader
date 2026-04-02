@@ -23,7 +23,7 @@
 ### Native Reading Experience
 
 - DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, optional page shadows, clearer page-turn animation controls, and steadier scroll and cover navigation with better RTL, wide-page, and interruption handling.
-- EPUB reader on iOS/macOS with paged, scrolled, and cover layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
+- EPUB reader on iOS/macOS with paged, scrolled, and cover layouts, custom font importing (`.ttf`/`.otf`), theme presets, text alignment and font-weight controls, optional status/footer overlays, multi-column reading, and nested table of contents.
 - Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when reopening or revisiting pages.
 - PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, and clearer progress feedback.
 - Per-book preferences save reading direction, page layout, and theme settings.
@@ -35,7 +35,7 @@
 - Browse Series, Books, Collections, and Read Lists with metadata filters for publishers, authors, genres, tags, and languages using all/any logic.
 - Save and reuse filters across browse surfaces.
 - Optional unread-cover blur helps hide spoiler-heavy artwork until you start reading.
-- Reading history and stats help surface recent activity from synced local data.
+- Reading history and stats stay fresh with automatic sync and help surface recent activity from synced local data.
 - Spotlight integration for downloaded content on iOS/macOS, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 - UI localization includes English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
