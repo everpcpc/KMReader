@@ -1,15 +1,13 @@
 Reader Improvements
-- EPUB on macOS now feels much closer to the iOS experience, with better settings, preview behavior, overlays, and keyboard shortcuts.
-- EPUB reading has been improved across the app with better pagination, typography controls, dark theme behavior, link colors, and image rendering.
-- Reader navigation is more reliable, including smoother DIVINA scrolling, better page position restoration, and more accurate next and previous book handling.
-- Live Text interactions in the reader are more precise, reducing accidental page turns or missed control toggles.
+- EPUB adds richer reading controls, including text alignment, more consistent font-weight behavior, better overlay options, and improved progress display on iPhone, iPad, and Mac.
+- macOS EPUB paged reading now supports cover-style page turns, bringing it closer to the native feel available elsewhere in KMReader.
+- Reader navigation is steadier across DIVINA, EPUB, and Webtoon, with better position recovery after rotation, reloads, and end-of-chapter preloading.
+- Live Text interactions are more precise, reducing accidental page turns near text selection.
 
-Browsing and Library Updates
-- Added a faster single-library picker mode for quicker filtering, including easier access on Apple TV.
-- Book, series, and one-shot detail pages now support native share actions.
-- Detail pages are easier to scan with collapsible metadata and link sections, plus clearer combined tag display.
+Offline and Sync
+- Offline EPUB handling is more reliable, with safer download finalization and better recovery when reopening downloaded books.
+- Reading history now syncs automatically on app launch and resume, so recent activity stays current with less manual refresh.
 
-Polish and Fixes
-- Improved reader overlay animations and control behavior, especially for EPUB on iPhone, iPad, and Mac.
-- Fixed several iPad layout issues related to closing the reader and restoring the main interface correctly.
-- Refined end-of-book screens and close button styling for a cleaner, more consistent finish across platforms.
+Polish and Quality
+- Reader and download Live Activities are cleaner and easier to read, especially in Dynamic Island.
+- Completed books now show more useful last-read details, and several reader overlays and picker views have been refined for a more consistent experience.
