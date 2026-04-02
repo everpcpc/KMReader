@@ -870,6 +870,7 @@ actor OfflineManager {
         instanceId: instanceId,
         seriesTitle: info.seriesTitle,
         bookInfo: info.bookInfo,
+        kind: info.kind,
         totalTasks: totalTaskCount,
         completedTasks: completedTaskCount
       )
@@ -937,6 +938,7 @@ actor OfflineManager {
         instanceId: instanceId,
         seriesTitle: info.seriesTitle,
         bookInfo: info.bookInfo,
+        kind: info.kind,
         totalTasks: 1,
         completedTasks: 0
       )
@@ -982,6 +984,7 @@ actor OfflineManager {
         instanceId: instanceId,
         seriesTitle: info.seriesTitle,
         bookInfo: info.bookInfo,
+        kind: info.kind,
         totalTasks: 1,
         completedTasks: 0
       )
@@ -1001,13 +1004,15 @@ actor OfflineManager {
       instanceId: String,
       seriesTitle: String?,
       bookInfo: String,
+      kind: DownloadContentKind,
       totalTasks: Int,
       completedTasks: Int
     ) {
       backgroundDownloadInfo[bookId] = (
         instanceId: instanceId,
         seriesTitle: seriesTitle,
-        bookInfo: bookInfo
+        bookInfo: bookInfo,
+        kind: kind
       )
       backgroundDownloadTotalTasks[bookId] = totalTasks
       backgroundDownloadCompletedTasks[bookId] = min(max(completedTasks, 0), totalTasks)
@@ -1022,6 +1027,7 @@ actor OfflineManager {
       backgroundDownloadInfo.removeValue(forKey: bookId)
       backgroundDownloadTotalTasks.removeValue(forKey: bookId)
       backgroundDownloadCompletedTasks.removeValue(forKey: bookId)
+      backgroundDownloadFinalizingBooks.remove(bookId)
     }
   #endif
 
@@ -1277,6 +1283,27 @@ actor OfflineManager {
     return total
   }
 
+  private nonisolated static func directoryContainsFiles(_ url: URL) -> Bool {
+    guard
+      let enumerator = FileManager.default.enumerator(
+        at: url,
+        includingPropertiesForKeys: [.isDirectoryKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return false
+    }
+
+    for case let fileURL as URL in enumerator {
+      let attrs = try? fileURL.resourceValues(forKeys: [.isDirectoryKey])
+      if attrs?.isDirectory == false {
+        return true
+      }
+    }
+
+    return false
+  }
+
   // MARK: - Private Helpers
 
   private func refreshQueueStatus(instanceId: String) async {
@@ -1409,10 +1436,11 @@ actor OfflineManager {
     /// Track background download context per book
     private var backgroundDownloadInfo:
       [String: (
-        instanceId: String, seriesTitle: String?, bookInfo: String
+        instanceId: String, seriesTitle: String?, bookInfo: String, kind: DownloadContentKind
       )] = [:]
     private var backgroundDownloadTotalTasks: [String: Int] = [:]
     private var backgroundDownloadCompletedTasks: [String: Int] = [:]
+    private var backgroundDownloadFinalizingBooks: Set<String> = []
     private func handleBackgroundDownloadComplete(
       bookId: String, pageNumber: Int?, fileURL: URL
     ) async {
@@ -1463,7 +1491,9 @@ actor OfflineManager {
       )
 
       if completedTasks >= totalTasks {
-        await finalizeBackgroundBookDownload(bookId: bookId, info: info)
+        logger.debug(
+          "✅ Final per-file background callback received for book \(bookId); waiting for all-complete callback"
+        )
       }
     }
 
@@ -1582,19 +1612,35 @@ actor OfflineManager {
         return
       }
 
+      if backgroundDownloadFinalizingBooks.contains(bookId) {
+        logger.debug(
+          "⏭️ Ignore duplicate all-complete callback while finalizing book \(bookId), completed=\(completedTasks)/\(totalTasks)"
+        )
+        return
+      }
+
+      backgroundDownloadFinalizingBooks.insert(bookId)
+      logger.debug(
+        "🔒 Claimed background finalize for book \(bookId), completed=\(completedTasks)/\(totalTasks)"
+      )
       await finalizeBackgroundBookDownload(bookId: bookId, info: info)
     }
 
     private func finalizeBackgroundBookDownload(
       bookId: String,
-      info: (instanceId: String, seriesTitle: String?, bookInfo: String)
+      info: (instanceId: String, seriesTitle: String?, bookInfo: String, kind: DownloadContentKind)
     ) async {
+      defer {
+        backgroundDownloadFinalizingBooks.remove(bookId)
+      }
       logger.info("✅ Background downloads finished for book: \(bookId)")
       let bookDir = bookDirectory(instanceId: info.instanceId, bookId: bookId)
 
       // Extract EPUB file if present (single-file download approach)
       let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
       if FileManager.default.fileExists(atPath: epubFile.path) {
+        let recoveryMessage = "Offline EPUB download is incomplete. Please retry downloading this book."
+
         func failExtraction(_ message: String) async {
           logger.error("❌ \(message): \(bookId)")
           try? FileManager.default.removeItem(at: bookDir)
@@ -1611,7 +1657,10 @@ actor OfflineManager {
           let manifest = try? await DatabaseOperator.database().fetchWebPubManifest(
             bookId: bookId, instanceId: info.instanceId)
         else {
-          await failExtraction("Missing WebPub manifest. Please retry download.")
+          logger.error(
+            "❌ Missing WebPub manifest during background EPUB finalization for book \(bookId), bookDir=\(bookDir.path)"
+          )
+          await failExtraction(recoveryMessage)
           return
         }
         do {
@@ -1619,8 +1668,31 @@ actor OfflineManager {
             epubFile: epubFile, bookId: bookId, manifest: manifest, bookDir: bookDir)
           try? FileManager.default.removeItem(at: epubFile)
         } catch {
-          await failExtraction(error.localizedDescription)
+          logger.error(
+            "❌ Background EPUB extraction failed for book \(bookId), file=\(epubFile.lastPathComponent), bookDir=\(bookDir.path), error=\(error.localizedDescription)"
+          )
+          await failExtraction(recoveryMessage)
           return
+        }
+      } else if !Self.directoryContainsFiles(webPubRootURL(bookDir: bookDir)) {
+        switch info.kind {
+        case .epubWebPub:
+          logger.warning(
+            "⚠️ EPUB archive and extracted resources are both missing during background finalization for book \(bookId), bookDir=\(bookDir.path)"
+          )
+          try? await DatabaseOperator.database().updateBookDownloadStatus(
+            bookId: bookId,
+            instanceId: info.instanceId,
+            status: .failed(error: "Offline EPUB download is incomplete. Please retry downloading this book.")
+          )
+          try? await DatabaseOperator.database().commit()
+          clearBackgroundDownloadContext(bookId: bookId)
+          removeActiveTask(bookId)
+          await refreshQueueStatus(instanceId: info.instanceId)
+          await syncDownloadQueue(instanceId: info.instanceId)
+          return
+        default:
+          break
         }
       }
 

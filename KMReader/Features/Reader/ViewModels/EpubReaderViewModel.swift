@@ -200,9 +200,7 @@
           let database = await DatabaseOperator.databaseIfConfigured(),
           let manifest = await database.fetchWebPubManifest(bookId: bookId)
         else {
-          throw AppErrorType.missingRequiredData(
-            message: "Missing WebPub manifest. Please re-download this book."
-          )
+          throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
         logger.debug("WebPub manifest loaded from offline storage")
         publicationLanguage = manifest.metadata?.language
@@ -214,9 +212,7 @@
             bookId: bookId
           )
         else {
-          throw AppErrorType.missingRequiredData(
-            message: "Offline resources are missing. Please re-download this book."
-          )
+          throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
 
         downloadProgress = 1.0
@@ -994,6 +990,7 @@
     private func cacheChapterURLs() async throws {
       chapterURLCache = [:]
       for (index, link) in readingOrder.enumerated() {
+        let normalizedHref = Self.normalizedHref(link.href)
         guard
           let cachedURL = await OfflineManager.shared.cachedOfflineWebPubResourceURL(
             instanceId: AppConfig.current.instanceId,
@@ -1001,10 +998,18 @@
             href: link.href
           )
         else {
-          throw AppErrorType.invalidFileURL(url: Self.normalizedHref(link.href))
+          let rootPath = resourceRootURL?.path ?? "unknown"
+          logger.error(
+            "❌ Offline WebPub resource missing for book \(bookId): chapterIndex=\(index), href=\(normalizedHref), originalHref=\(link.href), root=\(rootPath)"
+          )
+          throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
         chapterURLCache[index] = cachedURL
       }
+    }
+
+    private func offlineEpubRecoveryMessage() -> String {
+      "Offline EPUB files are incomplete. Please delete and re-download this book."
     }
 
     private func loadTextLengthCache() {
