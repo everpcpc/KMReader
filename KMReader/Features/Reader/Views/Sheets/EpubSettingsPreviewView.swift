@@ -79,6 +79,8 @@
       useAdvancedLayout ? preferences.paragraphSpacing : EpubConstants.defaultParagraphSpacing
     let paragraphIndentEm =
       useAdvancedLayout ? preferences.paragraphIndent : EpubConstants.defaultParagraphIndent
+    let textAlignment = useAdvancedLayout ? preferences.textAlignment.readiumTextAlign : nil
+    let bodyHyphens = useAdvancedLayout ? preferences.textAlignment.readiumBodyHyphens : nil
 
     let internalPadding = Int(round(max(0, preferences.pageMargins) * 20.0))
 
@@ -126,6 +128,8 @@
         letter-spacing: \(letterSpacingEm)em;
         word-spacing: \(wordSpacingEm)em;
         line-height: \(lineHeightValue);
+        \(textAlignment.map { "text-align: \($0);" } ?? "")
+        \(bodyHyphens.map { "-webkit-hyphens: \($0); hyphens: \($0);" } ?? "")
       }
       p {
         margin: 0;

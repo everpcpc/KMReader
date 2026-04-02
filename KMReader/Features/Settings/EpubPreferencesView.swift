@@ -340,6 +340,26 @@
           }
 
           Section(String(localized: "Line & Paragraph")) {
+            Picker(
+              String(localized: "epub.text_alignment.title", defaultValue: "Text Alignment"),
+              selection: $draft.textAlignment
+            ) {
+              ForEach(EpubTextAlignment.allCases) { alignment in
+                Text(alignment.displayName)
+                  .tag(alignment)
+              }
+            }
+            .pickerStyle(.menu)
+
+            Text(
+              String(
+                localized: "epub.text_alignment.justify.description",
+                defaultValue: "Justify automatically enables hyphenation."
+              )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
             VStack(alignment: .leading) {
               Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
               Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
@@ -381,6 +401,7 @@
         draft.paragraphIndent = EpubConstants.defaultParagraphIndent
         draft.letterSpacing = EpubConstants.defaultLetterSpacing
         draft.lineHeight = EpubConstants.defaultLineHeight
+        draft.textAlignment = .publisherDefault
       }
       .safeAreaInset(edge: .top, spacing: 0) {
         EpubSettingsPreviewView(preferences: draft)

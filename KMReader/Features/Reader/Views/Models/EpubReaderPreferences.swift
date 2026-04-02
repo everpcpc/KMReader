@@ -47,6 +47,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     "--USER__fontWeight",
     "--USER__colCount",
     "--USER__lineLength",
+    "--USER__textAlign",
+    "--USER__bodyHyphens",
     "--USER__fontSize",
     "--USER__lineHeight",
     "--USER__paraSpacing",
@@ -67,6 +69,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   var letterSpacing: Double
   var lineHeight: Double
   var columnCount: EpubColumnCount
+  var textAlignment: EpubTextAlignment
   var pageMargins: Double
   var tapScrollPercentage: Double
 
@@ -83,6 +86,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     letterSpacing: Double = EpubConstants.defaultLetterSpacing,
     lineHeight: Double = EpubConstants.defaultLineHeight,
     columnCount: EpubColumnCount = .auto,
+    textAlignment: EpubTextAlignment = .publisherDefault,
     pageMargins: Double = EpubConstants.defaultPageMargins,
     tapScrollPercentage: Double = EpubConstants.defaultTapScrollPercentage,
   ) {
@@ -97,6 +101,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     self.columnCount = columnCount
     self.letterSpacing = letterSpacing
     self.lineHeight = lineHeight
+    self.textAlignment = textAlignment
     self.fontWeight = fontWeight
     self.advancedLayout = advancedLayout
     self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
@@ -131,6 +136,9 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let lineHeight = dict["lineHeight"] as? Double ?? EpubConstants.defaultLineHeight
     let columnCountRaw = dict["columnCount"] as? String ?? EpubColumnCount.auto.rawValue
     let columnCount = EpubColumnCount(rawValue: columnCountRaw) ?? .auto
+    let textAlignmentRaw =
+      dict["textAlignment"] as? String ?? EpubTextAlignment.publisherDefault.rawValue
+    let textAlignment = EpubTextAlignment(rawValue: textAlignmentRaw) ?? .publisherDefault
     let rawPageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
     let pageMargins = Self.normalizedPageMargins(rawPageMargins)
     let rawTapScrollPercentage =
@@ -150,6 +158,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       letterSpacing: letterSpacing,
       lineHeight: lineHeight,
       columnCount: columnCount,
+      textAlignment: textAlignment,
       pageMargins: pageMargins,
       tapScrollPercentage: tapScrollPercentage,
     )
@@ -168,6 +177,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       "letterSpacing": letterSpacing,
       "lineHeight": lineHeight,
       "columnCount": columnCount.rawValue,
+      "textAlignment": textAlignment.rawValue,
       "pageMargins": pageMargins,
       "tapScrollPercentage": tapScrollPercentage,
     ]
@@ -222,6 +232,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     }
     properties["--USER__colCount"] = resolvedReadiumColumnCount(for: viewportSize)
     properties["--USER__lineLength"] = readiumLineLengthValue(for: pageMargins)
+    properties["--USER__textAlign"] = nil
+    properties["--USER__bodyHyphens"] = nil
 
     if theme.isDark {
       properties["--USER__textColor"] = theme.textColorHex
@@ -245,6 +257,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       let paragraphSpacingRem = max(0, paragraphSpacing)
       let paragraphIndentRem = max(0, paragraphIndent)
 
+      properties["--USER__textAlign"] = textAlignment.readiumTextAlign
+      properties["--USER__bodyHyphens"] = textAlignment.readiumBodyHyphens
       properties["--USER__fontSize"] = String(format: "%.2f%%", fontSizePercent)
       properties["--USER__lineHeight"] = String(format: "%.2f", lineHeight)
       properties["--USER__paraSpacing"] = String(format: "%.2frem", paragraphSpacingRem)
@@ -258,6 +272,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       properties["--USER__paraIndent"] = nil
       properties["--USER__wordSpacing"] = nil
       properties["--USER__letterSpacing"] = nil
+      properties["--USER__textAlign"] = nil
+      properties["--USER__bodyHyphens"] = nil
     }
 
     let fontFaceCSS = makeFontFaceCSS(
