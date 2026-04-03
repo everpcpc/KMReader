@@ -10,6 +10,18 @@ from pathlib import Path
 from localize_sort import sort_entries, sort_keys
 
 REQUIRED_PLATFORMS = ("ios", "macos", "tvos")
+LOCALIZATION_KEY_ORDER = (
+    "de",
+    "en",
+    "es",
+    "fr",
+    "it",
+    "ja",
+    "ko",
+    "ru",
+    "zh-Hans",
+    "zh-Hant",
+)
 
 
 def eprint(message: str) -> None:
@@ -145,13 +157,40 @@ def load_stringsdata_entries(paths: list[Path]) -> dict:
     }
 
 
-def sort_xcstrings_keys(path: Path) -> None:
+def sort_localizations(localizations: dict) -> dict:
+    ordered = {}
+    seen = set()
+
+    for key in LOCALIZATION_KEY_ORDER:
+        if key in localizations:
+            ordered[key] = localizations[key]
+            seen.add(key)
+
+    for key in sort_keys(k for k in localizations.keys() if k not in seen):
+        ordered[key] = localizations[key]
+
+    return ordered
+
+
+def sort_xcstrings_keys(path: Path, existing_keys: set[str]) -> None:
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
     strings = data.get("strings")
     if not isinstance(strings, dict):
         return
+
+    new_keys = set(strings.keys()) - existing_keys
+    for key in new_keys:
+        entry = strings.get(key)
+        if not isinstance(entry, dict):
+            continue
+
+        localizations = entry.get("localizations")
+        if not isinstance(localizations, dict):
+            continue
+
+        entry["localizations"] = sort_localizations(localizations)
 
     data["strings"] = {key: strings[key] for key in sort_keys(strings.keys())}
 
@@ -166,6 +205,11 @@ def main() -> int:
     if not xcstrings_path.exists():
         eprint(f"Error: xcstrings not found at {xcstrings_path}")
         return 1
+
+    with xcstrings_path.open("r", encoding="utf-8") as f:
+        existing_data = json.load(f)
+    existing_strings = existing_data.get("strings")
+    existing_keys = set(existing_strings.keys()) if isinstance(existing_strings, dict) else set()
 
     derived_root = Path(
         os.environ.get(
@@ -265,7 +309,7 @@ def main() -> int:
         ]
         code = os.spawnvp(os.P_WAIT, args[0], args)
         if code == 0:
-            sort_xcstrings_keys(xcstrings_path)
+            sort_xcstrings_keys(xcstrings_path, existing_keys)
         return code
     finally:
         try:

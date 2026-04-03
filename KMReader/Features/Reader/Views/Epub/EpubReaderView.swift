@@ -350,31 +350,68 @@
             closeReader()
           }
         )
-      } else if viewModel.isLoading {
-        ReaderLoadingView(
-          title: loadingTitle,
-          detail: loadingDetail,
-          progress: (viewModel.downloadBytesReceived > 0 || viewModel.downloadProgress > 0)
-            ? viewModel.downloadProgress : nil
-        )
-      } else if let error = viewModel.errorMessage {
-        VStack(spacing: 12) {
-          Image(systemName: "exclamationmark.triangle")
-            .font(.largeTitle)
-          Text(error)
-            .multilineTextAlignment(.center)
-          Button("Retry") {
-            Task {
-              await loadBook()
-            }
-          }
-        }
-        .padding()
-      } else if viewModel.hasContent {
-        readerContent
       } else {
-        Text("No content available.")
-          .foregroundStyle(.secondary)
+        #if os(iOS)
+          readerContent
+            .opacity(viewModel.hasContent && !viewModel.isLoading && viewModel.errorMessage == nil ? 1 : 0)
+            .animation(nil, value: viewModel.isLoading)
+            .animation(nil, value: viewModel.hasContent)
+            .animation(nil, value: viewModel.errorMessage)
+            .allowsHitTesting(viewModel.hasContent && !viewModel.isLoading && viewModel.errorMessage == nil)
+            .overlay {
+              if viewModel.isLoading {
+                ReaderLoadingView(
+                  title: loadingTitle,
+                  detail: loadingDetail,
+                  progress: (viewModel.downloadBytesReceived > 0 || viewModel.downloadProgress > 0)
+                    ? viewModel.downloadProgress : nil
+                )
+              } else if let error = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                  Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                  Text(error)
+                    .multilineTextAlignment(.center)
+                  Button("Retry") {
+                    Task {
+                      await loadBook()
+                    }
+                  }
+                }
+                .padding()
+              } else if !viewModel.hasContent {
+                Text("No content available.")
+                  .foregroundStyle(.secondary)
+              }
+            }
+        #else
+          if viewModel.isLoading {
+            ReaderLoadingView(
+              title: loadingTitle,
+              detail: loadingDetail,
+              progress: (viewModel.downloadBytesReceived > 0 || viewModel.downloadProgress > 0)
+                ? viewModel.downloadProgress : nil
+            )
+          } else if let error = viewModel.errorMessage {
+            VStack(spacing: 12) {
+              Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+              Text(error)
+                .multilineTextAlignment(.center)
+              Button("Retry") {
+                Task {
+                  await loadBook()
+                }
+              }
+            }
+            .padding()
+          } else if viewModel.hasContent {
+            readerContent
+          } else {
+            Text("No content available.")
+              .foregroundStyle(.secondary)
+          }
+        #endif
       }
     }
 
