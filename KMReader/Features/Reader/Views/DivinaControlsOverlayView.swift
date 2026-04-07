@@ -108,8 +108,17 @@ struct DivinaControlsOverlayView: View {
     return readingDirection != .webtoon && readingDirection != .vertical && pageLayout.supportsDualPageOptions
   }
 
-  private var isCurrentPageValid: Bool {
-    currentPageID != nil
+  private var pageIsolationActions: [ReaderPageIsolationActions.Action] {
+    ReaderPageIsolationActions.resolve(
+      supportsDualPageOptions: enableDualPageOptions,
+      dualPage: dualPage,
+      readingDirection: readingDirection,
+      currentPageID: currentPageID,
+      currentPairIDs: viewModel.currentViewItem()?.pagePairIDs,
+      isCurrentPageWide: viewModel.isCurrentPageWide,
+      isCurrentPageIsolated: viewModel.isCurrentPageIsolated,
+      displayPageNumber: displayPageNumber(for:)
+    )
   }
 
   #if os(iOS) || os(macOS)
@@ -415,36 +424,11 @@ struct DivinaControlsOverlayView: View {
       )
     }
 
-    if isCurrentPageValid && !viewModel.isCurrentPageWide {
-      if viewModel.isCurrentPageIsolated, let currentPageID {
-        Button {
-          viewModel.toggleIsolatePage(currentPageID)
-        } label: {
-          Label(String(localized: "Cancel Isolation"), systemImage: "rectangle.portrait.slash")
-        }
-      } else if dualPage, let pair = viewModel.currentViewItem()?.pagePairIDs,
-        let secondPage = pair.second
-      {
-        let leftPageID = readingDirection == .rtl ? secondPage : pair.first
-        let rightPageID = readingDirection == .rtl ? pair.first : secondPage
-        Button {
-          viewModel.toggleIsolatePage(leftPageID)
-        } label: {
-          let displayedPageNumber = displayPageNumber(for: leftPageID)
-          Label(
-            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
-            systemImage: "rectangle.lefthalf.inset.filled"
-          )
-        }
-        Button {
-          viewModel.toggleIsolatePage(rightPageID)
-        } label: {
-          let displayedPageNumber = displayPageNumber(for: rightPageID)
-          Label(
-            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
-            systemImage: "rectangle.righthalf.inset.filled"
-          )
-        }
+    ForEach(pageIsolationActions) { action in
+      Button {
+        viewModel.toggleIsolatePage(action.pageID)
+      } label: {
+        Label(action.title, systemImage: action.systemImage)
       }
     }
   }

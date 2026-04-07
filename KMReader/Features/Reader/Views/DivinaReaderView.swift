@@ -53,6 +53,7 @@ struct DivinaReaderView: View {
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
+  @State private var usesDualPagePresentation = false
 
   // UI Panels states
   @State private var showingPageJumpSheet = false
@@ -448,6 +449,7 @@ struct DivinaReaderView: View {
         #endif
       }
       .onChange(of: useDualPage, initial: true) { _, newValue in
+        usesDualPagePresentation = newValue
         applyDualPagePresentationMode(newValue)
       }
       .onChange(of: readerPresentationKey(useDualPage: useDualPage)) { _, _ in
@@ -1332,6 +1334,10 @@ struct DivinaReaderView: View {
     viewModel.requestNavigation(toPageID: pageID)
   }
 
+  private func displayPageNumber(for pageID: ReaderPageID) -> Int {
+    viewModel.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
+  }
+
   private func jumpToTOCEntry(_ entry: ReaderTOCEntry) {
     guard
       let targetPageID = viewModel.pageID(
@@ -1345,6 +1351,21 @@ struct DivinaReaderView: View {
   }
 
   #if os(macOS)
+    private var macPageIsolationActions: [ReaderPageIsolationActions.Action] {
+      ReaderPageIsolationActions.resolve(
+        supportsDualPageOptions: readingDirection != .webtoon
+          && readingDirection != .vertical
+          && pageLayout.supportsDualPageOptions,
+        dualPage: usesDualPagePresentation,
+        readingDirection: readingDirection,
+        currentPageID: viewModel.currentReaderPage?.id,
+        currentPairIDs: viewModel.currentViewItem()?.pagePairIDs,
+        isCurrentPageWide: viewModel.isCurrentPageWide,
+        isCurrentPageIsolated: viewModel.isCurrentPageIsolated,
+        displayPageNumber: displayPageNumber(for:)
+      )
+    }
+
     private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
       let supportsDualPageOptions =
         readingDirection != .webtoon
@@ -1365,9 +1386,13 @@ struct DivinaReaderView: View {
         canOpenPreviousBook: currentSegmentPreviousBook != nil,
         canOpenNextBook: currentSegmentNextBook != nil,
         readingDirection: readingDirection,
+        availableReadingDirections: ReadingDirection.availableCases,
         pageLayout: pageLayout,
         isolateCoverPage: isolateCoverPage,
+        pageIsolationActions: macPageIsolationActions,
         splitWidePageMode: splitWidePageMode,
+        supportsSearch: false,
+        canSearch: false,
         supportsReadingDirectionSelection: true,
         supportsPageLayoutSelection: true,
         supportsDualPageOptions: supportsDualPageOptions,
@@ -1397,6 +1422,7 @@ struct DivinaReaderView: View {
               showingPageJumpSheet = true
             }
           },
+          showSearch: {},
           openPreviousBook: {
             if let previousBook = currentSegmentPreviousBook {
               openPreviousBook(previousBookId: previousBook.id)
@@ -1415,6 +1441,9 @@ struct DivinaReaderView: View {
           },
           toggleIsolateCoverPage: {
             isolateCoverPage.toggle()
+          },
+          toggleIsolatePage: { pageID in
+            viewModel.toggleIsolatePage(pageID)
           },
           setSplitWidePageMode: { mode in
             splitWidePageMode = mode
