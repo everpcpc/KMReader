@@ -175,7 +175,7 @@ struct MainApp: App {
           .disabled(!state.isActive)
         }
 
-        if state.hasTableOfContents || state.supportsPageJump {
+        if state.hasTableOfContents || state.supportsPageJump || state.supportsSearch {
           Divider()
         }
 
@@ -193,6 +193,13 @@ struct MainApp: App {
           .disabled(!state.isActive || !state.hasPages)
         }
 
+        if state.supportsSearch {
+          Button("Search") {
+            readerPresentation.showSearchFromCommand()
+          }
+          .disabled(!state.isActive || !state.canSearch)
+        }
+
         if state.supportsReadingDirectionSelection
           || state.supportsPageLayoutSelection
           || state.supportsDualPageOptions
@@ -203,7 +210,7 @@ struct MainApp: App {
 
         if state.supportsReadingDirectionSelection {
           Menu("Reading Direction") {
-            ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+            ForEach(state.availableReadingDirections, id: \.self) { direction in
               Button {
                 readerPresentation.setReadingDirectionFromCommand(direction)
               } label: {
@@ -236,14 +243,23 @@ struct MainApp: App {
         }
 
         if state.supportsDualPageOptions {
-          Button(
-            state.isolateCoverPage
-              ? "Disable Isolate Cover Page"
-              : "Enable Isolate Cover Page"
-          ) {
+          Button {
             readerPresentation.toggleIsolateCoverPageFromCommand()
+          } label: {
+            if state.isolateCoverPage {
+              Label(String(localized: "Isolate Cover Page"), systemImage: "checkmark")
+            } else {
+              Text(String(localized: "Isolate Cover Page"))
+            }
           }
           .disabled(!state.isActive)
+
+          ForEach(state.pageIsolationActions) { action in
+            Button(action.title) {
+              readerPresentation.toggleIsolatePageFromCommand(action.pageID)
+            }
+            .disabled(!state.isActive)
+          }
         }
 
         if state.supportsSplitWidePageMode {

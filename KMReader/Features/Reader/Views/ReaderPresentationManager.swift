@@ -39,9 +39,13 @@ final class ReaderPresentationManager {
       var canOpenPreviousBook: Bool = false
       var canOpenNextBook: Bool = false
       var readingDirection: ReadingDirection = .ltr
+      var availableReadingDirections: [ReadingDirection] = ReadingDirection.availableCases
       var pageLayout: PageLayout = .auto
       var isolateCoverPage: Bool = true
+      var pageIsolationActions: [ReaderPageIsolationActions.Action] = []
       var splitWidePageMode: SplitWidePageMode = .none
+      var supportsSearch: Bool = false
+      var canSearch: Bool = false
       var supportsReadingDirectionSelection: Bool = false
       var supportsPageLayoutSelection: Bool = false
       var supportsDualPageOptions: Bool = false
@@ -53,11 +57,13 @@ final class ReaderPresentationManager {
       let showBookDetails: () -> Void
       let showTableOfContents: () -> Void
       let showPageJump: () -> Void
+      let showSearch: () -> Void
       let openPreviousBook: () -> Void
       let openNextBook: () -> Void
       let setReadingDirection: (ReadingDirection) -> Void
       let setPageLayout: (PageLayout) -> Void
       let toggleIsolateCoverPage: () -> Void
+      let toggleIsolatePage: (ReaderPageID) -> Void
       let setSplitWidePageMode: (SplitWidePageMode) -> Void
     }
 
@@ -205,6 +211,10 @@ final class ReaderPresentationManager {
       macReaderCommandHandlers?.showPageJump()
     }
 
+    func showSearchFromCommand() {
+      macReaderCommandHandlers?.showSearch()
+    }
+
     func openPreviousBookFromCommand() {
       macReaderCommandHandlers?.openPreviousBook()
     }
@@ -223,6 +233,10 @@ final class ReaderPresentationManager {
 
     func toggleIsolateCoverPageFromCommand() {
       macReaderCommandHandlers?.toggleIsolateCoverPage()
+    }
+
+    func toggleIsolatePageFromCommand(_ pageID: ReaderPageID) {
+      macReaderCommandHandlers?.toggleIsolatePage(pageID)
     }
 
     func setSplitWidePageModeFromCommand(_ mode: SplitWidePageMode) {

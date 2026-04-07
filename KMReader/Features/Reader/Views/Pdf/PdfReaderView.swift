@@ -119,6 +119,9 @@
       }
       .onAppear {
         updateHandoff()
+        #if os(macOS)
+          configureMacReaderCommands()
+        #endif
       }
       .onChange(of: defaultReadingDirection) { _, newDirection in
         if newDirection == .webtoon {
@@ -160,10 +163,18 @@
         )
         showingControls = false
         readerPresentation.clearFlushHandler(for: sessionID)
+        #if os(macOS)
+          readerPresentation.clearMacReaderCommands()
+        #endif
       }
       .onChange(of: scenePhase) { _, newPhase in
         handleScenePhaseChange(newPhase)
       }
+      #if os(macOS)
+        .onChange(of: macReaderCommandState) { _, newState in
+          readerPresentation.updateMacReaderCommandState(newState)
+        }
+      #endif
       #if os(iOS)
         .readerDismissGesture(readingDirection: readingDirection)
       #endif
@@ -441,5 +452,77 @@
         .trimmingCharacters(in: .whitespacesAndNewlines)
       return title
     }
+
+    #if os(macOS)
+      private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
+        ReaderPresentationManager.MacReaderCommandState(
+          isActive: true,
+          supportsReaderSettings: true,
+          supportsBookDetails: currentBook != nil && currentSeries != nil,
+          hasPages: viewModel.pageCount > 0,
+          hasTableOfContents: !viewModel.tableOfContents.isEmpty,
+          supportsPageJump: true,
+          supportsBookNavigation: false,
+          canOpenPreviousBook: false,
+          canOpenNextBook: false,
+          readingDirection: readingDirection,
+          availableReadingDirections: ReadingDirection.pdfAvailableCases,
+          pageLayout: pageLayout,
+          isolateCoverPage: isolateCoverPage,
+          pageIsolationActions: [],
+          splitWidePageMode: .none,
+          supportsSearch: true,
+          canSearch: viewModel.documentURL != nil,
+          supportsReadingDirectionSelection: true,
+          supportsPageLayoutSelection: true,
+          supportsDualPageOptions: pageLayout.supportsDualPageOptions,
+          supportsSplitWidePageMode: false
+        )
+      }
+
+      private func configureMacReaderCommands() {
+        readerPresentation.configureMacReaderCommands(
+          state: macReaderCommandState,
+          handlers: ReaderPresentationManager.MacReaderCommandHandlers(
+            showReaderSettings: {
+              showingPreferencesSheet = true
+            },
+            showBookDetails: {
+              if currentBook != nil && currentSeries != nil {
+                showingDetailSheet = true
+              }
+            },
+            showTableOfContents: {
+              if !viewModel.tableOfContents.isEmpty {
+                showingTOCSheet = true
+              }
+            },
+            showPageJump: {
+              if viewModel.pageCount > 0 {
+                showingPageJumpSheet = true
+              }
+            },
+            showSearch: {
+              if viewModel.documentURL != nil {
+                showingSearchSheet = true
+              }
+            },
+            openPreviousBook: {},
+            openNextBook: {},
+            setReadingDirection: { direction in
+              readingDirection = pdfReadingDirection(from: direction)
+            },
+            setPageLayout: { layout in
+              pageLayout = layout
+            },
+            toggleIsolateCoverPage: {
+              isolateCoverPage.toggle()
+            },
+            toggleIsolatePage: { _ in },
+            setSplitWidePageMode: { _ in }
+          )
+        )
+      }
+    #endif
   }
 #endif

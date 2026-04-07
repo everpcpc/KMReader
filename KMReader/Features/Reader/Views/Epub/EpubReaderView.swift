@@ -838,9 +838,13 @@
           canOpenPreviousBook: false,
           canOpenNextBook: false,
           readingDirection: dismissGestureReadingDirection,
+          availableReadingDirections: [],
           pageLayout: .single,
           isolateCoverPage: false,
+          pageIsolationActions: [],
           splitWidePageMode: .none,
+          supportsSearch: false,
+          canSearch: false,
           supportsReadingDirectionSelection: false,
           supportsPageLayoutSelection: false,
           supportsDualPageOptions: false,
@@ -883,11 +887,13 @@
               }
             },
             showPageJump: {},
+            showSearch: {},
             openPreviousBook: {},
             openNextBook: {},
             setReadingDirection: { _ in },
             setPageLayout: { _ in },
             toggleIsolateCoverPage: {},
+            toggleIsolatePage: { _ in },
             setSplitWidePageMode: { _ in }
           )
         )
