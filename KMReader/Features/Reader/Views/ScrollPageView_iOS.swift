@@ -300,6 +300,10 @@
         if parent.viewModel.navigationTarget == nil {
           scheduleViewModelCommit(for: committedItem)
         }
+        Task { @MainActor [weak self] in
+          guard let self, self.engine.committedItem == committedItem else { return }
+          await self.parent.viewModel.preloadPages(bypassThrottle: true)
+        }
         return true
       }
 
