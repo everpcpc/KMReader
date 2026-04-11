@@ -216,13 +216,14 @@
         pageSourceImage = image
       }
 
+      let hasDisplayableImage = pageSourceImage != nil
       analysisSourceImage = shouldEnableLiveText ? pageSourceImage : nil
       imageView.image = pageSourceImage
 
       updateHeightConstraint(targetHeight)
       updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
 
-      if pageSourceImage != nil, showPageNumber {
+      if hasDisplayableImage, showPageNumber {
         if let displayedPageNumber = viewModel.displayPageNumber(for: data.pageID) {
           pageNumberLabel.stringValue = "\(displayedPageNumber)"
           pageNumberContainer.isHidden = false
@@ -237,7 +238,10 @@
         progressIndicator.stopAnimation(nil)
         errorLabel.stringValue = error
         errorLabel.isHidden = false
-      } else if pageSourceImage == nil || data.isLoading {
+      } else if hasDisplayableImage {
+        errorLabel.isHidden = true
+        progressIndicator.stopAnimation(nil)
+      } else if data.isLoading {
         errorLabel.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {

@@ -175,12 +175,13 @@
         analysisSourceImage = shouldEnableLiveText ? pageSourceImage : nil
       #endif
 
+      let hasDisplayableImage = pageSourceImage != nil
       imageView.image = pageSourceImage
 
       updateHeightConstraint(targetHeight)
       updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
 
-      if pageSourceImage != nil, showPageNumber {
+      if hasDisplayableImage, showPageNumber {
         if let displayedPageNumber = viewModel.displayPageNumber(for: data.pageID) {
           pageNumberLabel.text = "\(displayedPageNumber)"
           pageNumberLabel.isHidden = false
@@ -195,7 +196,10 @@
         loadingIndicator.stopAnimating()
         errorLabel.text = error
         errorLabel.isHidden = false
-      } else if pageSourceImage == nil || data.isLoading {
+      } else if hasDisplayableImage {
+        errorLabel.isHidden = true
+        loadingIndicator.stopAnimating()
+      } else if data.isLoading {
         errorLabel.isHidden = true
         loadingIndicator.startAnimating()
       } else {

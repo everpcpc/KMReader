@@ -685,7 +685,7 @@ struct DivinaReaderView: View {
             case .none, .scroll:
               standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
             case .cover:
-              CoverPageView(
+              NativeCoverPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
