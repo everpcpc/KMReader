@@ -21,14 +21,12 @@ struct SeriesDetailContentView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      HStack(alignment: .bottom) {
-        Text(series.metadata.title)
-          .font(.title2)
-          .textSelectionIfAvailable()
+      HStack(alignment: .bottom, spacing: 8) {
+        DetailTitleView(title: series.metadata.title)
         if let ageRating = series.metadata.ageRating, ageRating > 0 {
           AgeRatingBadge(ageRating: ageRating)
         }
-        Spacer()
+        Spacer(minLength: 0)
       }
 
       HStack(alignment: .top) {
