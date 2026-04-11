@@ -865,14 +865,6 @@ struct DivinaReaderView: View {
       // Ignore if modifier keys are pressed (except for system shortcuts)
       guard flags.intersection([.command, .option, .control]).isEmpty else { return false }
 
-      // Handle F key for fullscreen toggle
-      if keyCode == 3 {  // F key
-        if let window = NSApplication.shared.keyWindow {
-          window.toggleFullScreen(nil)
-        }
-        return true
-      }
-
       // Handle H key for keyboard help
       if keyCode == 4 {  // H key
         showKeyboardHelp.toggle()

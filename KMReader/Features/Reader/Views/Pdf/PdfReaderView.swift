@@ -20,6 +20,10 @@
     private var forceDefaultReadingDirection: Bool = false
     @AppStorage("pdfPageLayout") private var pageLayout: PageLayout = .auto
     @AppStorage("pdfIsolateCoverPage") private var isolateCoverPage: Bool = true
+    #if os(macOS)
+      @AppStorage("pdfShowKeyboardHelpOverlay")
+      private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
+    #endif
 
     @State private var viewModel: PdfReaderViewModel
     @State private var readingDirection: ReadingDirection
@@ -34,6 +38,10 @@
     @State private var searchQuery = ""
     @State private var targetPageNumber: Int?
     @State private var navigationToken = UUID()
+    #if os(macOS)
+      @State private var showKeyboardHelp = false
+      @State private var keyboardHelpTimer: Timer?
+    #endif
 
     private let logger = AppLogger(.reader)
 
@@ -61,6 +69,10 @@
         contentView
 
         controlsOverlay
+
+        #if os(macOS)
+          keyboardHelpOverlay
+        #endif
       }
       #if os(iOS)
         .statusBarHidden(!shouldShowControls)
@@ -164,6 +176,7 @@
         showingControls = false
         readerPresentation.clearFlushHandler(for: sessionID)
         #if os(macOS)
+          hideKeyboardHelp()
           readerPresentation.clearMacReaderCommands()
         #endif
       }
@@ -171,9 +184,24 @@
         handleScenePhaseChange(newPhase)
       }
       #if os(macOS)
+        .onChange(of: viewModel.pageCount) { oldCount, newCount in
+          if oldCount == 0 && newCount > 0 {
+            triggerKeyboardHelp(timeout: 1.5)
+          }
+        }
+        .onChange(of: readingDirection) { _, _ in
+          triggerKeyboardHelp(timeout: 2)
+        }
         .onChange(of: macReaderCommandState) { _, newState in
           readerPresentation.updateMacReaderCommandState(newState)
         }
+        .background(
+          KeyboardEventHandler(
+            onKeyPress: { keyCode, flags in
+              handleKeyCode(keyCode, flags: flags)
+            }
+          )
+        )
       #endif
       #if os(iOS)
         .readerDismissGesture(readingDirection: readingDirection)
@@ -454,6 +482,14 @@
     }
 
     #if os(macOS)
+      private var isPresentingModalSheet: Bool {
+        showingPageJumpSheet
+          || showingSearchSheet
+          || showingTOCSheet
+          || showingPreferencesSheet
+          || showingDetailSheet
+      }
+
       private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
         ReaderPresentationManager.MacReaderCommandState(
           isActive: true,
@@ -478,6 +514,24 @@
           supportsDualPageOptions: pageLayout.supportsDualPageOptions,
           supportsSplitWidePageMode: false
         )
+      }
+
+      private var keyboardHelpOverlay: some View {
+        KeyboardHelpOverlay(
+          readingDirection: readingDirection,
+          hasTOC: !viewModel.tableOfContents.isEmpty,
+          supportsLiveText: false,
+          supportsJumpToPage: viewModel.pageCount > 0,
+          supportsSearch: viewModel.documentURL != nil,
+          supportsToggleControls: true,
+          hasNextBook: false,
+          onDismiss: {
+            hideKeyboardHelp()
+          }
+        )
+        .opacity(showKeyboardHelp ? 1.0 : 0.0)
+        .allowsHitTesting(showKeyboardHelp)
+        .animation(.default, value: showKeyboardHelp)
       }
 
       private func configureMacReaderCommands() {
@@ -522,6 +576,133 @@
             setSplitWidePageMode: { _ in }
           )
         )
+      }
+
+      private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
+        guard !isPresentingModalSheet else { return false }
+
+        if keyCode == 53 {
+          closeReader()
+          return true
+        }
+
+        if keyCode == 44 {
+          showKeyboardHelp.toggle()
+          return true
+        }
+
+        if keyCode == 36 {
+          toggleFullscreen()
+          return true
+        }
+
+        if keyCode == 49 {
+          toggleControls()
+          return true
+        }
+
+        let modifierFlags = flags.intersection([.command, .option, .control])
+        guard modifierFlags.isEmpty else { return false }
+
+        if keyCode == 3 {
+          guard viewModel.documentURL != nil else { return false }
+          showingSearchSheet = true
+          return true
+        }
+
+        if keyCode == 4 {
+          showKeyboardHelp.toggle()
+          return true
+        }
+
+        if keyCode == 8 {
+          toggleControls()
+          return true
+        }
+
+        if keyCode == 17 {
+          guard !viewModel.tableOfContents.isEmpty else { return false }
+          showingTOCSheet = true
+          return true
+        }
+
+        if keyCode == 38 {
+          guard viewModel.pageCount > 0 else { return false }
+          showingPageJumpSheet = true
+          return true
+        }
+
+        guard viewModel.pageCount > 0 else { return false }
+
+        switch readingDirection {
+        case .ltr:
+          switch keyCode {
+          case 124:
+            goToNextPage()
+            return true
+          case 123:
+            goToPreviousPage()
+            return true
+          default:
+            return false
+          }
+        case .rtl:
+          switch keyCode {
+          case 123:
+            goToNextPage()
+            return true
+          case 124:
+            goToPreviousPage()
+            return true
+          default:
+            return false
+          }
+        case .vertical, .webtoon:
+          switch keyCode {
+          case 125:
+            goToNextPage()
+            return true
+          case 126:
+            goToPreviousPage()
+            return true
+          default:
+            return false
+          }
+        }
+      }
+
+      private func goToNextPage() {
+        requestPageNavigation(to: viewModel.currentPageNumber + 1)
+      }
+
+      private func goToPreviousPage() {
+        requestPageNavigation(to: viewModel.currentPageNumber - 1)
+      }
+
+      private func toggleFullscreen() {
+        if let window = NSApplication.shared.keyWindow {
+          window.toggleFullScreen(nil)
+        }
+      }
+
+      private func hideKeyboardHelp() {
+        keyboardHelpTimer?.invalidate()
+        keyboardHelpTimer = nil
+        showKeyboardHelp = false
+      }
+
+      private func triggerKeyboardHelp(timeout: TimeInterval) {
+        keyboardHelpTimer?.invalidate()
+        guard showKeyboardHelpOverlay, viewModel.pageCount > 0 else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+          self.showKeyboardHelp = true
+          self.keyboardHelpTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
+            Task { @MainActor in
+              self.hideKeyboardHelp()
+            }
+          }
+        }
       }
     #endif
   }
