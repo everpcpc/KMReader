@@ -17,16 +17,15 @@ enum GlassEffectType {
   case regular
 }
 
-private struct LegacyGlassButtonChromeModifier: ViewModifier {
+private struct LegacyGlassButtonStyle: ButtonStyle {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.controlSize) private var controlSize
   @Environment(\.isEnabled) private var isEnabled
   @Environment(\.colorScheme) private var colorScheme
 
-  func body(content: Content) -> some View {
-    content
-      .padding(.horizontal, horizontalPadding)
-      .padding(.vertical, verticalPadding)
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .padding(buttonPadding)
       .background {
         ButtonBorderShape.buttonBorder
           .fill(backgroundStyle)
@@ -40,16 +39,18 @@ private struct LegacyGlassButtonChromeModifier: ViewModifier {
         ButtonBorderShape.buttonBorder
           .stroke(borderColor, lineWidth: 0.8)
       }
+      .contentShape(ButtonBorderShape.buttonBorder)
       .shadow(
         color: reduceTransparency ? .clear : .black.opacity(0.14),
         radius: 8,
         x: 0,
         y: 2
       )
-      .opacity(isEnabled ? 1 : 0.55)
+      .opacity(isEnabled ? (configuration.isPressed ? 0.92 : 1) : 0.55)
+      .scaleEffect(configuration.isPressed ? 0.98 : 1)
   }
 
-  private var horizontalPadding: CGFloat {
+  private var buttonPadding: CGFloat {
     switch controlSize {
     case .mini:
       return 8
@@ -63,23 +64,6 @@ private struct LegacyGlassButtonChromeModifier: ViewModifier {
       return 20
     @unknown default:
       return 12
-    }
-  }
-
-  private var verticalPadding: CGFloat {
-    switch controlSize {
-    case .mini:
-      return 4
-    case .small:
-      return 5
-    case .regular:
-      return 7
-    case .large:
-      return 9
-    case .extraLarge:
-      return 11
-    @unknown default:
-      return 7
     }
   }
 
@@ -221,13 +205,9 @@ extension View {
       case .borderedProminent:
         self.buttonStyle(.borderedProminent)
       case .bordered:
-        self
-          .buttonStyle(.plain)
-          .legacyGlassButtonChrome()
+        self.buttonStyle(LegacyGlassButtonStyle())
       case .borderless:
-        self
-          .buttonStyle(.plain)
-          .legacyGlassButtonChrome()
+        self.buttonStyle(LegacyGlassButtonStyle())
       case .plain:
         #if os(tvOS)
           self.buttonStyle(.card)
@@ -278,9 +258,5 @@ extension View {
 
   private func legacyGlassSurface<S: Shape>(_ type: GlassEffectType, in shape: S) -> some View {
     modifier(LegacyGlassSurfaceModifier(type: type, shape: shape))
-  }
-
-  private func legacyGlassButtonChrome() -> some View {
-    modifier(LegacyGlassButtonChromeModifier())
   }
 }
