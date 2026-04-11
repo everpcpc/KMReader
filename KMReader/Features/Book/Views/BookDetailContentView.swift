@@ -29,10 +29,7 @@ struct BookDetailContentView: View {
         .fixedSize(horizontal: false, vertical: true)
         .textSelectionIfAvailable()
 
-      Text(book.metadata.title)
-        .font(.title2)
-        .fixedSize(horizontal: false, vertical: true)
-        .textSelectionIfAvailable()
+      DetailTitleView(title: book.metadata.title)
 
       HStack(alignment: .top) {
         ThumbnailImage(

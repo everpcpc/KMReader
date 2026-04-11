@@ -34,15 +34,12 @@ struct OneShotDetailContentView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      HStack(alignment: .bottom) {
-        Text(book.metadata.title)
-          .font(.title2)
-          .fixedSize(horizontal: false, vertical: true)
-          .textSelectionIfAvailable()
+      HStack(alignment: .bottom, spacing: 8) {
+        DetailTitleView(title: book.metadata.title)
         if let ageRating = series.metadata.ageRating, ageRating > 0 {
           AgeRatingBadge(ageRating: ageRating)
         }
-        Spacer()
+        Spacer(minLength: 0)
       }
 
       HStack(alignment: .top) {

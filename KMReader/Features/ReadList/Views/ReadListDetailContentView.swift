@@ -11,9 +11,7 @@ struct ReadListDetailContentView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      Text(readList.name)
-        .font(.title2)
-        .textSelectionIfAvailable()
+      DetailTitleView(title: readList.name)
 
       HStack(alignment: .top) {
         ThumbnailImage(
