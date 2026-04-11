@@ -19,13 +19,11 @@ enum GlassEffectType {
 
 private struct LegacyGlassButtonStyle: ButtonStyle {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  @Environment(\.controlSize) private var controlSize
   @Environment(\.isEnabled) private var isEnabled
   @Environment(\.colorScheme) private var colorScheme
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .padding(buttonPadding)
       .background {
         ButtonBorderShape.buttonBorder
           .fill(backgroundStyle)
@@ -48,23 +46,6 @@ private struct LegacyGlassButtonStyle: ButtonStyle {
       )
       .opacity(isEnabled ? (configuration.isPressed ? 0.92 : 1) : 0.55)
       .scaleEffect(configuration.isPressed ? 0.98 : 1)
-  }
-
-  private var buttonPadding: CGFloat {
-    switch controlSize {
-    case .mini:
-      return 8
-    case .small:
-      return 10
-    case .regular:
-      return 12
-    case .large:
-      return 16
-    case .extraLarge:
-      return 20
-    @unknown default:
-      return 12
-    }
   }
 
   private var backgroundStyle: AnyShapeStyle {
