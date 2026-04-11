@@ -27,10 +27,12 @@ struct BookDetailContentView: View {
         .font(.subheadline)
         .foregroundColor(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+        .textSelectionIfAvailable()
 
       Text(book.metadata.title)
         .font(.title2)
         .fixedSize(horizontal: false, vertical: true)
+        .textSelectionIfAvailable()
 
       HStack(alignment: .top) {
         ThumbnailImage(
@@ -220,6 +222,7 @@ struct BookDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.media.mediaType.uppercased())
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -230,6 +233,7 @@ struct BookDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.size)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -240,6 +244,7 @@ struct BookDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.url)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -251,6 +256,7 @@ struct BookDetailContentView: View {
               Text(comment)
                 .font(.caption)
                 .foregroundColor(.red)
+                .textSelectionIfAvailable()
             }
           }
         }

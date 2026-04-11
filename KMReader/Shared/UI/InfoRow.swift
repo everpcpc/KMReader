@@ -31,6 +31,7 @@ struct InfoRow: View {
         .foregroundColor(.primary)
         .multilineTextAlignment(.trailing)
         .lineLimit(2)
+        .textSelectionIfAvailable()
     }
   }
 }

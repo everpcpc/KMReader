@@ -24,6 +24,7 @@ struct SeriesDetailContentView: View {
       HStack(alignment: .bottom) {
         Text(series.metadata.title)
           .font(.title2)
+          .textSelectionIfAvailable()
         if let ageRating = series.metadata.ageRating, ageRating > 0 {
           AgeRatingBadge(ageRating: ageRating)
         }
@@ -225,6 +226,7 @@ struct SeriesDetailContentView: View {
                 Text(altTitle.title)
                   .font(.caption)
                   .foregroundColor(.primary)
+                  .textSelectionIfAvailable()
               }
             }
           }

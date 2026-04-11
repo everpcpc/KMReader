@@ -13,6 +13,7 @@ struct CollectionDetailContentView: View {
     VStack(alignment: .leading) {
       Text(collection.name)
         .font(.title2)
+        .textSelectionIfAvailable()
 
       HStack(alignment: .top) {
         ThumbnailImage(

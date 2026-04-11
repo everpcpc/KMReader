@@ -84,6 +84,7 @@ struct ExpandableSummaryView: View {
         .foregroundColor(.primary)
         .lineLimit(isExpanded ? nil : collapsedLineLimit)
         .animation(.easeInOut(duration: 0.2), value: isExpanded)
+        .textSelectionIfAvailable()
         .background(
           GeometryReader { geometry in
             VStack(spacing: 0) {

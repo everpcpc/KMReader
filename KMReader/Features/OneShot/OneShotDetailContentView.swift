@@ -38,6 +38,7 @@ struct OneShotDetailContentView: View {
         Text(book.metadata.title)
           .font(.title2)
           .fixedSize(horizontal: false, vertical: true)
+          .textSelectionIfAvailable()
         if let ageRating = series.metadata.ageRating, ageRating > 0 {
           AgeRatingBadge(ageRating: ageRating)
         }
@@ -267,6 +268,7 @@ struct OneShotDetailContentView: View {
                 Text(altTitle.title)
                   .font(.caption)
                   .foregroundColor(.primary)
+                  .textSelectionIfAvailable()
               }
             }
           }
@@ -298,6 +300,7 @@ struct OneShotDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.media.mediaType.uppercased())
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -308,6 +311,7 @@ struct OneShotDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.size)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -318,6 +322,7 @@ struct OneShotDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.url)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -329,6 +334,7 @@ struct OneShotDetailContentView: View {
               Text(comment)
                 .font(.caption)
                 .foregroundColor(.red)
+                .textSelectionIfAvailable()
             }
           }
         }
