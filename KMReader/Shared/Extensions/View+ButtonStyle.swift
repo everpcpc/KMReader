@@ -17,6 +17,26 @@ enum GlassEffectType {
   case regular
 }
 
+private struct LegacyGlassReadabilityModifier: ViewModifier {
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+  func body(content: Content) -> some View {
+    content
+      .shadow(
+        color: .black.opacity(reduceTransparency ? 0.45 : 0.35),
+        radius: reduceTransparency ? 6 : 4,
+        x: 0,
+        y: 2
+      )
+      .shadow(
+        color: .white.opacity(reduceTransparency ? 0.18 : 0.12),
+        radius: 1,
+        x: 0,
+        y: 0
+      )
+  }
+}
+
 private struct LegacyGlassSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
@@ -110,11 +130,11 @@ extension View {
       case .bordered:
         self
           .buttonStyle(.bordered)
-          .legacyGlassSurface(.regular, in: ButtonBorderShape.buttonBorder)
+          .legacyGlassReadabilityIfNeeded()
       case .borderless:
         self
           .buttonStyle(.borderless)
-          .legacyGlassSurface(.regular, in: ButtonBorderShape.buttonBorder)
+          .legacyGlassReadabilityIfNeeded()
       case .plain:
         #if os(tvOS)
           self.buttonStyle(.card)
@@ -165,5 +185,9 @@ extension View {
 
   private func legacyGlassSurface<S: Shape>(_ type: GlassEffectType, in shape: S) -> some View {
     modifier(LegacyGlassSurfaceModifier(type: type, shape: shape))
+  }
+
+  private func legacyGlassReadabilityIfNeeded() -> some View {
+    modifier(LegacyGlassReadabilityModifier())
   }
 }

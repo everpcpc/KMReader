@@ -12,6 +12,11 @@
       configuration.cornerStyle = .capsule
       button.configuration = configuration
       button.tintColor = textColor
+      button.layer.shadowColor = UIColor.black.withAlphaComponent(0.35).cgColor
+      button.layer.shadowOpacity = 1
+      button.layer.shadowRadius = 4
+      button.layer.shadowOffset = CGSize(width: 0, height: 2)
+      button.layer.masksToBounds = false
     }
 
     private static func borderedButtonConfiguration() -> UIButton.Configuration {
@@ -20,27 +25,7 @@
           return .glass()
         }
       #endif
-      var configuration = UIButton.Configuration.bordered()
-      var background = UIBackgroundConfiguration.clear()
-      #if os(iOS)
-        if UIAccessibility.isReduceTransparencyEnabled {
-          background.backgroundColor = .systemBackground.withAlphaComponent(0.96)
-          background.strokeColor = UIColor.label.withAlphaComponent(0.12)
-        } else {
-          background.visualEffect = UIBlurEffect(style: .systemMaterial)
-          background.strokeColor = UIColor.white.withAlphaComponent(0.24)
-        }
-      #elseif os(tvOS)
-        background.backgroundColor = UIColor.black.withAlphaComponent(
-          UIAccessibility.isReduceTransparencyEnabled ? 0.92 : 0.76
-        )
-        background.strokeColor = UIColor.white.withAlphaComponent(
-          UIAccessibility.isReduceTransparencyEnabled ? 0.18 : 0.24
-        )
-      #endif
-      background.strokeWidth = 1
-      configuration.background = background
-      return configuration
+      return .bordered()
     }
 
     private static var buttonSymbolConfiguration: UIImage.SymbolConfiguration {
