@@ -17,23 +17,116 @@ enum GlassEffectType {
   case regular
 }
 
-private struct LegacyGlassReadabilityModifier: ViewModifier {
+private struct LegacyGlassButtonChromeModifier: ViewModifier {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @Environment(\.controlSize) private var controlSize
+  @Environment(\.isEnabled) private var isEnabled
+  @Environment(\.colorScheme) private var colorScheme
 
   func body(content: Content) -> some View {
     content
+      .padding(.horizontal, horizontalPadding)
+      .padding(.vertical, verticalPadding)
+      .background {
+        ButtonBorderShape.buttonBorder
+          .fill(backgroundStyle)
+
+        if !reduceTransparency {
+          ButtonBorderShape.buttonBorder
+            .fill(tintOverlayColor)
+        }
+      }
+      .overlay {
+        ButtonBorderShape.buttonBorder
+          .stroke(borderColor, lineWidth: 0.8)
+      }
       .shadow(
-        color: .black.opacity(reduceTransparency ? 0.45 : 0.35),
-        radius: reduceTransparency ? 6 : 4,
+        color: reduceTransparency ? .clear : .black.opacity(0.14),
+        radius: 8,
         x: 0,
         y: 2
       )
-      .shadow(
-        color: .white.opacity(reduceTransparency ? 0.18 : 0.12),
-        radius: 1,
-        x: 0,
-        y: 0
-      )
+      .opacity(isEnabled ? 1 : 0.55)
+  }
+
+  private var horizontalPadding: CGFloat {
+    switch controlSize {
+    case .mini:
+      return 8
+    case .small:
+      return 10
+    case .regular:
+      return 12
+    case .large:
+      return 16
+    case .extraLarge:
+      return 20
+    @unknown default:
+      return 12
+    }
+  }
+
+  private var verticalPadding: CGFloat {
+    switch controlSize {
+    case .mini:
+      return 4
+    case .small:
+      return 5
+    case .regular:
+      return 7
+    case .large:
+      return 9
+    case .extraLarge:
+      return 11
+    @unknown default:
+      return 7
+    }
+  }
+
+  private var backgroundStyle: AnyShapeStyle {
+    if reduceTransparency {
+      return AnyShapeStyle(reducedTransparencyColor)
+    }
+
+    return AnyShapeStyle(.thickMaterial)
+  }
+
+  private var tintOverlayColor: Color {
+    switch colorScheme {
+    case .dark:
+      return .black.opacity(0.22)
+    case .light:
+      return .white.opacity(0.18)
+    @unknown default:
+      return .white.opacity(0.18)
+    }
+  }
+
+  private var borderColor: Color {
+    if reduceTransparency {
+      return .primary.opacity(0.12)
+    }
+
+    switch colorScheme {
+    case .dark:
+      return .white.opacity(0.24)
+    case .light:
+      return .black.opacity(0.10)
+    @unknown default:
+      return .primary.opacity(0.16)
+    }
+  }
+
+  private var reducedTransparencyColor: Color {
+    #if os(iOS)
+      return Color(.systemBackground)
+    #elseif os(tvOS)
+      return Color.black.opacity(0.92)
+    #elseif os(macOS)
+      return Color(NSColor.controlBackgroundColor)
+    #else
+      return .gray
+    #endif
   }
 }
 
@@ -129,12 +222,12 @@ extension View {
         self.buttonStyle(.borderedProminent)
       case .bordered:
         self
-          .buttonStyle(.bordered)
-          .legacyGlassReadabilityIfNeeded()
+          .buttonStyle(.plain)
+          .legacyGlassButtonChrome()
       case .borderless:
         self
-          .buttonStyle(.borderless)
-          .legacyGlassReadabilityIfNeeded()
+          .buttonStyle(.plain)
+          .legacyGlassButtonChrome()
       case .plain:
         #if os(tvOS)
           self.buttonStyle(.card)
@@ -187,7 +280,7 @@ extension View {
     modifier(LegacyGlassSurfaceModifier(type: type, shape: shape))
   }
 
-  private func legacyGlassReadabilityIfNeeded() -> some View {
-    modifier(LegacyGlassReadabilityModifier())
+  private func legacyGlassButtonChrome() -> some View {
+    modifier(LegacyGlassButtonChromeModifier())
   }
 }
