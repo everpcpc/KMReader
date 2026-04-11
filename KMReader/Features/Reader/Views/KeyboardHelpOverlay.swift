@@ -14,9 +14,30 @@ import SwiftUI
     let hasTOC: Bool
     let supportsLiveText: Bool
     let supportsJumpToPage: Bool
+    let supportsSearch: Bool
     let supportsToggleControls: Bool
     let hasNextBook: Bool
     let onDismiss: () -> Void
+
+    init(
+      readingDirection: ReadingDirection,
+      hasTOC: Bool,
+      supportsLiveText: Bool,
+      supportsJumpToPage: Bool,
+      supportsSearch: Bool = false,
+      supportsToggleControls: Bool,
+      hasNextBook: Bool,
+      onDismiss: @escaping () -> Void
+    ) {
+      self.readingDirection = readingDirection
+      self.hasTOC = hasTOC
+      self.supportsLiveText = supportsLiveText
+      self.supportsJumpToPage = supportsJumpToPage
+      self.supportsSearch = supportsSearch
+      self.supportsToggleControls = supportsToggleControls
+      self.hasNextBook = hasNextBook
+      self.onDismiss = onDismiss
+    }
 
     var body: some View {
       ZStack {
@@ -42,7 +63,7 @@ import SwiftUI
             Divider()
               .background(Color.white.opacity(0.3))
 
-            HelpRow(key: "F / Return", description: "Toggle fullscreen")
+            HelpRow(key: "Return", description: "Toggle fullscreen")
             if supportsToggleControls {
               HelpRow(key: "C / Space", description: "Toggle controls")
             }
@@ -54,6 +75,9 @@ import SwiftUI
             }
             if supportsJumpToPage {
               HelpRow(key: "J", description: "Jump to page")
+            }
+            if supportsSearch {
+              HelpRow(key: "F", description: "Search")
             }
             if hasNextBook {
               HelpRow(key: "N", description: "Next book")

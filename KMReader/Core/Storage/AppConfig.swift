@@ -514,6 +514,27 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var pdfShowKeyboardHelpOverlay: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "pdfShowKeyboardHelpOverlay") != nil {
+        return UserDefaults.standard.bool(forKey: "pdfShowKeyboardHelpOverlay")
+      }
+
+      let migratedValue: Bool
+      if UserDefaults.standard.object(forKey: "showKeyboardHelpOverlay") != nil {
+        migratedValue = UserDefaults.standard.bool(forKey: "showKeyboardHelpOverlay")
+      } else {
+        migratedValue = true
+      }
+
+      UserDefaults.standard.set(migratedValue, forKey: "pdfShowKeyboardHelpOverlay")
+      return migratedValue
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "pdfShowKeyboardHelpOverlay")
+    }
+  }
+
   static nonisolated var enableReaderLiveActivity: Bool {
     get {
       if UserDefaults.standard.object(forKey: "enableReaderLiveActivity") != nil {

@@ -924,13 +924,6 @@
 
         guard flags.intersection([.command, .option, .control]).isEmpty else { return false }
 
-        if keyCode == 3 {
-          if let window = NSApplication.shared.keyWindow {
-            window.toggleFullScreen(nil)
-          }
-          return true
-        }
-
         if keyCode == 4 {
           showKeyboardHelp.toggle()
           return true

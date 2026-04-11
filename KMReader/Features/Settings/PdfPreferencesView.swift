@@ -16,6 +16,10 @@
     private var pageLayout: PageLayout = .auto
     @AppStorage("pdfIsolateCoverPage")
     private var isolateCoverPage: Bool = true
+    #if os(macOS)
+      @AppStorage("pdfShowKeyboardHelpOverlay")
+      private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
+    #endif
     @AppStorage("pdfOfflineRenderQuality")
     private var pdfOfflineRenderQuality: PdfOfflineRenderQuality = AppConfig.pdfOfflineRenderQuality
 
@@ -127,6 +131,19 @@
               Text("Controls Gradient Background")
             }
           }
+
+          #if os(macOS)
+            Section(header: Text("Reader Overlay")) {
+              Toggle(isOn: $showKeyboardHelpOverlay) {
+                VStack(alignment: .leading, spacing: 4) {
+                  Text("Show Keyboard Help Overlay")
+                  Text("Briefly show keyboard shortcuts when opening the reader")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+              }
+            }
+          #endif
         }
 
         if !useNativePdfReader {

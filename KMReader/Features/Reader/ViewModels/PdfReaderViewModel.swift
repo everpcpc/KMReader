@@ -13,9 +13,9 @@
   @MainActor
   @Observable
   class PdfReaderViewModel {
-    var isLoading: Bool = false
+    var isLoading: Bool = true
     var errorMessage: String?
-    var loadingStage: PdfLoadingStage = .idle
+    var loadingStage: PdfLoadingStage = .fetchingMetadata
 
     var downloadProgress: Double = 0.0
     var downloadBytesReceived: Int64 = 0
