@@ -13341,6 +13341,70 @@
         }
       }
     },
+    "Context Menu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontextmenü"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context Menu"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menú contextual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu contextuel"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu contestuale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストメニュー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컨텍스트 메뉴"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контекстное меню"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下文菜单"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下文選單"
+          }
+        }
+      }
+    },
     "Controls Gradient Background" : {
       "localizations" : {
         "de" : {
@@ -19289,6 +19353,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清空所有圖書館的回收桶"
+          }
+        }
+      }
+    },
+    "Enable Image Context Menu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild-Kontextmenü aktivieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Image Context Menu"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar menú contextual de imagen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer le menu contextuel des images"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abilita menu contestuale immagine"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像のコンテキストメニューを有効にする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이미지 컨텍스트 메뉴 활성화"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить контекстное меню изображения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用图片上下文菜单"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟用圖片上下文選單"
           }
         }
       }
@@ -66139,6 +66267,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文字和線稿更清晰，推薦用於 iPad 和 Mac。"
+          }
+        }
+      }
+    },
+    "Show a context menu on page images for quick actions like share or isolate page. On iOS, Live Text keeps the long-press gesture while it is enabled." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt auf Seitenbildern ein Kontextmenü für Schnellaktionen wie Teilen oder Seite isolieren an. Auf iOS bleibt die Geste für langes Drücken bei aktiviertem Live Text reserviert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show a context menu on page images for quick actions like share or isolate page. On iOS, Live Text keeps the long-press gesture while it is enabled."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra un menú contextual en las imágenes de las páginas para acciones rápidas como compartir o aislar la página. En iOS, Live Text conserva el gesto de pulsación prolongada mientras está activado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche un menu contextuel sur les images des pages pour des actions rapides comme partager ou isoler la page. Sur iOS, Live Text conserve le geste d'appui long lorsqu'il est activé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra un menu contestuale sulle immagini delle pagine per azioni rapide come condividere o isolare la pagina. Su iOS, Live Text mantiene il gesto di pressione prolungata quando è attivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ画像に共有やページの分離などのクイックアクション用コンテキストメニューを表示します。iOS では、Live Text が有効な間は長押しジェスチャは Live Text に割り当てられます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 이미지에 공유나 페이지 분리 같은 빠른 작업용 컨텍스트 메뉴를 표시합니다. iOS에서는 Live Text가 활성화되어 있는 동안 길게 누르기 제스처가 Live Text에 유지됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывает контекстное меню на изображениях страниц для быстрых действий, таких как отправка или изоляция страницы. На iOS при включенном Live Text жест долгого нажатия остается за Live Text."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在页面图片上显示上下文菜单，用于分享、隔离页面等快捷操作。在 iOS 上，启用 Live Text 后，长按手势仍会保留给 Live Text。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在頁面圖片上顯示上下文選單，用於分享、隔離頁面等快捷操作。在 iOS 上，啟用 Live Text 後，長按手勢仍會保留給 Live Text。"
           }
         }
       }

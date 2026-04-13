@@ -19,6 +19,8 @@
       showPageShadow: true,
       readerBackground: .system,
       enableLiveText: false,
+      enableImageContextMenu: false,
+      supportsPageIsolationActions: false,
       doubleTapZoomScale: 3.0,
       doubleTapZoomMode: .fast
     )
@@ -157,6 +159,10 @@
     private func updatePages() {
       guard let viewModel else { return }
       let pages = currentPageData
+      let canIsolatePageFromCurrentPresentation =
+        renderConfig.supportsPageIsolationActions
+        && pages.count == 2
+        && Set(pages.map(\.pageID)).count == 2
 
       if pageViews.count != pages.count {
         pageViews.forEach { view in
@@ -178,6 +184,9 @@
           showPageNumber: renderConfig.showPageNumber,
           showPageShadow: renderConfig.showPageShadow,
           enableLiveText: renderConfig.enableLiveText,
+          enableImageContextMenu: renderConfig.enableImageContextMenu,
+          supportsPageIsolationActions: renderConfig.supportsPageIsolationActions,
+          canIsolatePageFromCurrentPresentation: canIsolatePageFromCurrentPresentation,
           background: renderConfig.readerBackground,
           readingDirection: readingDirection,
           displayMode: .fit,

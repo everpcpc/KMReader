@@ -21,6 +21,9 @@
     private var readerBackground: ReaderBackground = .system
     private var showPageShadow = true
     private var enableLiveText = false
+    private var enableImageContextMenu = false
+    private var supportsPageIsolationActions = false
+    private var canIsolatePageFromCurrentPresentation = false
     private let logger = AppLogger(.reader)
 
     #if !os(tvOS)
@@ -29,6 +32,10 @@
       private var analyzedImage: UIImage?
       private var analysisSourceImage: UIImage?
       private var analysisRequestID: UInt64 = 0
+    #endif
+
+    #if os(iOS)
+      private lazy var contextMenuInteraction = UIContextMenuInteraction(delegate: self)
     #endif
 
     private var heightConstraint: NSLayoutConstraint?
@@ -54,6 +61,9 @@
         clearAnalysis()
         analyzedImage = nil
         analysisSourceImage = nil
+      #endif
+      #if os(iOS)
+        removeContextMenuInteractionIfNeeded()
       #endif
       updateAnimatedPlayback(sourceFileURL: nil)
       imageView.isHidden = false
@@ -84,6 +94,9 @@
           if enableLiveText {
             analyzeImage()
           }
+        #endif
+        #if os(iOS)
+          updateContextMenuInteraction()
         #endif
       }
     }
@@ -150,6 +163,9 @@
       showPageNumber: Bool,
       showPageShadow: Bool,
       enableLiveText: Bool,
+      enableImageContextMenu: Bool,
+      supportsPageIsolationActions: Bool,
+      canIsolatePageFromCurrentPresentation: Bool,
       background: ReaderBackground,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
@@ -163,6 +179,9 @@
       self.showPageShadow = showPageShadow
       let shouldEnableLiveText = enableLiveText && !viewModel.isAnimatedPage(for: data.pageID)
       self.enableLiveText = shouldEnableLiveText
+      self.enableImageContextMenu = enableImageContextMenu
+      self.supportsPageIsolationActions = supportsPageIsolationActions
+      self.canIsolatePageFromCurrentPresentation = canIsolatePageFromCurrentPresentation
 
       let pageSourceImage: PlatformImage?
       if let image = image, data.splitMode != .none {
@@ -221,6 +240,10 @@
           }
           clearAnalysis()
         }
+      #endif
+
+      #if os(iOS)
+        updateContextMenuInteraction()
       #endif
 
       updateShadowAppearance()
@@ -406,6 +429,10 @@
           analyzeImage()
         }
       #endif
+
+      #if os(iOS)
+        updateContextMenuInteraction()
+      #endif
     }
 
     private func updateOverlaysPosition() {
@@ -484,5 +511,123 @@
 
       return combinedRect
     }
+
+    #if os(iOS)
+      private var shouldEnableContextMenuInteraction: Bool {
+        enableImageContextMenu && !enableLiveText && imageView.image != nil
+      }
+
+      private func updateContextMenuInteraction() {
+        guard shouldEnableContextMenuInteraction else {
+          removeContextMenuInteractionIfNeeded()
+          return
+        }
+
+        if !imageView.interactions.contains(where: { $0 === contextMenuInteraction }) {
+          imageView.addInteraction(contextMenuInteraction)
+        }
+      }
+
+      private func removeContextMenuInteractionIfNeeded() {
+        if imageView.interactions.contains(where: { $0 === contextMenuInteraction }) {
+          imageView.removeInteraction(contextMenuInteraction)
+        }
+      }
+
+      private func makeContextMenu() -> UIMenu? {
+        guard let currentData, imageView.image != nil else { return nil }
+
+        var actions: [UIMenuElement] = [makeShareAction(for: currentData.pageID)]
+        if let isolateAction = makePageIsolationAction(for: currentData.pageID) {
+          actions.append(isolateAction)
+        }
+
+        return UIMenu(children: actions)
+      }
+
+      private func makeShareAction(for pageID: ReaderPageID) -> UIAction {
+        let displayPageNumber = viewModel?.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
+        let title = String.localizedStringWithFormat(
+          String(localized: "Share Page %d"),
+          displayPageNumber
+        )
+        return UIAction(title: title, image: UIImage(systemName: "square.and.arrow.up")) {
+          [weak self] _ in
+          self?.shareCurrentImage(for: pageID)
+        }
+      }
+
+      private func makePageIsolationAction(for pageID: ReaderPageID) -> UIAction? {
+        guard supportsPageIsolationActions, let viewModel else { return nil }
+        guard let readerPage = viewModel.readerPage(for: pageID), readerPage.page.isPortrait else {
+          return nil
+        }
+
+        if viewModel.isPageIsolated(pageID) {
+          return UIAction(
+            title: String(localized: "Cancel Isolation"),
+            image: UIImage(systemName: "rectangle.portrait.slash")
+          ) { [weak self] _ in
+            self?.viewModel?.toggleIsolatePage(pageID)
+          }
+        }
+
+        guard canIsolatePageFromCurrentPresentation else { return nil }
+        let displayPageNumber = viewModel.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
+        let title = String.localizedStringWithFormat(
+          String(localized: "Isolate Page %d"),
+          displayPageNumber
+        )
+        return UIAction(
+          title: title,
+          image: UIImage(systemName: "rectangle.portrait")
+        ) { [weak self] _ in
+          self?.viewModel?.toggleIsolatePage(pageID)
+        }
+      }
+
+      private func shareCurrentImage(for pageID: ReaderPageID) {
+        guard let image = imageView.image else { return }
+        let fileName = viewModel?.page(for: pageID)?.fileName
+        ImageShareHelper.share(image: image, fileName: fileName)
+      }
+
+      private func makePreview() -> UITargetedPreview? {
+        guard !imageView.bounds.isEmpty else { return nil }
+        let parameters = UIPreviewParameters()
+        parameters.backgroundColor = .clear
+        parameters.visiblePath = UIBezierPath(rect: imageView.bounds)
+        return UITargetedPreview(view: imageView, parameters: parameters)
+      }
+    #endif
   }
+
+  #if os(iOS)
+    extension NativePageItem: UIContextMenuInteractionDelegate {
+      func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        configurationForMenuAtLocation location: CGPoint
+      ) -> UIContextMenuConfiguration? {
+        guard imageView.bounds.contains(location) else { return nil }
+        guard makeContextMenu() != nil else { return nil }
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+          self?.makeContextMenu()
+        }
+      }
+
+      func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForHighlightingMenuWithConfiguration configuration: UIContextMenuConfiguration
+      ) -> UITargetedPreview? {
+        makePreview()
+      }
+
+      func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForDismissingMenuWithConfiguration configuration: UIContextMenuConfiguration
+      ) -> UITargetedPreview? {
+        makePreview()
+      }
+    }
+  #endif
 #endif

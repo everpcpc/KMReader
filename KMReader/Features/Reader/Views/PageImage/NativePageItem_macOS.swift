@@ -23,6 +23,9 @@
     private var readerBackground: ReaderBackground = .system
     private var showPageShadow = true
     private var enableLiveText = false
+    private var enableImageContextMenu = false
+    private var supportsPageIsolationActions = false
+    private var canIsolatePageFromCurrentPresentation = false
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
     private var analysisSourceImage: NSImage?
@@ -49,6 +52,7 @@
 
     func prepareForDismantle() {
       clearAnalysis()
+      updateContextMenu(menu: nil)
       updateAnimatedPlayback(sourceFileURL: nil)
       imageView.isHidden = false
       imageView.image = nil
@@ -79,6 +83,7 @@
             analyzeImage(image)
           }
         }
+        updateContextMenu()
       }
     }
 
@@ -195,6 +200,9 @@
       showPageNumber: Bool,
       showPageShadow: Bool,
       enableLiveText: Bool,
+      enableImageContextMenu: Bool,
+      supportsPageIsolationActions: Bool,
+      canIsolatePageFromCurrentPresentation: Bool,
       background: ReaderBackground,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
@@ -208,6 +216,9 @@
       self.showPageShadow = showPageShadow
       let shouldEnableLiveText = enableLiveText && !viewModel.isAnimatedPage(for: data.pageID)
       self.enableLiveText = shouldEnableLiveText
+      self.enableImageContextMenu = enableImageContextMenu
+      self.supportsPageIsolationActions = supportsPageIsolationActions
+      self.canIsolatePageFromCurrentPresentation = canIsolatePageFromCurrentPresentation
 
       let pageSourceImage: PlatformImage?
       if let image = image, data.splitMode != .none {
@@ -256,6 +267,7 @@
       }
 
       updateShadowAppearance()
+      updateContextMenu()
       updateOverlaysPosition()
     }
 
@@ -496,6 +508,101 @@
       {
         analyzeImage(image)
       }
+
+      updateContextMenu()
+    }
+
+    private var contextMenuTargetViews: [NSView] {
+      [
+        imageView,
+        sepiaOverlayView,
+        animatedInlineContainer,
+        overlayView,
+        pageNumberContainer,
+        pageNumberLabel,
+      ]
+    }
+
+    private var shouldEnableContextMenu: Bool {
+      enableImageContextMenu && imageView.image != nil
+    }
+
+    private func updateContextMenu() {
+      let menu = shouldEnableContextMenu ? buildContextMenu() : nil
+      updateContextMenu(menu: menu)
+    }
+
+    private func updateContextMenu(menu: NSMenu?) {
+      for view in contextMenuTargetViews {
+        view.menu = menu
+      }
+    }
+
+    private func buildContextMenu() -> NSMenu? {
+      guard let currentData, imageView.image != nil else { return nil }
+
+      let menu = NSMenu()
+      menu.addItem(makeShareMenuItem(for: currentData.pageID))
+
+      if let isolationItem = makePageIsolationMenuItem(for: currentData.pageID) {
+        menu.addItem(isolationItem)
+      }
+
+      return menu.items.isEmpty ? nil : menu
+    }
+
+    private func makeShareMenuItem(for pageID: ReaderPageID) -> NSMenuItem {
+      let displayPageNumber = readerViewModel?.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
+      let title = String.localizedStringWithFormat(
+        String(localized: "Share Page %d"),
+        displayPageNumber
+      )
+      let item = NSMenuItem(title: title, action: #selector(handleShareContextMenuAction), keyEquivalent: "")
+      item.target = self
+      return item
+    }
+
+    private func makePageIsolationMenuItem(for pageID: ReaderPageID) -> NSMenuItem? {
+      guard supportsPageIsolationActions, let readerViewModel else { return nil }
+      guard let readerPage = readerViewModel.readerPage(for: pageID), readerPage.page.isPortrait else {
+        return nil
+      }
+
+      if readerViewModel.isPageIsolated(pageID) {
+        let item = NSMenuItem(
+          title: String(localized: "Cancel Isolation"),
+          action: #selector(handleTogglePageIsolationContextMenuAction),
+          keyEquivalent: ""
+        )
+        item.target = self
+        return item
+      }
+
+      guard canIsolatePageFromCurrentPresentation else { return nil }
+      let displayPageNumber = readerViewModel.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
+      let title = String.localizedStringWithFormat(
+        String(localized: "Isolate Page %d"),
+        displayPageNumber
+      )
+      let item = NSMenuItem(
+        title: title,
+        action: #selector(handleTogglePageIsolationContextMenuAction),
+        keyEquivalent: ""
+      )
+      item.target = self
+      return item
+    }
+
+    @objc private func handleShareContextMenuAction() {
+      guard let pageID = currentData?.pageID, let image = imageView.image else { return }
+      let fileName = readerViewModel?.page(for: pageID)?.fileName
+      ImageShareHelper.share(image: image, fileName: fileName)
+    }
+
+    @objc private func handleTogglePageIsolationContextMenuAction() {
+      guard let pageID = currentData?.pageID else { return }
+      readerViewModel?.toggleIsolatePage(pageID)
+      updateContextMenu()
     }
   }
 #endif

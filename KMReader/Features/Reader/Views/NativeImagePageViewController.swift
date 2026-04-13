@@ -23,6 +23,8 @@
       showPageShadow: true,
       readerBackground: .system,
       enableLiveText: false,
+      enableImageContextMenu: false,
+      supportsPageIsolationActions: false,
       doubleTapZoomScale: 3.0,
       doubleTapZoomMode: .fast
     )
@@ -173,6 +175,9 @@
         showPageNumber: renderConfig.showPageNumber,
         showPageShadow: renderConfig.showPageShadow,
         enableLiveText: renderConfig.enableLiveText,
+        enableImageContextMenu: renderConfig.enableImageContextMenu,
+        supportsPageIsolationActions: renderConfig.supportsPageIsolationActions,
+        canIsolatePageFromCurrentPresentation: false,
         background: renderConfig.readerBackground,
         readingDirection: readingDirection,
         displayMode: .fit,

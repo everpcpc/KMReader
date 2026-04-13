@@ -153,6 +153,10 @@
       func updatePages() {
         guard let stack = contentStack else { return }
         let pages = parent.pages
+        let canIsolatePageFromCurrentPresentation =
+          parent.renderConfig.supportsPageIsolationActions
+          && pages.count == 2
+          && Set(pages.map(\.pageID)).count == 2
 
         if pageViews.count != pages.count {
           pageViews.forEach { view in
@@ -175,6 +179,9 @@
             showPageNumber: parent.renderConfig.showPageNumber,
             showPageShadow: parent.renderConfig.showPageShadow,
             enableLiveText: parent.renderConfig.enableLiveText,
+            enableImageContextMenu: parent.renderConfig.enableImageContextMenu,
+            supportsPageIsolationActions: parent.renderConfig.supportsPageIsolationActions,
+            canIsolatePageFromCurrentPresentation: canIsolatePageFromCurrentPresentation,
             background: parent.renderConfig.readerBackground,
             readingDirection: parent.readingDirection,
             displayMode: parent.displayMode,

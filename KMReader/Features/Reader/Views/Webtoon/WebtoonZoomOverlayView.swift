@@ -24,6 +24,8 @@
         showPageShadow: renderConfig.showPageShadow,
         readerBackground: renderConfig.readerBackground,
         enableLiveText: renderConfig.enableLiveText,
+        enableImageContextMenu: renderConfig.enableImageContextMenu,
+        supportsPageIsolationActions: false,
         doubleTapZoomScale: renderConfig.doubleTapZoomScale,
         doubleTapZoomMode: renderConfig.doubleTapZoomMode
       )

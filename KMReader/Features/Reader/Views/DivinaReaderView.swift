@@ -28,6 +28,8 @@ struct DivinaReaderView: View {
   @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("enableDivinaImageContextMenu")
+  private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
@@ -116,6 +118,10 @@ struct DivinaReaderView: View {
       showPageShadow: showPageShadow,
       readerBackground: readerBackground,
       enableLiveText: enableLiveText,
+      enableImageContextMenu: enableDivinaImageContextMenu,
+      supportsPageIsolationActions: readingDirection != .webtoon
+        && readingDirection != .vertical
+        && pageLayout.supportsDualPageOptions,
       doubleTapZoomScale: doubleTapZoomScale,
       doubleTapZoomMode: doubleTapZoomMode
     )
