@@ -32,6 +32,8 @@
       showPageShadow: true,
       readerBackground: .system,
       enableLiveText: false,
+      enableImageContextMenu: false,
+      supportsPageIsolationActions: false,
       doubleTapZoomScale: 3.0,
       doubleTapZoomMode: .fast
     )

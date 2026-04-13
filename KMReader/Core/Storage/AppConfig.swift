@@ -117,6 +117,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue.rawValue, forKey: "splitWidePageMode") }
   }
 
+  static nonisolated var enableDivinaImageContextMenu: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableDivinaImageContextMenu") != nil {
+        return UserDefaults.standard.bool(forKey: "enableDivinaImageContextMenu")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "enableDivinaImageContextMenu") }
+  }
+
   static nonisolated var pdfOfflineRenderQuality: PdfOfflineRenderQuality {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pdfOfflineRenderQuality"),

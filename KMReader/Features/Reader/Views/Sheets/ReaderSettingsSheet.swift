@@ -33,6 +33,8 @@ struct ReaderSettingsSheet: View {
   private var imageUpscaleAlwaysMaxScreenScale: Double =
     AppConfig.imageUpscaleAlwaysMaxScreenScale
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+  @AppStorage("enableDivinaImageContextMenu")
+  private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
   private var isWebtoonDirection: Bool {
@@ -219,6 +221,14 @@ struct ReaderSettingsSheet: View {
                 }
               }
             #endif
+          }
+        #endif
+
+        #if os(iOS) || os(macOS)
+          Section(header: Text("Context Menu")) {
+            Toggle(isOn: $enableDivinaImageContextMenu) {
+              Text("Enable Image Context Menu")
+            }
           }
         #endif
 

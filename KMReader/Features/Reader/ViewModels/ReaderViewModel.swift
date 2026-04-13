@@ -94,6 +94,11 @@ class ReaderViewModel {
     return isolatePagesByBookId[currentReaderPage.bookId]?.contains(isolatePosition.localIndex) == true
   }
 
+  func isPageIsolated(_ pageID: ReaderPageID) -> Bool {
+    guard let isolatePosition = isolatePosition(for: pageID) else { return false }
+    return isolatePagesByBookId[isolatePosition.bookId]?.contains(isolatePosition.localIndex) == true
+  }
+
   /// Whether the current page is a wide (non-portrait) image, which cannot be isolated.
   var isCurrentPageWide: Bool {
     guard let currentReaderPage else { return false }

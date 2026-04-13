@@ -33,6 +33,8 @@ struct DivinaPreferencesView: View {
   private var imageUpscaleAlwaysMaxScreenScale: Double =
     AppConfig.imageUpscaleAlwaysMaxScreenScale
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("enableDivinaImageContextMenu")
+  private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
@@ -322,6 +324,21 @@ struct DivinaPreferencesView: View {
               }
             }
           #endif
+        }
+      #endif
+
+      #if os(iOS) || os(macOS)
+        Section(header: Text("Context Menu")) {
+          Toggle(isOn: $enableDivinaImageContextMenu) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Enable Image Context Menu")
+              Text(
+                "Show a context menu on page images for quick actions like share or isolate page. On iOS, Live Text keeps the long-press gesture while it is enabled."
+              )
+              .font(.caption)
+              .foregroundColor(.secondary)
+            }
+          }
         }
       #endif
 
