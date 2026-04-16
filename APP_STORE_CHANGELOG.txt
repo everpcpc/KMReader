@@ -1,13 +1,13 @@
 Reader Improvements
-- EPUB adds richer reading controls, including text alignment, more consistent font-weight behavior, better overlay options, and improved progress display on iPhone, iPad, and Mac.
-- macOS EPUB paged reading now supports cover-style page turns, bringing it closer to the native feel available elsewhere in KMReader.
-- Reader navigation is steadier across DIVINA, EPUB, and Webtoon, with better position recovery after rotation, reloads, and end-of-chapter preloading.
-- Live Text interactions are more precise, reducing accidental page turns near text selection.
+- DIVINA cover reading feels smoother and more reliable on iPhone, iPad, and Mac, with steadier transitions and less stale loading state.
+- Scroll-mode DIVINA now preloads the next page earlier on iPhone and iPad, so the first page turn is less likely to pause.
+- Optional page image context menus on iPhone, iPad, and Mac let you share a page or isolate a single page from a spread more quickly.
+- Detail views now make it easier to copy titles and other useful library text.
 
-Offline and Sync
-- Offline EPUB handling is more reliable, with safer download finalization and better recovery when reopening downloaded books.
-- Reading history now syncs automatically on app launch and resume, so recent activity stays current with less manual refresh.
+Mac Experience
+- PDF reading on Mac now includes keyboard help, better shortcut coverage, and faster access to search, page jump, and table of contents actions.
+- Reader command menus are more consistent across DIVINA and PDF, including current-page isolation where supported.
 
-Polish and Quality
-- Reader and download Live Activities are cleaner and easier to read, especially in Dynamic Island.
-- Completed books now show more useful last-read details, and several reader overlays and picker views have been refined for a more consistent experience.
+Polish and Reliability
+- Reader controls are easier to read on older system versions.
+- EPUB opening is steadier, with fewer distracting transitions when a book first loads.
