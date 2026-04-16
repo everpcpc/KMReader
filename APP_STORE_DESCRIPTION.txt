@@ -1,26 +1,26 @@
 KMReader - Native Komga Client for iPhone, iPad, Mac, and Apple TV
 
-KMReader helps you read, browse, download, and manage your Komga library with a fast native experience across Apple platforms.
+KMReader helps you read, browse, download, and manage your Komga library with fast native readers and practical offline workflows across Apple platforms.
 
 IMPORTANT FEATURES
 
 - Native readers for every format
-DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl (iOS), cover-style transitions on all platforms, optional page shadows, clearer page-turn animation controls, and steadier scroll reading with better RTL and wide-page handling.
-EPUB on iOS and macOS with paged, scrolled, or cover layouts, custom fonts, themes, text alignment and font-weight controls, and configurable overlay/footer visibility.
-Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when you revisit pages.
-PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality, and clearer offline preparation progress.
+DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl (iOS), cover-style transitions, optional page shadows, customizable tap zones, and optional page image actions on iOS/macOS for sharing or isolating a page.
+EPUB on iOS and macOS with paged, scrolled, or cover layouts, custom fonts, themes, text alignment and font-weight controls, configurable overlays, and nested table of contents.
+Animated GIF and WebP pages play inline and stay smooth while you zoom or scroll.
+PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality, and strong keyboard support on macOS.
 Incognito mode, optional reader Live Activities with progress or incognito status, and iOS Live Text support let you read your way.
 
 - Dashboard, discovery, and shortcuts
-Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists keep important items close.
-Browse Series, Books, Collections, and Read Lists with advanced metadata filters, saved filters, optional unread-cover blur, and automatically synced reading history.
+Keep Reading, On Deck, Recently Added, Recently Updated, pinned collections/read lists, and saved filters keep the right parts of your library close.
+Browse Series, Books, Collections, and Read Lists with advanced metadata filters, optional unread-cover blur, synced reading history, and copy-friendly detail views for titles and metadata.
 Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions, help you jump back into reading faster.
 KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
 - Offline that actually works
-Download books for offline reading.
+Download books for offline reading across DIVINA, EPUB, and PDF workflows.
 EPUB downloads use a single-file workflow with local extraction for faster, more reliable saves.
-Use manual offline mode controls and more predictable iOS background downloads.
+Use manual offline mode controls and predictable iOS background downloads.
 Get Live Activities for both active reading sessions and downloads.
 Set per-series policies: Manual, Unread only, Unread + cleanup, or All books.
 Sync progress and offline changes when you reconnect, with safer conflict handling.
@@ -29,7 +29,7 @@ Sync progress and offline changes when you reconnect, with safer conflict handli
 Save multiple Komga servers and switch instantly.
 Sign in with password or API key, and manage API keys in the app.
 Edit metadata, manage libraries and media (analysis, missing posters, duplicate files, duplicate pages, and page-hash matches), monitor tasks, and view logs.
-On macOS, reader actions also live in the system menu bar for faster keyboard-first control.
+On macOS, reader actions also live in the menu bar and Reader menu for faster keyboard-first control.
 
 KMReader targets Komga 1.19.0+ and supports API v1/v2.
 

@@ -22,10 +22,10 @@
 
 ### Native Reading Experience
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, optional page shadows, clearer page-turn animation controls, and steadier scroll and cover navigation with better RTL, wide-page, and interruption handling.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, optional page shadows, optional page-image context menus on iOS/macOS for share and isolate actions, clearer page-turn animation controls, and steadier scroll and cover navigation with better RTL, wide-page, and interruption handling.
 - EPUB reader on iOS/macOS with paged, scrolled, and cover layouts, custom font importing (`.ttf`/`.otf`), theme presets, text alignment and font-weight controls, optional status/footer overlays, multi-column reading, and nested table of contents.
 - Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when reopening or revisiting pages.
-- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, and clearer progress feedback.
+- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, clearer progress feedback, and full keyboard help and command coverage on macOS.
 - Per-book preferences save reading direction, page layout, and theme settings.
 - Incognito mode and iOS Live Text support, including optional shake-to-toggle.
 
@@ -36,6 +36,7 @@
 - Save and reuse filters across browse surfaces.
 - Optional unread-cover blur helps hide spoiler-heavy artwork until you start reading.
 - Reading history and stats stay fresh with automatic sync and help surface recent activity from synced local data.
+- Detail views make titles and metadata easy to copy when you need to search, share, or organize library data.
 - Spotlight integration for downloaded content on iOS/macOS, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 - UI localization includes English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
@@ -59,7 +60,7 @@
 ### Platform Highlights
 
 - iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities for reader/downloads, background downloads, Live Text, and page curl/cover transitions.
-- macOS: dedicated reader windows, reader actions in the system menu bar, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
+- macOS: dedicated reader windows, reader actions in the system menu bar and Reader menu, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
 - tvOS: remote-first DIVINA reading with cover transitions and a TV-optimized browsing experience.
 
 ## Getting Started
