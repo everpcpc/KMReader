@@ -209,7 +209,7 @@ struct LoginView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
       }
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         .frame(maxWidth: 360)
       #endif
       .frame(maxWidth: .infinity, alignment: .center)

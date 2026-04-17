@@ -220,7 +220,7 @@
       }
     }
 
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
         guard renderConfig.doubleTapZoomMode != .disabled else { return }
 

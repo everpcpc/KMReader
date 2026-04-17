@@ -27,50 +27,12 @@ final class ReaderPresentationManager {
     currentSession?.sourceBookId
   }
 
+  private(set) var readerCommandState = ReaderCommandState()
+  private var readerCommandHandlers: ReaderCommandHandlers?
+
   #if os(macOS)
-    struct MacReaderCommandState: Equatable {
-      var isActive: Bool = false
-      var supportsReaderSettings: Bool = false
-      var supportsBookDetails: Bool = false
-      var hasPages: Bool = false
-      var hasTableOfContents: Bool = false
-      var supportsPageJump: Bool = false
-      var supportsBookNavigation: Bool = false
-      var canOpenPreviousBook: Bool = false
-      var canOpenNextBook: Bool = false
-      var readingDirection: ReadingDirection = .ltr
-      var availableReadingDirections: [ReadingDirection] = ReadingDirection.availableCases
-      var pageLayout: PageLayout = .auto
-      var isolateCoverPage: Bool = true
-      var pageIsolationActions: [ReaderPageIsolationActions.Action] = []
-      var splitWidePageMode: SplitWidePageMode = .none
-      var supportsSearch: Bool = false
-      var canSearch: Bool = false
-      var supportsReadingDirectionSelection: Bool = false
-      var supportsPageLayoutSelection: Bool = false
-      var supportsDualPageOptions: Bool = false
-      var supportsSplitWidePageMode: Bool = false
-    }
-
-    struct MacReaderCommandHandlers {
-      let showReaderSettings: () -> Void
-      let showBookDetails: () -> Void
-      let showTableOfContents: () -> Void
-      let showPageJump: () -> Void
-      let showSearch: () -> Void
-      let openPreviousBook: () -> Void
-      let openNextBook: () -> Void
-      let setReadingDirection: (ReadingDirection) -> Void
-      let setPageLayout: (PageLayout) -> Void
-      let toggleIsolateCoverPage: () -> Void
-      let toggleIsolatePage: (ReaderPageID) -> Void
-      let setSplitWidePageMode: (SplitWidePageMode) -> Void
-    }
-
     private var openWindowHandler: (() -> Void)?
     private var isReaderWindowVisible = false
-    private(set) var macReaderCommandState = MacReaderCommandState()
-    private var macReaderCommandHandlers: MacReaderCommandHandlers?
   #endif
 
   func present(
@@ -81,7 +43,7 @@ final class ReaderPresentationManager {
     #if os(macOS)
       if let currentSession {
         finishSession(currentSession, syncVisited: true)
-        clearMacReaderCommands()
+        clearReaderCommands()
       }
     #else
       if currentSession != nil {
@@ -157,7 +119,7 @@ final class ReaderPresentationManager {
     #endif
 
     #if os(macOS)
-      clearMacReaderCommands()
+      clearReaderCommands()
     #endif
 
     self.currentSession = nil
@@ -178,69 +140,69 @@ final class ReaderPresentationManager {
       closeReader()
     }
 
-    func configureMacReaderCommands(
-      state: MacReaderCommandState,
-      handlers: MacReaderCommandHandlers
+    func configureReaderCommands(
+      state: ReaderCommandState,
+      handlers: ReaderCommandHandlers
     ) {
-      macReaderCommandState = state
-      macReaderCommandHandlers = handlers
+      readerCommandState = state
+      readerCommandHandlers = handlers
     }
 
-    func updateMacReaderCommandState(_ state: MacReaderCommandState) {
-      macReaderCommandState = state
+    func updateReaderCommandState(_ state: ReaderCommandState) {
+      readerCommandState = state
     }
 
-    func clearMacReaderCommands() {
-      macReaderCommandState = MacReaderCommandState()
-      macReaderCommandHandlers = nil
+    func clearReaderCommands() {
+      readerCommandState = ReaderCommandState()
+      readerCommandHandlers = nil
     }
 
     func showReaderSettingsFromCommand() {
-      macReaderCommandHandlers?.showReaderSettings()
+      readerCommandHandlers?.showReaderSettings()
     }
 
     func showBookDetailsFromCommand() {
-      macReaderCommandHandlers?.showBookDetails()
+      readerCommandHandlers?.showBookDetails()
     }
 
     func showTableOfContentsFromCommand() {
-      macReaderCommandHandlers?.showTableOfContents()
+      readerCommandHandlers?.showTableOfContents()
     }
 
     func showPageJumpFromCommand() {
-      macReaderCommandHandlers?.showPageJump()
+      readerCommandHandlers?.showPageJump()
     }
 
     func showSearchFromCommand() {
-      macReaderCommandHandlers?.showSearch()
+      readerCommandHandlers?.showSearch()
     }
 
     func openPreviousBookFromCommand() {
-      macReaderCommandHandlers?.openPreviousBook()
+      readerCommandHandlers?.openPreviousBook()
     }
 
     func openNextBookFromCommand() {
-      macReaderCommandHandlers?.openNextBook()
+      readerCommandHandlers?.openNextBook()
     }
 
     func setReadingDirectionFromCommand(_ direction: ReadingDirection) {
-      macReaderCommandHandlers?.setReadingDirection(direction)
+      readerCommandHandlers?.setReadingDirection(direction)
     }
 
     func setPageLayoutFromCommand(_ layout: PageLayout) {
-      macReaderCommandHandlers?.setPageLayout(layout)
+      readerCommandHandlers?.setPageLayout(layout)
     }
 
     func toggleIsolateCoverPageFromCommand() {
-      macReaderCommandHandlers?.toggleIsolateCoverPage()
+      readerCommandHandlers?.toggleIsolateCoverPage()
     }
 
     func toggleIsolatePageFromCommand(_ pageID: ReaderPageID) {
-      macReaderCommandHandlers?.toggleIsolatePage(pageID)
+      readerCommandHandlers?.toggleIsolatePage(pageID)
     }
 
     func setSplitWidePageModeFromCommand(_ mode: SplitWidePageMode) {
-      macReaderCommandHandlers?.setSplitWidePageMode(mode)
+      readerCommandHandlers?.setSplitWidePageMode(mode)
     }
   #endif
 

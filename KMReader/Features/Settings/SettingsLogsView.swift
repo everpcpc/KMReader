@@ -36,7 +36,7 @@ struct SettingsLogsView: View {
           ForEach(logEntries) { entry in
             LogEntryRow(entry: entry)
               .tvFocusableHighlight()
-              #if !os(tvOS)
+              #if os(iOS) || os(macOS)
                 .contextMenu {
                   Button {
                     copyToClipboard(formatEntry(entry))
@@ -133,7 +133,7 @@ struct SettingsLogsView: View {
     .refreshable {
       await loadLogs()
     }
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           ShareLink(item: exportLogs()) {

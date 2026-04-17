@@ -107,7 +107,7 @@ struct OneshotDetailView: View {
       url: KomgaWebLinkBuilder.oneshot(serverURL: current.serverURL, seriesId: seriesId),
       scope: .browse
     )
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
           oneshotToolbarContent
@@ -293,7 +293,7 @@ struct OneshotDetailView: View {
   @ViewBuilder
   private var oneshotToolbarContent: some View {
     HStack {
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if let shareURL {
           ShareLink(item: shareURL, subject: Text(navigationTitle)) {
             Image(systemName: "square.and.arrow.up")

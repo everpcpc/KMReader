@@ -25,6 +25,8 @@
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
     @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
     @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
+    @AppStorage("epubShowKeyboardHelpOverlay")
+    private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
@@ -189,6 +191,15 @@
             VStack(alignment: .leading, spacing: 4) {
               Text(String(localized: "Show Progress Footer"))
               Text(String(localized: "Show book progress at the bottom while reading."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+
+          Toggle(isOn: $showKeyboardHelpOverlay) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Auto-Show Keyboard Help")
+              Text("Briefly show keyboard shortcuts when opening the reader")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }

@@ -183,6 +183,17 @@ struct DivinaReaderView: View {
     max(tapPageTransitionDuration, 0)
   }
 
+  private var isPresentingModalSheet: Bool {
+    showingPageJumpSheet
+      || showingTOCSheet
+      || showingReaderSettingsSheet
+      || showingDetailSheet
+  }
+
+  private var isKeyboardCaptureEnabled: Bool {
+    !isPresentingModalSheet
+  }
+
   private func shouldUseDualPage(screenSize: CGSize) -> Bool {
     guard screenSize.width > screenSize.height else { return false }  // Only in landscape
     guard pageLayout != .single else { return false }
@@ -450,9 +461,7 @@ struct DivinaReaderView: View {
 
         controlsOverlay(useDualPage: useDualPage)
 
-        #if os(macOS)
-          keyboardHelpOverlay
-        #endif
+        keyboardHelpOverlay
       }
       .onChange(of: useDualPage, initial: true) { _, newValue in
         usesDualPagePresentation = newValue
@@ -468,23 +477,16 @@ struct DivinaReaderView: View {
         }
         .onExitCommand {
           logger.debug("📺 onExitCommand: showingControls=\(showingControls)")
-          if showingControls {
-            toggleControls()
-          } else {
-            closeReader()
-          }
+          handleReaderExitCommand()
         }
       #endif
-      #if os(macOS)
-        .background(
-          // Window-level keyboard event handler
-          KeyboardEventHandler(
-            onKeyPress: { keyCode, flags in
-              handleKeyCode(keyCode, flags: flags)
-            }
-          )
+      .background(
+        KeyboardEventHandler(
+          isEnabled: isKeyboardCaptureEnabled,
+          commands: keyboardCommands,
+          onKeyPress: handleKeyboardEvent
         )
-      #endif
+      )
     }
     .iPadIgnoresSafeArea()
     #if os(iOS)
@@ -529,7 +531,7 @@ struct DivinaReaderView: View {
       viewModel.updateDualPageSettings(noCover: !isolateCoverPage)
       updateHandoff()
       #if os(macOS)
-        configureMacReaderCommands()
+        configureReaderCommands()
       #endif
     }
     .onChange(of: isolateCoverPage) { _, newValue in
@@ -570,7 +572,6 @@ struct DivinaReaderView: View {
       readerPresentation.updatePresentedBook(sessionID: sessionID, book: newBook)
     }
     .onChange(of: viewModel.pageCount) { oldCount, newCount in
-      // Show helper overlay when pages are first loaded (iOS and macOS)
       if oldCount == 0 && newCount > 0 {
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 1.5)
@@ -591,7 +592,7 @@ struct DivinaReaderView: View {
       viewModel.clearPreloadedImages()
       readerPresentation.clearFlushHandler(for: sessionID)
       #if os(macOS)
-        readerPresentation.clearMacReaderCommands()
+        readerPresentation.clearReaderCommands()
       #endif
     }
     .onChange(of: scenePhase) { _, newPhase in
@@ -604,9 +605,7 @@ struct DivinaReaderView: View {
     }
     .onChange(of: readingDirection) { _, _ in
       #if os(iOS) || os(macOS)
-        // When switching read mode via settings, briefly show overlays again
         triggerTapZoneOverlay(timeout: 1)
-        triggerKeyboardHelp(timeout: 2)
       #endif
     }
     #if os(tvOS)
@@ -618,8 +617,8 @@ struct DivinaReaderView: View {
       }
     #endif
     #if os(macOS)
-      .onChange(of: macReaderCommandState) { _, newState in
-        readerPresentation.updateMacReaderCommandState(newState)
+      .onChange(of: readerCommandState) { _, newState in
+        readerPresentation.updateReaderCommandState(newState)
       }
     #endif
     #if os(iOS)
@@ -823,139 +822,167 @@ struct DivinaReaderView: View {
     )
   }
 
-  #if os(macOS)
-    private var keyboardHelpOverlay: some View {
-      KeyboardHelpOverlay(
-        readingDirection: readingDirection,
-        hasTOC: !viewModel.tableOfContents.isEmpty,
-        supportsLiveText: true,
-        supportsJumpToPage: true,
-        supportsToggleControls: true,
-        hasNextBook: currentSegmentNextBook != nil,
-        onDismiss: {
-          hideKeyboardHelp()
-        }
+  private var keyboardCommands: [ReaderKeyboardCommand] {
+    var commands = [
+      ReaderKeyboardCommand(
+        title: "Keyboard Shortcuts",
+        event: ReaderKeyboardEvent(key: .slash, modifiers: [.command])
       )
-      .opacity(showKeyboardHelp ? 1.0 : 0.0)
-      .allowsHitTesting(showKeyboardHelp)
-      .animation(.default, value: showKeyboardHelp)
+    ]
+
+    if !viewModel.tableOfContents.isEmpty {
+      commands.append(
+        ReaderKeyboardCommand(
+          title: "Table of Contents",
+          event: ReaderKeyboardEvent(key: .t, modifiers: [.command])
+        )
+      )
     }
 
-    private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
-      // Handle ESC key to close window
-      if keyCode == 53 {  // ESC key
-        closeReader()
-        return true
+    if viewModel.hasPages {
+      commands.append(
+        ReaderKeyboardCommand(
+          title: "Jump to Page",
+          event: ReaderKeyboardEvent(key: .j, modifiers: [.command])
+        )
+      )
+    }
+
+    return commands
+  }
+
+  private var keyboardHelpOverlay: some View {
+    KeyboardHelpOverlay(
+      readingDirection: readingDirection,
+      hasTOC: !viewModel.tableOfContents.isEmpty,
+      supportsFullscreenToggle: supportsFullscreenToggle,
+      supportsLiveText: supportsLiveTextKeyboardShortcut,
+      supportsJumpToPage: true,
+      supportsToggleControls: true,
+      hasNextBook: currentSegmentNextBook != nil,
+      onDismiss: {
+        hideKeyboardHelp()
       }
+    )
+    .opacity(showKeyboardHelp ? 1.0 : 0.0)
+    .allowsHitTesting(showKeyboardHelp)
+    .animation(.default, value: showKeyboardHelp)
+  }
 
-      // Handle ? key and H key for keyboard help
-      if keyCode == 44 {  // ? key (Shift + /)
-        showKeyboardHelp.toggle()
-        return true
+  private func handleKeyboardEvent(_ event: ReaderKeyboardEvent) -> Bool {
+    if event.matches(.escape) {
+      handleReaderExitCommand()
+      return true
+    }
+
+    if event.matches(.slash, modifiers: [.shift])
+      || event.matches(.slash, modifiers: [.command])
+      || event.matches(.h)
+    {
+      toggleKeyboardHelpManually()
+      return true
+    }
+
+    if event.matches(.returnOrEnter) {
+      return toggleFullscreenIfSupported()
+    }
+
+    if event.matches(.space) {
+      toggleControls()
+      return true
+    }
+
+    if event.matches(.t, modifiers: [.command]) {
+      if !viewModel.tableOfContents.isEmpty {
+        showingTOCSheet = true
       }
+      return true
+    }
 
-      // Handle Return/Enter key for fullscreen toggle
-      if keyCode == 36 {  // Return/Enter key
-        if let window = NSApplication.shared.keyWindow {
-          window.toggleFullScreen(nil)
-        }
-        return true
+    if event.matches(.j, modifiers: [.command]) {
+      if viewModel.hasPages {
+        showingPageJumpSheet = true
       }
+      return true
+    }
 
-      // Handle Space key for toggle controls
-      if keyCode == 49 {  // Space key
-        toggleControls()
-        return true
-      }
+    guard !event.hasSystemModifiers else { return false }
 
-      // Ignore if modifier keys are pressed (except for system shortcuts)
-      guard flags.intersection([.command, .option, .control]).isEmpty else { return false }
+    if event.matches(.c) {
+      toggleControls()
+      return true
+    }
 
-      // Handle H key for keyboard help
-      if keyCode == 4 {  // H key
-        showKeyboardHelp.toggle()
-        return true
-      }
-
-      // Handle C key for toggle controls
-      if keyCode == 8 {  // C key
-        toggleControls()
-        return true
-      }
-
-      if keyCode == 37 {  // L key
+    #if os(iOS) || os(macOS)
+      if event.matches(.l) {
         enableLiveText.toggle()
         let message = enableLiveText ? String(localized: "Live Text: ON") : String(localized: "Live Text: OFF")
         ErrorManager.shared.notify(message: message)
         return true
       }
+    #endif
 
-      // Handle T key for TOC
-      if keyCode == 17 {  // T key
-        if !viewModel.tableOfContents.isEmpty {
-          showingTOCSheet = true
-        }
-        return true
+    if event.matches(.t) {
+      if !viewModel.tableOfContents.isEmpty {
+        showingTOCSheet = true
       }
+      return true
+    }
 
-      // Handle J key for jump to page
-      if keyCode == 38 {  // J key
-        if viewModel.hasPages {
-          showingPageJumpSheet = true
-        }
-        return true
+    if event.matches(.j) {
+      if viewModel.hasPages {
+        showingPageJumpSheet = true
       }
+      return true
+    }
 
-      // Handle N key for next book
-      if keyCode == 45 {  // N key
-        if let nextBook = currentSegmentNextBook {
-          openNextBook(nextBookId: nextBook.id)
-        }
-        return true
+    if event.matches(.n) {
+      if let nextBook = currentSegmentNextBook {
+        openNextBook(nextBookId: nextBook.id)
       }
+      return true
+    }
 
-      guard viewModel.hasPages else { return false }
+    guard viewModel.hasPages else { return false }
 
-      switch readingDirection {
-      case .ltr:
-        switch keyCode {
-        case 124:  // Right arrow
-          goToNextPage()
-          return true
-        case 123:  // Left arrow
-          goToPreviousPage()
-          return true
-        default:
-          return false
-        }
-      case .rtl:
-        switch keyCode {
-        case 123:  // Left arrow
-          goToNextPage()
-          return true
-        case 124:  // Right arrow
-          goToPreviousPage()
-          return true
-        default:
-          return false
-        }
-      case .vertical:
-        switch keyCode {
-        case 125:  // Down arrow
-          goToNextPage()
-          return true
-        case 126:  // Up arrow
-          goToPreviousPage()
-          return true
-        default:
-          return false
-        }
-      case .webtoon:
-        // Webtoon scrolling is handled by WebtoonReaderView's own keyboard monitor
+    switch readingDirection {
+    case .ltr:
+      switch event.key {
+      case .rightArrow:
+        goToNextPage()
+        return true
+      case .leftArrow:
+        goToPreviousPage()
+        return true
+      default:
         return false
       }
+    case .rtl:
+      switch event.key {
+      case .leftArrow:
+        goToNextPage()
+        return true
+      case .rightArrow:
+        goToPreviousPage()
+        return true
+      default:
+        return false
+      }
+    case .vertical:
+      switch event.key {
+      case .downArrow:
+        goToNextPage()
+        return true
+      case .upArrow:
+        goToPreviousPage()
+        return true
+      default:
+        return false
+      }
+    case .webtoon:
+      return false
     }
-  #endif
+  }
 
   private func loadBook(bookId: String, preserveReaderOptions: Bool) async {
     // Mark that loading has started
@@ -1364,7 +1391,7 @@ struct DivinaReaderView: View {
       )
     }
 
-    private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
+    private var readerCommandState: ReaderCommandState {
       let supportsDualPageOptions =
         readingDirection != .webtoon
         && readingDirection != .vertical
@@ -1373,7 +1400,7 @@ struct DivinaReaderView: View {
       let supportsSplitWidePageMode =
         readingDirection != .webtoon
 
-      return ReaderPresentationManager.MacReaderCommandState(
+      return ReaderCommandState(
         isActive: true,
         supportsReaderSettings: true,
         supportsBookDetails: currentSegmentBook != nil,
@@ -1398,10 +1425,10 @@ struct DivinaReaderView: View {
       )
     }
 
-    private func configureMacReaderCommands() {
-      readerPresentation.configureMacReaderCommands(
-        state: macReaderCommandState,
-        handlers: ReaderPresentationManager.MacReaderCommandHandlers(
+    private func configureReaderCommands() {
+      readerPresentation.configureReaderCommands(
+        state: readerCommandState,
+        handlers: ReaderCommandHandlers(
           showReaderSettings: {
             showingReaderSettingsSheet = true
           },
@@ -1513,6 +1540,42 @@ struct DivinaReaderView: View {
     }
   #endif
 
+  private func toggleFullscreenIfSupported() -> Bool {
+    #if os(macOS)
+      if let window = NSApplication.shared.keyWindow {
+        window.toggleFullScreen(nil)
+        return true
+      }
+    #endif
+    return false
+  }
+
+  private var supportsFullscreenToggle: Bool {
+    #if os(macOS)
+      true
+    #else
+      false
+    #endif
+  }
+
+  private var supportsLiveTextKeyboardShortcut: Bool {
+    #if os(iOS) || os(macOS)
+      true
+    #else
+      false
+    #endif
+  }
+
+  private func handleReaderExitCommand() {
+    #if os(tvOS)
+      if showingControls {
+        toggleControls()
+        return
+      }
+    #endif
+    closeReader()
+  }
+
   /// Hide helper overlay and cancel timer
   private func hideTapZoneOverlay() {
     tapZoneOverlayTimer?.invalidate()
@@ -1547,8 +1610,17 @@ struct DivinaReaderView: View {
   /// Hide keyboard help overlay and cancel timer
   private func hideKeyboardHelp() {
     keyboardHelpTimer?.invalidate()
+    keyboardHelpTimer = nil
     withAnimation {
       showKeyboardHelp = false
+    }
+  }
+
+  private func toggleKeyboardHelpManually() {
+    keyboardHelpTimer?.invalidate()
+    keyboardHelpTimer = nil
+    withAnimation {
+      showKeyboardHelp.toggle()
     }
   }
 
@@ -1556,6 +1628,7 @@ struct DivinaReaderView: View {
   private func triggerKeyboardHelp(timeout: TimeInterval) {
     // Respect user preference and ensure we have content
     guard showKeyboardHelpOverlay, viewModel.hasPages else { return }
+    guard ReaderKeyboardAvailability.shouldAutoShowKeyboardHelp else { return }
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
       withAnimation {

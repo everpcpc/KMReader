@@ -88,7 +88,7 @@ struct BookDetailView: View {
       url: KomgaWebLinkBuilder.book(serverURL: current.serverURL, bookId: bookId),
       scope: .browse
     )
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
           bookToolbarContent
@@ -239,7 +239,7 @@ struct BookDetailView: View {
   @ViewBuilder
   private var bookToolbarContent: some View {
     HStack {
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if let shareURL {
           ShareLink(item: shareURL, subject: Text(navigationTitle)) {
             Image(systemName: "square.and.arrow.up")

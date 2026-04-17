@@ -201,7 +201,7 @@ struct ReaderSettingsSheet: View {
           }
         #endif
 
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           Section(header: Text("Live Text")) {
             Toggle(isOn: $enableLiveText) {
               VStack(alignment: .leading, spacing: 4) {
@@ -270,11 +270,9 @@ struct ReaderSettingsSheet: View {
             #endif
           }
 
-          #if os(macOS)
-            Toggle(isOn: $showKeyboardHelpOverlay) {
-              Text("Show Keyboard Help Overlay")
-            }
-          #endif
+          Toggle(isOn: $showKeyboardHelpOverlay) {
+            Text("Auto-Show Keyboard Help")
+          }
 
           #if os(iOS) || os(macOS)
             Picker("Tap Zone Mode", selection: $tapZoneMode) {

@@ -304,7 +304,7 @@ struct DivinaPreferencesView: View {
         }
       #endif
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         Section(header: Text("Live Text")) {
           Toggle(isOn: $enableLiveText) {
             VStack(alignment: .leading, spacing: 4) {
@@ -378,16 +378,14 @@ struct DivinaPreferencesView: View {
           #endif
         }
 
-        #if os(macOS)
-          Toggle(isOn: $showKeyboardHelpOverlay) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Show Keyboard Help Overlay")
-              Text("Briefly show keyboard shortcuts when opening the reader")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
+        Toggle(isOn: $showKeyboardHelpOverlay) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Auto-Show Keyboard Help")
+            Text("Briefly show keyboard shortcuts when opening the reader")
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
-        #endif
+        }
 
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {

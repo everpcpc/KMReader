@@ -86,7 +86,7 @@ struct LibraryEditSheet: View {
           String(localized: "library.add.field.root", defaultValue: "Root Folder"),
           text: $libraryUpdate.root
         )
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           Button {
             showDirectoryBrowser = true
           } label: {

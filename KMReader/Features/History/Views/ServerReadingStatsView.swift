@@ -259,7 +259,7 @@ struct ServerReadingStatsView: View {
             }
           }
         }
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           .chartOverlay { proxy in
             GeometryReader { geometry in
               Color.clear
@@ -314,7 +314,7 @@ struct ServerReadingStatsView: View {
           .font(.caption)
           .foregroundStyle(.secondary)
 
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           Text(String(localized: "Tip: Tap or drag a point to view details."))
             .font(.caption)
             .foregroundStyle(.secondary)

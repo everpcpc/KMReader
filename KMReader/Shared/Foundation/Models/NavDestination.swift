@@ -45,7 +45,7 @@ enum NavDestination: Hashable {
     case settingsEpubReader
   #endif
   case settingsSSE
-  #if !os(tvOS)
+  #if os(iOS) || os(macOS)
     case settingsSpotlight
   #endif
   case settingsNetwork
@@ -167,7 +167,7 @@ enum NavDestination: Hashable {
     #endif
     case .settingsSSE:
       SettingsSSEView()
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       case .settingsSpotlight:
         SettingsSpotlightView()
     #endif

@@ -266,7 +266,7 @@ struct OfflineTaskRow: View {
 
       Spacer()
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         HStack(spacing: 16) {
           if case .failed = book.downloadStatus {
             Button {

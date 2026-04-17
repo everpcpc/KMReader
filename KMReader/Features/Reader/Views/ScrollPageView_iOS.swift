@@ -67,7 +67,7 @@
       collectionView.isPrefetchingEnabled = false
       collectionView.semanticContentAttribute = .forceLeftToRight
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         collectionView.isPagingEnabled = true
         collectionView.scrollsToTop = false
       #endif

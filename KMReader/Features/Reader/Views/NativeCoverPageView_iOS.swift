@@ -181,7 +181,7 @@
       }
 
       private func attachPanRecognizerIfNeeded(to containerView: NativeCoverContainerView) {
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           if panRecognizer?.view === containerView {
             return
           }
@@ -201,7 +201,7 @@
       }
 
       private func applyPanRecognizerState() {
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           guard let panRecognizer else { return }
           let wasEnabled = panRecognizer.isEnabled
           let shouldEnable = !parent.viewModel.isZoomed && !isAnimatingTransition

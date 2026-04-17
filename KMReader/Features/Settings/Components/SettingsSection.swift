@@ -18,7 +18,7 @@ enum SettingsSection: String, CaseIterable {
     case epubReader
   #endif
   case sse
-  #if !os(tvOS)
+  #if os(iOS) || os(macOS)
     case spotlight
   #endif
   case network
@@ -46,7 +46,7 @@ enum SettingsSection: String, CaseIterable {
     #endif
     case .sse:
       return "antenna.radiowaves.left.and.right"
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       case .spotlight:
         return "magnifyingglass.circle"
     #endif
@@ -79,7 +79,7 @@ enum SettingsSection: String, CaseIterable {
     #endif
     case .sse:
       return String(localized: "Real-time Updates")
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       case .spotlight:
         return String(localized: "Spotlight")
     #endif

@@ -90,7 +90,7 @@ struct CollectionDetailView: View {
     } message: {
       Text("This will permanently delete \(collection?.name ?? "this collection") from Komga.")
     }
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
           collectionToolbarContent
