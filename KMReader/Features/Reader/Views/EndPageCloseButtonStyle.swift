@@ -12,11 +12,9 @@
       configuration.cornerStyle = .capsule
       button.configuration = configuration
       button.tintColor = textColor
-      button.layer.shadowColor = UIColor.black.withAlphaComponent(0.35).cgColor
-      button.layer.shadowOpacity = 1
-      button.layer.shadowRadius = 4
-      button.layer.shadowOffset = CGSize(width: 0, height: 2)
-      button.layer.masksToBounds = false
+      button.layer.shadowOpacity = 0
+      button.layer.shadowRadius = 0
+      button.layer.shadowOffset = .zero
     }
 
     private static func borderedButtonConfiguration() -> UIButton.Configuration {
