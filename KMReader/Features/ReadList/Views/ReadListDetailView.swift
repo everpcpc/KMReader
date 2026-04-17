@@ -98,7 +98,7 @@ struct ReadListDetailView: View {
     } message: {
       Text("This will permanently delete \(readList?.name ?? "this read list") from Komga.")
     }
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
           readListToolbarContent

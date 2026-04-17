@@ -5,7 +5,7 @@
 
 import Foundation
 
-#if !os(tvOS)
+#if os(iOS) || os(macOS)
   import VisionKit
 #endif
 
@@ -13,7 +13,7 @@ import Foundation
 class LiveTextManager {
   static let shared = LiveTextManager()
 
-  #if !os(tvOS)
+  #if os(iOS) || os(macOS)
     let analyzer = ImageAnalyzer()
   #endif
 

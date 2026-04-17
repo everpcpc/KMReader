@@ -297,7 +297,7 @@ class AuthViewModel {
     await SSEService.shared.connect()
 
     WidgetDataService.refreshWidgetData()
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       SpotlightIndexService.removeAllItems()
       SpotlightIndexService.indexAllDownloadedBooks(instanceId: finalInstanceId)
     #endif

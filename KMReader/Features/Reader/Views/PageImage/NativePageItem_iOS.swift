@@ -2,7 +2,7 @@
   import SwiftUI
   import UIKit
 
-  #if !os(tvOS)
+  #if os(iOS) || os(macOS)
     import VisionKit
   #endif
 
@@ -26,7 +26,7 @@
     private var canIsolatePageFromCurrentPresentation = false
     private let logger = AppLogger(.reader)
 
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       private let interaction = ImageAnalysisInteraction()
       private var analysisTask: Task<Void, Never>?
       private var analyzedImage: UIImage?
@@ -48,13 +48,13 @@
     required init?(coder: NSCoder) { fatalError() }
 
     deinit {
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         analysisTask?.cancel()
       #endif
     }
 
     func prepareForDismantle() {
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if imageView.interactions.contains(where: { $0 === interaction }) {
           imageView.removeInteraction(interaction)
         }
@@ -84,13 +84,13 @@
           } else {
             pageSourceImage = viewModel?.preloadedImage(for: data.pageID)
           }
-          #if !os(tvOS)
+          #if os(iOS) || os(macOS)
             analysisSourceImage = pageSourceImage
           #endif
           imageView.image = pageSourceImage
         }
         updateAnimatedPlayback(sourceFileURL: currentData?.animatedSourceFileURL)
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           if enableLiveText {
             analyzeImage()
           }
@@ -190,7 +190,7 @@
         pageSourceImage = image
       }
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         analysisSourceImage = shouldEnableLiveText ? pageSourceImage : nil
       #endif
 
@@ -226,7 +226,7 @@
         loadingIndicator.stopAnimating()
       }
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if shouldEnableLiveText {
           if window != nil && !isHidden {
             if !imageView.interactions.contains(where: { $0 === interaction }) {
@@ -341,7 +341,7 @@
       }
     }
 
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       private func analyzeImage() {
         guard let image = analysisSourceImage ?? imageView.image else { return }
 
@@ -419,7 +419,7 @@
         imageView.layer.shadowPath = nil
       }
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if enableLiveText, imageView.image != nil,
           window != nil, !isHidden, interaction.analysis == nil, analysisTask == nil
         {

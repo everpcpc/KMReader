@@ -145,7 +145,7 @@ struct OfflineView: View {
     }
     .inlineNavigationBarTitle(title)
     .searchable(text: $searchQuery)
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         if librarySelection == nil {
           #if os(macOS)

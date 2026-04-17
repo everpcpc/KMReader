@@ -6,7 +6,7 @@
 import SwiftData
 import SwiftUI
 
-#if !os(tvOS)
+#if os(iOS) || os(macOS)
   import CoreSpotlight
 #endif
 
@@ -159,7 +159,7 @@ struct MainApp: App {
     @CommandsBuilder
     private var readerCommands: some Commands {
       CommandMenu("Reader") {
-        let state = readerPresentation.macReaderCommandState
+        let state = readerPresentation.readerCommandState
 
         if state.supportsReaderSettings {
           Button("Reader Settings") {
@@ -308,7 +308,7 @@ struct MainApp: App {
       .onOpenURL { url in
         deepLinkRouter.handle(url: url)
       }
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
           if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
             if let deepLink = SpotlightIndexService.deepLink(for: identifier) {

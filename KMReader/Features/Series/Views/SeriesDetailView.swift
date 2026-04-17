@@ -133,7 +133,7 @@ struct SeriesDetailView: View {
       url: KomgaWebLinkBuilder.series(serverURL: current.serverURL, seriesId: seriesId),
       scope: .browse
     )
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
           seriesToolbarContent
@@ -286,7 +286,7 @@ extension SeriesDetailView {
   @ViewBuilder
   private var seriesToolbarContent: some View {
     HStack {
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if let shareURL {
           ShareLink(item: shareURL, subject: Text(navigationTitle)) {
             Image(systemName: "square.and.arrow.up")

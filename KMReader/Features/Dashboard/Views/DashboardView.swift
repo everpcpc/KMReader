@@ -321,7 +321,7 @@ struct DashboardView: View {
         }
       }
     }
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         #if os(macOS)
           ToolbarItem(placement: .navigation) {

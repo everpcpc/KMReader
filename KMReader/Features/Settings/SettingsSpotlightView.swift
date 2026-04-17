@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-#if !os(tvOS)
+#if os(iOS) || os(macOS)
   struct SettingsSpotlightView: View {
     @AppStorage("enableSpotlightIndexing") private var enableSpotlightIndexing: Bool = true
     @AppStorage("enableSpotlightBookIndexing") private var enableSpotlightBookIndexing: Bool = true

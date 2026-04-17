@@ -545,6 +545,18 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var epubShowKeyboardHelpOverlay: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "epubShowKeyboardHelpOverlay") != nil {
+        return UserDefaults.standard.bool(forKey: "epubShowKeyboardHelpOverlay")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "epubShowKeyboardHelpOverlay")
+    }
+  }
+
   static nonisolated var enableReaderLiveActivity: Bool {
     get {
       if UserDefaults.standard.object(forKey: "enableReaderLiveActivity") != nil {

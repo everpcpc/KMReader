@@ -6,7 +6,7 @@
 import Foundation
 import OSLog
 
-#if !os(tvOS)
+#if os(iOS) || os(macOS)
 
   /// Information about a download task, persisted to UserDefaults for session reconnection
   struct BackgroundDownloadTaskInfo: Codable {

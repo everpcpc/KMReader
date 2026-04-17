@@ -23,6 +23,8 @@
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
     @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
     @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
+    @AppStorage("epubShowKeyboardHelpOverlay")
+    private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
 
     @State private var viewModel: EpubReaderViewModel
     @State private var activePreferences: EpubReaderPreferences
@@ -35,11 +37,8 @@
     @State private var showingDetailSheet = false
     @State private var showingQuickActions = false
     @State private var showingEndPage = false
-    #if os(macOS)
-      @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
-      @State private var showKeyboardHelp = false
-      @State private var keyboardHelpTimer: Timer?
-    #endif
+    @State private var keyboardHelpTimer: Timer?
+    @State private var showKeyboardHelp = false
 
     private let logger = AppLogger(.reader)
 
@@ -87,6 +86,16 @@
 
     private var shouldShowStatusBar: Bool {
       shouldShowControls || epubShowsStatusBarWhileReading
+    }
+
+    private var isPresentingModalSheet: Bool {
+      showingChapterSheet
+        || showingPreferencesSheet
+        || showingDetailSheet
+    }
+
+    private var isKeyboardCaptureEnabled: Bool {
+      !isPresentingModalSheet
     }
 
     private var handoffBookId: String {
@@ -172,7 +181,7 @@
           updateHandoff()
           viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
           #if os(macOS)
-            configureMacReaderCommands()
+            configureReaderCommands()
           #endif
         }
         .onChange(of: currentBook) { _, newBook in
@@ -182,20 +191,18 @@
           updateHandoff()
         }
         #if os(macOS)
-          .onChange(of: macReaderCommandState) { _, newState in
-            readerPresentation.updateMacReaderCommandState(newState)
+          .onChange(of: readerCommandState) { _, newState in
+            readerPresentation.updateReaderCommandState(newState)
           }
         #endif
         .onChange(of: viewModel.currentLocation) { _, _ in
           updateReaderLiveActivityProgress()
         }
-        #if os(macOS)
-          .onChange(of: viewModel.hasContent) { oldValue, newValue in
-            if !oldValue && newValue {
-              triggerKeyboardHelp(timeout: 1.5)
-            }
+        .onChange(of: viewModel.hasContent) { oldValue, newValue in
+          if !oldValue && newValue {
+            triggerKeyboardHelp(timeout: 1.5)
           }
-        #endif
+        }
         .onChange(of: showingEndPage) { _, newValue in
           guard newValue else { return }
           #if os(iOS)
@@ -224,7 +231,7 @@
           readerPresentation.clearFlushHandler(for: sessionID)
           #if os(macOS)
             keyboardHelpTimer?.invalidate()
-            readerPresentation.clearMacReaderCommands()
+            readerPresentation.clearReaderCommands()
           #endif
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -233,15 +240,13 @@
         #if os(iOS)
           .readerDismissGesture(readingDirection: dismissGestureReadingDirection)
         #endif
-        #if os(macOS)
-          .background(
-            KeyboardEventHandler(
-              onKeyPress: { keyCode, flags in
-                handleKeyCode(keyCode, flags: flags)
-              }
-            )
+        .background(
+          KeyboardEventHandler(
+            isEnabled: isKeyboardCaptureEnabled,
+            commands: keyboardCommands,
+            onKeyPress: handleKeyboardEvent
           )
-        #endif
+        )
     }
 
     private func loadBook() async {
@@ -312,9 +317,7 @@
 
           controlsOverlay
 
-          #if os(macOS)
-            keyboardHelpOverlay
-          #endif
+          keyboardHelpOverlay
         }
         .onAppear {
           viewModel.updateViewport(size: geometry.size)
@@ -789,6 +792,24 @@
       }
     }
 
+    private func toggleFullscreenIfSupported() -> Bool {
+      #if os(macOS)
+        if let window = NSApplication.shared.keyWindow {
+          window.toggleFullScreen(nil)
+          return true
+        }
+      #endif
+      return false
+    }
+
+    private var supportsFullscreenToggle: Bool {
+      #if os(macOS)
+        true
+      #else
+        false
+      #endif
+    }
+
     private var currentChapterLink: WebPubLink? {
       guard let currentLocation = viewModel.currentLocation else {
         return nil
@@ -808,26 +829,46 @@
       return nil
     }
 
-    #if os(macOS)
-      private var isAtLastEpubPage: Bool {
-        guard let lastPosition = viewModel.lastPagePosition() else { return false }
-        return viewModel.currentChapterIndex == lastPosition.chapterIndex
-          && viewModel.currentPageIndex >= lastPosition.pageIndex
-      }
+    private var isAtLastEpubPage: Bool {
+      guard let lastPosition = viewModel.lastPagePosition() else { return false }
+      return viewModel.currentChapterIndex == lastPosition.chapterIndex
+        && viewModel.currentPageIndex >= lastPosition.pageIndex
+    }
 
-      private func goToNextEpubPage() {
-        if isAtLastEpubPage {
-          if !showingEndPage {
-            viewModel.syncEndProgression()
-            showingEndPage = true
-          }
-          return
+    private func goToNextEpubPage() {
+      if isAtLastEpubPage {
+        if !showingEndPage {
+          viewModel.syncEndProgression()
+          showingEndPage = true
         }
-        viewModel.goToNextPage()
+        return
+      }
+      viewModel.goToNextPage()
+    }
+
+    private var keyboardCommands: [ReaderKeyboardCommand] {
+      var commands = [
+        ReaderKeyboardCommand(
+          title: "Keyboard Shortcuts",
+          event: ReaderKeyboardEvent(key: .slash, modifiers: [.command])
+        )
+      ]
+
+      if !viewModel.tableOfContents.isEmpty {
+        commands.append(
+          ReaderKeyboardCommand(
+            title: "Table of Contents",
+            event: ReaderKeyboardEvent(key: .t, modifiers: [.command])
+          )
+        )
       }
 
-      private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
-        ReaderPresentationManager.MacReaderCommandState(
+      return commands
+    }
+
+    #if os(macOS)
+      private var readerCommandState: ReaderCommandState {
+        ReaderCommandState(
           isActive: true,
           supportsReaderSettings: true,
           supportsBookDetails: currentBook != nil && currentSeries != nil,
@@ -851,28 +892,31 @@
           supportsSplitWidePageMode: false
         )
       }
+    #endif
 
-      private var keyboardHelpOverlay: some View {
-        KeyboardHelpOverlay(
-          readingDirection: dismissGestureReadingDirection,
-          hasTOC: !viewModel.tableOfContents.isEmpty,
-          supportsLiveText: false,
-          supportsJumpToPage: false,
-          supportsToggleControls: supportsKeyboardOverlayToggle,
-          hasNextBook: false,
-          onDismiss: {
-            hideKeyboardHelp()
-          }
-        )
-        .opacity(showKeyboardHelp ? 1.0 : 0.0)
-        .allowsHitTesting(showKeyboardHelp)
-        .animation(.default, value: showKeyboardHelp)
-      }
+    private var keyboardHelpOverlay: some View {
+      KeyboardHelpOverlay(
+        readingDirection: dismissGestureReadingDirection,
+        hasTOC: !viewModel.tableOfContents.isEmpty,
+        supportsFullscreenToggle: supportsFullscreenToggle,
+        supportsLiveText: false,
+        supportsJumpToPage: false,
+        supportsToggleControls: supportsKeyboardOverlayToggle,
+        hasNextBook: false,
+        onDismiss: {
+          hideKeyboardHelp()
+        }
+      )
+      .opacity(showKeyboardHelp ? 1.0 : 0.0)
+      .allowsHitTesting(showKeyboardHelp)
+      .animation(.default, value: showKeyboardHelp)
+    }
 
-      private func configureMacReaderCommands() {
-        readerPresentation.configureMacReaderCommands(
-          state: macReaderCommandState,
-          handlers: ReaderPresentationManager.MacReaderCommandHandlers(
+    #if os(macOS)
+      private func configureReaderCommands() {
+        readerPresentation.configureReaderCommands(
+          state: readerCommandState,
+          handlers: ReaderCommandHandlers(
             showReaderSettings: {
               showingPreferencesSheet = true
             },
@@ -898,106 +942,115 @@
           )
         )
       }
-
-      private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
-        if keyCode == 53 {
-          closeReader()
-          return true
-        }
-
-        if keyCode == 44 {
-          showKeyboardHelp.toggle()
-          return true
-        }
-
-        if keyCode == 36 {
-          if let window = NSApplication.shared.keyWindow {
-            window.toggleFullScreen(nil)
-          }
-          return true
-        }
-
-        if keyCode == 49 {
-          toggleControls()
-          return true
-        }
-
-        guard flags.intersection([.command, .option, .control]).isEmpty else { return false }
-
-        if keyCode == 4 {
-          showKeyboardHelp.toggle()
-          return true
-        }
-
-        if keyCode == 8 {
-          toggleControls()
-          return true
-        }
-
-        if keyCode == 17 {
-          if !viewModel.tableOfContents.isEmpty {
-            showingChapterSheet = true
-          }
-          return true
-        }
-
-        guard viewModel.hasContent else { return false }
-
-        switch dismissGestureReadingDirection {
-        case .ltr:
-          switch keyCode {
-          case 124:
-            goToNextEpubPage()
-            return true
-          case 123:
-            viewModel.goToPreviousPage()
-            return true
-          default:
-            return false
-          }
-        case .rtl:
-          switch keyCode {
-          case 123:
-            goToNextEpubPage()
-            return true
-          case 124:
-            viewModel.goToPreviousPage()
-            return true
-          default:
-            return false
-          }
-        case .vertical, .webtoon:
-          switch keyCode {
-          case 125:
-            goToNextEpubPage()
-            return true
-          case 126:
-            viewModel.goToPreviousPage()
-            return true
-          default:
-            return false
-          }
-        }
-      }
-
-      private func hideKeyboardHelp() {
-        keyboardHelpTimer?.invalidate()
-        keyboardHelpTimer = nil
-        showKeyboardHelp = false
-      }
-
-      private func triggerKeyboardHelp(timeout: TimeInterval) {
-        keyboardHelpTimer?.invalidate()
-        guard showKeyboardHelpOverlay, viewModel.hasContent else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
-          self.showKeyboardHelp = true
-          self.keyboardHelpTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
-            Task { @MainActor in
-              self.hideKeyboardHelp()
-            }
-          }
-        }
-      }
     #endif
+
+    private func handleKeyboardEvent(_ event: ReaderKeyboardEvent) -> Bool {
+      if event.matches(.escape) {
+        closeReader()
+        return true
+      }
+
+      if event.matches(.slash, modifiers: [.shift])
+        || event.matches(.slash, modifiers: [.command])
+        || event.matches(.h)
+      {
+        toggleKeyboardHelpManually()
+        return true
+      }
+
+      if event.matches(.returnOrEnter) {
+        return toggleFullscreenIfSupported()
+      }
+
+      if event.matches(.space) {
+        toggleControls()
+        return true
+      }
+
+      if event.matches(.t, modifiers: [.command]) {
+        if !viewModel.tableOfContents.isEmpty {
+          showingChapterSheet = true
+        }
+        return true
+      }
+
+      guard !event.hasSystemModifiers else { return false }
+
+      if event.matches(.c) {
+        toggleControls()
+        return true
+      }
+
+      if event.matches(.t) {
+        if !viewModel.tableOfContents.isEmpty {
+          showingChapterSheet = true
+        }
+        return true
+      }
+
+      guard viewModel.hasContent else { return false }
+
+      switch dismissGestureReadingDirection {
+      case .ltr:
+        switch event.key {
+        case .rightArrow:
+          goToNextEpubPage()
+          return true
+        case .leftArrow:
+          viewModel.goToPreviousPage()
+          return true
+        default:
+          return false
+        }
+      case .rtl:
+        switch event.key {
+        case .leftArrow:
+          goToNextEpubPage()
+          return true
+        case .rightArrow:
+          viewModel.goToPreviousPage()
+          return true
+        default:
+          return false
+        }
+      case .vertical, .webtoon:
+        switch event.key {
+        case .downArrow:
+          goToNextEpubPage()
+          return true
+        case .upArrow:
+          viewModel.goToPreviousPage()
+          return true
+        default:
+          return false
+        }
+      }
+    }
+
+    private func hideKeyboardHelp() {
+      keyboardHelpTimer?.invalidate()
+      keyboardHelpTimer = nil
+      showKeyboardHelp = false
+    }
+
+    private func toggleKeyboardHelpManually() {
+      keyboardHelpTimer?.invalidate()
+      keyboardHelpTimer = nil
+      showKeyboardHelp.toggle()
+    }
+
+    private func triggerKeyboardHelp(timeout: TimeInterval) {
+      keyboardHelpTimer?.invalidate()
+      guard showKeyboardHelpOverlay, viewModel.hasContent else { return }
+      guard ReaderKeyboardAvailability.shouldAutoShowKeyboardHelp else { return }
+      DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+        self.showKeyboardHelp = true
+        self.keyboardHelpTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
+          Task { @MainActor in
+            self.hideKeyboardHelp()
+          }
+        }
+      }
+    }
   }
 #endif

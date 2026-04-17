@@ -83,7 +83,7 @@ struct SavedFiltersView: View {
       }
       .adaptiveButtonStyle(.plain)
     }
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .swipeActions(edge: .trailing, allowsFullSwipe: false) {
         Button(role: .destructive) {
           deleteFilter(filter)
