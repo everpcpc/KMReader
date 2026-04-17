@@ -203,6 +203,7 @@ import SwiftUI
       uiView.isCaptureEnabled = isEnabled
       uiView.commands = commands
       uiView.onKeyPress = onKeyPress
+      uiView.ensureResponderState()
     }
   }
 
