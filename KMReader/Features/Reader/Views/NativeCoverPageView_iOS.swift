@@ -734,6 +734,29 @@
         return max(min(raw, start), 0)
       }
 
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer === panRecognizer else { return true }
+        guard !parent.viewModel.isZoomed else { return false }
+        guard !isAnimatingTransition else { return false }
+        guard let currentItem else { return false }
+        guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
+
+        let translation = pan.translation(in: containerView)
+        let velocity = pan.velocity(in: containerView)
+        let directionalSignal =
+          abs(primaryTranslation(from: translation)) > TransitionMetrics.minimumDragDistance
+          ? translation
+          : velocity
+
+        guard isPrimaryDirectionalDrag(directionalSignal) else { return false }
+
+        let primarySignal = primaryTranslation(from: directionalSignal)
+        guard abs(primarySignal) > TransitionMetrics.minimumDragDistance else { return false }
+
+        let directionOffset = adjacentOffset(for: primarySignal)
+        return parent.viewModel.adjacentViewItem(from: currentItem, offset: directionOffset) != nil
+      }
+
       func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
