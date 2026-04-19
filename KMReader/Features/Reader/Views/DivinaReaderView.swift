@@ -694,6 +694,7 @@ struct DivinaReaderView: View {
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                tapNavigationAnimationDuration: pageTurnAnimationDuration,
                 renderConfig: renderConfig,
                 viewModel: viewModel,
                 readListContext: readListContext,

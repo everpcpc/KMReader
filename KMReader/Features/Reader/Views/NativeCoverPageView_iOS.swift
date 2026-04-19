@@ -26,6 +26,7 @@
       static let cancelThreshold: CGFloat = 0.5
       static let commitDistanceRatio: CGFloat = 0.18
       static let commitVelocityThreshold: CGFloat = 700
+      static let gestureAnimationDuration: Double = 0.3
       static let movingShadowOpacity: Double = 0.12
       static let idleShadowOpacity: Double = 0.05
       static let movingShadowRadius: CGFloat = 5
@@ -37,12 +38,11 @@
     let mode: PageViewMode
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let tapNavigationAnimationDuration: Double
     let renderConfig: ReaderRenderConfig
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-
-    @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -70,6 +70,11 @@
 
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate, NativePagedPagePresentationHost {
+      private enum TransitionAnimationKind {
+        case gesture
+        case tapNavigation
+      }
+
       private var parent: NativeCoverPageView
       private weak var containerView: NativeCoverContainerView?
       private let pagePresentationCoordinator = NativePagedPagePresentationCoordinator()
@@ -223,8 +228,12 @@
         return transitionDirection == 1 ? deckState.nextItem : deckState.previousItem
       }
 
-      private var transitionDuration: Double {
-        max(parent.tapPageTransitionDuration, 0)
+      private var tapNavigationTransitionDuration: Double {
+        max(parent.tapNavigationAnimationDuration, 0)
+      }
+
+      private var gestureTransitionDuration: Double {
+        TransitionMetrics.gestureAnimationDuration
       }
 
       private var primaryExtent: CGFloat {
@@ -320,7 +329,7 @@
 
         if abs(targetIndex - currentIndex) == 1 {
           dragOffset = 0
-          commitTransition(to: targetItem)
+          commitTransition(to: targetItem, animation: .tapNavigation)
         } else {
           deckState.rebuild(around: targetItem, viewModel: parent.viewModel)
           transitionDirection = nil
@@ -399,10 +408,13 @@
           cancelDragWithAnimation()
           return
         }
-        commitTransition(to: targetItem)
+        commitTransition(to: targetItem, animation: .gesture)
       }
 
-      private func commitTransition(to targetItem: ReaderViewItem) {
+      private func commitTransition(
+        to targetItem: ReaderViewItem,
+        animation: TransitionAnimationKind
+      ) {
         guard let currentItem,
           let currentIndex = parent.viewModel.viewItemIndex(for: currentItem),
           let targetIndex = parent.viewModel.viewItemIndex(for: targetItem)
@@ -422,9 +434,10 @@
         isAnimatingTransition = true
         transitionToken += 1
         let token = transitionToken
+        let duration = transitionDuration(for: animation)
 
         if targetIndex > currentIndex {
-          animateDragOffset(to: endOffset, token: token) {
+          animateDragOffset(to: endOffset, duration: duration, token: token) {
             self.completeTransition(to: targetItem)
           }
         } else {
@@ -432,7 +445,7 @@
             dragOffset = backwardStartOffset(for: directionSign)
             updateSlotLayout()
           }
-          animateDragOffset(to: 0, token: token) {
+          animateDragOffset(to: 0, duration: duration, token: token) {
             self.completeTransition(to: targetItem)
           }
         }
@@ -471,7 +484,7 @@
         }()
 
         isAnimatingTransition = true
-        animateDragOffset(to: cancelTargetOffset, token: token) {
+        animateDragOffset(to: cancelTargetOffset, duration: gestureTransitionDuration, token: token) {
           self.resetDragStateImmediately()
         }
       }
@@ -487,6 +500,7 @@
 
       private func animateDragOffset(
         to targetOffset: CGFloat,
+        duration: Double,
         token: Int,
         completion: @escaping () -> Void
       ) {
@@ -496,7 +510,7 @@
           return
         }
 
-        if transitionDuration <= 0 {
+        if duration <= 0 {
           dragOffset = targetOffset
           updateSlotLayout()
           guard token == transitionToken else { return }
@@ -505,7 +519,7 @@
         }
 
         UIView.animate(
-          withDuration: transitionDuration,
+          withDuration: duration,
           delay: 0,
           options: [.curveEaseOut, .beginFromCurrentState, .allowUserInteraction]
         ) {
@@ -515,6 +529,15 @@
         } completion: { _ in
           guard token == self.transitionToken else { return }
           completion()
+        }
+      }
+
+      private func transitionDuration(for animation: TransitionAnimationKind) -> Double {
+        switch animation {
+        case .gesture:
+          gestureTransitionDuration
+        case .tapNavigation:
+          tapNavigationTransitionDuration
         }
       }
 
@@ -738,23 +761,13 @@
         guard gestureRecognizer === panRecognizer else { return true }
         guard !parent.viewModel.isZoomed else { return false }
         guard !isAnimatingTransition else { return false }
-        guard let currentItem else { return false }
         guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
 
-        let translation = pan.translation(in: containerView)
         let velocity = pan.velocity(in: containerView)
-        let directionalSignal =
-          abs(primaryTranslation(from: translation)) > TransitionMetrics.minimumDragDistance
-          ? translation
-          : velocity
-
-        guard isPrimaryDirectionalDrag(directionalSignal) else { return false }
-
-        let primarySignal = primaryTranslation(from: directionalSignal)
-        guard abs(primarySignal) > TransitionMetrics.minimumDragDistance else { return false }
-
-        let directionOffset = adjacentOffset(for: primarySignal)
-        return parent.viewModel.adjacentViewItem(from: currentItem, offset: directionOffset) != nil
+        if velocity == .zero {
+          return true
+        }
+        return isPrimaryDirectionalDrag(velocity)
       }
 
       func gestureRecognizer(
@@ -772,6 +785,19 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         false
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        guard gestureRecognizer === panRecognizer else { return false }
+        let typeName = String(describing: type(of: otherGestureRecognizer))
+        return typeName.contains("Parallax")
+          || typeName.contains("ZoomTransition")
+          || typeName.contains("ScreenEdgePan")
+          || typeName.contains("FullPageSwipe")
+          || typeName == "_UIContentSwipeDismissGestureRecognizer"
       }
     }
   }

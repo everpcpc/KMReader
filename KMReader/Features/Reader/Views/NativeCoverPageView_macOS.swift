@@ -26,6 +26,7 @@
       static let cancelThreshold: CGFloat = 0.5
       static let commitDistanceRatio: CGFloat = 0.18
       static let commitVelocityThreshold: CGFloat = 700
+      static let gestureAnimationDuration: Double = 0.3
       static let movingShadowOpacity: Double = 0.12
       static let idleShadowOpacity: Double = 0.05
       static let movingShadowRadius: CGFloat = 5
@@ -37,12 +38,11 @@
     let mode: PageViewMode
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let tapNavigationAnimationDuration: Double
     let renderConfig: ReaderRenderConfig
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-
-    @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -70,6 +70,11 @@
 
     @MainActor
     final class Coordinator: NSObject, NSGestureRecognizerDelegate, NativePagedPagePresentationHost {
+      private enum TransitionAnimationKind {
+        case gesture
+        case tapNavigation
+      }
+
       private var parent: NativeCoverPageView
       private weak var containerView: NativeCoverContainerView?
       private let pagePresentationCoordinator = NativePagedPagePresentationCoordinator()
@@ -216,8 +221,12 @@
         return transitionDirection == 1 ? deckState.nextItem : deckState.previousItem
       }
 
-      private var transitionDuration: Double {
-        max(parent.tapPageTransitionDuration, 0)
+      private var tapNavigationTransitionDuration: Double {
+        max(parent.tapNavigationAnimationDuration, 0)
+      }
+
+      private var gestureTransitionDuration: Double {
+        TransitionMetrics.gestureAnimationDuration
       }
 
       private var primaryExtent: CGFloat {
@@ -313,7 +322,7 @@
 
         if abs(targetIndex - currentIndex) == 1 {
           dragOffset = 0
-          commitTransition(to: targetItem)
+          commitTransition(to: targetItem, animation: .tapNavigation)
         } else {
           deckState.rebuild(around: targetItem, viewModel: parent.viewModel)
           transitionDirection = nil
@@ -392,10 +401,13 @@
           cancelDragWithAnimation()
           return
         }
-        commitTransition(to: targetItem)
+        commitTransition(to: targetItem, animation: .gesture)
       }
 
-      private func commitTransition(to targetItem: ReaderViewItem) {
+      private func commitTransition(
+        to targetItem: ReaderViewItem,
+        animation: TransitionAnimationKind
+      ) {
         guard let currentItem,
           let currentIndex = parent.viewModel.viewItemIndex(for: currentItem),
           let targetIndex = parent.viewModel.viewItemIndex(for: targetItem)
@@ -415,14 +427,16 @@
         isAnimatingTransition = true
         transitionToken += 1
         let token = transitionToken
+        let duration = transitionDuration(for: animation)
 
         if targetIndex > currentIndex {
-          animateDragOffset(to: endOffset, token: token) {
+          animateDragOffset(to: endOffset, duration: duration, token: token) {
             self.completeTransition(to: targetItem)
           }
         } else {
           animateBackwardCommitWithPreparedStartStateIfNeeded(
             directionSign: directionSign,
+            duration: duration,
             token: token
           ) {
             self.completeTransition(to: targetItem)
@@ -463,7 +477,7 @@
         }()
 
         isAnimatingTransition = true
-        animateDragOffset(to: cancelTargetOffset, token: token) {
+        animateDragOffset(to: cancelTargetOffset, duration: gestureTransitionDuration, token: token) {
           self.resetDragStateImmediately()
         }
       }
@@ -479,11 +493,12 @@
 
       private func animateBackwardCommitWithPreparedStartStateIfNeeded(
         directionSign: CGFloat,
+        duration: Double,
         token: Int,
         completion: @escaping @MainActor () -> Void
       ) {
         guard abs(dragOffset) < TransitionMetrics.cancelThreshold else {
-          animateDragOffset(to: 0, token: token, completion: completion)
+          animateDragOffset(to: 0, duration: duration, token: token, completion: completion)
           return
         }
 
@@ -496,12 +511,13 @@
         Task { @MainActor in
           await Task.yield()
           guard token == self.transitionToken else { return }
-          self.animateDragOffset(to: 0, token: token, completion: completion)
+          self.animateDragOffset(to: 0, duration: duration, token: token, completion: completion)
         }
       }
 
       private func animateDragOffset(
         to targetOffset: CGFloat,
+        duration: Double,
         token: Int,
         completion: @escaping @MainActor () -> Void
       ) {
@@ -511,7 +527,7 @@
           return
         }
 
-        if transitionDuration <= 0 {
+        if duration <= 0 {
           dragOffset = targetOffset
           updateSlotLayout()
           guard token == transitionToken else { return }
@@ -520,7 +536,7 @@
         }
 
         NSAnimationContext.runAnimationGroup { context in
-          context.duration = transitionDuration
+          context.duration = duration
           context.timingFunction = CAMediaTimingFunction(name: .easeOut)
           self.dragOffset = targetOffset
           self.updateSlotLayout(animated: true)
@@ -530,6 +546,15 @@
             guard token == self.transitionToken else { return }
             completion()
           }
+        }
+      }
+
+      private func transitionDuration(for animation: TransitionAnimationKind) -> Double {
+        switch animation {
+        case .gesture:
+          gestureTransitionDuration
+        case .tapNavigation:
+          tapNavigationTransitionDuration
         }
       }
 
