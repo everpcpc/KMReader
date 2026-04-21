@@ -340,10 +340,7 @@
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         lastTouchStartTime = Date()
         hadSelectionAtTouchStart = (observedPDFView?.currentSelection != nil)
-        if let view = touch.view, view is UIControl {
-          return false
-        }
-        return true
+        return !isInteractiveElement(touch.view)
       }
 
       func gestureRecognizer(
@@ -351,6 +348,42 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         true
+      }
+
+      private func isInteractiveElement(_ view: UIView?) -> Bool {
+        var current = view
+        while let candidate = current {
+          if candidate is UIControl {
+            return true
+          }
+
+          let className = NSStringFromClass(type(of: candidate))
+          if className.contains("Button")
+            || className.contains("Slider")
+            || className.contains("Switch")
+            || className.contains("TextField")
+            || className.contains("TextView")
+            || className.contains("Segmented")
+            || className.contains("NavigationBar")
+            || className.contains("Toolbar")
+            || className.contains("Menu")
+            || className.contains("ContextMenu")
+            || className.contains("Popover")
+          {
+            return true
+          }
+
+          if candidate.isAccessibilityElement {
+            let traits = candidate.accessibilityTraits
+            if traits.contains(.button) || traits.contains(.link) {
+              return true
+            }
+          }
+
+          current = candidate.superview
+        }
+
+        return false
       }
     }
   }

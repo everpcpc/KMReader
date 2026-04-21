@@ -639,8 +639,8 @@
               closeReader()
             } label: {
               Image(systemName: "xmark")
+                .contentShape(Circle())
             }
-            .contentShape(Circle())
             .controlSize(.extraLarge)
             .buttonBorderShape(.circle)
             .adaptiveButtonStyle(buttonStyle)
@@ -674,8 +674,8 @@
                 Image(systemName: showingQuickActions ? "xmark" : "line.3.horizontal")
                   .padding(2)
                   .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
+                  .contentShape(Circle())
               }
-              .contentShape(Circle())
               .controlSize(.extraLarge)
               .buttonBorderShape(.circle)
               .adaptiveButtonStyle(buttonStyle)
@@ -742,6 +742,7 @@
                 .font(.callout)
               Image(systemName: "list.bullet")
             }
+            .contentShape(Capsule())
           }
           .adaptiveButtonStyle(buttonStyle)
           .buttonBorderShape(.capsule)
@@ -757,6 +758,7 @@
               .font(.callout)
             Image(systemName: "textformat")
           }
+          .contentShape(Capsule())
         }
         .adaptiveButtonStyle(buttonStyle)
         .buttonBorderShape(.capsule)
@@ -770,6 +772,7 @@
               .font(.callout)
             Image(systemName: "info.circle")
           }
+          .contentShape(Capsule())
         }
         .adaptiveButtonStyle(buttonStyle)
         .buttonBorderShape(.capsule)

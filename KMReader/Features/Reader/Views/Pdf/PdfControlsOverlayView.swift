@@ -81,10 +81,10 @@
             onDismiss()
           } label: {
             Image(systemName: "xmark")
+              .contentShape(Circle())
           }
           .buttonBorderShape(.circle)
           .controlSize(.large)
-          .contentShape(Circle())
           .adaptiveButtonStyle(buttonStyle)
         #endif
 
@@ -117,9 +117,9 @@
             }
             .padding(.vertical, 2)
             .padding(.horizontal)
+            .contentShape(Capsule())
           }
           .optimizedControlSize()
-          .contentShape(Capsule())
           .adaptiveButtonStyle(buttonStyle)
         }
 
@@ -131,10 +131,10 @@
           } label: {
             Image(systemName: "ellipsis")
               .padding(4)
+              .contentShape(Circle())
           }
           .buttonBorderShape(.circle)
           .controlSize(.large)
-          .contentShape(Circle())
           .adaptiveButtonStyle(buttonStyle)
         #endif
       }
@@ -163,8 +163,8 @@
               Text("\(displayedCurrentPage) / \(pageCount)")
                 .monospacedDigit()
             }
+            .contentShape(Capsule())
           }
-          .contentShape(Capsule())
           .adaptiveButtonStyle(buttonStyle)
           .disabled(pageCount <= 0)
 
