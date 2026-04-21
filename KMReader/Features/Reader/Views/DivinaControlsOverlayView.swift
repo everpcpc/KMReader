@@ -197,10 +197,10 @@ struct DivinaControlsOverlayView: View {
           onDismiss()
         } label: {
           Image(systemName: "xmark")
+            .contentShape(Circle())
         }
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .contentShape(Circle())
         .adaptiveButtonStyle(buttonStyle)
         #if os(tvOS)
           .focused($focusedControl, equals: .close)
@@ -235,9 +235,9 @@ struct DivinaControlsOverlayView: View {
           }
           .padding(.vertical, 2)
           .padding(.horizontal)
+          .contentShape(Capsule())
         }
         .optimizedControlSize()
-        .contentShape(Capsule())
         .adaptiveButtonStyle(buttonStyle)
         #if os(tvOS)
           .focused($focusedControl, equals: .title)
@@ -253,10 +253,10 @@ struct DivinaControlsOverlayView: View {
         } label: {
           Image(systemName: "ellipsis")
             .padding(4)
+            .contentShape(Circle())
         }
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .contentShape(Circle())
         .adaptiveButtonStyle(buttonStyle)
         #if os(tvOS)
           .focused($focusedControl, equals: .settings)
@@ -288,8 +288,8 @@ struct DivinaControlsOverlayView: View {
             Text("\(displayedCurrentPage) / \(currentSegmentPageCount)")
               .monospacedDigit()
           }
+          .contentShape(Capsule())
         }
-        .contentShape(Capsule())
         .adaptiveButtonStyle(buttonStyle)
         #if os(tvOS)
           .focused($focusedControl, equals: .pageNumber)
