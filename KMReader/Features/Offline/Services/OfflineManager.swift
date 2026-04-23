@@ -801,6 +801,22 @@ actor OfflineManager {
           )
         }
       } catch {
+        if isPermanentNotFound(error) {
+          logger.info(
+            "🪦 Book \(info.bookId) no longer exists on server; marking unavailable"
+          )
+          await BackgroundDownloadManager.shared.cancelDownloads(forBookId: info.bookId)
+          clearBackgroundDownloadContext(bookId: info.bookId)
+          removeActiveTask(info.bookId)
+          try? await DatabaseOperator.database().markBookUnavailable(
+            bookId: info.bookId,
+            instanceId: instanceId
+          )
+          try? await DatabaseOperator.database().commit()
+          await refreshQueueStatus(instanceId: instanceId)
+          await syncDownloadQueue(instanceId: instanceId)
+          return
+        }
         logger.error("❌ Failed to start background download for \(info.bookId): \(error)")
         await BackgroundDownloadManager.shared.cancelDownloads(forBookId: info.bookId)
         clearBackgroundDownloadContext(bookId: info.bookId)
@@ -1085,6 +1101,17 @@ actor OfflineManager {
 
         if Task.isCancelled {
           logger.info("⛔ Download cancelled for book: \(info.bookId)")
+        } else if self.isPermanentNotFound(error) {
+          // Book has been replaced/removed server-side — tombstone, do not mark .failed.
+          logger.info(
+            "🪦 Book \(info.bookId) no longer exists on server; marking unavailable"
+          )
+          try? await DatabaseOperator.database().markBookUnavailable(
+            bookId: info.bookId,
+            instanceId: instanceId
+          )
+          try? await DatabaseOperator.database().commit()
+          await self.refreshQueueStatus(instanceId: instanceId)
         } else {
           let shouldKeepPending = await self.shouldKeepPendingAfterNetworkFailure(error)
           if shouldKeepPending {
@@ -1394,6 +1421,16 @@ actor OfflineManager {
     }
   #endif
 
+  /// Returns true when the server has confirmed the book no longer exists (HTTP 404).
+  /// This happens when a file is replaced server-side and Komga issues a new book UUID,
+  /// leaving the previously-cached UUID orphaned.
+  private nonisolated func isPermanentNotFound(_ error: Error) -> Bool {
+    if let apiError = error as? APIError, case .notFound = apiError {
+      return true
+    }
+    return false
+  }
+
   private nonisolated func isNetworkRelatedError(_ error: Error) -> Bool {
     if let apiError = error as? APIError {
       if case .networkError = apiError { return true }
@@ -1530,6 +1567,23 @@ actor OfflineManager {
       if isNetworkError && AppConfig.isOffline {
         // Network error caused offline mode switch - keep as pending for retry
         logger.info("⚠️ Background download paused due to network error: \(bookId)")
+        return
+      }
+
+      // A 404 means the book has been replaced/removed server-side. Tombstone instead
+      // of marking .failed, so policy sweeps don't resurrect the phantom download.
+      if isPermanentNotFound(error) {
+        logger.info("🪦 Book \(bookId) no longer exists on server; marking unavailable")
+        try? await DatabaseOperator.database().markBookUnavailable(
+          bookId: bookId,
+          instanceId: info.instanceId
+        )
+        try? await DatabaseOperator.database().commit()
+        await refreshQueueStatus(instanceId: info.instanceId)
+        await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
+        clearBackgroundDownloadContext(bookId: bookId)
+        removeActiveTask(bookId)
+        await syncDownloadQueue(instanceId: info.instanceId)
         return
       }
 
