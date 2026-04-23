@@ -1234,6 +1234,36 @@ actor DatabaseOperator {
     }
   }
 
+  /// Tombstone a book that the server no longer serves (e.g. file replaced, yielding a new UUID).
+  /// Sets `isUnavailable = true` and resets download state so policy sweeps stop re-enqueueing it.
+  /// Mirrors the effect of a server-delivered `deleted: true` on the book DTO.
+  func markBookUnavailable(bookId: String, instanceId: String) {
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let book = try? modelContext.fetch(descriptor).first else { return }
+
+    book.isUnavailable = true
+    book.downloadStatusRaw = "notDownloaded"
+    book.downloadError = nil
+    book.downloadAt = nil
+    book.downloadedSize = 0
+    book.pagesRaw = nil
+    book.tocRaw = nil
+    book.webPubManifestRaw = nil
+
+    // Re-sync series download state so counters and policy picks skip this book.
+    let seriesId = book.seriesId
+    let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
+    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { $0.id == compositeSeriesId }
+    )
+    if let series = try? modelContext.fetch(seriesDescriptor).first {
+      syncSeriesDownloadStatus(series: series)
+    }
+  }
+
   func updateReadingProgress(bookId: String, page: Int, completed: Bool) {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
@@ -1346,8 +1376,15 @@ actor DatabaseOperator {
     let policyLimit = max(0, series.offlinePolicyLimit)
     let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
 
-    // Sort books to ensure they are processed in order
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    // Sort books to ensure they are processed in order.
+    // Books tombstoned as unavailable (server replaced/removed them) are excluded
+    // up front so they neither consume a slot in `allowedUnreadIds` nor get
+    // re-enqueued by the loop below. Otherwise a cancel → sync sweep would
+    // resurrect the phantom download indefinitely.
+    let sortedBooks =
+      books
+      .filter { !$0.isUnavailable }
+      .sorted { $0.metaNumberSort < $1.metaNumberSort }
     var allowedUnreadIds = Set<String>()
     if policyLimit > 0, policySupportsLimit {
       let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
