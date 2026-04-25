@@ -1246,6 +1246,34 @@ actor DatabaseOperator {
     }
   }
 
+  /// Removes a locally cached book after the server confirms the ID no longer exists.
+  /// `isUnavailable` is reserved for the server DTO's deleted state.
+  func deleteLocalBookAfterNotFound(bookId: String, instanceId: String) {
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let book = try? modelContext.fetch(descriptor).first else { return }
+
+    let seriesId = book.seriesId
+    removeBookFromCachedReadLists(bookId: bookId, instanceId: instanceId)
+    modelContext.delete(book)
+
+    syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+  }
+
+  private func removeBookFromCachedReadLists(bookId: String, instanceId: String) {
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    guard let readLists = try? modelContext.fetch(descriptor) else { return }
+
+    for readList in readLists where readList.bookIds.contains(bookId) {
+      readList.bookIds = readList.bookIds.filter { $0 != bookId }
+      syncReadListDownloadStatus(readList: readList)
+    }
+  }
+
   func updateReadingProgress(bookId: String, page: Int, completed: Bool) {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
@@ -1358,8 +1386,13 @@ actor DatabaseOperator {
     let policyLimit = max(0, series.offlinePolicyLimit)
     let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
 
-    // Sort books to ensure they are processed in order
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    // Sort books to ensure they are processed in order.
+    // Server-deleted books are excluded up front so they neither consume a slot
+    // in `allowedUnreadIds` nor get re-enqueued by the loop below.
+    let sortedBooks =
+      books
+      .filter { !$0.isUnavailable }
+      .sorted { $0.metaNumberSort < $1.metaNumberSort }
     var allowedUnreadIds = Set<String>()
     if policyLimit > 0, policySupportsLimit {
       let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }

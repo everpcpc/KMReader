@@ -801,6 +801,14 @@ actor OfflineManager {
           )
         }
       } catch {
+        if isPermanentNotFound(error) {
+          logger.info(
+            "🧹 Book \(info.bookId) no longer exists on server; removing local record"
+          )
+          await removeBookAfterPermanentNotFound(bookId: info.bookId, instanceId: instanceId)
+          await syncDownloadQueue(instanceId: instanceId)
+          return
+        }
         logger.error("❌ Failed to start background download for \(info.bookId): \(error)")
         await BackgroundDownloadManager.shared.cancelDownloads(forBookId: info.bookId)
         clearBackgroundDownloadContext(bookId: info.bookId)
@@ -1079,18 +1087,33 @@ actor OfflineManager {
         await syncDownloadQueue(instanceId: instanceId)
 
       } catch {
-        // Cleanup on failure
-        try? FileManager.default.removeItem(at: bookDir)
-        var shouldTriggerNextDownload = true
-
         if Task.isCancelled {
+          try? FileManager.default.removeItem(at: bookDir)
           logger.info("⛔ Download cancelled for book: \(info.bookId)")
+        } else if self.isPermanentNotFound(error) {
+          logger.info(
+            "🧹 Book \(info.bookId) no longer exists on server; removing local record"
+          )
+          await self.removeBookAfterPermanentNotFound(bookId: info.bookId, instanceId: instanceId)
+          #if os(iOS)
+            await self.finishForegroundLiveActivity(bookId: info.bookId, instanceId: instanceId)
+          #endif
+          await syncDownloadQueue(instanceId: instanceId)
+          return
         } else {
+          try? FileManager.default.removeItem(at: bookDir)
           let shouldKeepPending = await self.shouldKeepPendingAfterNetworkFailure(error)
           if shouldKeepPending {
             // Keep status as pending so foreground retry can continue later.
             logger.info("⚠️ Download paused due to transient network issue: \(info.bookId)")
-            shouldTriggerNextDownload = AppConfig.isOffline
+            await removeActiveTask(info.bookId)
+            #if os(iOS)
+              await self.finishForegroundLiveActivity(bookId: info.bookId, instanceId: instanceId)
+            #endif
+            if AppConfig.isOffline {
+              await syncDownloadQueue(instanceId: instanceId)
+            }
+            return
           } else {
             logger.error("❌ Download failed for book \(info.bookId): \(error)")
             try? await DatabaseOperator.database().updateBookDownloadStatus(
@@ -1108,9 +1131,7 @@ actor OfflineManager {
         #endif
 
         // Trigger next download even on failure or cancellation
-        if shouldTriggerNextDownload {
-          await syncDownloadQueue(instanceId: instanceId)
-        }
+        await syncDownloadQueue(instanceId: instanceId)
       }
     }
   }
@@ -1318,6 +1339,40 @@ actor OfflineManager {
     }
   }
 
+  private func removeBookAfterPermanentNotFound(bookId: String, instanceId: String) async {
+    #if os(iOS)
+      await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
+      clearBackgroundDownloadContext(bookId: bookId)
+    #endif
+
+    removeActiveTask(bookId)
+    removeOfflineFiles(instanceId: instanceId, bookId: bookId)
+    try? await DatabaseOperator.database().deleteLocalBookAfterNotFound(
+      bookId: bookId,
+      instanceId: instanceId
+    )
+    try? await DatabaseOperator.database().commit()
+    await refreshQueueStatus(instanceId: instanceId)
+  }
+
+  private func removeOfflineFiles(instanceId: String, bookId: String) {
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    Task.detached { [logger] in
+      do {
+        if FileManager.default.fileExists(atPath: dir.path) {
+          try FileManager.default.removeItem(at: dir)
+        }
+        logger.info("🗑️ Deleted offline book files: \(bookId)")
+      } catch {
+        logger.error("❌ Failed to delete offline book files \(bookId): \(error)")
+      }
+    }
+
+    #if os(iOS) || os(macOS)
+      SpotlightIndexService.removeBook(bookId: bookId, instanceId: instanceId)
+    #endif
+  }
+
   private func removeActiveTask(_ bookId: String) {
     activeTasks[bookId]?.cancel()
     activeTasks[bookId] = nil
@@ -1393,6 +1448,16 @@ actor OfflineManager {
       )
     }
   #endif
+
+  /// Returns true when the server has confirmed the book no longer exists (HTTP 404).
+  /// This happens when a file is replaced server-side and Komga issues a new book UUID,
+  /// leaving the previously-cached UUID orphaned.
+  private nonisolated func isPermanentNotFound(_ error: Error) -> Bool {
+    if let apiError = error as? APIError, case .notFound = apiError {
+      return true
+    }
+    return false
+  }
 
   private nonisolated func isNetworkRelatedError(_ error: Error) -> Bool {
     if let apiError = error as? APIError {
@@ -1530,6 +1595,13 @@ actor OfflineManager {
       if isNetworkError && AppConfig.isOffline {
         // Network error caused offline mode switch - keep as pending for retry
         logger.info("⚠️ Background download paused due to network error: \(bookId)")
+        return
+      }
+
+      if isPermanentNotFound(error) {
+        logger.info("🧹 Book \(bookId) no longer exists on server; removing local record")
+        await removeBookAfterPermanentNotFound(bookId: bookId, instanceId: info.instanceId)
+        await syncDownloadQueue(instanceId: info.instanceId)
         return
       }
 
