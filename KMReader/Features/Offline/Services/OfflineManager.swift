@@ -803,17 +803,9 @@ actor OfflineManager {
       } catch {
         if isPermanentNotFound(error) {
           logger.info(
-            "🪦 Book \(info.bookId) no longer exists on server; marking unavailable"
+            "🧹 Book \(info.bookId) no longer exists on server; removing local record"
           )
-          await BackgroundDownloadManager.shared.cancelDownloads(forBookId: info.bookId)
-          clearBackgroundDownloadContext(bookId: info.bookId)
-          removeActiveTask(info.bookId)
-          try? await DatabaseOperator.database().markBookUnavailable(
-            bookId: info.bookId,
-            instanceId: instanceId
-          )
-          try? await DatabaseOperator.database().commit()
-          await refreshQueueStatus(instanceId: instanceId)
+          await removeBookAfterPermanentNotFound(bookId: info.bookId, instanceId: instanceId)
           await syncDownloadQueue(instanceId: instanceId)
           return
         }
@@ -1095,29 +1087,33 @@ actor OfflineManager {
         await syncDownloadQueue(instanceId: instanceId)
 
       } catch {
-        // Cleanup on failure
-        try? FileManager.default.removeItem(at: bookDir)
-        var shouldTriggerNextDownload = true
-
         if Task.isCancelled {
+          try? FileManager.default.removeItem(at: bookDir)
           logger.info("⛔ Download cancelled for book: \(info.bookId)")
         } else if self.isPermanentNotFound(error) {
-          // Book has been replaced/removed server-side — tombstone, do not mark .failed.
           logger.info(
-            "🪦 Book \(info.bookId) no longer exists on server; marking unavailable"
+            "🧹 Book \(info.bookId) no longer exists on server; removing local record"
           )
-          try? await DatabaseOperator.database().markBookUnavailable(
-            bookId: info.bookId,
-            instanceId: instanceId
-          )
-          try? await DatabaseOperator.database().commit()
-          await self.refreshQueueStatus(instanceId: instanceId)
+          await self.removeBookAfterPermanentNotFound(bookId: info.bookId, instanceId: instanceId)
+          #if os(iOS)
+            await self.finishForegroundLiveActivity(bookId: info.bookId, instanceId: instanceId)
+          #endif
+          await syncDownloadQueue(instanceId: instanceId)
+          return
         } else {
+          try? FileManager.default.removeItem(at: bookDir)
           let shouldKeepPending = await self.shouldKeepPendingAfterNetworkFailure(error)
           if shouldKeepPending {
             // Keep status as pending so foreground retry can continue later.
             logger.info("⚠️ Download paused due to transient network issue: \(info.bookId)")
-            shouldTriggerNextDownload = AppConfig.isOffline
+            await removeActiveTask(info.bookId)
+            #if os(iOS)
+              await self.finishForegroundLiveActivity(bookId: info.bookId, instanceId: instanceId)
+            #endif
+            if AppConfig.isOffline {
+              await syncDownloadQueue(instanceId: instanceId)
+            }
+            return
           } else {
             logger.error("❌ Download failed for book \(info.bookId): \(error)")
             try? await DatabaseOperator.database().updateBookDownloadStatus(
@@ -1135,9 +1131,7 @@ actor OfflineManager {
         #endif
 
         // Trigger next download even on failure or cancellation
-        if shouldTriggerNextDownload {
-          await syncDownloadQueue(instanceId: instanceId)
-        }
+        await syncDownloadQueue(instanceId: instanceId)
       }
     }
   }
@@ -1343,6 +1337,40 @@ actor OfflineManager {
         failed: summary.failedCount
       )
     }
+  }
+
+  private func removeBookAfterPermanentNotFound(bookId: String, instanceId: String) async {
+    #if os(iOS)
+      await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
+      clearBackgroundDownloadContext(bookId: bookId)
+    #endif
+
+    removeActiveTask(bookId)
+    removeOfflineFiles(instanceId: instanceId, bookId: bookId)
+    try? await DatabaseOperator.database().deleteLocalBookAfterNotFound(
+      bookId: bookId,
+      instanceId: instanceId
+    )
+    try? await DatabaseOperator.database().commit()
+    await refreshQueueStatus(instanceId: instanceId)
+  }
+
+  private func removeOfflineFiles(instanceId: String, bookId: String) {
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    Task.detached { [logger] in
+      do {
+        if FileManager.default.fileExists(atPath: dir.path) {
+          try FileManager.default.removeItem(at: dir)
+        }
+        logger.info("🗑️ Deleted offline book files: \(bookId)")
+      } catch {
+        logger.error("❌ Failed to delete offline book files \(bookId): \(error)")
+      }
+    }
+
+    #if os(iOS) || os(macOS)
+      SpotlightIndexService.removeBook(bookId: bookId, instanceId: instanceId)
+    #endif
   }
 
   private func removeActiveTask(_ bookId: String) {
@@ -1570,19 +1598,9 @@ actor OfflineManager {
         return
       }
 
-      // A 404 means the book has been replaced/removed server-side. Tombstone instead
-      // of marking .failed, so policy sweeps don't resurrect the phantom download.
       if isPermanentNotFound(error) {
-        logger.info("🪦 Book \(bookId) no longer exists on server; marking unavailable")
-        try? await DatabaseOperator.database().markBookUnavailable(
-          bookId: bookId,
-          instanceId: info.instanceId
-        )
-        try? await DatabaseOperator.database().commit()
-        await refreshQueueStatus(instanceId: info.instanceId)
-        await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
-        clearBackgroundDownloadContext(bookId: bookId)
-        removeActiveTask(bookId)
+        logger.info("🧹 Book \(bookId) no longer exists on server; removing local record")
+        await removeBookAfterPermanentNotFound(bookId: bookId, instanceId: info.instanceId)
         await syncDownloadQueue(instanceId: info.instanceId)
         return
       }

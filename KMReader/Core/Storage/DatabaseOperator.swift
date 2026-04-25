@@ -1246,33 +1246,31 @@ actor DatabaseOperator {
     }
   }
 
-  /// Tombstone a book that the server no longer serves (e.g. file replaced, yielding a new UUID).
-  /// Sets `isUnavailable = true` and resets download state so policy sweeps stop re-enqueueing it.
-  /// Mirrors the effect of a server-delivered `deleted: true` on the book DTO.
-  func markBookUnavailable(bookId: String, instanceId: String) {
+  /// Removes a locally cached book after the server confirms the ID no longer exists.
+  /// `isUnavailable` is reserved for the server DTO's deleted state.
+  func deleteLocalBookAfterNotFound(bookId: String, instanceId: String) {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
     )
     guard let book = try? modelContext.fetch(descriptor).first else { return }
 
-    book.isUnavailable = true
-    book.downloadStatusRaw = "notDownloaded"
-    book.downloadError = nil
-    book.downloadAt = nil
-    book.downloadedSize = 0
-    book.pagesRaw = nil
-    book.tocRaw = nil
-    book.webPubManifestRaw = nil
-
-    // Re-sync series download state so counters and policy picks skip this book.
     let seriesId = book.seriesId
-    let compositeSeriesId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-      predicate: #Predicate { $0.id == compositeSeriesId }
+    removeBookFromCachedReadLists(bookId: bookId, instanceId: instanceId)
+    modelContext.delete(book)
+
+    syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+  }
+
+  private func removeBookFromCachedReadLists(bookId: String, instanceId: String) {
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.instanceId == instanceId }
     )
-    if let series = try? modelContext.fetch(seriesDescriptor).first {
-      syncSeriesDownloadStatus(series: series)
+    guard let readLists = try? modelContext.fetch(descriptor) else { return }
+
+    for readList in readLists where readList.bookIds.contains(bookId) {
+      readList.bookIds = readList.bookIds.filter { $0 != bookId }
+      syncReadListDownloadStatus(readList: readList)
     }
   }
 
@@ -1389,10 +1387,8 @@ actor DatabaseOperator {
     let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
 
     // Sort books to ensure they are processed in order.
-    // Books tombstoned as unavailable (server replaced/removed them) are excluded
-    // up front so they neither consume a slot in `allowedUnreadIds` nor get
-    // re-enqueued by the loop below. Otherwise a cancel → sync sweep would
-    // resurrect the phantom download indefinitely.
+    // Server-deleted books are excluded up front so they neither consume a slot
+    // in `allowedUnreadIds` nor get re-enqueued by the loop below.
     let sortedBooks =
       books
       .filter { !$0.isUnavailable }
