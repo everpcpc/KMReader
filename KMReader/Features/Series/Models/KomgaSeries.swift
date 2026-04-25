@@ -140,6 +140,11 @@ final class KomgaSeries {
     self.booksMetadata = booksMetadata
     self.metaTitle = metadata.title
     self.metaTitleSort = metadata.titleSort
+    self.metaPublisherIndex = MetadataIndex.encode(value: metadata.publisher)
+    self.metaAuthorsIndex = MetadataIndex.encode(values: booksMetadata.authors?.map(\.name) ?? [])
+    self.metaGenresIndex = MetadataIndex.encode(values: metadata.genres ?? [])
+    self.metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
+    self.metaLanguageIndex = MetadataIndex.encode(value: metadata.language)
 
     self.isUnavailable = isUnavailable
     self.oneshot = oneshot
@@ -149,20 +154,28 @@ final class KomgaSeries {
     self.offlinePolicyRaw = offlinePolicy.rawValue
     self.offlinePolicyLimit = offlinePolicyLimit
     self.collectionIdsRaw = try? JSONEncoder().encode([] as [String])
-
-    rebuildQueryFields()
   }
 
   func applyContent(metadata: SeriesMetadata, booksMetadata: SeriesBooksMetadata) {
     self.metadata = metadata
     self.booksMetadata = booksMetadata
-    rebuildQueryFields()
+    syncQueryFields(metadata: metadata, booksMetadata: booksMetadata)
   }
 
-  func rebuildQueryFields() {
-    let metadata = metadata ?? SeriesMetadata.empty
-    let booksMetadata = booksMetadata ?? SeriesBooksMetadata.empty
+  func hasDifferentContentFields(
+    metadata: SeriesMetadata,
+    booksMetadata: SeriesBooksMetadata
+  ) -> Bool {
+    return metaTitle != metadata.title
+      || metaTitleSort != metadata.titleSort
+      || metaPublisherIndex != MetadataIndex.encode(value: metadata.publisher)
+      || metaAuthorsIndex != MetadataIndex.encode(values: booksMetadata.authors?.map(\.name) ?? [])
+      || metaGenresIndex != MetadataIndex.encode(values: metadata.genres ?? [])
+      || metaTagsIndex != MetadataIndex.encode(values: metadata.tags ?? [])
+      || metaLanguageIndex != MetadataIndex.encode(value: metadata.language)
+  }
 
+  private func syncQueryFields(metadata: SeriesMetadata, booksMetadata: SeriesBooksMetadata) {
     metaTitle = metadata.title
     metaTitleSort = metadata.titleSort
 
