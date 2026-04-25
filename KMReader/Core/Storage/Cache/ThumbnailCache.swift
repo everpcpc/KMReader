@@ -12,14 +12,14 @@ extension Notification.Name {
   static let thumbnailDidRefresh = Notification.Name("thumbnailDidRefresh")
 }
 
-enum ThumbnailType: String, CaseIterable, Sendable {
+nonisolated enum ThumbnailType: String, CaseIterable, Sendable {
   case book
   case series
   case collection
   case readlist
   case page
 
-  nonisolated var pathSegment: String {
+  var pathSegment: String {
     switch self {
     case .book: return "books"
     case .series: return "series"
