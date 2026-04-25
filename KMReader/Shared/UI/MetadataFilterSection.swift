@@ -79,7 +79,7 @@ struct MetadataFilterSection: View {
       MetadataMultiSelectLoader(
         title: String(localized: "Publishers"),
         cachedItems: $publishers,
-        loadItems: { try await ReferentialService.shared.getPublishers() },
+        source: .publishers,
         selectedItems: Binding(
           get: { Set(metadataFilter.publishers ?? []) },
           set: { metadataFilter.publishers = $0.isEmpty ? nil : Array($0).sorted() }
@@ -107,14 +107,12 @@ struct MetadataFilterSection: View {
       MetadataMultiSelectLoader(
         title: String(localized: "Authors"),
         cachedItems: $authors,
-        loadItems: {
-          try await ReferentialService.shared.getAuthorsNames(
-            seriesId: seriesId,
-            libraryIds: libraryIds,
-            collectionId: collectionId,
-            readListId: readListId
-          )
-        },
+        source: .authors(
+          seriesId: seriesId,
+          libraryIds: libraryIds,
+          collectionId: collectionId,
+          readListId: readListId
+        ),
         selectedItems: Binding(
           get: { Set(metadataFilter.authors ?? []) },
           set: { metadataFilter.authors = $0.isEmpty ? nil : Array($0).sorted() }
@@ -142,12 +140,7 @@ struct MetadataFilterSection: View {
       MetadataMultiSelectLoader(
         title: String(localized: "Genres"),
         cachedItems: $genres,
-        loadItems: {
-          try await ReferentialService.shared.getGenres(
-            libraryIds: libraryIds,
-            collectionId: collectionId
-          )
-        },
+        source: .genres(libraryIds: libraryIds, collectionId: collectionId),
         selectedItems: Binding(
           get: { Set(metadataFilter.genres ?? []) },
           set: { metadataFilter.genres = $0.isEmpty ? nil : Array($0).sorted() }
@@ -175,20 +168,12 @@ struct MetadataFilterSection: View {
       MetadataMultiSelectLoader(
         title: String(localized: "Tags"),
         cachedItems: $tags,
-        loadItems: {
-          if seriesId != nil || readListId != nil {
-            return try await ReferentialService.shared.getBookTags(
-              seriesId: seriesId,
-              readListId: readListId,
-              libraryIds: libraryIds
-            )
-          } else {
-            return try await ReferentialService.shared.getTags(
-              libraryIds: libraryIds,
-              collectionId: collectionId
-            )
-          }
-        },
+        source: .tags(
+          seriesId: seriesId,
+          readListId: readListId,
+          libraryIds: libraryIds,
+          collectionId: collectionId
+        ),
         selectedItems: Binding(
           get: { Set(metadataFilter.tags ?? []) },
           set: { metadataFilter.tags = $0.isEmpty ? nil : Array($0).sorted() }
@@ -216,19 +201,14 @@ struct MetadataFilterSection: View {
       MetadataMultiSelectLoader(
         title: String(localized: "Languages"),
         cachedItems: $languages,
-        loadItems: {
-          try await ReferentialService.shared.getLanguages(
-            libraryIds: libraryIds,
-            collectionId: collectionId
-          )
-        },
+        source: .languages(libraryIds: libraryIds, collectionId: collectionId),
         selectedItems: Binding(
           get: { Set(metadataFilter.languages ?? []) },
           set: { metadataFilter.languages = $0.isEmpty ? nil : Array($0).sorted() }
         ),
         logic: $metadataFilter.languagesLogic,
         emptyDescription: String(localized: "No languages available"),
-        displayNameTransform: { LanguageCodeHelper.displayName(for: $0) }
+        displayStyle: .language
       )
     } label: {
       HStack {
@@ -250,11 +230,11 @@ struct MetadataFilterSection: View {
 struct MetadataMultiSelectLoader: View {
   let title: String
   @Binding var cachedItems: [String]?
-  let loadItems: () async throws -> [String]
+  let source: MetadataFilterItemSource
   @Binding var selectedItems: Set<String>
   @Binding var logic: FilterLogic
   let emptyDescription: String
-  let displayNameTransform: ((String) -> String)?
+  let displayStyle: MetadataFilterDisplayStyle
 
   @State private var isLoading = false
   @State private var loadError: Error?
@@ -263,19 +243,19 @@ struct MetadataMultiSelectLoader: View {
   init(
     title: String,
     cachedItems: Binding<[String]?>,
-    loadItems: @escaping () async throws -> [String],
+    source: MetadataFilterItemSource,
     selectedItems: Binding<Set<String>>,
     logic: Binding<FilterLogic>,
     emptyDescription: String,
-    displayNameTransform: ((String) -> String)? = nil
+    displayStyle: MetadataFilterDisplayStyle = .plain
   ) {
     self.title = title
     self._cachedItems = cachedItems
-    self.loadItems = loadItems
+    self.source = source
     self._selectedItems = selectedItems
     self._logic = logic
     self.emptyDescription = emptyDescription
-    self.displayNameTransform = displayNameTransform
+    self.displayStyle = displayStyle
   }
 
   var body: some View {
@@ -294,7 +274,7 @@ struct MetadataMultiSelectLoader: View {
             items: items,
             selectedItems: $selectedItems,
             logic: $logic,
-            displayNameTransform: displayNameTransform
+            displayStyle: displayStyle
           )
         }
       } else if isLoading {
@@ -331,7 +311,7 @@ struct MetadataMultiSelectLoader: View {
     isLoading = true
     loadError = nil
     do {
-      let items = try await loadItems()
+      let items = try await source.load()
       cachedItems = items
     } catch {
       loadError = error
@@ -360,7 +340,7 @@ struct MultiSelectList: View {
   let items: [String]
   @Binding var selectedItems: Set<String>
   @Binding var logic: FilterLogic
-  let displayNameTransform: ((String) -> String)?
+  let displayStyle: MetadataFilterDisplayStyle
   @Environment(\.dismiss) private var dismiss
   @State private var searchText: String = ""
 
@@ -369,13 +349,13 @@ struct MultiSelectList: View {
     items: [String],
     selectedItems: Binding<Set<String>>,
     logic: Binding<FilterLogic>,
-    displayNameTransform: ((String) -> String)? = nil
+    displayStyle: MetadataFilterDisplayStyle = .plain
   ) {
     self.title = title
     self.items = items
     self._selectedItems = selectedItems
     self._logic = logic
-    self.displayNameTransform = displayNameTransform
+    self.displayStyle = displayStyle
   }
 
   private var filteredItems: [String] {
@@ -383,8 +363,7 @@ struct MultiSelectList: View {
       return items
     }
     return items.filter { item in
-      let displayName = displayNameTransform?(item) ?? item
-      return displayName.localizedCaseInsensitiveContains(searchText)
+      displayStyle.displayName(for: item).localizedCaseInsensitiveContains(searchText)
     }
   }
 
@@ -402,7 +381,7 @@ struct MultiSelectList: View {
         ForEach(filteredItems, id: \.self) { item in
           SelectableRow(
             item: item,
-            displayName: displayNameTransform?(item) ?? item,
+            displayName: displayStyle.displayName(for: item),
             isSelected: selectedItems.contains(item)
           ) {
             toggleSelection(for: item)
