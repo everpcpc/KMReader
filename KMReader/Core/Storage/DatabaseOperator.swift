@@ -211,7 +211,7 @@ actor DatabaseOperator {
           progressPage: existing.progressPage
         )
 
-        guard existing.readProgress != book.readProgress else { continue }
+        guard existing.hasDifferentReadProgressFields(book.readProgress) else { continue }
 
         existing.updateReadProgress(book.readProgress)
 
@@ -860,16 +860,21 @@ actor DatabaseOperator {
   }
 
   private func applyBook(dto: Book, to existing: KomgaBook) {
+    let shouldApplyContent =
+      existing.lastModified != dto.lastModified
+      || existing.hasDifferentContentFields(
+        media: dto.media,
+        metadata: dto.metadata,
+        readProgress: dto.readProgress
+      )
+
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
     if existing.number != dto.number { existing.number = dto.number }
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
     if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
     if existing.size != dto.size { existing.size = dto.size }
-    if existing.media != dto.media
-      || existing.metadata != dto.metadata
-      || existing.readProgress != dto.readProgress
-    {
+    if shouldApplyContent {
       existing.applyContent(media: dto.media, metadata: dto.metadata, readProgress: dto.readProgress)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
@@ -878,6 +883,13 @@ actor DatabaseOperator {
   }
 
   private func applySeries(dto: Series, to existing: KomgaSeries) {
+    let shouldApplyContent =
+      existing.lastModified != dto.lastModified
+      || existing.hasDifferentContentFields(
+        metadata: dto.metadata,
+        booksMetadata: dto.booksMetadata
+      )
+
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
@@ -891,7 +903,7 @@ actor DatabaseOperator {
     if existing.booksInProgressCount != dto.booksInProgressCount {
       existing.booksInProgressCount = dto.booksInProgressCount
     }
-    if existing.metadata != dto.metadata || existing.booksMetadata != dto.booksMetadata {
+    if shouldApplyContent {
       existing.applyContent(metadata: dto.metadata, booksMetadata: dto.booksMetadata)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }

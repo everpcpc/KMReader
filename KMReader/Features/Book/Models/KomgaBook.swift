@@ -174,6 +174,8 @@ final class KomgaBook {
     self.progressPage = readProgress?.page
     self.progressCompleted = readProgress?.completed
     self.progressReadDate = readProgress?.readDate
+    self.metaAuthorsIndex = MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
+    self.metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
 
     self.seriesTitle = seriesTitle
     self.isUnavailable = isUnavailable
@@ -183,26 +185,43 @@ final class KomgaBook {
     self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
     self.epubPreferencesRaw = nil
     self.epubProgressionRaw = nil
-
-    rebuildQueryFields()
   }
 
   func applyContent(media: Media, metadata: BookMetadata, readProgress: ReadProgress?) {
     self.media = media
     self.metadata = metadata
     self.readProgress = readProgress
-    rebuildQueryFields()
+    syncQueryFields(media: media, metadata: metadata, readProgress: readProgress)
   }
 
   func updateReadProgress(_ readProgress: ReadProgress?) {
     self.readProgress = readProgress
-    syncReadProgressFields()
+    syncReadProgressFields(readProgress)
   }
 
-  func rebuildQueryFields() {
-    let media = media ?? Media.empty
-    let metadata = metadata ?? BookMetadata.empty
+  func hasDifferentContentFields(
+    media: Media,
+    metadata: BookMetadata,
+    readProgress: ReadProgress?
+  ) -> Bool {
+    return mediaPagesCount != media.pagesCount
+      || mediaProfile != media.mediaProfile
+      || metaTitle != metadata.title
+      || metaNumber != metadata.number
+      || metaNumberSort != metadata.numberSort
+      || metaReleaseDate != metadata.releaseDate
+      || metaAuthorsIndex != MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
+      || metaTagsIndex != MetadataIndex.encode(values: metadata.tags ?? [])
+      || hasDifferentReadProgressFields(readProgress)
+  }
 
+  func hasDifferentReadProgressFields(_ readProgress: ReadProgress?) -> Bool {
+    return progressPage != readProgress?.page
+      || progressCompleted != readProgress?.completed
+      || progressReadDate != readProgress?.readDate
+  }
+
+  private func syncQueryFields(media: Media, metadata: BookMetadata, readProgress: ReadProgress?) {
     mediaPagesCount = media.pagesCount
     mediaProfile = media.mediaProfile
 
@@ -213,10 +232,10 @@ final class KomgaBook {
     metaAuthorsIndex = MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
     metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
 
-    syncReadProgressFields()
+    syncReadProgressFields(readProgress)
   }
 
-  private func syncReadProgressFields() {
+  private func syncReadProgressFields(_ readProgress: ReadProgress?) {
     progressPage = readProgress?.page
     progressCompleted = readProgress?.completed
     progressReadDate = readProgress?.readDate
