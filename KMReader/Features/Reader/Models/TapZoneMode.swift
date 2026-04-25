@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-enum TapZoneMode: String, CaseIterable, Hashable {
+enum TapZoneMode: String, CaseIterable, Hashable, Sendable {
   case none = "none"
   case auto = "auto"
   case ltr = "ltr"

@@ -5,18 +5,18 @@
 
 import Foundation
 
-nonisolated enum TriStateSelection: String, Codable {
+nonisolated enum TriStateSelection: String, Codable, Sendable {
   case off
   case include
   case exclude
 }
 
-nonisolated enum FilterLogic: String, Codable {
+nonisolated enum FilterLogic: String, Codable, Sendable {
   case all = "ALL"
   case any = "ANY"
 }
 
-nonisolated enum BoolTriStateFlag: String {
+nonisolated enum BoolTriStateFlag: String, Sendable {
   case yes = "true"
 
   var boolValue: Bool {
@@ -24,7 +24,8 @@ nonisolated enum BoolTriStateFlag: String {
   }
 }
 
-nonisolated struct TriStateFilter<Value: RawRepresentable & Equatable>: Equatable
+nonisolated struct TriStateFilter<Value: RawRepresentable & Equatable & Sendable>: Equatable,
+  Sendable
 where Value.RawValue == String {
   var state: TriStateSelection
   var value: Value?

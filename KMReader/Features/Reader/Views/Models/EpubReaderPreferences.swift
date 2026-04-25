@@ -26,7 +26,7 @@ nonisolated enum EpubConstants {
   static let defaultTapScrollPercentage: Double = 80.0
 }
 
-nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
+nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable {
   typealias RawValue = String
 
   // Keep this list in sync with makeReadiumPayload.
@@ -441,7 +441,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   }
 }
 
-nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
+nonisolated enum ThemeChoice: String, CaseIterable, Identifiable, Sendable {
   case system
   case quiet
   case sepia
@@ -460,7 +460,7 @@ nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
   }
 }
 
-nonisolated enum ReaderTheme: String, CaseIterable {
+nonisolated enum ReaderTheme: String, CaseIterable, Sendable {
   case white
   case black
   case lightQuiet
@@ -525,7 +525,7 @@ nonisolated enum ReaderTheme: String, CaseIterable {
   }
 }
 
-nonisolated enum FontFamilyChoice: Hashable, Identifiable {
+nonisolated enum FontFamilyChoice: Hashable, Identifiable, Sendable {
   case publisher
   case system(String)
 

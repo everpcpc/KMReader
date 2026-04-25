@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum BrowseLayoutMode: String, CaseIterable, Identifiable {
+enum BrowseLayoutMode: String, CaseIterable, Identifiable, Sendable {
   case grid
   case list
 

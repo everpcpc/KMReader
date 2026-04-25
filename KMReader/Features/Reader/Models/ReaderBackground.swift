@@ -6,7 +6,7 @@
 import Foundation
 import SwiftUI
 
-enum ReaderBackground: String, CaseIterable, Hashable {
+enum ReaderBackground: String, CaseIterable, Hashable, Sendable {
   case black = "black"
   case white = "white"
   case gray = "gray"

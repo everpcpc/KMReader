@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum ReadStatus: String, Codable, CaseIterable {
+enum ReadStatus: String, Codable, CaseIterable, Sendable {
   case unread = "UNREAD"
   case inProgress = "IN_PROGRESS"
   case read = "READ"

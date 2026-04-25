@@ -6,7 +6,7 @@
 import Foundation
 import SwiftUI
 
-nonisolated enum SeriesStatus: String, CaseIterable, Hashable, Codable {
+nonisolated enum SeriesStatus: String, CaseIterable, Hashable, Codable, Sendable {
   case ongoing = "ONGOING"
   case ended = "ENDED"
   case hiatus = "HIATUS"
