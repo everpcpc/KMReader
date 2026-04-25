@@ -6,7 +6,7 @@
 import CoreGraphics
 import Foundation
 
-enum PdfOfflineRenderQuality: String, CaseIterable, Hashable {
+enum PdfOfflineRenderQuality: String, CaseIterable, Hashable, Sendable {
   case compact
   case balanced
   case high

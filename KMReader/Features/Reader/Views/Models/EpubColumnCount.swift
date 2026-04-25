@@ -5,7 +5,7 @@
 
 import Foundation
 
-nonisolated enum EpubColumnCount: String, CaseIterable, Identifiable {
+nonisolated enum EpubColumnCount: String, CaseIterable, Identifiable, Sendable {
   case auto
   case one
   case two

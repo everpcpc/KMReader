@@ -5,7 +5,7 @@
 
 import Foundation
 
-nonisolated enum EpubFlowStyle: String, CaseIterable, Identifiable {
+nonisolated enum EpubFlowStyle: String, CaseIterable, Identifiable, Sendable {
   case paged = "paged"
   case scrolled = "scrolled"
 

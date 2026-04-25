@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum ReaderImageUpscalingMode: String, CaseIterable, Hashable {
+enum ReaderImageUpscalingMode: String, CaseIterable, Hashable, Sendable {
   case disabled
   case auto
   case always

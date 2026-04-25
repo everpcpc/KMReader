@@ -12,14 +12,14 @@ extension Notification.Name {
   static let thumbnailDidRefresh = Notification.Name("thumbnailDidRefresh")
 }
 
-enum ThumbnailType: String, CaseIterable {
+nonisolated enum ThumbnailType: String, CaseIterable, Sendable {
   case book
   case series
   case collection
   case readlist
   case page
 
-  nonisolated var pathSegment: String {
+  var pathSegment: String {
     switch self {
     case .book: return "books"
     case .series: return "series"
@@ -44,6 +44,7 @@ actor ThumbnailCache {
   private static let cleanupHighWatermarkPercent: Int64 = 90
   private static let cleanupTargetPercent: Int64 = 80
   private static let cleanupThrottleInterval: TimeInterval = 5
+  private static let thumbnailExpirationInterval: TimeInterval = 7 * 24 * 60 * 60
 
   private static func getMaxDiskCacheSize() -> Int {
     AppConfig.maxCoverCacheSize
@@ -71,7 +72,7 @@ actor ThumbnailCache {
     let fileURL = Self.getThumbnailFileURL(id: id, type: type, page: page)
 
     if !force && fileManager.fileExists(atPath: fileURL.path) {
-      return fileURL
+      return await cachedThumbnailOrRefreshedURL(id: id, type: type, page: page, fileURL: fileURL)
     }
 
     // For page thumbnails, try to generate from offline downloaded pages first
@@ -83,9 +84,7 @@ actor ThumbnailCache {
       }
     }
 
-    let cacheKey =
-      page != nil
-      ? "\(type.rawValue)#\(id)#\(page!)#\(force)" : "\(type.rawValue)#\(id)#\(force)"
+    let cacheKey = Self.taskCacheKey(id: id, type: type, page: page, force: force)
     if let existingTask = downloadTasks[cacheKey] {
       return try await existingTask.value
     }
@@ -171,6 +170,54 @@ actor ThumbnailCache {
         "❌ Failed to download thumbnail for \(type.rawValue) \(id): \(error.localizedDescription)")
       throw error
     }
+  }
+
+  private static nonisolated func taskCacheKey(
+    id: String,
+    type: ThumbnailType,
+    page: Int?,
+    force: Bool
+  ) -> String {
+    page != nil
+      ? "\(type.rawValue)#\(id)#\(page!)#\(force)" : "\(type.rawValue)#\(id)#\(force)"
+  }
+
+  private func cachedThumbnailOrRefreshedURL(
+    id: String,
+    type: ThumbnailType,
+    page: Int?,
+    fileURL: URL
+  ) async -> URL {
+    guard isExpiredThumbnail(fileURL) else { return fileURL }
+
+    do {
+      return try await ensureThumbnail(id: id, type: type, page: page, force: true)
+    } catch {
+      logExpiredThumbnailRefreshFailure(id: id, type: type, page: page, error: error)
+      return fileURL
+    }
+  }
+
+  private func isExpiredThumbnail(_ fileURL: URL) -> Bool {
+    guard
+      let attributes = try? fileManager.attributesOfItem(atPath: fileURL.path),
+      let modificationDate = attributes[.modificationDate] as? Date
+    else {
+      return false
+    }
+
+    return Date().timeIntervalSince(modificationDate) > Self.thumbnailExpirationInterval
+  }
+
+  private func logExpiredThumbnailRefreshFailure(
+    id: String,
+    type: ThumbnailType,
+    page: Int?,
+    error: Error
+  ) {
+    let logSuffix = page != nil ? "page \(page!) of book \(id)" : "\(type.rawValue) \(id)"
+    logger.debug(
+      "⚠️ Failed to refresh expired thumbnail for \(logSuffix): \(error.localizedDescription)")
   }
 
   // MARK: - Offline Page Thumbnail Generation
@@ -398,6 +445,10 @@ actor ThumbnailCache {
   static func refreshThumbnail(id: String, type: ThumbnailType) async throws {
     _ = try await shared.ensureThumbnail(id: id, type: type, force: true)
 
+    await postThumbnailDidRefresh(id: id, type: type)
+  }
+
+  private static func postThumbnailDidRefresh(id: String, type: ThumbnailType) async {
     await MainActor.run {
       NotificationCenter.default.post(
         name: .thumbnailDidRefresh,

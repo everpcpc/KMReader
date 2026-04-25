@@ -1,11 +1,11 @@
 import Foundation
 
-nonisolated enum ReaderUpscaleModelType: String, Decodable {
+nonisolated enum ReaderUpscaleModelType: String, Decodable, Sendable {
   case multiarray
   case image
 }
 
-nonisolated struct ReaderUpscaleModelConfig: Decodable {
+nonisolated struct ReaderUpscaleModelConfig: Decodable, Sendable {
   let inputName: String?
   let outputName: String?
   let blockSize: Int?
@@ -14,7 +14,7 @@ nonisolated struct ReaderUpscaleModelConfig: Decodable {
   let shape: [Int]?
 }
 
-nonisolated struct ReaderUpscaleModelDescriptor: Decodable {
+nonisolated struct ReaderUpscaleModelDescriptor: Decodable, Sendable {
   let name: String?
   let type: String?
   let file: String

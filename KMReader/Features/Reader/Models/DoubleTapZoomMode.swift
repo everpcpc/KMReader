@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum DoubleTapZoomMode: String, CaseIterable, Identifiable {
+enum DoubleTapZoomMode: String, CaseIterable, Identifiable, Sendable {
   case disabled
   case fast
   case slow

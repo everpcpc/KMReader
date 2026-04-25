@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum SeriesSortField: String, CaseIterable {
+enum SeriesSortField: String, CaseIterable, Sendable {
   case name = "metadata.titleSort"
   case dateAdded = "created"
   case dateUpdated = "lastModified"

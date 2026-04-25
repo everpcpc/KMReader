@@ -124,13 +124,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
 
   private func loadThumbnail(id: String, type: ThumbnailType) async -> PlatformImage? {
     await Task.detached(priority: .userInitiated) {
-      let fileURL = ThumbnailCache.getThumbnailFileURL(id: id, type: type)
-      let targetURL: URL?
-      if FileManager.default.fileExists(atPath: fileURL.path) {
-        targetURL = fileURL
-      } else {
-        targetURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
-      }
+      let targetURL = try? await ThumbnailCache.shared.ensureThumbnail(id: id, type: type)
 
       guard !Task.isCancelled, let url = targetURL else { return nil }
       guard let image = PlatformImage(contentsOfFile: url.path) else { return nil }

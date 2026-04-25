@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum PageLayout: String, CaseIterable, Hashable {
+enum PageLayout: String, CaseIterable, Hashable, Sendable {
   case single = "single"
   case auto = "auto"
   case dual = "dual-forced"

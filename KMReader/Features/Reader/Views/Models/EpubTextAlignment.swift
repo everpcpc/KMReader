@@ -5,7 +5,7 @@
 
 import Foundation
 
-nonisolated enum EpubTextAlignment: String, CaseIterable, Identifiable {
+nonisolated enum EpubTextAlignment: String, CaseIterable, Identifiable, Sendable {
   case publisherDefault = "publisherDefault"
   case start = "start"
   case justify = "justify"

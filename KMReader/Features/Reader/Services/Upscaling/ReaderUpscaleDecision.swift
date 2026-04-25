@@ -6,8 +6,8 @@ import CoreGraphics
   import AppKit
 #endif
 
-nonisolated struct ReaderUpscaleDecision {
-  nonisolated enum SkipReason {
+nonisolated struct ReaderUpscaleDecision: Sendable {
+  enum SkipReason: Sendable {
     case disabled
     case belowAutoTriggerScale
     case exceedsAlwaysMaxScreenScale

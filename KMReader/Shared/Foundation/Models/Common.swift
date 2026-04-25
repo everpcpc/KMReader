@@ -16,7 +16,7 @@ struct LibraryInfo: Identifiable, Codable, Equatable {
 }
 
 /// Sort direction for sorting operations
-enum SortDirection: String, CaseIterable {
+enum SortDirection: String, CaseIterable, Sendable {
   case ascending = "asc"
   case descending = "desc"
 

@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum SplitWidePageMode: String, CaseIterable, Hashable {
+enum SplitWidePageMode: String, CaseIterable, Hashable, Sendable {
   case none = "none"
   case auto = "auto"
   case ltr = "ltr"

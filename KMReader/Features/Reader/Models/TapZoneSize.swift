@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-enum TapZoneSize: String, CaseIterable, Hashable {
+enum TapZoneSize: String, CaseIterable, Hashable, Sendable {
   case large = "large"
   case medium = "medium"
   case small = "small"

@@ -6,7 +6,7 @@
 import Foundation
 
 // Sort field enum for Books
-enum BookSortField: String, CaseIterable {
+enum BookSortField: String, CaseIterable, Sendable {
   case series = "series,metadata.numberSort"
   case name = "metadata.title"
   case dateAdded = "createdDate"

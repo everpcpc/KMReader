@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum PageTransitionStyle: String, CaseIterable, Hashable {
+enum PageTransitionStyle: String, CaseIterable, Hashable, Sendable {
   case none = "none"
   case scroll = "scroll"
   case cover = "cover"
