@@ -5,6 +5,7 @@ extension ReaderViewModel {
     for item: ReaderViewItem,
     readingDirection: ReadingDirection,
     splitWidePageMode: SplitWidePageMode,
+    pageTransitionStyle: PageTransitionStyle,
     isPlaybackActive: Bool
   ) -> [NativePageData] {
     switch item {
@@ -19,10 +20,20 @@ extension ReaderViewModel {
           isPlaybackActive: isPlaybackActive
         )
       }
+      // For paged scroll transitions, anchor each half to its inner edge so the two halves
+      // meet flush at the cell boundary when swiping across the spread. Cover / pageCurl /
+      // none keep the legacy centered behavior to preserve the discrete-page metaphor.
+      let alignment: HorizontalAlignment
+      switch pageTransitionStyle {
+      case .scroll:
+        alignment = (part == .first) ? .trailing : .leading
+      case .none, .cover, .pageCurl:
+        alignment = .center
+      }
       return [
         makeNativePageData(
           for: id,
-          alignment: .center,
+          alignment: alignment,
           splitMode: nativeSplitMode(
             for: part,
             readingDirection: readingDirection,

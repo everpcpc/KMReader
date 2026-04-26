@@ -67,6 +67,7 @@
         for: item,
         readingDirection: readingDirection,
         splitWidePageMode: splitWidePageMode,
+        pageTransitionStyle: AppConfig.pageTransitionStyle,
         isPlaybackActive: isPlaybackActive
       )
 
@@ -92,6 +93,7 @@
         for: currentItem,
         readingDirection: readingDirection,
         splitWidePageMode: currentSplitWidePageMode,
+        pageTransitionStyle: AppConfig.pageTransitionStyle,
         isPlaybackActive: isPlaybackActive
       )
       updatePages()

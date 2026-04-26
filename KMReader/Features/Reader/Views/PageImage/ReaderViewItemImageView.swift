@@ -19,6 +19,7 @@ struct ReaderViewItemImageView: View {
       for: item,
       readingDirection: readingDirection,
       splitWidePageMode: splitWidePageMode,
+      pageTransitionStyle: AppConfig.pageTransitionStyle,
       isPlaybackActive: isPlaybackActive
     )
 
