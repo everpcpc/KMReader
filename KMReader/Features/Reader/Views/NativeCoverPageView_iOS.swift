@@ -111,7 +111,15 @@
         } else if !isAnimatingTransition {
           syncCurrentItemFromViewModel()
           if let navigationTarget = parent.viewModel.navigationTarget {
-            handleNavigationTarget(navigationTarget)
+            // While the user is actively panning, discard tap-initiated navigation.
+            // `isAnimatingTransition` only covers the post-pan commit/cancel animation;
+            // during the pan itself it is false, so an unguarded tap would call
+            // `commitTransition` mid-drag and override the user's gesture.
+            if isUserPanning {
+              parent.viewModel.clearNavigationTarget()
+            } else {
+              handleNavigationTarget(navigationTarget)
+            }
           } else {
             syncSlotContent()
             updateSlotLayout()
@@ -221,6 +229,16 @@
 
       private var currentItem: ReaderViewItem? {
         deckState.currentItem
+      }
+
+      private var isUserPanning: Bool {
+        guard let panRecognizer else { return false }
+        switch panRecognizer.state {
+        case .began, .changed:
+          return true
+        default:
+          return false
+        }
       }
 
       private var pendingTargetItem: ReaderViewItem? {
