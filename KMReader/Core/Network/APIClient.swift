@@ -792,6 +792,409 @@ class APIClient {
     }
   }
 
+  private struct DownloadFileResult {
+    let response: HTTPURLResponse
+    let temporaryURL: URL
+    let expectedBytes: Int64?
+    let receivedBytes: Int64
+  }
+
+  private func executeDownloadRequest(
+    _ request: URLRequest,
+    destinationURL: URL,
+    session: URLSession? = nil,
+    isTemporary: Bool = false,
+    requestCategory: RequestCategory = .download,
+    retryCount: Int = 0,
+    maxRetryCount: Int? = nil,
+    onProgress: ProgressHandler? = nil
+  ) async throws -> HTTPURLResponse {
+    let method = request.httpMethod ?? "GET"
+    let urlString = request.url?.absoluteString ?? ""
+    let prefix = isTemporary ? "[TEMP] " : ""
+    logger.info("📡 \(prefix)\(method) \(urlString)")
+
+    let startTime = Date()
+    let sessionToUse = session ?? currentSession()
+    let effectiveMaxRetryCount = maxRetryCount ?? AppConfig.apiRetryCount
+    let temporaryURL = makeTemporaryDownloadURL(for: destinationURL)
+
+    actor DownloadState {
+      let onProgress: ProgressHandler?
+      let urlString: String
+      var response: HTTPURLResponse?
+      var expectedBytes: Int64?
+      var receivedBytes: Int64 = 0
+      var downloadedFileURL: URL?
+      var downloadedFileError: Error?
+      var didReceiveFile = false
+      var didComplete = false
+      var completionError: Error?
+      var continuation: CheckedContinuation<DownloadFileResult, Error>?
+      var lastUpdate = Date.distantPast
+      let updateInterval: TimeInterval = 0.1
+
+      init(onProgress: ProgressHandler?, urlString: String) {
+        self.onProgress = onProgress
+        self.urlString = urlString
+      }
+
+      func setContinuation(_ continuation: CheckedContinuation<DownloadFileResult, Error>) {
+        self.continuation = continuation
+      }
+
+      func handleProgress(received: Int64, expected: Int64) {
+        receivedBytes = received
+        if expected > 0 {
+          expectedBytes = expected
+        }
+
+        let now = Date()
+        guard now.timeIntervalSince(lastUpdate) >= updateInterval else { return }
+        lastUpdate = now
+        onProgress?(receivedBytes, expectedBytes)
+      }
+
+      func handleDownloadedFile(_ fileURL: URL?, error: Error?) {
+        didReceiveFile = true
+        downloadedFileURL = fileURL
+        downloadedFileError = error
+        finishIfReady()
+      }
+
+      func handleComplete(_ error: Error?, response: HTTPURLResponse?) {
+        didComplete = true
+        completionError = error
+        if let response {
+          self.response = response
+          let expectedLength = response.expectedContentLength
+          if expectedLength > 0 {
+            expectedBytes = expectedLength
+          }
+        }
+        finishIfReady()
+      }
+
+      private func finishIfReady() {
+        guard let continuation else { return }
+        guard didComplete else { return }
+
+        if let completionError {
+          self.continuation = nil
+          continuation.resume(throwing: completionError)
+          return
+        }
+
+        guard didReceiveFile else { return }
+
+        if let downloadedFileError {
+          self.continuation = nil
+          continuation.resume(throwing: downloadedFileError)
+          return
+        }
+
+        guard let response else {
+          self.continuation = nil
+          continuation.resume(throwing: APIError.invalidResponse(url: urlString))
+          return
+        }
+
+        guard let downloadedFileURL else {
+          self.continuation = nil
+          continuation.resume(
+            throwing: AppErrorType.missingRequiredData(message: "Missing downloaded file.")
+          )
+          return
+        }
+
+        onProgress?(receivedBytes, expectedBytes)
+        self.continuation = nil
+        continuation.resume(
+          returning: DownloadFileResult(
+            response: response,
+            temporaryURL: downloadedFileURL,
+            expectedBytes: expectedBytes,
+            receivedBytes: receivedBytes
+          )
+        )
+      }
+    }
+
+    final class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
+      let state: DownloadState
+      let urlString: String
+      let temporaryURL: URL
+
+      init(state: DownloadState, urlString: String, temporaryURL: URL) {
+        self.state = state
+        self.urlString = urlString
+        self.temporaryURL = temporaryURL
+      }
+
+      func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+      ) {
+        let moveError: Error?
+        do {
+          let directory = temporaryURL.deletingLastPathComponent()
+          if !FileManager.default.fileExists(atPath: directory.path) {
+            try FileManager.default.createDirectory(
+              at: directory,
+              withIntermediateDirectories: true
+            )
+          }
+          if FileManager.default.fileExists(atPath: temporaryURL.path) {
+            try FileManager.default.removeItem(at: temporaryURL)
+          }
+          try FileManager.default.moveItem(at: location, to: temporaryURL)
+          moveError = nil
+        } catch {
+          moveError = error
+        }
+
+        Task {
+          await state.handleDownloadedFile(moveError == nil ? temporaryURL : nil, error: moveError)
+        }
+      }
+
+      func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+      ) {
+        Task {
+          await state.handleProgress(
+            received: totalBytesWritten,
+            expected: totalBytesExpectedToWrite
+          )
+        }
+      }
+
+      func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+      ) {
+        defer {
+          session.finishTasksAndInvalidate()
+        }
+
+        let response = task.response as? HTTPURLResponse
+        Task { await state.handleComplete(error, response: response) }
+      }
+    }
+
+    do {
+      logger.debug("Streaming file download started: url=\(urlString)")
+      let state = DownloadState(onProgress: onProgress, urlString: urlString)
+      let delegate = DownloadDelegate(
+        state: state,
+        urlString: urlString,
+        temporaryURL: temporaryURL
+      )
+      let delegateQueue = OperationQueue()
+      delegateQueue.maxConcurrentOperationCount = 1
+      let downloadSession = URLSession(
+        configuration: sessionToUse.configuration,
+        delegate: delegate,
+        delegateQueue: delegateQueue
+      )
+
+      let result = try await withCheckedThrowingContinuation { continuation in
+        Task {
+          await state.setContinuation(continuation)
+          let task = downloadSession.downloadTask(with: request)
+          task.resume()
+        }
+      }
+
+      let duration = Date().timeIntervalSince(startTime)
+      let httpResponse = result.response
+      let statusEmoji = (200...299).contains(httpResponse.statusCode) ? "✅" : "❌"
+      let durationMs = String(format: "%.2f", duration * 1000)
+
+      if let sessionToken = httpResponse.value(forHTTPHeaderField: "X-Auth-Token") {
+        if AppConfig.current.sessionToken != sessionToken {
+          AppConfig.current.sessionToken = sessionToken
+        }
+      }
+
+      logger.info(
+        "\(statusEmoji) \(prefix)\(httpResponse.statusCode) \(method) \(urlString) (\(durationMs)ms)"
+      )
+
+      guard (200...299).contains(httpResponse.statusCode) else {
+        let responseBody = try? String(contentsOf: result.temporaryURL, encoding: .utf8)
+        try? FileManager.default.removeItem(at: result.temporaryURL)
+
+        if httpResponse.statusCode == 401 && retryCount == 0 && !isTemporary
+          && AppConfig.current.authMethod != .apiKey
+        {
+          let token = AppConfig.current.authToken
+          if !token.isEmpty {
+            logger.info("🔒 Unauthorized, attempting re-login to refresh session...")
+            do {
+              let loginRequest = try buildLoginRequest(
+                path: "/api/v2/users/me",
+                method: "GET",
+                queryItems: [URLQueryItem(name: "remember-me", value: "true")],
+                headers: ["X-Auth-Token": ""],
+                authToken: token,
+                useSessionToken: false
+              )
+
+              _ = try await reLoginActor.getReLoginTask { [weak self] in
+                guard let self = self else {
+                  throw APIError.networkError(
+                    AppErrorType.missingRequiredData(message: "APIClient deallocated"),
+                    url: urlString
+                  )
+                }
+                return try await self.executeRequest(
+                  loginRequest,
+                  session: sessionToUse,
+                  isTemporary: false,
+                  requestCategory: .auth,
+                  retryCount: 1,
+                  maxRetryCount: maxRetryCount
+                )
+              }
+
+              logger.info("✅ Re-login successful, retrying original file download...")
+              onProgress?(0, result.expectedBytes)
+              return try await executeDownloadRequest(
+                request,
+                destinationURL: destinationURL,
+                session: sessionToUse,
+                isTemporary: false,
+                requestCategory: requestCategory,
+                retryCount: 1,
+                maxRetryCount: maxRetryCount,
+                onProgress: onProgress
+              )
+            } catch {
+              logger.error("❌ Re-login failed: \(error.localizedDescription)")
+            }
+          }
+        }
+
+        let errorMessage = responseBody ?? "Unknown error"
+        let requestBody = request.httpBody.flatMap { String(data: $0, encoding: .utf8) }
+
+        switch httpResponse.statusCode {
+        case 400:
+          throw APIError.badRequest(
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
+        case 401:
+          throw APIError.unauthorized(url: urlString)
+        case 403:
+          throw APIError.forbidden(
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
+        case 404:
+          throw APIError.notFound(
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
+        case 429:
+          throw APIError.tooManyRequests(
+            message: errorMessage, url: urlString, response: responseBody, request: requestBody)
+        case 500...599:
+          if retryCount < effectiveMaxRetryCount {
+            logger.warning(
+              "⚠️ Server error, retrying (\(retryCount + 1)/\(effectiveMaxRetryCount)): \(httpResponse.statusCode)"
+            )
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            return try await executeDownloadRequest(
+              request,
+              destinationURL: destinationURL,
+              session: session,
+              isTemporary: isTemporary,
+              requestCategory: requestCategory,
+              retryCount: retryCount + 1,
+              maxRetryCount: maxRetryCount,
+              onProgress: onProgress
+            )
+          }
+          throw APIError.serverError(
+            code: httpResponse.statusCode, message: errorMessage, url: urlString,
+            response: responseBody, request: requestBody)
+        default:
+          throw APIError.httpError(
+            code: httpResponse.statusCode, message: errorMessage, url: urlString,
+            response: responseBody, request: requestBody)
+        }
+      }
+
+      let destinationDir = destinationURL.deletingLastPathComponent()
+      if !FileManager.default.fileExists(atPath: destinationDir.path) {
+        try FileManager.default.createDirectory(
+          at: destinationDir,
+          withIntermediateDirectories: true
+        )
+      }
+      if FileManager.default.fileExists(atPath: destinationURL.path) {
+        try FileManager.default.removeItem(at: destinationURL)
+      }
+      try FileManager.default.moveItem(at: result.temporaryURL, to: destinationURL)
+
+      let dataSize = ByteCountFormatter.string(
+        fromByteCount: result.receivedBytes,
+        countStyle: .binary
+      )
+      logger.info("\(httpResponse.statusCode) \(method) \(urlString) [\(dataSize)]")
+
+      await offlineFailureTracker.recordSuccess()
+      return httpResponse
+    } catch let error as APIError {
+      try? FileManager.default.removeItem(at: temporaryURL)
+      throw error
+    } catch let appError as AppErrorType {
+      try? FileManager.default.removeItem(at: temporaryURL)
+      logger.error("❌ Network error for \(urlString): \(appError.description)")
+      let shouldHandleOffline = !isTemporary && requestCategory != .download
+      if shouldHandleOffline {
+        await handleNetworkError(appError, requestCategory: requestCategory)
+      }
+      throw APIError.networkError(appError, url: urlString)
+    } catch let nsError as NSError where nsError.domain == NSURLErrorDomain {
+      try? FileManager.default.removeItem(at: temporaryURL)
+      let appError = AppErrorType.from(nsError)
+      logger.error("❌ Network error for \(urlString): \(appError.description)")
+      let shouldHandleOffline = !isTemporary && requestCategory != .download
+      if shouldHandleOffline {
+        await handleNetworkError(nsError, requestCategory: requestCategory)
+      }
+      throw APIError.networkError(appError, url: urlString)
+    } catch {
+      try? FileManager.default.removeItem(at: temporaryURL)
+      if retryCount < effectiveMaxRetryCount && !(error is CancellationError) {
+        logger.warning(
+          "⚠️ File download failed, retrying (\(retryCount + 1)/\(effectiveMaxRetryCount)): \(error.localizedDescription)"
+        )
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        return try await executeDownloadRequest(
+          request,
+          destinationURL: destinationURL,
+          session: session,
+          isTemporary: isTemporary,
+          requestCategory: requestCategory,
+          retryCount: retryCount + 1,
+          maxRetryCount: maxRetryCount,
+          onProgress: onProgress
+        )
+      }
+
+      logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")
+      let shouldHandleOffline = !isTemporary && requestCategory != .download
+      if shouldHandleOffline {
+        await handleNetworkError(error, requestCategory: requestCategory)
+      }
+      throw APIError.networkError(error, url: urlString)
+    }
+  }
+
   private func handleNetworkError(
     _ error: Error,
     requestCategory: RequestCategory
@@ -935,19 +1338,25 @@ class APIClient {
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)
   }
 
-  func requestDataWithProgress(
+  func requestFileWithProgress(
     path: String,
     progressKey: String,
+    destinationURL: URL,
     method: String = "GET",
-    headers: [String: String]? = nil,
-  ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
+    headers: [String: String]? = nil
+  ) async throws -> (contentType: String?, suggestedFilename: String?) {
     try throwIfOffline()
 
     let urlRequest = try buildRequest(
-      path: path, method: method, headers: headers, category: .download)
+      path: path,
+      method: method,
+      headers: headers,
+      category: .download
+    )
     let urlString = urlRequest.url?.absoluteString ?? ""
-    let (data, httpResponse) = try await executeRequest(
+    let httpResponse = try await executeDownloadRequest(
       urlRequest,
+      destinationURL: destinationURL,
       requestCategory: .download,
       onProgress: { received, expected in
         Task { @MainActor in
@@ -965,7 +1374,10 @@ class APIClient {
       }
     )
 
-    return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)
+    return (
+      httpResponse.value(forHTTPHeaderField: "Content-Type"),
+      filenameFromContentDisposition(httpResponse.value(forHTTPHeaderField: "Content-Disposition"))
+    )
   }
 
   func requestData(
@@ -1024,6 +1436,12 @@ class APIClient {
     }
 
     return nil
+  }
+
+  private func makeTemporaryDownloadURL(for destinationURL: URL) -> URL {
+    let directory = destinationURL.deletingLastPathComponent()
+    let fileName = destinationURL.lastPathComponent
+    return directory.appendingPathComponent(".\(fileName).\(UUID().uuidString).download")
   }
 }
 

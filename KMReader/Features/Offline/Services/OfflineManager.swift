@@ -1567,7 +1567,7 @@ actor OfflineManager {
       await LiveActivityManager.shared.updateActivity(
         seriesTitle: seriesTitle,
         bookInfo: bookInfo,
-        progress: 1.0,
+        progress: candidate == nil ? 1.0 : 0.0,
         pendingCount: pendingBooks.count,
         failedCount: failedCount
       )
@@ -1820,6 +1820,21 @@ actor OfflineManager {
       logger.debug(
         "🔒 Claimed background finalize for book \(bookId), completed=\(completedTasks)/\(totalTasks)"
       )
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(
+          instanceId: info.instanceId
+        )) ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(
+          instanceId: info.instanceId
+        )) ?? 0
+      await LiveActivityManager.shared.updateActivity(
+        seriesTitle: info.seriesTitle,
+        bookInfo: String(localized: "Processing offline files..."),
+        progress: 0.0,
+        pendingCount: pendingBooks.count,
+        failedCount: failedCount
+      )
       await finalizeBackgroundBookDownload(bookId: bookId, info: info)
     }
 
@@ -2018,15 +2033,13 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.0)
     }
 
-    let result = try await BookService.shared.downloadBookFile(bookId: bookId)
+    let archiveFile = bookDir.appendingPathComponent(format.fileName)
+    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: archiveFile)
+    Self.excludeFromBackupIfNeeded(at: archiveFile)
 
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.5)
     }
-
-    let archiveFile = bookDir.appendingPathComponent(format.fileName)
-    try result.data.write(to: archiveFile, options: [.atomic])
-    Self.excludeFromBackupIfNeeded(at: archiveFile)
 
     try Task.checkCancellation()
     try extractImageArchive(archiveFile: archiveFile, format: format, pages: pages, bookDir: bookDir)
@@ -2049,15 +2062,13 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.0)
     }
 
-    let result = try await BookService.shared.downloadBookFile(bookId: bookId)
+    let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
+    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: epubFile)
+    Self.excludeFromBackupIfNeeded(at: epubFile)
 
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.5)
     }
-
-    let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
-    try result.data.write(to: epubFile, options: [.atomic])
-    Self.excludeFromBackupIfNeeded(at: epubFile)
 
     try Task.checkCancellation()
     try extractEpubDivinaImages(epubFile: epubFile, pages: pages, bookDir: bookDir)
@@ -2133,8 +2144,7 @@ actor OfflineManager {
 
   private func downloadPdfFile(bookId: String, to bookDir: URL) async throws {
     let fileURL = bookDir.appendingPathComponent(Self.pdfFileName)
-    let result = try await BookService.shared.downloadBookFile(bookId: bookId)
-    try result.data.write(to: fileURL, options: [.atomic])
+    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: fileURL)
     Self.excludeFromBackupIfNeeded(at: fileURL)
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
@@ -2153,15 +2163,13 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.0)
     }
 
-    let result = try await BookService.shared.downloadBookFile(bookId: bookId)
+    let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
+    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: epubFile)
+    Self.excludeFromBackupIfNeeded(at: epubFile)
 
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.5)
     }
-
-    let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
-    try result.data.write(to: epubFile, options: [.atomic])
-    Self.excludeFromBackupIfNeeded(at: epubFile)
 
     try Task.checkCancellation()
     try extractEpubToWebPub(epubFile: epubFile, bookId: bookId, manifest: manifest, bookDir: bookDir)
