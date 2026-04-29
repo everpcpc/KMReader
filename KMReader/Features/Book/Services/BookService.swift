@@ -6,7 +6,6 @@
 import Foundation
 
 struct BookFileDownloadResult {
-  let data: Data
   let contentType: String?
   let suggestedFilename: String?
 }
@@ -207,13 +206,13 @@ class BookService {
     logger.debug("✅ [Progress/Epub] Request completed: book=\(bookId)")
   }
 
-  func downloadBookFile(bookId: String) async throws -> BookFileDownloadResult {
-    let result = try await apiClient.requestDataWithProgress(
+  func downloadBookFile(bookId: String, to destinationURL: URL) async throws -> BookFileDownloadResult {
+    let result = try await apiClient.requestFileWithProgress(
       path: "/api/v1/books/\(bookId)/file",
       progressKey: bookId,
+      destinationURL: destinationURL
     )
     return BookFileDownloadResult(
-      data: result.data,
       contentType: result.contentType,
       suggestedFilename: result.suggestedFilename
     )

@@ -27,6 +27,10 @@ class DownloadProgressTracker {
   /// Token to force UI refreshes when queue-related state changes
   var queueUpdateToken: UUID = UUID()
 
+  @ObservationIgnored private var lastProgressUpdate: [String: Date] = [:]
+  @ObservationIgnored private let progressUpdateInterval: TimeInterval = 1.0
+  @ObservationIgnored private let progressUpdateDelta = 0.001
+
   /// Whether a download is currently active
   var isDownloading: Bool {
     currentBookName != nil
@@ -58,11 +62,30 @@ class DownloadProgressTracker {
   private init() {}
 
   func updateProgress(bookId: String, value: Double) {
-    progress[bookId] = value
+    let clampedValue = min(max(value, 0), 1)
+    let previousValue = progress[bookId]
+    let isTerminalValue = clampedValue == 0 || clampedValue == 1
+    let hasMeaningfulDelta = previousValue.map { abs($0 - clampedValue) >= progressUpdateDelta } ?? true
+
+    if !isTerminalValue, !hasMeaningfulDelta {
+      return
+    }
+
+    let now = Date()
+    if !isTerminalValue,
+      let lastUpdate = lastProgressUpdate[bookId],
+      now.timeIntervalSince(lastUpdate) < progressUpdateInterval
+    {
+      return
+    }
+
+    lastProgressUpdate[bookId] = now
+    progress[bookId] = clampedValue
   }
 
   func clearProgress(bookId: String) {
     progress.removeValue(forKey: bookId)
+    lastProgressUpdate.removeValue(forKey: bookId)
   }
 
   func startDownload(bookName: String) {
