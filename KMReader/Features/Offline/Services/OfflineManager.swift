@@ -1567,7 +1567,7 @@ actor OfflineManager {
       await LiveActivityManager.shared.updateActivity(
         seriesTitle: seriesTitle,
         bookInfo: bookInfo,
-        progress: 1.0,
+        progress: candidate == nil ? 1.0 : 0.0,
         pendingCount: pendingBooks.count,
         failedCount: failedCount
       )
@@ -1819,6 +1819,21 @@ actor OfflineManager {
       backgroundDownloadFinalizingBooks.insert(bookId)
       logger.debug(
         "🔒 Claimed background finalize for book \(bookId), completed=\(completedTasks)/\(totalTasks)"
+      )
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(
+          instanceId: info.instanceId
+        )) ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(
+          instanceId: info.instanceId
+        )) ?? 0
+      await LiveActivityManager.shared.updateActivity(
+        seriesTitle: info.seriesTitle,
+        bookInfo: String(localized: "Processing offline files..."),
+        progress: 0.0,
+        pendingCount: pendingBooks.count,
+        failedCount: failedCount
       )
       await finalizeBackgroundBookDownload(bookId: bookId, info: info)
     }

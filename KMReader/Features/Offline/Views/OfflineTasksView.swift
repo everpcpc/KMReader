@@ -246,9 +246,13 @@ struct OfflineTaskRow: View {
           if let progress = progress {
             let isProcessing = progress >= 1
             ProgressView(value: isProcessing ? nil : progress) {
-              Text(isProcessing ? "Processing offline files..." : "Downloading \(Int(progress * 100))%")
-                .font(.caption)
-                .foregroundColor(.secondary)
+              Text(
+                isProcessing
+                  ? String(localized: "Processing offline files...")
+                  : "Downloading \(Int(progress * 100))%"
+              )
+              .font(.caption)
+              .foregroundColor(.secondary)
             }
           } else {
             Text("Pending in queue...")
