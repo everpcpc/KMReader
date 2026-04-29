@@ -22,7 +22,7 @@ extension ReaderViewModel {
       return [
         makeNativePageData(
           for: id,
-          alignment: .center,
+          alignment: part == .first ? .trailing : .leading,
           splitMode: nativeSplitMode(
             for: part,
             readingDirection: readingDirection,
