@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct WebPubPublication: Codable, Sendable {
+nonisolated struct WebPubPublication: Codable, Sendable {
   let context: String?
   let metadata: WebPubMetadata?
   let readingOrder: [WebPubLink]
@@ -81,7 +81,7 @@ struct WebPubPublication: Codable, Sendable {
   }
 }
 
-struct WebPubLink: Codable, Sendable {
+nonisolated struct WebPubLink: Codable, Sendable {
   let href: String
   let title: String?
   let type: String?
@@ -93,13 +93,13 @@ struct WebPubLink: Codable, Sendable {
   let children: [WebPubLink]?
 }
 
-struct WebPubMetadata: Codable, Sendable {
+nonisolated struct WebPubMetadata: Codable, Sendable {
   let title: String?
   let language: String?
   let readingProgression: WebPubReadingProgression?
 }
 
-enum WebPubReadingProgression: String, Codable, Sendable {
+nonisolated enum WebPubReadingProgression: String, Codable, Sendable {
   case rtl
   case ltr
   case ttb
@@ -107,7 +107,7 @@ enum WebPubReadingProgression: String, Codable, Sendable {
   case auto
 }
 
-private struct DynamicCodingKey: CodingKey {
+nonisolated private struct DynamicCodingKey: CodingKey {
   let stringValue: String
   let intValue: Int?
 

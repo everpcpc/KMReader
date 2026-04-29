@@ -6,7 +6,7 @@
 import Foundation
 
 // Helper type to encode/decode Any JSON value
-enum JSONAny: Codable, Equatable {
+nonisolated enum JSONAny: Codable, Equatable, Sendable {
   case string(String)
   case int(Int)
   case double(Double)
