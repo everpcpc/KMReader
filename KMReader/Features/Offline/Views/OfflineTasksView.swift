@@ -244,8 +244,9 @@ struct OfflineTaskRow: View {
         switch book.downloadStatus {
         case .pending:
           if let progress = progress {
-            ProgressView(value: progress) {
-              Text("Downloading \(Int(progress * 100))%")
+            let isProcessing = progress >= 1
+            ProgressView(value: isProcessing ? nil : progress) {
+              Text(isProcessing ? "Processing offline files..." : "Downloading \(Int(progress * 100))%")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
