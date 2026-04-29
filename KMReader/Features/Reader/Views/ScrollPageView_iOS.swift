@@ -354,6 +354,16 @@
         _ navigationTarget: ReaderViewItem,
         in collectionView: UICollectionView
       ) {
+        // While the user is in the middle of a swipe (drag or its deceleration), ignore
+        // tap-initiated navigation. The drag's intent dominates; layering a programmatic
+        // scroll over natural deceleration produces a double page advance. Mirrors the
+        // existing guard in `scrollViewWillBeginDragging` that lets a drag override an
+        // in-flight programmatic scroll.
+        if engine.isUserInteracting {
+          parent.viewModel.clearNavigationTarget()
+          return
+        }
+
         guard let resolvedTarget = parent.viewModel.resolvedViewItem(for: navigationTarget),
           let targetItem = engine.resolveItem(resolvedTarget)
         else {
