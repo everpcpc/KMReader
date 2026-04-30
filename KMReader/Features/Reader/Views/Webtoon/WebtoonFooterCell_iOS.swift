@@ -74,18 +74,20 @@
 
       previousBadgeLabel.numberOfLines = 1
       previousBadgeLabel.textAlignment = .center
-      previousBadgeLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      previousBadgeLabel.adjustsFontForContentSizeCategory = true
       previousBadgeLabel.text = String(localized: "reader.previousBook").uppercased()
       previousBookStack.addArrangedSubview(previousBadgeLabel)
 
       previousTitleLabel.numberOfLines = 2
       previousTitleLabel.textAlignment = .center
-      previousTitleLabel.font = UIFont.preferredFont(forTextStyle: .title3)
+      previousTitleLabel.adjustsFontForContentSizeCategory = true
+      previousTitleLabel.lineBreakMode = .byTruncatingTail
       previousBookStack.addArrangedSubview(previousTitleLabel)
 
       previousDetailLabel.numberOfLines = 1
       previousDetailLabel.textAlignment = .center
-      previousDetailLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      previousDetailLabel.adjustsFontForContentSizeCategory = true
+      previousDetailLabel.lineBreakMode = .byTruncatingTail
       previousBookStack.addArrangedSubview(previousDetailLabel)
 
       dividerStack.axis = .horizontal
@@ -101,7 +103,7 @@
 
       dividerTitleLabel.numberOfLines = 1
       dividerTitleLabel.textAlignment = .center
-      dividerTitleLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      dividerTitleLabel.adjustsFontForContentSizeCategory = true
       dividerStack.addArrangedSubview(dividerTitleLabel)
 
       trailingDivider.translatesAutoresizingMaskIntoConstraints = false
@@ -119,24 +121,27 @@
 
       nextBadgeLabel.numberOfLines = 1
       nextBadgeLabel.textAlignment = .center
-      nextBadgeLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      nextBadgeLabel.adjustsFontForContentSizeCategory = true
       nextBadgeLabel.text = String(localized: "reader.nextBook").uppercased()
       nextBookStack.addArrangedSubview(nextBadgeLabel)
 
       nextTitleLabel.numberOfLines = 2
       nextTitleLabel.textAlignment = .center
-      nextTitleLabel.font = UIFont.preferredFont(forTextStyle: .title3)
+      nextTitleLabel.adjustsFontForContentSizeCategory = true
+      nextTitleLabel.lineBreakMode = .byTruncatingTail
       nextBookStack.addArrangedSubview(nextTitleLabel)
 
       nextDetailLabel.numberOfLines = 1
       nextDetailLabel.textAlignment = .center
-      nextDetailLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      nextDetailLabel.adjustsFontForContentSizeCategory = true
+      nextDetailLabel.lineBreakMode = .byTruncatingTail
       nextBookStack.addArrangedSubview(nextDetailLabel)
 
       caughtUpLabel.numberOfLines = 0
       caughtUpLabel.textAlignment = .center
-      caughtUpLabel.font = UIFont.preferredFont(forTextStyle: .headline)
+      caughtUpLabel.adjustsFontForContentSizeCategory = true
       nextBookStack.addArrangedSubview(caughtUpLabel)
+      nextBookStack.setCustomSpacing(20, after: caughtUpLabel)
 
       closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
       nextBookStack.addArrangedSubview(closeButton)
@@ -167,6 +172,7 @@
         nextBookStack.centerYAnchor.constraint(equalTo: bottomRegionView.centerYAnchor),
         nextBookStack.leadingAnchor.constraint(greaterThanOrEqualTo: bottomRegionView.leadingAnchor),
         nextBookStack.trailingAnchor.constraint(lessThanOrEqualTo: bottomRegionView.trailingAnchor),
+        leadingDivider.widthAnchor.constraint(equalTo: trailingDivider.widthAnchor),
       ])
 
       applyBackground()
@@ -176,6 +182,14 @@
     private func applyBackground() {
       contentView.backgroundColor = UIColor(readerBackground.color)
       let textColor = UIColor(readerBackground.contentColor)
+      previousBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
+      previousTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
+      previousDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      dividerTitleLabel.font = .preferredFont(forTextStyle: .caption1)
+      nextBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
+      nextTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
+      nextDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
       previousDetailLabel.textColor = textColor.withAlphaComponent(0.6)
@@ -204,11 +218,15 @@
         closeButton.isHidden = true
         nextBadgeLabel.isHidden = false
         caughtUpLabel.isHidden = true
+        nextTitleLabel.isHidden = false
+        nextDetailLabel.isHidden = false
         nextTitleLabel.text = nextBook.readerChapterTitle
         nextDetailLabel.text = nextBook.readerChapterDetail
       } else {
         closeButton.isHidden = false
         nextBadgeLabel.isHidden = true
+        nextTitleLabel.isHidden = true
+        nextDetailLabel.isHidden = true
         nextTitleLabel.text = nil
         nextDetailLabel.text = nil
         caughtUpLabel.isHidden = false
@@ -220,6 +238,23 @@
 
     @objc private func handleClose() {
       onDismiss?()
+    }
+
+    private func preferredFont(
+      textStyle: UIFont.TextStyle,
+      design: UIFontDescriptor.SystemDesign? = nil,
+      weight: UIFont.Weight? = nil
+    ) -> UIFont {
+      var descriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: textStyle)
+      if let design, let designedDescriptor = descriptor.withDesign(design) {
+        descriptor = designedDescriptor
+      }
+      if let weight {
+        descriptor = descriptor.addingAttributes([
+          UIFontDescriptor.AttributeName.traits: [UIFontDescriptor.TraitKey.weight: weight]
+        ])
+      }
+      return UIFont(descriptor: descriptor, size: 0)
     }
   }
 #endif

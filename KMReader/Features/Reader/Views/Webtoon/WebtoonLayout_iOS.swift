@@ -7,19 +7,12 @@
   import UIKit
 
   class WebtoonLayout: UICollectionViewFlowLayout {
-    var topContentPadding: CGFloat = 0 {
-      didSet {
-        guard abs(topContentPadding - oldValue) > WebtoonConstants.offsetEpsilon else { return }
-        invalidateLayout()
-      }
-    }
-
     override func prepare() {
       super.prepare()
       scrollDirection = .vertical
       minimumLineSpacing = 0
       minimumInteritemSpacing = 0
-      sectionInset = UIEdgeInsets(top: topContentPadding, left: 0, bottom: 0, right: 0)
+      sectionInset = .zero
     }
 
     override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {

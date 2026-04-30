@@ -137,6 +137,7 @@
       caughtUpLabel.maximumNumberOfLines = 2
       caughtUpLabel.font = NSFont.preferredFont(forTextStyle: .headline)
       nextBookStack.addArrangedSubview(caughtUpLabel)
+      nextBookStack.setCustomSpacing(20, after: caughtUpLabel)
 
       closeButton.bezelStyle = .rounded
       closeButton.target = self
@@ -169,6 +170,7 @@
         nextBookStack.centerYAnchor.constraint(equalTo: bottomRegionView.centerYAnchor),
         nextBookStack.leadingAnchor.constraint(greaterThanOrEqualTo: bottomRegionView.leadingAnchor),
         nextBookStack.trailingAnchor.constraint(lessThanOrEqualTo: bottomRegionView.trailingAnchor),
+        leadingDivider.widthAnchor.constraint(equalTo: trailingDivider.widthAnchor),
       ])
 
       applyBackground()
@@ -207,11 +209,15 @@
         closeButton.isHidden = true
         nextBadgeLabel.isHidden = false
         caughtUpLabel.isHidden = true
+        nextTitleLabel.isHidden = false
+        nextDetailLabel.isHidden = false
         nextTitleLabel.stringValue = nextBook.readerChapterTitle
         nextDetailLabel.stringValue = nextBook.readerChapterDetail
       } else {
         closeButton.isHidden = false
         nextBadgeLabel.isHidden = true
+        nextTitleLabel.isHidden = true
+        nextDetailLabel.isHidden = true
         nextTitleLabel.stringValue = ""
         nextDetailLabel.stringValue = ""
         caughtUpLabel.isHidden = false
