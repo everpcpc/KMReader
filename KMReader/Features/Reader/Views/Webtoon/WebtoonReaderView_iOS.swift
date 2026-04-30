@@ -447,12 +447,18 @@
             collectionView.contentInset = .zero
             collectionView.scrollIndicatorInsets = .zero
           }
+          if let layout = collectionView.collectionViewLayout as? WebtoonLayout {
+            layout.topContentPadding = 0
+          }
           return
         }
 
         let safeInsets = collectionView.safeAreaInsets
+        if let layout = collectionView.collectionViewLayout as? WebtoonLayout {
+          layout.topContentPadding = safeInsets.top
+        }
         let newInsets = UIEdgeInsets(
-          top: safeInsets.top, left: 0, bottom: safeInsets.bottom, right: 0)
+          top: 0, left: 0, bottom: safeInsets.bottom, right: 0)
 
         if collectionView.contentInset != newInsets {
           collectionView.contentInset = newInsets

@@ -17,7 +17,8 @@
     private var readListContext: ReaderReadListContext?
     private var onDismiss: (() -> Void)?
 
-    private let containerStack = UIStackView()
+    private let topRegionView = UIView()
+    private let bottomRegionView = UIView()
     private let previousBookStack = UIStackView()
     private let previousBadgeLabel = UILabel()
     private let previousTitleLabel = UILabel()
@@ -58,18 +59,18 @@
     }
 
     private func setupUI() {
-      contentView.addSubview(containerStack)
-      containerStack.translatesAutoresizingMaskIntoConstraints = false
-      containerStack.axis = .vertical
-      containerStack.alignment = .center
-      containerStack.spacing = 20
-      containerStack.isLayoutMarginsRelativeArrangement = true
-      containerStack.layoutMargins = UIEdgeInsets(top: 24, left: 20, bottom: 24, right: 20)
+      topRegionView.translatesAutoresizingMaskIntoConstraints = false
+      bottomRegionView.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(topRegionView)
+      contentView.addSubview(bottomRegionView)
 
       previousBookStack.axis = .vertical
       previousBookStack.alignment = .center
       previousBookStack.spacing = 6
-      containerStack.addArrangedSubview(previousBookStack)
+      previousBookStack.translatesAutoresizingMaskIntoConstraints = false
+      previousBookStack.setContentHuggingPriority(.required, for: .vertical)
+      previousBookStack.setContentCompressionResistancePriority(.required, for: .vertical)
+      topRegionView.addSubview(previousBookStack)
 
       previousBadgeLabel.numberOfLines = 1
       previousBadgeLabel.textAlignment = .center
@@ -90,7 +91,8 @@
       dividerStack.axis = .horizontal
       dividerStack.alignment = .center
       dividerStack.spacing = 10
-      containerStack.addArrangedSubview(dividerStack)
+      dividerStack.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(dividerStack)
 
       leadingDivider.translatesAutoresizingMaskIntoConstraints = false
       leadingDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
@@ -110,7 +112,10 @@
       nextBookStack.axis = .vertical
       nextBookStack.alignment = .center
       nextBookStack.spacing = 6
-      containerStack.addArrangedSubview(nextBookStack)
+      nextBookStack.translatesAutoresizingMaskIntoConstraints = false
+      nextBookStack.setContentHuggingPriority(.required, for: .vertical)
+      nextBookStack.setContentCompressionResistancePriority(.required, for: .vertical)
+      bottomRegionView.addSubview(nextBookStack)
 
       nextBadgeLabel.numberOfLines = 1
       nextBadgeLabel.textAlignment = .center
@@ -134,13 +139,34 @@
       nextBookStack.addArrangedSubview(caughtUpLabel)
 
       closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
-      containerStack.addArrangedSubview(closeButton)
+      nextBookStack.addArrangedSubview(closeButton)
 
       NSLayoutConstraint.activate([
-        containerStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-        containerStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-        containerStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 32),
-        containerStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -32),
+        dividerStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+        dividerStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 44),
+        dividerStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -44),
+
+        topRegionView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 32),
+        topRegionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 44),
+        topRegionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -44),
+        topRegionView.bottomAnchor.constraint(equalTo: dividerStack.topAnchor, constant: -12),
+
+        bottomRegionView.topAnchor.constraint(equalTo: dividerStack.bottomAnchor, constant: 12),
+        bottomRegionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 44),
+        bottomRegionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -44),
+        bottomRegionView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -32),
+
+        previousBookStack.centerXAnchor.constraint(equalTo: topRegionView.centerXAnchor),
+        previousBookStack.centerYAnchor.constraint(equalTo: topRegionView.centerYAnchor),
+        previousBookStack.leadingAnchor.constraint(
+          greaterThanOrEqualTo: topRegionView.leadingAnchor),
+        previousBookStack.trailingAnchor.constraint(
+          lessThanOrEqualTo: topRegionView.trailingAnchor),
+
+        nextBookStack.centerXAnchor.constraint(equalTo: bottomRegionView.centerXAnchor),
+        nextBookStack.centerYAnchor.constraint(equalTo: bottomRegionView.centerYAnchor),
+        nextBookStack.leadingAnchor.constraint(greaterThanOrEqualTo: bottomRegionView.leadingAnchor),
+        nextBookStack.trailingAnchor.constraint(lessThanOrEqualTo: bottomRegionView.trailingAnchor),
       ])
 
       applyBackground()
