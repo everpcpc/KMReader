@@ -6,8 +6,6 @@
 
     @AppStorage("useNativePdfReader") private var useNativePdfReader: Bool = true
     @AppStorage("pdfReaderBackground") private var readerBackground: ReaderBackground = .system
-    @AppStorage("pdfReaderControlsGradientBackground")
-    private var readerControlsGradientBackground: Bool = false
     @AppStorage("pdfDefaultReadingDirection")
     private var defaultReadingDirection: ReadingDirection = .ltr
     @AppStorage("pdfForceDefaultReadingDirection")
@@ -124,10 +122,6 @@
               }
             }
             .pickerStyle(.menu)
-
-            Toggle(isOn: $readerControlsGradientBackground) {
-              Text("Controls Gradient Background")
-            }
           }
 
           Section(header: Text("Reader Overlay")) {

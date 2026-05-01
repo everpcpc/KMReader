@@ -249,7 +249,10 @@ struct OfflineTaskRow: View {
               Text(
                 isProcessing
                   ? String(localized: "Processing offline files...")
-                  : "Downloading \(Int(progress * 100))%"
+                  : String(
+                    format: String(localized: "Downloading %lld%%"),
+                    Int64(progress * 100)
+                  )
               )
               .font(.caption)
               .foregroundColor(.secondary)

@@ -40,6 +40,9 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
+        NavigationLink(value: NavDestination.settingsSync) {
+          SettingsSectionRow(section: .sync)
+        }
         #if os(iOS) || os(macOS)
           NavigationLink(value: NavDestination.settingsSpotlight) {
             SettingsSectionRow(section: .spotlight)

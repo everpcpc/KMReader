@@ -8,6 +8,7 @@ import SwiftUI
 struct SettingsCacheView: View {
   @AppStorage("maxPageCacheSize") private var maxPageCacheSize: Int = 8
   @AppStorage("maxCoverCacheSize") private var maxCoverCacheSize: Int = 512
+  @AppStorage("coverCacheExpirationDays") private var coverCacheExpirationDays: Int = 7
   @State private var showClearImageCacheConfirmation = false
   @State private var showClearAllImageCacheConfirmation = false
   @State private var showClearCoverCacheConfirmation = false
@@ -35,9 +36,17 @@ struct SettingsCacheView: View {
         set: { maxCoverCacheSize = Int($0) }
       )
     }
+
+    private var coverCacheExpirationDaysBinding: Binding<Double> {
+      Binding(
+        get: { Double(max(1, coverCacheExpirationDays)) },
+        set: { coverCacheExpirationDays = max(1, Int($0)) }
+      )
+    }
   #else
     @State private var cacheSizeText: String = ""
     @State private var coverCacheSizeText: String = ""
+    @State private var coverCacheExpirationDaysText: String = ""
 
     private var cacheSizeTextFieldBinding: Binding<String> {
       Binding(
@@ -60,6 +69,21 @@ struct SettingsCacheView: View {
           coverCacheSizeText = newValue
           if let value = Int(newValue), value >= 128, value <= 2048 {
             maxCoverCacheSize = value
+          }
+        }
+      )
+    }
+
+    private var coverCacheExpirationDaysTextFieldBinding: Binding<String> {
+      Binding(
+        get: {
+          coverCacheExpirationDaysText.isEmpty
+            ? "\(coverCacheExpirationDays)" : coverCacheExpirationDaysText
+        },
+        set: { newValue in
+          coverCacheExpirationDaysText = newValue
+          if let value = Int(newValue), value >= 1, value <= 90 {
+            coverCacheExpirationDays = value
           }
         }
       )
@@ -187,6 +211,41 @@ struct SettingsCacheView: View {
           )
           .font(.caption)
           .foregroundColor(.secondary)
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+          #if os(iOS) || os(macOS)
+            HStack {
+              Text("Expiration")
+              Spacer()
+              Text("\(max(1, coverCacheExpirationDays)) days")
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: coverCacheExpirationDaysBinding,
+              in: 1...90,
+              step: 1
+            )
+          #else
+            HStack {
+              Text("Expiration (days)")
+              Spacer()
+              TextField("Days", text: coverCacheExpirationDaysTextFieldBinding)
+                .frame(maxWidth: 240)
+                .multilineTextAlignment(.trailing)
+                .onAppear {
+                  coverCacheExpirationDaysText = "\(coverCacheExpirationDays)"
+                }
+                .onChange(of: coverCacheExpirationDays) { _, newValue in
+                  if coverCacheExpirationDaysText != "\(newValue)" {
+                    coverCacheExpirationDaysText = "\(newValue)"
+                  }
+                }
+            }
+          #endif
+          Text("Refresh cached covers after this many days.")
+            .font(.caption)
+            .foregroundColor(.secondary)
         }
 
         HStack {

@@ -35,7 +35,6 @@ struct ReaderSettingsSheet: View {
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("enableDivinaImageContextMenu")
   private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
-  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
   private var isWebtoonDirection: Bool {
     readingDirection == .webtoon
@@ -106,12 +105,6 @@ struct ReaderSettingsSheet: View {
           #if os(macOS)
             Toggle(isOn: $autoFullscreenOnOpen) {
               Text("Auto Full Screen on Open")
-            }
-          #endif
-
-          #if os(iOS)
-            Toggle(isOn: $readerControlsGradientBackground) {
-              Text("Controls Gradient Background")
             }
           #endif
 
