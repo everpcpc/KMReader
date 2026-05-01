@@ -164,6 +164,20 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "maxCoverCacheSize") }
   }
 
+  static nonisolated var coverCacheExpirationDays: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "coverCacheExpirationDays") != nil {
+        return max(1, UserDefaults.standard.integer(forKey: "coverCacheExpirationDays"))
+      }
+      return 7
+    }
+    set { UserDefaults.standard.set(max(1, newValue), forKey: "coverCacheExpirationDays") }
+  }
+
+  static nonisolated var coverCacheExpirationInterval: TimeInterval {
+    TimeInterval(coverCacheExpirationDays * 24 * 60 * 60)
+  }
+
   // MARK: - SSE (Server-Sent Events)
   static nonisolated var enableSSE: Bool {
     get {

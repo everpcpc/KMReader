@@ -44,7 +44,6 @@ actor ThumbnailCache {
   private static let cleanupHighWatermarkPercent: Int64 = 90
   private static let cleanupTargetPercent: Int64 = 80
   private static let cleanupThrottleInterval: TimeInterval = 5
-  private static let thumbnailExpirationInterval: TimeInterval = 7 * 24 * 60 * 60
 
   private static func getMaxDiskCacheSize() -> Int {
     AppConfig.maxCoverCacheSize
@@ -206,7 +205,7 @@ actor ThumbnailCache {
       return false
     }
 
-    return Date().timeIntervalSince(modificationDate) > Self.thumbnailExpirationInterval
+    return Date().timeIntervalSince(modificationDate) > AppConfig.coverCacheExpirationInterval
   }
 
   private func logExpiredThumbnailRefreshFailure(

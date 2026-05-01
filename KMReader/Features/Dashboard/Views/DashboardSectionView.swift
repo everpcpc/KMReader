@@ -24,7 +24,6 @@ struct DashboardSectionView: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
   @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
 
@@ -64,13 +63,11 @@ struct DashboardSectionView: View {
   var body: some View {
     ZStack {
       #if os(iOS) || os(macOS)
-        if dashboardShowGradient {
-          LinearGradient(
-            colors: backgroundColors,
-            startPoint: .top,
-            endPoint: .bottom
-          ).ignoresSafeArea()
-        }
+        LinearGradient(
+          colors: backgroundColors,
+          startPoint: .top,
+          endPoint: .bottom
+        ).ignoresSafeArea()
       #endif
 
       VStack(alignment: .leading, spacing: 0) {

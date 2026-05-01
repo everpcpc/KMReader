@@ -16,8 +16,6 @@ struct DivinaControlsOverlayView: View {
   @Binding var showingReaderSettingsSheet: Bool
   @Binding var showingDetailSheet: Bool
 
-  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
-
   let viewModel: ReaderViewModel
   let currentBook: Book?
   let dualPage: Bool
@@ -267,10 +265,8 @@ struct DivinaControlsOverlayView: View {
     .padding()
     .iPadIgnoresSafeArea(paddingTop: 24)
     .background {
-      if readerControlsGradientBackground {
-        gradientBackground(startPoint: .top, endPoint: .bottom)
-          .ignoresSafeArea(edges: .top)
-      }
+      gradientBackground(startPoint: .top, endPoint: .bottom)
+        .ignoresSafeArea(edges: .top)
     }
   }
 
@@ -302,20 +298,12 @@ struct DivinaControlsOverlayView: View {
 
       ReadingProgressBar(progress: progress, type: .reader)
         .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
-        .shadow(
-          color: readerControlsGradientBackground ? .clear : .black.opacity(0.4),
-          radius: readerControlsGradientBackground ? 0 : 4,
-          x: 0,
-          y: readerControlsGradientBackground ? 0 : 2
-        )
     }
     .padding()
     .iPadIgnoresSafeArea(paddingTop: 24)
     .background {
-      if readerControlsGradientBackground {
-        gradientBackground(startPoint: .bottom, endPoint: .top)
-          .ignoresSafeArea(edges: .bottom)
-      }
+      gradientBackground(startPoint: .bottom, endPoint: .top)
+        .ignoresSafeArea(edges: .bottom)
     }
   }
 
@@ -404,8 +392,8 @@ struct DivinaControlsOverlayView: View {
   ) -> some View {
     LinearGradient(
       gradient: Gradient(colors: [
-        Color.black.opacity(0.6),
-        Color.black.opacity(0.3),
+        Color.black.opacity(0.72),
+        Color.black.opacity(0.44),
         Color.clear,
       ]),
       startPoint: startPoint,

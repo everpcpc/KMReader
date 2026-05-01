@@ -36,7 +36,6 @@ struct DivinaPreferencesView: View {
   @AppStorage("enableDivinaImageContextMenu")
   private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
-  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
 
   private var forcedReadingDirection: ReadingDirection? {
     forceDefaultReadingDirection ? readDirection : nil
@@ -172,17 +171,6 @@ struct DivinaPreferencesView: View {
               .foregroundColor(.secondary)
           }
         }
-
-        #if os(iOS)
-          Toggle(isOn: $readerControlsGradientBackground) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Controls Gradient Background")
-              Text("Add gradient background to improve button visibility")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-        #endif
 
         #if os(iOS) || os(macOS)
           if shouldShowWebtoonSpecificSettings {
