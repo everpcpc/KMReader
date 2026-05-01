@@ -98,6 +98,13 @@ struct SettingsAboutSection: View {
           }
         }
       }
+
+      NavigationLink {
+        OpenSourceLicensesView()
+      } label: {
+        Label(String(localized: "Open Source Licenses"), systemImage: "doc.plaintext")
+      }
+
       HStack {
         Spacer()
         Text(Bundle.main.appVersion)
