@@ -7,8 +7,6 @@ import Combine
 import Foundation
 import OSLog
 import UniformTypeIdentifiers
-import Unrar
-import ZIPFoundation
 
 #if os(iOS)
   import UIKit
@@ -2200,8 +2198,6 @@ actor OfflineManager {
 
     guard !hrefs.isEmpty else { return }
 
-    let archive = try ZIPFoundation.Archive(url: epubFile, accessMode: .read)
-
     // Komga already normalizes EPUB hrefs to publication resource keys.
     var archivePathToDestination: [String: URL] = [:]
     for href in hrefs {
@@ -2212,22 +2208,15 @@ actor OfflineManager {
       archivePathToDestination[normalizedArchivePath] = destination
     }
 
-    for entry in archive where entry.type == .file {
-      guard
-        let normalizedEntryPath = Self.normalizeArchivePath(entry.path),
-        let destination = archivePathToDestination[normalizedEntryPath]
-      else { continue }
+    let extracted = try ArchiveExtractionService.extractFiles(
+      from: epubFile,
+      destinationsByArchivePath: archivePathToDestination,
+      normalizePath: Self.normalizeArchivePath
+    )
 
-      let directory = destination.deletingLastPathComponent()
-      Self.ensureDirectoryExists(at: directory)
-      Self.excludeFromBackupIfNeeded(at: directory)
-
-      if FileManager.default.fileExists(atPath: destination.path) {
-        try FileManager.default.removeItem(at: destination)
-      }
-
-      _ = try archive.extract(entry, to: destination)
-      Self.excludeFromBackupIfNeeded(at: destination)
+    for file in extracted {
+      Self.excludeFromBackupIfNeeded(at: file.destination.deletingLastPathComponent())
+      Self.excludeFromBackupIfNeeded(at: file.destination)
     }
   }
 
@@ -2236,7 +2225,6 @@ actor OfflineManager {
     pages: [BookPage],
     bookDir: URL
   ) throws {
-    let archive = try ZIPFoundation.Archive(url: epubFile, accessMode: .read)
     let targets = try Self.divinaImageTargets(from: pages, bookDir: bookDir)
 
     guard !targets.isEmpty else {
@@ -2247,30 +2235,24 @@ actor OfflineManager {
 
     try removePageImageFiles(in: bookDir)
 
-    var archivePathToTarget: [String: DivinaImageTarget] = [:]
+    var archivePathToDestination: [String: URL] = [:]
     for target in targets {
-      archivePathToTarget[target.archivePath] = target
-    }
-    var extractedCount = 0
-
-    for entry in archive where entry.type == .file {
-      guard
-        let normalizedEntryPath = Self.normalizeArchivePath(entry.path),
-        let target = archivePathToTarget.removeValue(forKey: normalizedEntryPath)
-      else { continue }
-
-      if FileManager.default.fileExists(atPath: target.destination.path) {
-        try FileManager.default.removeItem(at: target.destination)
-      }
-
-      _ = try archive.extract(entry, to: target.destination)
-      Self.excludeFromBackupIfNeeded(at: target.destination)
-      extractedCount += 1
+      archivePathToDestination[target.archivePath] = target.destination
     }
 
-    guard extractedCount == targets.count else {
+    let extracted = try ArchiveExtractionService.extractFiles(
+      from: epubFile,
+      destinationsByArchivePath: archivePathToDestination,
+      normalizePath: Self.normalizeArchivePath
+    )
+
+    for file in extracted {
+      Self.excludeFromBackupIfNeeded(at: file.destination)
+    }
+
+    guard extracted.count == targets.count else {
       throw AppErrorType.missingRequiredData(
-        message: "EPUB archive is missing \(targets.count - extractedCount) DIVINA image resources."
+        message: "EPUB archive is missing \(targets.count - extracted.count) DIVINA image resources."
       )
     }
   }
@@ -2302,29 +2284,7 @@ actor OfflineManager {
     pages: [BookPage],
     bookDir: URL
   ) throws {
-    let archive = try ZIPFoundation.Archive(url: archiveFile, accessMode: .read)
-    var entryByPath: [String: ZIPFoundation.Entry] = [:]
-    for entry in archive where entry.type == .file {
-      guard let normalizedPath = Self.normalizeArchivePath(entry.path) else { continue }
-      entryByPath[normalizedPath] = entry
-    }
-
-    for page in pages {
-      guard
-        let normalizedPath = Self.normalizeArchivePath(page.fileName),
-        let entry = entryByPath[normalizedPath]
-      else {
-        throw AppErrorType.missingRequiredData(
-          message: "Archive is missing page resource: \(page.fileName)."
-        )
-      }
-      let destination = imageArchivePageDestination(page: page, fallbackPath: page.fileName, bookDir: bookDir)
-      if FileManager.default.fileExists(atPath: destination.path) {
-        try FileManager.default.removeItem(at: destination)
-      }
-      _ = try archive.extract(entry, to: destination)
-      Self.excludeFromBackupIfNeeded(at: destination)
-    }
+    try extractCompressedImageArchive(archiveFile: archiveFile, pages: pages, bookDir: bookDir)
   }
 
   private func extractCBRArchive(
@@ -2332,33 +2292,47 @@ actor OfflineManager {
     pages: [BookPage],
     bookDir: URL
   ) throws {
-    let archive = try Unrar.Archive(fileURL: archiveFile)
-    var entryByPath: [String: Unrar.Entry] = [:]
-    for entry in try archive.entries() where !entry.directory {
-      guard let normalizedPath = Self.normalizeArchivePath(entry.fileName) else { continue }
-      entryByPath[normalizedPath] = entry
-    }
+    try extractCompressedImageArchive(archiveFile: archiveFile, pages: pages, bookDir: bookDir)
+  }
 
+  private func extractCompressedImageArchive(
+    archiveFile: URL,
+    pages: [BookPage],
+    bookDir: URL
+  ) throws {
+    var destinationsByArchivePath: [String: URL] = [:]
     for page in pages {
-      guard
-        let normalizedPath = Self.normalizeArchivePath(page.fileName),
-        let entry = entryByPath[normalizedPath]
-      else {
-        throw AppErrorType.missingRequiredData(
-          message: "Archive is missing page resource: \(page.fileName)."
-        )
+      guard let normalizedPath = Self.normalizeArchivePath(page.fileName) else {
+        throw AppErrorType.invalidFileURL(url: page.fileName)
       }
       let destination = imageArchivePageDestination(
         page: page,
         fallbackPath: page.fileName,
         bookDir: bookDir
       )
-      if FileManager.default.fileExists(atPath: destination.path) {
-        try FileManager.default.removeItem(at: destination)
+      destinationsByArchivePath[normalizedPath] = destination
+    }
+
+    let extracted = try ArchiveExtractionService.extractFiles(
+      from: archiveFile,
+      destinationsByArchivePath: destinationsByArchivePath,
+      normalizePath: Self.normalizeArchivePath
+    )
+
+    for file in extracted {
+      Self.excludeFromBackupIfNeeded(at: file.destination)
+    }
+
+    guard extracted.count == pages.count else {
+      let extractedPaths = Set(extracted.map(\.archivePath))
+      let missingPage = pages.first { page in
+        guard let normalizedPath = Self.normalizeArchivePath(page.fileName) else { return true }
+        return !extractedPaths.contains(normalizedPath)
       }
-      let data = try archive.extract(entry)
-      try data.write(to: destination, options: [.atomic])
-      Self.excludeFromBackupIfNeeded(at: destination)
+      let missingPath = missingPage?.fileName ?? "unknown"
+      throw AppErrorType.missingRequiredData(
+        message: "Archive is missing page resource: \(missingPath)."
+      )
     }
   }
 
