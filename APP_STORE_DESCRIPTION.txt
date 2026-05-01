@@ -9,21 +9,22 @@ DIVINA on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, 
 EPUB on iOS and macOS with paged, scrolled, or cover layouts, custom fonts, themes, text alignment and font-weight controls, configurable overlays, and nested table of contents.
 Animated GIF and WebP pages play inline and stay smooth while you zoom or scroll.
 PDF on iOS and macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality, and strong keyboard support on macOS.
+External keyboard shortcuts and keyboard help are available across supported readers on iPhone, iPad, Mac, and Apple TV.
 Incognito mode, optional reader Live Activities with progress or incognito status, and iOS Live Text support let you read your way.
 
 - Dashboard, discovery, and shortcuts
 Keep Reading, On Deck, Recently Added, Recently Updated, pinned collections/read lists, and saved filters keep the right parts of your library close.
-Browse Series, Books, Collections, and Read Lists with advanced metadata filters, optional unread-cover blur, synced reading history, and copy-friendly detail views for titles and metadata.
+Browse Series, Books, Collections, and Read Lists with advanced metadata filters, optional unread-cover blur, synced reading history, configurable cover thumbnail freshness, and copy-friendly detail views for titles and metadata.
 Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions, help you jump back into reading faster.
 KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
 - Offline that actually works
 Download books for offline reading across DIVINA, EPUB, and PDF workflows.
-EPUB downloads use a single-file workflow with local extraction for faster, more reliable saves.
+Large original book downloads stream directly to disk to reduce memory pressure, while CBZ, CBR, PDF, and supported EPUB offline flows use single-file downloads with local extraction or storage.
 Use manual offline mode controls and predictable iOS background downloads.
-Get Live Activities for both active reading sessions and downloads.
+Get Live Activities for both active reading sessions and downloads, including processing status while extraction or finalization continues.
 Set per-series policies: Manual, Unread only, Unread + cleanup, or All books.
-Sync progress and offline changes when you reconnect, with safer conflict handling.
+Sync progress and offline changes when you reconnect, with safer conflict handling and cleanup for stale offline books.
 
 - Multi-server and admin tools
 Save multiple Komga servers and switch instantly.

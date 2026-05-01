@@ -1,13 +1,20 @@
 Reader Improvements
-- DIVINA cover reading feels smoother and more reliable on iPhone, iPad, and Mac, with steadier transitions and less stale loading state.
-- Scroll-mode DIVINA now preloads the next page earlier on iPhone and iPad, so the first page turn is less likely to pause.
-- Optional page image context menus on iPhone, iPad, and Mac let you share a page or isolate a single page from a spread more quickly.
-- Detail views now make it easier to copy titles and other useful library text.
+- External keyboard shortcuts now work in the reader on iPhone, iPad, and Apple TV, with expanded keyboard help across DIVINA, EPUB, and PDF readers.
+- DIVINA cover and scroll reading are more reliable, especially around drag gestures, tap navigation, zoom dismissal, split wide pages, and Webtoon end pages.
+- Split wide pages in scroll mode now line up more cleanly while swiping, reducing the visible gap between page halves.
+- Reader overlays and controls are easier to interact with on older system versions.
 
-Mac Experience
-- PDF reading on Mac now includes keyboard help, better shortcut coverage, and faster access to search, page jump, and table of contents actions.
-- Reader command menus are more consistent across DIVINA and PDF, including current-page isolation where supported.
+Offline and Downloads
+- Large original book downloads now stream directly to disk, reducing memory pressure for large CBR, EPUB, and PDF files.
+- Offline downloads for CBZ, CBR, and supported EPUB books now use a faster single-file workflow with local extraction.
+- Download progress updates are smoother, and offline tasks now show a processing state while extraction or finalization continues.
+- Stale offline books removed from the server are cleaned up more reliably instead of retrying forever.
 
-Polish and Reliability
-- Reader controls are easier to read on older system versions.
-- EPUB opening is steadier, with fewer distracting transitions when a book first loads.
+Browsing and Settings
+- Cover thumbnails can refresh automatically after a configurable expiration period, helping updated covers appear without manual refresh.
+- Sync and Handoff settings now have their own settings page, making network settings easier to scan.
+- Filter sheets are more stable on iOS 17.
+
+Reliability
+- Dashboard and reading-progress sync are more stable on iOS 17.
+- Thumbnail refreshes, cache fallbacks, and local offline state handling are more resilient during transient network failures.

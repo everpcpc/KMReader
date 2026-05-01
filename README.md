@@ -22,11 +22,12 @@
 
 ### Native Reading Experience
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, optional page shadows, optional page-image context menus on iOS/macOS for share and isolate actions, clearer page-turn animation controls, and steadier scroll and cover navigation with better RTL, wide-page, and interruption handling.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, optional page shadows, optional page-image context menus on iOS/macOS for share and isolate actions, clearer page-turn animation controls, and steadier scroll, cover, split-wide-page, and Webtoon end-page navigation with better RTL, gesture, and interruption handling.
 - EPUB reader on iOS/macOS with paged, scrolled, and cover layouts, custom font importing (`.ttf`/`.otf`), theme presets, text alignment and font-weight controls, optional status/footer overlays, multi-column reading, and nested table of contents.
 - Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when reopening or revisiting pages.
-- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, clearer progress feedback, and full keyboard help and command coverage on macOS.
+- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, clearer progress feedback, and full keyboard help and command coverage on supported platforms.
 - Per-book preferences save reading direction, page layout, and theme settings.
+- Reader keyboard shortcuts and keyboard help are available across DIVINA, EPUB, and PDF workflows on supported iPhone, iPad, Mac, and Apple TV devices.
 - Incognito mode and iOS Live Text support, including optional shake-to-toggle.
 
 ### Dashboard and Discovery
@@ -36,6 +37,7 @@
 - Save and reuse filters across browse surfaces.
 - Optional unread-cover blur helps hide spoiler-heavy artwork until you start reading.
 - Reading history and stats stay fresh with automatic sync and help surface recent activity from synced local data.
+- Configurable cover thumbnail freshness helps updated covers appear automatically without forcing every cached thumbnail to refresh at once.
 - Detail views make titles and metadata easy to copy when you need to search, share, or organize library data.
 - Spotlight integration for downloaded content on iOS/macOS, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 - UI localization includes English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
@@ -43,12 +45,13 @@
 ### Offline and Sync
 
 - Download books for full offline reading across DIVINA, EPUB, and PDF workflows.
-- EPUB downloads use a single-file download plus local extraction for faster, more reliable offline saves.
+- Large original book downloads stream directly to disk to reduce memory pressure for CBR, EPUB, and PDF files.
+- CBZ, CBR, PDF, and supported EPUB offline flows use single-file downloads with local extraction or storage for faster, more reliable offline saves.
 - Manual offline mode controls and more predictable iOS background downloads for page files and extra resources.
-- Optional iOS Live Activities for both active reading sessions and downloads, including reader progress or incognito status on iPhone.
+- Optional iOS Live Activities for both active reading sessions and downloads, including reader progress, incognito status, and processing feedback while extraction or finalization continues.
 - Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
 - Offline mode includes dedicated downloaded-library browsing and metadata filters.
-- Progress and offline data sync automatically when reconnecting, including safer conflict handling.
+- Progress and offline data sync automatically when reconnecting, including safer conflict handling and cleanup for stale offline books that disappeared from the server.
 - Cache controls cover pages and thumbnails.
 
 ### Multi-Server and Management
@@ -59,9 +62,9 @@
 
 ### Platform Highlights
 
-- iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities for reader/downloads, background downloads, Live Text, and page curl/cover transitions.
+- iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities for reader/downloads, background downloads, Live Text, reader keyboard shortcuts, and page curl/cover transitions.
 - macOS: dedicated reader windows, reader actions in the system menu bar and Reader menu, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
-- tvOS: remote-first DIVINA reading with cover transitions and a TV-optimized browsing experience.
+- tvOS: remote-first DIVINA reading with cover transitions, external keyboard support, and a TV-optimized browsing experience.
 
 ## Getting Started
 
