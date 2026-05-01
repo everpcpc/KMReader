@@ -15,8 +15,7 @@
 		1983B7332FF4000100A1B2C3 /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 1983B7322FF4000100A1B2C3 /* SDWebImageWebPCoder */; };
 		19AEC07F2EE714150073EB5F /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 19AEC07E2EE714150073EB5F /* Flow */; };
 		19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19AEFE562EFC62E200EC7D3B /* StoreKit.framework */; };
-		19B0A1022F08A00000AB1234 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 19B0A1012F08A00000AB1234 /* ZIPFoundation */; };
-		19C0A1022F09000000C0A001 /* Unrar in Frameworks */ = {isa = PBXBuildFile; productRef = 19C0A1012F09000000C0A001 /* Unrar */; };
+		19D0A1022F0A000000D0A001 /* LibArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 19D0A1012F0A000000D0A001 /* LibArchive */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,8 +99,7 @@
 				196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */,
 				1983B7312FF4000100A1B2C3 /* SDWebImage in Frameworks */,
 				1983B7332FF4000100A1B2C3 /* SDWebImageWebPCoder in Frameworks */,
-				19B0A1022F08A00000AB1234 /* ZIPFoundation in Frameworks */,
-				19C0A1022F09000000C0A001 /* Unrar in Frameworks */,
+				19D0A1022F0A000000D0A001 /* LibArchive in Frameworks */,
 				19AEFE572EFC62E200EC7D3B /* StoreKit.framework in Frameworks */,
 				19AEC07F2EE714150073EB5F /* Flow in Frameworks */,
 			);
@@ -176,8 +174,7 @@
 				1983B7302FF4000100A1B2C3 /* SDWebImage */,
 				1983B7322FF4000100A1B2C3 /* SDWebImageWebPCoder */,
 				19AEC07E2EE714150073EB5F /* Flow */,
-				19B0A1012F08A00000AB1234 /* ZIPFoundation */,
-				19C0A1012F09000000C0A001 /* Unrar */,
+				19D0A1012F0A000000D0A001 /* LibArchive */,
 			);
 			productName = KMReader;
 			productReference = 192E6F7D2EC4B4E20040D165 /* KMReader.app */;
@@ -247,8 +244,7 @@
 				1983B72E2FF4000100A1B2C3 /* XCRemoteSwiftPackageReference "SDWebImage" */,
 				1983B72F2FF4000100A1B2C3 /* XCRemoteSwiftPackageReference "SDWebImageWebPCoder" */,
 				19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
-				19B0A1002F08A00000AB1234 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				19C0A1002F09000000C0A001 /* XCRemoteSwiftPackageReference "Unrar.swift" */,
+				19D0A1002F0A000000D0A001 /* XCRemoteSwiftPackageReference "libarchive-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 192E6F7E2EC4B4E20040D165 /* Products */;
@@ -442,7 +438,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "KMReader/KMReader-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 411;
 				DEVELOPMENT_TEAM = M777UHWZA4;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -500,7 +496,7 @@
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "KMReader/KMReader-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 411;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=appletvos*]" = M777UHWZA4;
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = M777UHWZA4;
@@ -560,7 +556,7 @@
 				CODE_SIGN_ENTITLEMENTS = KMReaderWidgets/KMReaderWidgets.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 411;
 				DEVELOPMENT_TEAM = M777UHWZA4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = KMReaderWidgets/Info.plist;
@@ -594,7 +590,7 @@
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 411;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = M777UHWZA4;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -687,20 +683,12 @@
 				minimumVersion = 3.1.1;
 			};
 		};
-		19B0A1002F08A00000AB1234 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+		19D0A1002F0A000000D0A001 /* XCRemoteSwiftPackageReference "libarchive-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			repositoryURL = "https://github.com/everpcpc/libarchive-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.19;
-			};
-		};
-		19C0A1002F09000000C0A001 /* XCRemoteSwiftPackageReference "Unrar.swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mtgto/Unrar.swift.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.5.2;
+				minimumVersion = 0.1.5;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -726,15 +714,10 @@
 			package = 19AEC07D2EE714150073EB5F /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
 			productName = Flow;
 		};
-		19B0A1012F08A00000AB1234 /* ZIPFoundation */ = {
+		19D0A1012F0A000000D0A001 /* LibArchive */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 19B0A1002F08A00000AB1234 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
-			productName = ZIPFoundation;
-		};
-		19C0A1012F09000000C0A001 /* Unrar */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 19C0A1002F09000000C0A001 /* XCRemoteSwiftPackageReference "Unrar.swift" */;
-			productName = Unrar;
+			package = 19D0A1002F0A000000D0A001 /* XCRemoteSwiftPackageReference "libarchive-swift" */;
+			productName = LibArchive;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
